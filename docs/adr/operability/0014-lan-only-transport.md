@@ -7,17 +7,18 @@
 ## Context
 
 The agent runs inside the homelab, on the same LAN as the mediator. Nothing outside the LAN needs
-to reach the system. Exposing the MCP endpoint publicly would add an entire class of risk —
+to reach the system. Exposing the endpoint publicly would add an entire class of risk —
 "someone on the internet reaches my mediator" — purely to serve callers that do not exist.
 
 ## Decision
 
-**The MCP endpoint is reachable only from the LAN.** No public ingress, no push-notification
+**The client surface is reachable only from the LAN.** No public ingress, no push-notification
 webhook, no inbound path from the internet of any kind. Within that scope:
 
-- **TLS on the MCP listener** — internal CA (cert-manager) or self-signed with the agent pinning.
+- **TLS on the listener** — internal CA (cert-manager) or self-signed with the client pinning.
   Encrypts LAN traffic and prevents casual interception.
-- **Bearer-token auth for the agent**, distinct from all provider credentials
+- **Bearer-token auth for every client** — the agent over MCP, or any caller of the API —
+  distinct from all provider credentials
   ([ADR-0013](./0013-credentials-and-rotation-writeback.md)).
 - **NetworkPolicy restricts egress** to provider API endpoints, the database, and DNS. This is the
   anti-exfiltration control, and it matters *more* than ingress restriction: the realistic attack
@@ -27,7 +28,7 @@ webhook, no inbound path from the internet of any kind. Within that scope:
   radius is small by construction ([ADR-0021](../mutation/0021-approval-surface.md)).
 
 What LAN-only does *not* buy: it is not a substitute for the Redaction Gate. Anyone or anything on
-the LAN reaching the MCP endpoint gets exactly what the gate permits and nothing more — the
+the LAN reaching the client surface gets exactly what the gate permits and nothing more — the
 invariant does not depend on network position.
 
 ## Alternatives considered

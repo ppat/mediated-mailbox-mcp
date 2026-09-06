@@ -15,7 +15,7 @@ placement in the request path) defeats the system from inside.
 
 Three constraints, one per leak direction.
 
-**Placement: outside the synchronous MCP path.** The scanner runs only in the batch subsystems.
+**Placement: outside the synchronous serving path.** The scanner runs only in the batch subsystems.
 Inline scanning would put a scanner bug or timeout directly between the agent and content, creating
 pressure to fail open under latency. Out of band, the only failure available is "not yet scanned" —
 which is a deny state.

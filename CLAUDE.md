@@ -25,7 +25,9 @@ Design questions resolve there, in that order: outcome → pillar/glossary → d
   records are the fluid layer. USE_CASES cites no individual records at all; traceability runs the
   other way, through each record's `Serves:` header. Records deep-link freely into the stable
   documents and each other.
-- **Superseding a decision mints a new record number** — never edit a decision in place.
+- **Changing a decision record**: in place when the change stays true to the original decision in
+  spirit and is backwards compatible with the previous interpretation; otherwise supersede with a
+  new record number. The record-format spec in `docs/adr/README.md` carries the test.
 - **No historical narration** in USE_CASES or DESIGN: they state only the current form. Records
   may carry limited history where it earns its place.
 - Internal links and anchors are checked offline by the `links` CI job on every PR

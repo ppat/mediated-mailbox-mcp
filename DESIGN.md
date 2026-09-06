@@ -18,23 +18,24 @@ in the [Glossary](#glossary) below, and nowhere else.
 
 ## 1. What the system is
 
-An AI agent is given a complete mailbox to organize, triage, and summarize. A self-hosted mediation
-layer sits between the mailbox provider and the agent, exposing an MCP interface while enforcing
-sender-based and content-based redaction underneath: the agent always sees full mailbox structure —
-every thread, sender, subject, label, timestamp — and never sees the body content of messages from
-a defined set of sensitive senders, nor the codes and login links that grant account access. The
-mailbox stays with its managed provider; only the mediation layer runs on infrastructure the
-operator already owns.
+An AI agent is given a complete mailbox to organize, triage, and summarize. A self-hosted
+mediation layer sits between the mailbox provider and the system's clients, exposing an API —
+with MCP as a thin protocol adapter over it — while enforcing sender-based and content-based
+redaction underneath: the agent always sees full mailbox structure — every thread, sender,
+subject, label, timestamp — and never sees the body content of messages from a defined set of
+sensitive senders, nor the codes and login links that grant account access. The mailbox stays
+with its managed provider; only the mediation layer runs on infrastructure the operator already
+owns.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ LAN (homelab)                                                    │
 │                                                                  │
 │  ┌────────────────────────┐      ┌────────────────────────────┐  │
-│  │ Agent (Claude Code, …) │      │ Operator, in a browser     │  │
-│  │ runs inside the LAN    │      │                            │  │
+│  │ Clients: agent (MCP),  │      │ Operator, in a browser     │  │
+│  │ API callers — in-LAN   │      │                            │  │
 │  └───────────┬────────────┘      └─────────────┬──────────────┘  │
-│              │ MCP over HTTPS                  │ HTTPS           │
+│              │ MCP or API, HTTPS               │ HTTPS           │
 │              │ bearer token                    │                 │
 └──────────────┼─────────────────────────────────┼─────────────────┘
                │                                 │
@@ -42,17 +43,17 @@ operator already owns.
 │ mail-mediator                      │  │ mail-ui                  │
 │                                    │  │  read-mostly reporting   │
 │ ┌────────────────────────────────┐ │  │  + approval surface      │
-│ │ MCP Transport / Tools          │ │  │  separate identity and   │
+│ │ Client Surface: API + MCP roots│ │  │  separate identity and   │
 │ └──────────────┬─────────────────┘ │  │  DB role; NEVER shows    │
 │ ┌──────────────▼─────────────────┐ │  │  bodies (none exist)     │
 │ │ Redaction Gate     ◄ CHOKEPOINT│ │  └────────┬─────────────────┘
 │ └──────────────┬─────────────────┘ │           │
 │ ┌──────────────▼─────────────────┐ │           │ writes ONLY (direct
-│ │ Mutation Authorizer            │ │           │ to DB, never MCP):
-│ └──────────────┬─────────────────┘ │           │ plan approve/reject,
-│ ┌──────────────▼─────────────────┐ │           │ candidate confirm/
-│ │ Sender Classifier              │ │           │ dismiss — ADR-0021
-│ └──────────────┬─────────────────┘ │           │
+│ │ Mutation Authorizer            │ │           │ to DB, never via the
+│ └──────────────┬─────────────────┘ │           │ client surface):
+│ ┌──────────────▼─────────────────┐ │           │ plan approve/reject,
+│ │ Sender Classifier              │ │           │ candidate confirm/
+│ └──────────────┬─────────────────┘ │           │ dismiss — ADR-0021
 │ ┌──────────────▼─────────────────┐ │           │
 │ │ Provider Port     ◄ ABSTRACTION│ │           │
 │ └──┬────────┬────────┬────────┬──┘ │           │
@@ -96,8 +97,8 @@ operator already owns.
 
 | Component | One job | Runs as |
 | --- | --- | --- |
-| MCP Transport / Tools | Validate, page, and route agent requests by account | mail-mediator |
-| Redaction Gate | Decide what survives the last hop before the agent | mail-mediator |
+| Client Surface (API + thin MCP adapter) | Validate, page, and route client requests by account | mail-mediator |
+| Redaction Gate | Decide what survives the last hop before any client | mail-mediator |
 | Mutation Authorizer | Enforce per-sensitivity mutation rights on every write | mail-mediator |
 | Sender Classifier | Classify senders deterministically against the policy list | mail-mediator |
 | Provider Port + adapters | Speak each provider's API; expose one canonical model | mail-mediator |
@@ -132,10 +133,10 @@ records.
 ### Metadata always flows; sensitive bodies never do
 
 Every component is judged on whether it holds that line at the only place it can be held reliably:
-the last hop before the agent, inside a process the agent cannot instruct. Structure — senders,
+the last hop before any client, inside a process no client can instruct. Structure — senders,
 subjects, threads, labels, dates — is always visible, because organizational capability is the
 system's purpose, not a concession. Sensitive content — restricted-sender bodies, MFA codes, login
-links — is never released, and no request the agent can make unlocks it.
+links — is never released, and no request any client can make unlocks it.
 
 Why: both halves at once are the point — where any other outcome would trade against holding
 them, the other outcome loses. And because the organizational patterns are metadata-derivable, the
@@ -164,15 +165,15 @@ delete) is a real guarantee, and the design takes it as defense-in-depth whereve
 
 ### One gate, N dumb adapters
 
-Redaction happens in exactly one place: above the provider adapters and below the MCP surface.
-Adapters return full data by design; the Redaction Gate decides what survives. No adapter, tool
-handler, or batch path holds its own copy of the rules.
+Redaction happens in exactly one place: above the provider adapters and below every client-facing
+surface. Adapters return full data by design; the Redaction Gate decides what survives. No
+adapter, frontend, tool handler, or batch path holds its own copy of the rules.
 
-Why: redaction can only be enforced above the provider adapter and below the MCP surface — no
-available mailbox credential can be scoped to exclude senders, and the MCP surface is where the
-agent instructs. Adapters return full data by design; the gate decides what survives — so a bug in
-adapter #3 cannot become a silent leak, because the adapter never had redaction responsibility to
-get wrong.
+Why: redaction can only be enforced above the provider adapter and below the client surface — no
+available mailbox credential can be scoped to exclude senders, and the client surface is where
+callers instruct. Adapters return full data by design; the gate decides what survives — so a bug
+in adapter #3 cannot become a silent leak, because the adapter never had redaction responsibility
+to get wrong.
 
 Known limit, stated rather than hidden: a single chokepoint concentrates correctness — a bug in the
 gate is a bug everywhere. That is the accepted trade; it is why the gate is built first, tested
@@ -211,16 +212,17 @@ message over-restricted by either axis stays restricted until the policy or verd
 corrected. Over-redaction is the accepted failure direction, and the masking and gate review loops
 exist to tune it from observed traffic.
 
-### Approval is not in the agent's vocabulary
+### Approval is not in any client's vocabulary
 
-The transition that authorizes a bulk mailbox change is performed by the operator, on a surface the
-agent cannot reach. No MCP tool performs it, so no sequence of agent actions — however persuaded,
-however prompt-injected — can manufacture consent. The agent proposes; the human disposes.
+The transition that authorizes a bulk mailbox change is performed by the operator, on a surface
+no client can reach. No MCP tool and no API endpoint performs it, so no sequence of client
+actions — however persuaded, however prompt-injected — can manufacture consent. Clients propose;
+the human disposes.
 
 Why: attacker-controlled text flows into the agent's planning input by design (subjects are always
 visible, and non-sensitive bodies flow). Instructing the agent to be careful is not a control. The
-control is structural: the approval verb does not exist on the agent-facing surface, so talking the
-agent into anything changes nothing.
+control is structural: the approval verb does not exist on the client-facing surface, so talking
+the agent into anything changes nothing.
 
 Known limit, stated rather than hidden: the approval surface itself becomes a target — compromise
 of it means malicious plans can be approved. Its write surface is kept minimal and its blast radius
@@ -231,8 +233,8 @@ decision records.
 
 Where a leak is possible, the design removes the type, field, column, or verb that could carry it,
 rather than adding a check that declines to use it. Scanner verdicts have no field a body could
-hide in. Metadata fetch paths cannot return content. The message store has no body column. The tool
-surface has no permanent-delete verb, and neither does the granted token.
+hide in. Metadata fetch paths cannot return content. The message store has no body column. The
+client surface has no permanent-delete operation, and neither does the granted token.
 
 Why: an unsafe state that is merely untaken can still be taken; one that cannot be represented
 cannot be reached at all — there is no field a body could hide in, no verb a permanent delete could
@@ -245,14 +247,14 @@ the design falls back to fail-closed checks plus audit, and says so explicitly.
 ### Everything above the port speaks canonical
 
 A single provider port defines the system's model of mail and calendar. Everything above it — gate,
-classifier, authorizer, MCP surface, batch workloads — speaks that canonical model; the adapters
+classifier, authorizer, client surface, batch workloads — speaks that canonical model; the adapters
 below it are the only code that knows a Gmail label from a JMAP mailbox. Adding a backend means
 writing one new adapter, not redesigning the system.
 
 Why: without the boundary, provider-specific concepts — label IDs, query syntax, mailbox trees,
 sync-state strings — appear above the adapter layer, and switching backends becomes a redesign
 instead of one new adapter. With it, each adapter compiles the differences away, and the redaction
-gate, classifier, and MCP surface never contain a branch on provider identity.
+gate, classifier, and client surface never contain a branch on provider identity.
 
 Known limit, stated rather than hidden: the abstraction is a design intention until the second
 adapter is built; the contract is only proven when a backend swap forces no change above the port.
@@ -292,7 +294,7 @@ constraint on the work, carried by [ROADMAP.md](./ROADMAP.md).
 
 The deployment keeps the endpoint off the internet and the agent inside the LAN — an exposure
 choice, recorded as a decision — but the redaction invariant does not depend on network position.
-A caller on the LAN, or malware on a laptop on the LAN, reaching the MCP endpoint gets exactly
+A caller on the LAN, or malware on a laptop on the LAN, reaching the client surface gets exactly
 what the gate permits and nothing more.
 
 Why: LAN-only scope is a meaningful simplification — it removes the entire class of
@@ -375,13 +377,18 @@ top-level documents, a decision record, or a ticket from here without guessing.
   throughout the documents: full organizational visibility and zero sensitive content, held at
   once.
 - **The mediator** (`mail-mediator`) — the process that holds provider credentials, enforces
-  redaction, and serves the MCP surface. The trust anchor.
-- **The agent** — whatever MCP client is given the mailbox to organize (Claude Code or similar).
-  Untrusted by design: every control assumes it can be talked into anything.
+  redaction, and serves the client surface. The trust anchor.
+- **Client** — any caller of the serving surface: the agent over MCP, or any caller of the API.
+  Every client is untrusted by design: every control assumes a client can be talked into, or
+  built to attempt, anything.
+- **The client surface** — the mediator's serving surface: the API plus its MCP adapter (shape
+  and rules: ADR-0030, via the [decision-record index](./docs/adr/README.md)).
+- **The agent** — the primary client today: the MCP-speaking assistant given the mailbox to
+  organize (Claude Code or similar).
 - **The operator** — the single human who owns the infrastructure, edits policy, and approves
   plans.
 - **The UI** (`mail-ui`) — the read-mostly reporting and approval surface. Separate deployment,
-  separate identity, no provider credentials; carries the approval verbs the agent lacks.
+  separate identity, no provider credentials; carries the approval verbs no client has.
 - **Provider** — the managed service actually holding the mail or calendar (Gmail, Fastmail).
 
 ### Sensitivity and redaction
@@ -397,10 +404,10 @@ top-level documents, a decision record, or a ticket from here without guessing.
   of the deliberate skip states. "Not scanned" has distinct meanings with different consequences;
   pending always denies.
 - **Redaction Gate** — the mediator component that decides, at the last hop, which fields of a
-  message the agent receives. Distinct from the *Scan Gate* below.
+  message a client receives. Distinct from the *Scan Gate* below.
 - **Scan Gate** — the batch-side predicate that decides which non-restricted bodies are worth
-  scanning. Distinct from the *Redaction Gate* above: the Redaction Gate guards release to the
-  agent; the Scan Gate budgets scanning work.
+  scanning. Distinct from the *Redaction Gate* above: the Redaction Gate guards release to
+  clients; the Scan Gate budgets scanning work.
 - **Content Scanner** — the component that reads bodies it intends to withhold, detects codes and
   links, and emits verdicts that structurally cannot carry content.
 - **Masking** — replacing a detected secret inside an otherwise-visible field (an MFA code in a
@@ -449,7 +456,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Rate profile** — an adapter's declaration of what operations cost on its provider and what
   budget exists. The limiter is provider-agnostic; only adapters know costs.
 - **Priority class** — the division of the per-account rate budget between interactive, sync, and
-  batch work, so background work can never starve the agent.
+  batch work, so background work can never starve interactive work.
 - **Lease** — a short-lived allocation of rate budget to one process, the mechanism by which
   separate workloads share one per-account budget without a coordinator process.
 - **Audit log** — the record of every body served, every denial, and every mutation. Must survive

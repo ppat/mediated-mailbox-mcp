@@ -35,7 +35,12 @@ record's number is stable. Records themselves link freely: deep into
   requires. The readers here — humans and LLMs — read text; this index is the queryable view.
 - **Statuses:** **Proposed** (adopted by the documents, awaiting operator ratification) →
   **Accepted** → **Superseded** (the header gains `**Superseded by:** ADR-NNNN`; the replacement
-  is a new number, never an edit-in-place of the old decision).
+  is a new number).
+- **In-place change versus supersession.** An accepted record may change in place when the change
+  stays true to the original decision in spirit and is backwards compatible with the previous
+  interpretation — everything true or permitted under the old reading remains so (broadening a
+  referent, clarifying, adding a consequence the decision always implied). A change that
+  reverses, narrows, or re-argues what was decided supersedes instead.
 - **One decision per record, cut by the re-argue test.** Decisions merge into one record when they
   share one review context and would be re-argued together — reversing one forces re-arguing the
   others. They stay separate when independently reversible. A record found to be carrying two
@@ -100,3 +105,4 @@ record's number is stable. Records themselves link freely: deep into
 | 0024 | [Target half the ceiling, hard-cap at 80%, adapt below with AIMD](./operability/0024-conservative-target-aimd.md) | Accepted |
 | 0025 | [One budget per account, split by priority class, shared via database leases](./operability/0025-priority-classes-and-leases.md) | Accepted |
 | 0028 | [Hardening the trust anchor: minimal pod, detectable drift, surviving evidence](./operability/0028-trust-anchor-hardening.md) | Accepted |
+| 0030 | [The serving layer is an API; MCP is a thin protocol adapter over it](./operability/0030-api-core-mcp-thin-adapter.md) | Accepted |

@@ -14,11 +14,12 @@ An AI agent is given access to a complete mailbox to organize, triage, and summa
 must always see full mailbox structure — every thread, sender, subject, label, and timestamp — so
 it can do real organizational work across the whole inbox. The one thing it must never see is the
 body content of messages from a defined set of sensitive senders, or the codes and login links
-that grant account access. A self-hosted mediation layer sits between the mailbox and the agent,
-exposing an MCP interface while enforcing sender-based and content-based redaction underneath. The
-mailbox provider — Gmail today, potentially Fastmail later — sits behind an abstraction the rest
-of the system does not need to know about. The layer runs on infrastructure the operator already
-owns, under their existing GitOps pattern.
+that grant account access. A self-hosted mediation layer sits between the mailbox and the
+system's clients, exposing an API — with MCP as a thin protocol adapter over it — while enforcing
+sender-based and content-based redaction underneath. The mailbox provider — Gmail today,
+potentially Fastmail later — sits behind an abstraction the rest of the system does not need to
+know about. The layer runs on infrastructure the operator already owns, under their existing
+GitOps pattern.
 
 ## The fixed point
 
@@ -113,7 +114,7 @@ the agent, and no request the agent can make unlocks it.**
 
 *Falsified by any of:*
 
-- A body from a sender matching the deny list reaching the agent through any tool path.
+- A body from a sender matching the deny list reaching the agent through any tool or API path.
 - A tool argument, session flag, or "override" parameter existing that unlocks a restricted body —
   a suborned or prompt-injected agent asking for one must receive a denial, not the body.
 - The sensitive-sender set being a fixed hardcoded list rather than an editable, extensible
@@ -204,9 +205,9 @@ restructuring, and the operator can enact it.**
 
 - The agent unable to propose a taxonomy change spanning the whole corpus.
 - A proposed reorganization being applied without the operator's explicit approval.
-- The approval step being reachable through the MCP surface — a prompt-injected agent must not be
-  able to manufacture its own approval, so the approve transition must live outside the agent's
-  vocabulary entirely.
+- The approval step being reachable through the client-facing surface (any API endpoint or MCP
+  tool) — a prompt-injected agent must not be able to manufacture its own approval, so the
+  approve transition must live outside every client's vocabulary entirely.
 - The operator unable to review what a plan will do — its scale, its per-message effect, a
   sample — before approving.
 
@@ -231,7 +232,7 @@ knows which backend is in use.**
 
 - Provider-specific concepts (Gmail label IDs, Gmail query syntax, JMAP mailbox trees, JMAP state
   strings) appearing above the adapter boundary.
-- The redaction gate, classifier, or MCP surface containing a branch on provider identity.
+- The redaction gate, classifier, or client surface containing a branch on provider identity.
 - A canonical operation that one backend can express and the other cannot, with no normalization —
   the contract must be the intersection both can honour, with per-backend cost and sync
   differences hidden behind the adapter.
@@ -302,8 +303,8 @@ permanently delete anything.**
   organize-only means label and move, nothing that removes it from view. Losing an IRS notice to
   spam is the specific harm this guards against.
 - Any message, sensitive or not, being permanently deleted — permanent delete is absent from both
-  the tool surface and the granted token capability, so the guarantee is structural rather than a
-  policy check.
+  the client surface and the granted token capability, so the guarantee is structural rather than
+  a policy check.
 - A batch mutation mixing sensitivity classes partially applying — a batch that would trash a mix
   of normal and restricted messages must fail whole, not archive the ones it is allowed to and
   leave a surprising partial state.

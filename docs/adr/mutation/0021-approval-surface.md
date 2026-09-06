@@ -1,12 +1,12 @@
 # 0021. The approval surface is a separate UI that writes the database directly — two verbs, no credentials
 
 **Status:** Accepted ·
-**Pillar:** [Approval is not in the agent's vocabulary](../../../DESIGN.md#approval-is-not-in-the-agents-vocabulary) ·
+**Pillar:** [Approval is not in any client's vocabulary](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary) ·
 **Serves:** [G3](../../../USE_CASES.md#g3--reorganization), [A3](../../../USE_CASES.md#a3--bulk-change-is-reversible), [O2](../../../USE_CASES.md#o2--observable)
 
 ## Context
 
-Two human workflows need a surface the agent cannot reach: approving reorganization plans
+Two human workflows need a surface no client can reach: approving reorganization plans
 ([ADR-0020](./0020-reorg-plan-approve-apply-rollback.md)) and confirming sensitive-sender
 candidates ([ADR-0004](../classification/0004-sender-list-decides.md)). The same surface is where
 the operator reads what the system is doing — the audits and measurements the design keeps
@@ -28,8 +28,8 @@ mediator:
 
 Constraints that keep it safe to exist:
 
-- **Writes go directly to Postgres, never through MCP** — preserving the agent's structural
-  inability to approve its own plans.
+- **Writes go directly to Postgres, never through the client surface** — preserving every
+  client's structural inability to approve its own plans.
 - **Separate Deployment, ServiceAccount, and database role**: read-only on most tables; its write
   grant is exactly `reorg_plans(status, approved_at, approved_by)` and
   `policy_candidates(status, reviewed_at)` — the columns each verb sets, nothing else. The limit
@@ -38,7 +38,7 @@ Constraints that keep it safe to exist:
 - **It never displays message bodies** — structurally, because it reads a database with no body
   columns ([ADR-0016](../data/0016-schema.md)). Stated here so nobody later adds a "preview"
   feature by proxying through the mediator.
-- **TLS and its own auth, LAN-only**, same posture as the MCP endpoint
+- **TLS and its own auth, LAN-only**, same posture as the client surface
   ([ADR-0014](../operability/0014-lan-only-transport.md)).
 
 The shape is a small single-page app over a thin read API — deliberately unambitious, since its
@@ -46,9 +46,9 @@ value is legibility plus two buttons.
 
 ## Alternatives considered
 
-- **Approval through the mediator's API (a privileged human token on the MCP surface).** Rejected:
-  it puts the approval verb back into the surface the agent speaks, one credential-handling bug
-  away from the agent's reach. Separate surface, separate process, separate identity.
+- **Approval through the mediator's client surface (a privileged human token).** Rejected:
+  it puts the approval verb back into the surface clients speak, one credential-handling bug
+  away from a client's reach. Separate surface, separate process, separate identity.
 - **CLI-only approval, no UI.** Workable for the approve verb alone, and acceptable as an interim
   — but it fails the legibility half: skip rates, masking events, and candidate evidence need
   visual review, and an unmeasured accepted risk is the thing this design refuses to carry.

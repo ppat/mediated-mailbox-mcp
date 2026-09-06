@@ -78,9 +78,9 @@ loops, not perfected up front.
 Nothing is delivered — this roadmap predates the first line of code, and the register starts
 empty, deliberately.
 
-What does **not** exist yet, so a cold reader does not assume otherwise: no MCP endpoint, no
-index, no gate, no deployment, and no proven property of any kind — every claim in the design is
-authored, none is yet demonstrated.
+What does **not** exist yet, so a cold reader does not assume otherwise: no API or MCP endpoint,
+no index, no gate, no deployment, and no proven property of any kind — every claim in the design
+is authored, none is yet demonstrated.
 
 ## The value path
 
@@ -192,8 +192,8 @@ database, no provider.
 What everything runs on: credentials, store, adapter, budget.
 
 - [ ] **F1 — Auth spike** → [O3](./USE_CASES.md#o3--survives-its-failure-modes) · V1 · ≈½ day
-  No MCP, no redaction, no database: obtain the Gmail refresh token, store it, mount it via the
-  secret-sync path, make one authenticated list call — and **deliberately exercise
+  No client surface, no redaction, no database: obtain the Gmail refresh token, store it, mount
+  it via the secret-sync path, make one authenticated list call — and **deliberately exercise
   rotation writeback**. *Criteria:* writeback survives a pod restart.
 - [ ] **F2 — Postgres + schema + Gmail adapter, metadata path** →
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · V2 · ≈2 days
@@ -221,12 +221,14 @@ The index and the surfaces that read it.
   [C3](./USE_CASES.md#c3--content-based-secrets-caught) · V2 · ≈1 day
   The composite gate evaluated with pass-1 statistics; gated body scanning; skip decisions
   recorded from the first evaluation. Review skip rates before trusting the compromise.
-- [ ] **D3 — MCP surface, read-only** →
+- [ ] **D3 — Client surface (API + thin MCP adapter), read-only** →
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · V3 · ≈1–2 days
-  The tools: `list_threads`, `get_message_metadata`, `get_message_body`, `search_messages`,
-  `list_policy_rules`, `corpus_stats`; TLS and bearer auth; connect the real agent. **Manually attempt to talk the agent into a restricted
-  body** — the first end-to-end proof of the invariant against a live adversary. *Criteria:* every
-  serve and denial audited.
+  The canonical API contract (OpenAPI) with its one-to-one MCP mirror, exposing `list_threads`,
+  `get_message_metadata`, `get_message_body`, `search_messages`, `list_policy_rules`,
+  `corpus_stats`; TLS and bearer auth on both roots; connect the real agent. **Manually attempt
+  to talk the agent into a restricted body** — the first end-to-end proof of the invariant
+  against a live adversary. *Criteria:* every serve and denial audited; API operations and MCP
+  tools match one-to-one.
 - [ ] **D4 — Delta sync** →
   [C1](./USE_CASES.md#c1--metadata-always-visible) · V3 · ≈1 day
   Cursor management, gap detection and bounded recovery, idempotency. Run alongside backfill for a
@@ -301,7 +303,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [P2](./USE_CASES.md#p2--backend-swap) backend swap | X4 | — |
 | [P3](./USE_CASES.md#p3--multi-account) multi-account | X3 | — |
 | [A1](./USE_CASES.md#a1--asymmetric-mutation) asymmetric mutation | M1 | — |
-| [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) no destructive action | — | No dedicated unit, correctly: one structural half lands with F1 (token scope), the other with M1 (tool surface); criteria ride those units |
+| [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) no destructive action | — | No dedicated unit, correctly: one structural half lands with F1 (token scope), the other with M1 (client surface); criteria ride those units |
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | F3 | — |
 | [O2](./USE_CASES.md#o2--observable) observable | H1 | Emission rides S1 · S2 · F3 · D2 · D3 as criteria; H1 is presentation and shipping |
@@ -346,7 +348,7 @@ Three kinds, kept apart because conflating them is how phase numbering ossifies.
 The inverse of the value path — each is an anti-constraint the posture must not be read as
 licensing:
 
-- Building the MCP surface before the gate exists, "adding redaction after" — retrofitting the
+- Building the client surface before the gate exists, "adding redaction after" — retrofitting the
   invariant is the fail-open path.
 - Running backfill before the rate limiter exists — debugging two new systems against a live
   provider at once, with the account-restriction failure mode in play on day one.
