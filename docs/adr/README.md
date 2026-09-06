@@ -96,6 +96,7 @@ record's number is stable. Records themselves link freely: deep into
 | 0019 | [Asymmetric mutation: organize everything, dispose by sensitivity, delete nothing](./mutation/0019-asymmetric-mutation.md) | Accepted |
 | 0020 | [Reorganization is plan → approve → apply → rollback, with an exact-restore op log](./mutation/0020-reorg-plan-approve-apply-rollback.md) | Accepted |
 | 0021 | [The approval surface writes the database directly: two verbs, no credentials](./mutation/0021-approval-surface.md) | Accepted |
+| 0031 | [Every mutating operation is dry-runnable — a preflight that writes nothing](./mutation/0031-dry-run-on-mutating-operations.md) | Accepted |
 
 ## Operability — `operability/`
 
