@@ -16,7 +16,7 @@ work, and separate processes can collectively overrun a budget each respects ind
 
 | Class | Reservation | Behavior under contention |
 | --- | --- | --- |
-| **Interactive** (MCP: body fetches, listings) | 30% of current rate, guaranteed | never yields |
+| **Interactive** (client surface: body fetches, listings) | 30% of current rate, guaranteed | never yields |
 | **Sync** (delta job) | 20% | brief queuing acceptable |
 | **Batch** (backfill, reorg apply) | remaining 50%, yields | absorbs all decrease first |
 

@@ -14,11 +14,11 @@ to the deny list and expects it to bind immediately.
 ## Decision
 
 `get_message_body` re-classifies from the index at fetch time, against current policy, trusting
-nothing the agent supplies:
+nothing a client supplies:
 
 ```
 Gate re-classifies from the index at fetch time
-  │  (never trusts agent-supplied sensitivity context)
+  │  (never trusts caller-supplied sensitivity context)
   ├─ scan_state = PENDING             → DENY ("pending content scan")
   ├─ scan_state = SKIPPED_RESTRICTED  → DENY (policy)
   ├─ sender_class = restricted        → DENY (policy)
@@ -43,9 +43,9 @@ accepted residual of [ADR-0007](./0007-composite-scan-gate.md).
 - **Trust the classification cached at enumeration time.** Rejected: a deny-list addition would
   keep leaking until a re-sync — exactly the failure
   [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released) names as falsifying.
-- **Accept agent-supplied sensitivity context** (e.g. the sensitivity block the agent received with
-  the metadata). Rejected: anything the agent supplies, an injected agent can forge. Inputs to the
-  release decision must come only from state the agent cannot write.
+- **Accept caller-supplied sensitivity context** (e.g. the sensitivity block a client received
+  with the metadata). Rejected: anything a client supplies, a suborned client can forge. Inputs
+  to the release decision must come only from state no client can write.
 - **Fetch the body first, then decide.** Rejected: it moves every denied body through mediator
   memory for no benefit, enlarging the blast radius of any spill or logging bug.
 

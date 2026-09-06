@@ -31,8 +31,8 @@ class AccountContext:
 
 The rules that keep accounts from bleeding:
 
-- **`account_id` is required on every MCP tool.** There is no implicit current account; omission
-  is an error, not a default.
+- **`account_id` is required on every client-surface operation** (API endpoint or MCP tool).
+  There is no implicit current account; omission is an error, not a default.
 - **Every table is partitioned or indexed on `account_id`**, all queries go through a repository
   layer that requires it, and row-level security stands behind that as a second, independent
   layer ([ADR-0016](../data/0016-schema.md)).

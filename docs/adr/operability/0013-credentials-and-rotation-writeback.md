@@ -33,7 +33,7 @@ Deployment mounts as files (not env vars — env leaks via /proc and crash dumps
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md)).
 - **A Kyverno admission policy fences the Secret:** no pod in the namespace may mount the
   credentials Secret except the mediator's own ServiceAccount.
-- **No credential ever crosses the MCP boundary.** The agent authenticates to the mediator with a
+- **No credential ever crosses the client boundary.** Clients authenticate to the mediator with a
   bearer token distinct from every provider credential; the mediator authenticates to providers.
   Two trust domains that never mix.
 - **The UI holds no provider credentials at all** — only a scoped database role

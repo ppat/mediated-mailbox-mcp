@@ -7,9 +7,9 @@
 ## Context
 
 Gmail and JMAP disagree on nearly everything observable: query syntax, label semantics, change
-feeds, batching, metadata guarantees. The system above them — gate, classifier, authorizer, MCP
-surface, batch workloads — must not know which is in use, and the contract must be shaped so the
-safety-relevant distinctions (metadata versus body) are structural, not conventional.
+feeds, batching, metadata guarantees. The system above them — gate, classifier, authorizer,
+client surface, batch workloads — must not know which is in use, and the contract must be shaped
+so the safety-relevant distinctions (metadata versus body) are structural, not conventional.
 
 ## Decision
 
@@ -86,7 +86,7 @@ them.
   would spread above the boundary, and every emulation gap becomes a behavioral difference the
   gate and tools must know about — the exact provider-awareness the port exists to prevent.
 - **Pass provider-native query strings through.** Rejected: query syntax in the agent's vocabulary
-  couples the MCP surface to one backend and makes queries unanalyzable by the mediator.
+  couples the client surface to one backend and makes queries unanalyzable by the mediator.
 - **One combined `get_message` returning metadata plus optional body.** Rejected: it makes "does
   this call carry content" a runtime question. Two methods make it a structural one.
 

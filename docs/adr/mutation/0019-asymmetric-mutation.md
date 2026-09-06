@@ -34,7 +34,7 @@ The rules behind the matrix:
   though its body was withheld.
 - **Restricted means organize-only.** Label and move, nothing that removes a message from view:
   no archive, trash, spam, or mute.
-- **Permanent delete exists nowhere.** It is absent from the tool surface *and* from the granted
+- **Permanent delete exists nowhere.** It is absent from the client surface *and* from the granted
   token capability ([ADR-0011](../provider/0011-gmail-auth-installed-app-oauth.md)) — the
   guarantee is structural twice over, not a policy check.
 - **Batches are all-or-nothing per authorization class.** A batch mixing normal and restricted

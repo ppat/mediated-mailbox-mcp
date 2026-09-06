@@ -1,7 +1,7 @@
 # 0020. Reorganization is plan → approve → apply → rollback, with an exact-restore operation log
 
 **Status:** Accepted ·
-**Pillar:** [Approval is not in the agent's vocabulary](../../../DESIGN.md#approval-is-not-in-the-agents-vocabulary) ·
+**Pillar:** [Approval is not in any client's vocabulary](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary) ·
 **Serves:** [G3](../../../USE_CASES.md#g3--reorganization), [A3](../../../USE_CASES.md#a3--bulk-change-is-reversible), [A2](../../../USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)
 
 ## Context
@@ -22,10 +22,10 @@ no read path needs.
                stats: {affected, threads, new_labels} }
 
 2. REVIEW  the UI shows the diff, a sample of affected messages, per-message reasoning
-             the MCP surface also exposes describe_reorg_plan / sample_reorg_plan — read-only
+             the client surface also exposes describe_reorg_plan / sample_reorg_plan — read-only
 
 3. APPROVE the operator, in the UI. Writes the plan's status directly to the database.
-             ► NO MCP TOOL PERFORMS THIS TRANSITION.
+             ► NO CLIENT OPERATION — MCP TOOL OR API ENDPOINT — PERFORMS THIS TRANSITION.
 
 4. APPLY   a job: ensure labels exist → batched mutations
              every operation recorded to the op log (labels before/after)
@@ -39,11 +39,11 @@ The decisions inside the cycle, each with its reason:
 
 - **A plan is data, not action.** The difference between "the agent reorganized my mail" and "the
   agent proposed a reorganization I approved."
-- **Approval is structurally out of reach.** No MCP tool transitions DRAFT → APPROVED, so prompt
-  injection cannot manufacture consent — the verb does not exist in the agent's vocabulary. The
-  injection defense in depth: the review sample shows real affected messages before approval, and
-  the authorizer independently blocks disposal verbs on restricted messages at apply time — so
-  even an approved malicious plan cannot execute the worst operations.
+- **Approval is structurally out of reach.** No client operation transitions DRAFT → APPROVED,
+  so prompt injection cannot manufacture consent — the verb does not exist in any client's
+  vocabulary. The injection defense in depth: the review sample shows real affected messages
+  before approval, and the authorizer independently blocks disposal verbs on restricted messages
+  at apply time — so even an approved malicious plan cannot execute the worst operations.
 - **The op log makes rollback exact, not inferred.** Before/after labels per operation, roughly a
   hundred bytes each — forty thousand operations is a few megabytes, trivially worth it.
 - **Apply is checkpointed.** A failed run resumes; a partially-applied plan is a known,
@@ -57,7 +57,7 @@ The decisions inside the cycle, each with its reason:
 
 - **Direct bulk mutation with a confirmation prompt to the agent.** Rejected: a confirmation the
   agent can provide is a confirmation an injected agent can provide. Consent must live on a
-  surface the agent cannot reach.
+  surface no client can reach.
 - **Rollback by recomputing the inverse from the plan.** Rejected: inference breaks the moment
   anything else touched the mailbox between apply and rollback; the op log records what actually
   happened, so undo is deterministic replay.
