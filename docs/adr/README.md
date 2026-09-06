@@ -41,6 +41,9 @@ record's number is stable. Records themselves link freely: deep into
   interpretation — everything true or permitted under the old reading remains so (broadening a
   referent, clarifying, adding a consequence the decision always implied). A change that
   reverses, narrows, or re-argues what was decided supersedes instead.
+- **Consequences name what the decision assumes about other components.** A dependency on how
+  another component or subsystem behaves, left implicit, is the coupling that breaks future
+  evolution; naming it in the record makes it reviewable at the moment it is created.
 - **One decision per record, cut by the re-argue test.** Decisions merge into one record when they
   share one review context and would be re-argued together — reversing one forces re-arguing the
   others. They stay separate when independently reversible. A record found to be carrying two
