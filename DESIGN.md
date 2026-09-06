@@ -323,6 +323,28 @@ Known limit, stated rather than hidden: this is the one failure the design canno
 unrepresentable, only expensive, detectable, and evidenced — which is why the audit trail must ship
 somewhere a compromised mediator cannot erase.
 
+### Concerns stay un-braided; components know only their contracts
+
+Nothing in the design or the implementation may inhibit future evolution — including evolution
+arriving after the entire currently-envisioned product is built and working. Two rules carry
+that. Choices are judged on whether they braid together concerns that will need to vary
+independently, and the familiar-but-complected option never wins over the simple-but-harder one.
+And no component assumes or encodes anything about how other components or subsystems operate
+beyond what its contract with them says — contracts are the only licensed knowledge; everything
+else is somebody else's business.
+
+Why: the design's deliberate absences — absent verbs, absent columns, a minimal write surface —
+are explicit, decision-recorded, and extendable any time by minting a new decision through the
+front door; they do not inhibit evolution. What inhibits it is implicit coupling: a component
+quietly relying on how another behaves today, captured in no record and found by no future reader
+until it breaks their extension. The architecture already instantiates the principle — the
+provider port, the separation of the gate from the authorizer, the four separate workloads — and
+this pillar makes it binding on every decision and every line of code to come, which is why
+decision records name their cross-component assumptions in their Consequences.
+
+Known limit, stated rather than hidden: like the backend swap, this is only truly tested when an
+evolution actually arrives; until then it is enforced structure awaiting its test.
+
 ## 3. Known limits
 
 The pillars state their limits in place; this table exists so the full set — every pillar's limit,
@@ -342,6 +364,7 @@ where each disposition is recorded, not what it is — the record named is the s
 | Content released to the agent is released — context, transcripts, memory | ADR-0029 bounds it; it cannot be recalled |
 | Mediator compromise defeats redaction | ADR-0028 — hardening, blast radius, off-cluster evidence |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
+| Un-braided concerns and contract-only knowledge are only truly tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
 | The corpus is assumed ≤100k messages per account | ADR-0016 records what changes beyond it |
 | The agent is assumed to run inside the LAN | ADR-0014 records what reopens if it does not |
 
