@@ -64,6 +64,7 @@ record's number is stable. Records themselves link freely: deep into
 | 0009 | [The scanner runs out-of-band, in-memory, emitting verdicts that cannot carry content](./redaction/0009-scanner-verdicts-carry-no-content.md) | Accepted |
 | 0029 | [Released bodies are sanitized and delimited as untrusted data](./redaction/0029-released-bodies-are-sanitized.md) | **Superseded** |
 | 0036 | [Released bodies are clean Markdown — content and links, nothing else](./redaction/0036-released-bodies-are-clean-markdown.md) | Accepted |
+| 0037 | [Delisting is a designed transition: a removed sender's messages are marked pending scan](./redaction/0037-delisting-transition.md) | Accepted |
 
 ## Classification — `classification/`
 

@@ -40,3 +40,5 @@ Two boundaries this deliberately does not move:
 - A large fraction of the corpus's sensitive volume is removed from the scanner's blast radius
   entirely — the scanner only ever holds bodies that were at least candidates for release.
 - Backfill's body-scanning pass shrinks accordingly; restricted messages cost metadata work only.
+- Removal from the sensitive list is a designed transition: the sender's messages are marked
+  pending scan ([ADR-0037](./0037-delisting-transition.md)).

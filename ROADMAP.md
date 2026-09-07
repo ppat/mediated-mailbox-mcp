@@ -221,7 +221,8 @@ The index and the surfaces that read it.
 - [ ] **D2 — Scan gate + backfill pass 2** →
   [C3](./USE_CASES.md#c3--content-based-secrets-caught) · V2 · ≈1 day
   The composite gate evaluated with pass-1 statistics; gated body scanning; skip decisions
-  recorded from the first evaluation. Review skip rates before trusting the compromise.
+  recorded from the first evaluation; the delisting transition (ADR-0037). Review skip rates
+  before trusting the compromise.
 - [ ] **D3 — Client surface (API + thin MCP adapter), read-only** →
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · V3 · ≈1–2 days
   The canonical API contract (OpenAPI) with its one-to-one MCP mirror, exposing `list_threads`,

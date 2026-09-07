@@ -50,7 +50,7 @@ distinct meanings with different consequences:
 | `SCANNED` | Scanner ran, verdict recorded | Yes, if no flags and sender normal |
 | `SKIPPED_RESTRICTED` | Sender restricted; scan pointless | No — denied by sender class |
 | `SKIPPED_GATE` | Gate said don't scan | **Yes** — accepted risk, after the serve-time pattern check ([ADR-0002](./0002-fetch-time-re-evaluation.md)) |
-| `PENDING` | Backfill/sync has not reached it | No — fail closed |
+| `PENDING` | Not yet scanned: backfill or sync has not reached it, or delisting re-queued it ([ADR-0037](./0037-delisting-transition.md)) | No — fail closed |
 
 `SKIPPED_GATE` is the compromise made explicit in the type system: the one state where a body is
 released without having been scanned.
