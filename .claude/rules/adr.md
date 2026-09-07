@@ -26,7 +26,9 @@ these are the tripwires that must hold even in a drive-by edit:
 - **The title is the decision stated as a claim**, never a topic. The header line under the H1 is
   the single home for the record's metadata (Status, Pillar when one applies, Serves, tickets).
 - **Four fixed sections**: Context, Decision, Alternatives considered, Consequences. Alternatives
-  may be an explicit "none seriously considered, because …" but never absent.
+  may be an explicit "none seriously considered, because …" but never absent — and each
+  alternative carries the case made for it, not only why it lost; where no case was tabled, say
+  so plainly rather than inventing one.
 - **Consequences state what the decision assumes about other components.** A dependency on how
   another component or slice behaves, left implicit, is the coupling that breaks future
   evolution; naming it here is what makes it reviewable.

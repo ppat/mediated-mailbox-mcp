@@ -25,8 +25,10 @@ record's number is stable. Records themselves link freely: deep into
   pillar. This line is the *single* home for a record's metadata; the tables below mirror status
   for scanning, and the record wins on disagreement.
 - **Fixed sections: Context, Decision, Alternatives considered, Consequences.** Alternatives is
-  mandatory, because a decision whose alternatives are unstated cannot be re-argued honestly — an
-  explicit "none seriously considered, because …" is a valid body; a missing section is
+  mandatory, because a decision whose alternatives are unstated cannot be re-argued honestly —
+  and each alternative carries the case that was made for it, not only why it lost, for the same
+  reason. An alternative for which no case was tabled says so plainly rather than inventing one.
+  An explicit "none seriously considered, because …" is a valid body; a missing section is
   indistinguishable from an oversight. Where a Decision's own structure already carries the
   rejected options (a verdict table, rejection reasons inline), the section says so and points at
   them rather than restating.
