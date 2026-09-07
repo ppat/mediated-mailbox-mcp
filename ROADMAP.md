@@ -14,7 +14,7 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
 while its pending verification rows are unproven.
 
-**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A3, O1–O3) are defined in
+**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A3, O1–O4) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
 defined here. Decisions are cited by number and resolved through the
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
@@ -241,7 +241,7 @@ The index and the surfaces that read it.
 
 The write path, in escalating blast radius. This group carries
 [A3](./USE_CASES.md#a3--bulk-change-is-reversible)'s machinery inside M2 and
-[O2](./USE_CASES.md#o2--observable)'s legibility surfaces inside M3 — flagged here rather than
+[G3](./USE_CASES.md#g3--reorganization)'s plan review view inside M3 — flagged here rather than
 split, because the engine and its reversibility, and the UI and its views, are each built as one
 piece.
 
@@ -258,7 +258,7 @@ piece.
   **Test rollback on a real ~1000-message plan before trusting it on 40k.** Approval is
   command-line-only until M3.
 - [ ] **M3 — Reporting + approval UI** →
-  [G3](./USE_CASES.md#g3--reorganization) · V4 · ≈2–3 days
+  [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) · V4 · ≈2–3 days
   Corpus overview, plan diff and approval, review queue, masking events, gate decisions, audit
   view; separate deployment and scoped database role. *Criteria:* the accepted-residual and
   masking loops become operator-reviewable.
@@ -305,7 +305,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | — |
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F2 · D3 | — |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | — |
-| [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M3 | — |
+| [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 | The plan review view rides M3, flagged in Group M's preamble |
 | [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | D4 | — |
 | [P1](./USE_CASES.md#p1--one-contract) one contract | — | No dedicated unit, correctly: the contract is authored in the decision records and proven by X4 |
 | [P2](./USE_CASES.md#p2--backend-swap) backend swap | X4 | — |
@@ -316,6 +316,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | F3 | — |
 | [O2](./USE_CASES.md#o2--observable) observable | H1 | Emission rides S1 · S2 · F3 · D2 · D3 as criteria; H1 is presentation and shipping |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F1 | Drills ride D1 (kill mid-run) · F3 (rate-controller pathology) · H1 (the rest); the gap-recovery drill keys to G4 and the rollback drill to A3 |
+| [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 | — |
 
 ## Dependencies
 
