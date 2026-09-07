@@ -14,7 +14,7 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
 while its pending verification rows are unproven.
 
-**Identifiers.** Outcomes (C1–C3, G1–G3, P1–P3, A1–A3, O1–O3) are defined in
+**Identifiers.** Outcomes (C1–C4, G1–G3, P1–P3, A1–A3, O1–O3) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
 defined here. Decisions are cited by number and resolved through the
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
@@ -263,7 +263,7 @@ piece.
   view; separate deployment and scoped database role. *Criteria:* the accepted-residual and
   masking loops become operator-reviewable.
 - [ ] **M4 — Heuristics job + embeddings** →
-  [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) · V4 · ≈1–2 days
+  [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) · V4 · ≈1–2 days
   Candidate generation into the review queue; needs M3 to be useful, hence after it.
 
 ### Group X — expansion
@@ -300,8 +300,9 @@ Each unit is a deliberate test of a contract authored long before it.
 | Outcome | Remaining units | Gaps |
 | --- | --- | --- |
 | [C1](./USE_CASES.md#c1--metadata-always-visible) metadata visible | D4 · X2 | — |
-| [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | S1 · S3 · M4 | — |
+| [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | S1 · S3 | — |
 | [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | S2 · D2 · X1 | — |
+| [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | — |
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F2 · D3 | — |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | — |
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M3 | — |
