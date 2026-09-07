@@ -18,6 +18,9 @@ than a new section. For each check, actually open the files involved — do not 
   change generalized that another document still states narrowly (or vice versa); numbers or
   thresholds stated in two places (there should be exactly one home — fix the second into a
   pointer); a superseded decision still cited as current authority.
+- Overlap without contradiction is also a defect: when two outcomes or rules could both plausibly
+  claim the same failure, check that the final texts let a cold reader tell which one a given
+  failure falsifies — a boundary that lives only in the author's head is not in the documents.
 - **When a change alters a rule or doctrine — not just content — enumerate every statement of
   that rule across the whole set, front doors included** (CLAUDE.md and README.md restate
   doctrine even though they hold no facts), exactly as §4 treats renamed terms: every statement
@@ -55,7 +58,8 @@ reconcile them in the same change:
   normalized to standard vernacular — never imported silently. Fidelity to the agreement's
   meaning does not require importing its coinages.
 - Changed or retired terms: no stale uses left anywhere in the set.
-- **When a change renames, generalizes, or narrows a term or referent: enumerate, then
+- **When a change renames, generalizes, or narrows a term or referent — or adds a member to an
+  enumerated set** (an axis, an identifier range, a timing enumeration): **enumerate, then
   disposition.** List every occurrence of the OLD phrasing across the whole set — write down the
   phrase families first (for a client-surface change they were: "MCP surface", "MCP endpoint",
   "MCP tool", "tool surface", "the agent" as caller, "last hop before") and search for each;
@@ -74,11 +78,14 @@ reconcile them in the same change:
   its members. The reviewer's completeness check runs against the ledger, not against the diff.
 - **The ledger closes by reconciliation, not assertion.** Record the per-family hit count from
   the enumeration; every hit maps to exactly one row or one named group member; a file's rows
-  close only when all of that file's hits are dispositioned. An in-place broadening of a record
-  dispositions the WHOLE record — re-read it end to end, because broadening one section while a
-  sibling section keeps the narrow phrasing is the half-generalized-record failure, and it has
-  recurred. A ledger stating "everything dispositioned" without the counts is the assertion this
-  rule exists to eliminate.
+  close only when all of that file's hits are dispositioned. When one file carries several hits
+  of a family, name each hit — a ledger row covering a file with N hits lists N dispositions —
+  and check the arithmetic row by row against the enumeration output before declaring closure.
+  An in-place broadening of a record dispositions the WHOLE record — re-read it end to end,
+  because broadening one section while a sibling section keeps the narrow phrasing is the
+  half-generalized-record failure, and it has recurred. These duties bind every enumeration a
+  change performs, volunteered or obligatory — a ledger stating "everything dispositioned"
+  without the counts is the assertion this rule exists to eliminate.
 - **Specify the enumeration instrument, because a wrong instrument produces confident wrong
   counts:** search case-insensitively; count occurrences, not matching lines; tolerate the
   phrase wrapping across a line break (normalize each file's whitespace before counting, e.g.

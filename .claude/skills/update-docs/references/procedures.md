@@ -28,13 +28,21 @@ work; they do not replace reading the authority for the file you touch.
 4. Write the record: H1 as the decision stated as a claim (`# NNNN. <claim>`); metadata header
    line (`**Status:** … · **Pillar:** [name](deep link), when one applies · **Serves:**
    [outcome](deep link)s`); then Context, Decision, Alternatives considered, Consequences.
+   Derive `Serves:` from which outcomes' falsifiers the decision's rules protect; when the record
+   generalizes or extends existing records, start from their `Serves:` lists and account for any
+   outcome dropped. When no outcome's falsifiers are protected by the decision, do not force a
+   fit — take the Serves question to the operator.
 5. In Consequences, state what the decision assumes about other components — implicit coupling
    named here is reviewable; left unnamed it is the thing that breaks future evolution.
 5a. In the record's prose, deep-link every decision-record and outcome identifier to its file or
    section — bare numbers are the stable documents' convention, not a record's.
 5b. Walk the Decision and Consequences claim by claim against the source (the operator agreement
-   or discussion being recorded) and name each claim's source before committing. A claim with no
-   source is removed or taken to the operator — no exception for claims that "obviously follow."
+   or discussion being recorded) and name each claim's source before committing. Walk against the
+   source's own words, quoted — checking your sentence against a paraphrase of it verifies
+   nothing, and a verb or qualifier present in your sentence but absent from the quoted source is
+   itself a finding against the walk. The walk covers the header line too — Status, Pillar, and
+   Serves are claims like any other. A claim with no source is removed or taken to the
+   operator — no exception for claims that "obviously follow."
 5c. Walk the Decision's bullets once more asking: does this bullet state a rule that is enforced,
    checked, or called testable? Each yes is a control, and each control lands with its injection
    row in `docs/VERIFICATIONS.md` in this same change — or with a written parking or
@@ -84,6 +92,11 @@ current picture from either end. The stable documents always state the current f
 generalization sweep (the coherence check's enumerate-and-disposition step) applies to them and
 to the affected records alike.
 
+Relocating decision content between records (an operator-directed carve): the moved content's
+old home must not survive anywhere. Sweep for references to the moved decision both by the
+mechanism's name and by its effect — a pointer row citing the old record "for the narrowing"
+escapes a name-only sweep — and re-point every one to the new home in the same change.
+
 ## Add a new outcome
 
 The highest-burden change in the repository along with pillar changes: it alters the near-frozen
@@ -94,10 +107,19 @@ contract. Requires the operator's explicit agreement — never add an outcome on
 2. Section shape: bolded claim; `*Falsified by any of:*` list of concrete, observable failures;
    scope notes where a criterion would otherwise be misread (including "this looks like failure
    but is success" cases).
-3. Add the outcome to the axis table at the top of USE_CASES.md, with its anchor link.
+2a. The outcome's claim, falsifiers, and any scope note get the same written claim-by-claim
+   source walk a record mint gets (step 5b there), quoted from the agreement — this is the
+   highest-burden document; nothing lands in it unwalked.
+3. Add the outcome to the axis table at the top of USE_CASES.md, with its anchor link — and
+   update every other statement of the identifier scheme in the same change: the "Why these axes"
+   diagram, any member-enumerating axis preamble, DESIGN.md's Glossary "Outcome identifiers"
+   entry, and ROADMAP.md's Identifiers preamble. The ranges ("C1–C3") are derived views that go
+   stale silently.
 4. Re-point what serves it: the roadmap unit(s) building it (`→` pointer and the mapping table),
    and any verification rows that prove it. Records implementing it add it to their `Serves:`
-   header when next touched — do not mass-edit records for this alone.
+   header when next touched — do not mass-edit records for this alone. When a unit's header
+   outcome is re-pointed, account for the displaced outcome from its own side too: state where
+   its machinery now rides, in the group preamble and the mapping table's Gaps column.
 5. No decision-record citations inside USE_CASES.md, ever.
 
 ## Change an existing outcome
@@ -125,6 +147,9 @@ records' `Serves:` headers) for meaning drift against the new text.
 
 - New coined term: define it in the Glossary AND at first use in whatever narrative introduced
   it. One definition; the narrative introduction is context, not a second definition.
+- A named parameter or threshold used in more than one document is a term even when its name is
+  plain and descriptive: it gets an identifying entry — the referent, and where its rule and
+  value live — never the rule restated.
 - **An entry identifies the referent; the rules governing it stay in their record.** An entry
   that would need rewriting if one decision record were superseded is holding that record's
   content — replace the rule text with a pointer ("shape and rules: ADR-NNNN").
@@ -156,6 +181,18 @@ records' `Serves:` headers) for meaning drift against the new text.
   violation that must be refused (introduce the drift, break the rule, plant the fixture — and
   watch the control fire). A control whose violation you cannot name is not yet a testable
   control; take it back to the record.
+- A row states only what the record decides. Never encode an ordering, mechanism, or
+  implementation detail the record leaves open. And construct the fixture so no other control
+  could produce the expected refusal — an injection whose refusal two controls could each explain
+  proves neither.
+- An absence row — plant a fixture, then search an output surface and expect it absent — is a
+  sanctioned shape with two extra duties: the planted fixture must be something only the control
+  under test suppresses (no other control may explain the absence), and the search must cover the
+  entire output surface the guarantee spans.
+- A control dispositioned as parked or as riding a unit's criterion still leaves a trace in the
+  catalogue: a row in its parked/answerable section naming the control, the disposition, and
+  where the proof rides. The catalogue claims every control; a disposition living only in a
+  record is invisible from the catalogue's side.
 - A new control lands with its row in the same change. Proving a row later: status gains the date
   and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
 - Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.

@@ -108,7 +108,12 @@ Then commit with the documentation lifecycle verbs, which make the history
 scannable: **mint** (new record), **supersede** (record replaced by a new number), **catalogue**
 (verification rows), **reconcile** (roadmap brought back in line with reality, with the Position
 line re-dated), **retire** (something removed deliberately), **record** (anything else worth a
-verb). Example: `docs: mint ADR-0030 — the serving layer is an API; MCP adapts it`.
+verb). Example: `docs: mint ADR-0030 — the serving layer is an API; MCP adapts it`. The commit
+message also carries a short body — what changed and why, for the log's cold reader — never a
+bare title. After any review round changes the content, re-derive the commit message and the
+pull-request body from the tree as it now stands — a patched body accretes stale quotes and
+session-scoped narration, and a squash-merge lands the stale commit message on the default
+branch.
 
 One ordering rule with teeth: **documents change before the code that implements them** — a wrong
 line corrected in the spec after code shipped means the code faithfully implemented the wrong
