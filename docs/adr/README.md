@@ -113,3 +113,4 @@ record's number is stable. Records themselves link freely: deep into
 | 0025 | [One budget per account, split by priority class, shared via database leases](./operability/0025-priority-classes-and-leases.md) | Accepted |
 | 0028 | [Hardening the trust anchor: minimal pod, detectable drift, surviving evidence](./operability/0028-trust-anchor-hardening.md) | Accepted |
 | 0030 | [The serving layer is an API; MCP is a thin protocol adapter over it](./operability/0030-api-core-mcp-thin-adapter.md) | Accepted |
+| 0033 | [Timestamps on the client surface are UTC-only; non-UTC input is rejected, never converted](./operability/0033-utc-only-timestamps.md) | Accepted |
