@@ -67,7 +67,7 @@ unobservable (Axis 5).
 | **Organizational capability** | [G1](#g1--whole-mailbox-visibility) Whole-mailbox view · [G2](#g2--historical-understanding) Historical understanding · [G3](#g3--reorganization) Reorganization · [G4](#g4--the-index-tracks-the-live-mailbox) Index tracks live | What the agent can *do* with what it sees |
 | **Provider abstraction** | [P1](#p1--one-contract) One contract · [P2](#p2--backend-swap) Backend swap · [P3](#p3--multi-account) Multi-account | Independence from any one backend |
 | **Safe action** | [A1](#a1--asymmetric-mutation) Asymmetric mutation · [A2](#a2--no-destructive-action-on-sensitive-mail) No destructive action · [A3](#a3--bulk-change-is-reversible) Reversible bulk change | What the agent may change, and how safely |
-| **Operability** | [O1](#o1--rate-limited-politely) Rate-limited · [O2](#o2--observable) Observable · [O3](#o3--survives-its-failure-modes) Survives failure | Cross-cutting qualities |
+| **Operability** | [O1](#o1--rate-limited-politely) Rate-limited · [O2](#o2--observable) Observable · [O3](#o3--survives-its-failure-modes) Survives failure · [O4](#o4--the-operator-can-see-and-steer) Operator legibility | Cross-cutting qualities |
 
 ```mermaid
 flowchart TB
@@ -75,7 +75,7 @@ flowchart TB
     G["Axis 2 — organizational capability:<br/>G1 whole-mailbox view · G2 historical understanding · G3 reorganization · G4 index tracks live"]
     P["Axis 3 — provider abstraction:<br/>P1 one contract · P2 backend swap · P3 multi-account"]
     A["Axis 4 — safe action:<br/>A1 asymmetric mutation · A2 no destructive action · A3 reversible bulk change"]
-    O["Axis 5 — operability:<br/>O1 rate-limited · O2 observable · O3 survives failure"]
+    O["Axis 5 — operability:<br/>O1 rate-limited · O2 observable · O3 survives failure · O4 operator legibility"]
     P -->|"gives every other axis a backend-neutral surface"| C
     C -->|"is what makes visibility safe to offer"| G
     G -->|"is what the agent acts on"| A
@@ -360,7 +360,8 @@ after it happens.**
 
 Cross-cutting qualities. They differ in when they can be satisfied: O1 (rate limiting) must exist
 before the first workload large enough to trip provider limits; O2 (metrics) can only be falsified
-retrospectively; O3 (recovery) can be exercised whenever its subjects are deployed.
+retrospectively; O3 (recovery) can be exercised whenever its subjects are deployed; O4
+(legibility) can be judged only once the interface it measures exists.
 
 ### O1 — Rate-limited politely
 
@@ -416,6 +417,25 @@ dashboard on a metric that exists is a configuration change.
   trust anchor — if the pod is owned, redaction is moot because the attacker calls the provider
   directly, so the outcome is not "this cannot happen" but "this is hardened, its blast radius is
   understood, and evidence of it survives off-cluster."
+
+### O4 — The operator can see and steer
+
+**The operator can answer what was masked and why, what was skipped and why, what a proposed plan
+will do, and which senders await their decision — from the interface, without querying the
+database.**
+
+*Falsified by any of:*
+
+- Approving a plan requires reading raw plan data rather than a rendered difference view with a
+  sample of affected messages.
+- Masking rules cannot be tuned because no surface shows which rules fired and on what.
+- Any accepted-risk instrument (gate skips, masking events) exists only as a table nobody can
+  read without SQL.
+
+*Scope note:* this criterion involves usability judgment ("legible to whom?") in a way "body
+never released" does not — accepted, because a criterion a human can argue about beats no
+criterion at all. The boundary with [O2](#o2--observable): O2 covers whether the data exists;
+this outcome covers whether the human can use it.
 
 ## Non-outcomes
 

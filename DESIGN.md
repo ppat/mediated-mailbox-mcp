@@ -505,7 +505,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
 ### Identifiers
 
 - **Outcome identifiers** — C1–C4 (the invariant), G1–G4 (organizational capability), P1–P3
-  (provider abstraction), A1–A3 (safe action), O1–O3 (operability): defined in
+  (provider abstraction), A1–A3 (safe action), O1–O4 (operability): defined in
   [USE_CASES.md](./USE_CASES.md) and used as the coordinate system everywhere else.
 - **ADR-NNNN** — decision records, numbered globally in mint order, resolved through
   [docs/adr/README.md](./docs/adr/README.md).
