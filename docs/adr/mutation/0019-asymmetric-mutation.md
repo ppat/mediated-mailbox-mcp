@@ -39,7 +39,9 @@ The rules behind the matrix:
   guarantee is structural twice over, not a policy check.
 - **Batches are all-or-nothing per authorization class.** A batch mixing normal and restricted
   messages with a disposal verb fails entirely, with a clear error, rather than applying to the
-  allowed subset and leaving a surprising partial state.
+  allowed subset and leaving a surprising partial state. This is one case of the general rule —
+  any validation failure fails the batch whole, before the first write
+  ([ADR-0032](./0032-whole-batch-validation.md)).
 
 ## Alternatives considered
 
