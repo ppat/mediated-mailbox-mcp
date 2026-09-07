@@ -64,7 +64,7 @@ unobservable (Axis 5).
 | Axis | Outcomes | Kind |
 | --- | --- | --- |
 | **The invariant** | [C1](#c1--metadata-always-visible) Metadata visible · [C2](#c2--sensitive-sender-content-never-released) Content never released · [C3](#c3--content-based-secrets-caught) Secrets caught · [C4](#c4--the-sensitive-sender-list-keeps-pace) List keeps pace | The fixed point, split into falsifiable halves, with the sender list kept current |
-| **Organizational capability** | [G1](#g1--whole-mailbox-visibility) Whole-mailbox view · [G2](#g2--historical-understanding) Historical understanding · [G3](#g3--reorganization) Reorganization | What the agent can *do* with what it sees |
+| **Organizational capability** | [G1](#g1--whole-mailbox-visibility) Whole-mailbox view · [G2](#g2--historical-understanding) Historical understanding · [G3](#g3--reorganization) Reorganization · [G4](#g4--the-index-tracks-the-live-mailbox) Index tracks live | What the agent can *do* with what it sees |
 | **Provider abstraction** | [P1](#p1--one-contract) One contract · [P2](#p2--backend-swap) Backend swap · [P3](#p3--multi-account) Multi-account | Independence from any one backend |
 | **Safe action** | [A1](#a1--asymmetric-mutation) Asymmetric mutation · [A2](#a2--no-destructive-action-on-sensitive-mail) No destructive action · [A3](#a3--bulk-change-is-reversible) Reversible bulk change | What the agent may change, and how safely |
 | **Operability** | [O1](#o1--rate-limited-politely) Rate-limited · [O2](#o2--observable) Observable · [O3](#o3--survives-its-failure-modes) Survives failure | Cross-cutting qualities |
@@ -72,7 +72,7 @@ unobservable (Axis 5).
 ```mermaid
 flowchart TB
     C["Axis 1 — the invariant:<br/>C1 metadata visible · C2 content never released · C3 secrets caught · C4 list keeps pace"]
-    G["Axis 2 — organizational capability:<br/>G1 whole-mailbox view · G2 historical understanding · G3 reorganization"]
+    G["Axis 2 — organizational capability:<br/>G1 whole-mailbox view · G2 historical understanding · G3 reorganization · G4 index tracks live"]
     P["Axis 3 — provider abstraction:<br/>P1 one contract · P2 backend swap · P3 multi-account"]
     A["Axis 4 — safe action:<br/>A1 asymmetric mutation · A2 no destructive action · A3 reversible bulk change"]
     O["Axis 5 — operability:<br/>O1 rate-limited · O2 observable · O3 survives failure"]
@@ -231,6 +231,22 @@ change" requirement lands. It is bulk mutation of the provider, so it is bound t
 [A3](#a3--bulk-change-is-reversible) (reversibility) and
 [A2](#a2--no-destructive-action-on-sensitive-mail) (no destructive action on sensitive mail) — the
 capability and its safety rails are separate outcomes on purpose.
+
+### G4 — The index tracks the live mailbox
+
+**The index tracks the live mailbox within a bounded staleness, and a gap in the provider's change
+feed is detected, recovered from, and made loud.**
+
+*Falsified by any of:*
+
+- Mail newer than one sync interval being invisible to the agent beyond that bound.
+- An invalidated cursor causing messages to be permanently missing from the index.
+- Gap recovery succeeding silently, so a chronically stuck sync job looks healthy.
+
+*Scope note:* freshness is bounded by the sync cadence — a message newer than one sync interval
+may not yet be enumerable, and that bound is this outcome working, not a
+[C1](#c1--metadata-always-visible) failure. C1's enumeration claim is read against the index the
+cadence maintains.
 
 ## Axis 3 — Provider abstraction
 

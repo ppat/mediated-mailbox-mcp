@@ -14,7 +14,7 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
 while its pending verification rows are unproven.
 
-**Identifiers.** Outcomes (C1–C4, G1–G3, P1–P3, A1–A3, O1–O3) are defined in
+**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A3, O1–O3) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
 defined here. Decisions are cited by number and resolved through the
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
@@ -233,7 +233,7 @@ The index and the surfaces that read it.
   one-to-one; timestamps on both roots are UTC-only, with non-UTC input rejected; no operation
   requires an identifier the surface's read operations cannot supply.
 - [ ] **D4 — Delta sync** →
-  [C1](./USE_CASES.md#c1--metadata-always-visible) · V3 · ≈1 day
+  [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) · V3 · ≈1 day
   Cursor management, gap detection and bounded recovery, idempotency. Run alongside backfill for a
   few days and reconcile counts against the provider to catch drift.
 
@@ -299,13 +299,14 @@ Each unit is a deliberate test of a contract authored long before it.
 
 | Outcome | Remaining units | Gaps |
 | --- | --- | --- |
-| [C1](./USE_CASES.md#c1--metadata-always-visible) metadata visible | D4 · X2 | — |
+| [C1](./USE_CASES.md#c1--metadata-always-visible) metadata visible | X2 | Mail-side visibility is built by F2 and D3 (G1 units); X2 is the calendar half |
 | [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | S1 · S3 | — |
 | [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | S2 · D2 · X1 | — |
 | [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | — |
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F2 · D3 | — |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | — |
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M3 | — |
+| [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | D4 | — |
 | [P1](./USE_CASES.md#p1--one-contract) one contract | — | No dedicated unit, correctly: the contract is authored in the decision records and proven by X4 |
 | [P2](./USE_CASES.md#p2--backend-swap) backend swap | X4 | — |
 | [P3](./USE_CASES.md#p3--multi-account) multi-account | X3 | The identifier-discoverability criterion (ADR-0035) rides D3 |
@@ -314,7 +315,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | F3 | — |
 | [O2](./USE_CASES.md#o2--observable) observable | H1 | Emission rides S1 · S2 · F3 · D2 · D3 as criteria; H1 is presentation and shipping |
-| [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F1 | Drills ride D1 (kill mid-run) · D4 (gap recovery) · M2 (rollback) · H1 (the rest) |
+| [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F1 | Drills ride D1 (kill mid-run) · F3 (rate-controller pathology) · H1 (the rest); the gap-recovery drill keys to G4 and the rollback drill to A3 |
 
 ## Dependencies
 
