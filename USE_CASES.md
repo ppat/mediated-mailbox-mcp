@@ -125,6 +125,16 @@ the agent, and no request the agent can make unlocks it.**
   contents") succeeding in extracting restricted content.
 - A body denial reaching the provider — on deny, the provider must never be contacted, so no body
   enters mediator memory at all.
+- The description or conferencing join link of a restricted event being released when the
+  participant on the sensitive list is an attendee rather than the organizer.
+- The description or conferencing join link of an event marked private being released on the
+  grounds that no listed domain matched.
+
+*Scope note:* the calendar bullets extend this outcome's content-release side to events, whose
+restriction keys on any attendee or the private marking rather than only a listed sender, and
+whose withheld content is the description and conferencing join link. Titles, times, attendees,
+and the visibility class itself stay visible — that structure half is
+[C1](#c1--metadata-always-visible)'s.
 
 *Scope note:* the deny decision is re-evaluated at fetch time against current policy, not cached
 from enumeration. Adding a domain to the deny list must take effect on the next call, not the next
@@ -358,6 +368,8 @@ after it happens.**
   checkpointed so a failed run resumes and a partial application is a known, describable state.
 - A plan of implausible scale being applied without a second confirmation — a change touching a
   large fraction of the corpus is more likely a bug than an intent.
+- A plan deleting a label that still has messages in it, or a rollback unable to restore state a
+  provider-side cascade removed.
 
 ### A4 — Released bodies are clean Markdown that cannot do anything
 
@@ -408,8 +420,8 @@ rather than the documented one, and never lets background work starve interactiv
 *Falsified by any of:*
 
 - A question about an elapsed window — body-serve and denial counts, gate skip rate and reasons,
-  scan backlog depth, mutation counts, rate-controller behaviour, unclassified-sender volume —
-  that the metric store cannot answer.
+  what was masked and by which rule and tier, scan backlog depth, mutation counts, rate-controller
+  behaviour, unclassified-sender volume — that the metric store cannot answer.
 - The accepted-risk residual of [C3](#c3--content-based-secrets-caught) not being measurable after
   the fact — the scan-gate-decision record is what turns an accepted risk into an audited one.
 - A body served, denied, or a mutation applied without an audit record — and, because the mediator

@@ -301,7 +301,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | Outcome | Remaining units | Gaps |
 | --- | --- | --- |
 | [C1](./USE_CASES.md#c1--metadata-always-visible) metadata visible | X2 | Mail-side visibility is built by F2 and D3 (G1 units); X2 is the calendar half |
-| [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | S1 | Injection hardening on released bodies rides S3, now serving A4 |
+| [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | S1 | Injection hardening on released bodies rides S3, now serving A4; the calendar content-release side rides X2 |
 | [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | S2 · D2 · X1 | The serve-time check rides S3 (an A4 unit) |
 | [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | — |
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F2 · D3 | — |
