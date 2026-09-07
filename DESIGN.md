@@ -436,6 +436,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   links, and emits verdicts that structurally cannot carry content.
 - **Masking** — replacing a detected secret inside an otherwise-visible field (an MFA code in a
   subject) with an opaque placeholder.
+- **Delisting transition** — the designed path for a sender removed from the sensitive list: its
+  messages are marked pending scan and re-enter the ordinary scanning machinery (rule: ADR-0037,
+  via the [decision-record index](./docs/adr/README.md)).
 - **Serve-time pattern check** — the additional inspection a gate-skipped body passes at
   release (rule: ADR-0002, via the [decision-record index](./docs/adr/README.md)).
 - **The residual** — the accepted, measured set of bodies released without having been scanned
