@@ -15,10 +15,10 @@ noticed, and what evidence survives."
 
 Layered hardening, each layer answering one of those three questions:
 
-- **Raising the cost:** credentials as mounted files with an admission fence
-  ([ADR-0013](./0013-credentials-and-rotation-writeback.md)); pod security enforced by Kyverno
-  policy — non-root, read-only root filesystem, all capabilities dropped, no host network; a
-  distroless image with no shell; images signed and verified at admission.
+- **Raising the cost:** credentials as mounted files that only the mediator can read
+  ([ADR-0038](./0038-credentials-as-mounted-files.md)); the mediator runs hardened and minimal —
+  no elevated privileges, an immutable filesystem, no shell, nothing beyond what it needs — with
+  the hardening enforced by policy, and images signed and verified before they run.
 - **Noticing:** all manifests GitOps-managed, so drift between declared and running state is
   detectable rather than silent; egress locked to provider APIs, database, and DNS
   ([ADR-0014](./0014-lan-only-transport.md)), so a compromised pod's call home is a policy

@@ -29,4 +29,4 @@ categories, which is scoping worth exploiting.
 ## Consequences
 
 - Fastmail credentials follow the same storage and mounting rules as all others
-  ([ADR-0013](../operability/0013-credentials-and-rotation-writeback.md)).
+  ([ADR-0038](../operability/0038-credentials-as-mounted-files.md)).

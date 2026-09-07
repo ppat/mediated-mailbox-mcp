@@ -44,4 +44,4 @@ the token lacks is a capability no compromise of the mediator can exercise.
 - The token can never permanently delete mail, regardless of any code bug — the client surface's
   half of that guarantee is [ADR-0019](../mutation/0019-asymmetric-mutation.md).
 - Refresh-token durability becomes a load-bearing operational concern; its handling is
-  [ADR-0013](../operability/0013-credentials-and-rotation-writeback.md).
+  [ADR-0039](../operability/0039-rotation-writeback.md).

@@ -19,7 +19,7 @@ webhook, no inbound path from the internet of any kind. Within that scope:
   Encrypts LAN traffic and prevents casual interception.
 - **Bearer-token auth for every client** — the agent over MCP, or any caller of the API —
   distinct from all provider credentials
-  ([ADR-0013](./0013-credentials-and-rotation-writeback.md)).
+  ([ADR-0038](./0038-credentials-as-mounted-files.md)).
 - **NetworkPolicy restricts egress** to provider API endpoints, the database, and DNS. This is the
   anti-exfiltration control, and it matters *more* than ingress restriction: the realistic attack
   is not an outsider reaching in but a prompt-injected agent trying to send data out — and a
