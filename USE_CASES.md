@@ -402,3 +402,5 @@ Recorded so a later reader does not mistake an absence for an oversight and "fix
 - **The agent's own design is out of scope.** This system mediates access; how the agent uses that
   access is a separate concern. The design must *accommodate* the agent's use cases
   (whole-mailbox organization, historical analysis, reorganization) without *being* the agent.
+- **A granular per-client access model is deliberately not planned.** A single bearer token
+  grants access to all accounts; per-client access scoping is not a targeted capability.
