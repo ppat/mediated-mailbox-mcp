@@ -1,0 +1,167 @@
+# Procedures, by change type
+
+Step-by-step mechanics for each kind of document change. Format authorities remain the documents
+themselves (each preamble, and `docs/adr/README.md` for records) — these procedures sequence the
+work; they do not replace reading the authority for the file you touch.
+
+## Contents
+
+- [Mint a new decision record](#mint-a-new-decision-record)
+- [Supersede an existing decision](#supersede-an-existing-decision)
+- [Add a new outcome](#add-a-new-outcome)
+- [Change an existing outcome](#change-an-existing-outcome)
+- [Add or update a pillar, known limit, or failure mode](#add-or-update-a-pillar-known-limit-or-failure-mode)
+- [Glossary changes](#glossary-changes)
+- [Roadmap changes](#roadmap-changes)
+- [Verification rows](#verification-rows)
+- [Front-door files (README.md, CLAUDE.md)](#front-door-files-readmemd-claudemd)
+
+## Mint a new decision record
+
+1. Find the highest number in `docs/adr/README.md` across ALL groups; the new record takes the
+   next one. Never reuse, never leave gaps deliberately.
+2. Pick the folder by theme (`redaction/`, `classification/`, `provider/`, `data/`, `mutation/`,
+   `operability/`). Folders are navigation only — do not agonize; a record can move later without
+   renumbering. Filename: `NNNN-short-slug.md`.
+3. Check granularity with the re-argue test: decisions merge into one record when reversing one
+   would force re-arguing the others; they stay separate records when independently reversible.
+4. Write the record: H1 as the decision stated as a claim (`# NNNN. <claim>`); metadata header
+   line (`**Status:** … · **Pillar:** [name](deep link), when one applies · **Serves:**
+   [outcome](deep link)s`); then Context, Decision, Alternatives considered, Consequences.
+5. In Consequences, state what the decision assumes about other components — implicit coupling
+   named here is reviewable; left unnamed it is the thing that breaks future evolution.
+5a. In the record's prose, deep-link every decision-record and outcome identifier to its file or
+   section — bare numbers are the stable documents' convention, not a record's.
+5b. Walk the Decision and Consequences claim by claim against the source (the operator agreement
+   or discussion being recorded) and name each claim's source before committing. A claim with no
+   source is removed or taken to the operator — no exception for claims that "obviously follow."
+5c. Walk the Decision's bullets once more asking: does this bullet state a rule that is enforced,
+   checked, or called testable? Each yes is a control, and each control lands with its injection
+   row in `docs/VERIFICATIONS.md` in this same change — or with a written parking or
+   rides-on-a-unit disposition. Controls include rules the record restates from other records
+   with widened scope (a posture "applied identically" to a new surface widens the older
+   controls' scope — disposition those too, typically as riding the existing rows). A record
+   introducing N controls while the catalogue gains fewer than N dispositions is an unfinished
+   mint.
+6. Status: `Accepted` if the operator has agreed to this decision (in conversation counts);
+   `Proposed` if adopted by the documents but awaiting ratification — and then also add a row to
+   ROADMAP.md's Open decisions table naming what it gates.
+7. Add the index row in `docs/adr/README.md`: number, link whose text is a shortened restatement
+   of the decision, status (bold if not Accepted).
+8. If stable documents need to cite it, they cite "ADR-NNNN" in plain text with the index linked
+   nearby — never a deep link to the record.
+
+## Supersede an existing decision
+
+1. Never edit the old record's substance. Mint the replacement as a NEW record (procedure above)
+   whose Decision restates everything that now holds — the new record must stand alone, because
+   readers are redirected away from the old one.
+2. Old record: change only the header line — `**Status:** Superseded — **Superseded by:**
+   [ADR-NNNN](./relative-link.md) ·`. Body untouched.
+3. New record's header may carry `(supersedes [ADR-MMMM](./relative-link.md))` after its status.
+4. Update both index rows.
+5. Hunt every citation of the old number in the stable documents and re-point or reword — a
+   stable document citing a superseded record for a claim the successor changed is a coherence
+   break (the whole-set check will catch it, but fix it now).
+6. Partial supersession (one record carried two separable decisions and only one changed): split
+   at this touch — mint two records, one restating the unchanged decision, one carrying the
+   change; the old record is superseded by both, named in its header.
+
+## Changing an existing record: in place, or by supersession?
+
+Apply the in-place test from the adr rule: **a record may change in place when the change stays
+true to the original decision in spirit AND is backwards compatible with the previous
+interpretation** — everything true or permitted under the old reading stays true or permitted.
+Broadening a referent because a new decision widened the world (e.g. "the agent" → "every
+client" after a second client surface was decided), clarifying wording, or adding a consequence
+the decision always implied are in-place changes. Reversing, narrowing, or re-arguing what was
+decided is a supersession (procedure below). Unsure which side a change is on → ask the
+operator.
+
+When a new decision broadens what older records name, the new record still states the
+generalization in its own terms and deep-links the records it touches — the reader gets the
+current picture from either end. The stable documents always state the current form, so the
+generalization sweep (the coherence check's enumerate-and-disposition step) applies to them and
+to the affected records alike.
+
+## Add a new outcome
+
+The highest-burden change in the repository along with pillar changes: it alters the near-frozen
+contract. Requires the operator's explicit agreement — never add an outcome on your own judgment.
+
+1. Assign the identifier: next number within the axis (letter = axis). Heading form:
+   `### X9 — Short name`.
+2. Section shape: bolded claim; `*Falsified by any of:*` list of concrete, observable failures;
+   scope notes where a criterion would otherwise be misread (including "this looks like failure
+   but is success" cases).
+3. Add the outcome to the axis table at the top of USE_CASES.md, with its anchor link.
+4. Re-point what serves it: the roadmap unit(s) building it (`→` pointer and the mapping table),
+   and any verification rows that prove it. Records implementing it add it to their `Serves:`
+   header when next touched — do not mass-edit records for this alone.
+5. No decision-record citations inside USE_CASES.md, ever.
+
+## Change an existing outcome
+
+Falsifier additions and scope-note clarifications keep the outcome's identity; anything that
+changes what the outcome promises is contract change and needs the operator's explicit agreement.
+Check every place the outcome is cited (roadmap unit pointers, mapping table, verification rows,
+records' `Serves:` headers) for meaning drift against the new text.
+
+## Add or update a pillar, known limit, or failure mode
+
+- A new pillar needs the operator's explicit agreement and must pass the split test: still true
+  no matter which way any single reversible decision goes. Shape: heading as a claim; body =
+  claim (2–4 sentences) → `Why:` → `Known limit, stated rather than hidden:`.
+- A pillar addition gets the same written claim-by-claim source walk a record mint gets: every
+  sentence names its source line in the agreement or the existing documents before commit. A
+  known limit especially must carry the agreement's hedge exactly — softening or hardening a
+  limit is meaning drift at the design's highest-burden level.
+- The pillar's known limit also gets a pointer row in §3's Known limits table (where the
+  disposition lives — never the fact restated). New failure modes get a §4 row: name,
+  likelihood/impact, disposition pointer.
+- Renaming a pillar heading changes its anchor: update every record's `**Pillar:**` deep link.
+
+## Glossary changes
+
+- New coined term: define it in the Glossary AND at first use in whatever narrative introduced
+  it. One definition; the narrative introduction is context, not a second definition.
+- **An entry identifies the referent; the rules governing it stay in their record.** An entry
+  that would need rewriting if one decision record were superseded is holding that record's
+  content — replace the rule text with a pointer ("shape and rules: ADR-NNNN").
+- Retiring a term: remove its uses everywhere in the same change; if old external references may
+  exist (tickets), keep a "retired synonym" note on the successor term's entry.
+- Two meanings colliding on one word: both entries carry explicit cross-referenced
+  disambiguation.
+
+## Roadmap changes
+
+- Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets —
+  and state what it did NOT deliver. Re-date `**Position:**` whenever checklists are reconciled
+  against reality.
+- New unit: group letter + next index; header `**ID — name** → <one outcome> · ticket(s) ·
+  <value increment>`; prose body; `*Criteria:*` for observability riders. One outcome per unit —
+  a genuine exception is flagged in the group preamble, out loud.
+- New value increment: `**Units:** / **Value shipped:** / **Why it is …:**` — an increment that
+  cannot name the value shipped is not an increment.
+- Update the mapping table (outcome ↔ units, with the Gaps column honest) and the dependency
+  tables (structural/conventional/operational — each edge names what the dependency supplies).
+
+## Verification rows
+
+- Shape: `| <deliberate violation> → <expected refusal> | what it proves, ADR-NNNN, and the wrong
+  reading it rules out | <unit link> |`. Pending rows key to the unit that delivers the control;
+  unit identifiers link to their roadmap group anchors.
+- Before writing the row, name the deliberate violation. If the row's left side is an
+  enumeration, an inspection, or a comparison, it is not an injection — restate it as the
+  violation that must be refused (introduce the drift, break the rule, plant the fixture — and
+  watch the control fire). A control whose violation you cannot name is not yet a testable
+  control; take it back to the record.
+- A new control lands with its row in the same change. Proving a row later: status gains the date
+  and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
+- Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.
+
+## Front-door files (README.md, CLAUDE.md)
+
+Pointers only. When a change elsewhere alters what these point at (a document's role, the
+resolution order, a rule's location), update the pointer — never let a fact take up residence
+here. CLAUDE.md's standing reminder and document map are its whole job.
