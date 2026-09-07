@@ -245,7 +245,8 @@ piece.
 - [ ] **M1 — Mutations, non-reorg** →
   [A1](./USE_CASES.md#a1--asymmetric-mutation) · V4 · ≈1 day
   Single and batch label/move/archive under the authorization matrix; dry-run first; verify
-  provider effects after mutating. *Criteria:* mixed-class batch with a disposal verb fails whole.
+  provider effects after mutating. *Criteria:* mixed-class batch with a disposal verb fails
+  whole; every mutating operation offers a dry-run mode that changes no state of any kind.
 - [ ] **M2 — Reorg engine** →
   [G3](./USE_CASES.md#g3--reorganization) · V4 · ≈3 days
   Plan storage, the `describe_reorg_plan` / `sample_reorg_plan` tools, checkpointed apply, op
