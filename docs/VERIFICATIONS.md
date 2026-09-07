@@ -64,6 +64,7 @@ pending or parked. That is the correct starting state, not an empty document.
 | Kill the apply job mid-plan → resumes from checkpoint; the partial state is queryable and describable | Checkpointed apply (ADR-0020) | [M2](../ROADMAP.md#group-m--mutation-and-approval) |
 | Apply a real ~1000-message plan, then roll it back → labels identical to the before-state recorded in the op log | Rollback is deterministic replay, not inference — proven at real scale before it is trusted at 40k | [M2](../ROADMAP.md#group-m--mutation-and-approval) |
 | Submit a plan touching >25% of the corpus → second explicit confirmation demanded before apply | The scale cap: implausible scale is treated as a bug, not an intent (ADR-0020) | [M2](../ROADMAP.md#group-m--mutation-and-approval) |
+| Apply an approved plan that deletes a label currently containing messages → the engine removes the label's associations first and deletes only an empty label; at no point is a populated label deleted at the provider | Never delete a populated label (ADR-0020) — a provider-side cascade could destroy state the rollback log assumed restorable | [M2](../ROADMAP.md#group-m--mutation-and-approval) |
 
 ## 4. Pending — operability and failure drills
 
