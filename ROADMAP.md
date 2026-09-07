@@ -228,7 +228,7 @@ The index and the surfaces that read it.
   `corpus_stats`; TLS and bearer auth on both roots; connect the real agent. **Manually attempt
   to talk the agent into a restricted body** — the first end-to-end proof of the invariant
   against a live adversary. *Criteria:* every serve and denial audited; API operations and MCP
-  tools match one-to-one.
+  tools match one-to-one; timestamps on both roots are UTC-only, with non-UTC input rejected.
 - [ ] **D4 — Delta sync** →
   [C1](./USE_CASES.md#c1--metadata-always-visible) · V3 · ≈1 day
   Cursor management, gap detection and bounded recovery, idempotency. Run alongside backfill for a
