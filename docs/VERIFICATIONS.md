@@ -72,7 +72,8 @@ pending or parked. That is the correct starting state, not an empty document.
 
 | Injection | Proves | Pending on |
 | --- | --- | --- |
-| Force a refresh-token rotation, then restart the pod → mailbox access retained | Rotation writeback works end-to-end (ADR-0013) — the quiet-death failure mode, exercised on day one | [F1](../ROADMAP.md#group-f--foundation) |
+| Force a refresh-token rotation, then restart the mediator → mailbox access retained | Rotation write-back works end-to-end (ADR-0039) — the quiet-death failure mode, exercised on day one | [F1](../ROADMAP.md#group-f--foundation) |
+| Deliberately break the write-back sync → the sync-failure condition fires and the alert is visible | Write-back failure detection needs no in-application alerting (ADR-0039) | [F1](../ROADMAP.md#group-f--foundation) |
 | Run the controller against a simulated provider that throttles on schedule → converges below the ceiling, recovers after throttling, and **never exceeds the hard cap even when fed deliberately bad inputs** | The AIMD controller and the cap's enforcement at lease issuance (ADR-0024, ADR-0025); the runaway mode is the one that risks account restriction | [F3](../ROADMAP.md#group-f--foundation) |
 | Kill a worker holding a lease → its tokens return to the pool at lease expiry | Lease accounting cannot slow-leak the budget (ADR-0025) | [F3](../ROADMAP.md#group-f--foundation) |
 | Kill the backfill pod mid-run → clean resume at page granularity, one page of rework | Checkpointed backfill (ADR-0017); eviction is an expected condition | [D1](../ROADMAP.md#group-d--data-flows) |

@@ -49,8 +49,8 @@ irreversible, or the failure it permits is silent.*
   precedes everything). A gate bug fails catastrophically and silently; it cannot be "learned
   from" in production because nothing visibly breaks when it leaks.
 - **Credential-rotation writeback, exercised deliberately in [F1](#group-f--foundation)** — its
-  failure is silent and delayed (everything works until the restart after a rotation), the classic
-  quiet death of systems like this.
+  failure surfaces only at the restart after a rotation, the classic quiet death of systems like
+  this.
 - **The rate hard cap before the first corpus-scale workload** ([F3](#group-f--foundation) precedes
   [D1](#group-d--data-flows)) — collectively overrunning the provider's budget risks a
   provider-side account restriction on the operator's personal mailbox, which is not recoverable

@@ -107,7 +107,7 @@ record's number is stable. Records themselves link freely: deep into
 
 | # | Record | Status |
 | --- | --- | --- |
-| 0013 | [Credentials as mounted files via the external secret store; rotation writes back](./operability/0013-credentials-and-rotation-writeback.md) | Accepted |
+| 0013 | [Credentials as mounted files via the external secret store; rotation writes back](./operability/0013-credentials-and-rotation-writeback.md) | **Superseded** |
 | 0014 | [LAN-only transport; egress restriction is the control that matters](./operability/0014-lan-only-transport.md) | Accepted |
 | 0022 | [The batch work is four workloads, not one background process](./operability/0022-four-workloads.md) | Accepted |
 | 0023 | [The adapter declares what operations cost; the limiter is provider-agnostic](./operability/0023-adapter-declares-cost.md) | Accepted |
@@ -118,3 +118,5 @@ record's number is stable. Records themselves link freely: deep into
 | 0033 | [Timestamps on the client surface are UTC-only; non-UTC input is rejected, never converted](./operability/0033-utc-only-timestamps.md) | Accepted |
 | 0034 | [One read-only system-status operation exposes recorded per-account operational state](./operability/0034-system-status-operation.md) | Accepted |
 | 0035 | [Every required identifier is discoverable on the same surface; accounts gain a listing](./operability/0035-required-identifiers-are-discoverable.md) | Accepted |
+| 0038 | [Credentials arrive as mounted files](./operability/0038-credentials-as-mounted-files.md) | Accepted |
+| 0039 | [Rotation write-back is delegated; the mediator holds no secret-store credential](./operability/0039-rotation-writeback.md) | Accepted |
