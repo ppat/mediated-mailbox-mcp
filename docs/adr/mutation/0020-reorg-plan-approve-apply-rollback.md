@@ -27,7 +27,8 @@ no read path needs.
 3. APPROVE the operator, in the UI. Writes the plan's status directly to the database.
              ► NO CLIENT OPERATION — MCP TOOL OR API ENDPOINT — PERFORMS THIS TRANSITION.
 
-4. APPLY   a job: ensure labels exist → batched mutations
+4. APPLY   a job: re-validate the whole plan + check its age (ADR-0032)
+             → ensure labels exist → batched mutations
              every operation recorded to the op log (labels before/after)
              the Mutation Authorizer checked per operation — approval never
              overrides the matrix (ADR-0019)
@@ -46,6 +47,9 @@ The decisions inside the cycle, each with its reason:
   at apply time — so even an approved malicious plan cannot execute the worst operations.
 - **The op log makes rollback exact, not inferred.** Before/after labels per operation, roughly a
   hundred bytes each — forty thousand operations is a few megabytes, trivially worth it.
+- **Apply re-validates before it writes.** The whole plan is re-validated against current state,
+  and a plan older than the maximum plan age is rejected outright, before the first write — the
+  decision and its reasons are [ADR-0032](./0032-whole-batch-validation.md).
 - **Apply is checkpointed.** A failed run resumes; a partially-applied plan is a known,
   describable state, never an indeterminate one.
 - **Never delete a label that still has messages in it.** Remove associations first — a

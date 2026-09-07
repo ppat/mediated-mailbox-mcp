@@ -384,7 +384,7 @@ are pointers: each fix and its reasoning live in the records named, never here.
 | Mediator compromise | low / catastrophic | ADR-0028 |
 | Fail-open on classifier or scanner error | low / severe | ADR-0002; the fail-closed rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Agent context as an exfiltration surface | moderate / medium | ADR-0029 |
-| Bulk mutation error | moderate / severe | ADR-0020 |
+| Bulk mutation error | moderate / severe | ADR-0020; ADR-0032 |
 | Scan backlog as silent utility loss | low / moderate | ADR-0007 |
 | UI as a write path | low / moderate | ADR-0021 |
 | Rate-controller pathology — collapse or runaway | moderate / medium | ADR-0024; ADR-0025 |
@@ -469,6 +469,10 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Delta sync** — the recurring job that keeps the index current against provider change feeds.
 - **Reorg plan** — a proposed bulk reorganization, stored as data: label operations, per-message
   operations, reasoning, and scale. A plan is never an action.
+- **Maximum plan age** — the age, measured from creation, past which a saved reorg plan is
+  rejected outright at apply time (rule: ADR-0032, via the
+  [decision-record index](./docs/adr/README.md); the value is an open decision in
+  [ROADMAP.md](./ROADMAP.md)).
 - **Op log** — the per-operation before/after record written during plan application, from which
   rollback is exact replay, not inference.
 - **Mutation Authorizer** — the mediator component that checks every write against the message's

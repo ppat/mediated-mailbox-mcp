@@ -246,12 +246,14 @@ piece.
   [A1](./USE_CASES.md#a1--asymmetric-mutation) · V4 · ≈1 day
   Single and batch label/move/archive under the authorization matrix; dry-run first; verify
   provider effects after mutating. *Criteria:* mixed-class batch with a disposal verb fails
-  whole; every mutating operation offers a dry-run mode that changes no state of any kind.
+  whole; a batch with an invalid operation anywhere in it fails whole before any write; every
+  mutating operation offers a dry-run mode that changes no state of any kind.
 - [ ] **M2 — Reorg engine** →
   [G3](./USE_CASES.md#g3--reorganization) · V4 · ≈3 days
-  Plan storage, the `describe_reorg_plan` / `sample_reorg_plan` tools, checkpointed apply, op
-  log, rollback. **Test rollback on a
-  real ~1000-message plan before trusting it on 40k.** Approval is command-line-only until M3.
+  Plan storage and validation (at creation, re-validation at apply, the plan-age check), the
+  `describe_reorg_plan` / `sample_reorg_plan` tools, checkpointed apply, op log, rollback.
+  **Test rollback on a real ~1000-message plan before trusting it on 40k.** Approval is
+  command-line-only until M3.
 - [ ] **M3 — Reporting + approval UI** →
   [G3](./USE_CASES.md#g3--reorganization) · V4 · ≈2–3 days
   Corpus overview, plan diff and approval, review queue, masking events, gate decisions, audit
@@ -374,3 +376,4 @@ Where a decision is recorded, the row cites its number, resolved through the
 | Off-cluster audit destination | H1 | ADR-0028 requires shipping; the destination is unchosen |
 | UI stack | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs); the stack is unchosen |
 | Ingress answer if the agent ever leaves the LAN | nothing yet | Conditional; ADR-0014 names the likely answer (overlay network) without deciding it |
+| Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time; the value is unchosen |
