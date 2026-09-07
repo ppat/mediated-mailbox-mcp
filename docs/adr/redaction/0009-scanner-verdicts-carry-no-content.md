@@ -18,7 +18,10 @@ Three constraints, one per leak direction.
 **Placement: outside the synchronous serving path.** The scanner runs only in the batch subsystems.
 Inline scanning would put a scanner bug or timeout directly between the agent and content, creating
 pressure to fail open under latency. Out of band, the only failure available is "not yet scanned" —
-which is a deny state.
+which is a deny state. This placement rule binds the full scanner; the serve-time pattern check of
+[ADR-0002](./0002-fetch-time-re-evaluation.md) is not the scanner — a pure pattern check on a
+body already in memory, with no external calls and no backlog — and does not sit under this
+rule.
 
 **Output: the verdict type cannot represent content.**
 

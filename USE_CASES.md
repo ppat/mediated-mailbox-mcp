@@ -66,7 +66,7 @@ unobservable (Axis 5).
 | **The invariant** | [C1](#c1--metadata-always-visible) Metadata visible · [C2](#c2--sensitive-sender-content-never-released) Content never released · [C3](#c3--content-based-secrets-caught) Secrets caught · [C4](#c4--the-sensitive-sender-list-keeps-pace) List keeps pace | The fixed point, split into falsifiable halves, with the sender list kept current |
 | **Organizational capability** | [G1](#g1--whole-mailbox-visibility) Whole-mailbox view · [G2](#g2--historical-understanding) Historical understanding · [G3](#g3--reorganization) Reorganization · [G4](#g4--the-index-tracks-the-live-mailbox) Index tracks live | What the agent can *do* with what it sees |
 | **Provider abstraction** | [P1](#p1--one-contract) One contract · [P2](#p2--backend-swap) Backend swap · [P3](#p3--multi-account) Multi-account | Independence from any one backend |
-| **Safe action** | [A1](#a1--asymmetric-mutation) Asymmetric mutation · [A2](#a2--no-destructive-action-on-sensitive-mail) No destructive action · [A3](#a3--bulk-change-is-reversible) Reversible bulk change | What the agent may change, and how safely |
+| **Safe action** | [A1](#a1--asymmetric-mutation) Asymmetric mutation · [A2](#a2--no-destructive-action-on-sensitive-mail) No destructive action · [A3](#a3--bulk-change-is-reversible) Reversible bulk change · [A4](#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) Harmless released bodies | What the agent may change, and how safely |
 | **Operability** | [O1](#o1--rate-limited-politely) Rate-limited · [O2](#o2--observable) Observable · [O3](#o3--survives-its-failure-modes) Survives failure · [O4](#o4--the-operator-can-see-and-steer) Operator legibility | Cross-cutting qualities |
 
 ```mermaid
@@ -74,7 +74,7 @@ flowchart TB
     C["Axis 1 — the invariant:<br/>C1 metadata visible · C2 content never released · C3 secrets caught · C4 list keeps pace"]
     G["Axis 2 — organizational capability:<br/>G1 whole-mailbox view · G2 historical understanding · G3 reorganization · G4 index tracks live"]
     P["Axis 3 — provider abstraction:<br/>P1 one contract · P2 backend swap · P3 multi-account"]
-    A["Axis 4 — safe action:<br/>A1 asymmetric mutation · A2 no destructive action · A3 reversible bulk change"]
+    A["Axis 4 — safe action:<br/>A1 asymmetric mutation · A2 no destructive action · A3 reversible bulk change · A4 harmless released bodies"]
     O["Axis 5 — operability:<br/>O1 rate-limited · O2 observable · O3 survives failure · O4 operator legibility"]
     P -->|"gives every other axis a backend-neutral surface"| C
     C -->|"is what makes visibility safe to offer"| G
@@ -150,8 +150,9 @@ in subjects, regardless of who sent them.**
 
 - **A bounded, accepted residual leak exists by design.** Scanning every body is not performant,
   so a composite metadata gate decides which non-sensitive bodies to scan. A message that is a
-  non-sensitive sender, carries a code or link, *and* gives no metadata signal may have its body
-  released unscanned. This is accepted because the value of a leaked code is proportional to what
+  non-sensitive sender, carries a code or link the serve-time pattern check does not catch, *and*
+  gives no metadata signal may have its body released unscanned. This is accepted because the
+  value of a leaked code is proportional to what
   it unlocks, and the high-value senders (financial, government, infrastructure) are caught by
   sender classification regardless of subject. C3 is falsified by a leak from a *signalled* or
   *sensitive* message, not by one in this accepted residual.
@@ -304,7 +305,9 @@ deployment.
 ## Axis 4 — Safe action
 
 What the agent may change. These outcomes exist because "organize my inbox" implies mutation, and
-mutation on sensitive mail or at bulk scale carries risks that reading does not.
+mutation on sensitive mail or at bulk scale carries risks that reading does not. A4 bounds the
+other direction of the same safety concern: not what the agent may do, but what the artifact it
+receives can do.
 
 ### A1 — Asymmetric mutation
 
@@ -355,6 +358,24 @@ after it happens.**
   checkpointed so a failed run resumes and a partial application is a known, describable state.
 - A plan of implausible scale being applied without a second confirmation — a change touching a
   large fraction of the corpus is more likely a bug than an intent.
+
+### A4 — Released bodies are clean Markdown that cannot do anything
+
+**A released body arrives as clean Markdown — the content and its links, nothing else. The body
+is harmless as an object: it cannot execute, render, fetch anything, or disguise where a link
+points. And release volume is observable.**
+
+*Falsified by any of:*
+
+- Raw HTML reaching any client.
+- A link whose displayed label disagrees with its target, arriving in any form that hides the
+  disagreement.
+- A served body causing any outbound request (a tracking pixel firing).
+- Body-serve volume far beyond triage plausibility raising no alert.
+
+*Scope note:* the constraint is on the artifact, never on the agent. The agent remains completely
+free to act on what it reads — filing, summarizing, escalating, following links it is tasked
+with.
 
 ## Axis 5 — Operability
 

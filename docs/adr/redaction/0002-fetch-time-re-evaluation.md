@@ -1,4 +1,4 @@
-# 0002. Body release re-evaluates at fetch time, and a denial never contacts the provider
+# 0002. Body release re-evaluates at fetch time, and a gate denial never contacts the provider
 
 **Status:** Accepted ·
 **Pillar:** [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) ·
@@ -23,20 +23,36 @@ Gate re-classifies from the index at fetch time
   ├─ scan_state = SKIPPED_RESTRICTED  → DENY (policy)
   ├─ sender_class = restricted        → DENY (policy)
   ├─ content_flags non-empty          → DENY (policy)
-  │     all denials: provider never contacted, audit row written
+  │     all gate denials: provider never contacted, audit row written
   └─ otherwise (SCANNED clean, or SKIPPED_GATE)
-        → adapter.get_message_body() → sanitize → audit ALLOW → return
+        → adapter.get_message_body() → sanitize
+          (SKIPPED_GATE additionally: serve-time pattern check —
+           a hit denies; the fetched body is discarded, audit row written)
+        → audit ALLOW → return
 ```
 
 Two properties are the point:
 
-- **On deny, the provider is never contacted**, so no denied body ever enters mediator memory —
-  the denial is decided entirely from the index.
+- **On a gate deny, the provider is never contacted**, so no gate-denied body ever enters
+  mediator memory — the denial is decided entirely from the index.
 - **Policy changes bind on the next call, not the next sync.** A newly deny-listed domain denies
   immediately, because classification is re-derived against current policy at fetch time.
 
 `SKIPPED_GATE` allowing is deliberate and visible in the flow rather than hidden — it is the
 accepted residual of [ADR-0007](./0007-composite-scan-gate.md).
+
+**The serve-time pattern check.** This record governs whether a body is released; when it says
+release and the message is `SKIPPED_GATE` — never scanned, by the gate's accepted skip — the
+body additionally passes the cheap deterministic pattern tier (login-link shapes, one-time
+codes), run on the already-fetched body during sanitization
+([ADR-0036](./0036-released-bodies-are-clean-markdown.md)'s step). A hit denies: the fetched
+body is discarded and reaches no client, with the same audit row every denial writes. This is
+not the scanner, and it does not sit under the scanner's out-of-band placement rule
+([ADR-0009](./0009-scanner-verdicts-carry-no-content.md)) — those reasons bind the full scanner
+(timeouts, latency, fail-open pressure), while a pure pattern check on a body already in memory
+has no external calls, no backlog, and bounded microsecond cost. Effect: the accepted residual
+of [ADR-0007](./0007-composite-scan-gate.md) shrinks precisely for the highest-value secret
+class, at the exact moment of exposure.
 
 ## Alternatives considered
 
@@ -47,7 +63,15 @@ accepted residual of [ADR-0007](./0007-composite-scan-gate.md).
   with the metadata). Rejected: anything a client supplies, a suborned client can forge. Inputs
   to the release decision must come only from state no client can write.
 - **Fetch the body first, then decide.** Rejected: it moves every denied body through mediator
-  memory for no benefit, enlarging the blast radius of any spill or logging bug.
+  memory for no benefit, enlarging the blast radius of any spill or logging bug. The serve-time
+  pattern check is not this: it never fetches in order to decide — the gate's release decision
+  triggered the fetch, and the check can only subtract from what that decision would release.
+- **No check at release for unscanned bodies.** Its case: the residual was already accepted and
+  measured. Displaced: microseconds spent on an already-fetched body remove the highest-value
+  secret class from the residual.
+- **Full scanning at release.** Rejected: the out-of-band placement reasons
+  ([ADR-0009](./0009-scanner-verdicts-carry-no-content.md)) bind the full scanner — timeouts,
+  latency, and fail-open pressure in the serving path.
 
 ## Consequences
 
@@ -59,3 +83,8 @@ accepted residual of [ADR-0007](./0007-composite-scan-gate.md).
 - Fetch-time re-evaluation means the index's *cached classification* never decides release on its
   own: sender class is re-derived against current policy at fetch time. Scan state is index state
   and does gate release — re-read at fetch time, never trusted from enumeration.
+- Assumptions about other components: the pattern tier is a pure function usable outside the
+  scanner's batch context (no external calls, no state), and the sanitization step
+  ([ADR-0036](./0036-released-bodies-are-clean-markdown.md)) sees every released body, so hosting
+  the check there covers every `SKIPPED_GATE` release. The check's violation injection is
+  catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

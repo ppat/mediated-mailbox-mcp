@@ -14,7 +14,7 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
 while its pending verification rows are unproven.
 
-**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A3, O1–O4) are defined in
+**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O4) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
 defined here. Decisions are cited by number and resolved through the
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
@@ -183,9 +183,10 @@ database, no provider.
   scanner output and logs for fixture body text. The real MFA-format corpus gets built from the
   operator's own mail during D1. *Criteria:* masking events recorded from the first run.
 - [ ] **S3 — Body sanitization + injection hardening** →
-  [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) · V3 · ≈1 day
-  HTML-to-text, link annotation, untrusted-content delimiters, egress lockdown, anomalous
-  body-fetch alerting.
+  [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) · V3 · ≈1 day
+  HTML-to-Markdown conversion via an existing library, untrusted-content delimiters, the
+  serve-time pattern check on unscanned bodies, egress lockdown, anomalous body-fetch alerting.
+  *Criteria:* the serve-time check denies on a hit from the first serve, with an audit row.
 
 ### Group F — foundation
 
@@ -300,8 +301,8 @@ Each unit is a deliberate test of a contract authored long before it.
 | Outcome | Remaining units | Gaps |
 | --- | --- | --- |
 | [C1](./USE_CASES.md#c1--metadata-always-visible) metadata visible | X2 | Mail-side visibility is built by F2 and D3 (G1 units); X2 is the calendar half |
-| [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | S1 · S3 | — |
-| [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | S2 · D2 · X1 | — |
+| [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | S1 | Injection hardening on released bodies rides S3, now serving A4 |
+| [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | S2 · D2 · X1 | The serve-time check rides S3 (an A4 unit) |
 | [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | — |
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F2 · D3 | — |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | — |
@@ -313,6 +314,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [A1](./USE_CASES.md#a1--asymmetric-mutation) asymmetric mutation | M1 | — |
 | [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) no destructive action | — | No dedicated unit, correctly: one structural half lands with F1 (token scope), the other with M1 (client surface); criteria ride those units |
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
+| [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | S3 | — |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | F3 | — |
 | [O2](./USE_CASES.md#o2--observable) observable | H1 | Emission rides S1 · S2 · F3 · D2 · D3 as criteria; H1 is presentation and shipping |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F1 | Drills ride D1 (kill mid-run) · F3 (rate-controller pathology) · H1 (the rest); the gap-recovery drill keys to G4 and the rollback drill to A3 |

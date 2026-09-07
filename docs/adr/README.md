@@ -57,12 +57,13 @@ record's number is stable. Records themselves link freely: deep into
 | # | Record | Status |
 | --- | --- | --- |
 | 0001 | [The redaction matrix: metadata survives restriction, content never does](./redaction/0001-redaction-matrix.md) | Accepted |
-| 0002 | [Body release re-evaluates at fetch time; a denial never contacts the provider](./redaction/0002-fetch-time-re-evaluation.md) | Accepted |
+| 0002 | [Body release re-evaluates at fetch time; a gate denial never contacts the provider](./redaction/0002-fetch-time-re-evaluation.md) | Accepted |
 | 0003 | [Subject masking is aggressive, runs on every message, uses only the pattern tiers](./redaction/0003-subject-masking.md) | Accepted |
 | 0007 | [A composite scan gate with a measured, accepted residual](./redaction/0007-composite-scan-gate.md) | Accepted |
 | 0008 | [Restricted-sender bodies are never scanned](./redaction/0008-restricted-senders-are-never-scanned.md) | Accepted |
 | 0009 | [The scanner runs out-of-band, in-memory, emitting verdicts that cannot carry content](./redaction/0009-scanner-verdicts-carry-no-content.md) | Accepted |
-| 0029 | [Released bodies are sanitized and delimited as untrusted data](./redaction/0029-released-bodies-are-sanitized.md) | Accepted |
+| 0029 | [Released bodies are sanitized and delimited as untrusted data](./redaction/0029-released-bodies-are-sanitized.md) | **Superseded** |
+| 0036 | [Released bodies are clean Markdown — content and links, nothing else](./redaction/0036-released-bodies-are-clean-markdown.md) | Accepted |
 
 ## Classification — `classification/`
 

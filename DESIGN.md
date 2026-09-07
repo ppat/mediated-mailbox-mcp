@@ -119,9 +119,10 @@ None of it is built; [ROADMAP.md](./ROADMAP.md) holds delivery state.
 
 The one narrative to read first, assembled from the decision records (resolved through the
 [decision-record index](./docs/adr/README.md), each step restated nowhere else): ADR-0002 — the
-fetch-time gate flow that decides allow or deny; ADR-0001 — the field-level matrix behind that
-decision; ADR-0007 — the scan states a message can be in, including the accepted residual;
-ADR-0029 — the sanitization applied to whatever is released. Metadata requests need none of it:
+fetch-time gate flow that decides allow or deny, including the serve-time pattern check that can
+still deny a never-scanned body; ADR-0001 — the field-level matrix behind that decision;
+ADR-0007 — the scan states a message can be in, including the accepted residual; ADR-0036 — the
+sanitization applied to whatever is released. Metadata requests need none of it:
 metadata paths cannot carry a body by construction.
 
 ## 2. The pillars
@@ -354,14 +355,14 @@ where each disposition is recorded, not what it is — the record named is the s
 | Limit | Disposition lives in |
 | --- | --- |
 | Metadata (subjects, senders, traffic patterns) is deliberately exposed | ADR-0001, via the [decision-record index](./docs/adr/README.md) |
-| A bounded residual of unscanned bodies is released by design | ADR-0007, and its measurement rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
+| A bounded residual of unscanned bodies is released by design | ADR-0007 and ADR-0002, and its measurement rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | A single chokepoint concentrates correctness — a gate bug is a bug everywhere | Built first, proven offline: the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops — ADR-0003, ADR-0007 |
 | The approval surface is itself a target | ADR-0021 — two verbs, scoped role, no credentials |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost unrecoverably | [ROADMAP.md](./ROADMAP.md) — emission is a non-deferrable riding every unit |
-| Content released to the agent is released — context, transcripts, memory | ADR-0029 bounds it; it cannot be recalled |
+| Content released to the agent is released — context, transcripts, memory | ADR-0036 bounds it; it cannot be recalled |
 | Mediator compromise defeats redaction | ADR-0028 — hardening, blast radius, off-cluster evidence |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
 | Un-braided concerns and contract-only knowledge are only truly tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
@@ -375,15 +376,15 @@ are pointers: each fix and its reasoning live in the records named, never here.
 
 | Failure mode | Likelihood / impact | Disposition lives in |
 | --- | --- | --- |
-| Prompt injection via a released body | near-certain / high | ADR-0029; ADR-0002 (the gate is the control); ADR-0014 (egress) |
+| Prompt injection via a released body | near-certain / high | ADR-0036; ADR-0002 (the gate is the control); ADR-0014 (egress) |
 | Injection aimed at the reorg plan through visible subjects | moderate / high | ADR-0020 |
 | Sender spoofing — the unlisted co-brand domain | moderate / high | ADR-0004 |
 | Policy-list staleness | certain over time / medium | ADR-0004 |
 | Metadata leakage | certain, accepted / medium | ADR-0001 |
-| Scan-gate residual leakage | accepted / medium | ADR-0007 |
+| Scan-gate residual leakage | accepted / medium | ADR-0007; ADR-0002 |
 | Mediator compromise | low / catastrophic | ADR-0028 |
 | Fail-open on classifier or scanner error | low / severe | ADR-0002; the fail-closed rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
-| Agent context as an exfiltration surface | moderate / medium | ADR-0029 |
+| Agent context as an exfiltration surface | moderate / medium | ADR-0036 |
 | Bulk mutation error | moderate / severe | ADR-0020; ADR-0032 |
 | Scan backlog as silent utility loss | low / moderate | ADR-0007 |
 | UI as a write path | low / moderate | ADR-0021 |
@@ -435,8 +436,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
   links, and emits verdicts that structurally cannot carry content.
 - **Masking** — replacing a detected secret inside an otherwise-visible field (an MFA code in a
   subject) with an opaque placeholder.
-- **The residual** — the accepted, measured set of bodies released without having been scanned:
-  non-restricted sender, secret present, zero metadata signal.
+- **Serve-time pattern check** — the additional inspection a gate-skipped body passes at
+  release (rule: ADR-0002, via the [decision-record index](./docs/adr/README.md)).
+- **The residual** — the accepted, measured set of bodies released without having been scanned
+  (bounds: ADR-0007 and ADR-0002, via the
+  [decision-record index](./docs/adr/README.md)).
 
 ### Policy and classification
 
@@ -505,7 +509,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
 ### Identifiers
 
 - **Outcome identifiers** — C1–C4 (the invariant), G1–G4 (organizational capability), P1–P3
-  (provider abstraction), A1–A3 (safe action), O1–O4 (operability): defined in
+  (provider abstraction), A1–A4 (safe action), O1–O4 (operability): defined in
   [USE_CASES.md](./USE_CASES.md) and used as the coordinate system everywhere else.
 - **ADR-NNNN** — decision records, numbered globally in mint order, resolved through
   [docs/adr/README.md](./docs/adr/README.md).
