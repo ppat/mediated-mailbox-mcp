@@ -1,6 +1,7 @@
 # 0029. Released bodies are sanitized and delimited as untrusted data — and "released" means released
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0036](./0036-released-bodies-are-clean-markdown.md) ·
 **Pillar:** [Metadata always flows; sensitive bodies never do](../../../DESIGN.md#metadata-always-flows-sensitive-bodies-never-do) ·
 **Serves:** [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released), [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 

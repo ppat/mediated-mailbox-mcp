@@ -49,7 +49,7 @@ distinct meanings with different consequences:
 | --- | --- | --- |
 | `SCANNED` | Scanner ran, verdict recorded | Yes, if no flags and sender normal |
 | `SKIPPED_RESTRICTED` | Sender restricted; scan pointless | No — denied by sender class |
-| `SKIPPED_GATE` | Gate said don't scan | **Yes** — accepted risk |
+| `SKIPPED_GATE` | Gate said don't scan | **Yes** — accepted risk, after the serve-time pattern check ([ADR-0002](./0002-fetch-time-re-evaluation.md)) |
 | `PENDING` | Backfill/sync has not reached it | No — fail closed |
 
 `SKIPPED_GATE` is the compromise made explicit in the type system: the one state where a body is
@@ -68,7 +68,9 @@ merely tolerable:
 The load-bearing argument is not that reputable senders have predictable subjects. It is that **the
 value of a leaked code is proportional to what it unlocks**, and the high-value senders are caught
 by sender classification regardless of subject. A leaked code for a newsletter signup is close to
-harmless. The compromise degrades precisely where the stakes are lowest.
+harmless. The compromise degrades precisely where the stakes are lowest. A later decision narrows
+this residual further: a gate-skipped body is pattern-checked at serve time and denied on a hit
+([ADR-0002](./0002-fetch-time-re-evaluation.md)).
 
 **Making it auditable.** Every skip is recorded with its reason; the UI surfaces skip rates by
 reason and by sender, so the gate is tuned from evidence. A growing `PENDING` backlog is its own
