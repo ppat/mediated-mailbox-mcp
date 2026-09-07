@@ -467,6 +467,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Backfill** — the one-time construction of the full-history metadata index, metadata first,
   gated body scanning after.
 - **Delta sync** — the recurring job that keeps the index current against provider change feeds.
+- **Sync interval** — the delta-sync polling cadence that bounds index freshness (rule and
+  value: ADR-0018, via the [decision-record index](./docs/adr/README.md)).
 - **Reorg plan** — a proposed bulk reorganization, stored as data: label operations, per-message
   operations, reasoning, and scale. A plan is never an action.
 - **Maximum plan age** — the age, measured from creation, past which a saved reorg plan is
@@ -502,7 +504,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
 
 ### Identifiers
 
-- **Outcome identifiers** — C1–C4 (the invariant), G1–G3 (organizational capability), P1–P3
+- **Outcome identifiers** — C1–C4 (the invariant), G1–G4 (organizational capability), P1–P3
   (provider abstraction), A1–A3 (safe action), O1–O3 (operability): defined in
   [USE_CASES.md](./USE_CASES.md) and used as the coordinate system everywhere else.
 - **ADR-NNNN** — decision records, numbered globally in mint order, resolved through
