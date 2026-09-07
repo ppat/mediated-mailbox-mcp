@@ -67,7 +67,7 @@ unobservable (Axis 5).
 | **Organizational capability** | [G1](#g1--whole-mailbox-visibility) Whole-mailbox view · [G2](#g2--historical-understanding) Historical understanding · [G3](#g3--reorganization) Reorganization · [G4](#g4--the-index-tracks-the-live-mailbox) Index tracks live | What the agent can *do* with what it sees |
 | **Provider abstraction** | [P1](#p1--one-contract) One contract · [P2](#p2--backend-swap) Backend swap · [P3](#p3--multi-account) Multi-account | Independence from any one backend |
 | **Safe action** | [A1](#a1--asymmetric-mutation) Asymmetric mutation · [A2](#a2--no-destructive-action-on-sensitive-mail) No destructive action · [A3](#a3--bulk-change-is-reversible) Reversible bulk change · [A4](#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) Harmless released bodies | What the agent may change, and how safely |
-| **Operability** | [O1](#o1--rate-limited-politely) Rate-limited · [O2](#o2--observable) Observable · [O3](#o3--survives-its-failure-modes) Survives failure · [O4](#o4--the-operator-can-see-and-steer) Operator legibility | Cross-cutting qualities |
+| **Operability** | [O1](#o1--rate-limited-politely) Rate-limited · [O2](#o2--observable) Observable · [O3](#o3--survives-its-failure-modes) Survives failure · [O4](#o4--the-operator-can-see-and-steer) Operator legibility · [O5](#o5--clients-can-tell-failures-apart) Failures tellable apart | Cross-cutting qualities |
 
 ```mermaid
 flowchart TB
@@ -75,7 +75,7 @@ flowchart TB
     G["Axis 2 — organizational capability:<br/>G1 whole-mailbox view · G2 historical understanding · G3 reorganization · G4 index tracks live"]
     P["Axis 3 — provider abstraction:<br/>P1 one contract · P2 backend swap · P3 multi-account"]
     A["Axis 4 — safe action:<br/>A1 asymmetric mutation · A2 no destructive action · A3 reversible bulk change · A4 harmless released bodies"]
-    O["Axis 5 — operability:<br/>O1 rate-limited · O2 observable · O3 survives failure · O4 operator legibility"]
+    O["Axis 5 — operability:<br/>O1 rate-limited · O2 observable · O3 survives failure · O4 operator legibility · O5 failures tellable apart"]
     P -->|"gives every other axis a backend-neutral surface"| C
     C -->|"is what makes visibility safe to offer"| G
     G -->|"is what the agent acts on"| A
@@ -394,7 +394,8 @@ with.
 Cross-cutting qualities. They differ in when they can be satisfied: O1 (rate limiting) must exist
 before the first workload large enough to trip provider limits; O2 (metrics) can only be falsified
 retrospectively; O3 (recovery) can be exercised whenever its subjects are deployed; O4
-(legibility) can be judged only once the interface it measures exists.
+(legibility) can be judged only once the interface it measures exists; O5 (failure transparency)
+is judged wherever clients observe failures.
 
 ### O1 — Rate-limited politely
 
@@ -469,6 +470,26 @@ database.**
 never released" does not — accepted, because a criterion a human can argue about beats no
 criterion at all. The boundary with [O2](#o2--observable): O2 covers whether the data exists;
 this outcome covers whether the human can use it.
+
+### O5 — Clients can tell failures apart
+
+**A client — the agent or any other — can tell whether a failure is its own, the system's, or
+the upstream provider's, and can obtain granular transparency into the system's operational
+state where it is available.**
+
+*Falsified by any of:*
+
+- A failure caused by the client's own request being indistinguishable, from the response, from
+  a failure inside the system.
+- A failure originating at the upstream provider surfacing as if it were the client's or the
+  system's own.
+- Operational state the system holds that would explain a failure being unobtainable by the
+  client.
+
+*Scope note:* "where it is available" is the agreed bound on the transparency half — this outcome
+requires surfacing what the system knows, not knowing everything conceivable. The boundary with
+[O4](#o4--the-operator-can-see-and-steer): O4 is the operator's view; this outcome is the
+client's.
 
 ## Non-outcomes
 
