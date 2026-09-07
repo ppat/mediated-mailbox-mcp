@@ -225,10 +225,11 @@ The index and the surfaces that read it.
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · V3 · ≈1–2 days
   The canonical API contract (OpenAPI) with its one-to-one MCP mirror, exposing `list_threads`,
   `get_message_metadata`, `get_message_body`, `search_messages`, `list_policy_rules`,
-  `corpus_stats`; TLS and bearer auth on both roots; connect the real agent. **Manually attempt
-  to talk the agent into a restricted body** — the first end-to-end proof of the invariant
-  against a live adversary. *Criteria:* every serve and denial audited; API operations and MCP
-  tools match one-to-one; timestamps on both roots are UTC-only, with non-UTC input rejected.
+  `corpus_stats`, and a per-account system-status read (ADR-0034); TLS and bearer auth on both
+  roots; connect the real agent. **Manually attempt to talk the agent into a restricted body** —
+  the first end-to-end proof of the invariant against a live adversary. *Criteria:* every serve
+  and denial audited; API operations and MCP tools match one-to-one; timestamps on both roots are
+  UTC-only, with non-UTC input rejected.
 - [ ] **D4 — Delta sync** →
   [C1](./USE_CASES.md#c1--metadata-always-visible) · V3 · ≈1 day
   Cursor management, gap detection and bounded recovery, idempotency. Run alongside backfill for a
