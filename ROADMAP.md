@@ -225,11 +225,13 @@ The index and the surfaces that read it.
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · V3 · ≈1–2 days
   The canonical API contract (OpenAPI) with its one-to-one MCP mirror, exposing `list_threads`,
   `get_message_metadata`, `get_message_body`, `search_messages`, `list_policy_rules`,
-  `corpus_stats`, and a per-account system-status read (ADR-0034); TLS and bearer auth on both
-  roots; connect the real agent. **Manually attempt to talk the agent into a restricted body** —
-  the first end-to-end proof of the invariant against a live adversary. *Criteria:* every serve
-  and denial audited; API operations and MCP tools match one-to-one; timestamps on both roots are
-  UTC-only, with non-UTC input rejected.
+  `corpus_stats`, a labels listing and an accounts listing (ADR-0035), and a per-account
+  system-status read (ADR-0034); TLS and bearer auth on both roots; connect the real agent.
+  **Manually attempt to
+  talk the agent into a restricted body** — the first end-to-end proof of the invariant against a
+  live adversary. *Criteria:* every serve and denial audited; API operations and MCP tools match
+  one-to-one; timestamps on both roots are UTC-only, with non-UTC input rejected; no operation
+  requires an identifier the surface's read operations cannot supply.
 - [ ] **D4 — Delta sync** →
   [C1](./USE_CASES.md#c1--metadata-always-visible) · V3 · ≈1 day
   Cursor management, gap detection and bounded recovery, idempotency. Run alongside backfill for a
@@ -305,7 +307,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M3 | — |
 | [P1](./USE_CASES.md#p1--one-contract) one contract | — | No dedicated unit, correctly: the contract is authored in the decision records and proven by X4 |
 | [P2](./USE_CASES.md#p2--backend-swap) backend swap | X4 | — |
-| [P3](./USE_CASES.md#p3--multi-account) multi-account | X3 | — |
+| [P3](./USE_CASES.md#p3--multi-account) multi-account | X3 | The identifier-discoverability criterion (ADR-0035) rides D3 |
 | [A1](./USE_CASES.md#a1--asymmetric-mutation) asymmetric mutation | M1 | — |
 | [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) no destructive action | — | No dedicated unit, correctly: one structural half lands with F1 (token scope), the other with M1 (client surface); criteria ride those units |
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |

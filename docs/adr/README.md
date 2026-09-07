@@ -115,3 +115,4 @@ record's number is stable. Records themselves link freely: deep into
 | 0030 | [The serving layer is an API; MCP is a thin protocol adapter over it](./operability/0030-api-core-mcp-thin-adapter.md) | Accepted |
 | 0033 | [Timestamps on the client surface are UTC-only; non-UTC input is rejected, never converted](./operability/0033-utc-only-timestamps.md) | Accepted |
 | 0034 | [One read-only system-status operation exposes recorded per-account operational state](./operability/0034-system-status-operation.md) | Accepted |
+| 0035 | [Every required identifier is discoverable on the same surface; accounts gain a listing](./operability/0035-required-identifiers-are-discoverable.md) | Accepted |
