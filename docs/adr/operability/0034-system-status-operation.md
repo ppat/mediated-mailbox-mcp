@@ -1,7 +1,7 @@
 # 0034. One read-only system-status operation exposes recorded per-account operational state
 
 **Status:** Accepted ·
-**Serves:** [G1](../../../USE_CASES.md#g1--whole-mailbox-visibility)
+**Serves:** [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart)
 
 ## Context
 

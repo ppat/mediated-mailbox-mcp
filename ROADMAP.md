@@ -14,7 +14,7 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
 while its pending verification rows are unproven.
 
-**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O4) are defined in
+**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O5) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
 defined here. Decisions are cited by number and resolved through the
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
@@ -209,7 +209,10 @@ What everything runs on: credentials, store, adapter, budget.
 
 ### Group D — data flows
 
-The index and the surfaces that read it.
+The index and the surfaces that read it. This group carries
+[O5](./USE_CASES.md#o5--clients-can-tell-failures-apart)'s failure-transparency criteria inside
+D3 — flagged here rather than split, because the error contract and the surface are built as one
+piece.
 
 - [ ] **D1 — Backfill pass 1, full history** →
   [G2](./USE_CASES.md#g2--historical-understanding) · V2 · ≈1–2 days
@@ -233,7 +236,8 @@ The index and the surfaces that read it.
   talk the agent into a restricted body** — the first end-to-end proof of the invariant against a
   live adversary. *Criteria:* every serve and denial audited; API operations and MCP tools match
   one-to-one; timestamps on both roots are UTC-only, with non-UTC input rejected; no operation
-  requires an identifier the surface's read operations cannot supply.
+  requires an identifier the surface's read operations cannot supply; failure responses let a
+  client tell its own failure from the system's from the provider's.
 - [ ] **D4 — Delta sync** →
   [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) · V3 · ≈1 day
   Cursor management, gap detection and bounded recovery, idempotency. Run alongside backfill for a
@@ -320,6 +324,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [O2](./USE_CASES.md#o2--observable) observable | H1 | Emission rides S1 · S2 · F3 · D2 · D3 as criteria; H1 is presentation and shipping |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F1 | Drills ride D1 (kill mid-run) · F3 (rate-controller pathology) · H1 (the rest); the gap-recovery drill keys to G4 and the rollback drill to A3 |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 | — |
+| [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures tellable apart | — | Rides D3 as criteria, flagged in Group D's preamble; the system-status read (ADR-0034) is the transparency half |
 
 ## Dependencies
 
