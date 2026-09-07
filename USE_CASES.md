@@ -63,7 +63,7 @@ unobservable (Axis 5).
 
 | Axis | Outcomes | Kind |
 | --- | --- | --- |
-| **The invariant** | [C1](#c1--metadata-always-visible) Metadata visible · [C2](#c2--sensitive-sender-content-never-released) Content never released · [C3](#c3--content-based-secrets-caught) Secrets caught | The fixed point, split into falsifiable halves |
+| **The invariant** | [C1](#c1--metadata-always-visible) Metadata visible · [C2](#c2--sensitive-sender-content-never-released) Content never released · [C3](#c3--content-based-secrets-caught) Secrets caught · [C4](#c4--the-sensitive-sender-list-keeps-pace) List keeps pace | The fixed point, split into falsifiable halves, with the sender list kept current |
 | **Organizational capability** | [G1](#g1--whole-mailbox-visibility) Whole-mailbox view · [G2](#g2--historical-understanding) Historical understanding · [G3](#g3--reorganization) Reorganization | What the agent can *do* with what it sees |
 | **Provider abstraction** | [P1](#p1--one-contract) One contract · [P2](#p2--backend-swap) Backend swap · [P3](#p3--multi-account) Multi-account | Independence from any one backend |
 | **Safe action** | [A1](#a1--asymmetric-mutation) Asymmetric mutation · [A2](#a2--no-destructive-action-on-sensitive-mail) No destructive action · [A3](#a3--bulk-change-is-reversible) Reversible bulk change | What the agent may change, and how safely |
@@ -71,7 +71,7 @@ unobservable (Axis 5).
 
 ```mermaid
 flowchart TB
-    C["Axis 1 — the invariant:<br/>C1 metadata visible · C2 content never released · C3 secrets caught"]
+    C["Axis 1 — the invariant:<br/>C1 metadata visible · C2 content never released · C3 secrets caught · C4 list keeps pace"]
     G["Axis 2 — organizational capability:<br/>G1 whole-mailbox view · G2 historical understanding · G3 reorganization"]
     P["Axis 3 — provider abstraction:<br/>P1 one contract · P2 backend swap · P3 multi-account"]
     A["Axis 4 — safe action:<br/>A1 asymmetric mutation · A2 no destructive action · A3 reversible bulk change"]
@@ -84,9 +84,10 @@ flowchart TB
 
 ## Axis 1 — The invariant
 
-The fixed point, split into three halves each of which can independently fail. C1 and C2 are the
-two halves of the governing sentence; C3 extends the pair to content-based secrets — MFA codes and
-login links — regardless of sender.
+The fixed point, split into halves each of which can independently fail. C1 and C2 are the two
+halves of the governing sentence; C3 extends the pair to content-based secrets — MFA codes and
+login links — regardless of sender; C4 keeps the sender-based half current as institutions add
+sending domains over time.
 
 ### C1 — Metadata always visible
 
@@ -157,6 +158,20 @@ in subjects, regardless of who sent them.**
 - **The residual must be measured, not merely accepted.** Every gate skip is recorded with its
   reason. An accepted risk that is not observable is out of compliance with this outcome even when
   no leak has occurred — the instrument is part of the criterion.
+
+### C4 — The sensitive-sender list keeps pace
+
+**The sensitive-sender set keeps pace with the mailbox: new sending domains belonging to
+already-sensitive institutions surface for the operator's confirmation rather than silently
+leaking.**
+
+*Falsified by any of:*
+
+- An institution already on the list sends from an unlisted domain, and that domain never appears
+  as a candidate.
+- Confirming a candidate requires a code change rather than a policy edit.
+- A candidate is presented without the evidence that flagged it, so the operator cannot judge it.
+- A confirmed candidate does not take effect on the next classification.
 
 ## Axis 2 — Organizational capability
 
