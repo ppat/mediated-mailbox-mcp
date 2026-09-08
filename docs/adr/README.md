@@ -134,3 +134,5 @@ record's number is stable. Records themselves link freely: deep into
 | 0044 | [Tests are layered by disjoint bug class, and every green must be able to go red](./engineering/0044-layered-testing-strategy.md) | Accepted |
 | 0045 | [Crash-injection stateful testing is aimed where silent failure meets hard-to-reverse damage](./engineering/0045-crash-injection-testing.md) | Accepted |
 | 0046 | [Every automatable control's tests are shown to go red when the control is removed](./engineering/0046-mutation-obligation.md) | Accepted |
+| 0049 | [One image per deployable, all moving in lockstep](./engineering/0049-image-per-component-lockstep.md) | Accepted |
+| 0050 | [Shared code is pure, or it is a narrow, named exception](./engineering/0050-shared-code-pure-or-narrow.md) | Accepted |
