@@ -136,3 +136,4 @@ record's number is stable. Records themselves link freely: deep into
 | 0046 | [Every automatable control's tests are shown to go red when the control is removed](./engineering/0046-mutation-obligation.md) | Accepted |
 | 0049 | [One image per deployable, all moving in lockstep](./engineering/0049-image-per-component-lockstep.md) | Accepted |
 | 0050 | [Shared code is pure, or it is a narrow, named exception](./engineering/0050-shared-code-pure-or-narrow.md) | Accepted |
+| 0051 | [The app knows its environment contract, never its platform](./engineering/0051-environment-contract.md) | Accepted |
