@@ -1,16 +1,18 @@
 ---
 name: update-docs
-description: Route, author, and verify changes to this repository's document set — DESIGN.md, USE_CASES.md, ROADMAP.md, the decision records under docs/adr/, docs/VERIFICATIONS.md, README.md, and CLAUDE.md. Use this skill whenever a task adds, changes, or records ANY decision, outcome, plan item, term, test plan, risk, or fact about the system — including decisions made mid-conversation that merely need recording, discoveries made during implementation, superseding an existing decision, and build-state updates. Use it even when the user does not mention documentation: if new information about the system came into existence during the work, this skill is how it gets a home. Also use it when asked where something should be documented, or whether a document change is allowed.
+description: Route, author, and verify changes to this repository's document set — DESIGN.md, USE_CASES.md, ROADMAP.md, TESTING.md, the decision records under docs/adr/, docs/VERIFICATIONS.md, docs/MUTATIONS.md, README.md, and CLAUDE.md. Use this skill whenever a task adds, changes, or records ANY decision, outcome, plan item, term, test plan, risk, or fact about the system — including decisions made mid-conversation that merely need recording, discoveries made during implementation, superseding an existing decision, and build-state updates. Use it even when the user does not mention documentation: if new information about the system came into existence during the work, this skill is how it gets a home. Also use it when asked where something should be documented, or whether a document change is allowed.
 ---
 
 # Updating the document set
 
 This repository's documents are one system, organized by rate of change: the outcome contract is
-near-frozen, the design moves slowly, decision records are fluid, the roadmap changes with every
-unit of work, and the verification catalogue grows one row per control. A change made in the
-wrong document — or in the right document but breaking its conventions — is how documents come to
-disagree, and two disagreeing documents are worse than none. This skill exists so every change
-lands in the right place, in the right shape, and leaves the whole set coherent.
+near-frozen, the design moves slowly, the testing strategy moves when a record mints a change to
+it, decision records are fluid, the roadmap changes with every unit of work, the verification
+catalogue grows one row per control, and the mutation ledger grows one demonstration per
+implemented control. A change made in the wrong document — or in the right document but breaking
+its conventions — is how documents come to disagree, and two disagreeing documents are worse
+than none. This skill exists so every change lands in the right place, in the right shape, and
+leaves the whole set coherent.
 
 Work through four steps, in order: **route → author → check the whole set → verify and commit.**
 Two reference files carry detail this file only points at — read them when the step tells you to.
@@ -27,6 +29,8 @@ Classify what you are about to write, before opening any file:
 | A definition of a term used in more than one place | `DESIGN.md`'s Glossary | The single home for vocabulary |
 | Anything about what is built, when, in what order, or what work remains | `ROADMAP.md` | Build state is a roadmap fact, nowhere else |
 | A deliberate violation that would prove a control works | `docs/VERIFICATIONS.md` | It is a test plan, keyed to a work unit |
+| A testing-strategy statement — a layer, an instrument, a standing discipline | `TESTING.md` | It is strategy narrative; the decision behind it is a record, cited by number |
+| A control's mutation demonstration (mechanism removed → tests went red) | `docs/MUTATIONS.md` | It is the implementation-time ledger, one row per control |
 | Orientation for a newcomer (what the project is, where facts live) | `README.md` / `CLAUDE.md` | Front doors point; they never hold facts |
 
 The ambiguous cases, resolved the way this document set resolves them:
@@ -50,9 +54,10 @@ The ambiguous cases, resolved the way this document set resolves them:
 
 Every change type has a procedure — read
 [references/procedures.md](references/procedures.md) for the one you need (minting a record,
-superseding a record, adding or changing an outcome, roadmap changes, verification rows, glossary
-changes). Do not improvise the mechanics; the procedures encode details that are easy to get
-wrong (numbering, index updates, identifier linking, status vocabulary).
+superseding a record, adding or changing an outcome, roadmap changes, verification rows,
+mutation-ledger rows, adding a document to the set, glossary changes). Do not improvise the
+mechanics; the procedures encode details that are easy to get wrong (numbering, index updates,
+identifier linking, status vocabulary).
 
 Standards that apply to all authoring, regardless of change type — the per-file rules in
 `.claude/rules/` bind automatically, and these three deserve stating here because they are where
@@ -98,8 +103,8 @@ identifier schemes, and mapping tables before.
 Run the mechanical checks the CI gate will run, before committing:
 
 ```bash
-lychee --offline --no-progress README.md CLAUDE.md DESIGN.md USE_CASES.md ROADMAP.md 'docs/**/*.md'
-mise exec node -- npx --yes markdownlint-cli2 'README.md' 'CLAUDE.md' 'DESIGN.md' 'USE_CASES.md' 'ROADMAP.md' 'docs/**/*.md'
+lychee --offline --no-progress README.md CLAUDE.md DESIGN.md USE_CASES.md ROADMAP.md TESTING.md 'docs/**/*.md'
+mise exec node -- npx --yes markdownlint-cli2 'README.md' 'CLAUDE.md' 'DESIGN.md' 'USE_CASES.md' 'ROADMAP.md' 'TESTING.md' 'docs/**/*.md'
 ```
 
 Both must pass clean. Also reflow any wrapped paragraph you edited to the file's wrap width — a

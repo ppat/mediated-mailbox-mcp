@@ -5,6 +5,7 @@ paths:
   - "DESIGN.md"
   - "USE_CASES.md"
   - "ROADMAP.md"
+  - "TESTING.md"
   - "docs/**/*.md"
 ---
 

@@ -14,6 +14,8 @@ work; they do not replace reading the authority for the file you touch.
 - [Glossary changes](#glossary-changes)
 - [Roadmap changes](#roadmap-changes)
 - [Verification rows](#verification-rows)
+- [Mutation-ledger rows](#mutation-ledger-rows)
+- [Adding a document to the set](#adding-a-document-to-the-set)
 - [Front-door files (README.md, CLAUDE.md)](#front-door-files-readmemd-claudemd)
 
 ## Mint a new decision record
@@ -196,6 +198,48 @@ records' `Serves:` headers) for meaning drift against the new text.
 - A new control lands with its row in the same change. Proving a row later: status gains the date
   and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
 - Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.
+
+## Mutation-ledger rows
+
+- A row exists only from implementation time — when the control's mechanism and its tests both
+  exist to be broken. Never mint a ledger row at design time; that is what the verification
+  catalogue's row is for.
+- Shape: `| <control> | <how the mechanism was removed or disabled> | <tests that went red> |
+  <date · evidence pointer> |`. The table is the artifact — never a pass rate.
+- A surviving mutant on a control is recorded as an open defect row and stays open until the
+  tests are fixed or the mechanism is deliberately removed as redundant.
+- Re-produce a row only when its control or its tests change — never as a standing gate; the
+  old row's date-claim is superseded by the new demonstration.
+
+## Adding a document to the set
+
+A new top-level document (or docs/ register) carries five mechanical obligations, every one in
+the same change — a document with some of them is half-joined and reads as either missing or
+ungoverned depending on where a reader starts:
+
+1. Front-door rows in BOTH `README.md` and `CLAUDE.md`, and the README status sentence if it
+   enumerates what is authored.
+2. A `paths:` entry in `.claude/rules/doc-set.md`, so the set-wide rules bind the newcomer —
+   unless the document lives under `docs/`, which the existing `docs/**/*.md` glob already
+   binds.
+3. A new `.claude/rules/<doc>.md` carrying the document's own binding conventions — **with YAML
+   frontmatter**, since a rules file attaches by its `paths` globs:
+
+   ```yaml
+   ---
+   paths:
+     - "<the document's path>"
+   ---
+   ```
+
+   One rules file may cover a document pair when their conventions are one system.
+4. The update-docs skill itself: the `description` frontmatter's enumeration of the set, the
+   preamble's rate-of-change sentence, the step-1 routing table, the step-2 parenthetical list
+   of procedures, the step-4 check commands — and, where the document has its own change type,
+   a `procedures.md` section for it with its Contents entry.
+5. The Glossary's scope and any terms the document introduces (the glossary procedure above),
+   plus the §4 enumeration-and-disposition ledger from the coherence check — adding a document
+   is adding a member to an enumerated set.
 
 ## Front-door files (README.md, CLAUDE.md)
 
