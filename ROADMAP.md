@@ -261,7 +261,7 @@ piece.
   provider effects after mutating. *Criteria:* mixed-class batch with a disposal verb fails
   whole; a batch with an invalid operation anywhere in it fails whole before any write; every
   mutating operation offers a dry-run mode that changes no state of any kind.
-- [ ] **M2 — Reorg engine** →
+- [ ] **M2 — Organize engine** →
   [G3](./USE_CASES.md#g3--reorganization) · V4 · ≈3 days
   Plan storage and validation (at creation, re-validation at apply, the plan-age check), the
   `describe_reorg_plan` / `sample_reorg_plan` tools, checkpointed apply, op log, rollback.
@@ -375,7 +375,7 @@ licensing:
   provider at once, with the account-restriction failure mode in play on day one.
 - Evaluating the scan gate before pass-1 statistics exist — a gate deciding blind is either
   scan-everything (the cost it exists to avoid) or skip-blind (the leak it exists to prevent).
-- Building the UI before the reorg engine — a review screen with nothing to review.
+- Building the UI before the organize engine — a review screen with nothing to review.
 - Training tier 3 on synthetic data because real labels haven't accumulated — confident wrong
   answers on exactly the ambiguous cases.
 - Adding a second datastore for coordination before contention exists — infrastructure for a

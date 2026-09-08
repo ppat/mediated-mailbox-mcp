@@ -139,3 +139,4 @@ record's number is stable. Records themselves link freely: deep into
 | 0051 | [The app knows its environment contract, never its platform](./engineering/0051-environment-contract.md) | Accepted |
 | 0052 | [The repository ships a self-contained deployment artifact that assumes nothing](./engineering/0052-deployment-product.md) | Accepted |
 | 0053 | [Both client roots are generated from one operation registry — a one-sided operation is unrepresentable](./engineering/0053-parity-by-construction.md) | Accepted |
+| 0054 | [One repository, flat at the top, one module; published names follow `mail-<role>`](./engineering/0054-repository-structure-and-naming.md) | Accepted |

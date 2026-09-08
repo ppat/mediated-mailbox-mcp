@@ -52,9 +52,9 @@ necessarily valid at apply.
   invalid at submission.
 - Assumptions about other components: validation verdicts are computable without side effects
   (the Mutation Authorizer's matrix is a pure check, an assumption
-  [ADR-0031](./0031-dry-run-on-mutating-operations.md) already names); the Reorg Engine's apply
-  job runs re-validation and the age check before its first write — and "first write" includes
-  the ensure-labels-exist step, which creates labels at the provider; and the age check assumes a
-  plan's creation time is recorded with the plan.
+  [ADR-0031](./0031-dry-run-on-mutating-operations.md) already names); the Organize Engine's
+  (`mail-organize`) apply job runs re-validation and the age check before its first write — and
+  "first write" includes the ensure-labels-exist step, which creates labels at the provider;
+  and the age check assumes a plan's creation time is recorded with the plan.
 - The rules here are controls; their violation injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

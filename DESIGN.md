@@ -71,7 +71,7 @@ owns.
 │ Batch subsystems — separate workloads          │                 │
 │                                                │                 │
 │ ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌────▼──────────────┐  │
-│ │ Backfill  │ │ Delta     │ │ Reorg     │ │ Heuristics Job    │  │
+│ │ Backfill  │ │ Delta     │ │ Organize  │ │ Heuristics Job    │  │
 │ │ Job       │ │ Sync      │ │ Engine    │ │ (candidate gen)   │  │
 │ └─────┬─────┘ └─────┬─────┘ └─────┬─────┘ └────┬──────────────┘  │
 │       └─────────────┼─────────────┘            │                 │
@@ -107,10 +107,10 @@ owns.
 | Scan Gate | Choose which non-restricted bodies get scanned | batch subsystems |
 | Content Scanner | Read bodies it will withhold; emit content-free verdicts | batch subsystems |
 | Rate Limiter | Keep all workloads inside one polite per-account budget | all processes |
-| Backfill Job | Build the full-history metadata index once | batch workload |
-| Delta Sync | Keep the index current against the provider | batch workload |
-| Reorg Engine | Turn approved plans into reversible bulk mutations | batch workload |
-| Heuristics Job | Propose sensitive-sender candidates for human review | batch workload |
+| Backfill Job (`mail-backfill`) | Build the full-history metadata index once | batch workload |
+| Delta Sync (`mail-sync`) | Keep the index current against the provider | batch workload |
+| Organize Engine (`mail-organize`) | Turn approved plans into reversible bulk mutations | batch workload |
+| Heuristics Job (`mail-heuristics`) | Propose sensitive-sender candidates for human review | batch workload |
 | mail-ui | Make the system legible to the operator; carry the approval verbs | separate deployment |
 | Postgres | Hold metadata, plans, and audit — never a body | managed Postgres cluster |
 | Policy Store | Hold the sender rules as data, hot-reloaded | GitOps-managed config |
@@ -461,8 +461,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Policy snapshot** — the immutable, atomically-swapped copy of the policy that one request or
   batch item decides against (rule: ADR-0041, via the
   [decision-record index](./docs/adr/README.md)).
-- **Heuristics Job** — the batch workload that proposes sensitive-sender candidates from observed
-  traffic. Proposes only; nothing it emits takes effect without operator confirmation.
+- **Heuristics Job** (`mail-heuristics`) — the batch workload that proposes sensitive-sender
+  candidates from observed traffic. Proposes only; nothing it emits takes effect without
+  operator confirmation.
 - **Review queue** — where heuristic candidates wait, ranked with their evidence, for the operator
   to confirm or dismiss through the UI.
 - **Tier** — a stage of content detection, ordered by cost: structural patterns, then scoring, then
@@ -481,11 +482,14 @@ top-level documents, a decision record, or a ticket from here without guessing.
 
 ### Data paths and mutation
 
-- **Backfill** — the one-time construction of the full-history metadata index, metadata first,
-  gated body scanning after.
-- **Delta sync** — the recurring job that keeps the index current against provider change feeds.
+- **Backfill** (`mail-backfill`) — the one-time construction of the full-history metadata
+  index, metadata first, gated body scanning after.
+- **Delta sync** (`mail-sync`) — the recurring job that keeps the index current against
+  provider change feeds.
 - **Sync interval** — the delta-sync polling cadence that bounds index freshness (rule and
   value: ADR-0018, via the [decision-record index](./docs/adr/README.md)).
+- **Organize Engine** (`mail-organize`) — the batch workload that turns approved reorg plans
+  into reversible bulk mutations.
 - **Reorg plan** — a proposed bulk reorganization, stored as data: label operations, per-message
   operations, reasoning, and scale. A plan is never an action.
 - **Maximum plan age** — the age, measured from creation, past which a saved reorg plan is
@@ -544,4 +548,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [USE_CASES.md](./USE_CASES.md) and used as the coordinate system everywhere else.
 - **ADR-NNNN** — decision records, numbered globally in mint order, resolved through
   [docs/adr/README.md](./docs/adr/README.md).
+- **Deployable and library names** — deployables and their images are `mail-<role>`; shared
+  libraries are `mail-<concern>` (rule: ADR-0054, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Work units and value increments** — defined in [ROADMAP.md](./ROADMAP.md).
