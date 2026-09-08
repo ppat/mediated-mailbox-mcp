@@ -127,3 +127,4 @@ record's number is stable. Records themselves link freely: deep into
 | --- | --- | --- |
 | 0040 | [Cores are pure and decisions are values; thin impure shells enact them](./engineering/0040-pure-core-decisions-as-values.md) | Accepted |
 | 0042 | [The stack is Go end to end on the server, TypeScript only in the browser](./engineering/0042-implementation-stack.md) | Accepted |
+| 0043 | [No mocking: tests run against the real dependency or a contract-tested fake](./engineering/0043-no-mocking.md) | Accepted |
