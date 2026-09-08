@@ -137,3 +137,4 @@ record's number is stable. Records themselves link freely: deep into
 | 0049 | [One image per deployable, all moving in lockstep](./engineering/0049-image-per-component-lockstep.md) | Accepted |
 | 0050 | [Shared code is pure, or it is a narrow, named exception](./engineering/0050-shared-code-pure-or-narrow.md) | Accepted |
 | 0051 | [The app knows its environment contract, never its platform](./engineering/0051-environment-contract.md) | Accepted |
+| 0052 | [The repository ships a self-contained deployment artifact that assumes nothing](./engineering/0052-deployment-product.md) | Accepted |
