@@ -388,6 +388,6 @@ Where a decision is recorded, the row cites its number, resolved through the
 | --- | --- | --- |
 | Tier-3 model choice and training setup | X1 | Deliberately open — ADR-0006 defers it until real labeled data exists |
 | Off-cluster audit destination | H1 | ADR-0028 requires shipping; the destination is unchosen |
-| UI stack | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs); the stack is unchosen |
+| UI browser framework | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs) and ADR-0042 settles the languages (Go on the UI's server side, TypeScript in the browser); the browser framework is deliberately unchosen until M3 approaches |
 | Ingress answer if the agent ever leaves the LAN | nothing yet | Conditional; ADR-0014 names the likely answer (overlay network) without deciding it |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time; the value is unchosen |
