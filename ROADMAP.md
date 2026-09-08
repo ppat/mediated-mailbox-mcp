@@ -391,3 +391,4 @@ Where a decision is recorded, the row cites its number, resolved through the
 | UI browser framework | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs) and ADR-0042 settles the languages (Go on the UI's server side, TypeScript in the browser); the browser framework is deliberately unchosen until M3 approaches |
 | Ingress answer if the agent ever leaves the LAN | nothing yet | Conditional; ADR-0014 names the likely answer (overlay network) without deciding it |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time; the value is unchosen |
+| Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2) — complexity and payoff at that point drive it |
