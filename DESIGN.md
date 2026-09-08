@@ -502,6 +502,12 @@ top-level documents, a decision record, or a ticket from here without guessing.
 
 ### Doctrine
 
+- **Pure core / impure shell** — the structural split every component follows: pure decision
+  functions over parameters, wrapped by a thin shell that does the I/O and enacts the decisions
+  (rule: ADR-0040, via the [decision-record index](./docs/adr/README.md)).
+- **Verdict** — a decision returned as a data value by a pure core, enacted and recorded by the
+  shell; verdict types structurally cannot carry the content they withhold (rule: ADR-0040 and
+  ADR-0009, via the [decision-record index](./docs/adr/README.md)).
 - **Violation injection** (also *proving injection*) — the acceptance standard: a control is
   proven by deliberately creating the violation it exists to stop and watching it fire, never by
   observing that nothing bad happened. Catalogued in
