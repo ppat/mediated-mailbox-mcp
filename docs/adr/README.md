@@ -127,3 +127,4 @@ record's number is stable. Records themselves link freely: deep into
 | --- | --- | --- |
 | 0040 | [Cores are pure and decisions are values; thin impure shells enact them](./engineering/0040-pure-core-decisions-as-values.md) | Accepted |
 | 0041 | [Policy arrives as an immutable snapshot, taken once per unit of work](./engineering/0041-policy-as-immutable-snapshots.md) | Accepted |
+| 0042 | [The stack is Go end to end on the server, TypeScript only in the browser](./engineering/0042-implementation-stack.md) | Accepted |
