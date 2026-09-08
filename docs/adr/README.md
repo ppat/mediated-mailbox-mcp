@@ -126,3 +126,4 @@ record's number is stable. Records themselves link freely: deep into
 | # | Record | Status |
 | --- | --- | --- |
 | 0040 | [Cores are pure and decisions are values; thin impure shells enact them](./engineering/0040-pure-core-decisions-as-values.md) | Accepted |
+| 0042 | [The stack is Go end to end on the server, TypeScript only in the browser](./engineering/0042-implementation-stack.md) | Accepted |
