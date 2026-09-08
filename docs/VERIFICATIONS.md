@@ -10,8 +10,15 @@ design (rows are added as controls are added — a new control lands with its in
 records **what must fire and what firing proves**; the how-to detail of running an injection lives
 with the implementation. Status values: **proven** (with the date and the record holding the
 evidence), **pending** (with the [ROADMAP.md](../ROADMAP.md) unit that delivers the control),
-**parked** (deliberately not run, with the standing reason). A proven row is a claim about that
-date — re-runs after relevant change are the affected unit's business, not this table's.
+**parked** (deliberately not run, with the standing reason). An injection row in §§1–4 is one
+of three kinds with different proof lifetimes (ADR-0044, via the
+[decision-record index](./adr/README.md)): an **automatable** injection becomes a permanent CI
+test, so its proof is continuous from the date first proven; a **drill** on real substrate and
+a **manual exercise** are proven as of their date — re-runs after relevant change are the
+affected unit's business, not this table's. A row's kind is evident from its injection's own
+text, and a proven row records its kind alongside the date. Each automatable control's
+mutation demonstration — the proof that its tests can go red — lives in the companion ledger,
+[MUTATIONS.md](./MUTATIONS.md).
 
 No row is proven yet: this catalogue predates the first line of code, so everything below is
 pending or parked. That is the correct starting state, not an empty document.
@@ -103,3 +110,5 @@ than a build, each with its trigger point.
 | **ADR-0034's recorded-state-only bound** — the status operation reads only recorded tables, never components | Parked as a standalone injection: the bound is the contracts-only pillar's discipline, whose stated limit is that it is truly tested only when an evolution arrives; the operational-state-only bound's injection in §1 covers the observable half. Revisit if a structural data-access check lands with [D3](../ROADMAP.md#group-d--data-flows) |
 | **ADR-0040's nothing-is-ambient rule** — every dependency, the account identifier included, arrives as an explicit parameter | Rides existing rows rather than its own injection: the cross-account adversarial row in §4 ([X3](../ROADMAP.md#group-x--expansion)) fires if an implicit account exists, and the §1 type rows ([S1](../ROADMAP.md#group-s--safeguard-machinery)) fire on ambient construction paths |
 | **ADR-0041's absence-denies rule** — no valid policy snapshot has ever loaded, so there is no policy | Rides the §1 fail-closed row ("a policy that has never validly loaded … every path denies", [S1](../ROADMAP.md#group-s--safeguard-machinery)); the never-loaded precondition in that row is this control's injection |
+| **The provider-port contract suite** (ADR-0043) — every port implementation, the fake included, passes one suite | Rides the port contract's own deferred proof (ADR-0010): the suite is the instrument the second-adapter test runs at [X4](../ROADMAP.md#group-x--expansion), and whether it ever runs against a real provider is an open decision in [ROADMAP.md](../ROADMAP.md) |
+| **Crash-injection harness invariants** (ADR-0045) — persistence and forward progress after a generated crash | Rides the existing recovery rows (kill the apply job mid-plan, §3; kill the backfill pod mid-run, §4) rather than new rows: the harness adds a continuous automated proof of the same controls beside the drills' date-claim proof |

@@ -357,7 +357,7 @@ where each disposition is recorded, not what it is — the record named is the s
 | Metadata (subjects, senders, traffic patterns) is deliberately exposed | ADR-0001, via the [decision-record index](./docs/adr/README.md) |
 | A bounded residual of unscanned bodies is released by design | ADR-0007 and ADR-0002, and its measurement rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | A single chokepoint concentrates correctness — a gate bug is a bug everywhere | Built first, proven offline: the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
-| Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
+| Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those injections can fail in [docs/MUTATIONS.md](./docs/MUTATIONS.md) — ADR-0046 |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops — ADR-0003, ADR-0007 |
 | The approval surface is itself a target | ADR-0021 — two verbs, scoped role, no credentials |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |

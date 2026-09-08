@@ -12,7 +12,9 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 
 **Acceptance.** Every control's proving injection lives in
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
-while its pending verification rows are unproven.
+while its pending verification rows are unproven. An automatable control's acceptance also
+includes its mutation demonstration — the proof its tests go red when the mechanism is
+removed — catalogued in [docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046).
 
 **Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O5) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
@@ -71,6 +73,7 @@ loops, not perfected up front.
 | Code | None exists |
 | Infrastructure (database, secrets sync, deployments) | None provisioned for this system |
 | Verifications | All pending or parked — see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
+| Mutations | None demonstrable — the ledger starts empty until implementation; see [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
 | **The delivery gap** | Everything: no unit has started; V1 is the front of the line |
 
 ## Delivered, mapped to outcomes
@@ -392,3 +395,4 @@ Where a decision is recorded, the row cites its number, resolved through the
 | UI browser framework | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs) and ADR-0042 settles the languages (Go on the UI's server side, TypeScript in the browser); the browser framework is deliberately unchosen until M3 approaches |
 | Ingress answer if the agent ever leaves the LAN | nothing yet | Conditional; ADR-0014 names the likely answer (overlay network) without deciding it |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time; the value is unchosen |
+| Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2) — complexity and payoff at that point drive it |
