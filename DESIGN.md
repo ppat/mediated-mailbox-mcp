@@ -182,10 +182,11 @@ against its failure modes explicitly, and kept small.
 
 ### Fail closed, everywhere
 
-Every ambiguous or error state — unreadable policy, scanner backlog, classification failure,
-unscanned message — resolves to *deny the body*. "Allow" requires an affirmative safe
-classification; the mere absence of a positive signal is never enough. Work that has not happened
-yet is a deny state, not an open door.
+Every ambiguous or error state — a policy that has never validly loaded, scanner backlog,
+classification failure, unscanned message — resolves to *deny the body*. "Allow" requires an
+affirmative safe classification; the mere absence of a positive signal is never enough. Work that
+has not happened yet is a deny state, not an open door. A policy update that fails validation is
+not an ambiguous state: it never takes effect, and the active valid policy continues to govern.
 
 Why: the failure directions are asymmetric. Over-redaction is an inconvenience the operator can see
 and tune; under-redaction is a leak that cannot be recalled. A system whose degraded modes all
@@ -389,6 +390,7 @@ are pointers: each fix and its reasoning live in the records named, never here.
 | Scan backlog as silent utility loss | low / moderate | ADR-0007 |
 | UI as a write path | low / moderate | ADR-0021 |
 | Rate-controller pathology — collapse or runaway | moderate / medium | ADR-0024; ADR-0025 |
+| Policy reload failure leaves a published rule unapplied | low / medium | ADR-0041 |
 
 ## Glossary
 
@@ -454,6 +456,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   managed as data under GitOps and hot-reloaded. The only authority on sender class.
 - **Policy overlay** — per-account additions to the base policy. Overlays only add restrictions;
   they can over-restrict, never under-restrict.
+- **Policy snapshot** — the immutable, atomically-swapped copy of the policy that one request or
+  unit of batch work decides against (rule: ADR-0041, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Heuristics Job** — the batch workload that proposes sensitive-sender candidates from observed
   traffic. Proposes only; nothing it emits takes effect without operator confirmation.
 - **Review queue** — where heuristic candidates wait, ranked with their evidence, for the operator
