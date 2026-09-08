@@ -39,10 +39,12 @@ These are not outcomes; they bound every outcome and every design choice.
   read, and JMAP has no per-sender access control — the mediator's credential is unavoidably
   over-privileged, so the redaction must be enforced by the operator's own code or not at all.
   This is the single constraint the whole architecture is built around.
-- **Fail closed, everywhere.** Every ambiguous or error state — unreadable policy, scanner
-  backlog, classification failure, unscanned message — resolves to *deny the body*. "Allow"
-  requires an affirmative safe classification, never the mere absence of a positive signal.
-  Over-redaction is the correct failure direction; under-redaction is a leak.
+- **Fail closed, everywhere.** Every ambiguous or error state — a policy that has never validly
+  loaded, scanner backlog, classification failure, unscanned message — resolves to *deny the
+  body*. "Allow" requires an affirmative safe classification, never the mere absence of a
+  positive signal. A policy update that fails validation is not an ambiguous state: it never
+  takes effect — the active valid policy continues to govern, and the failure is raised
+  loudly. Over-redaction is the correct failure direction; under-redaction is a leak.
 - **Self-hosted on infrastructure already owned.** The mediation layer runs on the operator's
   homelab Kubernetes under their existing GitOps pattern, config as data. Mail transport and
   storage stay with the managed provider; only the mediation/filtering layer is self-hosted.

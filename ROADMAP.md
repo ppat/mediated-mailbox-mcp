@@ -176,7 +176,9 @@ database, no provider.
   Property test that no message-body value with non-normal sensitivity or a denying scan state can
   even be constructed; fail-closed paths tested **first**, because production never exercises
   them; types carry sensitivity so a leak is a static type error, with a strict type checker in CI
-  as the enforcing gate. *Criteria:* every deny writes an audit row.
+  as the enforcing gate. *Criteria:* every deny writes an audit row; an invalid policy update
+  never takes effect — the active policy keeps serving and the reload-failure alarm fires
+  (ADR-0041).
 - [ ] **S2 — Content Scanner tiers 1–2 + subject masking** →
   [C3](./USE_CASES.md#c3--content-based-secrets-caught) · V1 · ≈1–2 days
   Fixture-driven; verdict-cannot-carry-content verified by type and by a test that searches
