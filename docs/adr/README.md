@@ -120,3 +120,10 @@ record's number is stable. Records themselves link freely: deep into
 | 0035 | [Every required identifier is discoverable on the same surface; accounts gain a listing](./operability/0035-required-identifiers-are-discoverable.md) | Accepted |
 | 0038 | [Credentials arrive as mounted files](./operability/0038-credentials-as-mounted-files.md) | Accepted |
 | 0039 | [Rotation write-back is delegated; the mediator holds no secret-store credential](./operability/0039-rotation-writeback.md) | Accepted |
+
+## Engineering — `engineering/`
+
+| # | Record | Status |
+| --- | --- | --- |
+| 0040 | [Cores are pure and decisions are values; thin impure shells enact them](./engineering/0040-pure-core-decisions-as-values.md) | Accepted |
+| 0041 | [Policy arrives as an immutable snapshot, taken once per unit of work](./engineering/0041-policy-as-immutable-snapshots.md) | Accepted |

@@ -368,6 +368,7 @@ where each disposition is recorded, not what it is — the record named is the s
 | Un-braided concerns and contract-only knowledge are only truly tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
 | The corpus is assumed ≤100k messages per account | ADR-0016 records what changes beyond it |
 | The agent is assumed to run inside the LAN | ADR-0014 records what reopens if it does not |
+| An invalid policy update retains the last-good snapshot rather than denying | ADR-0041, via the [decision-record index](./docs/adr/README.md) |
 
 ## 4. Failure modes
 
@@ -389,6 +390,7 @@ are pointers: each fix and its reasoning live in the records named, never here.
 | Scan backlog as silent utility loss | low / moderate | ADR-0007 |
 | UI as a write path | low / moderate | ADR-0021 |
 | Rate-controller pathology — collapse or runaway | moderate / medium | ADR-0024; ADR-0025 |
+| Policy reload failure leaves a published rule unapplied | low / medium | ADR-0041 |
 
 ## Glossary
 
@@ -451,6 +453,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   managed as data under GitOps and hot-reloaded. The only authority on sender class.
 - **Policy overlay** — per-account additions to the base policy. Overlays only add restrictions;
   they can over-restrict, never under-restrict.
+- **Policy snapshot** — the immutable, atomically-swapped copy of the policy that one request or
+  batch item decides against (rule: ADR-0041, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Heuristics Job** — the batch workload that proposes sensitive-sender candidates from observed
   traffic. Proposes only; nothing it emits takes effect without operator confirmation.
 - **Review queue** — where heuristic candidates wait, ranked with their evidence, for the operator
@@ -502,6 +507,12 @@ top-level documents, a decision record, or a ticket from here without guessing.
 
 ### Doctrine
 
+- **Pure core / impure shell** — the structural split every component follows: pure decision
+  functions over parameters, wrapped by a thin shell that does the I/O and enacts the decisions
+  (rule: ADR-0040, via the [decision-record index](./docs/adr/README.md)).
+- **Verdict** — a decision returned as a data value by a pure core, enacted and recorded by the
+  shell; verdict types structurally cannot carry the content they withhold (rule: ADR-0040 and
+  ADR-0009, via the [decision-record index](./docs/adr/README.md)).
 - **Violation injection** (also *proving injection*) — the acceptance standard: a control is
   proven by deliberately creating the violation it exists to stop and watching it fire, never by
   observing that nothing bad happened. Catalogued in
