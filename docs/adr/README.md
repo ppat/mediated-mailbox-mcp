@@ -92,6 +92,8 @@ record's number is stable. Records themselves link freely: deep into
 | 0016 | [The schema: no body columns anywhere, everything scoped by account](./data/0016-schema.md) | Accepted |
 | 0017 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0017-two-pass-backfill.md) | Accepted |
 | 0018 | [Delta sync polls on a short cadence; push delivery rejected](./data/0018-delta-sync-polls.md) | Accepted |
+| 0047 | [The schema is the single authority, read through per-query result types — no entity model](./data/0047-schema-first-data-access.md) | Accepted |
+| 0048 | [Migrations are hand-written SQL, forward-only, run under their own role](./data/0048-forward-only-migrations.md) | Accepted |
 
 ## Mutation — `mutation/`
 

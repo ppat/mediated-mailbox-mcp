@@ -392,3 +392,4 @@ Where a decision is recorded, the row cites its number, resolved through the
 | Ingress answer if the agent ever leaves the LAN | nothing yet | Conditional; ADR-0014 names the likely answer (overlay network) without deciding it |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time; the value is unchosen |
 | Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2) — complexity and payoff at that point drive it |
+| Data-access production mechanism | F2 | ADR-0047 fixes the approach (schema as sole authority, per-query result types, one shared library) and deliberately defers the mechanism — generation versus hand-written under the same discipline, and the specific tool — to its own record when F2 begins |
