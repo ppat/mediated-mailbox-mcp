@@ -46,6 +46,10 @@ record's number is stable. Records themselves link freely: deep into
 - **Consequences name what the decision assumes about other components.** A dependency on how
   another component or subsystem behaves, left implicit, is the coupling that breaks future
   evolution; naming it in the record makes it reviewable at the moment it is created.
+- **Records state what must effectively happen, never the platform stack.** No product names and
+  no platform vocabulary in a record unless the decision is genuinely about that product; the
+  product-free rendering ("values", "admission machinery", "the disposable cluster") carries the
+  same meaning without binding the decision to a stack it does not depend on.
 - **One decision per record, cut by the re-argue test.** Decisions merge into one record when they
   share one review context and would be re-argued together — reversing one forces re-arguing the
   others. They stay separate when independently reversible. A record found to be carrying two

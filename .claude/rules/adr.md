@@ -32,4 +32,7 @@ these are the tripwires that must hold even in a drive-by edit:
 - **Consequences state what the decision assumes about other components.** A dependency on how
   another component or slice behaves, left implicit, is the coupling that breaks future
   evolution; naming it here is what makes it reviewable.
+- **No product names or platform vocabulary** unless the decision is genuinely about that
+  product — records state what must effectively happen; the product-free rendering carries the
+  meaning.
 - **No build state in records** — which unit builds it and when is roadmap business.

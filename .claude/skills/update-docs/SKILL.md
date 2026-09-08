@@ -55,9 +55,9 @@ The ambiguous cases, resolved the way this document set resolves them:
 Every change type has a procedure — read
 [references/procedures.md](references/procedures.md) for the one you need (minting a record,
 superseding a record, adding or changing an outcome, roadmap changes, verification rows,
-mutation-ledger rows, adding a document to the set, glossary changes). Do not improvise the
-mechanics; the procedures encode details that are easy to get wrong (numbering, index updates,
-identifier linking, status vocabulary).
+mutation-ledger rows, adding a document to the set, glossary changes, renaming across the set).
+Do not improvise the mechanics; the procedures encode details that are easy to get wrong
+(numbering, index updates, identifier linking, status vocabulary).
 
 Standards that apply to all authoring, regardless of change type — the per-file rules in
 `.claude/rules/` bind automatically, and these three deserve stating here because they are where

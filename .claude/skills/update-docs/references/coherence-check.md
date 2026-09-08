@@ -26,7 +26,9 @@ than a new section. For each check, actually open the files involved — do not 
   doctrine even though they hold no facts), exactly as §4 treats renamed terms: every statement
   gets a written disposition. A doctrine stated in two places with two readings is the
   highest-priority contradiction this check exists to catch, because the identifier-shaped map
-  above never reaches it. The same principle runs in reverse when *introducing* a convention: a
+  above never reaches it. This enumeration carries §4's ledger, counts, and reconciliation
+  duties in full — the machinery is written there around terms, but it binds a doctrine sweep
+  identically. The same principle runs in reverse when *introducing* a convention: a
   rule stated in the enforcement layer (`.claude/`) but absent from the in-repo authority it
   mirrors is a doctrine split — land both statements together.
 
@@ -58,11 +60,14 @@ reconcile them in the same change:
   normalized to standard vernacular — never imported silently. Fidelity to the agreement's
   meaning does not require importing its coinages.
 - Changed or retired terms: no stale uses left anywhere in the set.
-- **When a change renames, generalizes, or narrows a term or referent — or adds a member to an
-  enumerated set** (an axis, an identifier range, a timing enumeration): **enumerate, then
-  disposition.** List every occurrence of the OLD phrasing across the whole set — write down the
-  phrase families first (for a client-surface change they were: "MCP surface", "MCP endpoint",
-  "MCP tool", "tool surface", "the agent" as caller, "last hop before") and search for each;
+- **When a change renames, generalizes, or narrows a term or referent — adds a member to an
+  enumerated set** (an axis, an identifier range, a timing enumeration — including adding a
+  document to the set) — **or closes an open decision** (the close retroactively constrains
+  everything written while the question was open, so the sweep covers the code sketches,
+  examples, and placeholders written meanwhile): **enumerate, then disposition.** List every
+  occurrence of the OLD phrasing across the whole set — write down the phrase families first
+  (for a client-surface change they were: "MCP surface", "MCP endpoint", "MCP tool", "tool
+  surface", "the agent" as caller, "last hop before") and search for each;
   this enumeration is the one sanctioned use of search tools in this skill, because a sweep
   performed from memory demonstrably does not complete itself. Then disposition every occurrence
   in writing: **update** (stable documents always; records when the edit passes the in-place

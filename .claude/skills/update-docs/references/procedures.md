@@ -8,10 +8,12 @@ work; they do not replace reading the authority for the file you touch.
 
 - [Mint a new decision record](#mint-a-new-decision-record)
 - [Supersede an existing decision](#supersede-an-existing-decision)
+- [Changing an existing record: in place, or by supersession?](#changing-an-existing-record-in-place-or-by-supersession)
 - [Add a new outcome](#add-a-new-outcome)
 - [Change an existing outcome](#change-an-existing-outcome)
 - [Add or update a pillar, known limit, or failure mode](#add-or-update-a-pillar-known-limit-or-failure-mode)
 - [Glossary changes](#glossary-changes)
+- [Renaming a named thing across the set](#renaming-a-named-thing-across-the-set)
 - [Roadmap changes](#roadmap-changes)
 - [Verification rows](#verification-rows)
 - [Mutation-ledger rows](#mutation-ledger-rows)
@@ -22,9 +24,9 @@ work; they do not replace reading the authority for the file you touch.
 
 1. Find the highest number in `docs/adr/README.md` across ALL groups; the new record takes the
    next one. Never reuse, never leave gaps deliberately.
-2. Pick the folder by theme (`redaction/`, `classification/`, `provider/`, `data/`, `mutation/`,
-   `operability/`). Folders are navigation only — do not agonize; a record can move later without
-   renumbering. Filename: `NNNN-short-slug.md`.
+2. Pick the folder by theme (`redaction/`, `classification/`, `provider/`, `data/`,
+   `mutation/`, `operability/`, `engineering/`). Folders are navigation only — do not agonize;
+   a record can move later without renumbering. Filename: `NNNN-short-slug.md`.
 3. Check granularity with the re-argue test: decisions merge into one record when reversing one
    would force re-arguing the others; they stay separate records when independently reversible.
 4. Write the record: H1 as the decision stated as a claim (`# NNNN. <claim>`); metadata header
@@ -44,15 +46,21 @@ work; they do not replace reading the authority for the file you touch.
    nothing, and a verb or qualifier present in your sentence but absent from the quoted source is
    itself a finding against the walk. The walk covers the header line too — Status, Pillar, and
    Serves are claims like any other. A claim with no source is removed or taken to the
-   operator — no exception for claims that "obviously follow."
+   operator — no exception for claims that "obviously follow." The written walk's source cells
+   carry the quoted words themselves — or, for a claim genuinely derived rather than stated,
+   the explicit marker "derivation — no direct quote" with the derivation spelled out in the
+   cell. A cell that cites or paraphrases the source instead of doing either re-opens exactly
+   the gap the walk exists to close.
 5c. Walk the Decision's bullets once more asking: does this bullet state a rule that is enforced,
    checked, or called testable? Each yes is a control, and each control lands with its injection
    row in `docs/VERIFICATIONS.md` in this same change — or with a written parking or
-   rides-on-a-unit disposition. Controls include rules the record restates from other records
-   with widened scope (a posture "applied identically" to a new surface widens the older
-   controls' scope — disposition those too, typically as riding the existing rows). A record
-   introducing N controls while the catalogue gains fewer than N dispositions is an unfinished
-   mint.
+   rides-on-a-unit disposition. A rule checkable in principle but unenforced today is still a
+   control for this walk: its answer is a parked or riding trace in the catalogue (see the
+   verification-rows procedure), never silence. Controls include rules the record restates
+   from other records with widened scope (a posture "applied identically" to a new surface
+   widens the older controls' scope — disposition those too, typically as riding the existing
+   rows). A record introducing N controls while the catalogue gains fewer than N dispositions
+   is an unfinished mint.
 6. Status: `Accepted` if the operator has agreed to this decision (in conversation counts);
    `Proposed` if adopted by the documents but awaiting ratification — and then also add a row to
    ROADMAP.md's Open decisions table naming what it gates.
@@ -160,6 +168,23 @@ records' `Serves:` headers) for meaning drift against the new text.
 - Two meanings colliding on one word: both entries carry explicit cross-referenced
   disambiguation.
 
+## Renaming a named thing across the set
+
+A rename — of a component, a deployable, a document, any referent with a name — is the
+coherence check's §4 (enumerate, then disposition) plus two duties the literal name-sweep
+cannot carry:
+
+- **Sweep descriptions, not only names.** Documents reference a thing by its role phrases as
+  well as its name; enumerate the role-descriptive phrase families alongside the literal old
+  name, or the sweep misses every reference that never used the name.
+- **The new name resolves from the Glossary in the same change** — its entry added or updated.
+  A name used in a table or record but defined nowhere fails the Glossary's cold-reader
+  standard, and no name-sweep detects it because the defect is an absence.
+- **Enumerate the full set being renamed, then verify each member in each place the set is
+  enumerated** (component table, diagram, glossary, roadmap units, records). A member with
+  nothing to grep — no old text to update — is invisible to the sweep, so closure is by
+  checking the enumeration, member by member, never by the sweep coming back empty.
+
 ## Roadmap changes
 
 - Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets —
@@ -176,8 +201,13 @@ records' `Serves:` headers) for meaning drift against the new text.
 ## Verification rows
 
 - Shape: `| <deliberate violation> → <expected refusal> | what it proves, ADR-NNNN, and the wrong
-  reading it rules out | <unit link> |`. Pending rows key to the unit that delivers the control;
-  unit identifiers link to their roadmap group anchors.
+  reading it rules out | <unit link> |`. Pending rows key to the unit that delivers the
+  control — or, when the violation only becomes constructible later, to that later unit,
+  whichever comes later: the fixture must be buildable from what exists when the keyed unit is
+  worked (a cross-deployable import needs a second deployable to exist), because the roadmap
+  holds a unit incomplete while its rows are unproven, and a row keyed before its fixture can
+  exist strands the unit. A row whose halves become constructible at different units carries a
+  split key, one unit per half. Unit identifiers link to their roadmap group anchors.
 - Before writing the row, name the deliberate violation. If the row's left side is an
   enumeration, an inspection, or a comparison, it is not an injection — restate it as the
   violation that must be refused (introduce the drift, break the rule, plant the fixture — and
@@ -195,9 +225,24 @@ records' `Serves:` headers) for meaning drift against the new text.
   catalogue: a row in its parked/answerable section naming the control, the disposition, and
   where the proof rides. The catalogue claims every control; a disposition living only in a
   record is invisible from the catalogue's side.
+- A third disposition, common when a record generalizes an older technique: the control rides an
+  EXISTING catalogue row that cites a different record. When that row's injection already IS the
+  new control's violation, disposition it by adding the new record's number to the row's
+  *Proves* column in the same change, so the row attributes to both; where the ride needs
+  explaining from the riding record's side, a trace row in the parked/answerable section
+  carries that explanation alongside. When the ride is partial (only one half of the control is
+  exercised), the trace is mandatory, saying which half rides where.
+- A control claiming that something does not exist — a knob, a verb, a code path — is injected
+  by attempting to use it AND exercising the behaviour it would weaken: the surface accepts no
+  such thing, and the guarded behaviour is exactly as it was without the attempt. The refusal
+  must be behavioural, not parser-dependent; a row that only expects "rejected as unknown" tests
+  the parser, not the control.
 - A new control lands with its row in the same change. Proving a row later: status gains the date
   and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
-- Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.
+- Parking a row: the row moves to the parked section, keeps its injection wording (restated as
+  the check it would prove), and carries the standing reason and a stated re-open condition —
+  usually the standing reason's negation — so the park stays falsifiable rather than
+  open-ended. No date: dates belong to proven rows. Re-opening appends, never rewrites.
 
 ## Mutation-ledger rows
 
