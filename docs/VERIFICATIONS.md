@@ -10,8 +10,14 @@ design (rows are added as controls are added — a new control lands with its in
 records **what must fire and what firing proves**; the how-to detail of running an injection lives
 with the implementation. Status values: **proven** (with the date and the record holding the
 evidence), **pending** (with the [ROADMAP.md](../ROADMAP.md) unit that delivers the control),
-**parked** (deliberately not run, with the standing reason). A proven row is a claim about that
-date — re-runs after relevant change are the affected unit's business, not this table's.
+**parked** (deliberately not run, with the standing reason). Rows in §§1–4 come in three kinds
+with different proof lifetimes (ADR-0044, via the
+[decision-record index](./adr/README.md)). An **automatable** injection turns into a permanent
+CI test whose proof stays continuous from the first proven date. A **drill** on real substrate
+and a **manual exercise** hold only as claims about their date, and re-running them after
+relevant change is the affected unit's business, not this table's. A row's own injection text
+shows its kind, and a proven row records the kind next to the date. The companion ledger
+[MUTATIONS.md](./MUTATIONS.md) holds each automatable control's mutation demonstration.
 
 No row is proven yet: this catalogue predates the first line of code, so everything below is
 pending or parked. That is the correct starting state, not an empty document.

@@ -12,7 +12,9 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 
 **Acceptance.** Every control's proving injection lives in
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
-while its pending verification rows are unproven.
+while its pending verification rows are unproven. For an automatable control, acceptance also
+includes the mutation demonstration recorded in
+[docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046).
 
 **Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O5) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
@@ -71,6 +73,7 @@ loops, not perfected up front.
 | Code | None exists |
 | Infrastructure (database, secrets sync, deployments) | None provisioned for this system |
 | Verifications | All pending or parked — see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
+| Mutations | Nothing demonstrable yet. The ledger is empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
 | **The delivery gap** | Everything: no unit has started; V1 is the front of the line |
 
 ## Delivered, mapped to outcomes
