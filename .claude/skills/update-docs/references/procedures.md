@@ -14,6 +14,7 @@ work; they do not replace reading the authority for the file you touch.
 - [Glossary changes](#glossary-changes)
 - [Roadmap changes](#roadmap-changes)
 - [Verification rows](#verification-rows)
+- [Mutation-ledger rows](#mutation-ledger-rows)
 - [Front-door files (README.md, CLAUDE.md)](#front-door-files-readmemd-claudemd)
 
 ## Mint a new decision record
@@ -196,6 +197,17 @@ records' `Serves:` headers) for meaning drift against the new text.
 - A new control lands with its row in the same change. Proving a row later: status gains the date
   and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
 - Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.
+
+## Mutation-ledger rows
+
+- The ledger's own preamble is the format authority. A row names the control, how the
+  mechanism was removed or disabled, the tests that went red, the date, and an evidence
+  pointer.
+- A row is written at implementation time, when its control lands, and rewritten only when the
+  control or its tests change.
+- A surviving mutant keeps its row open as a defect until the tests are fixed or the mechanism
+  is deliberately removed as redundant.
+- A control with no standing automated test gets no row. The line is ADR-0046's.
 
 ## Front-door files (README.md, CLAUDE.md)
 

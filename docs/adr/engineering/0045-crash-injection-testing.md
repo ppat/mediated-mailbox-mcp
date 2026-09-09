@@ -9,8 +9,8 @@
 The delivery posture defers freely except where deferral is irreversible or the failure it
 permits is silent — and a crash-recovery bug in checkpointed apply or rollback is both: it
 corrupts label state on the real mailbox, and it fails silently until a process dies
-mid-sequence. Sequence-dependent failures are reachable by no other testing layer: example
-tests and properties exercise single operations, and a physical kill-the-pod drill proves the
+mid-sequence. Sequence-dependent failures are reachable by no other testing layer: no other
+layer places a crash inside a generated sequence, and a physical kill-the-pod drill proves the
 real substrate exactly once, on one sequence. "Learn from production" cannot cover this class.
 The pattern this record builds on is the one published in Amazon's S3 ShardStore work (SOSP
 2021): a crash operation in the generator's alphabet, persistence and forward-progress

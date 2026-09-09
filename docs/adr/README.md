@@ -131,9 +131,12 @@ record's number is stable. Records themselves link freely: deep into
 | 0041 | [Policy arrives as an immutable snapshot, taken once per unit of work](./engineering/0041-policy-as-immutable-snapshots.md) | Accepted |
 | 0042 | [The stack is Go end to end on the server, TypeScript only in the browser](./engineering/0042-implementation-stack.md) | Accepted |
 | 0043 | [No mocking: tests run against the real dependency or a contract-tested fake](./engineering/0043-no-mocking.md) | Accepted |
+| 0044 | [Tests are layered by disjoint bug class, and every green must be able to go red](./engineering/0044-layered-testing-strategy.md) | Accepted |
 | 0045 | [Crash-injection stateful testing is aimed where silent failure meets hard-to-reverse damage](./engineering/0045-crash-injection-testing.md) | Accepted |
+| 0046 | [Every automatable control's tests are shown to go red when the control is removed](./engineering/0046-mutation-obligation.md) | Accepted |
 | 0049 | [One image per deployable, all moving in lockstep](./engineering/0049-image-per-component-lockstep.md) | Accepted |
 | 0050 | [Shared code is pure, or it is a narrow, named exception](./engineering/0050-shared-code-pure-or-narrow.md) | Accepted |
 | 0051 | [The app knows its environment contract, never its platform](./engineering/0051-environment-contract.md) | Accepted |
 | 0052 | [The Kubernetes deployment is one Helm chart that stands up everything and assumes nothing about the cluster](./engineering/0052-kubernetes-deployment-helm-chart.md) | Accepted |
 | 0053 | [Both client roots are generated from one operation registry — a one-sided operation is unrepresentable](./engineering/0053-parity-by-construction.md) | Accepted |
+| 0055 | [A property-based test exists only to execute a safety rule the documents already state](./engineering/0055-property-based-safety-invariants.md) | Accepted |

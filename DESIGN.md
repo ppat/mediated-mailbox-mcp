@@ -194,7 +194,8 @@ point toward deny degrades in utility, never in safety.
 
 Known limit, stated rather than hidden: fail-closed paths are exercised by tests or not at all —
 production never visits them until the day it matters. Their proving injections are catalogued in
-[docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md).
+[docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail lives in
+[docs/MUTATIONS.md](./docs/MUTATIONS.md).
 
 ### Sensitivity is two independent axes
 
@@ -358,7 +359,7 @@ where each disposition is recorded, not what it is — the record named is the s
 | Metadata (subjects, senders, traffic patterns) is deliberately exposed | ADR-0001, via the [decision-record index](./docs/adr/README.md) |
 | A bounded residual of unscanned bodies is released by design | ADR-0007 and ADR-0002, and its measurement rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | A single chokepoint concentrates correctness — a gate bug is a bug everywhere | Built first, proven offline: the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
-| Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
+| Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in [docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops — ADR-0003, ADR-0007 |
 | The approval surface is itself a target | ADR-0021 — two verbs, scoped role, no credentials |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
@@ -493,7 +494,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Op log** — the per-operation before/after record written during plan application, from which
   rollback is exact replay, not inference.
 - **Mutation Authorizer** — the mediator component that checks every write against the message's
-  sensitivity, independently of who approved what.
+  sensitivity, independently of who approved what. Mutation here is the mailbox-write sense,
+  not the test-suite sense of **Mutation demonstration**.
 
 ### Operability
 
@@ -516,6 +518,14 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Verdict** — a decision returned as a data value by a pure core, enacted and recorded by the
   shell; verdict types structurally cannot carry the content they withhold (rule: ADR-0040 and
   ADR-0009, via the [decision-record index](./docs/adr/README.md)).
+- **Marker text** — the searchable strings designed into synthetic fixture bodies so a leak
+  check over any output surface is deterministic (rule: ADR-0044, via the
+  [decision-record index](./docs/adr/README.md)).
+- **Mutation demonstration** (also *mutation table*) — the per-control record that removing a
+  control's mechanism made its tests go red, kept in
+  [docs/MUTATIONS.md](./docs/MUTATIONS.md) (rule: ADR-0046, via the
+  [decision-record index](./docs/adr/README.md)). Mutation here is the test-suite sense,
+  removing a mechanism, and not the mailbox-write sense of **Mutation Authorizer**.
 - **Violation injection** (also *proving injection*) — the acceptance standard: a control is
   proven by deliberately creating the violation it exists to stop and watching it fire, never by
   observing that nothing bad happened. Catalogued in
