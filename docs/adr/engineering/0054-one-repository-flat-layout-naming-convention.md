@@ -71,7 +71,6 @@ project is intended for eventual open sourcing.
 
 ## Consequences
 
-- The reorg plan and its lifecycle vocabulary keep their names, untouched by the convention.
 - A new component costs a directory, one allow-list entry per watching filter, an image entry
   in the parameterized build ([ADR-0049](./0049-image-per-component-lockstep.md)) when it is a
   deployable, and a name the convention produces.
