@@ -139,4 +139,5 @@ record's number is stable. Records themselves link freely: deep into
 | 0051 | [The app knows its environment contract, never its platform](./engineering/0051-environment-contract.md) | Accepted |
 | 0052 | [The Kubernetes deployment is one Helm chart that stands up everything and assumes nothing about the cluster](./engineering/0052-kubernetes-deployment-helm-chart.md) | Accepted |
 | 0053 | [Both client roots are generated from one operation registry — a one-sided operation is unrepresentable](./engineering/0053-parity-by-construction.md) | Accepted |
+| 0054 | [One flat repository holds everything the project produces; one convention names what it publishes](./engineering/0054-one-repository-flat-layout-naming-convention.md) | Accepted |
 | 0055 | [A property-based test exists only to execute a safety rule the documents already state](./engineering/0055-property-based-safety-invariants.md) | Accepted |

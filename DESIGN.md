@@ -418,7 +418,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   plans.
 - **The UI** (`mail-ui`) — the read-mostly reporting and approval surface. Separate deployment,
   separate identity, no provider credentials; carries the approval verbs no client has.
-- **The shared pure library** (`mail-core`) — the pure-core-only library every deployable may
+- **The shared pure library** — the pure-core-only library every deployable may
   import; impure shared needs live in narrow, named exception libraries instead (rule:
   ADR-0050, via the [decision-record index](./docs/adr/README.md)).
 - **Provider** — the managed service actually holding the mail or calendar (Gmail, Fastmail).

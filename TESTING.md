@@ -52,7 +52,10 @@ exercise stay claims about their date (ADR-0044).
 - **Coverage-percentage targets** (ADR-0044).
 - **A test-first mandate** (ADR-0044).
 
-## Not yet here
+## Where tests live
 
-Where each kind of test lives in the repository. The decision placing tests in directories has
-not landed, and the section arrives with that record.
+Each deployable's tests live inside that deployable's own directory, and shipped images carry
+no tests (ADR-0054, ADR-0049). The chart's Helm tests live inside the chart and travel in the
+published chart artifact, an exception ADR-0054 accepts knowingly. The chainsaw suite lives at
+the repository's top level because it tests the assembled system rather than any one
+deployable (ADR-0054, ADR-0052).

@@ -33,8 +33,9 @@ these are the tripwires that must hold even in a drive-by edit:
   another component or slice behaves, left implicit, is the coupling that breaks future
   evolution; naming it here is what makes it reviewable.
 - **The testing records are mirrored.** TESTING.md restates parts of ADR-0043 through
-  ADR-0046 and ADR-0055 as compressed or verbatim views. An edit to any of them reconciles
-  TESTING.md in the same change.
-- **TESTING.md's Not yet here section empties on landings.** A change landing a record that
-  section identifies as awaited updates TESTING.md in the same change.
+  ADR-0046, ADR-0054, and ADR-0055 as compressed or verbatim views. An edit to any of them
+  reconciles TESTING.md in the same change.
+- **TESTING.md carries an awaited-items section only while something is awaited.** A change
+  landing a record such a section identifies as awaited updates TESTING.md in the same change,
+  and the section is removed once nothing remains awaited.
 - **No build state in records** — which unit builds it and when is roadmap business.
