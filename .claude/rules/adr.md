@@ -32,9 +32,10 @@ these are the tripwires that must hold even in a drive-by edit:
 - **Consequences state what the decision assumes about other components.** A dependency on how
   another component or slice behaves, left implicit, is the coupling that breaks future
   evolution; naming it here is what makes it reviewable.
-- **The testing records are mirrored.** TESTING.md restates parts of ADR-0043 through
-  ADR-0046, ADR-0054, and ADR-0055 as compressed or verbatim views. An edit to any of them
-  reconciles TESTING.md in the same change.
+- **A record never synthesizes other records.** A table, matrix, or taxonomy assembled
+  across records is top-level-document content, not a record's. For the testing records, the
+  assembled view is TESTING.md's, and an edit to any testing record reconciles TESTING.md's
+  table rows and the sentences citing that record in the same change.
 - **TESTING.md carries an awaited-items section only while something is awaited.** A change
   landing a record such a section identifies as awaited updates TESTING.md in the same change,
   and the section is removed once nothing remains awaited.

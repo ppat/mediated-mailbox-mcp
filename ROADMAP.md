@@ -400,6 +400,5 @@ Where a decision is recorded, the row cites its number, resolved through the
 | UI browser framework | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs) and ADR-0042 settles the languages (Go on the UI's server side, TypeScript in the browser). The browser framework is deliberately unchosen until M3 approaches |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time. The value is unchosen |
 | Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2). Complexity and payoff at that point drive it |
-| Where the layer-catch record lives | nothing yet | ADR-0044 defers it until the first real defect arrives |
 | Property-testing library | S1 | ADR-0055 fixes the requirements (bounded deterministic gating runs, stored failing examples replayed) and defers the library to implementation time |
 | Data-access production mechanism | F2 | ADR-0047 fixes the approach (schema as sole authority, per-query result types, one shared library) and deliberately defers the mechanism (generation versus hand-written under the same discipline, and the specific tool) to its own record when F2 begins |

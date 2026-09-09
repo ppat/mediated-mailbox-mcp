@@ -20,6 +20,6 @@ this repository currently contains.
 | [DESIGN.md](./DESIGN.md) | The pillars and invariants — and the Glossary, the single home for vocabulary |
 | [ROADMAP.md](./ROADMAP.md) | All the work: delivery posture, value path, work units, dependencies, open decisions |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: every reversible decision with its context, alternatives, and consequences |
-| [TESTING.md](./TESTING.md) | The testing strategy, stated for the implementer, citing its records by number |
+| [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection — the violation that must fire, and what firing proves |
 | [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is removed |

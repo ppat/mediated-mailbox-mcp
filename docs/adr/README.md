@@ -7,9 +7,10 @@ individual reversible decision had gone the other way; a record here holds one s
 Records state decisions; [ROADMAP.md](../../ROADMAP.md) tracks what is built versus pending —
 build state never lives here.
 
-The stable documents cite records by number ("ADR-0007"), resolved through this index, never
-deep-linked — records are the fluid layer and may move folders, split, or be superseded, while a
-record's number is stable. Records themselves link freely: deep into
+Documents cite records by number ("ADR-0007"), and every reference links to its target.
+Records are the fluid layer and may move folders, split, or be superseded, while a record's
+number is stable, so a link into a record is re-pointed in the same change that renames or
+moves it. Records themselves link freely and deep, into
 [USE_CASES.md](../../USE_CASES.md), [DESIGN.md](../../DESIGN.md),
 [ROADMAP.md](../../ROADMAP.md), and each other.
 
@@ -131,9 +132,9 @@ record's number is stable. Records themselves link freely: deep into
 | 0041 | [Policy arrives as an immutable snapshot, taken once per unit of work](./engineering/0041-policy-as-immutable-snapshots.md) | Accepted |
 | 0042 | [The stack is Go end to end on the server, TypeScript only in the browser](./engineering/0042-implementation-stack.md) | Accepted |
 | 0043 | [No mocking: tests run against the real dependency or a contract-tested fake](./engineering/0043-no-mocking.md) | Accepted |
-| 0044 | [Tests are layered by disjoint bug class, and every green must be able to go red](./engineering/0044-layered-testing-strategy.md) | Accepted |
+| 0044 | [Test data is synthetic, and fixture bodies carry designed marker text](./engineering/0044-synthetic-fixtures-marker-text.md) | Accepted |
 | 0045 | [Crash-injection stateful testing is aimed where silent failure meets hard-to-reverse damage](./engineering/0045-crash-injection-testing.md) | Accepted |
-| 0046 | [Every automatable control's tests are shown to go red when the control is removed](./engineering/0046-mutation-obligation.md) | Accepted |
+| 0046 | [A test is evidence only once it has been seen to fail](./engineering/0046-tests-are-evidence-once-seen-to-fail.md) | Accepted |
 | 0049 | [One image per deployable, all moving in lockstep](./engineering/0049-image-per-component-lockstep.md) | Accepted |
 | 0050 | [Shared code is pure, or it is a narrow, named exception](./engineering/0050-shared-code-pure-or-narrow.md) | Accepted |
 | 0051 | [The app knows its environment contract, never its platform](./engineering/0051-environment-contract.md) | Accepted |

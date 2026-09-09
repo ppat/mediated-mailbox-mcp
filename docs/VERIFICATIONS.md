@@ -11,12 +11,13 @@ records **what must fire and what firing proves**; the how-to detail of running 
 with the implementation. Status values: **proven** (with the date and the record holding the
 evidence), **pending** (with the [ROADMAP.md](../ROADMAP.md) unit that delivers the control),
 **parked** (deliberately not run, with the standing reason). The rows of §§1–4 come in three
-kinds whose proof lifetimes differ (ADR-0044, via the
-[decision-record index](./adr/README.md)). An **automatable** injection becomes a permanent CI
-test, and its proof runs continuously from the first proven date. A **drill** on real substrate
-and a **manual exercise** are proven as of their date, and re-running either after relevant
-change is the affected unit's business, not this table's. Each automatable control's
-mutation demonstration lives in the companion ledger, [MUTATIONS.md](./MUTATIONS.md).
+kinds, and the kind decides whether a proof stays current or holds only for its date
+(ADR-0046, via the [decision-record index](./adr/README.md)). An **automatable** injection
+becomes a permanent CI test, and its proof runs continuously from the first proven date. A
+**drill** on real substrate and a **manual exercise** are proven as of their date, and
+re-running either after relevant change is the affected unit's business, not this table's.
+Each automatable control's mutation demonstration lives in the companion ledger,
+[MUTATIONS.md](./MUTATIONS.md).
 
 No row is proven yet: this catalogue predates the first line of code, so everything below is
 pending or parked. That is the correct starting state, not an empty document.
@@ -120,7 +121,7 @@ than a build, each with its trigger point.
 | **ADR-0044's synthetic-fixtures rule** — no real mail content ever enters the repository | Review discipline, with no injection: the violation is a fixture commit, caught at review, and the irreversibility of git history is why the rule exists |
 | **ADR-0044's marker text** — fixture bodies carry designed searchable strings | Rides the §2 leak-search row ([S2](../ROADMAP.md#group-s--safeguard-machinery)): its deterministic whole-surface search is the marker technique in use |
 | **ADR-0046's mutation obligation** — an automatable control's tests are shown to go red at acceptance | The ledger [MUTATIONS.md](./MUTATIONS.md) is the trace: rows arrive per control at implementation, and an automatable control with a verification row and no ledger row is unfinished implementation |
-| **ADR-0055's no-oracle-no-property rule** — policy and selection logic carries no property | Review discipline; the curated example tables are that logic's tests |
+| **ADR-0055's no-oracle-no-property rule** — no property checks policy and selection logic's answers | Review discipline. Example-based tests carry that logic |
 | **ADR-0055's gating discipline** — bounded deterministic gating runs, deep search out of band, failing examples replayed | No injection. The discipline is a property of how the suite is configured, and it stands as review discipline on the test harness |
 | **ADR-0047's account-required signatures** — every data-access function takes the account identifier | Rides the §4 second-account row ([X3](../ROADMAP.md#group-x--expansion)) and the account-scoped query enforcement F2 already checks; an implicit-account path would fire both |
 | **ADR-0048's partition-lifecycle rule** — a new account's partition arrives by an idempotent ensure step, never a hand-run migration | The idempotence half rides account creation's own integration tests (the ensure step runs twice → second run is a no-op), with the §4 second-account row ([X3](../ROADMAP.md#group-x--expansion)) as the live-substrate exercise; the never-a-hand-run-migration half has no injection and stands as review discipline |

@@ -11,7 +11,7 @@ duplicate them — one home per fact, everywhere.
 | [DESIGN.md](./DESIGN.md) | The pillars and invariants — and the **Glossary**, the single home for vocabulary. If a term needs defining, it gets defined there, never locally |
 | [ROADMAP.md](./ROADMAP.md) | All the work in one place: delivery posture, value path, units, dependencies, open decisions. The only top-level document that tracks build state |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: index, record format, statuses, and the granularity rule (one decision per record, cut by the re-argue test) |
-| [TESTING.md](./TESTING.md) | The testing strategy, stated for the implementer, citing its records by number |
+| [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection, past and pending. A new control lands with its injection row |
 | [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is removed, written only from implementation time |
 
