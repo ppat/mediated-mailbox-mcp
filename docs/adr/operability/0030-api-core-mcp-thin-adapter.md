@@ -27,8 +27,8 @@ are thin protocol adapters over one shared service library.
   **Parity is exact in both directions** — anything beyond parity (operational endpoints, say) is
   a separate future decision. The OpenAPI contract and the tool descriptions are contract-grade
   text, reviewed like code.
-- **Same transport posture on both roots**: bearer-token authentication, TLS, LAN-only — exactly
-  the controls of [ADR-0014](./0014-lan-only-transport.md), applied to the API root identically.
+- **Same transport posture on both roots**: bearer-token authentication, TLS — same controls
+  applied to both (API and MCP) identically.
 - **Every client of the serving surface is untrusted.** The trust posture keys on "any client,"
   not "the agent": the agent over MCP today; any caller of the API tomorrow. Every control that
   assumed a persuadable agent assumes a hostile client generally.

@@ -8,9 +8,7 @@
 
 The index must track the live mailbox: new mail classified and masked promptly, label changes
 reflected, cursors advanced. Providers offer push notification (Gmail via Pub/Sub webhooks) and
-pull (change feeds from a cursor). LAN-only transport
-([ADR-0014](../operability/0014-lan-only-transport.md)) means no inbound webhook path exists at
-all.
+pull (change feeds from a cursor).
 
 ## Decision
 

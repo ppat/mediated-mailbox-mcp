@@ -29,6 +29,44 @@ The binding conventions per document live in `.claude/rules/` and load automatic
 matching file is read; the format authorities are the documents' own preambles and the decision-
 record index.
 
+## The target form for prose
+
+These rules bind all documentation, code comments, any other artifact containing prose, and
+commentary output to the user.
+
+- Crystal clear and understandable to a cold reader, human or LLM.
+- Plain English, or technical English from industry-standard or open-source vernacular. No
+  invented terminology. The project's own established terminology, explicitly defined in
+  DESIGN.md's Glossary, is exempt.
+- Referencing common or widely understood technical or OSS concepts and constructs is fine when
+  it aids understanding.
+- No stating the obvious, and no restating non-novel concepts, such as explaining how a
+  well-known application, platform, or tool works.
+- No shorthand. Claude in particular tends to compress an idea into an invented term to save
+  tokens. That compression is banned.
+- Brevity is valued, but never at the expense of fidelity:
+  - Fidelity loss is unacceptable.
+  - Compressing into shorthand is not the way to brevity, as stated above.
+  - Reach brevity by reducing filler (dropping anything not needed to convey the idea), by using
+    widely understood concepts and idioms from general English or from industry-standard or
+    OSS-community technical English where they genuinely add value, by avoiding rambling, walls
+    of text, and stream-of-consciousness output (anything that interrupts the document's flow or
+    sits outside its narrative), and by using structure to your advantage.
+  - Beyond that, do not overshoot toward brevity. Overshooting ends in compression that loses
+    fidelity.
+- Never try to sound smart or convey the writer's ingenuity to the reader. That is a HARD NO, an
+  anti-pattern to avoid always.
+- Do not write in the standard corporate drone register Claude defaults to. Just as LLM
+  attention wanes over a long context window, human attention wanes too, and for a human it
+  wanes even in a short context the moment the drone register appears. Drone prose goes in one
+  ear and out the other without any information registering.
+- No adjectives unless the adjective has merit within its sentence (i.e. losing it would inhibit
+  fidelity). The same holds for adverbs, a little less strictly, though still stricter than
+  Claude's default.
+- No em dashes, colons, or semicolons within a sentence or a phrase. The ban there is total. The
+  marks are allowed where they separate a bullet header from bullet content, and within headings
+  as long as the headings stay short.
+
 ## Repository process
 
 - `docs` is a visible release type here — a documentation PR proposes a release when merged.

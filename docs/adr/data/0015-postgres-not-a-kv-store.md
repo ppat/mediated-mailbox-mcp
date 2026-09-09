@@ -1,4 +1,4 @@
-# 0015. The metadata index lives in Postgres — a key-value store answers the wrong access pattern
+# 0015. The metadata & state store is Postgres — a key-value store answers the wrong access pattern
 
 **Status:** Accepted ·
 **Pillar:** [Metadata always flows; sensitive bodies never do](../../../DESIGN.md#metadata-always-flows-sensitive-bodies-never-do) ·
@@ -8,12 +8,11 @@
 
 Whole-corpus analysis and reorganization planning require a cached metadata index — the provider
 APIs cannot answer "every sender with no label, ranked by volume" without enumerating the mailbox
-per question. The index needs a store, and the homelab platform offers managed Postgres (CNPG) and
-could offer a Redis-compatible store (Dragonfly).
+per question. The project needs a store for the metadata index as well as its own internal state.
 
 ## Decision
 
-**CNPG Postgres holds everything: metadata, senders, plans, audit.**
+**Postgres holds everything: metadata, senders, plans, audit.**
 
 | Requirement | Postgres | Dragonfly/Redis |
 | --- | --- | --- |
@@ -24,7 +23,7 @@ could offer a Redis-compatible store (Dragonfly).
 | Schema evolution | migrations | rewrite key layout |
 | Subject search | trigram indexes (`pg_trgm`) | none |
 | Sender embeddings | `pgvector` | separate store |
-| Backup to existing object storage | CNPG native | snapshot juggling |
+| Backup to existing object storage | native with CNPG | snapshot juggling |
 
 The decisive row is none of them singly but what they share: the access pattern is **exploratory
 relational analytics, not key-value lookup**. The agent's most valuable queries during corpus

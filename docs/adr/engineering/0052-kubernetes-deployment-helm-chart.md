@@ -29,9 +29,8 @@ may assume about the user's cluster.
   nor its tests assume anything about the cluster they land on — no external-secrets, no
   cert-manager. This is ADR-0038's boundary made concrete: a chart that accepts only values and
   pre-existing objects structurally cannot know the secret machinery.
-- **Project-owned policy objects ship in the chart; their enforcement is the platform's.** The
-  egress NetworkPolicy ([ADR-0014](../operability/0014-lan-only-transport.md)) is core
-  Kubernetes and ships; pod security contexts are core fields and comply with the hardening
+- **Project-owned configuration and policy hardening ship in the chart; their enforcement is the
+  platform's.** The pod security contexts are core fields and comply with the hardening
   posture ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). Admission machinery and
   policy enforcement belong to the cluster the chart lands on: being deployed somewhere does not
   mean the controls hold there — the verification catalogue, not the chart, carries the proof
@@ -62,14 +61,6 @@ may assume about the user's cluster.
 - The chainsaw suite on a bare kind cluster is where the no-assumptions edge is exercised: a
   chart template that silently depends on cluster machinery the chart does not ship fails the
   install there.
-- NetworkPolicy enforcement is not this project's to test — the operator's ruling: enforcement
-  in the running environment is proven continuously by the platform's standing network-policy
-  falsifiability probe. The chainsaw suite's kind cluster runs a CNI that does not enforce
-  NetworkPolicy and this project installs none, so the chart's own allowlist — provider APIs,
-  the database, DNS, and nothing else
-  ([ADR-0014](../operability/0014-lan-only-transport.md)) — has no injection and stands as
-  review discipline on the chart template. The egress-refusal verification row parks with
-  exactly that standing.
 - Assumptions about other components: the release process sets the chart `version` and
   `appVersion` to the release version; the registry serves OCI chart artifacts and the signing
   machinery covers them as it covers images; the consuming platform supplies Postgres, the

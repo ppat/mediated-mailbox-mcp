@@ -23,8 +23,8 @@ candidates for that list; nothing they emit takes effect without operator confir
 A probabilistic model deciding whether the operator's brokerage is sensitive would be strictly
 worse than a list: unauditable, non-reproducible, and silently altered by retraining.
 
-The list is a gazetteer with normalization and suffix matching, hot-reloaded from a Flux-managed
-ConfigMap:
+The list is a gazetteer with normalization and suffix matching, hot-reloaded from a configuration
+file:
 
 ```yaml
 rules:

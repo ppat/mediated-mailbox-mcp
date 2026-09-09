@@ -1,6 +1,6 @@
 # 0014. LAN-only transport — and egress restriction is the control that actually matters
 
-**Status:** Accepted ·
+**Status:** Deprecated ·
 **Pillar:** [Network position never substitutes for the gate](../../../DESIGN.md#network-position-never-substitutes-for-the-gate) ·
 **Serves:** [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released), [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 

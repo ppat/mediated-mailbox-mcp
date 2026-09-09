@@ -37,7 +37,7 @@ record's number is stable. Records themselves link freely: deep into
   requires. The readers here — humans and LLMs — read text; this index is the queryable view.
 - **Statuses:** **Proposed** (adopted by the documents, awaiting operator ratification) →
   **Accepted** → **Superseded** (the header gains `**Superseded by:** ADR-NNNN`; the replacement
-  is a new number).
+  is a new number). A record in **Accepted** may also be **Deprecated**.
 - **In-place change versus supersession.** An accepted record may change in place when the change
   stays true to the original decision in spirit and is backwards compatible with the previous
   interpretation — everything true or permitted under the old reading remains so (broadening a
@@ -110,7 +110,7 @@ record's number is stable. Records themselves link freely: deep into
 | # | Record | Status |
 | --- | --- | --- |
 | 0013 | [Credentials as mounted files via the external secret store; rotation writes back](./operability/0013-credentials-and-rotation-writeback.md) | **Superseded** |
-| 0014 | [LAN-only transport; egress restriction is the control that matters](./operability/0014-lan-only-transport.md) | Accepted |
+| 0014 | [LAN-only transport; egress restriction is the control that matters](./operability/0014-lan-only-transport.md) | Deprecated |
 | 0022 | [The batch work is four workloads, not one background process](./operability/0022-four-workloads.md) | Accepted |
 | 0023 | [The adapter declares what operations cost; the limiter is provider-agnostic](./operability/0023-adapter-declares-cost.md) | Accepted |
 | 0024 | [Target half the ceiling, hard-cap at 80%, adapt below with AIMD](./operability/0024-conservative-target-aimd.md) | Accepted |
