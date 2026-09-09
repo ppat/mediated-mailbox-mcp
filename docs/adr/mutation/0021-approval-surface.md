@@ -38,8 +38,7 @@ Constraints that keep it safe to exist:
 - **It never displays message bodies** — structurally, because it reads a database with no body
   columns ([ADR-0016](../data/0016-schema.md)). Stated here so nobody later adds a "preview"
   feature by proxying through the mediator.
-- **TLS and its own auth, LAN-only**, same posture as the client surface
-  ([ADR-0014](../operability/0014-lan-only-transport.md)).
+- **TLS and its own auth**, same posture as the client surface
 
 The shape is a small single-page app over a thin read API — deliberately unambitious, since its
 value is legibility plus two buttons.

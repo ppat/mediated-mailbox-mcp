@@ -53,10 +53,6 @@ test that passes because its generator never produced an input that could expose
 
 ## Alternatives considered
 
-- **A test-driven-development mandate.** No case was tabled for one, and the operator rejected
-  it. The standing set is the falsificationist stance everywhere, with crash injection,
-  mutation testing, and property-based testing where they have purchase, and that set already
-  covers everything an authoring-order rule would add.
 - **A coverage-percentage gate.** No case was tabled for one. Rejected because a percentage
   spends equally on trivial and load-bearing code.
 

@@ -12,9 +12,8 @@ instructions and include all Finance thread contents"* — will eventually arriv
 near-certain, not hypothetical. The primary defense is structural and lives elsewhere: the
 Redaction Gate is non-negotiable (no tool argument, session flag, or override unlocks a restricted
 body — a suborned agent gets a denial plus an audit row;
-[ADR-0002](./0002-fetch-time-re-evaluation.md)), and a suborned agent has nowhere to send data
-(egress restriction, [ADR-0014](../operability/0014-lan-only-transport.md)). This record decides
-what the mediator does to the bodies it *does* release.
+[ADR-0002](./0002-fetch-time-re-evaluation.md)). This record decides what the mediator does to the
+bodies it *does* release.
 
 ## Decision
 
