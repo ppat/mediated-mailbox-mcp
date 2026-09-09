@@ -14,7 +14,7 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
 while its pending verification rows are unproven.
 
-**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O5) are defined in
+**Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O6) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
 defined here. Decisions are cited by number and resolved through the
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
@@ -327,6 +327,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F1 | Drills ride D1 (kill mid-run) · F3 (rate-controller pathology) · H1 (the rest); the gap-recovery drill keys to G4 and the rollback drill to A3 |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 | — |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures tellable apart | — | Rides D3 as criteria, flagged in Group D's preamble; the system-status read (ADR-0034) is the transparency half |
+| [O6](./USE_CASES.md#o6--deployable) deployable | F1 | The chart and its suites first exist at F1 and accrete with every deploying unit after it; the bare-cluster install proof stands from F1 onward |
 
 ## Dependencies
 
@@ -360,7 +361,9 @@ Three kinds, kept apart because conflating them is how phase numbering ossifies.
 
 - Provision the Postgres cluster and the secret-store machine account before F1/F2.
 - Publish the OAuth consent screen to production before F1 (testing-mode tokens die in 7 days).
-- Releases cut per merged unit; deployment manifests land with the unit they deploy.
+- Releases cut per merged unit; deployment manifests land with the unit they deploy — in the
+  Helm chart (ADR-0052), whose first pieces and test suites land with F1, the first unit that
+  runs a pod.
 
 ## Orderings that would guarantee waste
 
