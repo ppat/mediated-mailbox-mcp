@@ -12,6 +12,7 @@ duplicate them — one home per fact, everywhere.
 | [ROADMAP.md](./ROADMAP.md) | All the work in one place: delivery posture, value path, units, dependencies, open decisions. The only top-level document that tracks build state |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: index, record format, statuses, and the granularity rule (one decision per record, cut by the re-argue test) |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection, past and pending. A new control lands with its injection row |
+| [docs/MUTATIONS.md](./docs/MUTATIONS.md) | Each automatable control's mutation demonstration, the proof its tests go red when the mechanism is removed. Rows exist only from implementation time |
 
 Design questions resolve there, in that order: outcome → pillar/glossary → decision record.
 
