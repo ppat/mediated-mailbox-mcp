@@ -14,9 +14,12 @@ more fluid than the design.
   never "test that X works." The *Proves* column names the claim, cites the decision record by
   number, and where it earns its keep, names the wrong reading the injection rules out.
 - **Statuses**: pending rows name the roadmap unit that delivers the control; proven rows carry
-  the date and a pointer to the evidence; parked rows carry the standing reason. A proven row is
-  a claim about that date — re-runs after relevant change belong to the affected unit, not this
-  table.
+  the date and a pointer to the evidence; parked rows carry the standing reason. A row's kind
+  sets its proof lifetime (ADR-0044). An automatable injection becomes a permanent CI test with
+  continuous proof. A drill or a manual exercise is a claim about its date, and re-runs after
+  relevant change belong to the affected unit, not this table.
+- An automatable control also owes its mutation demonstration to `docs/MUTATIONS.md`
+  (ADR-0046). This document never carries it.
 - Rows are **rekeyed, not rewritten**, when the work breakdown changes; a recut ticket inherits
   its rows and a passed row keeps its evidence pointer.
 - The how-to detail of running an injection lives with the implementation, never here.

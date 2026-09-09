@@ -1,6 +1,6 @@
 ---
 name: update-docs
-description: Route, author, and verify changes to this repository's document set — DESIGN.md, USE_CASES.md, ROADMAP.md, the decision records under docs/adr/, docs/VERIFICATIONS.md, README.md, and CLAUDE.md. Use this skill whenever a task adds, changes, or records ANY decision, outcome, plan item, term, test plan, risk, or fact about the system — including decisions made mid-conversation that merely need recording, discoveries made during implementation, superseding an existing decision, and build-state updates. Use it even when the user does not mention documentation: if new information about the system came into existence during the work, this skill is how it gets a home. Also use it when asked where something should be documented, or whether a document change is allowed.
+description: Route, author, and verify changes to this repository's document set — DESIGN.md, USE_CASES.md, ROADMAP.md, the decision records under docs/adr/, docs/VERIFICATIONS.md, docs/MUTATIONS.md, README.md, and CLAUDE.md. Use this skill whenever a task adds, changes, or records ANY decision, outcome, plan item, term, test plan, risk, or fact about the system — including decisions made mid-conversation that merely need recording, discoveries made during implementation, superseding an existing decision, and build-state updates. Use it even when the user does not mention documentation: if new information about the system came into existence during the work, this skill is how it gets a home. Also use it when asked where something should be documented, or whether a document change is allowed.
 ---
 
 # Updating the document set
@@ -27,6 +27,7 @@ Classify what you are about to write, before opening any file:
 | A definition of a term used in more than one place | `DESIGN.md`'s Glossary | The single home for vocabulary |
 | Anything about what is built, when, in what order, or what work remains | `ROADMAP.md` | Build state is a roadmap fact, nowhere else |
 | A deliberate violation that would prove a control works | `docs/VERIFICATIONS.md` | It is a test plan, keyed to a work unit |
+| A control's mutation demonstration, the record that its tests went red with the mechanism removed | `docs/MUTATIONS.md` | It is the implementation-time ledger, one row per control |
 | Orientation for a newcomer (what the project is, where facts live) | `README.md` / `CLAUDE.md` | Front doors point; they never hold facts |
 
 The ambiguous cases, resolved the way this document set resolves them:

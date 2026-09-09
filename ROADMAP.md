@@ -12,7 +12,9 @@ are **[measured]** (read from the repo, an API, or a record that records its own
 
 **Acceptance.** Every control's proving injection lives in
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units below. A unit is not done
-while its pending verification rows are unproven.
+while its pending verification rows are unproven. An automatable control's acceptance also
+includes the mutation demonstration recorded in
+[docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046).
 
 **Identifiers.** Outcomes (C1–C4, G1–G4, P1–P3, A1–A4, O1–O6) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·H + number) and value increments (V1–V6) are
@@ -67,10 +69,11 @@ loops, not perfected up front.
 
 | Layer | State |
 | --- | --- |
-| Documents (design, outcomes, decisions, this roadmap, verifications) | Authored **[measured]** |
+| Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
 | Code | None exists |
 | Infrastructure (database, secrets sync, deployments) | None provisioned for this system |
 | Verifications | All pending or parked — see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
+| Mutations | Nothing demonstrable yet. The ledger stays empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
 | **The delivery gap** | Everything: no unit has started; V1 is the front of the line |
 
 ## Delivered, mapped to outcomes
@@ -397,4 +400,6 @@ Where a decision is recorded, the row cites its number, resolved through the
 | Ingress answer if the agent ever leaves the LAN | nothing yet | Conditional; ADR-0014 names the likely answer (overlay network) without deciding it |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time; the value is unchosen |
 | Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2) — complexity and payoff at that point drive it |
+| Where the layer-catch record lives | nothing yet | ADR-0044 defers it until the first real defect arrives |
+| Property-testing library | S1 | ADR-0055 fixes the requirements (bounded deterministic gating runs, stored failing examples replayed) and defers the library to implementation time |
 | Data-access production mechanism | F2 | ADR-0047 fixes the approach (schema as sole authority, per-query result types, one shared library) and deliberately defers the mechanism — generation versus hand-written under the same discipline, and the specific tool — to its own record when F2 begins |

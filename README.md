@@ -8,8 +8,9 @@ links that grant account access. The mediator exposes an API — with MCP as a t
 adapter over it — and enforces that line in code, at the last hop before any client, because no
 mailbox credential can be scoped to express it.
 
-**Status: design phase.** No code exists yet; the design, its decisions, the delivery plan, and
-the verification catalogue are authored and are what this repository currently contains.
+**Status: design phase.** No code exists yet; the design, its decisions, the delivery plan, the
+verification catalogue, and the mutation ledger are authored and are what this repository
+currently contains.
 
 ## Where everything lives
 
@@ -20,3 +21,4 @@ the verification catalogue are authored and are what this repository currently c
 | [ROADMAP.md](./ROADMAP.md) | All the work: delivery posture, value path, work units, dependencies, open decisions |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: every reversible decision with its context, alternatives, and consequences |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection — the violation that must fire, and what firing proves |
+| [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is removed |
