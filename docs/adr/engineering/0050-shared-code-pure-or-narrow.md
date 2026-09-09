@@ -17,7 +17,7 @@ included.
 
 ## Decision
 
-- **The shared pure library — `mail-core` — contains only pure core code.** No I/O, no
+- **The shared pure library — `mediated-mailbox-core` — contains only pure core code.** No I/O, no
   composition, no side effects: depending on it costs a component nothing operationally — no
   connection held, no availability inherited, no transitive driver
   ([ADR-0040](./0040-pure-core-decisions-as-values.md) defines the purity).
@@ -27,7 +27,7 @@ included.
   accepted: the shared data-access library
   ([ADR-0047](../data/0047-schema-first-data-access.md)).
 - **Purity is the first fence; the concern-cut is the second, and it is deferred.** A wholly
-  pure library can still lump unrelated concerns into one dependency unit; cutting `mail-core`
+  pure library can still lump unrelated concerns into one dependency unit; cutting `mediated-mailbox-core`
   by concern waits until a second concern actually shows up, rather than being speculated in
   advance.
 
@@ -46,7 +46,7 @@ included.
 
 ## Consequences
 
-- The most-depended-on code sits in the most-testable layer: `mail-core` gets the exhaustive
+- The most-depended-on code sits in the most-testable layer: `mediated-mailbox-core` gets the exhaustive
   fixture-and-property treatment, so the widest blast radius lives under the strongest tests.
 - Every named impure exception is its own visible dependency decision — reviewable at the
   moment it is created, exactly what the contracts-only pillar wants surfaced.

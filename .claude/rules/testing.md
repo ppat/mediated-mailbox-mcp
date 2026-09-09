@@ -17,5 +17,6 @@ docs/VERIFICATIONS.md, and the mutation demonstrations in docs/MUTATIONS.md.
   moves when the strategy's records move, never ahead of them.
 - **No build state.** Which tests exist and which rows are proven are ROADMAP.md and
   docs/VERIFICATIONS.md facts.
-- **The Not yet here section empties as records land.** When a change lands a record identified
-  there as awaited, the same change updates this document.
+- **An awaited-items section exists only while something is awaited.** When a change lands a
+  record identified there as awaited, the same change updates this document, and the section is
+  removed once nothing remains awaited.

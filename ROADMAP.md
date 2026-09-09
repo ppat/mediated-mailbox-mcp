@@ -223,6 +223,8 @@ piece.
   [G2](./USE_CASES.md#g2--historical-understanding) · V2 · ≈1–2 days
   Metadata, sender classification, subject masking, sender aggregates. Validates rate limiting
   under real conditions, checkpoint/resume, and the canonical mapping against messy real data.
+  The unit brings a second deployable's code into the repository, the point where the
+  cross-deployable import rule (ADR-0054) first has a violation to construct.
   **Deliberately kill the pod mid-run and confirm clean resume.** Watch the rate gauge throughout:
   this run is where the real ceiling for this account reveals itself, as opposed to the documented
   one.

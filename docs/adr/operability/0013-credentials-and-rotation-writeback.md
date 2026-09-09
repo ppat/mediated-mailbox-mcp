@@ -9,21 +9,9 @@
 ## Context
 
 The mediator holds the most dangerous credentials in the system — full-mailbox provider tokens.
-They must reach the pod without living in git, survive pod restarts, and survive the provider
-rotating them. The platform is Kubernetes under GitOps, with Bitwarden Secrets Manager as the
-external secret store and External Secrets Operator syncing it into the cluster.
+They must reach the pod, survive pod restarts, and survive the provider rotating them.
 
 ## Decision
-
-```
-Bitwarden Secrets Manager
-        │ (store access token in a bootstrap Secret)
-        ▼
-External Secrets Operator ──► Secret/mail-mediator-creds
-        │                       └─ accounts/personal/gmail_refresh_token ← mutable
-        ▼
-Deployment mounts as files (not env vars — env leaks via /proc and crash dumps)
-```
 
 - **Files, not environment variables.** Environment variables leak through `/proc`, crash dumps,
   and child-process inheritance; file mounts do not.
@@ -33,8 +21,6 @@ Deployment mounts as files (not env vars — env leaks via /proc and crash dumps
   like this die quietly, so the writeback path is exercised deliberately, first, before anything
   is built on top of it (its proving check is catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md)).
-- **A Kyverno admission policy fences the Secret:** no pod in the namespace may mount the
-  credentials Secret except the mediator's own ServiceAccount.
 - **No credential ever crosses the client boundary.** Clients authenticate to the mediator with a
   bearer token distinct from every provider credential; the mediator authenticates to providers.
   Two trust domains that never mix.
@@ -44,9 +30,6 @@ Deployment mounts as files (not env vars — env leaks via /proc and crash dumps
 ## Alternatives considered
 
 - **Credentials in environment variables.** Rejected for the leak surfaces above.
-- **Credentials baked into the GitOps repo (sealed or encrypted).** Rejected: rotation writeback
-  needs a mutable store the *pod* can write; a git-mediated loop would put a commit-and-reconcile
-  cycle inside an authentication failure window.
 - **No writeback — re-consent manually when rotation happens.** Rejected: the failure is silent
   and delayed (everything works until the next restart), which is precisely the shape of failure
   that gets discovered weeks later, mid-incident.
