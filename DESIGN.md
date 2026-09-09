@@ -515,6 +515,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
   ADR-0009, via the [decision-record index](./docs/adr/README.md)).
 - **Contract suite** — the one test suite every provider-port implementation must pass
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).
+- **Control** — a rule the system enforces. Every control is proven by its violation
+  injection, catalogued in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md).
+- **Independent oracle** — a way to know the correct answer without running the code under
+  test (the term is
+  [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)'s).
 - **Marker text** — the searchable strings designed into synthetic fixture bodies so a leak
   check over any output surface is deterministic (rule in ADR-0044, via the
   [decision-record index](./docs/adr/README.md)).

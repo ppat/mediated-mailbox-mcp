@@ -15,6 +15,7 @@ work; they do not replace reading the authority for the file you touch.
 - [Roadmap changes](#roadmap-changes)
 - [Verification rows](#verification-rows)
 - [Mutation-ledger rows](#mutation-ledger-rows)
+- [Testing-strategy changes](#testing-strategy-changes)
 - [Front-door files (README.md, CLAUDE.md)](#front-door-files-readmemd-claudemd)
 
 ## Mint a new decision record
@@ -36,7 +37,7 @@ work; they do not replace reading the authority for the file you touch.
 5. In Consequences, state what the decision assumes about other components — implicit coupling
    named here is reviewable; left unnamed it is the thing that breaks future evolution.
 5a. In the record's prose, deep-link every decision-record and outcome identifier to its file or
-   section — bare numbers are the stable documents' convention, not a record's.
+   section.
 5b. Walk the Decision and Consequences claim by claim against the source (the operator agreement
    or discussion being recorded) and name each claim's source before committing. Walk against the
    source's own words, quoted — checking your sentence against a paraphrase of it verifies
@@ -57,8 +58,8 @@ work; they do not replace reading the authority for the file you touch.
    ROADMAP.md's Open decisions table naming what it gates.
 7. Add the index row in `docs/adr/README.md`: number, link whose text is a shortened restatement
    of the decision, status (bold if not Accepted).
-8. If stable documents need to cite it, they cite "ADR-NNNN" in plain text with the index linked
-   nearby — never a deep link to the record.
+8. If stable documents need to cite it, they cite "ADR-NNNN" with the number linked to the
+   record.
 
 ## Supersede an existing decision
 
@@ -208,6 +209,16 @@ records' `Serves:` headers) for meaning drift against the new text.
 - A surviving mutant keeps its row open as a defect until the tests are fixed or the mechanism
   is deliberately removed as redundant.
 - A control with no standing automated test gets no row. The line is ADR-0046's.
+
+## Testing-strategy changes
+
+1. The decision is a record. Mint a new one or change an existing one per the procedures
+   above, and the in-place test decides which.
+2. Reconcile TESTING.md in the same change. A new or retired test kind changes the "What to
+   test, with what" table, and a changed rule changes the sentence citing it. That sentence
+   must be recoverable from the record without meaning drift.
+3. Walk the record's rules for controls (step 5c of the mint procedure). Each new control
+   lands with its `docs/VERIFICATIONS.md` disposition in the same change.
 
 ## Front-door files (README.md, CLAUDE.md)
 

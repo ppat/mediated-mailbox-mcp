@@ -17,7 +17,8 @@ authoring procedure. These rules bind even when the skill was not invoked.
 
 - **One home per fact.** No document restates another's content; cross-references point, never
   restate. Duplication is how two documents come to disagree. (A pointer row that says *where* a
-  fact lives is fine; a second statement of the fact is not.)
+  fact lives is fine. A second statement of the fact is not. TESTING.md's stance and proof
+  system are the set's only sanctioned restatements, per the TESTING.md rule.)
 - **Content must be sourced.** These documents record decisions actually made and reasoning
   actually held — by the operator, or agreed with the operator in conversation. Never author
   filler that reads like a record: an alternative nobody weighed, a rationale nobody gave, a
@@ -31,12 +32,11 @@ authoring procedure. These rules bind even when the skill was not invoked.
   README.md): they state only the current form. Decision records may carry limited history
   where it earns its place; the roadmap's delivered-work register is the sanctioned home for
   "what happened."
-- **Asymmetric linking.** Stable documents cite decision records by number in plain text
-  ("ADR-0007") and link only the index (`docs/adr/README.md`) — records move and get superseded;
-  numbers do not. USE_CASES.md cites no individual records at all. Records deep-link freely into
-  the stable documents and each other. Every identifier (C1, G2, ADR-0015, S1, V3, …) links to
-  the section defining it, except inside this document set's tables and dependency edges where
-  bare identifiers are allowed.
+- **Linking.** Every reference links to its target. A record is cited by number ("ADR-0007")
+  with the number linked to the record, and every link into a record is re-pointed in the same
+  change that renames or relocates it. USE_CASES.md cites no individual records at all. Every
+  identifier (C1, G2, ADR-0015, S1, V3, …) links to the section defining it, except inside
+  this document set's tables and dependency edges where bare identifiers are allowed.
 - **Build state lives only in ROADMAP.md.** Never in DESIGN.md, never in a decision record.
 - Nobody hand-edits `CHANGELOG.md` — release tooling generates it.
 - Before committing document changes, run the offline link/anchor check and markdown lint (the

@@ -1,6 +1,6 @@
 ---
 name: update-docs
-description: Route, author, and verify changes to this repository's document set — DESIGN.md, USE_CASES.md, ROADMAP.md, the decision records under docs/adr/, docs/VERIFICATIONS.md, docs/MUTATIONS.md, README.md, and CLAUDE.md. Use this skill whenever a task adds, changes, or records ANY decision, outcome, plan item, term, test plan, risk, or fact about the system — including decisions made mid-conversation that merely need recording, discoveries made during implementation, superseding an existing decision, and build-state updates. Use it even when the user does not mention documentation: if new information about the system came into existence during the work, this skill is how it gets a home. Also use it when asked where something should be documented, or whether a document change is allowed.
+description: Route, author, and verify changes to this repository's document set — DESIGN.md, USE_CASES.md, ROADMAP.md, TESTING.md, the decision records under docs/adr/, docs/VERIFICATIONS.md, docs/MUTATIONS.md, README.md, and CLAUDE.md. Use this skill whenever a task adds, changes, or records ANY decision, outcome, plan item, term, test plan, risk, or fact about the system — including decisions made mid-conversation that merely need recording, discoveries made during implementation, superseding an existing decision, and build-state updates. Use it even when the user does not mention documentation: if new information about the system came into existence during the work, this skill is how it gets a home. Also use it when asked where something should be documented, or whether a document change is allowed.
 ---
 
 # Updating the document set
@@ -26,7 +26,7 @@ Classify what you are about to write, before opening any file:
 | One choice that had real alternatives and could be re-argued | A decision record under `docs/adr/` | It is reversible; the alternatives must survive |
 | A definition of a term used in more than one place | `DESIGN.md`'s Glossary | The single home for vocabulary |
 | Anything about what is built, when, in what order, or what work remains | `ROADMAP.md` | Build state is a roadmap fact, nowhere else |
-| A testing-strategy statement, a layer or instrument or standing discipline | `TESTING.md` | It is strategy narrative, and the decision behind it is a record, cited by number |
+| A change to which test kinds exist, when each applies, or how proof works | A decision record first, then `TESTING.md` in the same change | TESTING.md assembles the strategy and links the records that decide it |
 | A deliberate violation that would prove a control works | `docs/VERIFICATIONS.md` | It is a test plan, keyed to a work unit |
 | A control's mutation demonstration, the record that its tests went red with the mechanism removed | `docs/MUTATIONS.md` | It is the implementation-time ledger, one row per control |
 | Orientation for a newcomer (what the project is, where facts live) | `README.md` / `CLAUDE.md` | Front doors point; they never hold facts |
@@ -42,9 +42,13 @@ The ambiguous cases, resolved the way this document set resolves them:
   duplication is not.
 - **A decision that touches build sequencing** → the sequencing part goes to the roadmap; only
   what is genuinely a consequence of the decision stays in the record.
-- **A change spanning several documents** (most real changes) → route each piece separately;
-  never write the same fact twice. The record deep-links; the stable documents cite by number
-  through the index.
+- **A change spanning several documents** (most real changes) → route each piece separately,
+  and never write the same fact twice. Every reference links to its target, and a record cite
+  links the number to the record.
+- **A test scenario versus a mutation demonstration** → a deliberate violation and its expected
+  refusal is a `docs/VERIFICATIONS.md` row, minted at design time. The record that tests went
+  red with a mechanism removed is a `docs/MUTATIONS.md` row, possible only at implementation
+  time. One proves the control, and the other audits the control's tests.
 - **A maybe-someday idea, neither targeted nor deliberately excluded** → nowhere. Non-outcomes
   are for deliberate exclusions only; recording a possibility would misstate it either way.
 
