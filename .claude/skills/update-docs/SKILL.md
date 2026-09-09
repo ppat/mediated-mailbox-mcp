@@ -26,6 +26,7 @@ Classify what you are about to write, before opening any file:
 | One choice that had real alternatives and could be re-argued | A decision record under `docs/adr/` | It is reversible; the alternatives must survive |
 | A definition of a term used in more than one place | `DESIGN.md`'s Glossary | The single home for vocabulary |
 | Anything about what is built, when, in what order, or what work remains | `ROADMAP.md` | Build state is a roadmap fact, nowhere else |
+| A testing-strategy statement, a layer or instrument or standing discipline | `TESTING.md` | It is strategy narrative, and the decision behind it is a record, cited by number |
 | A deliberate violation that would prove a control works | `docs/VERIFICATIONS.md` | It is a test plan, keyed to a work unit |
 | A control's mutation demonstration, the record that its tests went red with the mechanism removed | `docs/MUTATIONS.md` | It is the implementation-time ledger, one row per control |
 | Orientation for a newcomer (what the project is, where facts live) | `README.md` / `CLAUDE.md` | Front doors point; they never hold facts |
