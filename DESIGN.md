@@ -10,11 +10,13 @@ one such decision: its context, alternatives, and consequences.
 Companions: [USE_CASES.md](./USE_CASES.md) holds the outcomes this design serves, each with a
 falsifiable acceptance criterion; [ROADMAP.md](./ROADMAP.md) holds all the work — build state is a
 roadmap fact, not a design fact, and a pillar binds identically whether its mechanisms are live or
-unbuilt; [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) holds the proving injection for every
-control. Where this document cites a specific decision it does so by number ("ADR-0007"), resolved
-through the decision-record index, never deep-linked — records are the fluid layer and may move or
-be superseded, while a record's number is stable. Vocabulary used across the documents is defined
-in the [Glossary](#glossary) below, and nowhere else.
+unbuilt; [TESTING.md](./TESTING.md) holds the testing strategy the records behind it decide;
+[docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) holds the proving injection for every control;
+and [docs/MUTATIONS.md](./docs/MUTATIONS.md) holds each automatable control's mutation
+demonstration. Where this document cites a specific decision it does so by number ("ADR-0007"),
+resolved through the decision-record index, never deep-linked — records are the fluid layer and
+may move or be superseded, while a record's number is stable. Vocabulary used across the
+documents is defined in the [Glossary](#glossary) below, and nowhere else.
 
 ## 1. What the system is
 
@@ -395,7 +397,7 @@ are pointers: each fix and its reasoning live in the records named, never here.
 
 ## Glossary
 
-The single home for vocabulary. A cold reader should be able to resolve any term used in the three
+The single home for vocabulary. A cold reader should be able to resolve any term used in the
 top-level documents, a decision record, or a ticket from here without guessing.
 
 ### The system and its parties
@@ -518,9 +520,13 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Verdict** — a decision returned as a data value by a pure core, enacted and recorded by the
   shell; verdict types structurally cannot carry the content they withhold (rule: ADR-0040 and
   ADR-0009, via the [decision-record index](./docs/adr/README.md)).
+- **Contract suite** — the one test suite every provider-port implementation must pass
+  (rule: ADR-0043, via the [decision-record index](./docs/adr/README.md)).
 - **Marker text** — the searchable strings designed into synthetic fixture bodies so a leak
   check over any output surface is deterministic (rule: ADR-0044, via the
   [decision-record index](./docs/adr/README.md)).
+- **Provider fake** — the contract-tested stand-in implementing the provider port in tests
+  (rule: ADR-0043, via the [decision-record index](./docs/adr/README.md)).
 - **Mutation demonstration** (also *mutation table*) — the per-control record that removing a
   control's mechanism made its tests go red, kept in
   [docs/MUTATIONS.md](./docs/MUTATIONS.md) (rule: ADR-0046, via the

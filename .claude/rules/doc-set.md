@@ -5,6 +5,7 @@ paths:
   - "DESIGN.md"
   - "USE_CASES.md"
   - "ROADMAP.md"
+  - "TESTING.md"
   - "docs/**/*.md"
 ---
 
@@ -26,9 +27,10 @@ authoring procedure. These rules bind even when the skill was not invoked.
   shorthand is not. A concept this project coins is defined in the narrative at first use AND in
   DESIGN.md's Glossary — the Glossary is the single home for vocabulary; nothing is defined
   locally elsewhere.
-- **No historical narration in the stable documents** (DESIGN.md, USE_CASES.md, README.md): they
-  state only the current form. Decision records may carry limited history where it earns its
-  place; the roadmap's delivered-work register is the sanctioned home for "what happened."
+- **No historical narration in the stable documents** (DESIGN.md, USE_CASES.md, TESTING.md,
+  README.md): they state only the current form. Decision records may carry limited history
+  where it earns its place; the roadmap's delivered-work register is the sanctioned home for
+  "what happened."
 - **Asymmetric linking.** Stable documents cite decision records by number in plain text
   ("ADR-0007") and link only the index (`docs/adr/README.md`) — records move and get superseded;
   numbers do not. USE_CASES.md cites no individual records at all. Records deep-link freely into
