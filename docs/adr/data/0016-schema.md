@@ -20,8 +20,12 @@ CREATE TABLE accounts (
   backfill_pass1_complete boolean NOT NULL DEFAULT false,
   backfill_pass2_complete boolean NOT NULL DEFAULT false,
   sync_cursor       text,
-  policy_overlay    text
+  sync_cursor_at    timestamptz,           -- when sync_cursor was last written
+  last_auth_at      timestamptz,           -- last provider authentication attempt
+  last_auth_outcome text                   -- its outcome, exposed by ADR-0034
 );
+-- sync_cursor_at is written by delta sync, last_auth_* by the provider adapter on every
+-- authentication attempt; an account's policy overlay is its rows in policy_rules
 
 CREATE TABLE rate_state (                 -- cross-process rate coordination (ADR-0025)
   account_id       text PRIMARY KEY REFERENCES accounts,
@@ -33,6 +37,7 @@ CREATE TABLE rate_state (                 -- cross-process rate coordination (AD
   backoff_until    timestamptz,
   leased_tokens    real NOT NULL DEFAULT 0,
   lease_expires_at timestamptz,
+  classes          jsonb,                  -- {class: {reserved, used}} per priority class, written by the limiter (ADR-0025)
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
 
@@ -69,10 +74,10 @@ CREATE TABLE messages (
   list_id          text,
   size_bytes       int,
   auth_results     jsonb,
-  sender_class     text NOT NULL,
-  content_flags    text[] NOT NULL DEFAULT '{}',
+  sender_class     text NOT NULL,          -- normal | restricted
+  content_flags    text[] NOT NULL DEFAULT '{}',  -- mfa_code | login_link
   rule_ids         text[] NOT NULL DEFAULT '{}',
-  scan_state       text NOT NULL DEFAULT 'pending',
+  scan_state       text NOT NULL DEFAULT 'pending',  -- scanned | skipped_restricted | skipped_gate | pending (ADR-0007)
   scanned_at       timestamptz,
   scanner_version  int,
   PRIMARY KEY (account_id, message_id)
@@ -99,15 +104,29 @@ CREATE TABLE scan_gate_decisions (        -- makes ADR-0007's residual auditable
 CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
   account_id   text NOT NULL,
   domain       citext NOT NULL,
-  signals      jsonb NOT NULL,            -- which heuristics fired + evidence
+  signals      jsonb NOT NULL,            -- one entry per heuristic that fired, with its evidence
   score        real NOT NULL,
   status       text NOT NULL DEFAULT 'pending',  -- pending|confirmed|dismissed
+  created_at   timestamptz NOT NULL DEFAULT now(),
   reviewed_at  timestamptz,
+  reviewed_by  text,                      -- human only; in the UI's write grant (ADR-0021)
   PRIMARY KEY (account_id, domain)
 );
 
+CREATE TABLE policy_rules (               -- the sender policy as rows (ADR-0004), snapshotted by ADR-0041
+  account_id     text REFERENCES accounts, -- NULL for the base policy; an overlay names its account
+  rule_id        text PRIMARY KEY,        -- candidate.{account}.{domain} when a confirmation minted it
+  class          text NOT NULL,           -- restricted
+  domain_suffix  text[] NOT NULL,
+  source         text NOT NULL,           -- operator | candidate
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  created_by     text NOT NULL            -- the operator identity; in the UI's write grant (ADR-0021)
+);
+CREATE INDEX ON policy_rules (account_id);
+
 CREATE TABLE masking_events (
-  account_id  text NOT NULL,
+  id          bigserial PRIMARY KEY,
+  account_id  text NOT NULL,             -- indexed below with masked_at
   message_id  text NOT NULL,
   field       text NOT NULL,              -- subject
   rule_id     text NOT NULL,
@@ -115,17 +134,35 @@ CREATE TABLE masking_events (
   masked_at   timestamptz NOT NULL DEFAULT now()
   -- no matched text stored
 );
+CREATE INDEX ON masking_events (account_id, masked_at DESC);
 
 CREATE TABLE reorg_plans (
   plan_id     uuid PRIMARY KEY,
   account_id  text NOT NULL REFERENCES accounts,
-  status      text NOT NULL,              -- DRAFT|APPROVED|APPLYING|APPLIED|ROLLED_BACK
+  status      text NOT NULL,              -- DRAFT|APPROVED|APPLYING|APPLIED|ROLLED_BACK|REJECTED|APPLY_REFUSED
   description text,
-  plan        jsonb NOT NULL,
+  proposer    text,                       -- the client actor at creation
+  plan        jsonb NOT NULL,             -- label_ops as [{op: create|rename|delete, label, to}], message_ops, stats
+  validation       jsonb,                 -- {result: passed|failed, findings: []} at creation (ADR-0032)
+  apply_validation jsonb,                 -- same shape, at apply
+  refusal_reason   text,                  -- set with APPLY_REFUSED
   created_at  timestamptz NOT NULL DEFAULT now(),
-  approved_at timestamptz,
+  approved_at timestamptz,                -- the decision time, for REJECTED as well
   approved_by text                        -- human only; in the UI's write grant (ADR-0021)
 );
+CREATE INDEX ON reorg_plans (account_id, created_at DESC);
+
+CREATE TABLE reorg_plan_ops (             -- the plan's message operations as rows, one per message (ADR-0020)
+  account_id    text NOT NULL REFERENCES accounts,
+  plan_id       uuid NOT NULL REFERENCES reorg_plans,
+  message_id    text NOT NULL,
+  add_labels    text[] NOT NULL DEFAULT '{}',
+  remove_labels text[] NOT NULL DEFAULT '{}',
+  flows         text[] NOT NULL DEFAULT '{}',  -- 'from>to' per (removed or none, added or none) pair
+  reason        text,
+  PRIMARY KEY (plan_id, message_id)
+);
+CREATE INDEX ON reorg_plan_ops (account_id, plan_id);
 
 CREATE TABLE reorg_op_log (
   plan_id       uuid NOT NULL REFERENCES reorg_plans,
@@ -137,7 +174,56 @@ CREATE TABLE reorg_op_log (
   PRIMARY KEY (plan_id, seq)
 );
 
+CREATE TABLE job_runs (                   -- every batch workload's runs (ADR-0022)
+  account_id    text NOT NULL REFERENCES accounts,
+  run_id        text NOT NULL,            -- short opaque string
+  workload      text NOT NULL,            -- backfill | sync | apply | heuristics
+  pass          text,                     -- pass1 | pass2 | tick | gap_recovery | apply | rollback
+  state         text NOT NULL,            -- running | succeeded | failed
+  plan_id       uuid REFERENCES reorg_plans,  -- apply and rollback runs
+  resumed_from  text,                     -- the run this one resumed
+  started_at    timestamptz NOT NULL,
+  finished_at   timestamptz,
+  heartbeat_at  timestamptz,
+  checkpoint    jsonb,                    -- {page, of} or {seq, of}
+  counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages; pass2 pages, decided,
+                                          --   pending, scanned, skipped; sync added, modified, removed,
+                                          --   window_start, window_end, reconciled; apply ops_done,
+                                          --   ops_total, failures; heuristics candidates
+  last_error    text,                     -- provider or scanner text, never a body
+  PRIMARY KEY (account_id, run_id)
+);
+
+CREATE TABLE job_run_events (             -- a run's timeline
+  account_id text NOT NULL,
+  run_id     text NOT NULL,
+  seq        bigserial,
+  kind       text NOT NULL,               -- start | progress | backoff | retry | failure | resume | finish
+  at         timestamptz NOT NULL DEFAULT now(),
+  page       int,                         -- progress events carry the checkpoint page
+  detail     text,                        -- provider or scanner text, never a body
+  PRIMARY KEY (account_id, run_id, seq)
+);
+
+CREATE TABLE job_run_failures (           -- a run's per-item failures
+  account_id    text NOT NULL,
+  run_id        text NOT NULL,
+  seq           bigserial,
+  item_kind     text NOT NULL,            -- page | message | op
+  item_id       text NOT NULL,            -- the page number, or the message id for message and op items
+  page          int,                      -- the page the item was processed on
+  error_class   text NOT NULL,            -- throttled | provider_error | gone | scanner_timeout | validation | authentication
+  error_summary text,                     -- provider or scanner text, never a body
+  attempts      int NOT NULL DEFAULT 1,
+  first_at      timestamptz NOT NULL,
+  last_at       timestamptz NOT NULL,
+  disposition   text NOT NULL DEFAULT 'pending',  -- recovered | pending | gone | abandoned
+  recovered_by  text,                     -- the recovering run
+  PRIMARY KEY (account_id, run_id, seq)
+);
+
 CREATE TABLE audit_log (
+  id          bigserial,
   ts          timestamptz NOT NULL DEFAULT now(),
   account_id  text NOT NULL,
   actor       text NOT NULL,
@@ -146,6 +232,7 @@ CREATE TABLE audit_log (
   sensitivity jsonb,
   rule_ids    text[]
 ) PARTITION BY RANGE (ts);
+CREATE INDEX ON audit_log (account_id, ts DESC);
 ```
 
 The properties the shape enforces:
@@ -154,7 +241,22 @@ The properties the shape enforces:
   decision: a future migration adding one is violating the design, not extending it.
 - **Every table keys on `account_id`;** `messages` is list-partitioned by it. All access goes
   through a repository layer that requires an account, with row-level security as a second,
-  independent layer.
+  independent layer. The policies read the transaction-local setting `app.account`, which every
+  process sets before reading, by an ordinary statement and never by database-resident code
+  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The two exceptions are stated:
+  `reorg_op_log` is scoped through its plan, and `policy_rules` rows with a null account are the
+  base policy every account inherits ([ADR-0004](../classification/0004-sender-list-decides.md)).
+- **The stored spellings of every enumerated column are the ones the DDL comments show**, in
+  lowercase snake case where a record names the state in capitals (`skipped_gate` for
+  [ADR-0007](../redaction/0007-composite-scan-gate.md)'s `SKIPPED_GATE`). Plan statuses keep
+  their capitals as [ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md) writes
+  them.
+- **The batch workloads' runs, timeline events, and per-item failures are rows**
+  ([ADR-0022](../operability/0022-four-workloads.md)), and their free-text columns hold provider
+  or scanner text and never a body, under the same comment that binds every table.
+- **The UI's decisions are recorded in the columns its verbs set and the rule row its confirm
+  verb inserts** ([ADR-0021](../mutation/0021-approval-surface.md)), so a decision is readable
+  from `reorg_plans` and `policy_candidates` without an audit row.
 - **Masked subjects are stored masked** — the index never holds a live code.
 - **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
   (`scan_state = 'pending'`) directly.
@@ -175,6 +277,10 @@ The properties the shape enforces:
 
 ## Consequences
 
+- The plan's message operations are held twice, as the plan JSON the client submits and as the
+  `reorg_plan_ops` rows the engine writes when the plan is saved, so the UI can group tens of
+  thousands of operations by flow, sender, and sensitivity in SQL
+  ([ADR-0056](../operability/0056-ui-organized-around-the-operators-work.md)).
 - The corpus is assumed to stay on the order of 100k messages per account. Millions would not
   change the store choice but would make partitioning, retention, and backfill planning real
   design work rather than a schema detail — recorded as a known limit in

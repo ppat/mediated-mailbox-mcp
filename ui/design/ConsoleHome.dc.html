@@ -1,0 +1,257 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #f6f4f0; color: #1f1d1a; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; }
+    a { color: #b8662f; } a:hover { color: #8f4d20; }
+    table { border-collapse: collapse; }
+  </style>
+</helmet>
+<div style="width: 1440px; background: #f6f4f0; display: flex; flex-direction: column; gap: 0px;">
+  <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px 6px 16px;">
+    <span style="font-family: 'Patrick Hand', cursive; font-size: 18px; color: #7b7568;">Path A · Console · Corpus overview</span>
+  </div>
+  <div style="display: flex; flex-direction: row; gap: 0px; border-top: 1px solid #d8d3ca; background: #ffffff;">
+    <div style="width: 220px; flex-shrink: 0; border-right: 1px solid #d8d3ca; background: #fbfaf7; display: flex; flex-direction: column; gap: 0px; padding: 16px 0px; min-height: 1080px;">
+      <div style="padding: 0px 16px 16px 16px; display: flex; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1f1d1a" stroke-width="1.5"><rect x="2" y="3.5" width="12" height="9" rx="1"></rect><path d="M2 5l6 4 6-4"></path></svg>
+        <span style="font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 13px;">mediated mailbox</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 0px 8px;">
+        <div style="padding: 8px 10px; border-radius: 4px; background: #ffffff; border: 1px solid #d8d3ca; font-weight: 600;">Corpus</div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Reorg plans</div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a; display: flex; justify-content: space-between; align-items: center;"><span>Review queue</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">4</span></div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Masking events</div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Gate decisions</div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Audit log</div>
+      </div>
+      <div style="margin: 16px 8px 0px 8px; border-top: 1px solid #d8d3ca; padding-top: 12px; display: flex; flex-direction: column; gap: 2px;">
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a; display: flex; justify-content: space-between; align-items: center;"><span>System status</span><span style="width: 8px; height: 8px; border-radius: 4px; background: #4f7d5a;"></span></div>
+      </div>
+      <div style="margin-top: auto; padding: 12px 16px 0px 16px; font-family: 'Patrick Hand', cursive; font-size: 15px; color: #7b7568; line-height: 1.3;">one page per view, each page owns its own drill-down</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 0px; min-width: 0px;">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid #d8d3ca; background: #ffffff;">
+        <div style="display: flex; align-items: center; gap: 6px; border: 1px solid #d8d3ca; border-radius: 4px; padding: 5px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">
+          <span style="color: #7b7568;">account</span><span style="font-weight: 500;">personal</span><span style="color: #7b7568;">· Gmail</span>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7b7568" stroke-width="1.5"><path d="M4 6l4 4 4-4"></path></svg>
+        </div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7b7568;">work (not configured)</div>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 6px; border: 1px solid #d8d3ca; border-radius: 4px; padding: 5px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">
+          <span style="color: #7b7568;">range</span><span>all history</span>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7b7568" stroke-width="1.5"><path d="M4 6l4 4 4-4"></path></svg>
+        </div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">index as of 2026-09-09 10:12Z</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; padding: 20px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <h1 style="margin: 0px; font-size: 18px; font-weight: 600;">Corpus overview</h1>
+          <span style="color: #7b7568;">backfill pass 1 complete · pass 2 at 91%</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;">
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Messages</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px;">84,212</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Threads</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px;">27,930</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Unfiled</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px;">31,405 <span style="font-size: 13px; color: #7b7568;">37%</span></span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Restricted-sender messages</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; color: #a9443a;">1,242</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Pending scan backlog</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px;">7,580</span>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span style="font-weight: 600;">Label distribution</span>
+              <span style="color: #7b7568; font-size: 12px;">messages per label · click a bar to filter</span>
+            </div>
+            <div style="border: 1px dashed #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 60px; gap: 10px; align-items: center;">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">INBOX</span>
+                <div style="height: 14px; background: #cfc9bf; width: 100%;"></div>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">42,110</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 60px; gap: 10px; align-items: center;">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">Newsletters</span>
+                <div style="height: 14px; background: #cfc9bf; width: 27%;"></div>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">11,230</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 60px; gap: 10px; align-items: center;">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;">bank</span>
+                <div style="height: 14px; background: #1f1d1a; width: 10.5%;"></div>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">4,410</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 60px; gap: 10px; align-items: center;">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">Receipts</span>
+                <div style="height: 14px; background: #cfc9bf; width: 9.3%;"></div>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">3,902</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 60px; gap: 10px; align-items: center;">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">old-finance</span>
+                <div style="height: 14px; background: #cfc9bf; width: 2.7%;"></div>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">1,130</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 60px; gap: 10px; align-items: center;">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7b7568;">(unfiled)</span>
+                <div style="height: 14px; border: 1px dashed #cfc9bf; width: 74%;"></div>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">31,405</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 12px; color: #7b7568;">filter:</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid #1f1d1a; border-radius: 12px; padding: 2px 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">label = bank <span style="color: #7b7568;">×</span></span>
+              <span style="font-family: 'Patrick Hand', cursive; font-size: 14px; color: #7b7568;">clicked bar → chip → sub-table below</span>
+            </div>
+            <table style="width: 100%; font-size: 12px;">
+              <thead>
+                <tr style="color: #7b7568; text-align: left;">
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">sender in bank</th>
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; text-align: right;">messages</th>
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">class</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td style="padding: 6px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">chasealerts.com</td><td style="padding: 6px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">220</td><td style="padding: 6px 8px; border-bottom: 1px solid #efece6; color: #7b7568;">normal · candidate</td></tr>
+                <tr><td style="padding: 6px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">fidelity.com</td><td style="padding: 6px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">1,204</td><td style="padding: 6px 8px; border-bottom: 1px solid #efece6;"><span style="border: 1px solid #a9443a; color: #a9443a; border-radius: 3px; padding: 1px 6px; font-size: 11px;">restricted</span></td></tr>
+                <tr><td style="padding: 6px 8px; font-family: 'IBM Plex Mono', monospace; color: #7b7568;">… 14 more senders</td><td style="padding: 6px 8px;"></td><td style="padding: 6px 8px;"></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span style="font-weight: 600;">Scan state</span>
+                <span style="color: #7b7568; font-size: 12px;">where each message stands relative to the scanner</span>
+              </div>
+              <div style="display: flex; height: 18px; border-radius: 3px; overflow: hidden; border: 1px dashed #d8d3ca;">
+                <div style="width: 68%; background: #cfc9bf;"></div>
+                <div style="width: 9%; background: #1f1d1a;"></div>
+                <div style="width: 14%; background: #e6e2da;"></div>
+                <div style="width: 9%; background: #a9443a;"></div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-size: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #7b7568;">SCANNED</span><span style="font-family: 'IBM Plex Mono', monospace;">57,264</span></div>
+                <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #7b7568;">SKIPPED_GATE</span><span style="font-family: 'IBM Plex Mono', monospace;">7,410</span></div>
+                <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #7b7568;">PENDING</span><span style="font-family: 'IBM Plex Mono', monospace;">7,580</span></div>
+                <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #7b7568;">SKIPPED_RESTRICTED</span><span style="font-family: 'IBM Plex Mono', monospace; color: #a9443a;">1,242</span></div>
+              </div>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span style="font-weight: 600;">Sender class</span>
+                <span style="color: #7b7568; font-size: 12px;">domains by classification</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #7b7568;">normal</span><span style="font-family: 'IBM Plex Mono', monospace;">2,318 domains</span></div>
+                <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #a9443a;">restricted</span><span style="font-family: 'IBM Plex Mono', monospace;">11 domains</span></div>
+                <div style="display: flex; flex-direction: column; gap: 2px;"><span style="color: #7b7568;">awaiting review</span><span style="font-family: 'IBM Plex Mono', monospace;">4 candidates</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-weight: 600;">Senders by volume</span>
+            <span style="color: #7b7568; font-size: 12px;">top domains · sorted by message count</span>
+            <span style="margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">2,329 domains · page 1 of 117</span>
+          </div>
+          <table style="width: 100%; font-size: 12px;">
+            <thead>
+              <tr style="color: #7b7568; text-align: left;">
+                <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">domain</th>
+                <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">class</th>
+                <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; text-align: right;">messages</th>
+                <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">first seen</th>
+                <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">last seen</th>
+                <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; text-align: right;">List-Id ratio</th>
+                <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; text-align: right;">scan hits</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">github.com</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568;">normal</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">9,812</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2019-06-02</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-09</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">0.98</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">0</td>
+              </tr>
+              <tr>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">substack.com</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568;">normal</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">6,340</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2021-01-14</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-08</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">1.00</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">0</td>
+              </tr>
+              <tr>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">fidelity.com</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6;"><span style="border: 1px solid #a9443a; color: #a9443a; border-radius: 3px; padding: 1px 6px; font-size: 11px;">restricted</span></td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">1,204</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2017-03-22</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-03</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">0.02</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right; color: #7b7568;">never scanned</td>
+              </tr>
+              <tr>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">acme.io</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568;">normal</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">412</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2023-11-05</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-06</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">0.00</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">14</td>
+              </tr>
+              <tr>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">ups.com</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568;">normal</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">96</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2020-08-30</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-02</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">0.00</td>
+                <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; text-align: right;">0</td>
+              </tr>
+              <tr>
+                <td style="padding: 7px 8px; font-family: 'IBM Plex Mono', monospace;">irs.gov</td>
+                <td style="padding: 7px 8px;"><span style="border: 1px solid #a9443a; color: #a9443a; border-radius: 3px; padding: 1px 6px; font-size: 11px;">restricted</span></td>
+                <td style="padding: 7px 8px; font-family: 'IBM Plex Mono', monospace; text-align: right;">38</td>
+                <td style="padding: 7px 8px; font-family: 'IBM Plex Mono', monospace;">2018-04-10</td>
+                <td style="padding: 7px 8px; font-family: 'IBM Plex Mono', monospace;">2026-08-21</td>
+                <td style="padding: 7px 8px; font-family: 'IBM Plex Mono', monospace; text-align: right;">0.00</td>
+                <td style="padding: 7px 8px; font-family: 'IBM Plex Mono', monospace; text-align: right; color: #7b7568;">never scanned</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">
+            <span style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 3px 8px;">‹ prev</span>
+            <span style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 3px 8px;">next ›</span>
+            <span style="margin-left: auto; font-family: 'Patrick Hand', cursive; font-size: 14px;">clicking a domain opens that sender's own page — a separate route</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

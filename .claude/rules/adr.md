@@ -9,7 +9,9 @@ You are touching decision records. The format authority is
 [docs/adr/README.md](../../docs/adr/README.md) — read its "Record format" section before writing;
 these are the tripwires that must hold even in a drive-by edit:
 
-- **The in-place test: spirit and backwards compatibility.** An accepted record may change in
+- **The in-place test: spirit and backwards compatibility.** Until the first release lands, the
+  clause in CLAUDE.md ("Until v0.0.1 lands") overrides this test and any record may change in
+  place. From that release on, an accepted record may change in
   place when the change stays true to the original decision in spirit AND is backwards
   compatible with the previous interpretation — everything that was true or permitted under the
   old reading remains true or permitted (broadening a referent, clarifying, adding a consequence

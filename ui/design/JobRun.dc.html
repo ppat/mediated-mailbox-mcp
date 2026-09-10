@@ -1,0 +1,217 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; }
+    a { color: #7cb3eb; } a:hover { color: #e1ddd7; }
+    .hand { font-family: 'Patrick Hand', cursive; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    table { border-collapse: collapse; }
+    th { text-align: left; font-weight: 500; color: #9c9890; font-size: 11px; padding: 6px 10px; border-bottom: 1px solid #3b3734; }
+    td { padding: 7px 10px; border-bottom: 1px solid #292623; font-size: 12px; vertical-align: top; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 1280px; background: #161311; box-sizing: border-box; display: flex; flex-direction: column;">
+
+  <!-- top bar -->
+  <div style="display: flex; flex-direction: row; align-items: center; gap: 20px; padding: 10px 24px; background: #1f1c1a; border-bottom: 1px solid #3b3734;">
+    <div style="display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect><path d="M2 5l6 4 6-4"></path></svg>
+      <span class="mono" style="font-size: 12px; color: #e1ddd7;">personal</span>
+      <span style="font-size: 11px; color: #9c9890;">Gmail</span>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#9c9890" stroke-width="1.5"><path d="M3 5l3 3 3-3"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: row; gap: 4px; font-size: 12px;">
+      <div style="padding: 5px 10px; color: #9c9890;">Home</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Corpus</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Masking</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Gate</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Audit</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Policy</div>
+      <div style="padding: 5px 10px; color: #e1ddd7; border-bottom: 2px solid #ed9c55;">Jobs</div>
+    </div>
+    <div style="flex-grow: 1;"></div>
+    <div class="mono" style="font-size: 11px; color: #9c9890;">/personal/jobs/r-0913?group=error_class&amp;level=3</div>
+  </div>
+
+  <!-- title row + breadcrumb -->
+  <div style="display: flex; flex-direction: column; gap: 6px; padding: 18px 24px 0 24px;">
+    <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 12px; color: #9c9890;">
+      <a href="#" style="text-decoration: none;">Jobs</a><span>›</span><a href="#" style="text-decoration: none;">Backfill pass 2</a><span>›</span><span class="mono" style="color: #e1ddd7;">r-0913</span>
+    </div>
+    <div style="display: flex; flex-direction: row; align-items: baseline; gap: 16px;">
+      <div class="hand" style="font-size: 15px; color: #9c9890;">ui · Failed run</div>
+      <div style="font-size: 18px; font-weight: 600;">Backfill pass 2 · run r-0913</div>
+      <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #f47b74;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #f47b74;"></span>FAILED</div>
+      <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; color: #9c9890;">
+        <div style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></div>
+        <span>live · updated 3s ago</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- L0 summary strip -->
+  <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; padding: 14px 24px 0 24px;">
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 10px 12px;"><div class="mono" style="font-size: 13px;">08:02Z → 09:47Z</div><div style="font-size: 11px; color: #9c9890;">2026-09-07 · 1h 45m</div></div>
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 10px 12px;"><div class="mono" style="font-size: 16px;">2,410 <span style="font-size: 11px; color: #9c9890;">of 3,368</span></div><div style="font-size: 11px; color: #9c9890;">failed at page, after 3 retries</div></div>
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 10px 12px;"><div class="mono" style="font-size: 16px; color: #f47b74;">141</div><div style="font-size: 11px; color: #9c9890;">item failures</div></div>
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 10px 12px;"><div class="mono" style="font-size: 16px; color: #6fc082;">132</div><div style="font-size: 11px; color: #9c9890;">recovered by r-0914</div></div>
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 10px 12px;"><div class="mono" style="font-size: 16px;">9</div><div style="font-size: 11px; color: #9c9890;">permanently gone</div></div>
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 10px 12px;"><div class="mono" style="font-size: 13px;"><a href="#" style="text-decoration: none;">r-0914</a></div><div style="font-size: 11px; color: #9c9890;">resumed from page 2,410 · running</div></div>
+  </div>
+
+  <!-- timeline -->
+  <div style="padding: 14px 24px 0 24px;">
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; flex-direction: row; align-items: baseline; gap: 12px;">
+        <div style="font-weight: 600; font-size: 13px;">Run timeline</div>
+        <div style="font-size: 11px; color: #9c9890;">pages over wall time · 08:02Z to 09:47Z</div>
+      </div>
+      <svg width="1360" height="70" viewBox="0 0 1360 70" style="display: block;">
+        <line x1="20" y1="40" x2="1340" y2="40" stroke="#3b3734" stroke-width="1"></line>
+        <rect x="20" y="34" width="880" height="12" rx="2" fill="#7cb3eb"></rect>
+        <rect x="900" y="34" width="180" height="12" rx="2" fill="#59544f"></rect>
+        <rect x="1080" y="34" width="60" height="12" rx="2" fill="#7cb3eb"></rect>
+        <rect x="1140" y="34" width="30" height="12" rx="2" fill="#f47b74"></rect>
+        <rect x="1170" y="34" width="30" height="12" rx="2" fill="#f47b74" fill-opacity="0.7"></rect>
+        <rect x="1200" y="34" width="30" height="12" rx="2" fill="#f47b74" fill-opacity="0.45"></rect>
+        <line x1="1232" y1="26" x2="1232" y2="54" stroke="#f47b74" stroke-width="2"></line>
+        <line x1="1300" y1="26" x2="1300" y2="54" stroke="#6fc082" stroke-width="2" stroke-dasharray="3 3"></line>
+        <text x="20" y="18" fill="#9c9890" font-family="IBM Plex Mono, monospace" font-size="11">page 1</text>
+        <text x="900" y="18" fill="#9c9890" font-family="IBM Plex Mono, monospace" font-size="11">page 2,180 · 429 backoff</text>
+        <text x="1080" y="18" fill="#9c9890" font-family="IBM Plex Mono, monospace" font-size="11">resume</text>
+        <text x="1140" y="18" fill="#f47b74" font-family="IBM Plex Mono, monospace" font-size="11">page 2,410 · retry ×3</text>
+        <text x="1236" y="66" fill="#f47b74" font-family="IBM Plex Mono, monospace" font-size="11">failed 09:47Z</text>
+        <text x="1250" y="18" fill="#6fc082" font-family="IBM Plex Mono, monospace" font-size="11">r-0914 resumes here</text>
+        <text x="20" y="66" fill="#9c9890" font-family="IBM Plex Mono, monospace" font-size="11">08:02Z</text>
+        <text x="900" y="66" fill="#9c9890" font-family="IBM Plex Mono, monospace" font-size="11">09:21Z</text>
+      </svg>
+      <div style="display: flex; flex-direction: row; gap: 16px; font-size: 11px; color: #9c9890;">
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #7cb3eb;"></span>pages progressing</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #59544f;"></span>throttle backoff (rate controller)</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #f47b74;"></span>page retries, then failure</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 2px; background: #6fc082;"></span>resume checkpoint</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- L1: two breakdowns -->
+  <div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; padding: 14px 24px 0 24px;">
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; align-items: baseline; gap: 12px;">
+        <div class="mono" style="font-size: 11px; color: #9c9890;">L1</div>
+        <div style="font-weight: 600; font-size: 13px;">Failures by error class</div>
+        <div style="font-size: 11px; color: #9c9890;">141 items · click a bar to filter the rows</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) 60px 60px; gap: 6px 12px; align-items: center; font-size: 12px;">
+        <span class="mono">429 throttled</span><div style="height: 12px; border-radius: 2px; background: #292623;"><div style="height: 12px; width: 68%; border-radius: 2px; background: #59544f;"></div></div><span class="mono" style="text-align: right;">96</span><span class="mono" style="text-align: right; color: #9c9890;">68%</span>
+        <span class="mono">5xx provider</span><div style="height: 12px; border-radius: 2px; background: #292623;"><div style="height: 12px; width: 22%; border-radius: 2px; background: #59544f;"></div></div><span class="mono" style="text-align: right;">31</span><span class="mono" style="text-align: right; color: #9c9890;">22%</span>
+        <span class="mono" style="color: #ed9c55;">410 gone</span><div style="height: 12px; border-radius: 2px; background: #292623;"><div style="height: 12px; width: 6.4%; border-radius: 2px; background: #ed9c55;"></div></div><span class="mono" style="text-align: right;">9</span><span class="mono" style="text-align: right; color: #9c9890;">6%</span>
+        <span class="mono">scanner timeout</span><div style="height: 12px; border-radius: 2px; background: #292623;"><div style="height: 12px; width: 3.5%; border-radius: 2px; background: #59544f;"></div></div><span class="mono" style="text-align: right;">5</span><span class="mono" style="text-align: right; color: #9c9890;">4%</span>
+      </div>
+      <div style="font-size: 11px; color: #9c9890;">or group by <a href="#" style="text-decoration: none;">sender</a> · <a href="#" style="text-decoration: none;">page</a> · <a href="#" style="text-decoration: none;">disposition</a></div>
+    </div>
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; align-items: baseline; gap: 12px;">
+        <div class="mono" style="font-size: 11px; color: #9c9890;">L1</div>
+        <div style="font-weight: 600; font-size: 13px;">By disposition</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 50px; gap: 6px 12px; align-items: center; font-size: 12px;">
+        <span>recovered</span><div style="height: 12px; border-radius: 2px; background: #292623;"><div style="height: 12px; width: 94%; border-radius: 2px; background: #6fc082;"></div></div><span class="mono" style="text-align: right;">132</span>
+        <span>gone</span><div style="height: 12px; border-radius: 2px; background: #292623;"><div style="height: 12px; width: 6.4%; border-radius: 2px; background: #f47b74;"></div></div><span class="mono" style="text-align: right;">9</span>
+        <span>pending</span><div style="height: 12px; border-radius: 2px; background: #292623;"></div><span class="mono" style="text-align: right;">0</span>
+        <span>abandoned</span><div style="height: 12px; border-radius: 2px; background: #292623;"></div><span class="mono" style="text-align: right;">0</span>
+      </div>
+      <div class="hand" style="font-size: 14px; color: #9c9890;">no retry verb here. Resuming is the workload's own behavior; the UI shows what it did.</div>
+    </div>
+  </div>
+
+  <!-- L3 rows + L4 side panel -->
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 14px 24px 24px 24px;">
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div class="mono" style="font-size: 11px; color: #9c9890;">L3</div>
+        <div style="font-weight: 600; font-size: 13px;">Failed items</div>
+        <div style="display: flex; flex-direction: row; gap: 6px;">
+          <div class="mono" style="font-size: 11px; border: 1px solid #ed9c55; color: #ed9c55; border-radius: 10px; padding: 1px 8px;">run: r-0913</div>
+          </div>
+        <div style="flex-grow: 1;"></div>
+        <div style="font-size: 11px; color: #9c9890;">click an error class above to filter · 4 of 141</div>
+      </div>
+      <table style="width: 100%;">
+        <thead>
+          <tr><th>message</th><th>sender</th><th>subject</th><th>error class</th><th style="text-align: right;">attempts</th><th>last error at</th><th>disposition</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">m_81c2f</td><td class="mono">notifications@github.com</td><td>[repo] CI failed on main</td><td class="mono">429 throttled</td><td class="mono" style="text-align: right;">3</td><td class="mono">09:44:12Z</td><td style="color: #6fc082;">recovered in r-0914</td>
+          </tr>
+          <tr>
+            <td class="mono">m_7a0d1</td><td class="mono">news@substack.com</td><td>This week in infrastructure</td><td class="mono">5xx provider</td><td class="mono" style="text-align: right;">3</td><td class="mono">09:45:50Z</td><td style="color: #6fc082;">recovered in r-0914</td>
+          </tr>
+          <tr style="background: #292623;">
+            <td class="mono"><a href="#" style="text-decoration: none;">m_3f9e4</a></td><td class="mono">receipts@acme.io</td><td>Your Acme verification code is ██████</td><td class="mono" style="color: #ed9c55;">410 gone</td><td class="mono" style="text-align: right;">1</td><td class="mono">09:46:03Z</td><td style="color: #f47b74;">gone · stays PENDING</td>
+          </tr>
+          <tr>
+            <td class="mono">m_c44b7</td><td class="mono">alerts@chasealerts.com</td><td>Large purchase alert: $1,240.00</td><td class="mono">scanner timeout</td><td class="mono" style="text-align: right;">2</td><td class="mono">09:46:41Z</td><td style="color: #6fc082;">recovered in r-0914</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="display: flex; flex-direction: row; justify-content: space-between; font-size: 11px; color: #9c9890;">
+        <span>the same message row as everywhere else; subject masked at rest</span>
+        <span>1 – 4 of 141</span>
+      </div>
+    </div>
+
+    <!-- L4 side panel -->
+    <div style="background: #292623; border: 1px solid #3b3734; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; flex-direction: row; align-items: baseline; gap: 10px;">
+        <div class="mono" style="font-size: 11px; color: #9c9890;">L4</div>
+        <div style="font-weight: 600; font-size: 13px;">Failed item</div>
+        <div style="flex-grow: 1;"></div>
+        <div class="mono" style="font-size: 12px;">m_3f9e4</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; font-weight: 500;">Your Acme verification code is ██████</div>
+        <div class="mono" style="font-size: 11px; color: #9c9890;">receipts@acme.io · sent 2026-09-06 14:02Z</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid #3b3734; border-radius: 4px; background: #1f1c1a;">
+        <div style="font-size: 11px; color: #9c9890;">what happened</div>
+        <div style="font-size: 12px;">The provider answered <span class="mono" style="color: #ed9c55;">410 Gone</span> when the scanner fetched the body. The message was deleted at the provider between pass 1 indexing and this scan.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid #3b3734; border-radius: 4px; background: #1f1c1a;">
+        <div style="font-size: 11px; color: #9c9890;">what it means</div>
+        <div style="font-size: 12px;">Scan state stays <span class="mono">PENDING</span>, so the body is denied, fail closed. The next delta-sync tick will remove the row from the index. Nothing to do.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+        <div style="font-size: 11px; color: #9c9890;">provenance</div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">run</span><span class="mono">r-0913</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">page</span><span class="mono">2,410</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">attempts</span><span class="mono">1</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">first / last error</span><span class="mono">09:46:03Z</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">sender class</span><span>normal</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">content flags</span><span style="color: #c39ae2;">mfa (subject)</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">disposition</span><span style="color: #f47b74;">gone</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; color: #9c9890;">error summary, as recorded</div>
+        <div class="mono" style="font-size: 11px; padding: 8px; border: 1px solid #3b3734; border-radius: 4px; background: #1f1c1a; color: #e1ddd7;">gmail: users.messages.get → 410 Gone (requested entity was not found)</div>
+        <div style="font-size: 11px; color: #9c9890;">provider or scanner text only. Never a body.</div>
+      </div>
+      <div style="display: flex; flex-direction: row; gap: 10px; font-size: 11px;">
+        <a href="#" style="text-decoration: none;">open message in corpus</a>
+        <a href="#" style="text-decoration: none;">audit rows for m_3f9e4</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

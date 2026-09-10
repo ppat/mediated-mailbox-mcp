@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; }
+    a { color: #7cb3eb; } a:hover { color: #e1ddd7; }
+    .hand { font-family: 'Patrick Hand', cursive; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    table { border-collapse: collapse; }
+    th { text-align: left; font-weight: 500; color: #9c9890; font-size: 11px; padding: 6px 10px; border-bottom: 1px solid #3b3734; }
+    td { padding: 7px 10px; border-bottom: 1px solid #292623; font-size: 12px; vertical-align: top; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 1180px; background: #161311; box-sizing: border-box; display: flex; flex-direction: column;">
+
+  <!-- top bar -->
+  <div style="display: flex; flex-direction: row; align-items: center; gap: 20px; padding: 10px 24px; background: #1f1c1a; border-bottom: 1px solid #3b3734;">
+    <div style="display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect><path d="M2 5l6 4 6-4"></path></svg>
+      <span class="mono" style="font-size: 12px; color: #e1ddd7;">personal</span>
+      <span style="font-size: 11px; color: #9c9890;">Gmail</span>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#9c9890" stroke-width="1.5"><path d="M3 5l3 3 3-3"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: row; gap: 4px; font-size: 12px;">
+      <div style="padding: 5px 10px; color: #9c9890;">Home</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Corpus</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Masking</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Gate</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Audit</div>
+      <div style="padding: 5px 10px; color: #9c9890;">Policy</div>
+      <div style="padding: 5px 10px; color: #e1ddd7; border-bottom: 2px solid #ed9c55;">Jobs</div>
+    </div>
+    <div style="flex-grow: 1;"></div>
+    <div class="mono" style="font-size: 11px; color: #9c9890;">/personal/jobs</div>
+  </div>
+
+  <!-- title row -->
+  <div style="display: flex; flex-direction: row; align-items: baseline; gap: 16px; padding: 18px 24px 0 24px;">
+    <div class="hand" style="font-size: 15px; color: #9c9890;">ui · Jobs</div>
+    <div style="font-size: 18px; font-weight: 600;">Batch work on this account</div>
+    <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; color: #9c9890;">
+      <div style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></div>
+      <span>live · updated 3s ago</span>
+    </div>
+    <div style="flex-grow: 1;"></div>
+    <div style="font-size: 11px; color: #9c9890;">2026-09-10 10:16Z</div>
+  </div>
+
+  <!-- workload cards -->
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 16px 24px 0 24px;">
+
+    <!-- Backfill -->
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+        <div style="font-weight: 600; font-size: 14px;">Backfill</div>
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; color: #7cb3eb;"><div style="width: 8px; height: 8px; border-radius: 4px; background: #7cb3eb;"></div><span>RUNNING</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid #292623; border-radius: 4px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; font-size: 12px;"><span>Pass 1 · metadata</span><span style="color: #6fc082;">complete</span></div>
+        <div style="height: 6px; border-radius: 3px; background: #292623;"><div style="height: 6px; width: 100%; border-radius: 3px; background: #6fc082;"></div></div>
+        <div class="mono" style="font-size: 11px; color: #9c9890;">84,212 msgs · 3,368 pages · 6h 41m · 2026-09-04 22:18Z</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid #3b3734; border-radius: 4px; background: #292623;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; font-size: 12px;"><span>Pass 2 · gated scanning</span><a href="#" class="mono" style="font-size: 11px; text-decoration: none;">r-0914</a></div>
+        <div style="height: 6px; border-radius: 3px; background: #161311;"><div style="height: 6px; width: 91%; border-radius: 3px; background: #7cb3eb;"></div></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between; font-size: 11px;"><span class="mono">page 3,065 of 3,368</span><span class="mono">91%</span></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; font-size: 11px; color: #9c9890;">
+          <span>decided <span class="mono" style="color: #e1ddd7;">76,632</span> of 84,212</span>
+          <span>pending <span class="mono" style="color: #e1ddd7;">7,580</span></span>
+          <span>scanned <span class="mono" style="color: #e1ddd7;">3,388</span> this run</span>
+          <span>skipped <span class="mono" style="color: #e1ddd7;">732</span></span>
+        </div>
+        <div style="font-size: 11px; color: #9c9890;">started 09:41Z · heartbeat 4s ago · about 1h 10m left</div>
+      </div>
+    </div>
+
+    <!-- Delta sync -->
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+        <div style="font-weight: 600; font-size: 14px;">Delta sync</div>
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; color: #6fc082;"><div style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></div><span>OK</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">cadence</span><span class="mono">every 5 min</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">last tick</span><span class="mono">10:12Z · 3.2s</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">cursor age</span><span class="mono">4m</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">last change set</span><span class="mono">+12 · 3 mod · 0 rm</span></div>
+      </div>
+      <div style="height: 1px; background: #292623;"></div>
+      <div style="font-size: 11px; color: #9c9890;">gap recoveries, last 7d</div>
+      <div style="display: flex; flex-direction: row; justify-content: space-between; font-size: 12px; padding: 6px 8px; border: 1px solid #292623; border-radius: 4px;">
+        <span><span class="mono">1</span> · 2026-09-06 14:20Z</span>
+        <a href="#" style="font-size: 11px; text-decoration: none;">2h window · 41 reconciled</a>
+      </div>
+    </div>
+
+    <!-- Reorg apply -->
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+        <div style="font-weight: 600; font-size: 14px;">Reorg apply</div>
+        <div style="font-size: 11px; color: #9c9890;">IDLE</div>
+      </div>
+      <div style="font-size: 12px; color: #9c9890;">nothing running · 1 plan awaiting approval</div>
+      <div style="height: 1px; background: #292623;"></div>
+      <div style="font-size: 11px; color: #9c9890;">last run</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid #292623; border-radius: 4px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; font-size: 12px;"><span>Archive 2024 newsletters</span><span style="color: #6fc082;">APPLIED</span></div>
+        <div style="height: 6px; border-radius: 3px; background: #292623;"><div style="height: 6px; width: 100%; border-radius: 3px; background: #6fc082;"></div></div>
+        <div class="mono" style="font-size: 11px; color: #9c9890;">8,912 ops · 0 failures · 11m 04s · 2026-09-02</div>
+      </div>
+      <div style="font-size: 11px; color: #9c9890;">rollback available · op log 8,912 rows</div>
+    </div>
+
+    <!-- Heuristics -->
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+        <div style="font-weight: 600; font-size: 14px;">Heuristics</div>
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; color: #6fc082;"><div style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></div><span>OK</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">cadence</span><span class="mono">daily</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">last run</span><span class="mono">03:00Z · 12s</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">candidates emitted</span><span class="mono">4</span></div>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #9c9890;">awaiting review</span><a href="#" class="mono" style="text-decoration: none;">4</a></div>
+      </div>
+      <div style="height: 1px; background: #292623;"></div>
+      <div style="font-size: 11px; color: #9c9890;">next run 2026-09-11 03:00Z</div>
+    </div>
+  </div>
+
+  <!-- rate budget -->
+  <div style="padding: 16px 24px 0 24px;">
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; align-items: baseline; gap: 16px;">
+        <div style="font-weight: 600; font-size: 14px;">Rate budget</div>
+        <div style="font-size: 12px; color: #9c9890;">current <span class="mono" style="color: #e1ddd7;">3.1</span> · target <span class="mono" style="color: #e1ddd7;">5.0</span> · cap <span class="mono" style="color: #e1ddd7;">8.0</span> units/s</div>
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; color: #6fc082;"><div style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></div><span>not in backoff</span></div>
+        <div style="flex-grow: 1;"></div>
+        <div style="font-size: 11px; color: #9c9890;">last throttle 2026-09-07</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 120px; gap: 6px 14px; align-items: center; font-size: 12px;">
+        <span style="color: #9c9890;">interactive</span>
+        <div style="height: 10px; border-radius: 3px; background: #292623;"><div style="height: 10px; width: 27%; border-radius: 3px; background: #7cb3eb;"></div></div>
+        <span class="mono" style="text-align: right;">0.4 of 1.5</span>
+        <span style="color: #9c9890;">sync</span>
+        <div style="height: 10px; border-radius: 3px; background: #292623;"><div style="height: 10px; width: 80%; border-radius: 3px; background: #7cb3eb;"></div></div>
+        <span class="mono" style="text-align: right;">0.8 of 1.0</span>
+        <span style="color: #9c9890;">batch</span>
+        <div style="height: 10px; border-radius: 3px; background: #292623;"><div style="height: 10px; width: 76%; border-radius: 3px; background: #7cb3eb;"></div></div>
+        <span class="mono" style="text-align: right;">1.9 of 2.5</span>
+      </div>
+      <div style="font-size: 11px; color: #9c9890;">interactive keeps its reservation; batch absorbs any rate reduction first</div>
+    </div>
+  </div>
+
+  <!-- recent runs -->
+  <div style="padding: 16px 24px 24px 24px;">
+    <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: row; align-items: baseline; gap: 16px;">
+        <div style="font-weight: 600; font-size: 14px;">Recent runs</div>
+        <div style="font-size: 12px; color: #9c9890;">all workloads · last 7d</div>
+        <div style="flex-grow: 1;"></div>
+        <div style="display: flex; flex-direction: row; gap: 6px; font-size: 11px;">
+          <div style="padding: 2px 8px; border: 1px solid #3b3734; border-radius: 10px; color: #9c9890;">workload: all</div>
+          <div style="padding: 2px 8px; border: 1px solid #3b3734; border-radius: 10px; color: #9c9890;">state: all</div>
+        </div>
+      </div>
+      <table style="width: 100%;">
+        <thead>
+          <tr><th>run</th><th>workload</th><th>started</th><th>duration</th><th>state</th><th>checkpoint / ops</th><th style="text-align: right;">failures</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">r-0914</td><td>Backfill pass 2</td><td class="mono">2026-09-10 09:41Z</td><td class="mono">35m so far</td>
+            <td><span style="display: inline-flex; align-items: center; gap: 6px; color: #7cb3eb;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #7cb3eb;"></span>RUNNING</span></td>
+            <td class="mono">page 3,065 / 3,368</td><td class="mono" style="text-align: right;">0</td>
+          </tr>
+          <tr style="background: #292623;">
+            <td class="mono"><a href="#" style="text-decoration: none;">r-0913</a></td><td>Backfill pass 2</td><td class="mono">2026-09-07 08:02Z</td><td class="mono">1h 45m</td>
+            <td><span style="display: inline-flex; align-items: center; gap: 6px; color: #f47b74;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #f47b74;"></span>FAILED</span></td>
+            <td class="mono">page 2,410 / 3,368 · resumed by r-0914</td><td class="mono" style="text-align: right; color: #f47b74;"><a href="#" style="color: #f47b74; text-decoration: none;">141 →</a></td>
+          </tr>
+          <tr>
+            <td class="mono">r-0911</td><td>Delta sync · gap recovery</td><td class="mono">2026-09-06 14:20Z</td><td class="mono">48s</td>
+            <td><span style="display: inline-flex; align-items: center; gap: 6px; color: #6fc082;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></span>SUCCEEDED</span></td>
+            <td class="mono">2h window · 41 reconciled</td><td class="mono" style="text-align: right;">0</td>
+          </tr>
+          <tr>
+            <td class="mono">r-0910</td><td>Heuristics</td><td class="mono">2026-09-10 03:00Z</td><td class="mono">12s</td>
+            <td><span style="display: inline-flex; align-items: center; gap: 6px; color: #6fc082;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></span>SUCCEEDED</span></td>
+            <td class="mono">4 candidates emitted</td><td class="mono" style="text-align: right;">0</td>
+          </tr>
+          <tr>
+            <td class="mono">r-0902</td><td>Reorg apply · Archive 2024 newsletters</td><td class="mono">2026-09-02 19:30Z</td><td class="mono">11m 04s</td>
+            <td><span style="display: inline-flex; align-items: center; gap: 6px; color: #6fc082;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></span>APPLIED</span></td>
+            <td class="mono">8,912 / 8,912 ops</td><td class="mono" style="text-align: right;">0</td>
+          </tr>
+          <tr>
+            <td class="mono">r-0898</td><td>Backfill pass 1</td><td class="mono">2026-09-04 15:37Z</td><td class="mono">6h 41m</td>
+            <td><span style="display: inline-flex; align-items: center; gap: 6px; color: #6fc082;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #6fc082;"></span>SUCCEEDED</span></td>
+            <td class="mono">page 3,368 / 3,368</td><td class="mono" style="text-align: right;">0</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="display: flex; flex-direction: row; justify-content: space-between; font-size: 11px; color: #9c9890;">
+        <span>delta-sync ticks are runs too; the 2,016 routine ticks this week are folded behind the workload filter</span>
+        <span>1 – 6 of 2,022</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

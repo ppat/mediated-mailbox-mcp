@@ -22,7 +22,7 @@ class AccountContext:
     account_id:     str              # "personal", "work"
     provider:       ProviderKind
     credential_ref: str
-    policy_overlay: str | None
+    policy_overlay: OverlayRules | None  # the account's own rows in policy_rules (ADR-0016)
     mail:           MailProvider     # own authenticated client
     calendar:       CalendarProvider | None
     rate_profile:   RateLimitProfile        # provider cost model (ADR-0023)
@@ -33,9 +33,10 @@ The rules that keep accounts from bleeding:
 
 - **`account_id` is required on every client-surface operation** (API endpoint or MCP tool).
   There is no implicit current account; omission is an error, not a default.
-- **Every table is partitioned or indexed on `account_id`**, all queries go through a repository
-  layer that requires it, and row-level security stands behind that as a second, independent
-  layer ([ADR-0016](../data/0016-schema.md)).
+- **Every table is partitioned or indexed on `account_id`**, with the two exceptions
+  [ADR-0016](../data/0016-schema.md) names (the op log, scoped through its plan, and the base
+  policy rows every account inherits), all queries go through a repository layer that requires
+  it, and row-level security stands behind that as a second, independent layer.
 - **Per-account clients, never a shared pool.** A shared HTTP client with a mutable auth header is
   the classic way cross-account leakage happens under concurrency; giving each context its own
   authenticated client makes the bleed unrepresentable.

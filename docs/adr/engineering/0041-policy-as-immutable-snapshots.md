@@ -14,7 +14,8 @@ decision ever being made against one policy and audited against another.
 
 ## Decision
 
-- **The shell maintains one active policy snapshot: an immutable value, swapped atomically.**
+- **The shell maintains one active policy snapshot: an immutable value, swapped atomically,
+  read from the policy tables of [ADR-0016](../data/0016-schema.md).**
   Nothing mutates a snapshot in place, ever — and validation is part of taking effect, so a
   published edit becomes the active policy at the moment it validly loads, and not before. From
   the first valid load onward there is, at every moment, exactly one active valid policy, and
@@ -47,10 +48,10 @@ decision ever being made against one policy and audited against another.
 ## Alternatives considered
 
 - **Live-mutating shared policy state, read wherever a decision needs it.** No case was tabled
-  for it; it is the shape a hot-reload implementation takes by default. Rejected: a policy edit
-  landing mid-request tears the decision — classified under one policy, audited under another —
-  and classification stops being reproducible, so the audit's rule references stop meaning
-  anything.
+  for it. It is the shape a hot-reload implementation takes by default. Rejected because a
+  policy edit landing mid-request tears the decision — classified under one policy, audited
+  under another — and classification stops being reproducible, so the audit's rule references
+  stop meaning anything.
 - **Denying everything whenever a reload fails.** The maximally cautious reading of fail-closed.
   Rejected: fail-closed resolves *ambiguity* toward deny, but the active policy is not
   ambiguity — it is a valid policy the operator affirmatively published, and an update that
@@ -64,12 +65,13 @@ decision ever being made against one policy and audited against another.
   re-evaluation is the anti-tearing half: every fetch is decided against the snapshot active at
   that fetch, so a policy edit lands between calls, never inside one. A newly denied domain
   takes effect on the next call once its update has validly loaded — before that moment the
-  edit is not yet policy. No delivery-latency bound is promised: the gap between publishing an
-  edit and it becoming active belongs to the delivery mechanism, deliberately unbounded here.
+  edit is not yet policy. No latency bound is promised. An edit is a row in the policy tables,
+  and the gap between writing it and it becoming active is the next snapshot load, whose cadence
+  is each process's own.
 - A reorganization plan created under one policy and applied under a later one is decided at
   apply time by the policy active then — the plan carries its operations, never a frozen
   policy.
-- Assumptions about other components: something outside the mediator delivers policy-source
-  changes to where the shell can see them (the policy store is managed as data); and something
-  makes the reload-failure condition loud and immediate — the surfacing mechanism is not this
-  record's to fix.
+- Assumptions about other components: the policy tables of
+  [ADR-0016](../data/0016-schema.md) hold the current policy and every process can read them,
+  and something makes the reload-failure condition loud and immediate, since the surfacing
+  mechanism is not this record's to fix.

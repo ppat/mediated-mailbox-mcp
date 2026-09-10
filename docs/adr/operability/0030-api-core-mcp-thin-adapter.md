@@ -63,8 +63,9 @@ are thin protocol adapters over one shared service library.
 - A command-line client that talks to the API becomes possible without any server change; it is
   deliberately not planned.
 - Assumptions about other components: the service library exposes the complete operation set
-  (frontends add nothing); [ADR-0014](./0014-lan-only-transport.md)'s listener-level controls
-  cover both roots; [ADR-0021](../mutation/0021-approval-surface.md)'s approval path remains
+  (frontends add nothing); the deployment terminates TLS for both roots, at the listener or at
+  an ingress in front of it, and every request reaches the bearer check before the service
+  library; [ADR-0021](../mutation/0021-approval-surface.md)'s approval path remains
   database-direct and is the only approval path.
 - Surface parity is verifiable by violation: introducing a one-sided operation on either root
   must fail the parity check — catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

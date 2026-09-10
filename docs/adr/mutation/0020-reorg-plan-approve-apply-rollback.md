@@ -20,14 +20,18 @@ no read path needs.
                label_ops:   [create/rename/delete],
                message_ops: [{message_id, add[], remove[], reason}],
                stats: {affected, threads, new_labels} }
+             one message_op per message; saving also writes the operations as rows
+             with each operation's flows (ADR-0016)
 
 2. REVIEW  the UI shows the diff, a sample of affected messages, per-message reasoning
              the client surface also exposes describe_reorg_plan / sample_reorg_plan — read-only
 
 3. APPROVE the operator, in the UI. Writes the plan's status directly to the database.
              ► NO CLIENT OPERATION — MCP TOOL OR API ENDPOINT — PERFORMS THIS TRANSITION.
+             or REJECT: status=REJECTED, the same columns, the plan is closed
 
 4. APPLY   a job: re-validate the whole plan + check its age (ADR-0032)
+             a plan that fails either → status=APPLY_REFUSED with the reason, before any write
              → ensure labels exist → batched mutations
              every operation recorded to the op log (labels before/after)
              the Mutation Authorizer checked per operation — approval never
@@ -40,6 +44,14 @@ The decisions inside the cycle, each with its reason:
 
 - **A plan is data, not action.** The difference between "the agent reorganized my mail" and "the
   agent proposed a reorganization I approved."
+- **A plan's statuses are DRAFT, APPROVED, APPLYING, APPLIED, and ROLLED_BACK on the main path,
+  with REJECTED (the operator declined it) and APPLY_REFUSED (re-validation or the age check
+  refused it before the first write) as the two side exits.** A refused plan records its reason
+  and is closed. A new plan is the client's to propose.
+- **A flow is the pair of one removed label (or none) and one added label (or none) that an
+  operation makes.** An operation removing two labels and adding one makes two flows and counts in
+  each. The plan's headline count counts each message once. Flows are computed when the plan is
+  saved so review can group by them without re-deriving them per request.
 - **Approval is structurally out of reach.** No client operation transitions DRAFT → APPROVED,
   so prompt injection cannot manufacture consent — the verb does not exist in any client's
   vocabulary. The injection defense in depth: the review sample shows real affected messages

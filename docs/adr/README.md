@@ -38,7 +38,9 @@ moves it. Records themselves link freely and deep, into
   requires. The readers here — humans and LLMs — read text; this index is the queryable view.
 - **Statuses:** **Proposed** (adopted by the documents, awaiting operator ratification) →
   **Accepted** → **Superseded** (the header gains `**Superseded by:** ADR-NNNN`; the replacement
-  is a new number). A record in **Accepted** may also be **Deprecated**.
+  is a new number). An **Accepted** record may instead transition to **Deprecated**, meaning the
+  decision no longer holds and nothing replaces it. A deprecated record is dead. It binds
+  nothing, is cited by nothing as current authority, and is kept only so the trail stays whole.
 - **In-place change versus supersession.** An accepted record may change in place when the change
   stays true to the original decision in spirit and is backwards compatible with the previous
   interpretation — everything true or permitted under the old reading remains so (broadening a
@@ -123,6 +125,12 @@ moves it. Records themselves link freely and deep, into
 | 0035 | [Every required identifier is discoverable on the same surface; accounts gain a listing](./operability/0035-required-identifiers-are-discoverable.md) | Accepted |
 | 0038 | [Credentials arrive as mounted files](./operability/0038-credentials-as-mounted-files.md) | Accepted |
 | 0039 | [Rotation write-back is delegated; the mediator holds no secret-store credential](./operability/0039-rotation-writeback.md) | Accepted |
+| 0056 | [The UI is organized around the operator's work](./operability/0056-ui-organized-around-the-operators-work.md) | Accepted |
+| 0057 | [Every analysis lens reads through one dataset endpoint behind a registry](./operability/0057-one-dataset-endpoint-behind-a-registry.md) | Accepted |
+| 0058 | [Live surfaces stream over server-sent events, with polling as the fallback](./operability/0058-live-surfaces-stream-over-server-sent-events.md) | **Proposed** |
+| 0059 | [The UI ships two palettes derived in OKLCH and checked for contrast](./operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md) | Accepted |
+| 0061 | [A decision request is accepted only with a token bound to the session that loaded the page](./operability/0061-ui-browser-security-posture.md) | Accepted |
+| 0062 | [The UI serves under a content security policy allowing one origin and no inline script](./operability/0062-ui-content-security-policy.md) | Accepted |
 
 ## Engineering — `engineering/`
 
@@ -132,7 +140,7 @@ moves it. Records themselves link freely and deep, into
 | 0041 | [Policy arrives as an immutable snapshot, taken once per unit of work](./engineering/0041-policy-as-immutable-snapshots.md) | Accepted |
 | 0042 | [The stack is Go end to end on the server, TypeScript only in the browser](./engineering/0042-implementation-stack.md) | Accepted |
 | 0043 | [No mocking: tests run against the real dependency or a contract-tested fake](./engineering/0043-no-mocking.md) | Accepted |
-| 0044 | [Test data is synthetic, and fixture bodies carry designed marker text](./engineering/0044-synthetic-fixtures-marker-text.md) | Accepted |
+| 0044 | [Test data is synthetic, and fixtures carry designed marker text](./engineering/0044-synthetic-fixtures-marker-text.md) | Accepted |
 | 0045 | [Crash-injection stateful testing is aimed where silent failure meets hard-to-reverse damage](./engineering/0045-crash-injection-testing.md) | Accepted |
 | 0046 | [A test is evidence only once it has been seen to fail](./engineering/0046-tests-are-evidence-once-seen-to-fail.md) | Accepted |
 | 0049 | [One image per deployable, all moving in lockstep](./engineering/0049-image-per-component-lockstep.md) | Accepted |
@@ -142,3 +150,4 @@ moves it. Records themselves link freely and deep, into
 | 0053 | [Both client roots are generated from one operation registry — a one-sided operation is unrepresentable](./engineering/0053-parity-by-construction.md) | Accepted |
 | 0054 | [One flat repository holds everything the project produces; one convention names what it publishes](./engineering/0054-one-repository-flat-layout-naming-convention.md) | Accepted |
 | 0055 | [A property-based test exists only to execute a safety rule the documents already state](./engineering/0055-property-based-safety-invariants.md) | Accepted |
+| 0060 | [No code runs inside the database: no triggers, stored procedures, or user-defined functions](./engineering/0060-no-code-in-the-database.md) | Accepted |

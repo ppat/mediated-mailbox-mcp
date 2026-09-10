@@ -23,8 +23,10 @@ candidates for that list; nothing they emit takes effect without operator confir
 A probabilistic model deciding whether the operator's brokerage is sensitive would be strictly
 worse than a list: unauditable, non-reproducible, and silently altered by retraining.
 
-The list is a gazetteer with normalization and suffix matching, hot-reloaded from a configuration
-file:
+The list is a gazetteer with normalization and suffix matching. It lives in the database as rows,
+one per rule ([ADR-0016](../data/0016-schema.md)'s `policy_rules`), and every process takes it as
+an immutable snapshot ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). A file
+form exists for import and export, and it is the form shown here:
 
 ```yaml
 rules:
@@ -44,7 +46,8 @@ the registrable domain via the public-suffix list. Matching is on registrable-do
 `alerts.fidelity.com` hits without a separate rule.
 
 **Candidate generation** runs as a periodic job writing to a review queue the operator confirms
-through the UI; confirmation emits a policy rule into the managed configuration:
+through the UI. Confirmation inserts a policy rule row, written by the UI itself in the same
+transaction as the candidate's status ([ADR-0021](../mutation/0021-approval-surface.md)):
 
 | Heuristic | Signal | Cost |
 | --- | --- | --- |
@@ -72,6 +75,11 @@ restricted anyway. An authentication failure must never downgrade a classificati
 - **Static list with no candidate generation.** Rejected: the list decays as institutions add
   sending domains, and the decay is invisible until a leak reveals it. The heuristics exist
   precisely to make staleness observable and cheap to correct.
+- **A configuration file as the store, hot-reloaded.** The original decision, and the default
+  shape a hot-reload implementation takes. The operator ruled on 2026-09-10 that the policy lives
+  in the database, with a file only for import and export. The candidate confirmation is the
+  reason that shows. A confirmed candidate becomes a rule by one row written in the same
+  transaction as the decision, with nothing to copy into a file and no process to own the copy.
 - **Exact-domain matching without normalization.** Rejected: it multiplies rules per institution
   and turns every new subdomain into a silent gap.
 

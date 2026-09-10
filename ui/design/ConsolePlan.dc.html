@@ -1,0 +1,213 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #f6f4f0; color: #1f1d1a; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; }
+    a { color: #b8662f; } a:hover { color: #8f4d20; }
+    table { border-collapse: collapse; }
+  </style>
+</helmet>
+<div style="width: 1440px; background: #f6f4f0; display: flex; flex-direction: column; gap: 0px;">
+  <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px 6px 16px;">
+    <span style="font-family: 'Patrick Hand', cursive; font-size: 18px; color: #7b7568;">Path A · Console · Reorg plan page</span>
+  </div>
+  <div style="display: flex; flex-direction: row; gap: 0px; border-top: 1px solid #d8d3ca; background: #ffffff;">
+    <div style="width: 220px; flex-shrink: 0; border-right: 1px solid #d8d3ca; background: #fbfaf7; display: flex; flex-direction: column; gap: 0px; padding: 16px 0px; min-height: 1140px;">
+      <div style="padding: 0px 16px 16px 16px; display: flex; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1f1d1a" stroke-width="1.5"><rect x="2" y="3.5" width="12" height="9" rx="1"></rect><path d="M2 5l6 4 6-4"></path></svg>
+        <span style="font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 13px;">mediated mailbox</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 0px 8px;">
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Corpus</div>
+        <div style="padding: 8px 10px; border-radius: 4px; background: #ffffff; border: 1px solid #d8d3ca; font-weight: 600; display: flex; justify-content: space-between; align-items: center;"><span>Reorg plans</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">1</span></div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a; display: flex; justify-content: space-between; align-items: center;"><span>Review queue</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">4</span></div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Masking events</div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Gate decisions</div>
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a;">Audit log</div>
+      </div>
+      <div style="margin: 16px 8px 0px 8px; border-top: 1px solid #d8d3ca; padding-top: 12px; display: flex; flex-direction: column; gap: 2px;">
+        <div style="padding: 8px 10px; border-radius: 4px; color: #1f1d1a; display: flex; justify-content: space-between; align-items: center;"><span>System status</span><span style="width: 8px; height: 8px; border-radius: 4px; background: #4f7d5a;"></span></div>
+      </div>
+      <div style="margin-top: auto; padding: 12px 16px 0px 16px; font-family: 'Patrick Hand', cursive; font-size: 15px; color: #7b7568; line-height: 1.3;">the plan page is bespoke: its sample table and its numbers are its own, not a lens shared with Corpus</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 0px; min-width: 0px;">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid #d8d3ca; background: #ffffff;">
+        <div style="display: flex; align-items: center; gap: 6px; border: 1px solid #d8d3ca; border-radius: 4px; padding: 5px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">
+          <span style="color: #7b7568;">account</span><span style="font-weight: 500;">personal</span><span style="color: #7b7568;">· Gmail</span>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7b7568" stroke-width="1.5"><path d="M4 6l4 4 4-4"></path></svg>
+        </div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7b7568;">work (not configured)</div>
+        <div style="margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">index as of 2026-09-09 10:12Z</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; padding: 20px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <h1 style="margin: 0px; font-size: 18px; font-weight: 600;">Reorg plans</h1>
+          <span style="color: #7b7568;">a plan is data, never an action, until approved here</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; display: flex; flex-direction: column; gap: 0px;">
+          <table style="width: 100%; font-size: 12px;">
+            <thead>
+              <tr style="color: #7b7568; text-align: left;">
+                <th style="padding: 8px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">plan</th>
+                <th style="padding: 8px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">description</th>
+                <th style="padding: 8px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">status</th>
+                <th style="padding: 8px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 500; text-align: right;">messages</th>
+                <th style="padding: 8px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 500; text-align: right;">% corpus</th>
+                <th style="padding: 8px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">created</th>
+                <th style="padding: 8px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">approved by</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background: #fbfaf7;">
+                <td style="padding: 8px 12px; font-family: 'IBM Plex Mono', monospace; font-weight: 500;">7f3a9c…</td>
+                <td style="padding: 8px 12px; font-weight: 500;">Consolidate finance labels</td>
+                <td style="padding: 8px 12px;"><span style="border: 1px solid #1f1d1a; border-radius: 3px; padding: 1px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">DRAFT</span></td>
+                <td style="padding: 8px 12px; font-family: 'IBM Plex Mono', monospace; text-align: right;">12,480</td>
+                <td style="padding: 8px 12px; font-family: 'IBM Plex Mono', monospace; text-align: right;">14.8%</td>
+                <td style="padding: 8px 12px; font-family: 'IBM Plex Mono', monospace;">2026-09-08 14:02Z</td>
+                <td style="padding: 8px 12px; color: #7b7568;">—</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="padding: 8px 12px; border-top: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">1 plan · applied and rolled-back plans appear here with their op-log counts</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px; padding-top: 4px;">
+          <h2 style="margin: 0px; font-size: 15px; font-weight: 600;">Consolidate finance labels</h2>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #7b7568;">7f3a9c… · account personal</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px;">
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Messages affected</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px;">12,480</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Of corpus</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px;">14.8%</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Threads</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px;">3,911</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Age / maximum</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px;">1d 4h <span style="font-size: 12px; color: #7b7568;">of 14d</span></span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Validation</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #4f7d5a; padding-top: 4px;">passed at creation</span>
+            <span style="font-size: 11px; color: #7b7568;">re-validates at apply</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+            <span style="color: #7b7568; font-size: 12px;">Restricted inside</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; color: #a9443a;">1,242</span>
+            <span style="font-size: 11px; color: #7b7568;">all label/move · allowed</span>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 16px;">
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span style="font-weight: 600;">Label operations</span>
+              <span style="color: #7b7568; font-size: 12px;">4</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">
+              <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 6px 8px; border: 1px solid #efece6; border-radius: 4px;"><span style="color: #7b7568;">create</span><span>Finance/Statements</span></div>
+              <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 6px 8px; border: 1px solid #efece6; border-radius: 4px;"><span style="color: #7b7568;">create</span><span>Finance/Tax</span></div>
+              <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 6px 8px; border: 1px solid #efece6; border-radius: 4px;"><span style="color: #7b7568;">rename</span><span>bank → Finance/Banking</span></div>
+              <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 6px 8px; border: 1px solid #efece6; border-radius: 4px;"><span style="color: #7b7568;">delete</span><span>old-finance <span style="color: #7b7568; font-family: 'IBM Plex Sans', sans-serif;">after emptying</span></span></div>
+            </div>
+            <div style="border-top: 1px solid #efece6; padding-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-weight: 600;">Where messages go</span>
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr) 56px; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">
+                <span>bank → Finance/Banking</span><span style="text-align: right;">4,410</span>
+                <span>INBOX → Finance/Statements</span><span style="text-align: right;">5,208</span>
+                <span>INBOX → Finance/Tax</span><span style="text-align: right;">1,732</span>
+                <span>old-finance → Finance/Statements</span><span style="text-align: right;">1,130</span>
+              </div>
+            </div>
+            <div style="font-family: 'Patrick Hand', cursive; font-size: 14px; color: #7b7568; line-height: 1.3;">numbers only — no click-through from a flow to its messages on this path</div>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span style="font-weight: 600;">Sample of affected messages</span>
+              <span style="color: #7b7568; font-size: 12px;">what the plan will do, message by message</span>
+              <span style="margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">showing 4 of a 200-message sample</span>
+            </div>
+            <table style="width: 100%; font-size: 12px; table-layout: fixed;">
+              <thead>
+                <tr style="color: #7b7568; text-align: left;">
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; width: 160px;">from</th>
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500;">subject</th>
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; width: 86px;">date</th>
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; width: 230px;">labels before → after</th>
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; width: 150px;">reason</th>
+                  <th style="padding: 6px 8px; border-bottom: 1px solid #d8d3ca; font-weight: 500; width: 76px;">sensitivity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">statements@fidelity.com</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Your September statement is available</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-03</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">[INBOX] → [INBOX, Finance/Statements]</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568; font-size: 11px;">sender fidelity.com; statement subject pattern</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6;"><span style="border: 1px solid #a9443a; color: #a9443a; border-radius: 3px; padding: 1px 6px; font-size: 11px;">restricted</span></td>
+                </tr>
+                <tr>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">noreply@irs.gov</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Notice CP2000 — response required</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-08-21</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">[INBOX] → [INBOX, Finance/Tax]</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568; font-size: 11px;">sender irs.gov</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6;"><span style="border: 1px solid #a9443a; color: #a9443a; border-radius: 3px; padding: 1px 6px; font-size: 11px;">restricted</span></td>
+                </tr>
+                <tr>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">alerts@chasealerts.com</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Large purchase alert: $1,240.00</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-07</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">[bank] → [Finance/Banking]</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568; font-size: 11px;">label rename</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568; font-size: 11px;">normal</td>
+                </tr>
+                <tr>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">receipts@acme.io</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Your Acme verification code is ██████</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace;">2026-09-06</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">[INBOX] → [INBOX] · unchanged</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6; color: #7b7568; font-size: 11px;">—</td>
+                  <td style="padding: 7px 8px; border-bottom: 1px solid #efece6;"><span style="border: 1px solid #7b7568; color: #7b7568; border-radius: 3px; padding: 1px 6px; font-size: 11px;">mfa</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #7b7568;">
+              <span style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 3px 8px;">‹ prev</span>
+              <span style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 3px 8px;">next ›</span>
+              <span style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 3px 8px;">resample</span>
+              <span style="margin-left: auto; font-family: 'Patrick Hand', cursive; font-size: 14px;">a flat sample — no grouping by flow, sender, or class</span>
+            </div>
+          </div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 14px 16px; display: flex; align-items: center; gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-weight: 600;">Decision</span>
+            <span style="color: #7b7568; font-size: 12px;">writes reorg_plans.status, approved_at, approved_by directly · apply re-validates and the authorizer checks every operation</span>
+            <span style="font-size: 12px; color: #7b7568;">Second confirmation not required: 14.8% of corpus is under the quarter threshold.</span>
+          </div>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+            <span style="border: 1px solid #1f1d1a; border-radius: 4px; padding: 7px 14px; font-weight: 500;">Reject</span>
+            <span style="background: #b8662f; color: #ffffff; border-radius: 4px; padding: 8px 16px; font-weight: 600;">Approve plan</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

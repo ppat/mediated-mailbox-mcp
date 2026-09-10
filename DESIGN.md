@@ -92,7 +92,7 @@ owns.
 ┌────────────────────────────────────────────────▼─────────────────┐
 │ Persistence                                                      │
 │  • Metadata/State Store — metadata, senders, plans, audit        │
-│  • Policy Store — declarative config, hot-reloaded               │
+│  • Policy Store — rules as rows, snapshotted on load             │
 │  • Secrets — secret mounted as files                             │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -113,7 +113,10 @@ owns.
 | Heuristics Job | Propose sensitive-sender candidates for human review | batch workload |
 | UI (Web interface) | Make the system legible to the operator and carry the approval verbs | separate deployment |
 | Metadata & State Store | Hold metadata, plans, and audit, never a body | Postgres instance |
-| Policy Store | Hold the sender rules as data, hot-reloaded | configuration file |
+| Policy Store | Hold the sender rules as data, snapshotted on load | Postgres tables |
+
+Component names in this document are conceptual. Directories and published names follow the
+convention of ADR-0054, via the [decision-record index](./docs/adr/README.md).
 
 ### How a body request flows
 
@@ -408,8 +411,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   organize (Claude Code or similar).
 - **The operator** — the single human who owns the infrastructure, edits policy, and approves
   plans.
-- **The UI** (`mail-ui`) — the read-mostly reporting and approval surface. Separate deployment,
-  separate identity, no provider credentials. Carries the approval verbs no client has.
+- **The UI** (directory `ui/`) — the read-mostly reporting and approval surface. Separate
+  deployment, separate identity, no provider credentials. Carries the approval verbs no client
+  has. Its design is [docs/UI.md](./docs/UI.md).
 - **The shared pure library** — the pure-core-only library every deployable may
   import. Impure shared needs live in narrow, named exception libraries instead (rule in
   ADR-0050, via the [decision-record index](./docs/adr/README.md)).
@@ -448,7 +452,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 ### Policy and classification
 
 - **Policy list / gazetteer** — the operator-editable, deterministic sender-classification rules,
-  managed as data within a configuration file and hot-reloaded. The only authority on sender class.
+  held as rows in the database and taken as snapshots, with a file form for import and export
+  (rule in ADR-0004, via the [decision-record index](./docs/adr/README.md)). The only authority
+  on sender class.
 - **Policy overlay** — per-account additions to the base policy. Overlays only add restrictions.
   They can over-restrict, never under-restrict.
 - **Policy snapshot** — the immutable, atomically-swapped copy of the policy that one request or
@@ -486,6 +492,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   rejected outright at apply time (rule in ADR-0032, via the
   [decision-record index](./docs/adr/README.md)). The value is an open decision in
   [ROADMAP.md](./ROADMAP.md).
+- **Flow** — within a reorg plan, the pair of one removed label (or none) and one added label
+  (or none) that one operation makes, the unit the plan reviewer groups by (rule in ADR-0020, via
+  the [decision-record index](./docs/adr/README.md)).
 - **Op log** — the per-operation before/after record written during plan application, from which
   rollback is exact replay, not inference.
 - **Mutation Authorizer** — the mediator component that checks every write against the message's
@@ -537,6 +546,17 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Answerable-by-doing** — an open empirical question that needs an experiment or accumulated
   data rather than a build, registered with its trigger point so it cannot evaporate.
 
+### The UI
+
+- **Lens** — one view of the UI, meaning an account-scoped dataset viewed at a zoom level,
+  sliced by dimensions, drilled to rows, with a decision attached where one exists (model in
+  [docs/UI.md](./docs/UI.md#3-the-lens-model)).
+- **Zoom ladder** — the five levels a lens is viewed at, from summary to row detail, and the
+  navigation rules between them (levels in [docs/UI.md](./docs/UI.md#4-the-zoom-ladder)).
+- **Dataset registry** — the UI's single declaration of what its read API can be asked, per
+  dataset (rule in ADR-0057, via the [decision-record index](./docs/adr/README.md)). Distinct
+  from the client surface's operation registry of ADR-0053, which it mirrors in mechanism.
+
 ### Identifiers
 
 - **Outcome identifiers** — C1–C4 (the invariant), G1–G4 (organizational capability), P1–P3
@@ -545,3 +565,5 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **ADR-NNNN** — decision records, numbered globally in mint order, resolved through
   [docs/adr/README.md](./docs/adr/README.md).
 - **Work units and value increments** — defined in [ROADMAP.md](./ROADMAP.md).
+- **Zoom levels L0–L4** — the five levels of the zoom ladder, defined in
+  [docs/UI.md](./docs/UI.md#4-the-zoom-ladder).

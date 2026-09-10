@@ -18,6 +18,7 @@ this repository currently contains.
 | --- | --- |
 | [USE_CASES.md](./USE_CASES.md) | The outcomes the system exists to deliver, each with a falsifiable acceptance criterion |
 | [DESIGN.md](./DESIGN.md) | The pillars and invariants — and the Glossary, the single home for vocabulary |
+| [docs/UI.md](./docs/UI.md) | The UI's design: how it is organized, its screens, palettes, framework requirements, and build guidance |
 | [ROADMAP.md](./ROADMAP.md) | All the work: delivery posture, value path, work units, dependencies, open decisions |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: every reversible decision with its context, alternatives, and consequences |
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
