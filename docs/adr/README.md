@@ -41,9 +41,7 @@ moves it. Records themselves link freely and deep, into
   is a new number). An **Accepted** record may instead transition to **Deprecated**, meaning the
   decision no longer holds and nothing replaces it. A deprecated record is dead. It binds
   nothing, is cited by nothing as current authority, and is kept only so the trail stays whole.
-- **In-place change versus supersession.** Until the first release lands, the clause in
-  [CLAUDE.md](../../CLAUDE.md#until-v001-lands) overrides this bullet and every record may change
-  in place. From that release on, an accepted record may change in place when the change
+- **In-place change versus supersession.** An accepted record may change in place when the change
   stays true to the original decision in spirit and is backwards compatible with the previous
   interpretation — everything true or permitted under the old reading remains so (broadening a
   referent, clarifying, adding a consequence the decision always implied). A change that
