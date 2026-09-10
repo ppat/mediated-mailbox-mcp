@@ -1,0 +1,168 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "ui"
+    },
+    {
+      "id": "page-2",
+      "name": "Directions explored"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Home",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 940,
+      "page": "page-1"
+    },
+    {
+      "file": "PlanReview.dc.html",
+      "title": "Plan reviewer",
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 1300,
+      "page": "page-1"
+    },
+    {
+      "file": "Jobs.dc.html",
+      "title": "Jobs · live",
+      "x": 0,
+      "y": 1440,
+      "w": 1440,
+      "h": 1180,
+      "page": "page-1"
+    },
+    {
+      "file": "JobRun.dc.html",
+      "title": "Failed run · drill-down",
+      "x": 1520,
+      "y": 1440,
+      "w": 1440,
+      "h": 1280,
+      "page": "page-1"
+    },
+    {
+      "file": "Palette.dc.html",
+      "title": "Palettes · dark and light",
+      "x": 0,
+      "y": 2860,
+      "w": 1440,
+      "h": 1080,
+      "page": "page-1"
+    },
+    {
+      "file": "Foundation.dc.html",
+      "title": "Shared foundation · zoom ladder + information architecture",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1200,
+      "page": "page-2"
+    },
+    {
+      "file": "ConsoleHome.dc.html",
+      "title": "Path A · Console · Corpus overview",
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 1150,
+      "page": "page-2"
+    },
+    {
+      "file": "ConsolePlan.dc.html",
+      "title": "Path A · Console · Reorg plan",
+      "x": 1520,
+      "y": 1320,
+      "w": 1440,
+      "h": 1200,
+      "page": "page-2"
+    },
+    {
+      "file": "ExplorerHome.dc.html",
+      "title": "Path B · Explorer · Masking events lens",
+      "x": 0,
+      "y": 2640,
+      "w": 1440,
+      "h": 1180,
+      "page": "page-2"
+    },
+    {
+      "file": "ExplorerPlan.dc.html",
+      "title": "Path B · Explorer · Plan ops as a dataset",
+      "x": 1520,
+      "y": 2640,
+      "w": 1440,
+      "h": 1240,
+      "page": "page-2"
+    },
+    {
+      "file": "DeskHome.dc.html",
+      "title": "Path C · Review Desk · Home (light sketch)",
+      "x": 0,
+      "y": 4000,
+      "w": 1440,
+      "h": 960,
+      "page": "page-2"
+    },
+    {
+      "file": "DeskPlan.dc.html",
+      "title": "Path C · Review Desk · Plan reviewer (light sketch)",
+      "x": 1520,
+      "y": 4000,
+      "w": 1440,
+      "h": 1260,
+      "page": "page-2"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "deliverable",
+      "x": 1520,
+      "y": 2860,
+      "w": 420,
+      "page": "page-1",
+      "text": "The chosen direction, in the dark palette.\n\nHome: decisions first, then what is worth a look, then system health, with a live strip for running work.\nPlan reviewer: code-review shaped, the zoom ladder inside one plan.\nJobs: every batch workload live, the rate budget by priority class, recent runs.\nFailed run: a run is a dataset whose rows are its failures; drill from error class to one item and what it means.\n\nAll numbers are sample data. The decisions, assumptions, and the database additions this implies are in the session notes."
+    },
+    {
+      "id": "foundation",
+      "x": 1520,
+      "y": 0,
+      "w": 420,
+      "page": "page-2",
+      "text": "Read this board first.\n\nEvery view the design names (corpus, plans, review queue, masking, gate, audit) is the same shape: an account-scoped dataset, viewed at a zoom level, sliced by a few dimensions, drilled to rows, with a decision attached to two of them.\n\nThe three paths below differ only in what the UI is organized around. All three share this ladder and this map."
+    },
+    {
+      "id": "path-a",
+      "x": 3040,
+      "y": 1320,
+      "w": 380,
+      "page": "page-2",
+      "text": "Path A · Console\nOrganized around the data sources: one page per view, exactly as ADR-0021 lists them.\n\nCase for it: familiar, literal, nothing clever to get wrong, cheapest first version, and the fallback if the M3 budget is tight.\n\nTradeoff: drill-down is built per page and drifts; growth is linear in pages; the plan page is a form with a table, not a review."
+    },
+    {
+      "id": "path-b",
+      "x": 3040,
+      "y": 2640,
+      "w": 380,
+      "page": "page-2",
+      "text": "Path B · Explorer\nOrganized around one query model: dataset × group-by × level × filters, with the six views as saved lenses and verbs attached to row types.\n\nCase for it: one mechanism for every view, present and future. Calendar, a second account, audit-by-actor all arrive as registry entries. Analysis is first-class everywhere.\n\nTradeoff: generic surfaces go bland and strain on the one screen that matters (label ops have no home in a ladder). The read API becomes a small query engine that must stay bounded by a registry."
+    },
+    {
+      "id": "path-c",
+      "x": 3040,
+      "y": 4000,
+      "w": 380,
+      "page": "page-2",
+      "text": "Path C · Review Desk\nChosen on 2026-09-10. The dark deliverable is on the ui page; these are the light sketches it was chosen from.\n\nOrganized around the operator's work: what awaits a decision, what is worth a look, how the system is doing. The plan reviewer borrows the shape of code review. Underneath, Path B's dataset endpoint is the engine every analysis view reads through."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

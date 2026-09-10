@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #f6f4f0; color: #1f1d1a; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; }
+    a { color: #b8662f; } a:hover { color: #8f4d22; }
+    .hand { font-family: 'Patrick Hand', cursive; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 1180px; background: #f6f4f0; padding: 24px 32px 32px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px;">
+
+  <div style="display: flex; flex-direction: row; align-items: baseline; gap: 16px;">
+    <div class="hand" style="font-size: 16px; color: #7b7568;">Shared foundation · every path builds on this</div>
+    <div style="font-size: 20px; font-weight: 600;">One lens model, one zoom ladder, one information architecture</div>
+  </div>
+
+  <!-- ===== Section 1: the zoom ladder on a reorg plan ===== -->
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: row; align-items: baseline; gap: 12px;">
+      <div style="font-size: 15px; font-weight: 600;">The zoom ladder, shown on one reorg plan</div>
+      <div class="hand" style="font-size: 15px; color: #7b7568;">click any aggregate to descend one level; the breadcrumb of applied filters is the way back up; every state is a URL</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px;">
+
+      <!-- L0 -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+          <div class="mono" style="font-size: 12px; color: #7b7568;">L0</div>
+          <div style="font-weight: 600;">Summary</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px;"><div class="mono" style="font-size: 16px;">12,480</div><div style="font-size: 11px; color: #7b7568;">messages</div></div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px;"><div class="mono" style="font-size: 16px;">14.8%</div><div style="font-size: 11px; color: #7b7568;">of corpus</div></div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px;"><div class="mono" style="font-size: 16px;">4</div><div style="font-size: 11px; color: #7b7568;">label ops</div></div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px;"><div class="mono" style="font-size: 16px; color: #a9443a;">1,242</div><div style="font-size: 11px; color: #7b7568;">restricted inside</div></div>
+        </div>
+        <div style="font-size: 12px; color: #7b7568;">validated at creation · 1d 4h old of 14d · DRAFT</div>
+        <div class="hand" style="font-size: 14px; color: #7b7568;">a handful of numbers and a status. Enough to decide whether to look further.</div>
+      </div>
+
+      <!-- L1 -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+          <div class="mono" style="font-size: 12px; color: #7b7568;">L1</div>
+          <div style="font-weight: 600;">Distribution</div>
+        </div>
+        <div style="font-size: 11px; color: #7b7568;">by flow (from label → to label)</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;"><div class="mono" style="font-size: 11px; width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">INBOX → Fin/Statements</div><div style="height: 12px; width: 84px; background: #b8662f;"></div><div class="mono" style="font-size: 11px;">5,208</div></div>
+          <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;"><div class="mono" style="font-size: 11px; width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">bank → Fin/Banking</div><div style="height: 12px; width: 71px; background: #cfc9bf;"></div><div class="mono" style="font-size: 11px;">4,410</div></div>
+          <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;"><div class="mono" style="font-size: 11px; width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">INBOX → Fin/Tax</div><div style="height: 12px; width: 28px; background: #cfc9bf;"></div><div class="mono" style="font-size: 11px;">1,732</div></div>
+          <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;"><div class="mono" style="font-size: 11px; width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">old-fin → Fin/Statements</div><div style="height: 12px; width: 18px; background: #cfc9bf;"></div><div class="mono" style="font-size: 11px;">1,130</div></div>
+        </div>
+        <div style="font-size: 11px; color: #7b7568;">or by sender · by sensitivity · by reason</div>
+        <div class="hand" style="font-size: 14px; color: #7b7568;">one dimension, chart plus table. The bar you click becomes a filter.</div>
+      </div>
+
+      <!-- L2 -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+          <div class="mono" style="font-size: 12px; color: #7b7568;">L2</div>
+          <div style="font-weight: 600;">Cohort</div>
+        </div>
+        <div style="display: flex; flex-direction: row; gap: 4px; flex-wrap: wrap;">
+          <div class="mono" style="font-size: 11px; border: 1px solid #b8662f; color: #b8662f; border-radius: 10px; padding: 1px 8px;">flow: INBOX → Fin/Statements</div>
+        </div>
+        <div style="font-size: 11px; color: #7b7568;">grouped by sender domain</div>
+        <table style="border-collapse: collapse; width: 100%; font-size: 11px;">
+          <tr style="color: #7b7568;"><td style="padding: 3px 0; border-bottom: 1px solid #d8d3ca;">domain</td><td style="padding: 3px 0; border-bottom: 1px solid #d8d3ca;">class</td><td style="padding: 3px 0; border-bottom: 1px solid #d8d3ca; text-align: right;">msgs</td></tr>
+          <tr><td class="mono" style="padding: 3px 0;">fidelity.com</td><td style="padding: 3px 0; color: #a9443a;">restricted</td><td class="mono" style="padding: 3px 0; text-align: right;">1,204</td></tr>
+          <tr><td class="mono" style="padding: 3px 0;">e.capitalone.com</td><td style="padding: 3px 0;">normal</td><td class="mono" style="padding: 3px 0; text-align: right;">4,004</td></tr>
+        </table>
+        <div class="hand" style="font-size: 14px; color: #7b7568;">one filter applied, a second dimension opened. "Who is in this flow?"</div>
+      </div>
+
+      <!-- L3 -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+          <div class="mono" style="font-size: 12px; color: #7b7568;">L3</div>
+          <div style="font-weight: 600;">Rows</div>
+        </div>
+        <div style="display: flex; flex-direction: row; gap: 4px; flex-wrap: wrap;">
+          <div class="mono" style="font-size: 11px; border: 1px solid #b8662f; color: #b8662f; border-radius: 10px; padding: 1px 8px;">flow: INBOX → Fin/Statements</div>
+          <div class="mono" style="font-size: 11px; border: 1px solid #b8662f; color: #b8662f; border-radius: 10px; padding: 1px 8px;">sender: fidelity.com</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; flex-direction: row; justify-content: space-between; gap: 6px;"><div class="mono" style="font-size: 11px;">statements@fidelity.com</div><div class="mono" style="font-size: 10px; color: #7b7568;">09-03</div></div>
+            <div style="font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Your September statement is available</div>
+            <div class="mono" style="font-size: 10px; color: #7b7568;">[INBOX] → [INBOX, Finance/Statements]</div>
+          </div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; flex-direction: row; justify-content: space-between; gap: 6px;"><div class="mono" style="font-size: 11px;">alerts@fidelity.com</div><div class="mono" style="font-size: 10px; color: #7b7568;">08-28</div></div>
+            <div style="font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Trade confirmation</div>
+            <div class="mono" style="font-size: 10px; color: #7b7568;">[INBOX] → [INBOX, Finance/Statements]</div>
+          </div>
+          <div style="font-size: 11px; color: #7b7568; text-align: center;">1 – 25 of 1,204</div>
+        </div>
+        <div class="hand" style="font-size: 14px; color: #7b7568;">the same message row everywhere: corpus, plan, masking, gate, audit. Learned once.</div>
+      </div>
+
+      <!-- L4 -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;">
+          <div class="mono" style="font-size: 12px; color: #7b7568;">L4</div>
+          <div style="font-weight: 600;">Row detail</div>
+        </div>
+        <div style="font-size: 12px; font-weight: 500;">Your September statement is available</div>
+        <div class="mono" style="font-size: 11px; color: #7b7568;">statements@fidelity.com · 2026-09-03 08:14Z</div>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
+          <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #7b7568;">sender class</span><span style="color: #a9443a;">restricted</span></div>
+          <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #7b7568;">rule</span><span class="mono">financial.brokerage.fidelity</span></div>
+          <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #7b7568;">content flags</span><span>none</span></div>
+          <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #7b7568;">scan state</span><span class="mono">SKIPPED_RESTRICTED</span></div>
+          <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #7b7568;">this plan</span><span class="mono">+Finance/Statements</span></div>
+          <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #7b7568;">allowed here</span><span>label, move only</span></div>
+          <div style="display: flex; flex-direction: row; justify-content: space-between;"><span style="color: #7b7568;">audit</span><span>2 denials, 0 serves</span></div>
+        </div>
+        <div class="hand" style="font-size: 14px; color: #7b7568;">provenance: both sensitivity axes, the rule that fired, the audit trail. Never a body.</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: row; gap: 24px; align-items: center;">
+      <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7b7568" stroke-width="1.5"><path d="M3 8h10M9 4l4 4-4 4"></path></svg>
+        <div style="font-size: 12px; color: #7b7568;">descend: click an aggregate, it becomes a filter chip</div>
+      </div>
+      <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7b7568" stroke-width="1.5"><path d="M13 8H3M7 4L3 8l4 4"></path></svg>
+        <div style="font-size: 12px; color: #7b7568;">ascend: remove a chip</div>
+      </div>
+      <div class="mono" style="font-size: 12px; color: #7b7568;">/personal/plans/7f3a9c/ops?group=sender&flow=INBOX→Finance/Statements&sender=fidelity.com&level=3&page=1</div>
+    </div>
+  </div>
+
+  <!-- ===== Section 2: information architecture ===== -->
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: row; align-items: baseline; gap: 12px;">
+      <div style="font-size: 15px; font-weight: 600;">Information architecture</div>
+      <div class="hand" style="font-size: 15px; color: #7b7568;">scopes bound everything · domains hold datasets · verbs are few and attach to rows · growth slots are known in advance</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 260px; gap: 16px;">
+
+      <!-- scopes -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-weight: 600;">Scopes</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 6px 8px;"><div style="font-weight: 500;">account</div><div style="color: #7b7568;">never implicit. one, or all (operator's read role only)</div></div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 6px 8px;"><div style="font-weight: 500;">time range</div><div style="color: #7b7568;">UTC on the wire; display rule to decide</div></div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 6px 8px;"><div style="font-weight: 500;">search</div><div style="color: #7b7568;">subject trigram, sender, label</div></div>
+        </div>
+        <div class="hand" style="font-size: 14px; color: #7b7568;">these ride in every URL</div>
+      </div>
+
+      <!-- domains -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-weight: 600;">Domains and their datasets</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-weight: 500;">Corpus</div>
+            <div class="mono" style="font-size: 11px; color: #7b7568;">messages · senders · labels</div>
+            <div style="font-size: 11px;">dims: sender, label, class, scan state, time</div>
+          </div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-weight: 500;">Sensitivity</div>
+            <div class="mono" style="font-size: 11px; color: #7b7568;">masking_events · scan_gate_decisions</div>
+            <div style="font-size: 11px;">dims: rule, tier, reason, sender, time</div>
+          </div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-weight: 500;">Policy</div>
+            <div class="mono" style="font-size: 11px; color: #7b7568;">policy_candidates · rules (read)</div>
+            <div style="font-size: 11px;">dims: score, heuristic, status</div>
+          </div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-weight: 500;">Change</div>
+            <div class="mono" style="font-size: 11px; color: #7b7568;">reorg_plans · plan ops · reorg_op_log</div>
+            <div style="font-size: 11px;">dims: flow, sender, sensitivity, reason, status</div>
+          </div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-weight: 500;">Audit</div>
+            <div class="mono" style="font-size: 11px; color: #7b7568;">audit_log</div>
+            <div style="font-size: 11px;">dims: action, actor, class, rule, time</div>
+          </div>
+          <div style="border: 1px solid #d8d3ca; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-weight: 500;">System</div>
+            <div class="mono" style="font-size: 11px; color: #7b7568;">accounts · rate_state</div>
+            <div style="font-size: 11px;">backfill, sync age, backlog, rate, auth</div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: row; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <div style="font-weight: 600;">Verbs</div>
+          <div style="display: flex; flex-direction: row; gap: 6px;">
+            <div style="background: #b8662f; color: #ffffff; border-radius: 4px; padding: 3px 10px; font-size: 12px;">approve plan</div>
+            <div style="border: 1px solid #7b7568; border-radius: 4px; padding: 3px 10px; font-size: 12px;">reject plan</div>
+            <div style="background: #b8662f; color: #ffffff; border-radius: 4px; padding: 3px 10px; font-size: 12px;">confirm candidate</div>
+            <div style="border: 1px solid #7b7568; border-radius: 4px; padding: 3px 10px; font-size: 12px;">dismiss candidate</div>
+          </div>
+          <div class="hand" style="font-size: 14px; color: #7b7568;">two verbs, by database grant. Friction scales with blast radius.</div>
+        </div>
+      </div>
+
+      <!-- growth -->
+      <div style="background: #ffffff; border: 1px dashed #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-weight: 600;">Growth slots the shape already fits</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+          <div style="display: flex; flex-direction: row; gap: 8px;"><span class="mono" style="color: #7b7568;">X2</span><span>calendar events: same axes, restriction on any participant</span></div>
+          <div style="display: flex; flex-direction: row; gap: 8px;"><span class="mono" style="color: #7b7568;">X3</span><span>second account: the scope selector earns its keep</span></div>
+          <div style="display: flex; flex-direction: row; gap: 8px;"><span class="mono" style="color: #7b7568;">X4</span><span>Fastmail: nothing changes above the port, nothing in the UI</span></div>
+          <div style="display: flex; flex-direction: row; gap: 8px;"><span class="mono" style="color: #7b7568;">?</span><span>apply progress and rollback: op log as a dataset; rollback needs a verb and a record</span></div>
+          <div style="display: flex; flex-direction: row; gap: 8px;"><span class="mono" style="color: #7b7568;">?</span><span>mask and gate feedback (true / false positive): a third verb, and the labeled data X1 waits for</span></div>
+          <div style="display: flex; flex-direction: row; gap: 8px;"><span class="mono" style="color: #7b7568;">?</span><span>agent activity: audit rows grouped by actor and session</span></div>
+          <div style="display: flex; flex-direction: row; gap: 8px;"><span class="mono" style="color: #7b7568;">H1</span><span>dashboards: either lenses here or links out to the metrics stack</span></div>
+        </div>
+        <div class="hand" style="font-size: 14px; color: #7b7568;">a new view is a registered dataset plus a row renderer, not a new page from scratch</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

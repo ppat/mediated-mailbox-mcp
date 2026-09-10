@@ -27,7 +27,7 @@ rule binds both directions. Every ticket names the one unit it serves, every uni
 tickets, and the **Position** line below is re-dated whenever the checklists are reconciled
 against the tickets, so staleness is detectable instead of silent.
 
-**Position: 2026-09-06.**
+**Position: 2026-09-10.**
 
 ## Delivery posture
 
@@ -227,12 +227,14 @@ piece.
   cross-deployable import rule (ADR-0054) first has a violation to construct.
   **Deliberately kill the pod mid-run and confirm clean resume.** Watch the rate gauge throughout.
   This run is where the real ceiling for this account reveals itself, as opposed to the documented
-  one.
+  one. *Criteria:* the run, its progress events, and its per-item failures are recorded in the
+  job tables from the first page (ADR-0022).
 - [ ] **D2 — Scan gate + backfill pass 2** →
   [C3](./USE_CASES.md#c3--content-based-secrets-caught) · V2 · ≈1 day
   The composite gate evaluated with pass-1 statistics, gated body scanning, skip decisions
   recorded from the first evaluation, and the delisting transition (ADR-0037). Review skip rates
-  before trusting the compromise.
+  before trusting the compromise. *Criteria:* pass 2 records its runs, progress events, and
+  per-item failures (ADR-0022).
 - [ ] **D3 — Client surface (API + thin MCP adapter), read-only** →
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · V3 · ≈1–2 days
   The canonical API contract (OpenAPI) with its one-to-one MCP mirror, exposing `list_threads`,
@@ -248,7 +250,9 @@ piece.
 - [ ] **D4 — Delta sync** →
   [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) · V3 · ≈1 day
   Cursor management, gap detection and bounded recovery, idempotency. Run alongside backfill for a
-  few days and reconcile counts against the provider to catch drift.
+  few days and reconcile counts against the provider to catch drift. *Criteria:* every tick and
+  every gap recovery is a recorded run, and the cursor's write time is recorded with it
+  (ADR-0022, ADR-0016).
 
 ### Group M — mutation and approval
 
@@ -269,15 +273,28 @@ piece.
   Plan storage and validation (at creation, re-validation at apply, the plan-age check), the
   `describe_reorg_plan` / `sample_reorg_plan` tools, checkpointed apply, op log, rollback.
   **Test rollback on a real ~1000-message plan before trusting it on 40k.** Approval is
-  command-line-only until M3.
+  command-line-only until M3. *Criteria:* saving a plan writes its operations as rows with their
+  flows, and apply and rollback runs are recorded with their per-operation failures (ADR-0020,
+  ADR-0022).
 - [ ] **M3 — Reporting + approval UI** →
   [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) · V4 · ≈2–3 days
   Corpus overview, plan diff and approval, review queue, masking events, gate decisions, audit
-  view. Separate deployment and scoped database role. *Criteria:* the accepted-residual and
-  masking loops become operator-reviewable.
+  view, the live jobs view, and the failed-run drill-down, built to the design in
+  [docs/UI.md](./docs/UI.md). Separate deployment and scoped database role. *Criteria:* the
+  accepted-residual and masking loops become operator-reviewable. Message-derived text renders
+  inert, the dataset registry refuses what it does not declare, and no lens answers without an
+  account (ADR-0056, ADR-0057). The content security policy holds (ADR-0062), and a verb
+  without its request token (ADR-0061) or its declared identity (ADR-0021) is refused. No UI
+  path writes a decision's status without its companion columns and, on confirm, its rule row
+  (ADR-0060).
+  The order of work within the unit is the framework spike first, then the registry and its
+  endpoint, the ladder and rows proven on masking events, the five lenses, the home, the review
+  queue's reads, the plan reviewer and plans list, jobs and the run, policy and system, and the
+  four decision requests last because they are the only writes.
 - [ ] **M4 — Heuristics job + embeddings** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) · V4 · ≈1–2 days
-  Candidate generation into the review queue. Needs M3 to be useful, hence after it.
+  Candidate generation into the review queue. Needs M3 to be useful, hence after it. *Criteria:*
+  each run is recorded (ADR-0022).
 
 ### Group X — expansion
 
@@ -350,7 +367,9 @@ Three kinds, kept apart because conflating them is how phase numbering becomes r
 | S1 → D3 | The gate the read surface serves through |
 | S1 → M1 | The authorization matrix every mutation is checked against |
 | M1 → M2 | The authorized batched-mutation path apply executes through |
-| M2 → M3 | Plans, for the approval screen to approve |
+| M2 → M3 | Plans and their operation rows, for the approval screen to approve and group |
+| D4 → M3 | The recorded runs, events, and failures the jobs view and the run screen read (D1 and D2 write theirs earlier, D4 completes the set) |
+| F3 → M3 | The per-priority-class rate state the jobs view shows |
 | S2 → X1 | The tier boundary and version flag tier 3 slots into |
 
 ### Conventional — real reasons, but the capability would function
@@ -397,7 +416,9 @@ Where a decision is recorded, the row cites its number, resolved through the
 | Decision | Gates | Standing |
 | --- | --- | --- |
 | Tier-3 model choice and training setup | X1 | Deliberately open. ADR-0006 defers it until real labeled data exists |
-| UI browser framework | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs) and ADR-0042 settles the languages (Go on the UI's server side, TypeScript in the browser). The browser framework is deliberately unchosen until M3 approaches |
+| UI browser framework | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs) and ADR-0042 settles the languages (Go on the UI's server side, TypeScript in the browser). The requirements a candidate is judged against, and the spike that proves them, are stated in [docs/UI.md](./docs/UI.md#16-framework-requirements). The browser framework is deliberately unchosen until M3 approaches |
+| Live-update transport for the UI | M3 | ADR-0058 proposes server-sent events from the UI's Go server with polling as the fallback. The operator asked for the behavior on 2026-09-10 and has not ruled on the transport. Only the UI's stream client depends on it ([docs/UI.md](./docs/UI.md#9-live-surfaces)) |
+| Policy import and export to a file | nothing yet | ADR-0004 keeps a file form for import and export. The operator said on 2026-09-10 that such a mechanism may exist. No unit owns it and no record decides its shape |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time. The value is unchosen |
 | Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2). Complexity and payoff at that point drive it |
 | Property-testing library | S1 | ADR-0055 fixes the requirements (bounded deterministic gating runs, stored failing examples replayed) and defers the library to implementation time |

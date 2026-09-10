@@ -30,6 +30,7 @@ row describes the control's code.
 | Any implementation of the provider port, the fake included | The one contract suite every port implementation must pass | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) |
 | Sequence-dependent stateful machinery where a crash is silent and hard to reverse | Generated crash-injection sequences from the crash harness, plus the physical drill the verification catalogue demands. ADR-0045 commits the first two targets, the reorg apply/rollback path and backfill resume, and defers any others | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) |
 | The assembled system on a bare cluster | The chart's own tests and the top-level chainsaw suite | [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) |
+| The UI's browser rendering layer, the rows, the ladder, and each screen | Example-based tests against fixture responses carrying the metadata marker text, asserting every marker arrives as text | [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md), on [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md)'s rendering rule |
 | A control, meaning a rule the system enforces | The tests that prove its [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) row where the row is automatable, plus its mutation demonstration at acceptance | [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) |
 
 **In standard vocabulary.** This project's unit tests are the example-based and the
@@ -76,8 +77,9 @@ the tests, and catches no system bugs of its own.
 
 ## Test data
 
-Every mail fixture is synthetic, and real mail never enters the repository. Fixture bodies carry
-designed marker text, so a leak search over any output surface is deterministic
+Every mail fixture is synthetic, and real mail never enters the repository. Fixture bodies and
+fixture metadata fields carry designed marker text, so a leak search over any output surface is
+deterministic and a rendering surface can be checked for inert text
 ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)).
 
 ## Deliberately absent

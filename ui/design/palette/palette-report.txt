@@ -1,0 +1,80 @@
+{
+  "dark": {
+    "ground": "#161311",
+    "surface": "#1f1c1a",
+    "raised": "#292623",
+    "border": "#3b3734",
+    "text": "#e1ddd7",
+    "muted": "#9c9890",
+    "faint": "#6c6863",
+    "action": "#ed9c55",
+    "restricted": "#f47b74",
+    "flagged": "#c39ae2",
+    "ok": "#6fc082",
+    "info": "#7cb3eb",
+    "chartfill": "#59544f",
+    "s1": "#6aaaea",
+    "s2": "#ea9952",
+    "s3": "#5fc199",
+    "s4": "#c39ae2",
+    "s5": "#eb827b",
+    "s6": "#c8b962"
+  },
+  "light": {
+    "ground": "#f7f5f1",
+    "surface": "#fefdfb",
+    "raised": "#fcfaf6",
+    "border": "#d5d0ca",
+    "text": "#241e1a",
+    "muted": "#6a615b",
+    "faint": "#98918b",
+    "action": "#a65c20",
+    "restricted": "#b63132",
+    "flagged": "#7b489e",
+    "ok": "#1d7d3e",
+    "info": "#1f6cb0",
+    "chartfill": "#c9c3bc",
+    "s1": "#1f6cb0",
+    "s2": "#b3621e",
+    "s3": "#158561",
+    "s4": "#814ea4",
+    "s5": "#c13c3b",
+    "s6": "#998700"
+  }
+}
+
+== dark: contrast vs surface #1f1c1a (AA text 4.5, UI 3.0)
+text        #e1ddd7  surface 12.53  ground 13.67  raised 11.12
+muted       #9c9890  surface 5.90  ground 6.44  raised 5.24
+faint       #6c6863  surface 3.06  ground 3.35  raised 2.72
+action      #ed9c55  surface 7.66  ground 8.36  raised 6.80
+restricted  #f47b74  surface 6.40  ground 6.99  raised 5.68
+flagged     #c39ae2  surface 7.30  ground 7.96  raised 6.48
+ok          #6fc082  surface 7.70  ground 8.40  raised 6.83
+info        #7cb3eb  surface 7.67  ground 8.37  raised 6.81
+border      #3b3734  surface 1.44  ground 1.57  raised 1.28
+s1          #6aaaea  surface 6.90  ground 7.53  raised 6.13
+s2          #ea9952  surface 7.40  ground 8.08  raised 6.57
+s3          #5fc199  surface 7.73  ground 8.43  raised 6.86
+s4          #c39ae2  surface 7.30  ground 7.96  raised 6.48
+s5          #eb827b  surface 6.46  ground 7.06  raised 5.74
+s6          #c8b962  surface 8.53  ground 9.31  raised 7.57
+ground/surface 1.09  surface/raised 1.13  text on action 1.64  ground-text on action 8.36
+
+== light: contrast vs surface #fefdfb (AA text 4.5, UI 3.0)
+text        #241e1a  surface 16.19  ground 15.12  raised 15.79
+muted       #6a615b  surface 5.95  ground 5.55  raised 5.80
+faint       #98918b  surface 3.06  ground 2.85  raised 2.98
+action      #a65c20  surface 4.95  ground 4.62  raised 4.83
+restricted  #b63132  surface 5.95  ground 5.55  raised 5.80
+flagged     #7b489e  surface 6.33  ground 5.91  raised 6.17
+ok          #1d7d3e  surface 5.09  ground 4.76  raised 4.97
+info        #1f6cb0  surface 5.39  ground 5.04  raised 5.26
+border      #d5d0ca  surface 1.51  ground 1.41  raised 1.47
+s1          #1f6cb0  surface 5.39  ground 5.04  raised 5.26
+s2          #b3621e  surface 4.41  ground 4.12  raised 4.30
+s3          #158561  surface 4.53  ground 4.23  raised 4.42
+s4          #814ea4  surface 5.80  ground 5.42  raised 5.66
+s5          #c13c3b  surface 5.19  ground 4.85  raised 5.07
+s6          #998700  surface 3.55  ground 3.31  raised 3.46
+ground/surface 1.07  surface/raised 1.03  text on action 3.27  ground-text on action 4.62

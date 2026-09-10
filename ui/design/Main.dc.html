@@ -1,0 +1,284 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    table { border-collapse: collapse; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 900px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.4; box-sizing: border-box; display: flex; flex-direction: column;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div style="font-family: 'Patrick Hand', cursive; font-size: 18px; color: #9c9890;">ui · Home</div>
+    <div style="font-family: 'Patrick Hand', cursive; font-size: 15px; color: #9c9890;">dark palette · sample data</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623;">
+      <span style="color: #9c9890;">account</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500;">personal</span>
+      <span style="color: #9c9890;">· Gmail</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div style="display: flex; align-items: center; gap: 8px; flex-grow: 1; max-width: 420px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #161311;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+      <span style="color: #9c9890;">search senders, subjects, labels, plans in personal</span>
+    </div>
+    <div style="display: flex; gap: 18px; margin-left: auto; color: #9c9890;">
+      <a href="#" style="color: #9c9890; text-decoration: none;">Corpus</a>
+      <a href="#" style="color: #9c9890; text-decoration: none;">Masking</a>
+      <a href="#" style="color: #9c9890; text-decoration: none;">Gate</a>
+      <a href="#" style="color: #9c9890; text-decoration: none;">Audit</a>
+      <a href="#" style="color: #9c9890; text-decoration: none;">Policy</a>
+      <a href="#" style="color: #9c9890; text-decoration: none;">Jobs</a>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 20px; padding: 10px 16px; margin: 12px 20px 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+    <div style="display: flex; flex-direction: column; gap: 2px; width: 110px; flex-shrink: 0;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Running now</div>
+      <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #9c9890;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #6fc082;"></span>live · updated 3s ago</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <div><a href="#" style="font-weight: 500; text-decoration: none;">Backfill pass 2</a> <span style="color: #9c9890; font-size: 12px;">gated scanning · run <span style="font-family: 'IBM Plex Mono', monospace;">r-0914</span> · started 09:41Z · heartbeat 4s ago</span></div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890;">page <span style="color: #e1ddd7;">3,065</span> of 3,368 · <span style="color: #e1ddd7; font-weight: 500;">91%</span> · about 1h 10m left · batch class 1.9 of 2.5 units/s</div>
+      </div>
+      <div style="width: 100%; height: 8px; border-radius: 2px; background: #292623; display: flex; overflow: hidden;"><div style="width: 91%; background: #7cb3eb;"></div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 3px; width: 250px; flex-shrink: 0; padding-left: 20px; border-left: 1px solid #3b3734;">
+      <div><a href="#" style="font-weight: 500; text-decoration: none;">Delta sync</a> <span style="display: inline-flex; align-items: center; gap: 4px; color: #6fc082; font-size: 12px;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg>last tick 10:12Z OK</span></div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890;">cursor age 4m · every 5 min · +12 / 3 / 0</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 3px; width: 150px; flex-shrink: 0; padding-left: 20px; border-left: 1px solid #3b3734; font-size: 12px; color: #9c9890;">
+      <div>Reorg apply · <span style="color: #e1ddd7;">idle</span></div>
+      <div>Heuristics · <span style="color: #e1ddd7;">03:00Z · 12s</span></div>
+    </div>
+    <a href="#" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; text-decoration: none; flex-shrink: 0;">all jobs<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#e1ddd7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"></path></svg></a>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 16px 20px 24px 20px;">
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="font-size: 15px; font-weight: 600;">Awaiting your decision</div>
+          <div style="color: #9c9890; font-size: 12px;">5 items · oldest 1d 4h</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 220px 80px 120px; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid #3b3734; background: #292623;">
+          <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M3 8h10M3 12h6"></path></svg>
+            plan
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <a href="#" style="font-weight: 500; font-size: 14px; text-decoration: none;">Consolidate finance labels</a>
+            <div style="color: #9c9890; font-size: 12px;"><span style="font-family: 'IBM Plex Mono', monospace;">7f3a9c…</span> · DRAFT · validated at creation · <span style="color: #f47b74;">1,242 restricted</span> inside, label and move only</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">
+            <div><a href="#">12,480</a> messages · <a href="#">3,911</a> threads</div>
+            <div><span style="font-weight: 500;">14.8%</span> of corpus · 4 label ops</div>
+          </div>
+          <div style="color: #9c9890; font-size: 12px;">1d 4h<br><span>of 14d</span></div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="display: inline-block; padding: 6px 12px; border: 1px solid #ed9c55; border-radius: 4px; color: #ed9c55; font-weight: 500; text-decoration: none; font-size: 12px;">Review plan</a>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 220px 80px 120px; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l5 2.5v3.5c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4.5z"></path></svg>
+            candidate
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <a href="#" style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 13px; text-decoration: none;">chasealerts.com</a>
+            <div style="color: #9c9890; font-size: 12px;">display name "Chase" matches listed chase.com</div>
+          </div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890;">score <span style="color: #e1ddd7; font-weight: 500;">0.91</span> · <a href="#">220</a> msgs · since 2024-03</div>
+          <div style="color: #9c9890; font-size: 12px;">6h</div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="display: inline-block; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px;">Review</a>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 220px 80px 120px; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l5 2.5v3.5c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4.5z"></path></svg>
+            candidate
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <a href="#" style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 13px; text-decoration: none;">fidelityinvestments.com</a>
+            <div style="color: #9c9890; font-size: 12px;">registrable-domain clustering with listed fidelity.com</div>
+          </div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890;">score <span style="color: #e1ddd7; font-weight: 500;">0.84</span> · <a href="#">58</a> msgs · since 2023-11</div>
+          <div style="color: #9c9890; font-size: 12px;">6h</div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="display: inline-block; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px;">Review</a>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 220px 80px 120px; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l5 2.5v3.5c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4.5z"></path></svg>
+            candidate
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <a href="#" style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 13px; text-decoration: none;">e.capitalone.com</a>
+            <div style="color: #9c9890; font-size: 12px;">institution keyword "capital" in domain; transactional pattern (noreply, no List-Id, never labeled)</div>
+          </div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890;">score <span style="color: #e1ddd7; font-weight: 500;">0.77</span> · <a href="#">143</a> msgs · since 2022-06</div>
+          <div style="color: #9c9890; font-size: 12px;">6h</div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="display: inline-block; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px;">Review</a>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 220px 80px 120px; gap: 12px; align-items: center; padding: 10px 16px;">
+          <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l5 2.5v3.5c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4.5z"></path></svg>
+            candidate
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <a href="#" style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 13px; text-decoration: none;">ssa.gov</a>
+            <div style="color: #9c9890; font-size: 12px;">institution keyword ".gov"</div>
+          </div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890;">score <span style="color: #e1ddd7; font-weight: 500;">0.73</span> · <a href="#">9</a> msgs · since 2025-01</div>
+          <div style="color: #9c9890; font-size: 12px;">6h</div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="display: inline-block; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px;">Review</a>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 16px; align-items: flex-start;">
+        <div style="flex-grow: 1; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #3b3734;">
+            <div style="font-size: 15px; font-weight: 600;">Worth a look</div>
+            <div style="color: #9c9890; font-size: 12px;">derived from the last 7 days of measurements</div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 20px minmax(0, 1fr) 200px; gap: 12px; align-items: start; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ed9c55" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px;"><circle cx="8" cy="8" r="6"></circle><path d="M8 5v3.5M8 11h.01"></path></svg>
+            <div>
+              <div style="font-weight: 500;">Pending scan backlog is <a href="#" style="font-family: 'IBM Plex Mono', monospace;">7,580</a> messages</div>
+              <div style="color: #9c9890; font-size: 12px;">Backfill pass 2 is at 91%. Every pending message denies its body until scanned, which reads to the agent like a permission problem.</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+              <div style="width: 160px; height: 8px; border-radius: 2px; background: #292623; display: flex; overflow: hidden;"><div style="width: 91%; background: #7cb3eb;"></div></div>
+              <a href="#" style="font-size: 12px;">gate decisions › pending</a>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 20px minmax(0, 1fr) 200px; gap: 12px; align-items: start; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ed9c55" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px;"><circle cx="8" cy="8" r="6"></circle><path d="M8 5v3.5M8 11h.01"></path></svg>
+            <div>
+              <div style="font-weight: 500;">Masking fired <a href="#" style="font-family: 'IBM Plex Mono', monospace;">22</a> times on <span style="font-family: 'IBM Plex Mono', monospace;">ups.com</span> this week</div>
+              <div style="color: #9c9890; font-size: 12px;">All under content.mfa.subject_numeric_6. A carrier sending six-digit numbers in subjects is most likely tracking numbers, an over-mask worth tuning.</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end; font-size: 12px;">
+              <div style="display: flex; gap: 2px; align-items: flex-end; height: 24px;">
+                <div style="width: 10px; height: 6px; background: #59544f;"></div>
+                <div style="width: 10px; height: 10px; background: #59544f;"></div>
+                <div style="width: 10px; height: 8px; background: #59544f;"></div>
+                <div style="width: 10px; height: 16px; background: #59544f;"></div>
+                <div style="width: 10px; height: 20px; background: #59544f;"></div>
+                <div style="width: 10px; height: 14px; background: #59544f;"></div>
+                <div style="width: 10px; height: 24px; background: #c39ae2;"></div>
+              </div>
+              <a href="#">masking events › ups.com</a>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 20px minmax(0, 1fr) 200px; gap: 12px; align-items: start; padding: 10px 16px;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px;"><circle cx="8" cy="8" r="6"></circle><path d="M5.5 8l2 2 3-3.5"></path></svg>
+            <div>
+              <div style="font-weight: 500;">Body-serve volume is normal</div>
+              <div style="color: #9c9890; font-size: 12px;"><a href="#" style="font-family: 'IBM Plex Mono', monospace;">148</a> bodies served in 24h against a 7-day median of 131. No anomalous-fetch alert.</div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; font-size: 12px;"><a href="#">audit › READ_BODY</a></div>
+          </div>
+        </div>
+
+        <div style="width: 220px; flex-shrink: 0; font-family: 'Patrick Hand', cursive; font-size: 16px; line-height: 1.25; color: #9c9890; padding: 8px 10px; border: 1px dashed #6c6863; border-radius: 4px; transform: rotate(-1deg);">
+          The "Worth a look" rules (what counts as needing attention, and its thresholds) are new design work. Nothing in the documents defines them yet. Every card here is an example, not a spec.
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="font-size: 15px; font-weight: 600;">System · personal</div>
+          <div style="color: #9c9890; font-size: 12px;">as of 10:16Z</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; justify-content: space-between;"><span>Backfill pass 1</span><span style="display: inline-flex; align-items: center; gap: 4px; color: #6fc082;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg>complete</span></div>
+            <div style="width: 100%; height: 6px; border-radius: 2px; background: #292623; display: flex; overflow: hidden;"><div style="width: 100%; background: #6fc082;"></div></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; justify-content: space-between;"><span>Backfill pass 2</span><a href="#" style="font-family: 'IBM Plex Mono', monospace;">91% · 7,580 pending</a></div>
+            <div style="width: 100%; height: 6px; border-radius: 2px; background: #292623; display: flex; overflow: hidden;"><div style="width: 91%; background: #7cb3eb;"></div></div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid #3b3734; font-size: 12px;">
+          <span>Sync cursor age</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right;">4m</a>
+          <span style="color: #9c9890;">last successful tick</span><span style="font-family: 'IBM Plex Mono', monospace; color: #9c9890; text-align: right;">2026-09-10 10:12Z</span>
+          <span>Rate</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right;">3.1 of 5.0 units/s</a>
+          <span style="color: #9c9890;">hard cap 8.0 · not in backoff</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end;">
+            <div style="width: 120px; height: 6px; border-radius: 2px; background: #292623; position: relative; display: flex;">
+              <div style="width: 39%; background: #59544f;"></div>
+              <div style="position: absolute; left: 62%; top: -3px; width: 1px; height: 12px; background: #9c9890;"></div>
+            </div>
+          </div>
+          <span>Last provider auth</span><span style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; color: #6fc082;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg>OK 09:58Z</span>
+        </div>
+
+        <div style="padding: 12px 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="font-weight: 500;">Audit, last 24h</span><a href="#" style="font-size: 12px;">open audit lens</a></div>
+          <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: center; font-size: 12px; font-family: 'IBM Plex Mono', monospace;">
+            <span>READ_BODY</span><div style="height: 8px; background: #59544f; width: 100%;"></div><a href="#">148</a>
+            <span>DENY_BODY</span><div style="height: 8px; background: #f47b74; width: 16%; opacity: 0.7;"></div><a href="#">23</a>
+            <span>MUTATE</span><div style="height: 8px; width: 0;"></div><a href="#">0</a>
+            <span>DENY_MUTATE</span><div style="height: 8px; width: 0;"></div><a href="#">0</a>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+        <div style="padding: 12px 16px; border-bottom: 1px solid #3b3734; font-size: 15px; font-weight: 600;">Corpus at a glance</div>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; padding: 12px 16px; font-size: 12px;">
+          <span>Messages</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right;">84,212</a>
+          <span>Threads</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right;">27,930</a>
+          <span>Unfiled</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right;">31,405 · 37%</a>
+          <span>Restricted senders</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right; color: #f47b74;">1,242 msgs</a>
+          <span>Masking, 7d</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right;">312 events</a>
+          <span>Gate skips, 7d</span><a href="#" style="font-family: 'IBM Plex Mono', monospace; text-align: right;">732 of 4,120</a>
+        </div>
+      </div>
+
+      <div style="font-family: 'Patrick Hand', cursive; font-size: 15px; line-height: 1.25; color: #9c9890; padding: 6px 10px;">
+        Every number on this page is a link into a lens: the same dataset, one level deeper, with this value applied as a filter. Everything shown belongs to the selected account and nothing else.
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

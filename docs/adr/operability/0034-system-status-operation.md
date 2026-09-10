@@ -42,9 +42,9 @@ Two bounds keep it honest:
 - The operation is part of the canonical API surface, so
   [ADR-0030](./0030-api-core-mcp-thin-adapter.md)'s one-to-one parity applies to it
   automatically: it exists identically on both roots.
-- Assumptions about other components: each state listed is already recorded in a queryable table
-  by its owning subsystem — the operation adds no instrumentation and no new obligation on any
-  component.
+- Assumptions about other components: each state listed is recorded in a queryable table by its
+  owning subsystem, in the columns [ADR-0016](../data/0016-schema.md) names for it, and the
+  operation adds no instrumentation of its own.
 - Both bounds are controls, dispositioned in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md): the operational-state-only bound has its
   violation injection; the recorded-state-only bound is parked there with its standing reason.

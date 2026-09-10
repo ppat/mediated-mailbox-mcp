@@ -1,0 +1,203 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #f6f4f0; color: #1f1d1a; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.4; }
+    a { color: #b8662f; text-decoration: none; } a:hover { color: #8f4d21; text-decoration: underline; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    th { text-align: left; font-weight: 500; color: #7b7568; padding: 6px 10px; border-bottom: 1px solid #d8d3ca; white-space: nowrap; }
+    td { padding: 7px 10px; border-bottom: 1px solid #ebe7e0; vertical-align: top; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .hand { font-family: 'Patrick Hand', cursive; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 1180px; background: #f6f4f0; display: flex; flex-direction: column;">
+
+  <!-- top bar -->
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: #ffffff; border-bottom: 1px solid #d8d3ca;">
+    <div class="hand" style="font-size: 18px; color: #7b7568; white-space: nowrap;">Path B · Explorer · masking events lens</div>
+    <div style="display: flex; align-items: center; gap: 6px; margin-left: 12px;">
+      <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #d8d3ca; border-radius: 4px; background: #ffffff;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7b7568" stroke-width="1.5"><rect x="2" y="4" width="12" height="9" rx="1.5"></rect><path d="M2 5.5l6 4 6-4"></path></svg>
+        <span class="mono" style="font-weight: 500;">personal</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#7b7568" stroke-width="1.5"><path d="M3 5l3 3 3-3"></path></svg>
+      </div>
+      <div class="mono" style="padding: 5px 10px; color: #7b7568; font-size: 12px;">work (not configured)</div>
+    </div>
+    <div style="flex-grow: 1;"></div>
+    <div class="mono" style="font-size: 12px; color: #7b7568; padding: 5px 10px; border: 1px dashed #d8d3ca; border-radius: 4px; background: #f6f4f0;">/personal/masking_events?group=rule,sender&amp;range=7d&amp;level=1&amp;rule=content.mfa.subject_numeric_6</div>
+  </div>
+
+  <!-- query bar: reads like a sentence -->
+  <div style="display: flex; align-items: center; gap: 10px; padding: 12px 20px; background: #ffffff; border-bottom: 1px solid #d8d3ca; flex-wrap: wrap;">
+    <span style="color: #7b7568;">Show</span>
+    <div style="position: relative;">
+      <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #1f1d1a; border-radius: 4px; background: #ffffff;">
+        <span class="mono" style="font-weight: 500;">masking_events</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#1f1d1a" stroke-width="1.5"><path d="M3 5l3 3 3-3"></path></svg>
+      </div>
+      <div style="position: absolute; top: 34px; left: 0; width: 200px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; box-shadow: 0 4px 10px rgba(31,29,26,0.08); z-index: 2;">
+        <div class="mono" style="padding: 6px 10px; font-size: 12px; color: #7b7568;">messages</div>
+        <div class="mono" style="padding: 6px 10px; font-size: 12px; color: #7b7568;">senders</div>
+        <div class="mono" style="padding: 6px 10px; font-size: 12px; color: #7b7568;">plan_ops</div>
+        <div class="mono" style="padding: 6px 10px; font-size: 12px; background: #f6f4f0; font-weight: 500;">masking_events</div>
+        <div class="mono" style="padding: 6px 10px; font-size: 12px; color: #7b7568;">gate_decisions</div>
+        <div class="mono" style="padding: 6px 10px; font-size: 12px; color: #7b7568;">audit</div>
+        <div class="mono" style="padding: 6px 10px; font-size: 12px; color: #7b7568;">candidates</div>
+      </div>
+    </div>
+    <span style="color: #7b7568;">grouped by</span>
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <span class="mono" style="padding: 4px 9px; border: 1px solid #d8d3ca; border-radius: 12px; background: #f6f4f0; font-size: 12px;">rule</span>
+      <span style="color: #7b7568;">›</span>
+      <span class="mono" style="padding: 4px 9px; border: 1px solid #d8d3ca; border-radius: 12px; background: #f6f4f0; font-size: 12px;">sender</span>
+      <span style="padding: 4px 8px; border: 1px dashed #d8d3ca; border-radius: 12px; color: #7b7568; font-size: 12px;">+ dimension</span>
+    </div>
+    <span style="color: #7b7568;">over</span>
+    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #d8d3ca; border-radius: 4px;">
+      <span class="mono" style="font-size: 12px;">last 7d</span>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#7b7568" stroke-width="1.5"><path d="M3 5l3 3 3-3"></path></svg>
+    </div>
+    <span style="color: #7b7568;">at level</span>
+    <div style="display: flex; align-items: center; gap: 0; border: 1px solid #d8d3ca; border-radius: 4px; overflow: hidden;">
+      <span class="mono" style="padding: 5px 10px; font-size: 12px; color: #7b7568;">L0</span>
+      <span class="mono" style="padding: 5px 10px; font-size: 12px; background: #1f1d1a; color: #ffffff; font-weight: 500;">L1</span>
+      <span class="mono" style="padding: 5px 10px; font-size: 12px; color: #7b7568;">L2</span>
+      <span class="mono" style="padding: 5px 10px; font-size: 12px; color: #7b7568;">L3</span>
+      <span class="mono" style="padding: 5px 10px; font-size: 12px; color: #7b7568;">L4</span>
+    </div>
+    <div style="flex-grow: 1;"></div>
+    <div class="hand" style="font-size: 15px; color: #7b7568;">same chrome, any dataset</div>
+  </div>
+
+  <!-- main split -->
+  <div style="display: flex; gap: 16px; padding: 16px 20px; flex-grow: 1; align-items: flex-start;">
+
+    <!-- saved lenses -->
+    <div style="width: 216px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; display: flex; flex-direction: column;">
+        <div style="padding: 10px 12px; border-bottom: 1px solid #d8d3ca; font-weight: 600; font-size: 12px; color: #7b7568; letter-spacing: 0.04em;">SAVED LENSES</div>
+        <div style="padding: 8px 12px; color: #1f1d1a;">Corpus overview</div>
+        <div style="padding: 8px 12px; color: #1f1d1a;">Reorg plans</div>
+        <div style="padding: 8px 12px; color: #1f1d1a;">Review queue</div>
+        <div style="padding: 8px 12px; background: #f6f4f0; font-weight: 500; border-left: 2px solid #1f1d1a;">Masking events</div>
+        <div style="padding: 8px 12px; color: #1f1d1a;">Gate decisions</div>
+        <div style="padding: 8px 12px; color: #1f1d1a;">Audit log</div>
+        <div style="padding: 8px 12px; color: #1f1d1a; border-top: 1px solid #ebe7e0;">System status</div>
+        <div style="padding: 8px 12px; color: #7b7568; border-top: 1px solid #ebe7e0; font-size: 12px;">+ save current lens</div>
+      </div>
+      <div class="hand" style="font-size: 15px; color: #7b7568; padding: 0 4px; line-height: 1.3;">a preset is just a stored URL: dataset + group-by + range + level</div>
+    </div>
+
+    <!-- ladder body -->
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+
+      <!-- breadcrumb of applied filters -->
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+        <span style="color: #7b7568;">Filters</span>
+        <span class="mono" style="display: flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid #1f1d1a; border-radius: 12px; background: #ffffff;">rule = content.mfa.subject_numeric_6 <span style="color: #7b7568;">×</span></span>
+        <span style="color: #7b7568;">·</span>
+        <span style="color: #7b7568;">remove a chip to zoom out</span>
+      </div>
+
+      <!-- L0 summary strip -->
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #7b7568;">L0 · events, last 7d</div>
+          <div class="mono" style="font-size: 22px; font-weight: 500;">312</div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #7b7568;">rules fired</div>
+          <div class="mono" style="font-size: 22px; font-weight: 500;">3</div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #7b7568;">top senders</div>
+          <div class="mono" style="font-size: 13px; padding-top: 6px;">acme.io 118 · github.com 71 · ups.com 22</div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #7b7568;">field masked</div>
+          <div class="mono" style="font-size: 13px; padding-top: 6px;">subject 312 · matched text never stored</div>
+        </div>
+      </div>
+
+      <!-- L1 distribution: chart + group table -->
+      <div style="display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 12px;">
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-weight: 600;">L1 · by rule</span>
+            <span style="font-size: 11px; color: #7b7568;">click a bar to filter and descend</span>
+          </div>
+          <div style="border: 1px dashed #d8d3ca; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: grid; grid-template-columns: 220px minmax(0, 1fr) 44px; gap: 10px; align-items: center;">
+              <span class="mono" style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">content.mfa.subject_numeric_6</span>
+              <div style="height: 18px; background: #f6f4f0; border-radius: 2px;"><div style="height: 18px; width: 100%; background: #1f1d1a; border-radius: 2px;"></div></div>
+              <span class="mono" style="font-size: 11px; text-align: right;">201</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 220px minmax(0, 1fr) 44px; gap: 10px; align-items: center;">
+              <span class="mono" style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">content.mfa.subject_alnum_8</span>
+              <div style="height: 18px; background: #f6f4f0; border-radius: 2px;"><div style="height: 18px; width: 32%; background: #cfc9bf; border-radius: 2px;"></div></div>
+              <span class="mono" style="font-size: 11px; text-align: right;">64</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 220px minmax(0, 1fr) 44px; gap: 10px; align-items: center;">
+              <span class="mono" style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">content.link.reset</span>
+              <div style="height: 18px; background: #f6f4f0; border-radius: 2px;"><div style="height: 18px; width: 23%; background: #cfc9bf; border-radius: 2px;"></div></div>
+              <span class="mono" style="font-size: 11px; text-align: right;">47</span>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #7b7568;">next dimension: sender → L2 groups the selected rule by sender</div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; display: flex; flex-direction: column;">
+          <div style="padding: 10px 14px; border-bottom: 1px solid #d8d3ca; display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-weight: 600;">L1 · groups</span>
+            <span style="font-size: 11px; color: #7b7568;">same data as the chart</span>
+          </div>
+          <table>
+            <thead><tr><th>rule</th><th>tier</th><th style="text-align: right;">count</th><th style="text-align: right;">share</th></tr></thead>
+            <tbody>
+              <tr style="background: #f6f4f0;"><td class="mono" style="font-weight: 500;">content.mfa.subject_numeric_6</td><td class="mono">1</td><td class="mono" style="text-align: right;">201</td><td class="mono" style="text-align: right;">64%</td></tr>
+              <tr><td class="mono">content.mfa.subject_alnum_8</td><td class="mono">1</td><td class="mono" style="text-align: right;">64</td><td class="mono" style="text-align: right;">21%</td></tr>
+              <tr><td class="mono">content.link.reset</td><td class="mono">2</td><td class="mono" style="text-align: right;">47</td><td class="mono" style="text-align: right;">15%</td></tr>
+            </tbody>
+          </table>
+          <div style="padding: 10px 14px; font-size: 11px; color: #7b7568; border-top: 1px solid #ebe7e0;">ups.com under the numeric rule is the likely false positive to look at (tracking numbers)</div>
+        </div>
+      </div>
+
+      <!-- L3 rows panel -->
+      <div style="background: #ffffff; border: 1px solid #d8d3ca; border-radius: 4px; display: flex; flex-direction: column;">
+        <div style="padding: 10px 14px; border-bottom: 1px solid #d8d3ca; display: flex; align-items: center; gap: 10px;">
+          <span style="font-weight: 600;">L3 · rows</span>
+          <span class="mono" style="font-size: 11px; color: #7b7568;">rule = content.mfa.subject_numeric_6 · 201 events · page 1 of 5</span>
+          <div style="flex-grow: 1;"></div>
+          <span class="hand" style="font-size: 15px; color: #7b7568;">opened by clicking the bar above</span>
+        </div>
+        <table>
+          <thead><tr><th>masked at (UTC)</th><th>sender</th><th>subject (masked at rest)</th><th>rule</th><th>tier</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="mono">2026-09-09 08:41</td><td class="mono">receipts@acme.io</td><td>Your Acme verification code is ██████</td><td class="mono">content.mfa.subject_numeric_6</td><td class="mono">1</td><td style="color: #7b7568;">L4 ›</td></tr>
+            <tr><td class="mono">2026-09-09 07:12</td><td class="mono">noreply@github.com</td><td>[GitHub] Your two-factor code ██████</td><td class="mono">content.mfa.subject_numeric_6</td><td class="mono">1</td><td style="color: #7b7568;">L4 ›</td></tr>
+            <tr><td class="mono">2026-09-08 19:55</td><td class="mono">pkginfo@ups.com</td><td>Package ██████ is out for delivery</td><td class="mono">content.mfa.subject_numeric_6</td><td class="mono">1</td><td style="color: #7b7568;">L4 ›</td></tr>
+            <tr><td class="mono">2026-09-08 16:03</td><td class="mono">receipts@acme.io</td><td>Your Acme verification code is ██████</td><td class="mono">content.mfa.subject_numeric_6</td><td class="mono">1</td><td style="color: #7b7568;">L4 ›</td></tr>
+            <tr><td class="mono">2026-09-08 11:27</td><td class="mono">noreply@github.com</td><td>[GitHub] Your two-factor code ██████</td><td class="mono">content.mfa.subject_numeric_6</td><td class="mono">1</td><td style="color: #7b7568;">L4 ›</td></tr>
+          </tbody>
+        </table>
+        <div style="padding: 8px 14px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: #7b7568; border-top: 1px solid #ebe7e0;">
+          <span>‹ prev</span><span class="mono">1 2 3 4 5</span><span>next ›</span>
+          <div style="flex-grow: 1;"></div>
+          <span>the same row component renders in corpus, plan, gate and audit lenses</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -9,6 +9,7 @@ duplicate them — one home per fact, everywhere.
 | --- | --- |
 | [USE_CASES.md](./USE_CASES.md) | What the system is for: the outcomes on five axes, each with a falsifiable acceptance criterion |
 | [DESIGN.md](./DESIGN.md) | The pillars and invariants — and the **Glossary**, the single home for vocabulary. If a term needs defining, it gets defined there, never locally |
+| [docs/UI.md](./docs/UI.md) | The UI's design: the lens model, the zoom ladder, the screens, the palettes, the framework requirements, and the build guidance. Same split test as DESIGN.md, one component |
 | [ROADMAP.md](./ROADMAP.md) | All the work in one place: delivery posture, value path, units, dependencies, open decisions. The only top-level document that tracks build state |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: index, record format, statuses, and the granularity rule (one decision per record, cut by the re-argue test) |
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
@@ -16,6 +17,17 @@ duplicate them — one home per fact, everywhere.
 | [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is removed, written only from implementation time |
 
 Design questions resolve there, in that order: outcome → pillar/glossary → decision record.
+
+## Until v0.0.1 lands
+
+Nothing is implemented yet, so nothing in the document set is final. v0.0.1 is the first
+release, cut when the release pull request
+[#2](https://github.com/ppat/mediated-mailbox-mcp/pull/2) lands. Until then the design, the
+outcomes, the roadmap, and every decision record may be edited in place, including edits that
+reverse a decision, with no supersession and no new number, as long as the entire set stays
+internally consistent after the edit, checked as the `update-docs` skill's coherence check
+describes. The in-place-or-supersede rule stated in the decision-record index takes effect when
+v0.0.1 lands, and this section is removed then.
 
 ## Keep the documents current — a standing duty
 

@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    table { border-collapse: collapse; width: 100%; }
+    th { text-align: left; font-weight: 500; color: #9c9890; font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid #3b3734; }
+    td { padding: 7px 10px; border-bottom: 1px solid #3b3734; font-size: 12px; vertical-align: top; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 1280px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.4; box-sizing: border-box; display: flex; flex-direction: column;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div style="font-family: 'Patrick Hand', cursive; font-size: 18px; color: #9c9890;">ui · Plan reviewer</div>
+    <div style="font-family: 'Patrick Hand', cursive; font-size: 15px; color: #9c9890;">dark palette · sample data</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 16px; padding: 12px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; flex-shrink: 0;">
+      <span style="color: #9c9890;">account</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500;">personal</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <a href="#" style="display: inline-flex; align-items: center; gap: 4px; color: #9c9890; text-decoration: none; font-size: 12px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"></path></svg>
+      Home
+    </a>
+    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 16px; font-weight: 600;">Consolidate finance labels</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890;">7f3a9c…</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
+        <span style="padding: 2px 7px; border: 1px solid #ed9c55; border-radius: 3px; color: #ed9c55; font-weight: 500;">DRAFT</span>
+        <span style="color: #6c6863;">›</span>
+        <span style="padding: 2px 7px; border: 1px solid #3b3734; border-radius: 3px; color: #9c9890;">APPROVED</span>
+        <span style="color: #6c6863;">›</span>
+        <span style="padding: 2px 7px; border: 1px solid #3b3734; border-radius: 3px; color: #9c9890;">APPLYING</span>
+        <span style="color: #6c6863;">›</span>
+        <span style="padding: 2px 7px; border: 1px solid #3b3734; border-radius: 3px; color: #9c9890;">APPLIED</span>
+        <span style="color: #6c6863;">›</span>
+        <span style="padding: 2px 7px; border: 1px dashed #3b3734; border-radius: 3px; color: #9c9890;">ROLLED_BACK</span>
+        <span style="color: #9c9890; font-family: 'IBM Plex Sans', system-ui, sans-serif; margin-left: 6px;">side exits</span>
+        <span style="padding: 2px 7px; border: 1px dashed #3b3734; border-radius: 3px; color: #9c9890;">REJECTED</span>
+        <span style="padding: 2px 7px; border: 1px dashed #3b3734; border-radius: 3px; color: #9c9890;">APPLY_REFUSED</span>
+      </div>
+      <div style="color: #9c9890; font-size: 12px;">created 2026-09-08 14:02Z · age <span style="font-family: 'IBM Plex Mono', monospace;">1d 4h</span> of 14d maximum · validated at creation · proposed by client <span style="font-family: 'IBM Plex Mono', monospace;">agent</span></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto; flex-shrink: 0;">
+      <span style="font-family: 'Patrick Hand', cursive; font-size: 14px; color: #9c9890; max-width: 230px; line-height: 1.2; text-align: right;">approving writes status, approved_at and approved_by, nothing else. Rejecting writes REJECTED the same way</span>
+      <a href="#" style="display: inline-block; padding: 7px 14px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-weight: 500; background: #1f1c1a;">Reject</a>
+      <a href="#" style="display: inline-block; padding: 7px 14px; border: 1px solid #ed9c55; border-radius: 4px; color: #161311; background: #ed9c55; text-decoration: none; font-weight: 500;">Approve</a>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; padding: 16px 20px 24px 20px; flex-grow: 1;">
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; display: flex; flex-direction: column;">
+        <div style="padding: 10px 12px; border-bottom: 1px solid #3b3734; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Review sections</div>
+        <a href="#" style="display: flex; justify-content: space-between; padding: 8px 12px; text-decoration: none; border-bottom: 1px solid #3b3734;"><span>Summary</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; padding: 8px 12px; text-decoration: none; border-bottom: 1px solid #3b3734;"><span>Label ops</span><span style="font-family: 'IBM Plex Mono', monospace; color: #9c9890;">4</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; padding: 8px 12px; text-decoration: none; border-bottom: 1px solid #3b3734; background: #292623; border-left: 3px solid #ed9c55; font-weight: 500;"><span>Flows</span><span style="font-family: 'IBM Plex Mono', monospace; color: #9c9890;">4</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; padding: 8px 12px; text-decoration: none; border-bottom: 1px solid #3b3734;"><span>Restricted inside</span><span style="font-family: 'IBM Plex Mono', monospace; color: #f47b74;">1,242</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; padding: 8px 12px; text-decoration: none; border-bottom: 1px solid #3b3734;"><span>Sample</span><span style="font-family: 'IBM Plex Mono', monospace; color: #9c9890;">stratified</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; padding: 8px 12px; text-decoration: none; border-bottom: 1px solid #3b3734;"><span>Validation</span><span style="display: inline-flex; align-items: center; gap: 4px; color: #6fc082;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg>passed</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; padding: 8px 12px; text-decoration: none;"><span>History</span><span style="font-family: 'IBM Plex Mono', monospace; color: #9c9890;">1 event</span></a>
+      </div>
+
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 12px; display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: 12px;">
+        <span style="grid-column: 1 / -1; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890; margin-bottom: 2px;">Scale</span>
+        <span>messages</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right;">12,480</span>
+        <span>threads</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right;">3,911</span>
+        <span>of corpus</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right; font-weight: 500;">14.8%</span>
+        <span>new labels</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right;">2</span>
+        <span>restricted touched</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right; color: #f47b74;">1,242</span>
+        <div style="grid-column: 1 / -1; margin-top: 4px; width: 100%; height: 6px; border-radius: 2px; background: #292623; position: relative; display: flex;">
+          <div style="width: 14.8%; background: #59544f;"></div>
+          <div style="position: absolute; left: 25%; top: -3px; width: 1px; height: 12px; background: #9c9890;"></div>
+        </div>
+        <span style="grid-column: 1 / -1; color: #9c9890; font-size: 11px;">tick at 25%, the second-confirmation threshold</span>
+      </div>
+
+      <div style="font-family: 'Patrick Hand', cursive; font-size: 15px; line-height: 1.25; color: #9c9890; padding: 4px 8px;">
+        The rail is the diff's file list. Each section is one zoom ladder; the main area is wherever you last descended.
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9c9890;">
+        <a href="#" style="text-decoration: none;">plan 7f3a9c…</a>
+        <span>›</span>
+        <a href="#" style="text-decoration: none;">flow <span style="font-family: 'IBM Plex Mono', monospace;">INBOX → Finance/Statements</span></a>
+        <span>›</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid #3b3734; border-radius: 10px; background: #292623; color: #e1ddd7;">sender <span style="font-family: 'IBM Plex Mono', monospace;">fidelity.com</span>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+        </span>
+        <span style="margin-left: auto; font-family: 'Patrick Hand', cursive; font-size: 14px;">remove a chip to zoom out · every state is a URL</span>
+      </div>
+
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="display: flex; align-items: baseline; gap: 10px;"><span style="font-size: 15px; font-weight: 600;">Flows</span><span style="color: #9c9890; font-size: 12px;">L1 · where messages move, by label · 12,480 ops across 4 flows</span></div>
+          <div style="color: #9c9890; font-size: 12px;">click a band to descend</div>
+        </div>
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; padding: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890; padding: 0 4px;"><span>before</span><span>after</span></div>
+            <svg width="760" height="240" viewBox="0 0 760 240" style="display: block; max-width: 100%;">
+              <path d="M140,4 C380,4 380,4 620,4 L620,87 C380,87 380,87 140,87 Z" fill="#9c9890" fill-opacity="0.5" stroke="#9c9890" stroke-width="1"></path>
+              <path d="M140,87 C380,87 380,200 620,200 L620,228 C380,228 380,115 140,115 Z" fill="#59544f" fill-opacity="0.85"></path>
+              <path d="M140,127 C380,127 380,117 620,117 L620,188 C380,188 380,198 140,198 Z" fill="#59544f" fill-opacity="0.85"></path>
+              <path d="M140,210 C380,210 380,87 620,87 L620,105 C380,105 380,228 140,228 Z" fill="#59544f" fill-opacity="0.85"></path>
+              <rect x="0" y="4" width="140" height="111" fill="#1f1c1a" stroke="#e1ddd7" stroke-width="1"></rect>
+              <text x="10" y="24" font-family="IBM Plex Mono, monospace" font-size="12" fill="#e1ddd7">INBOX</text>
+              <text x="10" y="42" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" fill="#9c9890">6,940 leave</text>
+              <rect x="0" y="127" width="140" height="71" fill="#1f1c1a" stroke="#e1ddd7" stroke-width="1"></rect>
+              <text x="10" y="147" font-family="IBM Plex Mono, monospace" font-size="12" fill="#e1ddd7">bank</text>
+              <text x="10" y="165" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" fill="#9c9890">4,410 · renamed</text>
+              <rect x="0" y="210" width="140" height="18" fill="#1f1c1a" stroke="#e1ddd7" stroke-width="1"></rect>
+              <text x="10" y="223" font-family="IBM Plex Mono, monospace" font-size="11" fill="#e1ddd7">old-finance · 1,130</text>
+              <rect x="620" y="4" width="140" height="101" fill="#1f1c1a" stroke="#e1ddd7" stroke-width="1"></rect>
+              <text x="630" y="24" font-family="IBM Plex Mono, monospace" font-size="12" fill="#e1ddd7">Finance/Statements</text>
+              <text x="630" y="42" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" fill="#9c9890">6,338 arrive · new</text>
+              <rect x="620" y="117" width="140" height="71" fill="#1f1c1a" stroke="#e1ddd7" stroke-width="1"></rect>
+              <text x="630" y="137" font-family="IBM Plex Mono, monospace" font-size="12" fill="#e1ddd7">Finance/Banking</text>
+              <text x="630" y="155" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" fill="#9c9890">4,410 · from bank</text>
+              <rect x="620" y="200" width="140" height="28" fill="#1f1c1a" stroke="#e1ddd7" stroke-width="1"></rect>
+              <text x="630" y="218" font-family="IBM Plex Mono, monospace" font-size="12" fill="#e1ddd7">Finance/Tax · 1,732</text>
+              <text x="380" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#e1ddd7">5,208 · selected</text>
+              <text x="380" y="164" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#e1ddd7">4,410</text>
+            </svg>
+            <div style="font-family: 'Patrick Hand', cursive; font-size: 14px; color: #9c9890; padding: 0 4px;">band width is message count · INBOX stays on every message that gains a Finance label, so nothing leaves the inbox in this plan</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #3b3734; border-radius: 4px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) 60px 60px; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #3b3734; font-size: 11px; font-weight: 500; letter-spacing: 0.03em; text-transform: uppercase; color: #9c9890;"><span>flow</span><span style="text-align: right;">msgs</span><span style="text-align: right;">restr.</span></div>
+            <a href="#" style="display: grid; grid-template-columns: minmax(0, 1fr) 60px 60px; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #3b3734; text-decoration: none; background: #292623; font-family: 'IBM Plex Mono', monospace; font-size: 12px;"><span>INBOX → Finance/Statements</span><span style="text-align: right;">5,208</span><span style="text-align: right; color: #f47b74;">1,204</span></a>
+            <a href="#" style="display: grid; grid-template-columns: minmax(0, 1fr) 60px 60px; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #3b3734; text-decoration: none; font-family: 'IBM Plex Mono', monospace; font-size: 12px;"><span>bank → Finance/Banking</span><span style="text-align: right;">4,410</span><span style="text-align: right; color: #9c9890;">0</span></a>
+            <a href="#" style="display: grid; grid-template-columns: minmax(0, 1fr) 60px 60px; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #3b3734; text-decoration: none; font-family: 'IBM Plex Mono', monospace; font-size: 12px;"><span>INBOX → Finance/Tax</span><span style="text-align: right;">1,732</span><span style="text-align: right; color: #f47b74;">38</span></a>
+            <a href="#" style="display: grid; grid-template-columns: minmax(0, 1fr) 60px 60px; gap: 8px; padding: 8px 10px; text-decoration: none; font-family: 'IBM Plex Mono', monospace; font-size: 12px;"><span>old-finance → Finance/Statements</span><span style="text-align: right;">1,130</span><span style="text-align: right; color: #9c9890;">0</span></a>
+            <div style="padding: 8px 10px; border-top: 1px solid #3b3734; font-size: 11px; color: #9c9890;">restricted messages receive label and move only; the authorizer rechecks every op at apply time</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="display: flex; align-items: baseline; gap: 10px;"><span style="font-size: 15px; font-weight: 600;">Inside INBOX → Finance/Statements</span><span style="color: #9c9890; font-size: 12px;">L2 · 5,208 ops, grouped by sender domain</span></div>
+          <div style="display: flex; gap: 8px; font-size: 12px; color: #9c9890;"><span>group by</span><span style="padding: 1px 8px; border: 1px solid #e1ddd7; border-radius: 10px; color: #e1ddd7;">sender</span><span style="padding: 1px 8px; border: 1px solid #3b3734; border-radius: 10px;">reason</span><span style="padding: 1px 8px; border: 1px solid #3b3734; border-radius: 10px;">month</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 90px 90px 160px; gap: 12px; align-items: center; padding: 8px 16px; background: #292623; border-bottom: 1px solid #3b3734;">
+          <a href="#" style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; text-decoration: none;">fidelity.com</a>
+          <div style="height: 10px; display: flex;"><div style="width: 23%; background: #f47b74; opacity: 0.7;"></div></div>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">1,204</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-align: right; padding: 1px 6px; border: 1px solid #f47b74; border-radius: 3px; color: #f47b74; justify-self: end;">restricted</span>
+          <span style="color: #9c9890; font-size: 12px;">statement subject pattern</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 90px 90px 160px; gap: 12px; align-items: center; padding: 8px 16px;">
+          <a href="#" style="font-family: 'IBM Plex Mono', monospace; text-decoration: none;">e.capitalone.com</a>
+          <div style="height: 10px; display: flex;"><div style="width: 77%; background: #59544f;"></div></div>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right;">4,004</span>
+          <span style="font-size: 11px; color: #9c9890; text-align: right;">normal</span>
+          <span style="color: #9c9890; font-size: 12px;">statement subject pattern</span>
+        </div>
+      </div>
+
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #3b3734;">
+          <div style="display: flex; align-items: baseline; gap: 10px;"><span style="font-size: 15px; font-weight: 600;">Message ops</span><span style="color: #9c9890; font-size: 12px;">L3 · sender fidelity.com · showing a stratified sample of 3 from 1,204</span></div>
+          <div style="font-size: 12px; color: #9c9890;">page 1 · <a href="#">next</a></div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>from</th><th>subject</th><th>date</th><th>before → after</th><th>reason</th><th>sensitivity</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family: 'IBM Plex Mono', monospace;">statements@fidelity.com</td>
+              <td>Your September statement is available</td>
+              <td style="font-family: 'IBM Plex Mono', monospace; color: #9c9890;">2026-09-03</td>
+              <td style="font-family: 'IBM Plex Mono', monospace;">[INBOX] → [INBOX, <span style="font-weight: 500;">Finance/Statements</span>]</td>
+              <td style="color: #9c9890;">sender fidelity.com; statement subject pattern</td>
+              <td><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 1px 6px; border: 1px solid #f47b74; border-radius: 3px; color: #f47b74;">restricted</span> <span style="color: #9c9890; font-size: 11px;">skipped_restricted</span></td>
+            </tr>
+            <tr>
+              <td style="font-family: 'IBM Plex Mono', monospace;">statements@fidelity.com</td>
+              <td>Your August statement is available</td>
+              <td style="font-family: 'IBM Plex Mono', monospace; color: #9c9890;">2026-08-04</td>
+              <td style="font-family: 'IBM Plex Mono', monospace;">[INBOX] → [INBOX, <span style="font-weight: 500;">Finance/Statements</span>]</td>
+              <td style="color: #9c9890;">sender fidelity.com; statement subject pattern</td>
+              <td><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 1px 6px; border: 1px solid #f47b74; border-radius: 3px; color: #f47b74;">restricted</span> <span style="color: #9c9890; font-size: 11px;">skipped_restricted</span></td>
+            </tr>
+            <tr>
+              <td style="font-family: 'IBM Plex Mono', monospace;">alerts@fidelity.com</td>
+              <td>Trade confirmation for your account ending ••41</td>
+              <td style="font-family: 'IBM Plex Mono', monospace; color: #9c9890;">2026-07-19</td>
+              <td style="font-family: 'IBM Plex Mono', monospace;">[INBOX] → [INBOX, <span style="font-weight: 500;">Finance/Statements</span>]</td>
+              <td style="color: #9c9890;">sender fidelity.com</td>
+              <td><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 1px 6px; border: 1px solid #f47b74; border-radius: 3px; color: #f47b74;">restricted</span> <span style="color: #9c9890; font-size: 11px;">skipped_restricted</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; border-top: 1px solid #3b3734; font-size: 12px; color: #9c9890;">
+          <span>a row opens L4: the message's two sensitivity axes, rule ids, scan state, and its audit trail. No body exists to show.</span>
+          <span style="font-family: 'Patrick Hand', cursive; font-size: 14px;">same row component as corpus, masking, gate and audit</span>
+        </div>
+      </div>
+
+      <div style="background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">What approving means</div>
+        <div style="font-size: 14px; line-height: 1.5;">Approving applies <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500;">12,480</span> message operations across <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500;">3,911</span> threads (<span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500;">14.8%</span> of <span style="font-family: 'IBM Plex Mono', monospace;">personal</span>), creates 2 labels, renames 1, and deletes <span style="font-family: 'IBM Plex Mono', monospace;">old-finance</span> after it is emptied. The <span style="font-family: 'IBM Plex Mono', monospace; color: #f47b74;">1,242</span> restricted messages inside receive label and move operations only. The plan is re-validated and age-checked again immediately before its first write, and every operation is logged for exact rollback.</div>
+        <div style="font-size: 12px; color: #9c9890;">The decision is recorded as <span style="font-family: 'IBM Plex Mono', monospace;">approved_by</span> with the operator identity taken from the forwarded auth header when the deployment sets one, otherwise the configured operator name. This deployment: <span style="font-family: 'IBM Plex Mono', monospace; color: #e1ddd7;">Remote-User → operator</span>.</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 12px; border-top: 1px solid #3b3734;">
+          <div style="display: flex; align-items: center; gap: 10px; color: #9c9890;">
+            <div style="width: 16px; height: 16px; border: 1px solid #3b3734; border-radius: 3px; background: #292623;"></div>
+            <div style="font-size: 12px; line-height: 1.3;"><span style="font-weight: 500;">Second confirmation for a change over a quarter of the corpus</span><br>not required: this plan touches 14.8%. It becomes a typed confirmation at 25% and above.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+            <a href="#" style="display: inline-block; padding: 8px 16px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-weight: 500; background: #1f1c1a;">Reject</a>
+            <a href="#" style="display: inline-block; padding: 8px 16px; border: 1px solid #ed9c55; border-radius: 4px; color: #161311; background: #ed9c55; text-decoration: none; font-weight: 500;">Approve plan</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
