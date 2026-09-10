@@ -40,8 +40,8 @@ in days, and an eventual open-source audience.
     stays in CI forever;
   - exhaustiveness, sum-type, import-boundary, and unchecked-error linters run in CI as
     deputized enforcement for what the compiler does not check natively.
-- **The browser framework choice within the TypeScript layer is deliberately not made here** —
-  it stays an open decision until the work that needs it approaches.
+- **The browser framework choice within the TypeScript layer is deliberately not made here.**
+  It is [ADR-0063](./0063-browser-app-is-preact-with-signals.md)'s.
 
 ## Alternatives considered
 

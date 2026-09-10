@@ -529,8 +529,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Independent oracle** — a way to know the correct answer without running the code under
   test (the term is
   [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)'s).
-- **Marker text** — the searchable strings designed into synthetic fixture bodies so a leak
-  check over any output surface is deterministic (rule in ADR-0044, via the
+- **Marker text** — the searchable strings designed into synthetic fixture bodies and metadata
+  fields so a leak check over any output surface, a rendering surface included, is deterministic
+  (rule in ADR-0044, via the
   [decision-record index](./docs/adr/README.md)).
 - **Provider fake** — the contract-tested stand-in implementing the provider port in tests
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).

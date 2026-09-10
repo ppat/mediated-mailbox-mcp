@@ -15,6 +15,9 @@ fail once, by handing it the violation it exists to catch or by breaking the thi
 exercises, watch it go red, then restore the green. A drill or a manual exercise has nothing
 to demand red from, and the discipline does not reach it. For an ordinary test nothing
 records this, and an automatable control's tests repeat the act on the record
+([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). A control's test
+never reads the value it asserts from the code under test, and a lint ban that stands in for a
+control is proven by a checked-in file that violates it
 ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
 
 ## What to test, with what
@@ -30,7 +33,7 @@ row describes the control's code.
 | Any implementation of the provider port, the fake included | The one contract suite every port implementation must pass | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) |
 | Sequence-dependent stateful machinery where a crash is silent and hard to reverse | Generated crash-injection sequences from the crash harness, plus the physical drill the verification catalogue demands. ADR-0045 commits the first two targets, the reorg apply/rollback path and backfill resume, and defers any others | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) |
 | The assembled system on a bare cluster | The chart's own tests and the top-level chainsaw suite | [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) |
-| The UI's browser rendering layer, the rows, the ladder, and each screen | Example-based tests against fixture responses carrying the metadata marker text, asserting every marker arrives as text | [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md), on [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md)'s rendering rule |
+| The UI's browser rendering layer, the rows, the ladder, and each screen | Example-based tests run under bun against a DOM shim, on fixture responses recorded from the real server and carrying the metadata marker text, asserting every marker arrives as text in the form ADR-0064 requires | [ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md), on [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)'s markers and [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md)'s rendering rule |
 | A control, meaning a rule the system enforces | The tests that prove its [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) row where the row is automatable, plus its mutation demonstration at acceptance | [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) |
 
 **In standard vocabulary.** This project's unit tests are the example-based and the
@@ -47,8 +50,11 @@ Deep random search and deep crash-sequence exploration run scheduled, never gati
 ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md),
 [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A failing property
 input, once found, is stored and replayed on every later run
-([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)). Drills run at
-the unit that owes them, and their proof holds only for that date.
+([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)). The browser's
+rendering tests run in the gating suite on every change under the UI's directory, and the one
+assertion of the content security policy that only a browser can make is a drill
+([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
+Drills run at the unit that owes them, and their proof holds only for that date.
 
 ## The proof system
 
@@ -66,8 +72,9 @@ The chain from outcome to evidence, stated once.
    exercise prove only that the control worked on the day they ran, as
    [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) records them.
 4. At implementation, every automatable control also gets its mutation demonstration in
-   [docs/MUTATIONS.md](./docs/MUTATIONS.md). The mechanism is removed and the tests must go
-   red ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
+   [docs/MUTATIONS.md](./docs/MUTATIONS.md). The mechanism is removed by a
+   checked-in patch, the tests must go red, and the script records which ones did
+   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
 
 The two catalogues differ by what they prove and when they can be written. A verification row
 proves the control stops the violation it exists to stop, and it is minted at design time. A
@@ -80,11 +87,17 @@ the tests, and catches no system bugs of its own.
 Every mail fixture is synthetic, and real mail never enters the repository. Fixture bodies and
 fixture metadata fields carry designed marker text, so a leak search over any output surface is
 deterministic and a rendering surface can be checked for inert text
-([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)).
+([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)). The browser's fixture
+responses are recordings of the real server's output over those fixtures
+([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
 
 ## Deliberately absent
 
-- **Mocks, anywhere** ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)).
+- **Mocks, anywhere** ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)), the test runner's
+  own mock, spy, and stub functions included, which lint forbids
+  ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
+- **Property-based tests in the browser**
+  ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
 - **Coverage-percentage targets**
   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
 

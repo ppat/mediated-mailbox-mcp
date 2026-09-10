@@ -142,7 +142,7 @@ moves it. Records themselves link freely and deep, into
 | 0043 | [No mocking: tests run against the real dependency or a contract-tested fake](./engineering/0043-no-mocking.md) | Accepted |
 | 0044 | [Test data is synthetic, and fixtures carry designed marker text](./engineering/0044-synthetic-fixtures-marker-text.md) | Accepted |
 | 0045 | [Crash-injection stateful testing is aimed where silent failure meets hard-to-reverse damage](./engineering/0045-crash-injection-testing.md) | Accepted |
-| 0046 | [A test is evidence only once it has been seen to fail](./engineering/0046-tests-are-evidence-once-seen-to-fail.md) | Accepted |
+| 0046 | [A test is evidence only once seen to fail, with an expectation independent of the code under test](./engineering/0046-tests-are-evidence-once-seen-to-fail.md) | Accepted |
 | 0049 | [One image per deployable, all moving in lockstep](./engineering/0049-image-per-component-lockstep.md) | Accepted |
 | 0050 | [Shared code is pure, or it is a narrow, named exception](./engineering/0050-shared-code-pure-or-narrow.md) | Accepted |
 | 0051 | [The app knows its environment contract, never its platform](./engineering/0051-environment-contract.md) | Accepted |
@@ -151,3 +151,6 @@ moves it. Records themselves link freely and deep, into
 | 0054 | [One flat repository holds everything the project produces; one convention names what it publishes](./engineering/0054-one-repository-flat-layout-naming-convention.md) | Accepted |
 | 0055 | [A property-based test exists only to execute a safety rule the documents already state](./engineering/0055-property-based-safety-invariants.md) | Accepted |
 | 0060 | [No code runs inside the database: no triggers, stored procedures, or user-defined functions](./engineering/0060-no-code-in-the-database.md) | Accepted |
+| 0063 | [The browser app is Preact, with signals carrying data state and a generated URL grammar](./engineering/0063-browser-app-is-preact-with-signals.md) | Accepted |
+| 0064 | [The browser's tests run under bun against a DOM shim, on fixture responses recorded from the real server](./engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md) | Accepted |
+| 0065 | [The contract document is built explicitly from the registry, and the browser consumes it as generated types and a hand-written fetch](./engineering/0065-contract-built-from-registry-consumed-as-generated-types.md) | Accepted |
