@@ -28,6 +28,10 @@ to the designing session on 2026-09-09, and this is the policy that session chos
 
 ## Consequences
 
+- The browser toolchain's development server serves no policy header and injects an inline
+  script this policy would block, so the policy is exercised only against the built output the Go
+  handler serves. Its proof is split into permanent Go tests and one browser drill, as
+  [ADR-0064](../engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md) records.
 - The policy is a control. Its violation injection is catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - Assumptions about other components: the browser bundle has one origin, the UI's own, which

@@ -83,7 +83,7 @@ empty, deliberately.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
 MCP endpoint, no index, no gate, no deployment, and no proven property of any kind. Every claim in
-the design is authored, and none is yet demonstrated.
+the design is authored, and none is yet demonstrated by code in this repository.
 
 ## The value path
 
@@ -278,19 +278,21 @@ piece.
   ADR-0022).
 - [ ] **M3 — Reporting + approval UI** →
   [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) · V4 · ≈2–3 days
-  Corpus overview, plan diff and approval, review queue, masking events, gate decisions, audit
-  view, the live jobs view, and the failed-run drill-down, built to the design in
+  Corpus overview, plan diff and approval, review queue, masking events, gate decisions, audit view,
+  the live jobs view, and the failed-run drill-down, built to the design in
   [docs/UI.md](./docs/UI.md). Separate deployment and scoped database role. *Criteria:* the
   accepted-residual and masking loops become operator-reviewable. Message-derived text renders
   inert, the dataset registry refuses what it does not declare, and no lens answers without an
-  account (ADR-0056, ADR-0057). The content security policy holds (ADR-0062), and a verb
-  without its request token (ADR-0061) or its declared identity (ADR-0021) is refused. No UI
-  path writes a decision's status without its companion columns and, on confirm, its rule row
-  (ADR-0060).
-  The order of work within the unit is the framework spike first, then the registry and its
-  endpoint, the ladder and rows proven on masking events, the five lenses, the home, the review
-  queue's reads, the plan reviewer and plans list, jobs and the run, policy and system, and the
-  four decision requests last because they are the only writes.
+  account (ADR-0056, ADR-0057). The content security policy holds (ADR-0062), and a verb without its
+  request token (ADR-0061) or its declared identity (ADR-0021) is refused. No UI path writes a
+  decision's status without its companion columns and, on confirm, its rule row (ADR-0060). The
+  framework spike of [docs/UI.md](./docs/UI.md#16-framework-requirements) ran on 2026-09-10
+  **[measured]**, outside this repository and on the chosen candidate, so ADR-0063 weighs its result
+  and nothing from it is code here. The order of work within the unit is the registry and its
+  endpoint with the contract pipeline (ADR-0065), the recorded fixtures (ADR-0064), the ladder and
+  rows proven on masking events, the five lenses, the home, the review queue's reads, the plan
+  reviewer and plans list, jobs and the run, policy and system, and the four decision requests last
+  because they are the only writes.
 - [ ] **M4 — Heuristics job + embeddings** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) · V4 · ≈1–2 days
   Candidate generation into the review queue. Needs M3 to be useful, hence after it. *Criteria:*
@@ -416,10 +418,9 @@ Where a decision is recorded, the row cites its number, resolved through the
 | Decision | Gates | Standing |
 | --- | --- | --- |
 | Tier-3 model choice and training setup | X1 | Deliberately open. ADR-0006 defers it until real labeled data exists |
-| UI browser framework | M3 | ADR-0021 fixes the shape (small SPA, thin read API, two verbs) and ADR-0042 settles the languages (Go on the UI's server side, TypeScript in the browser). The requirements a candidate is judged against, and the spike that proves them, are stated in [docs/UI.md](./docs/UI.md#16-framework-requirements). The browser framework is deliberately unchosen until M3 approaches |
 | Live-update transport for the UI | M3 | ADR-0058 proposes server-sent events from the UI's Go server with polling as the fallback. The operator asked for the behavior on 2026-09-10 and has not ruled on the transport. Only the UI's stream client depends on it ([docs/UI.md](./docs/UI.md#9-live-surfaces)) |
 | Policy import and export to a file | nothing yet | ADR-0004 keeps a file form for import and export. The operator said on 2026-09-10 that such a mechanism may exist. No unit owns it and no record decides its shape |
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time. The value is unchosen |
 | Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2). Complexity and payoff at that point drive it |
-| Property-testing library | S1 | ADR-0055 fixes the requirements (bounded deterministic gating runs, stored failing examples replayed) and defers the library to implementation time |
+| Property-testing library | S1 | ADR-0055 fixes the requirements (bounded deterministic gating runs, stored failing examples replayed) and defers the library to implementation time. The browser owes no property test (ADR-0064) |
 | Data-access production mechanism | F2 | ADR-0047 fixes the approach (schema as sole authority, per-query result types, one shared library) and deliberately defers the mechanism (generation versus hand-written under the same discipline, and the specific tool) to its own record when F2 begins |

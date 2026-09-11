@@ -30,8 +30,9 @@ whole class rather than the instance.
   setting its policies read is set by application code like any other statement.
 - **Where a single decision needs several rows, the application writes them in one
   transaction, and tests carry the guarantee** that no path writes one without the others
-  ([ADR-0043](./0043-no-mocking.md)'s real-database tests and an
-  [ADR-0055](./0055-property-based-safety-invariants.md) property over the write paths).
+  ([ADR-0043](./0043-no-mocking.md)'s real-database tests, with every path that writes such a
+  decision exercised with a fault injected between its writes and required to leave nothing
+  behind).
 - **A grant widens rather than a trigger appearing.** When a verb's effect needs a write the
   role does not hold, the role gains that write and the record naming the grant says so
   ([ADR-0021](../mutation/0021-approval-surface.md) for the UI).

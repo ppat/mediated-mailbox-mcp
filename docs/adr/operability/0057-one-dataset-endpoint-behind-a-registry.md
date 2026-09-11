@@ -44,7 +44,8 @@ surface, applied to the UI's read API.
 - The registry bounds the read surface structurally. Two enumerated sources feed one contract
   generator, the dataset registry and the list of bespoke handlers, and a route outside both
   fails the build. The check that guards the surface is the generator's monopoly, as in
-  [ADR-0053](../engineering/0053-parity-by-construction.md).
+  [ADR-0053](../engineering/0053-parity-by-construction.md). The generator's tools are
+  [ADR-0065](../engineering/0065-contract-built-from-registry-consumed-as-generated-types.md)'s.
 - Assumptions about other components: the datasets are the tables of
   [ADR-0016](../data/0016-schema.md). The UI's database role reads them under
   [ADR-0021](../mutation/0021-approval-surface.md)'s grants. The account identifier is mandatory

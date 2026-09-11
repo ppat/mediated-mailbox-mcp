@@ -59,10 +59,11 @@ to start. Any record cited in a section and not listed here is read when that se
    written, the environment contract.
 3. This document, in order. Sections 3 to 7 are the model every screen instantiates. Section 8 is
    the screens. Sections 14 to 19 are what the code must be. Section 20 is what remains open.
-4. ADR-0056, ADR-0057, ADR-0058, ADR-0059, ADR-0060, ADR-0061, and ADR-0062, via the
-   [index](./adr/README.md), for why the shape, the read API, the live surfaces, the palettes,
-   the no-code-in-the-database rule, the request token, and the content security policy are
-   what they are, and what was rejected.
+4. ADR-0056, ADR-0057, ADR-0058, ADR-0059, ADR-0060, ADR-0061, ADR-0062, ADR-0063, ADR-0064, and
+   ADR-0065, via the [index](./adr/README.md), for why the shape, the read API, the live surfaces,
+   the palettes, the no-code-in-the-database rule, the request token, the content security policy,
+   the browser framework, the browser's tests, and the contract pipeline are what they are, and
+   what was rejected.
 5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0007, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
    ADR-0022, ADR-0025, ADR-0018, for the mechanisms the screens display. Read each when building
    the screen that shows it.
@@ -915,16 +916,16 @@ browser, the transport, the database connection, and the two decisions.
 - **Message-derived text is inert** ([section 11](#11-rendering-and-formatting-rules)).
 - **The UI never calls the mediator.** It has no route to it and no credential for it. Every read
   is the UI's own database role against the tables ADR-0021 grants.
-- The dependency tree is small and pinned, and the browser bundle ships as static files inside the
-  Go binary (ADR-0042), so the runtime has one origin and one process.
+- The dependency tree is small, pinned, and enumerated in a roster (ADR-0063), and the browser
+  bundle ships as static files inside the Go binary (ADR-0042), so the runtime has one origin and
+  one process.
 
 ## 16. Framework requirements
 
-The browser framework is an open decision in [ROADMAP.md](../ROADMAP.md). This design imposes
-requirements, not a pick. A candidate is judged against all twelve, with the plan reviewer as the
-proving screen because it exercises nested panels, URL state, streamed progress during apply, and
-the shared row component at once. The pick is a decision record to mint, with the candidates
-weighed.
+The twelve requirements below are what the browser framework must satisfy. ADR-0063 records the
+choice, the candidates weighed, and the spike that proved requirements 1, 2, 5, and 10 on the plan
+reviewer's skeleton. The plan reviewer is the proving screen because it exercises nested panels, URL
+state, streamed progress during apply, and the shared row component at once.
 
 1. Escapes text by default. No rendering path for message-derived fields may interpret markup.
 2. URL routing where the query string is the source of truth for account, dataset, filters,
@@ -945,11 +946,9 @@ weighed.
 11. High fluency for coding agents, since the maintainer is not a UI developer.
 12. Accessibility basics on tables, menus, and live regions.
 
-Whichever is picked, requirements 1, 2, 5, and 10 are proven by a spike before the pick is
-recorded, and the spike is the first step of M3 in [ROADMAP.md](../ROADMAP.md). The candidate
-builds the plan reviewer's skeleton (the rail, the ladder at two levels, one streamed progress bar,
-and the message row) against fixture responses whose subjects carry markup marker text, and the
-spike's result is weighed in the framework record.
+A spike of a candidate builds the plan reviewer's skeleton (the rail, the ladder at two levels, one
+streamed progress bar, and the message row) against fixture responses whose subjects carry markup
+marker text, served under the policy of [section 15](#15-security-of-the-ui-itself).
 
 ## 17. The read API
 
@@ -964,8 +963,8 @@ built from (ADR-0042, ADR-0057).
 **The contract.** Two enumerated sources feed one generator, the dataset registry and the list of
 bespoke handlers. A route outside both fails the build. The generator writes an OpenAPI 3
 document, checked in at `ui/contract/` and regenerated in CI, and an OpenAPI-to-TypeScript
-generator writes the browser's types from it. The generator tool is the builder's pick, recorded
-with the framework pick. The client surface of ADR-0030 already carries its contract as OpenAPI.
+generator writes the browser's types from it. The tools and the drift check are ADR-0065's. The
+client surface of ADR-0030 already carries its contract as OpenAPI.
 
 ### 17.1 The dataset endpoint
 
@@ -1112,8 +1111,8 @@ ui/
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
   browser/              the TypeScript app
     src/
-      generated/        types generated from ../../contract, never edited
-      app/              routing, the URL grammar, theme, the stream client
+      generated/        types and the dataset descriptor table, from ../../contract, never edited
+      app/              routing, the URL grammar, the cache, theme, the stream client
       lens/             the ladder shell, chart, cohort table, rows table, row detail
       row/              the message row, the sender row, the audit row, the page row, badges
       screens/          home, plan, plans, jobs, run, candidates, policy, system
@@ -1122,25 +1121,27 @@ ui/
 ```
 
 - **Build.** `bun build` produces `browser/dist`, the Go binary embeds it, and the image of
-  ADR-0049 carries the binary and nothing else. The contract document is generated from the
-  registry and the handler list in CI and the browser types from the document. A stale document
-  or stale types fail the build.
+  ADR-0049 carries the binary and nothing else. Every build passes the production define ADR-0063
+  names. The contract document is generated from the registry and the handler list in CI, and the
+  browser types and the descriptor table from the document. A stale document, stale types, or a
+  stale descriptor table fails the build (ADR-0065).
 - **Dev loop.** The Go server runs against a local Postgres with the synthetic fixtures, in plain
   HTTP under `UI_INSECURE_HTTP=true`, which the server refuses outside the dev loop (a build
   tag or the presence of the fixtures database, the builder's pick). The browser app runs under
   bun's dev server proxying `/api` to the Go server, with the same request token and identity
-  rules in force.
-- **Tests.** The Go side tests the registry, the queries, the error contract, the decisions, and
-  the stream against a real Postgres with synthetic fixtures, never a mock (ADR-0043, ADR-0044).
-  The browser side has example-based tests of the rows, the ladder, and each screen against
-  fixture responses whose subjects, display names, and reasons carry designed marker text of the
-  same kind ADR-0044 puts in fixture bodies, including markup markers, and asserts the marker
-  arrives inert on every surface. One integration test drives a fixture plan from DRAFT to
-  APPROVED through the real server. The decision transactions are proven against the real
-  database. Every path that writes a status is exercised with a fault injected between its writes
-  and must leave nothing behind, and a property test under ADR-0055
-  holds that no reachable path writes a status without its companion columns and, on confirm, its
-  rule row (ADR-0060).
+  rules in force. The dev server serves no policy header, so the policy of
+  [section 15](#15-security-of-the-ui-itself) is exercised only against the built output the Go
+  server serves (ADR-0064).
+- **Tests.** The Go side tests the registry, the queries, the error contract, the decisions, and the
+  stream against a real Postgres with synthetic fixtures, never a mock (ADR-0043, ADR-0044). The
+  browser side has example-based tests of the rows, the ladder, and each screen, run under bun
+  against a DOM shim, on fixture responses recorded from the real server. Their subjects, display
+  names, and reasons carry designed marker text of the same kind ADR-0044 puts in fixture bodies,
+  including markup markers, and every test asserts the marker arrives inert on every surface in the
+  form ADR-0064 requires. One integration test drives a fixture plan from DRAFT to APPROVED through
+  the real server. The decision transactions are proven against the real database. Every path that
+  writes a status is exercised with a fault injected between its writes and must leave nothing
+  behind (ADR-0060).
 
 ### 18.1 The configuration the UI declares
 
@@ -1180,7 +1181,8 @@ of [O2](../USE_CASES.md#o2--observable).
 
 **State model.** Route state is the URL. Data state is per request, keyed by the URL, cached for
 a few seconds. Live surfaces hold one stream subscription whose events replace the matching
-object in the data state. No global mutable store beyond these three.
+object in the data state. No global mutable store beyond these three. Which mechanism carries
+each is ADR-0063's decision.
 
 **What not to do.** Do not add a rendering path that interprets message-derived text. Do not add a
 decision, however small, without a record that widens ADR-0021's grant. Do not aggregate across
@@ -1191,10 +1193,9 @@ its validator. Do not read a header for identity unless the deployment declared 
 view state outside the URL. Do not put a trigger, a procedure, or a function in the database for
 anything (ADR-0060).
 
-**Tests the UI owes.** The rendering-inert control, the registry-refusal control, the per-account
-refusal control, the content security policy, the request-token and declared-identity refusals,
-and the whole-transaction decision control carry verification rows keyed to M3 in
-[docs/VERIFICATIONS.md](./VERIFICATIONS.md), and the grant row is already there.
+**Tests the UI owes.** Every control the UI carries is dispositioned in
+[docs/VERIFICATIONS.md](./VERIFICATIONS.md), as an injection row keyed to M3 or as a standing
+disposition, and that catalogue, not this document, is the list.
 [TESTING.md](../TESTING.md) decides the kinds.
 
 ## 20. What remains open
@@ -1204,8 +1205,7 @@ used. What is still open, and where it is tracked:
 
 | Open | Tracked in |
 | --- | --- |
-| The browser framework, picked after the spike of [section 16](#16-framework-requirements) | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
-| The live-update transport. ADR-0058 is Proposed; only the stream client depends on it ([section 9](#9-live-surfaces)) | the same table |
+| The live-update transport. ADR-0058 is Proposed; only the stream client depends on it ([section 9](#9-live-surfaces)) | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | the same table |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | nowhere yet, deliberately |
