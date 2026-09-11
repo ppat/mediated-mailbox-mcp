@@ -22,8 +22,18 @@ them. The choice decides what adding a view costs and how bounded the read surfa
   contract document and the browser's types are generated from it. A dataset or dimension the
   registry does not declare cannot be requested. The registry is what keeps the endpoint from
   becoming an open query surface.
-- **A new analysis view is a registry entry and a row renderer.** No new endpoint, no new
-  hand-written types.
+- **A new analysis view is a registry entry, a row renderer, and the statements that serve it.**
+  No new endpoint and no new hand-written types. The statements are not free, because the endpoint
+  is served by an enumerated set rather than by a composer
+  ([ADR-0066](../data/0066-data-access-generated-from-sql.md)), so a new dataset also costs one
+  statement per groupable dimension plus a summary and a rows query.
+- **A paged read is totally ordered.** Every sort the endpoint serves ends with the row's own
+  identity as its final key. Every default sort the datasets declare is over a column whose values
+  repeat, the rules dataset's sort by rule identifier excepted, so without a unique final key two
+  rows with equal sort values have no defined order between them, and the same query run twice can
+  place a row on either side of a page boundary. The reader then sees a row twice or never sees
+  it. How the rule is checked is a mechanism question and belongs to
+  [ADR-0066](../data/0066-data-access-generated-from-sql.md).
 - **Bespoke endpoints exist only where a screen needs a shape the ladder does not produce.** The
   plan reviewer's summary and label operations, the jobs surfaces, and the two verbs.
 

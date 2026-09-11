@@ -27,14 +27,40 @@ parameters ([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
 - **Every data-access signature requires the account identifier.** The repository-layer rule
   [ADR-0016](./0016-schema.md) states becomes a fact of the function signatures; omitting the
   account is a compile error, not a runtime surprise.
+- **And every statement against an account-keyed table carries an account predicate.** The
+  signature rule above guarantees the account reaches the function. It does not guarantee the
+  account reaches the query, and a function that takes the account and omits the predicate
+  compiles and passes review. The predicate rule closes that gap and is the second of three
+  layers, between the signature the compiler checks and the row-level security
+  [ADR-0016](./0016-schema.md) keeps behind both. The rule reaches every statement, insert and
+  delete included, where an insert supplies the account as a column value rather than as a
+  predicate. Three exceptions are stated. They are exceptions to this predicate rule and not to
+  [ADR-0016](./0016-schema.md)'s keying rule, which states two of its own, because a table can be
+  keyed on the account and still be reached without a predicate of its own. Base policy rows carry
+  a null account and are inherited by every account, so the predicate there is the account or null
+  ([ADR-0004](../classification/0004-sender-list-decides.md)). The accounts listing is
+  deliberately unscoped ([docs/UI.md](../../UI.md#17-the-read-api)). And the operation log carries
+  no account column at all, so it is reached through its plan rather than by a predicate of its
+  own. **How the rule is checked is a mechanism question and belongs to
+  [ADR-0066](./0066-data-access-generated-from-sql.md)**, which also records why a query set
+  declared as files is checkable by a build step where statements assembled at run time are not.
+- **The account-keyed table list is derived from the schema rather than maintained by hand.** Any
+  table with an account column is account-keyed, with the exceptions above named explicitly and
+  the list of exceptions itself checked against the schema. A hand-kept list goes stale the first
+  time a migration adds a table and nobody remembers.
+- **Every unit of data access runs in a transaction that has set the account and has verified it
+  is set.** The verification is not ceremony. [ADR-0016](./0016-schema.md) records why the
+  database cannot raise here and why the resulting deny is silent, and this is where the
+  compensating assertion lives.
 - **One data-access library, produced from the one schema, serves every component** — so drift
   between the schema, the queries, and the result types is a build failure everywhere at once
   rather than a runtime discovery in one workload. The library is impure shared code, deliberately
   outside the pure core; it is a narrow, single-concern library. Whether its accessors are
-  generated or hand-written under the same discipline, and by which tool, is an
-  implementation-time decision with its own record.
-- **Row-level security stays the independent second layer**, exactly as
-  [ADR-0016](./0016-schema.md) names it — nothing here substitutes for it.
+  generated or hand-written under the same discipline, and by which tool, was left to its own
+  record and is decided by [ADR-0066](./0066-data-access-generated-from-sql.md).
+- **Row-level security stays the independent third layer**, behind the signature rule and the
+  predicate rule, exactly as [ADR-0016](./0016-schema.md) names it. Nothing here substitutes for
+  it.
 
 ## Alternatives considered
 

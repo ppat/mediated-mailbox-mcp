@@ -426,7 +426,7 @@ rather than the documented one, and never lets background work starve interactiv
   the fact. The scan-gate-decision record is what turns an accepted risk into an audited one.
 - A body served, denied, or a mutation applied without an audit record. Because the mediator
   holds full credentials, an audit log that a compromised mediator could erase also falsifies
-  this, so the log must ship off-cluster.
+  this, so no runtime role may alter or remove an audit record, whether or not it writes them.
 
 *Why this outcome is unlike the others:* it can only be falsified retrospectively, and by then the
 data is gone. A metric not collected for a window already passed is lost for good. A dashboard on
@@ -449,7 +449,7 @@ a metric that exists is a configuration change.
 - The mediation layer being compromised without that being the design's acknowledged irreducible
   trust anchor. If the pod is compromised, redaction is moot because the attacker calls the
   provider directly. The outcome is therefore not "this cannot happen" but "this is hardened, its
-  blast radius is understood, and evidence of it survives off-cluster."
+  blast radius is understood, and evidence written before it survives it."
 
 ### O4 — The operator can see and steer
 

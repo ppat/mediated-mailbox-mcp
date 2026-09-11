@@ -75,5 +75,15 @@ value is legibility plus two buttons. Its design is [docs/UI.md](../../UI.md).
   can only add a restriction and whose invalid rules never take effect
   ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). A compromised UI cannot
   read a mailbox, serve a body, or mutate mail directly.
+- A write that changed nothing must not reach the operator as a successful one. The two ways a
+  write can fail here behave oppositely. A grant the role does not hold raises, so it is visible on
+  its own. A policy that excludes the row instead empties the statement, which succeeds having
+  changed nothing, and without care that reaches the operator as the stale-status conflict the
+  expected-status check produces, which is the wrong account of what happened. Telling those apart
+  is a mechanism question and belongs to
+  [ADR-0066](../data/0066-data-access-generated-from-sql.md). One consequence of the grant being
+  the control is that its refusal names the table and not the column, so it carries nothing the
+  operator could act on and maps to the internal-fault origin of the error contract rather than to
+  a client fault.
 - The UI is where the operator's standing duties live — plan review, candidate review, masking
   review — so its legibility is a safety property, not a nicety.

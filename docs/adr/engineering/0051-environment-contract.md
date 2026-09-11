@@ -36,8 +36,9 @@ application's business.
   override parameter on the client surface; the same logic holds on the configuration
   surface — the dangerous knob does not exist, rather than defaulting safe.
 - **The observability split:** the app emits — the metrics endpoint, logs to standard output,
-  audit rows to the database — and the collection, shipping, and retention that follow are the
-  platform's.
+  audit rows to the database — and the collection, shipping, and retention of what it emits are
+  the platform's. Retention of the audit table itself is not covered here and is an open decision
+  in [ROADMAP.md](../../../ROADMAP.md).
 
 ## Alternatives considered
 
@@ -56,9 +57,6 @@ application's business.
 - Assumptions about other components: the platform captures standard output and scrapes the
   metrics endpoint; something delivers configuration and secret files and keeps them current
   ([ADR-0038](../operability/0038-credentials-as-mounted-files.md),
-  [ADR-0041](./0041-policy-as-immutable-snapshots.md)); something outside the application ships
-  the audit record off-cluster
-  ([ADR-0028](../operability/0028-trust-anchor-hardening.md)) — which destination it ships to
-  changes nothing on the application side; and the readiness probe's contract — refuse traffic
-  while a known-sensitive fixture is not denied — is an HTTP endpoint any healthcheck can
-  drive.
+  [ADR-0041](./0041-policy-as-immutable-snapshots.md)); and the readiness probe's contract —
+  refuse traffic while a known-sensitive fixture is not denied — is an HTTP endpoint any
+  healthcheck can drive.

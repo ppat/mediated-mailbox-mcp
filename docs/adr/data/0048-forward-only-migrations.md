@@ -27,11 +27,6 @@ in lockstep, so there is no long window in which old code runs against new schem
   runtime roles hold no DDL rights — the same role discipline that scopes the approval
   surface's grants ([ADR-0021](../mutation/0021-approval-surface.md)), applied to schema
   change.
-- **Partition lifecycle is routine operation, not migration.** A new account's `messages`
-  partition is an idempotent ensure step at account creation
-  ([ADR-0026](../provider/0026-multi-account-contexts.md): a new account is a new context,
-  credential, and partition); the audit log's time-range partitions are created ahead of the
-  write cursor the same way. Hand-run migrations are for shape changes, never for the calendar.
 
 ## Alternatives considered
 
@@ -40,9 +35,9 @@ in lockstep, so there is no long window in which old code runs against new schem
   in a generated diff nobody is prompted to argue with, which is exactly how
   [ADR-0016](./0016-schema.md)'s no-body comment would stop binding.
 - **Down migrations.** The case for them: the conventional rollback story. Rejected: against a
-  partitioned, data-bearing schema they are a fiction that rots — the from-empty chain only
-  ever tests the forward direction, so the down path is untested by construction, and the real
-  recovery path is forward anyway.
+  data-bearing schema they are a fiction that rots — the from-empty chain only ever tests the
+  forward direction, so the down path is untested by construction, and the real recovery path is
+  forward anyway.
 
 ## Consequences
 

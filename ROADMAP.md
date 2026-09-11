@@ -27,7 +27,7 @@ rule binds both directions. Every ticket names the one unit it serves, every uni
 tickets, and the **Position** line below is re-dated whenever the checklists are reconciled
 against the tickets, so staleness is detectable instead of silent.
 
-**Position: 2026-09-10.**
+**Position: 2026-09-11.**
 
 ## Delivery posture
 
@@ -156,9 +156,9 @@ must change to accommodate it, the contract was wrong, and finding that out chea
 ### V6 — Hardening and the learned tier
 
 **Units:** [H1](#group-h--hardening) · [X1](#group-x--expansion).
-**Value shipped:** off-cluster audit evidence, dashboards and alerts over the metrics that have
-been accumulating since V2, admission-enforced pod policy, backup verification, plus the learned
-detection tier, trained on the labeled data the earlier bands produced.
+**Value shipped:** dashboards and alerts over the metrics that have been accumulating since V2,
+admission-enforced pod policy, backup verification, plus the learned detection tier, trained on
+the labeled data the earlier bands produced.
 **One disposition inside this band:** deferring dashboards is a deliberate trade. The
 *emission* is non-deferrable and has been riding every unit. The *presentation* is cheap to pull
 forward any time.
@@ -204,7 +204,9 @@ What everything runs on. Credentials, store, adapter, budget.
 - [ ] **F2 — Postgres + schema + Gmail adapter, metadata path** →
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · V2 · ≈2 days
   Metadata-only fetches throughout. Seed a sensitive fixture and verify no snippet survives the
-  gate. Confirm partitioning and account-scoped query enforcement before there is data to migrate.
+  gate. Confirm account-scoped query enforcement, the append-only audit grants, and the
+  operation log's plan-scoped policy before there is data to migrate. This unit carries the data
+  layer's tooling (ADR-0066, ADR-0067, ADR-0068) and most of its controls.
 - [ ] **F3 — Rate limiter + Gmail cost profile** →
   [O1](./USE_CASES.md#o1--rate-limited-politely) · V2 · ≈1 day
   Cost profile, adaptive controller, priority classes, database lease coordination, all tested
@@ -322,10 +324,10 @@ Each unit is a deliberate test of a contract authored long before it.
 
 - [ ] **H1 — Operational hardening** →
   [O2](./USE_CASES.md#o2--observable) · V6
-  Off-cluster audit shipping, dashboards and alerts over the long-emitting metrics (deny rate,
-  unclassified-sender volume, scan backlog, gate skip rate, body-fetch rate, rate-controller
-  gauges), admission-enforced pod policy, backup verification. Carries
-  [O3](./USE_CASES.md#o3--survives-its-failure-modes)'s remaining drills (flagged, not split).
+  Dashboards and alerts over the long-emitting metrics (deny rate, unclassified-sender volume,
+  scan backlog, gate skip rate, body-fetch rate, rate-controller gauges), admission-enforced pod
+  policy, backup verification. Carries [O3](./USE_CASES.md#o3--survives-its-failure-modes)'s
+  remaining drills (flagged, not split).
 
 ### The mapping at a glance
 
@@ -347,7 +349,7 @@ Each unit is a deliberate test of a contract authored long before it.
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | S3 | — |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | F3 | — |
-| [O2](./USE_CASES.md#o2--observable) observable | H1 | Emission rides S1 · S2 · F3 · D2 · D3 as criteria. H1 is presentation and shipping |
+| [O2](./USE_CASES.md#o2--observable) observable | H1 | Emission rides S1 · S2 · F3 · D2 · D3 as criteria. H1 is presentation |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F1 | Drills ride D1 (kill mid-run) · F3 (rate-controller pathology) · H1 (the rest). The gap-recovery drill keys to G4 and the rollback drill to A3 |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 | — |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Rides D3 as criteria, flagged in Group D's preamble. The system-status read (ADR-0034) is the transparency half |
@@ -423,4 +425,6 @@ Where a decision is recorded, the row cites its number, resolved through the
 | Maximum plan age | M2 | ADR-0032 requires rejecting plans older than a maximum age at apply time. The value is unchosen |
 | Real-provider contract-suite runs | nothing yet | ADR-0043 defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F2). Complexity and payoff at that point drive it |
 | Property-testing library | S1 | ADR-0055 fixes the requirements (bounded deterministic gating runs, stored failing examples replayed) and defers the library to implementation time. The browser owes no property test (ADR-0064) |
-| Data-access production mechanism | F2 | ADR-0047 fixes the approach (schema as sole authority, per-query result types, one shared library) and deliberately defers the mechanism (generation versus hand-written under the same discipline, and the specific tool) to its own record when F2 begins |
+| Where the generated per-role data-access packages live | F2 | ADR-0066 leaves this open deliberately and states both options with their trade. Cheap to reverse |
+| How many runtime database roles exist | F2 | ADR-0048 gives migrations their own role and ADR-0021 gives the user interface its own. The mapping from the six deployables to runtime roles is stated nowhere, and ADR-0066's per-role package split needs it before the generator is configured |
+| Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it (ADR-0016), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |

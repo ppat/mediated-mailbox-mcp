@@ -33,10 +33,13 @@ The rules that keep accounts from bleeding:
 
 - **`account_id` is required on every client-surface operation** (API endpoint or MCP tool).
   There is no implicit current account; omission is an error, not a default.
-- **Every table is partitioned or indexed on `account_id`**, with the two exceptions
-  [ADR-0016](../data/0016-schema.md) names (the op log, scoped through its plan, and the base
-  policy rows every account inherits), all queries go through a repository layer that requires
-  it, and row-level security stands behind that as a second, independent layer.
+- **Every table is indexed on `account_id`**, with the two exceptions
+  [ADR-0016](../data/0016-schema.md) names (the op log, which carries no account column and is
+  reached through its plan, and the base policy rows every account inherits). All queries go
+  through a repository layer that requires the account, every statement against an account-keyed
+  table carries an account predicate
+  ([ADR-0047](../data/0047-schema-first-data-access.md)), and row-level security stands behind
+  both as a third, independent layer.
 - **Per-account clients, never a shared pool.** A shared HTTP client with a mutable auth header is
   the classic way cross-account leakage happens under concurrency; giving each context its own
   authenticated client makes the bleed unrepresentable.
@@ -65,5 +68,5 @@ carries the unit).
 
 ## Consequences
 
-- Horizontal growth needs no redesign: a new account is a new context, credential, and partition,
-  not new machinery.
+- Horizontal growth needs no redesign, because a new account is a new context and a new credential
+  rather than new machinery.

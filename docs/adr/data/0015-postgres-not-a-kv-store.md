@@ -19,7 +19,7 @@ per question. The project needs a store for the metadata index as well as its ow
 | Ad-hoc relational analytics | native SQL | manual index per query shape |
 | Multi-column filtering | query planner | pre-computed key patterns |
 | Transactional bulk update during reorg | native | no multi-key transactions with rollback |
-| Durable audit log with retention | partitioned tables | awkward |
+| Durable audit log, append-only by grant | ordinary table, time-indexed, grants that withhold update and delete | awkward |
 | Schema evolution | migrations | rewrite key layout |
 | Subject search | trigram indexes (`pg_trgm`) | none |
 | Sender embeddings | `pgvector` | separate store |
