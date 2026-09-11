@@ -906,7 +906,7 @@ browser, the transport, the database connection, and the two decisions.
   configured operator name and trusts nothing from the request.
 - **The database connection carries the account.** Per request the UI opens a transaction and
   sets the transaction-local setting `app.account`, which the row-level security policies of
-  ADR-0016's second layer read, by an ordinary statement like every other process.
+  ADR-0016's third layer read, by an ordinary statement like every other process.
 - **A decision is one transaction, written by the UI's own code.** The status, the decision time,
   and the identity are written together, and a confirmation also inserts its policy rule row in
   the same transaction (ADR-0021). No code runs inside the database to complete a decision
@@ -1001,13 +1001,14 @@ a row page. The level rules and the filter grammar of
 Aggregate rows and the total carry `count`, and for message-derived datasets (`messages`,
 `masking`, `gate`, `audit`, `ops`, `failures`) also `restricted` (rows whose message's sender is
 restricted) and `flagged` (rows whose message carries a content flag), so every chart splits by
-sensitivity without a second request. Both read `messages.sender_class` and `messages.content_flags`
-at read time, the index's current values. `senders` carries neither, and its rows carry the
-sender's class. Group keys are the dimension values as stored, with `null` for the unfiled label
-group and for an audit row with no message. Row pages are offset-paginated, 50 rows per page, with
-the page count, and no other page size exists. A row is the dataset's row type, which begins with
-the message-row fields of [section 7.1](#71-the-message-row) where the dataset is message-derived,
-and every row carries its identity (`message_id`, or `id` for masking and audit rows, or `seq` for
+sensitivity without a second request. Both read `messages.sender_class` and
+`messages.content_flags` at read time, the index's current values. `senders` carries neither, and
+its rows carry the sender's class. Group keys are the dimension values as stored, with `null` for
+the unfiled label group and for an audit row with no message. Row pages are offset-paginated, 50
+rows per page, with the page count, and no other page size exists. Every sort ends with the row's
+own identity as its final key (ADR-0057). A row is the dataset's row type, which begins with the
+message-row fields of [section 7.1](#71-the-message-row) where the dataset is message-derived, and
+every row carries its identity (`message_id`, or `id` for masking and audit rows, or `seq` for
 failures).
 
 `GET /api/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset) returns one
@@ -1030,7 +1031,7 @@ catalogue are generated.
 | values | for a column with a closed set of values, the values as stored, from which the wording table is keyed |
 | default | the default group, level, range, and sort |
 | summary | the query for the L0 figures, each with its key, wording, unit, and link |
-| queries | the query for aggregates at each level and for rows, parameterized by account, filters, group, sort, and page, written against the schema per ADR-0047 |
+| queries | one statement per groupable dimension for the aggregate levels, plus one for rows, each parameterized by account, filters, sort and page, written against the schema per ADR-0047 and enumerated rather than composed per ADR-0066 |
 | provenance | optional. The query that fetches one row's detail. `senders`, `plans`, and `candidates` declare none |
 
 Event datasets (`masking`, `gate`, `audit`, `failures`) join their event table to `messages` by

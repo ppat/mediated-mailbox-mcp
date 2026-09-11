@@ -25,7 +25,7 @@ whole class rather than the instance.
   as ordinary code.
 - **Declarative database features stay.** Constraints, indexes, partitioning, row-level
   security policies, and grants are not code. They express a rule the database checks. They do
-  not execute logic the application did not write. Row-level security remains the second
+  not execute logic the application did not write. Row-level security remains the third
   isolation layer [ADR-0016](../data/0016-schema.md) names, and the per-transaction account
   setting its policies read is set by application code like any other statement.
 - **Where a single decision needs several rows, the application writes them in one

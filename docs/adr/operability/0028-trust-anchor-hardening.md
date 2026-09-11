@@ -35,5 +35,9 @@ Layered hardening, each layer answering one of those three questions:
 
 - Alerting based on logs is a deployment platform and environment specific concern as is the backups
   of state store.
-- Off-cluster audit shipping becomes a standing infrastructure dependency, accepted for what it
-  buys; its delivery is scheduled work in [ROADMAP.md](../../../ROADMAP.md).
+- Evidence written before a compromise survives it without depending on anything outside the
+  cluster, because the audit log is append-only to every runtime role
+  ([ADR-0016](../data/0016-schema.md)). That bounds the claim rather than absolutising it. An
+  attacker holding the process governs what is written from that moment on, and what happens to
+  the emitted rows and logs afterwards is the platform's
+  ([ADR-0051](../engineering/0051-environment-contract.md)), not this project's.

@@ -321,8 +321,9 @@ enforced by code, not the token. The design accepts this as the irreducible trus
 than pretending otherwise, and directs the hardening there.
 
 Known limit, stated rather than hidden: this is the one failure the design cannot make
-unrepresentable, only expensive, detectable, and evidenced, which is why the audit trail must ship
-somewhere a compromised mediator cannot erase.
+unrepresentable, only expensive, detectable, and evidenced, which is why no runtime role can erase
+an audit row. What that buys is bounded. Evidence written before a compromise survives it. What an
+attacker writes afterwards is theirs.
 
 ### Concerns stay un-braided; components know only their contracts
 
@@ -363,10 +364,11 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding every unit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
-| Mediator compromise defeats redaction | ADR-0028 (hardening, blast radius, off-cluster evidence) |
+| Mediator compromise defeats redaction | ADR-0028 (hardening, blast radius, evidence that survives) |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
 | Un-braided concerns and contract-only knowledge are only tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
-| The corpus is assumed ≤100k messages per account | ADR-0016 records what changes beyond it |
+| The corpus is assumed ≤100k messages per account | ADR-0016 records what changes beyond it, and ADR-0066 what stops being affordable |
+| Nothing in the running system can trim the audit log, because no runtime role may delete from it | ADR-0016, with the retention question open in [ROADMAP.md](./ROADMAP.md) |
 
 ## 4. Failure modes
 
@@ -497,6 +499,18 @@ top-level documents, a decision record, or a ticket from here without guessing.
   the [decision-record index](./docs/adr/README.md)).
 - **Op log** — the per-operation before/after record written during plan application, from which
   rollback is exact replay, not inference.
+- **Statement file** — one hand-written SQL file the data-access generator reads. How the files
+  are grouped, what they may contain, and what is generated from them are ADR-0066's (via the
+  [decision-record index](./docs/adr/README.md)).
+- **Account-keyed table** — a table carrying an `account_id` column. What every statement against
+  one must do, how the set of them is established, and which tables are excepted are ADR-0047's
+  (via the [decision-record index](./docs/adr/README.md)).
+- **Runtime role** — a database role a running deployable connects as, holding only the grants its
+  work needs, as distinct from the schema-owning role the migration step uses (roles in ADR-0048
+  and ADR-0021, via the [decision-record index](./docs/adr/README.md)).
+- **The migration chain** — the ordered set of hand-written migration files that builds the
+  schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's
+  (via the [decision-record index](./docs/adr/README.md)).
 - **Mutation Authorizer** — the mediator component that checks every write against the message's
   sensitivity, independently of who approved what. Mutation here is the mailbox-write sense,
   not the test-suite sense of **Mutation demonstration**.
@@ -510,7 +524,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Lease** — a short-lived allocation of rate budget to one process, the mechanism by which
   separate workloads share one per-account budget without a coordinator process.
 - **Audit log** — the record of every body served, every denial, and every mutation. Must survive
-  mediator compromise, so it ships off-cluster.
+  mediator compromise, so no runtime role may update or delete a row of it (grant and bound in
+  ADR-0016 and ADR-0028, via the [decision-record index](./docs/adr/README.md)).
 - **Masking events / gate decisions** — the per-event records that make masking behavior and scan
   skips tunable from evidence.
 

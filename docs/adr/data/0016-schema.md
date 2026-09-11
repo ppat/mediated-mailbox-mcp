@@ -81,7 +81,7 @@ CREATE TABLE messages (
   scanned_at       timestamptz,
   scanner_version  int,
   PRIMARY KEY (account_id, message_id)
-) PARTITION BY LIST (account_id);
+);
 -- NOTE: no body, no snippet, no excerpt column. By design.
 -- A future migration proposing one is violating the design, not extending it.
 
@@ -223,7 +223,7 @@ CREATE TABLE job_run_failures (           -- a run's per-item failures
 );
 
 CREATE TABLE audit_log (
-  id          bigserial,
+  id          bigserial PRIMARY KEY,
   ts          timestamptz NOT NULL DEFAULT now(),
   account_id  text NOT NULL,
   actor       text NOT NULL,
@@ -231,7 +231,8 @@ CREATE TABLE audit_log (
   message_id  text,
   sensitivity jsonb,
   rule_ids    text[]
-) PARTITION BY RANGE (ts);
+);
+-- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention.
 CREATE INDEX ON audit_log (account_id, ts DESC);
 ```
 
@@ -239,13 +240,27 @@ The properties the shape enforces:
 
 - **No body, snippet, or excerpt column exists anywhere.** The comment in the DDL is part of the
   decision: a future migration adding one is violating the design, not extending it.
-- **Every table keys on `account_id`;** `messages` is list-partitioned by it. All access goes
-  through a repository layer that requires an account, with row-level security as a second,
-  independent layer. The policies read the transaction-local setting `app.account`, which every
-  process sets before reading, by an ordinary statement and never by database-resident code
+- **Every table keys on `account_id`.** All access goes through a repository layer that requires
+  an account, every statement against an account-keyed table carries an account predicate
+  ([ADR-0047](./0047-schema-first-data-access.md)), and row-level security stands behind both as a
+  third, independent layer. The policies read the transaction-local setting `app.account`, which
+  every process sets before reading, by an ordinary statement and never by database-resident code
   ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The two exceptions are stated:
-  `reorg_op_log` is scoped through its plan, and `policy_rules` rows with a null account are the
-  base policy every account inherits ([ADR-0004](../classification/0004-sender-list-decides.md)).
+  `policy_rules` rows with a null account are the base policy every account inherits
+  ([ADR-0004](../classification/0004-sender-list-decides.md)), and `reorg_op_log` carries no
+  account column at all and is scoped through its plan, by a policy whose predicate reaches the
+  plan's account. That policy's parent lookup is evaluated once per statement rather than once per
+  row, so scoping it costs materially less than the foreign key the same writes already carry.
+- **The deny state of that third layer is silent, and the application compensates.** Once a
+  connection has set `app.account`, Postgres keeps the parameter known and resets it to the empty
+  string between transactions rather than to unrecognised. A statement that then omits the setting
+  raises on a connection drawn fresh and returns no rows without error on one drawn warm, so under
+  a pool the behaviour depends on which connection was drawn. No policy expression can raise,
+  because [ADR-0060](../engineering/0060-no-code-in-the-database.md) bars the database-resident
+  function that would. The shared transaction helper therefore reads the setting back after
+  setting it and fails the transaction when it is empty. The general asymmetry behind this is
+  worth carrying. An insert a policy refuses raises, while a select or update a policy empties
+  returns quietly.
 - **The stored spellings of every enumerated column are the ones the DDL comments show**, in
   lowercase snake case where a record names the state in capitals (`skipped_gate` for
   [ADR-0007](../redaction/0007-composite-scan-gate.md)'s `SKIPPED_GATE`). Plan statuses keep
@@ -260,7 +275,12 @@ The properties the shape enforces:
 - **Masked subjects are stored masked** — the index never holds a live code.
 - **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
   (`scan_state = 'pending'`) directly.
-- **The audit log is range-partitioned by time**, for durable retention.
+- **The audit log is append-only to every runtime role.** No runtime role holds update or delete
+  on it, whichever component writes it. This is a property of the table's grants rather than of
+  any one role, so it keeps holding as components are added, and it is what makes evidence written
+  before a compromise survive that compromise without depending on anything outside the cluster
+  ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). It bounds rather than absolutises
+  the claim, because an attacker holding the process governs what is written from that moment on.
 
 ## Alternatives considered
 
@@ -281,8 +301,14 @@ The properties the shape enforces:
   `reorg_plan_ops` rows the engine writes when the plan is saved, so the UI can group tens of
   thousands of operations by flow, sender, and sensitivity in SQL
   ([ADR-0056](../operability/0056-ui-organized-around-the-operators-work.md)).
-- The corpus is assumed to stay on the order of 100k messages per account. Millions would not
-  change the store choice but would make partitioning, retention, and backfill planning real
-  design work rather than a schema detail — recorded as a known limit in
-  [DESIGN.md](../../../DESIGN.md#3-known-limits).
+- The corpus is assumed to stay on the order of 100k messages per account, and nothing is
+  partitioned, because at that size partitioning earns nothing that the account predicate and
+  row-level security do not already carry. Millions would not change the store choice but would
+  make partitioning, retention, and backfill planning real design work rather than a schema
+  detail, and would also make the enumerated statement shape of
+  [ADR-0066](./0066-data-access-generated-from-sql.md) stop being free. That assumption is
+  recorded as a known limit in [DESIGN.md](../../../DESIGN.md#3-known-limits).
+- Retention of the audit log has no owner while no runtime role can delete from it. Nothing in the
+  running system trims the table, and whether it is ever trimmed is an open decision in
+  [ROADMAP.md](../../../ROADMAP.md).
 - Schema evolution is by migration; the DDL's no-body comment binds every future one.

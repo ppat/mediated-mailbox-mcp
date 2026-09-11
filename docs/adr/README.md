@@ -97,6 +97,8 @@ moves it. Records themselves link freely and deep, into
 | 0018 | [Delta sync polls on a short cadence; push delivery rejected](./data/0018-delta-sync-polls.md) | Accepted |
 | 0047 | [The schema is the single authority, read through per-query result types — no entity model](./data/0047-schema-first-data-access.md) | Accepted |
 | 0048 | [Migrations are hand-written SQL, forward-only, run under their own role](./data/0048-forward-only-migrations.md) | Accepted |
+| 0066 | [Data access is generated from hand-written SQL, and the dataset endpoint is enumerated rather than composed](./data/0066-data-access-generated-from-sql.md) | Accepted |
+| 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -154,3 +156,4 @@ moves it. Records themselves link freely and deep, into
 | 0063 | [The browser app is Preact, with signals carrying data state and a generated URL grammar](./engineering/0063-browser-app-is-preact-with-signals.md) | Accepted |
 | 0064 | [The browser's tests run under bun against a DOM shim, on fixture responses recorded from the real server](./engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md) | Accepted |
 | 0065 | [The contract document is built explicitly from the registry, and the browser consumes it as generated types and a hand-written fetch](./engineering/0065-contract-built-from-registry-consumed-as-generated-types.md) | Accepted |
+| 0068 | [The test substrate is a container started directly, not a container library](./engineering/0068-test-substrate-containers-directly.md) | Accepted |
