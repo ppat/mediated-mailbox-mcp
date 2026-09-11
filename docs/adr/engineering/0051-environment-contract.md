@@ -37,8 +37,7 @@ application's business.
   surface — the dangerous knob does not exist, rather than defaulting safe.
 - **The observability split:** the app emits — the metrics endpoint, logs to standard output,
   audit rows to the database — and the collection, shipping, and retention of what it emits are
-  the platform's. Retention of the audit table itself is not covered here and is an open decision
-  in [ROADMAP.md](../../../ROADMAP.md).
+  the platform's.
 
 ## Alternatives considered
 
