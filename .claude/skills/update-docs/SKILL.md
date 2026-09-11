@@ -57,13 +57,20 @@ The ambiguous cases, resolved the way this document set resolves them:
 
 Every change type has a procedure — read
 [references/procedures.md](references/procedures.md) for the one you need (minting a record,
-superseding a record, adding or changing an outcome, roadmap changes, verification rows, glossary
-changes). Do not improvise the mechanics; the procedures encode details that are easy to get
-wrong (numbering, index updates, identifier linking, status vocabulary).
+recording a selection between real alternatives, superseding a record, adding or changing an
+outcome, roadmap changes, verification rows, glossary changes). Do not improvise the mechanics; the
+procedures encode details that are easy to get wrong (numbering, index updates, identifier
+linking, status vocabulary).
 
 Standards that apply to all authoring, regardless of change type — the per-file rules in
-`.claude/rules/` bind automatically, and these three deserve stating here because they are where
+`.claude/rules/` bind automatically, and these deserve stating here because they are where
 past work went wrong:
+
+- **The document set stands on itself.** No document may need something outside this repository to
+  be understood. Session notes, research reports, measurements, and conversations are where content
+  comes from, not where a reader is sent. When work outside the repository produced the content,
+  the document carries what a reader needs to follow and to disagree with it, and cites the outside
+  artifact nowhere. A reader a year from now has the repository and nothing else.
 
 - **Write only what is sourced.** Every sentence records a decision actually made or reasoning
   actually held — by the operator, or agreed with the operator. If you find yourself writing a
