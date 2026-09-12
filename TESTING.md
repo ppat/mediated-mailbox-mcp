@@ -27,13 +27,14 @@ row describes the control's code.
 
 | The thing under test | The tests it gets | Decided in |
 | --- | --- | --- |
-| Pure-core logic | Example-based tests. Where the logic has no independent oracle (the sender classifier's policy decisions, the scan gate's skip decisions), no property checks its answers | [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md) |
-| A safety rule the documents already state | A property-based test executing that rule against generated inputs | [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md) |
+| Pure-core logic | Example-based tests, comparing the returned value against a literal expected one through the shared comparison options. Where the logic has no independent oracle (the sender classifier's policy decisions, the scan gate's skip decisions), no property checks its answers | [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md), with the comparison of [ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md) |
+| A safety rule the documents already state | A property-based test executing that rule against generated inputs, run by the library [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) chooses | [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md), [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) |
 | A shell against a real dependency | An integration test against the real thing (real Postgres, containerized and ephemeral) or against the provider fake. Never a mock | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md), on [ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md)'s core/shell shape, with the container started as [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md) decides |
 | Any implementation of the provider port, the fake included | The one contract suite every port implementation must pass | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) |
-| Sequence-dependent stateful machinery where a crash is silent and hard to reverse | Generated crash-injection sequences from the crash harness, plus the physical drill the verification catalogue demands. ADR-0045 commits the first two targets, the reorg apply/rollback path and backfill resume, and defers any others | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) |
+| Sequence-dependent stateful machinery where a crash is silent and hard to reverse | Generated crash-injection sequences from the crash harness, whose sequences and their reduction come from the same library the properties use, plus the physical drill the verification catalogue demands. ADR-0045 commits the first two targets, the reorg apply/rollback path and backfill resume, and defers any others | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md), [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) |
 | The assembled system on a bare cluster | The chart's own tests and the top-level chainsaw suite | [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) |
 | The UI's browser rendering layer, the rows, the ladder, and each screen | Example-based tests run under bun against a DOM shim, on fixture responses recorded from the real server and carrying the metadata marker text, asserting every marker arrives as text in the form ADR-0064 requires | [ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md), on [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)'s markers and [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md)'s rendering rule |
+| A rule the compiler does not check, standing in for a control | The check that enforces it, usually a linter and sometimes a search where no linter reaches, plus the checked-in file that violates it and the script requiring the check to report it | [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) on the server, [ADR-0072](./docs/adr/engineering/0072-browser-bans-under-oxlint-and-ast-grep.md) in the browser, on [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s violation-file rule |
 | A control, meaning a rule the system enforces | The tests that prove its [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) row where the row is automatable, plus its mutation demonstration at acceptance | [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) |
 
 **In standard vocabulary.** This project's unit tests are the example-based and the
@@ -50,7 +51,10 @@ Deep random search and deep crash-sequence exploration run scheduled, never gati
 ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md),
 [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A failing property
 input, once found, is stored and replayed on every later run
-([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)). The browser's
+([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)), which makes the
+gating run fix its seed rather than take the default, and makes the reduced input a written-out
+example-based test rather than only a stored file
+([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The browser's
 rendering tests run in the gating suite on every change under the UI's directory, and the one
 assertion of the content security policy that only a browser can make is a drill
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).

@@ -38,8 +38,9 @@ in days, and an eventual open-source audience.
     deny as well;
   - a fixture package that attempts the forbidden construction, asserted to fail compilation,
     stays in CI forever;
-  - exhaustiveness, sum-type, import-boundary, and unchecked-error linters run in CI as
-    deputized enforcement for what the compiler does not check natively.
+  - exhaustiveness, import-boundary, and unchecked-error linters run in CI as deputized
+    enforcement for what the compiler does not check natively, with the tools chosen in
+    [ADR-0071](./0071-static-enforcement-toolchain.md).
 - **The browser framework choice within the TypeScript layer is deliberately not made here.**
   It is [ADR-0063](./0063-browser-app-is-preact-with-signals.md)'s.
 

@@ -537,6 +537,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Verdict** — a decision returned as a data value by a pure core, enacted and recorded by the
   shell. Verdict types structurally cannot carry the content they withhold (rule in ADR-0040 and
   ADR-0009, via the [decision-record index](./docs/adr/README.md)).
+- **Shared comparison options** — the single options value every unit test's comparison passes,
+  naming each type whose unexported fields a comparison may read (rule in ADR-0070, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Contract suite** — the one test suite every provider-port implementation must pass
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).
 - **Control** — a rule the system enforces. Every control is proven by its violation

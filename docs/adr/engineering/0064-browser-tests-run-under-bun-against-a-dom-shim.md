@@ -91,7 +91,13 @@ red under both. The operator ruled on the policy row's disposition and accepted 
   certified by a person. The stylesheet references fonts on the UI's own origin only. The fourth
   assertion, that a browser blocks an inline script and an external fetch under the policy, is a
   drill in ADR-0046's sense, observed in a real browser when the UI's tests first land and again
-  after any change to the policy, its proof holding for its date.
+  after any change to the policy, its proof holding for its date. **A person performs it**, against
+  a checked-in page carrying an inline script and a script fetching another origin, served by the
+  UI's own handler, with the browser's developer console open. No tool is taken, because every one
+  considered proves the same thing and leaves no better evidence, for something run a handful of
+  times over the project's life. **The dated note records the browser's own refusal message
+  verbatim**, rather than a summary of it, since a note saying the block was observed is a claim a
+  later reader cannot check.
 - **No property-based test exists in the browser.** The four decision write paths are covered by
   the example tests with fault injection that [ADR-0060](./0060-no-code-in-the-database.md)
   requires, and no browser rule needs generated inputs.

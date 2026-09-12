@@ -53,5 +53,8 @@ input that could expose the bug, and no tooling reports which of the two happene
   subject under test. A property generates ordinary inputs and checks a rule over the
   results. The crash harness generates crash points inside operation sequences and checks
   recovery afterward.
-- The property library settled at implementation time must provide bounded deterministic runs
-  and replay of stored failing examples.
+- The property library must provide bounded deterministic runs and replay of stored failing
+  examples. [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) settles which library,
+  and records that a stored failing example is re-read against whatever the generator now
+  produces, so editing a generator silently changes what a stored example means. That is why the
+  reduced example is also written out as an ordinary example-based test.
