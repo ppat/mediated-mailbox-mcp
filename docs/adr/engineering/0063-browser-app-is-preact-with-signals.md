@@ -56,8 +56,8 @@ mutation went red under both. The operator accepted this decision on 2026-09-10.
   rule, because the two forms differ by one property access and only one of them holds the rule. The
   lint is syntactic and over-broad, since it cannot tell a signal from a contract field named
   `value`, so it fires on both. A read of such a field in a rendering position carries a per-line
-  suppression naming the field, and a live surface also asserts zero component re-renders with a
-  render counter, the exact instrument, as
+  suppression, with the field named alongside it, and a live surface also asserts zero component
+  re-renders with a render counter, the exact instrument, as
   [ADR-0064](./0064-browser-tests-run-under-bun-against-a-dom-shim.md) states.
 - **No signal may be reachable from a route's props.** The router memoizes a route on a
   serialization of every prop it was given, and a signal serializes to its value, so a signal in
@@ -86,9 +86,10 @@ mutation went red under both. The operator accepted this decision on 2026-09-10.
   in a browser.
 - **The raw-markup escape hatch, `dangerouslySetInnerHTML`, is forbidden repository-wide by lint**,
   with the DOM's own hatches beside it. The same identifier is what the inert-rendering mutation
-  demonstration of ADR-0064 swaps in, so one list serves both. The bans are expressed with the
-  linter's core restricted-syntax rules, which run under bun with no second runtime, and each ban is
-  proven by a checked-in file that violates it, as
+  demonstration of ADR-0064 swaps in, so one list serves both. The bans are expressed as rules
+  forbidding a named construction by its shape, carried by the tools
+  [ADR-0072](./0072-browser-bans-under-oxlint-and-ast-grep.md) chooses, which need no second
+  runtime, and each ban is proven by a checked-in file that violates it, as
   [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) requires.
 - **Direct dependencies are enumerated in a roster file beside the package manifest**, one line
   each with the reason it is there, and CI fails when the roster and the manifest disagree. The

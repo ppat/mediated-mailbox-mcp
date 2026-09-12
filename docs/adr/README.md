@@ -157,3 +157,7 @@ moves it. Records themselves link freely and deep, into
 | 0064 | [The browser's tests run under bun against a DOM shim, on fixture responses recorded from the real server](./engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md) | Accepted |
 | 0065 | [The contract document is built explicitly from the registry, and the browser consumes it as generated types and a hand-written fetch](./engineering/0065-contract-built-from-registry-consumed-as-generated-types.md) | Accepted |
 | 0068 | [The test substrate is a container started directly, not a container library](./engineering/0068-test-substrate-containers-directly.md) | Accepted |
+| 0069 | [Property tests and generated crash sequences both come from rapid](./engineering/0069-property-and-crash-sequences-from-rapid.md) | Accepted |
+| 0070 | [Unit tests compare returned values with go-cmp, through one shared options value](./engineering/0070-unit-comparison-through-one-options-value.md) | Accepted |
+| 0071 | [Static enforcement runs under golangci-lint, with import boundaries as a closed allow list](./engineering/0071-static-enforcement-toolchain.md) | Accepted |
+| 0072 | [The browser's bans run under oxlint, with the signal-position rule on ast-grep](./engineering/0072-browser-bans-under-oxlint-and-ast-grep.md) | Accepted |
