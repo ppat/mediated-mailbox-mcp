@@ -14,9 +14,10 @@ enforcement for what the compiler does not check natively. It names no tool for 
 [ADR-0040](./0040-pure-core-decisions-as-values.md) requires that a pure core's import boundary is
 checked rather than trusted, and [ADR-0054](./0054-one-repository-flat-layout-naming-convention.md)
 requires that one deployable cannot import another's code. Neither names a tool either. Separately,
-[ADR-0070](./0070-unit-comparison-through-one-options-value.md) bans a call to one named function,
+[ADR-0070](./0070-unit-comparison-through-one-options-value.md) and
+[ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) each ban calls to named functions,
 which is not a kind [ADR-0042](./0042-implementation-stack.md) lists and still needs an analyser to
-refuse it, so this record hosts that too.
+refuse, and ADR-0069 confines a test library to named packages, so this record hosts those too.
 
 These are not style checks. Several of them are controls with rows in
 [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), so they are judged by the standard
@@ -71,28 +72,70 @@ else broke ties.
   `check-type-assertions: true`. Both default to `false`, so an error discarded as `_ = f()` is not
   reported by an otherwise ordinary configuration.
 - **Import boundaries are checked by `depguard` with `list-mode: strict`, as `allow` lists with no
-  `deny` list anywhere.** A pure core may import a named set of standard-library packages and
-  other core packages, and nothing else. What may join that set is the membership test in
-  [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), which is review discipline because no tool
-  checks it. A deployable may import its own code, the shared pure
-  library, and nothing belonging to another deployable.
+  `deny` list anywhere.** `depguard` makes a file that two lists match satisfy both, and does not
+  check a file that no list matches. The lists are these.
+  - **Non-test files of a pure core.** A pure core may import a named set of standard-library
+    packages and other core packages, and nothing else. What may join that set is the membership
+    test in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), which is review discipline because no
+    tool checks it.
+  - **Non-test files of a deployable.** A deployable may import its own code, the shared pure
+    library, and nothing belonging to another deployable.
+  - **Test files.** They are matched by lists of their own, because a core package's tests import
+    what its non-test files may not. A test file's list admits what its package's non-test list
+    admits, plus the standard library's `testing` package, and beyond that only what the tests that
+    package holds need from the records deciding them.
+    - The comparison library and test support of
+      [ADR-0070](./0070-unit-comparison-through-one-options-value.md), in every package.
+    - The property-testing library [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)
+      chooses, ADR-0069's test support and the crash harness, only where the package holds property
+      tests or runs generated crash sequences.
+    - `golang.org/x/tools/go/packages`, only where the package holds the test, described below, that
+      loads a package which must not compile.
+
+    Nothing wider is admitted, because a violation file proving a rule here is an ordinary test
+    file, as noted below under what the implementer would otherwise pay to discover. The file
+    proving the pure-core rule therefore sits among a core package's test files, and it is reported
+    only while those refuse the input or output package it imports.
+  - **Code serving the tests.** The crash harness, the test support of ADR-0070 and ADR-0069, and
+    the `go vet` analyser ADR-0069 writes are ordinary Go code, and Go does not let one package
+    import another's test files, so each is matched in every file by a list of its own. The list for
+    the crash harness and ADR-0069's test support names the property-testing library. The lists for
+    ADR-0070's test support and for the analyser do not, except that the analyser's violation files
+    call the property-testing library, because the rules they break are about calls into it, so the
+    list matching those files names it. Each list admits what that code imports and names no library
+    another record rules out for tests, such as a mocking library under
+    [ADR-0043](./0043-no-mocking.md), a container library under
+    [ADR-0068](./0068-test-substrate-containers-directly.md), or an assertion vocabulary under
+    ADR-0070.
+
+  No list other than those named above names the property-testing library, so it is refused
+  everywhere else with no `deny` key written. That holds only while every Go file in the repository
+  is matched by some list. No tool checks that condition, so a package added outside every list's
+  file patterns is checked by nothing, and [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) records
+  it as review discipline.
 - **A construction forbidden by name is refused by `forbidigo`**, which takes a pattern per banned
-  identifier and reports the file and line of a call to it. It is configured here rather than in
-  the record placing a ban, so that a second such ban has somewhere to go.
+  identifier and reports the file and line of a call to it. It is configured here rather than in the
+  records placing bans, which are [ADR-0070](./0070-unit-comparison-through-one-options-value.md)
+  and [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md), so that every such ban has one
+  place to go.
 - **`//nolint` is banned wherever a rule standing in for a control applies**, because under the
   aggregator a finding can otherwise be silenced at the line where it fires. That is the packages
   carrying controls, and also every package a ban configured here reaches, which for
   [ADR-0070](./0070-unit-comparison-through-one-options-value.md)'s ban is any test that compares
-  values. **No analyser carries this ban.** `nolintlint` is the tool an implementer would reach
-  for and it does not do this. Its own description is that it reports ill-formed or insufficient
-  directives, so a well-formed directive naming a linter and carrying an explanation silences a
-  ban while `nolintlint` at its strictest settings reports nothing. The aggregator offers no
-  option to stop honouring the directives.
+  values, and for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s ban is every
+  package holding property tests or running generated crash sequences, the crash harness or its test
+  support. **No analyser carries this ban.** `nolintlint` is the tool an implementer would reach for
+  and it does not do this. Its own description is that it reports ill-formed or insufficient
+  directives, so a well-formed directive naming a linter and carrying an explanation silences a ban
+  while `nolintlint` at its strictest settings reports nothing. The aggregator offers no option to
+  stop honouring the directives.
 - **Three checks are written here, because no tool offers them.** A search for the `//nolint`
   directive over the paths the bullet above names. A package that must not compile, loaded with
   `golang.org/x/tools/go/packages` from inside an ordinary test, which requires type errors to be
   present. And a script that runs the analysers and the `//nolint` search against the checked-in
-  files violating each ban, requiring each one to be reported.
+  files violating each ban, requiring each one to be reported. The script also runs the `go vet`
+  analyser [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) writes for its own
+  placement rules, against that analyser's violation files.
 
 ### What each tool's ordinary path does that other records forbid
 
@@ -105,7 +148,7 @@ else broke ties.
 
 ### Anything deliberately left open
 
-**The third import rule is not configured yet.**
+**The per-role import rule is not configured yet.**
 [ADR-0066](../data/0066-data-access-generated-from-sql.md) leaves open where the generated
 data-access packages live, and the rule that one component cannot name another role's package cannot
 be written until that resolves. Under one option the rule is another allow list of the kind this
@@ -122,15 +165,16 @@ else in this record depends on which.
 | A rule cannot be switched off quietly | A search refuses `//nolint` wherever a rule standing in for a control applies, which is wider than the packages carrying controls, and the search is itself proven by a file that uses the directive |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
-| Footprint | One command. The analysers are inside it rather than beside it |
+| Footprint | One command. The analysers are inside it rather than beside it, apart from the `go vet` analyser [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) writes for its own placement rules, which runs beside it |
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and
-[ADR-0070](./0070-unit-comparison-through-one-options-value.md) is the first record to place such a
-ban. A ban proven by a checked-in violation file needs a message naming the file and the line,
-which it gives. Configured with a pattern for `cmpopts.IgnoreUnexported` it reported the call's
-file and line, stayed silent on the `cmp.AllowUnexported` call beside it, and with type analysis
-enabled reported an aliased import of the same function as well.
+[ADR-0070](./0070-unit-comparison-through-one-options-value.md) and
+[ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) place such bans. A ban proven by a
+checked-in violation file needs a message naming the file and the line, which it gives. Configured
+with a pattern for `cmpopts.IgnoreUnexported` it reported the call's file and line, stayed silent on
+the `cmp.AllowUnexported` call beside it, and with type analysis enabled reported an aliased import
+of the same function as well.
 
 ### What the implementer would otherwise pay to discover
 
@@ -239,7 +283,7 @@ would cost a configuration file and a pipeline step.
 **Which strengths could be had without choosing the candidate, and which costs could be confined.**
 The architecture linter keeps one advantage that is not detachable from it, which is naming
 components once and declaring a dependency graph between them rather than repeating file globs. If
-the open third rule lands and turns the boundary into a graph of many components, that advantage
+the open per-role rule lands and turns the boundary into a graph of many components, that advantage
 becomes real, and it is worth reopening then for the rules about this project's own packages. It
 will never be worth reopening for the pure-core rule, because the standard-library gap is a
 property of how that tool classifies imports rather than a setting.
@@ -283,7 +327,7 @@ existing tool already expresses correctly is the wrong trade.
 **`gomodguard`.** Named because a reader who finds it would reasonably wonder. It governs which
 external modules a project may depend on at all, which is a real question this project may want
 answered later. It has no notion of one package in this repository importing another, so it cannot
-express any of the three rules here.
+express any of the import rules here.
 
 ### The remaining questions, where the field reduced to one fact each
 
@@ -345,12 +389,14 @@ failing to passing in both directions.
 - **[ADR-0042](./0042-implementation-stack.md) names three linter kinds**, and each has a tool
   here. A fourth analyser, `forbidigo`, is configured here too, and it is not one of those kinds.
   Those kinds are the enforcement that record's type conventions need, and `forbidigo` carries
-  bans other records place on a named construction, which is a different job.
+  bans other records place on a named construction, which is a different job. Those records are
+  [ADR-0070](./0070-unit-comparison-through-one-options-value.md) and
+  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md).
 - **The allow list carries a property no tool checks.** Adding a package to it that the rule does
   not itself govern makes the pure-core rule unsound without any check failing. That is review
   discipline on the configuration and is dispositioned in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
-- **What resolving the open question would move.** Whether the third import rule is another allow
+- **What resolving the open question would move.** Whether the per-role import rule is another allow
   list here or is enforced by the compiler, and if the boundary becomes a graph of many components,
   whether the architecture linter is worth reopening for this project's own packages.
 - **Assumptions about other components.** Continuous integration can install a pinned command and

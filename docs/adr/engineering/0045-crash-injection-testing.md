@@ -57,9 +57,9 @@ invariants checked after recovery, and a deliberately coarse crash model.
 - The harness is built from scratch, and each target beyond the first two must justify itself. No
   crash-injection harness exists to import. What does exist is a library that generates sequences of
   named operations and reduces a failing one, and
-  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) takes it, so the crash operation's
-  behaviour, the call into the real recovery path, and the two invariant families are what this
-  project writes.
+  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) takes it. The crash operation's
+  behaviour, the call into the real recovery path, the two invariant families, and the sampler that
+  draws a fresh operation mix for each sequence in the scheduled run are what this project writes.
 - The catalogue's existing recovery rows (kill the backfill pod mid-run, kill the apply job
   mid-plan) keep the drill kind's date-claim semantics for the real-substrate half. The
   harness's continuous proof of the same controls is dispositioned in the catalogue's §5

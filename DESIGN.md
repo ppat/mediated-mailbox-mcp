@@ -544,9 +544,16 @@ top-level documents, a decision record, or a ticket from here without guessing.
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).
 - **Control** — a rule the system enforces. Every control is proven by its violation
   injection, catalogued in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md).
-- **Independent oracle** — a way to know the correct answer without running the code under
-  test (the term is
-  [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)'s).
+- **Generator report** — the test support this project writes that classifies each case a
+  property-based test generates, reports the mix, and fails the run when a stated minimum share of
+  a kind of input is not reached (rule in ADR-0069, via the
+  [decision-record index](./docs/adr/README.md)).
+- **Failing-case store** — the test support this project writes that keeps a failing
+  property-based or crash-sequence case and replays it on later runs, in a form that survives an
+  edit to its generator (rule in ADR-0069, via the [decision-record index](./docs/adr/README.md)).
+- **Operation sampler** — the test support this project writes that draws a fresh mix of
+  operations for each sequence the crash harness generates in its scheduled run (rule in ADR-0069,
+  via the [decision-record index](./docs/adr/README.md)).
 - **Marker text** — the searchable strings designed into synthetic fixture bodies and metadata
   fields so a leak check over any output surface, a rendering surface included, is deterministic
   (rule in ADR-0044, via the
