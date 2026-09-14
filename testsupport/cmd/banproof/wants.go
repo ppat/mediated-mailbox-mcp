@@ -11,10 +11,10 @@ import (
 	"unicode"
 )
 
-// A want is one finding a violation file expects. It is read from a line comment on the line where
-// the finding is reported. The comment's text is the word want followed by one or more pairs of a
-// tool name and a quoted regular expression that the finding's message must match. The tool name is
-// the golangci-lint linter's name, or nolint for the suppression directive search.
+// A want is one finding a violation file expects. It is read from a comment on the line where the
+// finding is reported. The comment's text is the word want followed by one or more pairs of a tool name
+// and a quoted regular expression that the finding's message must match. The tool name is the
+// golangci-lint linter's name, or suppression for the search for suppression directives.
 type want struct {
 	file string
 	line int
@@ -57,6 +57,18 @@ func parseWants(path string, src []byte) ([]want, error) {
 	for _, c := range comments(src) {
 		body, ok := strings.CutPrefix(c.text, "//")
 		if !ok {
+			// A block comment holds an annotation when that is all it holds. It lets a want share a line
+			// with a directive whose spelling a line comment's annotation cannot follow, such as // nolint.
+			block := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(c.text, "/*"), "*/"))
+			if rest, isWant := strings.CutPrefix(block, "want "); isWant {
+				pairs, err := parseWantPairs(rest)
+				if err != nil {
+					return nil, fmt.Errorf("%s:%d: %w", path, c.line, err)
+				}
+				for _, p := range pairs {
+					out = append(out, want{file: path, line: c.line, tool: p.tool, re: p.re})
+				}
+			}
 			continue
 		}
 		// A want may follow a directive in the same line comment, as on a line proving the
@@ -116,23 +128,4 @@ func parseWantPairs(s string) ([]wantPair, error) {
 		return nil, errors.New("want annotation names no finding")
 	}
 	return out, nil
-}
-
-// nolintDirective matches every spelling golangci-lint honours as a suppression, and a few it does
-// not. It is applied to a line comment after the leading slashes and blanks are removed. Matching
-// more than golangci-lint honours fails closed.
-var nolintDirective = regexp.MustCompile(`(?i)^nolint(\s|:|$)`)
-
-// nolintFindings reports every line comment in src that golangci-lint could read as a suppression.
-func nolintFindings(path string, src []byte) []finding {
-	var out []finding
-	for _, c := range comments(src) {
-		if !strings.HasPrefix(c.text, "//") {
-			continue
-		}
-		if nolintDirective.MatchString(strings.TrimLeft(c.text, "/ \t")) {
-			out = append(out, finding{file: path, line: c.line, tool: toolNolint, text: "suppression directive " + c.text})
-		}
-	}
-	return out
 }

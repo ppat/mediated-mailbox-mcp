@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 )
 
-// toolNolint is the tool name want annotations use for the suppression directive search. Findings
-// from golangci-lint carry the reporting linter's name.
-const toolNolint = "nolint"
+// toolSuppression is the tool name want annotations use for the search for suppression directives, in
+// both halves. Findings from golangci-lint carry the reporting linter's name.
+const toolSuppression = "suppression"
 
 // A finding is one report from any tool, with its file as an absolute path.
 type finding struct {
