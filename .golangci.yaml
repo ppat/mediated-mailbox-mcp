@@ -1,0 +1,534 @@
+---
+# The one golangci-lint configuration for every Go file in the repository (ADR-0071).
+#
+# Several settings below restate a default or pick a non-default because the ordinary spelling fails open,
+# meaning a rule reads correctly and silently checks nothing. banproof (testsupport/cmd/banproof) runs this
+# file unchanged against the checked-in violation files and fails when a rule stops reporting.
+version: "2"
+
+run:
+  # Files carrying these build tags are linted. Without a tag listed here, depguard and forbidigo skip every
+  # file that needs it. banproof adds its own tag on the command line, which golangci-lint appends to these.
+  build-tags:
+  - integration
+
+issues:
+  # The defaults hide a second finding on a line and cap repeated findings, which would drop a finding
+  # banproof requires, such as one import refused by two lists.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: false
+
+formatters:
+  enable: []
+
+linters:
+  default: none
+  enable:
+  - depguard
+  - errcheck
+  - exhaustive
+  - forbidigo
+
+  exclusions:
+    # The default excludes every finding in a file whose header says it is generated, so a hand-written
+    # header would switch off every rule in that file.
+    generated: disable
+    presets: []
+
+  settings:
+    errcheck:
+      check-blank: true
+      check-type-assertions: true
+
+    exhaustive:
+      # Its default, written out. The deny-defaulting default branch every verdict switch carries would
+      # otherwise silence the check.
+      default-signifies-exhaustive: false
+
+    forbidigo:
+      # With type analysis off, a pattern carrying pkg matches nothing, and an aliased import escapes.
+      analyze-types: true
+      # The default skips Example functions in test files.
+      exclude-godoc-examples: false
+      forbid:
+      - pattern: ^rapid\.(Make|MakeCustom)$
+        pkg: ^pgregory\.net/rapid$
+        msg: generators build values through exported constructors inside rapid.Custom (ADR-0069)
+      - pattern: ^cmpopts\.IgnoreUnexported$
+        pkg: ^github\.com/google/go-cmp/cmp/cmpopts$
+        msg: it reports no difference between values that differ in unexported fields (ADR-0070)
+
+    depguard:
+      # How to read these lists.
+      #
+      # - Every list is strict, so an import is refused unless an allow entry admits it. No list has a deny entry.
+      # - A file matched by several lists must satisfy all of them. A file matched by none is not checked, so
+      #   the residual list at the end catches files outside every component.
+      # - Allow entries are string prefixes. An entry ending in $ is exact. Standard-library entries in the
+      #   pure-core lists are exact, because a prefix os would also admit os/exec. Project entries end in / or $.
+      # - depguard checks only one sorted neighbour per import, so an exact entry must not sit under a shorter
+      #   prefix entry of the same path, or the prefix stops admitting its other subpackages.
+      # - File globs match absolute paths. Every project glob starts with ${base-path}, the directory of this
+      #   file, so a parent directory of the checkout with the same name cannot match. dir/**.go matches files
+      #   directly in dir, and dir/**/*.go does not.
+      # - $gostd admits every standard-library package through one entry per top-level name, such as go. An entry
+      #   for a module whose path starts with go. sorts between go and go/ast and hides every go/ package, so a
+      #   list holding such an entry also lists go/.
+      rules:
+
+        # Non-test files of every pure-core package, in any component (ADR-0040, ADR-0071). The standard-library
+        # entries are the named set that performs no input or output. Adding one is decided by the membership test in
+        # docs/VERIFICATIONS.md.
+        pure-core:
+          list-mode: strict
+          files:
+          - "${base-path}/core/**.go"
+          - "${base-path}/*/core/**.go"
+          - "${base-path}/*/internal/core/**.go"
+          - "!$test"
+          allow:
+          - "bytes$"
+          - "cmp$"
+          - "errors$"
+          - "iter$"
+          - "maps$"
+          - "math$"
+          - "math/bits$"
+          - "regexp$"
+          - "slices$"
+          - "sort$"
+          - "strconv$"
+          - "strings$"
+          - "unicode$"
+          - "unicode/utf8$"
+          - "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/organize/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/propose/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
+
+        # Test files of every pure-core package. What the non-test files may import, plus test tooling.
+        pure-core-tests:
+          list-mode: strict
+          files:
+          - "${base-path}/core/**_test.go"
+          - "${base-path}/*/core/**_test.go"
+          - "${base-path}/*/internal/core/**_test.go"
+          allow:
+          - "bytes$"
+          - "cmp$"
+          - "errors$"
+          - "iter$"
+          - "maps$"
+          - "math$"
+          - "math/bits$"
+          - "regexp$"
+          - "slices$"
+          - "sort$"
+          - "strconv$"
+          - "strings$"
+          - "unicode$"
+          - "unicode/utf8$"
+          - "testing$"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/organize/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/propose/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
+          - "pgregory.net/rapid$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+
+        # The data-access library, every file.
+        db:
+          list-mode: strict
+          files:
+          - "${base-path}/db/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/pganalyze/pg_query_go/v6$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/wasilibs/go-pgquery$"
+          - "go.yaml.in/yaml/v3$"
+          # Restores the standard library under go/, which the entry above hides (see the notes at the top).
+          - "go/"
+          - "google.golang.org/protobuf/reflect/protoreflect$"
+          - "pgregory.net/rapid$"
+
+        # The provider adapter library, every file.
+        provider:
+          list-mode: strict
+          files:
+          - "${base-path}/provider/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # Non-test files of the provider fake and the contract suite, which only tests use. The list for
+        # non-test code excludes them, so this list keeps rapid out of them.
+        provider-test-code:
+          list-mode: strict
+          files:
+          - "${base-path}/provider/fake/**.go"
+          - "${base-path}/provider/contract/**.go"
+          - "!$test"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+
+        # The rate limiter, every file. Its pure rules under ratelimit/core also meet the pure-core lists. It names
+        # each data-access subsection it may use, which db/check tests against its role's grants.
+        ratelimit:
+          list-mode: strict
+          files:
+          - "${base-path}/ratelimit/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/fake$"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # The shared test tooling, every file.
+        testsupport:
+          list-mode: strict
+          files:
+          - "${base-path}/testsupport/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/"
+          - "golang.org/x/tools/go/"
+          - "pgregory.net/rapid$"
+
+        # The shared test tooling outside the rapid-based packages and the analyser's violation
+        # files, which call rapid because the rules they break are about calls into it (ADR-0071).
+        testsupport-without-rapid:
+          list-mode: strict
+          files:
+          - "${base-path}/testsupport/**.go"
+          - "!${base-path}/testsupport/property/**"
+          - "!${base-path}/testsupport/crash/**"
+          - "!${base-path}/testsupport/analysis/**_violation_test.go"
+          allow:
+          - "$gostd"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/analysis$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "golang.org/x/tools/go/"
+
+        # Deployable backfill, every file. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
+        # It names each data-access subsection it may use, which db/check tests against its role's grants.
+        backfill:
+          list-mode: strict
+          files:
+          - "${base-path}/backfill/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/backfill/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # Deployable mediate, every file. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
+        # It names each data-access subsection it may use, which db/check tests against its role's grants.
+        mediate:
+          list-mode: strict
+          files:
+          - "${base-path}/mediate/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # Deployable organize, every file. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
+        # It names each data-access subsection it may use, which db/check tests against its role's grants.
+        organize:
+          list-mode: strict
+          files:
+          - "${base-path}/organize/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/organize/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # Deployable propose, every file. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
+        # It names each data-access subsection it may use, which db/check tests against its role's grants.
+        propose:
+          list-mode: strict
+          files:
+          - "${base-path}/propose/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/propose/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # Deployable sync, every file. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
+        # It names each data-access subsection it may use, which db/check tests against its role's grants.
+        sync:
+          list-mode: strict
+          files:
+          - "${base-path}/sync/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/sync/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # Deployable ui, every file. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
+        # It names each data-access subsection it may use, which db/check tests against its role's grants.
+        ui:
+          list-mode: strict
+          files:
+          - "${base-path}/ui/**.go"
+          allow:
+          - "$gostd"
+          # The contract generator's document types. The generator is test code, and non-test-code refuses it.
+          - "github.com/getkin/kin-openapi/openapi3$"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/ui/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
+        # The mediator's API root reaches the service layer and nothing below it (ADR-0030).
+        mediate-api-root:
+          list-mode: strict
+          files:
+          - "${base-path}/mediate/internal/api/**.go"
+          - "!$test"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/api$"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/api/"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+
+        # The mediator's MCP root reaches the service layer and nothing below it (ADR-0030).
+        mediate-mcp-root:
+          list-mode: strict
+          files:
+          - "${base-path}/mediate/internal/mcp/**.go"
+          - "!$test"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp$"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp/"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+
+        # Every non-test file outside test tooling. Test tooling, the provider fake, the contract suite, rapid and
+        # go-cmp never reach code that ships.
+        non-test-code:
+          list-mode: strict
+          files:
+          - "$all"
+          - "!$test"
+          - "!${base-path}/testsupport/**"
+          - "!${base-path}/provider/fake/**"
+          - "!${base-path}/provider/contract/**"
+          allow:
+          - "$gostd"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/backfill/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/"
+          - "github.com/ppat/mediated-mailbox-mcp/organize/"
+          - "github.com/ppat/mediated-mailbox-mcp/propose/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/caldav$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/gcal$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/gmail$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/jmap$"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/sync/"
+          - "github.com/ppat/mediated-mailbox-mcp/ui/"
+
+        # Every test file that is not a property test, a crash sequence, or code of the rapid-based test tooling.
+        # rapid and its test support stay out of these (ADR-0069).
+        ordinary-tests:
+          list-mode: strict
+          files:
+          - "$test"
+          - "!**_property_test.go"
+          - "!**_crash_test.go"
+          - "!${base-path}/testsupport/property/**"
+          - "!${base-path}/testsupport/crash/**"
+          - "!${base-path}/testsupport/analysis/**_violation_test.go"
+          allow:
+          - "$gostd"
+          - "github.com/getkin/kin-openapi/openapi3$"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/pganalyze/pg_query_go/v6$"
+          - "github.com/ppat/mediated-mailbox-mcp/backfill/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/"
+          - "github.com/ppat/mediated-mailbox-mcp/organize/"
+          - "github.com/ppat/mediated-mailbox-mcp/propose/"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/sync/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/ui/"
+          - "github.com/wasilibs/go-pgquery$"
+          - "go.yaml.in/yaml/v3$"
+          # Restores the standard library under go/, which the entry above hides (see the notes at the top).
+          - "go/"
+          - "golang.org/x/tools/go/packages$"
+          - "google.golang.org/protobuf/reflect/protoreflect$"
+
+        # Every Go file outside all components, such as a new top-level directory not yet given lists. It
+        # admits only the standard library, so such a file is checked rather than unchecked.
+        residual:
+          list-mode: strict
+          files:
+          - "$all"
+          - "!${base-path}/backfill/**"
+          - "!${base-path}/core/**"
+          - "!${base-path}/db/**"
+          - "!${base-path}/mediate/**"
+          - "!${base-path}/organize/**"
+          - "!${base-path}/propose/**"
+          - "!${base-path}/provider/**"
+          - "!${base-path}/ratelimit/**"
+          - "!${base-path}/sync/**"
+          - "!${base-path}/testsupport/**"
+          - "!${base-path}/ui/**"
+          allow:
+          - "$gostd"
