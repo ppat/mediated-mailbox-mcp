@@ -48,3 +48,10 @@ node_modules/
 
 # mise vscode extension
 .vscode/mise-tools/
+
+# ui browser bundle: built by bun, never checked in. The placeholder stays, so Go tooling can compile the
+# package embedding the bundle on a fresh clone. A file cannot be re-included while its parent directory is
+# excluded, so the directory is re-included and its contents excluded again.
+!ui/browser/dist/
+ui/browser/dist/*
+!ui/browser/dist/.gitkeep
