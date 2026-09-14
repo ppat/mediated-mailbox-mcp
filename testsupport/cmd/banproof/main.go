@@ -194,7 +194,7 @@ func lint(root, tag string) ([]finding, error) {
 	err := cmd.Run()
 	var exit *exec.ExitError
 	// golangci-lint exits 1 when it reports findings. Any other failure means it did not lint.
-	if err != nil && !(errors.As(err, &exit) && exit.ExitCode() == 1) {
+	if err != nil && (!errors.As(err, &exit) || exit.ExitCode() != 1) {
 		return nil, fmt.Errorf("golangci-lint run failed: %w\n%s", err, stderr.String())
 	}
 	return parseLint(root, stdout.Bytes())

@@ -293,7 +293,7 @@ func browserTool(dir, name string, args ...string) ([]byte, error) {
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
 	var exit *exec.ExitError
-	if err != nil && !(errors.As(err, &exit) && exit.ExitCode() == 1) {
+	if err != nil && (!errors.As(err, &exit) || exit.ExitCode() != 1) {
 		return nil, fmt.Errorf("%s failed: %w\n%s", name, err, stderr.String())
 	}
 	if unexpected := unexpectedStderr(stderr.String()); unexpected != "" {

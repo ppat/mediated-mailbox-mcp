@@ -60,26 +60,27 @@ func sqlFiles(t *testing.T, dir string) []string {
 // at builds a finding at a byte offset. A negative offset, which the parser uses for "unknown", falls
 // back to the statement's first line that is not blank or a comment.
 func (f sqlFile) at(stmt *pg.RawStmt, offset int32, check, format string, args ...any) finding {
-	if offset < 0 {
-		offset = stmt.GetStmtLocation()
-		rest := f.src[offset:]
+	pos := int(offset)
+	if pos < 0 {
+		pos = int(stmt.GetStmtLocation())
+		rest := f.src[pos:]
 		for {
 			trimmed := strings.TrimLeft(rest, " \t\r\n")
 			if !strings.HasPrefix(trimmed, "--") {
-				offset += int32(len(rest) - len(trimmed))
+				pos += len(rest) - len(trimmed)
 				break
 			}
 			end := strings.IndexByte(trimmed, '\n')
 			if end < 0 {
 				break
 			}
-			offset += int32(len(rest) - len(trimmed) + end + 1)
+			pos += len(rest) - len(trimmed) + end + 1
 			rest = trimmed[end+1:]
 		}
 	}
 	return finding{
 		file:  f.path,
-		line:  strings.Count(f.src[:offset], "\n") + 1,
+		line:  strings.Count(f.src[:pos], "\n") + 1,
 		check: check,
 		text:  fmt.Sprintf(format, args...),
 	}
