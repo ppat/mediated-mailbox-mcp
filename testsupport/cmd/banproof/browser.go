@@ -38,10 +38,6 @@ var browserViolationName = regexp.MustCompile(`_violation\.tsx?$`)
 // annotation ends at the comment's end, which lets a directive follow it on the same line.
 var browserWant = regexp.MustCompile(`(?://|/\*)\s*want\s(.*)$`)
 
-// suppressionDirective matches every directive oxlint or ast-grep honours to silence a finding, and
-// matches it anywhere on a line, strings included, so matching more than the tools honour fails closed.
-var suppressionDirective = regexp.MustCompile(`(?i)(eslint|oxlint)-disable|ast-grep-ignore`)
-
 // sanctionedIgnore is the one suppression the browser layer allows. ADR-0063 sanctions it for a contract
 // field named value read in a rendering position, which the signal rule cannot tell from a signal. The
 // directive sits on its own line, names only that rule, and follows a line comment naming the field, as
@@ -109,6 +105,13 @@ func runBrowser(root string) error {
 	for _, f := range unexpected {
 		problems = append(problems, "reported without a want: "+f.String())
 	}
+	wantedRules := map[string]bool{}
+	for _, f := range found {
+		if m := oxlintCode.FindStringSubmatch(f.text); f.tool == toolOxlint && m != nil && !slices.Contains(unexpected, f) {
+			wantedRules[m[1]] = true
+		}
+	}
+	problems = append(problems, banRuleProblems(browserBanRules, wantedRules)...)
 	if len(problems) > 0 {
 		slices.Sort(problems)
 		return fmt.Errorf("%d problems\n%s", len(problems), strings.Join(problems, "\n"))
@@ -182,9 +185,9 @@ func browserWantBody(line string) (body string, ok bool) {
 	return body, true
 }
 
-// suppressionFindings reports every line holding a suppression directive, ignoring the text of a want
-// annotation on that line, except the sanctioned read of a field named value. Every ban the browser
-// tools carry stands in for a control, so no other suppression is allowed.
+// suppressionFindings reports every suppression directive that can silence a ban (browserDirectiveProblems).
+// It ignores the text of an annotation on the directive's line, and allows the sanctioned read of a field
+// named value.
 func suppressionFindings(path string, src []byte) []finding {
 	var out []finding
 	lines := strings.Split(string(src), "\n")
@@ -202,8 +205,8 @@ func suppressionFindings(path string, src []byte) []finding {
 			}
 			text = strings.Replace(line, annotation, "", 1)
 		}
-		if suppressionDirective.MatchString(text) {
-			out = append(out, finding{file: path, line: i + 1, tool: toolSuppression, text: "suppression directive " + strings.TrimSpace(text)})
+		for _, why := range browserDirectiveProblems(text, browserBanRules) {
+			out = append(out, finding{file: path, line: i + 1, tool: toolSuppression, text: "suppression directive " + strings.TrimSpace(text) + " " + why})
 		}
 	}
 	return out
@@ -216,7 +219,7 @@ func sanctioned(path string, lines []string, i int) bool {
 		return false
 	}
 	above := strings.TrimSpace(lines[i-1])
-	return fieldNamed.MatchString(above) && !suppressionDirective.MatchString(above)
+	return fieldNamed.MatchString(above) && !looseBrowserDirective.MatchString(above)
 }
 
 // A toolFinding is a finding with the severity its tool gave it.
