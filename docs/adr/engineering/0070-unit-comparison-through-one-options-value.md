@@ -125,7 +125,7 @@ the grid.
 
 | Candidate | What it adds beyond the comparison | Last release | What leaving it costs |
 | --- | --- | --- | --- |
-| go-cmp | Nothing | 2025, with commits in 2026 | The comparison calls, which appear only in test files |
+| go-cmp | Nothing | 2025, with commits in 2026 | The comparison calls, which appear only in tests and test support |
 | gotest.tools | Golden files and an assertion vocabulary, built over go-cmp | 2024, with no commit since | The same calls, plus its golden helper, plus its assertions |
 
 ### The reading
@@ -144,10 +144,10 @@ Everything else these candidates offer is either forbidden by another record or 
 them.
 
 **What regretting each candidate would cost.** Leaving the chosen one means replacing calls that
-appear only in test files, with the standard library's comparison plus a hand-written report as the
-fallback, which is exactly where the candidate that takes no dependency already sits. Leaving the
-behaviour-driven suite would cost more, because its structure reaches into how every test file is
-organised rather than into what one line of it calls. The rest sit between those two.
+appear only in tests and test support, with the standard library's comparison plus a hand-written
+report as the fallback, which is exactly where the candidate that takes no dependency already sits.
+Leaving the behaviour-driven suite would cost more, because its structure reaches into how every
+test file is organised rather than into what one line of it calls. The rest sit between those two.
 
 **Which strengths could be had without choosing the candidate, and which costs could be confined.**
 The golden-file capability that separates the runner-up is detachable, and detaching it is what
@@ -212,8 +212,8 @@ tool whose central feature is that construction cannot be used here whatever els
 
 ## Consequences
 
-- **What leaving this choice would cost.** Calls in test files. The comparison appears nowhere
-  else, and the expected values the tests carry are unaffected.
+- **What leaving this choice would cost.** Calls in tests and test support. The comparison appears
+  nowhere else, and the expected values the tests carry are unaffected.
 - **What would re-argue this decision.** It rests on pure cores returning decisions as values, which
   is [ADR-0040](./0040-pure-core-decisions-as-values.md)'s. If that stopped holding, comparing whole
   returned structs would stop being the operation the suite spends its time on, and the case for
