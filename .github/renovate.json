@@ -11,6 +11,27 @@
         "# renovate: datasource=(?<datasource>[a-z-.]+?)\\s+depName=(?<depName>[a-zA-Z0-9-/]+?)(\\s+repository=(?<registryUrl>[^\\s]+?))?(\\s+versioning=(?<versioning>[^\\s]+?))?(\\s+extractVersion=(?<extractVersion>[^\\s]+?))?\\s*\\n.+[\\:\\=]\\s?\"v?(?<currentValue>[^\\s]+)\""
       ],
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    },
+    {
+      "customType": "regex",
+      "description": "The PostgreSQL image pgrun starts for integration tests",
+      "managerFilePatterns": [
+        "/(^|/)testsupport/cmd/pgrun/image\\.go$/"
+      ],
+      "matchStrings": [
+        "const image = \"(?<depName>[^:\"]+):(?<currentValue>[^@\"]+)@(?<currentDigest>sha256:[a-f0-9]{64})\""
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Versions a Dockerfile builds from source, declared as a build argument under a renovate comment",
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-.]+?)\\s+depName=(?<depName>\\S+)\\s*\\nARG [A-Z0-9_]+=(?<currentValue>\\S+)"
+      ]
     }
   ],
   "dependencyDashboard": true,
@@ -27,6 +48,18 @@
   "internalChecksFilter": "strict",
   "labels": [
     "pr-type:renovate"
+  ],
+  "packageRules": [
+    {
+      "description": "openapi-typescript calls the TypeScript compiler API that TypeScript 7 removed and declares a peer range of typescript ^5.x (https://github.com/openapi-ts/openapi-typescript/issues/2841). The generation step's own manifest holds TypeScript 5 until that issue is fixed. The browser layer's type check in ui/browser/package.json stays on the latest TypeScript",
+      "matchFileNames": [
+        "ui/browser/codegen/package.json"
+      ],
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<6"
+    }
   ],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
