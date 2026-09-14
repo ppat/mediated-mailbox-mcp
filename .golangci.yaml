@@ -20,23 +20,77 @@ issues:
   uniq-by-line: false
 
 formatters:
-  enable: []
+  enable:
+  - gofumpt
+  - goimports
+  settings:
+    gofumpt:
+      module-path: github.com/ppat/mediated-mailbox-mcp
+    goimports:
+      local-prefixes:
+      - github.com/ppat/mediated-mailbox-mcp
 
 linters:
   default: none
   enable:
+  # Linters standing in for controls. Each is proven by violation files, and nothing may suppress its findings.
   - depguard
   - errcheck
   - exhaustive
   - forbidigo
+  # Ordinary linters. banproof's list of ordinary linters names exactly these, and only they may be named by a
+  # //nolint directive or an exclusion rule. A linter that comes to carry a control leaves both lists.
+  - bodyclose
+  - errorlint
+  - gosec
+  - misspell
+  - revive
+  - staticcheck
 
   exclusions:
     # The default excludes every finding in a file whose header says it is generated, so a hand-written
     # header would switch off every rule in that file.
     generated: disable
     presets: []
+    rules:
+    # A violation file breaks a control on purpose and banproof requires exactly its wanted findings, so the
+    # ordinary linters' opinions of it are not reported.
+    - path: _violation(_[a-z]+)?(_test)?\.go$
+      linters: [bodyclose, errorlint, gosec, misspell, revive, staticcheck]
+    # Test code and the test tooling under testsupport run the commands and read the files that the repository
+    # or their caller names, and none of that code reaches a shipped binary (the non-test-code import list).
+    - path: (_test\.go$|^testsupport/)
+      linters: [gosec]
+      text: '^G(204|304):'
 
   settings:
+    gosec:
+      config:
+        global:
+          # gosec otherwise honours its own #nosec comment, which needs no reason. A false positive is
+          # suppressed with //nolint:gosec and a reason instead, the one form banproof checks.
+          nosec: true
+
+    revive:
+      # revive otherwise honours its own disable comment with no reason given.
+      directives:
+      - name: specify-disable-reason
+        severity: error
+      # Rules that staticcheck's default checks leave out. Listing any rule switches revive's defaults off.
+      rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: dot-imports
+      - name: error-return
+      - name: exported
+      - name: package-comments
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: time-naming
+      - name: unexported-return
+      - name: unreachable-code
+      - name: var-naming
+
     errcheck:
       check-blank: true
       check-type-assertions: true
@@ -247,6 +301,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/"
+          # banproof reads .golangci.yaml.
+          - "go.yaml.in/yaml/v3$"
+          # Restores the standard library under go/, which the entry above hides (see the notes at the top).
+          - "go/"
           - "golang.org/x/tools/go/"
           - "pgregory.net/rapid$"
 
@@ -273,6 +331,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          # banproof reads .golangci.yaml.
+          - "go.yaml.in/yaml/v3$"
+          # Restores the standard library under go/, which the entry above hides (see the notes at the top).
+          - "go/"
           - "golang.org/x/tools/go/"
 
         # Deployable backfill, every file. A deployable imports its own code and the shared libraries, never another

@@ -48,7 +48,7 @@ func TestDocument(t *testing.T) {
 	}
 	got := render(t, doc)
 	if *update {
-		if err := os.WriteFile(documentPath, got, 0o644); err != nil {
+		if err := os.WriteFile(documentPath, got, 0o600); err != nil {
 			t.Fatal(err)
 		}
 		return
