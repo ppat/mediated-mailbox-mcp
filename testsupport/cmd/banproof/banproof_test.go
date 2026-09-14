@@ -15,10 +15,11 @@ func TestParseWants(t *testing.T) {
 import _ "os/exec" // want depguard "list 'pure-core'" depguard ` + "`list 'non-test-code'`" + `
 
 var s = "// want depguard \"inside a string\""
-// want nolint "suppression"
-var t = 1 //nolint:forbidigo // want nolint "after a directive"
+// want suppression "suppression"
+var t = 1 //nolint:forbidigo // want suppression "after a directive"
 // Prose that mentions // want depguard "x" is not an annotation.
-/* want depguard "block comments are not annotations" */
+var u = 1 /* want errcheck "in a block comment" suppression "x" */ // nolint
+/* Prose in a block comment that mentions want depguard "x" is not an annotation. */
 `)
 	ws, err := parseWants("f.go", src)
 	if err != nil {
@@ -35,8 +36,10 @@ var t = 1 //nolint:forbidigo // want nolint "after a directive"
 	want := []row{
 		{3, "depguard", "list 'pure-core'"},
 		{3, "depguard", "list 'non-test-code'"},
-		{6, "nolint", "suppression"},
-		{7, "nolint", "after a directive"},
+		{6, "suppression", "suppression"},
+		{7, "suppression", "after a directive"},
+		{9, "errcheck", "in a block comment"},
+		{9, "suppression", "x"},
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Fatalf("wants (-want +got):\n%s", diff)
@@ -48,26 +51,6 @@ func TestParseWantsRejectsMalformedAnnotations(t *testing.T) {
 		if _, err := parseWants("f.go", []byte("package p\n// "+body+"\n")); err == nil {
 			t.Errorf("parseWants accepted %q", body)
 		}
-	}
-}
-
-func TestNolintFindings(t *testing.T) {
-	src := []byte(`package p
-
-var a = 1 //nolint:forbidigo // reason
-var b = 1 // nolint:forbidigo
-var c = 1 ////nolint
-var d = 1 //NOLINT
-var e = 1 // nolintlint is a linter name, not a directive
-var f = "//nolint"
-var g = 1 /* nolint */
-`)
-	var lines []int
-	for _, f := range nolintFindings("f.go", src) {
-		lines = append(lines, f.line)
-	}
-	if diff := cmp.Diff([]int{3, 4, 5, 6}, lines); diff != "" {
-		t.Fatalf("lines reported (-want +got):\n%s", diff)
 	}
 }
 

@@ -7,6 +7,13 @@
 // every want is reported and nothing else is. A rule that has been weakened until it matches
 // nothing therefore turns the run red, because its want goes unreported.
 //
+// No linter standing in for a control may be switched off, anywhere (ADR-0071). The search for
+// suppression directives refuses every comment that can silence such a linter's finding. It allows a
+// golangci-lint directive only when every linter the directive names is on the closed list of ordinary
+// linters and a reason follows the names (suppression.go). A check of .golangci.yaml refuses every
+// setting that can reach such a linter, allows exclusion rules naming only ordinary linters, and
+// cross-checks the list against the enabled linters and the violation files (config.go).
+//
 // Violation files carry a build constraint that is false unless the banproof tag is set, so the
 // gating lint, build and test runs never see them. banproof enables the tag. It also fails when the
 // tag and the file name disagree, so the tag cannot hide an ordinary test. A violation file's name
@@ -76,6 +83,22 @@ func run(tag string) error {
 	if out, err := command(root, "golangci-lint", "config", "verify"); err != nil {
 		return fmt.Errorf("golangci-lint config verify failed: %w\n%s", err, out)
 	}
+	out, err := command(root, "golangci-lint", "config", "path")
+	if err != nil {
+		return fmt.Errorf("golangci-lint config path failed: %w\n%s", err, out)
+	}
+	if used := strings.TrimSpace(string(out)); used != configName {
+		problems = append(problems, fmt.Sprintf("golangci-lint reads %s rather than %s", used, configName))
+	}
+	src, err := os.ReadFile(filepath.Join(root, configName))
+	if err != nil {
+		return err
+	}
+	config, err := parseConfig(src)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, configProblems(config, ordinaryLinters)...)
 
 	files, err := goFiles(root)
 	if err != nil {
@@ -88,7 +111,7 @@ func run(tag string) error {
 		if err != nil {
 			return err
 		}
-		found = append(found, nolintFindings(path, src)...)
+		found = append(found, directiveFindings(path, src, ordinaryLinters)...)
 		isViolation := violationName.MatchString(filepath.Base(path))
 		if tag != "" {
 			tagged, err := needsTag(src, tag)
@@ -114,6 +137,8 @@ func run(tag string) error {
 		}
 		expected = append(expected, ws...)
 	}
+
+	problems = append(problems, roleProblems(config.Linters.Enable, ordinaryLinters, wantedTools(expected))...)
 
 	lintFindings, err := lint(root, tag)
 	if err != nil {

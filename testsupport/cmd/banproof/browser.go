@@ -30,7 +30,6 @@ var browserDir = filepath.Join("ui", "browser")
 const (
 	toolOxlint      = "oxlint"
 	toolAstGrep     = "ast-grep"
-	toolSuppression = "suppression"
 )
 
 var browserViolationName = regexp.MustCompile(`_violation\.tsx?$`)
