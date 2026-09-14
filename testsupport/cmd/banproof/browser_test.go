@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -41,6 +42,67 @@ func TestParseBrowserWantsRejectsMalformedAnnotations(t *testing.T) {
 		if _, err := parseBrowserWants("f.ts", []byte(line+"\n")); err == nil {
 			t.Errorf("parseBrowserWants accepted %q", line)
 		}
+	}
+}
+
+func TestSanctionedValueRead(t *testing.T) {
+	src := []byte(`{
+  // Row.value is the contract field, not a signal.
+  // ast-grep-ignore: signal-value-in-render
+  props.row.value
+}
+{
+  // ast-grep-ignore: signal-value-in-render
+  props.row.value
+}
+{
+  // The contract field, not a signal.
+  // ast-grep-ignore: signal-value-in-render
+  props.row.value
+}
+{
+  // Row.value is the contract field, not a signal.
+  // ast-grep-ignore: signal-value-in-render, markup-prop-tsx
+  props.row.value
+}
+{
+  // Row.value is the contract field, not a signal.
+  // ast-grep-ignore
+  props.row.value
+}
+{
+  // Row.value is the contract field. ast-grep-ignore: signal-value-in-render
+  // ast-grep-ignore: signal-value-in-render
+  props.row.value
+}
+{
+  /* Row.value is the contract field, not a signal. */
+  // ast-grep-ignore: signal-value-in-render
+  props.row.value
+}
+{
+  // Row.value is the contract field, not a signal.
+  props.row.value // ast-grep-ignore: signal-value-in-render
+}
+{
+  // Row.value is the contract field, not a signal.
+  // oxlint-disable-next-line signal-value-in-render
+  props.row.value
+}
+`)
+	var got []int
+	for _, f := range suppressionFindings("f.tsx", src) {
+		got = append(got, f.line)
+	}
+	// Only the first directive is the sanctioned form. The second has no field line above it, the third's
+	// comment names no field, the fourth and fifth name more than the signal rule, the sixth's field line is
+	// itself a directive and is reported too, the seventh names the field in a block comment, the eighth
+	// shares a line with the read, and the ninth is oxlint's.
+	if diff := cmp.Diff([]int{7, 12, 17, 22, 26, 27, 32, 37, 41}, got); diff != "" {
+		t.Fatalf("suppression lines (-want +got):\n%s", diff)
+	}
+	if fs := suppressionFindings("f.ts", src[:strings.Index(string(src), "}")+1]); len(fs) != 1 {
+		t.Fatalf("the sanctioned form in a .ts file, which the signal rule does not read, is allowed: %v", fs)
 	}
 }
 
