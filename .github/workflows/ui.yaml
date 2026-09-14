@@ -1,0 +1,90 @@
+---
+# yamllint disable rule:line-length
+name: ui
+
+# The UI in one job, in the order each stage's input is produced. The contract document comes first, then the
+# types and descriptor table generated from it, the bundle, the Go code embedding the bundle, and the browser
+# checks last.
+# The recorded fixtures are functions of the server's output, so the migration chain is watched as well, and
+# each data-access subsection the UI's list names joins it.
+on:
+  pull_request:
+    paths:
+    - .github/workflows/ui.yaml
+    - go.mod
+    - go.sum
+    - mise.lock
+    - mise.toml
+    - db/migrations/**
+    - testsupport/cmd/banproof/**
+    - ui/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install the browser layer's packages
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: |
+        mise exec -- bun install --frozen-lockfile
+        cd codegen
+        mise exec -- bun install --frozen-lockfile
+
+    - name: Compare the contract document with what the registry generates
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- go test ./ui/internal/contract
+
+    - name: Compare the generated types and descriptor table with what the document generates
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: mise exec -- bun run check:generated
+
+    - name: Build the bundle
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: mise exec -- bun run build
+
+    - name: Compile the UI with the bundle embedded and run its Go tests
+      shell: bash
+      working-directory: ./current
+      run: |
+        mise exec -- go build -o /dev/null ./ui
+        mise exec -- go test ./ui/...
+
+    - name: Type-check the browser layer
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: mise exec -- bun run typecheck
+
+    - name: Lint the browser layer
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: mise exec -- bun run lint
+
+    - name: Prove every browser ban still fires
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- go tool banproof -browser
+
+    - name: Run the browser tests
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: mise exec -- bun test
