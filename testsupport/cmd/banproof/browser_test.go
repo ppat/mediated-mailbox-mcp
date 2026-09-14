@@ -1,6 +1,8 @@
 package main
 
 import (
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -220,5 +222,91 @@ func TestBanRuleProblems(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("problems (-want +got):\n%s", diff)
+	}
+}
+
+const baseOxlintConfig = `{
+  "options": { "typeAware": true, "denyWarnings": true },
+  "plugins": ["typescript", "unicorn", "oxc", "react"],
+  "categories": { "correctness": "error", "suspicious": "error" },
+  "rules": {
+    "no-debugger": "off",
+    "react/no-danger": "error",
+    "no-restricted-properties": ["error", { "property": "innerHTML" }]
+  },
+  "overrides": [
+    { "files": ["test/fixtures/**"], "rules": { "typescript/no-explicit-any": 2 } },
+    { "files": ["src/app/main.ts"], "excludeFiles": ["src/app/other.ts"], "rules": { "unicorn/no-empty-file": "off" } }
+  ]
+}`
+
+// TestOxlintConfigProblems changes one setting of baseOxlintConfig per case. The base configuration switches
+// an ordinary rule off, changes categories and narrows an override of an ordinary rule, all of which are
+// allowed. Each case reaches a ban and must be refused.
+func TestOxlintConfigProblems(t *testing.T) {
+	bans := []string{"no-danger", "no-explicit-any", "no-restricted-properties"}
+	problems, err := oxlintConfigProblems([]byte(baseOxlintConfig), bans)
+	if err != nil || len(problems) > 0 {
+		t.Fatalf("the base configuration is refused: %v %q", err, problems)
+	}
+	cases := []struct{ name, old, new, problem string }{
+		{"ban switched off", `"react/no-danger": "error"`, `"react/no-danger": "off"`, `sets the ban rule react/no-danger to off`},
+		{"ban downgraded to a warning", `"react/no-danger": "error"`, `"react/no-danger": "warn"`, `to warn`},
+		{"ban switched off under another prefix", `"no-debugger": "off"`, `"eslint/no-restricted-properties": "off"`, `ban rule eslint/no-restricted-properties`},
+		{"ban with options switched off", `["error", { "property": "innerHTML" }]`, `["off", { "property": "innerHTML" }]`, `ban rule no-restricted-properties`},
+		{"ban switched off by a number", `"typescript/no-explicit-any": 2`, `"typescript/no-explicit-any": 0`, `overrides\[0\]\.rules sets the ban rule typescript/no-explicit-any to 0`},
+		{"ban downgraded in an override", `"typescript/no-explicit-any": 2 }`, `"typescript/no-explicit-any": 2, "no-restricted-properties": "warn" }`, `overrides\[0\]\.rules sets the ban rule no-restricted-properties to warn`},
+		{"override of a ban narrowed", `"rules": { "typescript/no-explicit-any": 2 }`, `"excludeFiles": ["test/fixtures/x/**"], "rules": { "typescript/no-explicit-any": 2 }`, `overrides\[0\]\.excludeFiles`},
+		{"ignore patterns", `"plugins":`, `"ignorePatterns": ["src/**"], "plugins":`, `ignorePatterns`},
+		{"extends", `"plugins":`, `"extends": ["./other.json"], "plugins":`, `extends`},
+		{"plugin owning a ban left out", `"typescript", "unicorn", "oxc", "react"`, `"typescript", "unicorn", "oxc"`, `leaves out react`},
+		{"plugins left at the default", `"plugins": ["typescript", "unicorn", "oxc", "react"],`, ``, `plugins is not set`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if !strings.Contains(baseOxlintConfig, c.old) {
+				t.Fatalf("the base configuration does not contain %q", c.old)
+			}
+			problems, err := oxlintConfigProblems([]byte(strings.Replace(baseOxlintConfig, c.old, c.new, 1)), bans)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(problems) != 1 || !regexp.MustCompile(c.problem).MatchString(problems[0]) {
+				t.Fatalf("want exactly one problem matching %q, got %q", c.problem, problems)
+			}
+		})
+	}
+}
+
+func TestAstGrepConfigProblems(t *testing.T) {
+	dirs, problems, err := sgconfigProblems([]byte("ruleDirs:\n- rules\nutilDirs:\n- utils\n"))
+	if err != nil || len(problems) > 0 || !slices.Equal(dirs, []string{"rules"}) {
+		t.Fatalf("the base sgconfig is refused: %v %q %v", err, problems, dirs)
+	}
+	for src, problem := range map[string]string{
+		"ruleDirs:\n- rules\nlanguageGlobs:\n  typescript: ['*.tsx']\n": "languageGlobs",
+		"ruleDirs:\n- rules\n- other\n":                                 "ruleDirs is",
+	} {
+		_, problems, err := sgconfigProblems([]byte(src))
+		if err != nil || len(problems) != 1 || !strings.Contains(problems[0], problem) {
+			t.Errorf("sgconfig %q: want one problem containing %q, got %v %q", src, problem, err, problems)
+		}
+	}
+	rule := "id: a\nlanguage: Tsx\nseverity: error\nrule:\n  kind: x\n---\nid: b\nlanguage: TypeScript\nseverity: error\nrule:\n  kind: x\n"
+	if problems, err := astGrepRuleProblems([]byte(rule)); err != nil || len(problems) > 0 {
+		t.Fatalf("the base rule file is refused: %v %q", err, problems)
+	}
+	for old, problem := range map[string]string{
+		"id: b\nlanguage: TypeScript\nseverity: error\n": "rule b has severity warning",
+		"id: a\nlanguage: Tsx\n":                         "rule a sets ignores",
+	} {
+		repl := map[string]string{
+			"id: b\nlanguage: TypeScript\nseverity: error\n": "id: b\nlanguage: TypeScript\nseverity: warning\n",
+			"id: a\nlanguage: Tsx\n":                         "id: a\nlanguage: Tsx\nignores: ['src/**']\n",
+		}[old]
+		problems, err := astGrepRuleProblems([]byte(strings.Replace(rule, old, repl, 1)))
+		if err != nil || len(problems) != 1 || !strings.Contains(problems[0], problem) {
+			t.Errorf("want one problem containing %q, got %v %q", problem, err, problems)
+		}
 	}
 }

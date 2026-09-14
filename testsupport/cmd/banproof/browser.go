@@ -82,6 +82,12 @@ func runBrowser(root string) error {
 		found = append(found, suppressionFindings(path, src)...)
 	}
 
+	configProblems, err := browserConfigProblems(dir)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, configProblems...)
+
 	oxlint, err := runOxlint(dir)
 	if err != nil {
 		return err
