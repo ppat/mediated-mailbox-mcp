@@ -10,10 +10,12 @@ import (
 )
 
 const listSenders = `-- name: ListSenders :many
-SELECT domain, message_count
+SELECT
+    domain,
+    message_count
 FROM fixture_senders
 WHERE account_id = $1
-ORDER BY message_count DESC, domain
+ORDER BY message_count DESC, domain ASC
 LIMIT $2
 `
 
