@@ -51,6 +51,87 @@
   ],
   "packageRules": [
     {
+      "description": "Go is pinned in go.mod's go directive, in mise.toml for developers and CI, and in every Dockerfile's golang build stage. Every pin of it joins one pull request, on one schedule, so the pins cannot drift apart. The update changes what builds the shipped artifacts, so it takes the ordinary release-cutting commit types rather than the internal-dependencies grouping mise.toml's other tools get",
+      "matchManagers": [
+        "dockerfile",
+        "gomod",
+        "mise"
+      ],
+      "matchDepNames": [
+        "go",
+        "golang"
+      ],
+      "groupName": "go",
+      "schedule": [
+        "at any time"
+      ],
+      "semanticCommitScope": ""
+    },
+    {
+      "description": "Renovate reads go.mod's go directive as a minimum and leaves it alone while the minimum holds. Bumping it keeps the directive equal to the Go version the go group moves everywhere else",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "golang"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "bun is pinned in mise.toml for developers and CI, and in the UI Dockerfile's bundle stage. Every pin of it joins one pull request, on one schedule, so the pins cannot drift apart. The update changes what builds the shipped artifacts, so it takes the ordinary release-cutting commit types rather than the internal-dependencies grouping mise.toml's other tools get",
+      "matchManagers": [
+        "dockerfile",
+        "mise"
+      ],
+      "matchDepNames": [
+        "bun",
+        "oven/bun"
+      ],
+      "groupName": "bun",
+      "schedule": [
+        "at any time"
+      ],
+      "semanticCommitScope": ""
+    },
+    {
+      "description": "The go and bun groups reset the commit type mise.toml's grouping sets, per update type, as the default preset assigns it",
+      "matchDepNames": [
+        "go",
+        "golang",
+        "bun",
+        "oven/bun"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "gomod",
+        "mise"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "semanticCommitType": "feat"
+    },
+    {
+      "description": "The go and bun groups' patch and digest updates are fixes, as the default preset assigns them",
+      "matchDepNames": [
+        "go",
+        "golang",
+        "bun",
+        "oven/bun"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "gomod",
+        "mise"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "digest"
+      ],
+      "semanticCommitType": "fix"
+    },
+    {
       "description": "openapi-typescript calls the TypeScript compiler API that TypeScript 7 removed and declares a peer range of typescript ^5.x (https://github.com/openapi-ts/openapi-typescript/issues/2841). The generation step's own manifest holds TypeScript 5 until that issue is fixed. The browser layer's type check in ui/browser/package.json stays on the latest TypeScript",
       "matchFileNames": [
         "ui/browser/codegen/package.json"
