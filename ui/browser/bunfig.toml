@@ -1,0 +1,7 @@
+[install]
+# bun.lock is the lock. Installs in CI and in the image refuse to change it.
+frozenLockfile = true
+
+[test]
+# Registers the DOM shim before any test module loads (ADR-0064).
+preload = ["./test/happydom.ts"]
