@@ -19,9 +19,12 @@ var ordinaryLinters = []string{
 	"bodyclose",
 	"errorlint",
 	"gosec",
+	"govet",
+	"ineffassign",
 	"misspell",
 	"revive",
 	"staticcheck",
+	"unused",
 }
 
 // nolintPattern is golangci-lint's own test for a suppression directive, which it applies to a comment's

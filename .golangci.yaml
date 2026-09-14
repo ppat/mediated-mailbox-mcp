@@ -43,9 +43,12 @@ linters:
   - bodyclose
   - errorlint
   - gosec
+  - govet
+  - ineffassign
   - misspell
   - revive
   - staticcheck
+  - unused
 
   exclusions:
     # The default excludes every finding in a file whose header says it is generated, so a hand-written
@@ -56,7 +59,7 @@ linters:
     # A violation file breaks a control on purpose and banproof requires exactly its wanted findings, so the
     # ordinary linters' opinions of it are not reported.
     - path: _violation(_[a-z]+)?(_test)?\.go$
-      linters: [bodyclose, errorlint, gosec, misspell, revive, staticcheck]
+      linters: [bodyclose, errorlint, gosec, govet, ineffassign, misspell, revive, staticcheck, unused]
     # Test code and the test tooling under testsupport run the commands and read the files that the repository
     # or their caller names, and none of that code reaches a shipped binary (the non-test-code import list).
     - path: (_test\.go$|^testsupport/)
