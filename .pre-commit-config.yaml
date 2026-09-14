@@ -1,4 +1,7 @@
 ---
+# Generated files and lock files are written by their generators, and each generated file is checked by
+# regenerating and comparing. A text fixer rewriting one would fail that check, so no hook reads them.
+exclude: ^(ui/contract/openapi\.json|ui/browser/src/generated/.*|ui/browser/(codegen/)?bun\.lock)$
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v6.0.0
