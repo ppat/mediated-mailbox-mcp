@@ -2,6 +2,11 @@
 # yamllint disable rule:line-length
 name: release
 
+# release-please opens and merges the release pull request and creates the release on main. Creating the
+# release with the bot's App token fires the release event, and the publish jobs run on that event, from the
+# release's tag. Every release builds, pushes and signs every image and the chart at the release's version,
+# a documentation-only release included, because the chart's appVersion names those image tags (ADR-0049,
+# ADR-0052).
 on:
   pull_request:
     paths:
@@ -10,6 +15,9 @@ on:
   push:
     branches:
     - main
+  release:
+    types:
+    - published
   workflow_dispatch:
 
 concurrency:
@@ -17,9 +25,89 @@ concurrency:
 
 permissions: {}
 
+env:
+  CHART_REGISTRY: ghcr.io/${{ github.repository_owner }}
+
 jobs:
   release:
+    if: ${{ github.event_name != 'release' }}
     uses: ppat/github-workflows/.github/workflows/release-please.yaml@c22c55c4a2764c23e5de0bd11bbb64e2ae38592b # v8.0.0
     secrets:
       app_client_id: ${{ secrets.HOMELAB_BOT_APP_ID }}
       app_private_key: ${{ secrets.HOMELAB_BOT_APP_PRIVATE_KEY }}
+
+  # The action tags each image with the release tag and its semantic version, pushes it to GHCR, and signs it
+  # keylessly by digest.
+  images:
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        deployable: [backfill, mediate, migrate, organize, propose, sync, ui]
+    steps:
+    - name: Checkout the release tag
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Build, push and sign the image
+      uses: ppat/homelab-ops-actions/actions/build-docker-image@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        image_context_path: .
+        dockerfile: ${{ matrix.deployable }}/Dockerfile
+        ghcr_repository: ${{ github.repository_owner }}/mediated-mailbox-${{ matrix.deployable }}
+        label_title: mediated-mailbox-${{ matrix.deployable }}
+        sign: "true"
+
+  chart:
+    needs: [images]
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    steps:
+    - name: Setup the release tag and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # The chart in git carries a placeholder version. Packaging sets version and appVersion to the release
+    # version, the chart is pushed as an OCI artifact beside the images, and it is signed by the digest the push
+    # reports.
+    - name: Package, push and sign the chart
+      shell: bash
+      working-directory: ./current
+      env:
+        ACTOR: ${{ github.actor }}
+        REGISTRY_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.release.tag_name }}
+      # yamllint disable-line rule:indentation
+      run: |
+        version="${TAG#v}"
+        if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Release tag '${TAG}' does not name a release version."
+          exit 1
+        fi
+        registry="${CHART_REGISTRY,,}"
+
+        mise exec -- helm package packaging/chart --version "$version" --app-version "$version" --destination "${RUNNER_TEMP}/chart"
+        echo "$REGISTRY_TOKEN" | mise exec -- helm registry login ghcr.io --username "$ACTOR" --password-stdin
+        echo "$REGISTRY_TOKEN" | mise exec -- cosign login ghcr.io --username "$ACTOR" --password-stdin
+        mise exec -- helm push "${RUNNER_TEMP}/chart/mediated-mailbox-${version}.tgz" "oci://${registry}" 2>&1 | tee "${RUNNER_TEMP}/push.log"
+        digest="$(sed -n 's/^Digest: \(sha256:[0-9a-f]\{64\}\)$/\1/p' "${RUNNER_TEMP}/push.log")"
+        if [[ -z "$digest" ]]; then
+          echo "::error::helm push reported no digest to sign."
+          exit 1
+        fi
+        mise exec -- cosign sign --yes "${registry}/mediated-mailbox@${digest}"
