@@ -1,0 +1,94 @@
+---
+# yamllint disable rule:line-length
+name: deep-tests
+
+# The longer random search over the same property tests and crash sequences the gating run holds (ADR-0055,
+# ADR-0045), with more cases per property and a fresh seed each run. The case count is not decided in any record,
+# so it is read from the repository variable RAPID_SCHEDULED_CHECKS, and a manual run may override it. It never gates a pull request. It also
+# runs on a pull request changing this file, so the workflow itself is exercised before it lands.
+on:
+  schedule:
+  - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      checks:
+        description: Cases generated per property, overriding the RAPID_SCHEDULED_CHECKS repository variable
+        required: false
+        type: string
+  pull_request:
+    paths:
+    - .github/workflows/deep-tests.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A long search is never cancelled by the next one.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  find:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      present: ${{ steps.find.outputs.present }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    # rapid is admitted only in these files (ADR-0069, enforced by the import lists), so their absence means
+    # no property test or crash sequence exists and there is nothing to search. The run is then skipped with a
+    # warning rather than passed. Violation files carry the same suffixes and build only under the banproof
+    # tag, so they are not counted.
+    - name: Find property tests and crash sequences
+      id: find
+      shell: bash
+      # yamllint disable-line rule:indentation
+      run: |
+        count="$(git ls-files -- '*_property_test.go' '*_crash_test.go' ':(exclude)*_violation_*' | wc -l)"
+        if (( count == 0 )); then
+          echo "::warning::No property test or crash sequence exists, so the deep run has nothing to search. It did not run."
+          printf '### The deep run did not run\n\nNo file named *_property_test.go or *_crash_test.go exists.\n' >> "$GITHUB_STEP_SUMMARY"
+          echo "present=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "present=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  deep:
+    needs: [find]
+    if: ${{ needs.find.outputs.present == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      SCHEDULED_CHECKS: ${{ inputs.checks || vars.RAPID_SCHEDULED_CHECKS }}
+      RAPID_NOFAILFILE: 'true'
+      RAPID_SEED: ${{ github.run_id }}
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # The whole suite runs, because crash sequences replay against PostgreSQL. rapid prints its OK line only
+    # under -v, and a run in which no property reported one generated no case, so it fails.
+    - name: Run the suite with the larger case count
+      shell: bash
+      working-directory: ./current
+      # yamllint disable-line rule:indentation
+      run: |
+        if [[ ! "$SCHEDULED_CHECKS" =~ ^[0-9]+$ ]] || (( 10#$SCHEDULED_CHECKS == 0 )); then
+          echo "::error::Property tests or crash sequences exist, but no case count is configured. Set the repository variable RAPID_SCHEDULED_CHECKS to a positive number, or pass the checks input."
+          exit 1
+        fi
+        export RAPID_CHECKS="$SCHEDULED_CHECKS"
+        echo "RAPID_SEED=${RAPID_SEED} RAPID_CHECKS=${RAPID_CHECKS}" | tee -a "$GITHUB_STEP_SUMMARY"
+        mise exec -- go tool pgrun -- go test -tags integration -count=1 -timeout 110m -v ./... | tee "${RUNNER_TEMP}/deep.log"
+        if ! grep -q '\[rapid\] OK, passed [1-9][0-9]* tests' "${RUNNER_TEMP}/deep.log"; then
+          echo "::error::No property reported a passed rapid run, so the deep run generated nothing."
+          exit 1
+        fi
