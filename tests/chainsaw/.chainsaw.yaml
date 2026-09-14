@@ -1,0 +1,21 @@
+---
+# Configuration for the chainsaw suite, which deploys the chart onto an ephemeral kind cluster through flux
+# and exercises the assembled system (ADR-0052). The chainsaw workflow runs it with the version under test
+# and the repository's clone details as values.
+apiVersion: chainsaw.kyverno.io/v1alpha2
+kind: Configuration
+metadata:
+  name: mediated-mailbox
+spec:
+  timeouts:
+    apply: 1m
+    assert: 3m
+    cleanup: 1m
+    delete: 1m
+    error: 1m
+    exec: 1m
+  execution:
+    failFast: true
+  cleanup:
+    # The cluster exists for one run and is deleted with the runner.
+    skipDelete: true

@@ -47,3 +47,5 @@ rules:
 ignore:
 - dist/
 - node_modules/
+# Helm templates are Go templates that yamllint cannot parse. helm lint checks them.
+- packaging/chart/templates/
