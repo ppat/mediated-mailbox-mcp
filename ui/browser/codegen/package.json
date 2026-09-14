@@ -1,0 +1,13 @@
+{
+  "name": "mediated-mailbox-ui-codegen",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "types": "openapi-typescript ../../contract/openapi.json --output ../src/generated/contract.ts",
+    "types:check": "openapi-typescript ../../contract/openapi.json --output ../src/generated/contract.ts --check"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}
