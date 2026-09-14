@@ -1,0 +1,170 @@
+---
+# yamllint disable rule:line-length
+name: chainsaw
+
+# The chainsaw suite deploys the chart onto an ephemeral kind cluster through flux, with the images already
+# published for one release version, and builds no image (ADR-0052). A dispatch names the version. A pull
+# request changing the chart or the suite tests it with the latest release's images, so a deployable's change
+# does not run it.
+on:
+  pull_request:
+    paths:
+    - .github/workflows/chainsaw.yaml
+    - packaging/**
+    - tests/chainsaw/**
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version whose published images the chart is deployed with, such as 0.1.0
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  IMAGES: backfill mediate migrate organize propose sync ui
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      ready: ${{ steps.resolve.outputs.ready }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+    # A dispatched version without every image fails. On a pull request, no release, or a latest release
+    # without every image, skips the suite with a warning and a summary saying why, since nothing exists to
+    # deploy the chart with. Once a release publishes its images, every such pull request runs the suite.
+    - name: Resolve the version and find its images
+      id: resolve
+      shell: bash
+      env:
+        ACTOR: ${{ github.actor }}
+        EVENT_NAME: ${{ github.event_name }}
+        GH_TOKEN: ${{ github.token }}
+        INPUT_VERSION: ${{ inputs.version }}
+        OWNER: ${{ github.repository_owner }}
+        REPOSITORY: ${{ github.repository }}
+      # yamllint disable-line rule:indentation
+      run: |
+        not_ready() {
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            echo "::error::$1"
+            exit 1
+          fi
+          echo "::warning::$1 The chainsaw suite did not run."
+          printf '### The chainsaw suite did not run\n\n%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        }
+
+        if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+          version="${INPUT_VERSION#v}"
+        else
+          if ! latest="$(gh api "repos/${REPOSITORY}/releases/latest" --jq .tag_name 2>&1)"; then
+            [[ "$latest" == *"HTTP 404"* ]] || { echo "::error::Reading the latest release failed: $latest"; exit 1; }
+            not_ready "${REPOSITORY} has no release, so no version has published images to deploy the chart with."
+          fi
+          version="${latest#v}"
+        fi
+        [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || not_ready "'${version}' is not a release version."
+
+        gh auth token | docker login ghcr.io --username "$ACTOR" --password-stdin
+        missing=()
+        for image in $IMAGES; do
+          ref="ghcr.io/${OWNER,,}/mediated-mailbox-${image}:${version}"
+          docker manifest inspect "$ref" > /dev/null || missing+=("$ref")
+        done
+        docker logout ghcr.io
+        (( ${#missing[@]} == 0 )) || not_ready "Version ${version} has no published ${missing[*]}."
+
+        echo "version=${version}" >> "$GITHUB_OUTPUT"
+        echo "ready=true" >> "$GITHUB_OUTPUT"
+
+  chainsaw:
+    needs: [resolve]
+    if: ${{ needs.resolve.outputs.ready == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # The images are pulled with the job's token and loaded into the cluster's node, so the cluster needs no
+    # registry credentials while the packages are private.
+    - name: Create the cluster and load the version's images
+      shell: bash
+      working-directory: ./current
+      env:
+        ACTOR: ${{ github.actor }}
+        OWNER: ${{ github.repository_owner }}
+        REGISTRY_TOKEN: ${{ github.token }}
+        VERSION: ${{ needs.resolve.outputs.version }}
+      # yamllint disable-line rule:indentation
+      run: |
+        mise exec -- kind create cluster --name chainsaw --wait 120s
+        echo "$REGISTRY_TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+        for image in $IMAGES; do
+          ref="ghcr.io/${OWNER,,}/mediated-mailbox-${image}:${VERSION}"
+          docker pull "$ref"
+          mise exec -- kind load docker-image --name chainsaw "$ref"
+        done
+        docker logout ghcr.io
+
+    # Flux is harness machinery here, not something the chart assumes. The repository is private, so flux clones
+    # it with the job's token, which lives as long as the job.
+    - name: Install flux and its clone credentials
+      shell: bash
+      working-directory: ./current
+      env:
+        GIT_TOKEN: ${{ github.token }}
+        REPOSITORY: ${{ github.repository }}
+      # yamllint disable-line rule:indentation
+      run: |
+        mise exec -- flux install
+        mise exec -- flux create secret git mediated-mailbox-git --namespace flux-system \
+          --url "https://github.com/${REPOSITORY}" --username x-access-token --password "$GIT_TOKEN"
+
+    # chainsaw exits zero when it finds no test, so a run that passed no test fails here.
+    - name: Run the suite
+      shell: bash
+      working-directory: ./current
+      env:
+        OWNER: ${{ github.repository_owner }}
+        REPOSITORY: ${{ github.repository }}
+        REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        VERSION: ${{ needs.resolve.outputs.version }}
+      # yamllint disable-line rule:indentation
+      run: |
+        cat > "${RUNNER_TEMP}/values.yaml" <<EOF
+        version: "${VERSION}"
+        registry: ghcr.io/${OWNER,,}
+        chart:
+          path: packaging/chart
+        git:
+          url: https://github.com/${REPOSITORY}
+          commit: ${REVISION}
+          secretName: mediated-mailbox-git
+        EOF
+        mise exec -- chainsaw test tests/chainsaw --config tests/chainsaw/.chainsaw.yaml \
+          --values "${RUNNER_TEMP}/values.yaml" | tee "${RUNNER_TEMP}/chainsaw.log"
+        passed="$(sed -n 's/^- Passed  *tests \([0-9][0-9]*\)$/\1/p' "${RUNNER_TEMP}/chainsaw.log")"
+        if [[ -z "$passed" || "$passed" -eq 0 ]]; then
+          echo "::error::The chainsaw suite passed no test, so the run proved nothing about the chart."
+          exit 1
+        fi
