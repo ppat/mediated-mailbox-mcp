@@ -1,7 +1,23 @@
 ---
-# Generated files and lock files are written by their generators, and each generated file is checked by
-# regenerating and comparing. A text fixer rewriting one would fail that check, so no hook reads them.
-exclude: ^(ui/contract/openapi\.json|ui/browser/src/generated/.*|ui/browser/(codegen/)?bun\.lock)$
+# No hook reads these files.
+# - Generated files, whose checks regenerate and compare, so a fixer's rewrite fails them: the contract document,
+#   the browser's generated types and sqlc's output, in the library and in db/check's test library.
+# - Lock files, which bun writes.
+# - Golden files and the browser tests' recorded JSON, which tests compare byte for byte.
+# - The synthetic fixtures' test data, where mail uses CRLF line endings and may carry characters the text
+#   fixers replace on purpose.
+# - Helm templates, which are Go templates rather than YAML.
+exclude: |
+  (?x)^(
+  ui/contract/openapi\.json|
+  ui/browser/src/generated/.*|
+  db/(.+/)?(db|models|querier|[^/]+\.sql)\.go|
+  ui/browser/(codegen/)?bun\.lock|
+  (.+/)?testdata/golden/.*|
+  ui/browser/test/.*\.json|
+  testsupport/fixture/testdata/.*|
+  packaging/chart/templates/.*
+  )$
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v6.0.0
@@ -37,6 +53,45 @@ repos:
   rev: v0.11.0.1
   hooks:
   - id: shellcheck
+# Local hooks run the tools pinned in mise.toml and ui/browser/package.json, so a hook and CI use one version.
+# The reusable pre-commit workflow in CI runs only its own named hooks, so each of these tools also runs in a
+# workflow here: golangci-lint's formatters under go-lint, oxfmt under ui, sqlfluff under data, hadolint under
+# dockerfiles and gitleaks under secrets.
+- repo: local
+  hooks:
+  - id: golangci-lint-fmt
+    name: golangci-lint fmt
+    entry: mise exec -- golangci-lint fmt
+    language: system
+    types: [go]
+    # Test data holds packages that do not compile on purpose.
+    exclude: (^|/)testdata/
+  - id: oxfmt
+    name: oxfmt
+    # .oxfmtrc.json skips generated code and violation files. Needs bun install in ui/browser.
+    entry: mise exec -- bun --cwd=ui/browser run fmt
+    language: system
+    files: ^ui/browser/.*\.tsx?$
+    pass_filenames: false
+  - id: sqlfluff-lint
+    name: sqlfluff lint
+    # sqlfluff fix rewrites a file. A statement file it rewrites needs sqlc generate afterwards.
+    entry: mise exec -- sqlfluff lint
+    language: system
+    types: [sql]
+    # Violation files carry want annotations that point at lines (.sqlfluffignore).
+    exclude: ^db/check/testdata/violations/
+  - id: hadolint
+    name: hadolint
+    entry: mise exec -- hadolint --failure-threshold warning
+    language: system
+    files: (^|/)Dockerfile$
+  - id: gitleaks
+    name: gitleaks
+    entry: mise exec -- gitleaks git --pre-commit --staged --redact --no-banner
+    language: system
+    pass_filenames: false
+    always_run: true
 - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
   rev: v9.26.0
   hooks:
