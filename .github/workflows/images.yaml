@@ -1,0 +1,52 @@
+---
+# yamllint disable rule:line-length
+name: images
+
+# Builds every image, publishing nothing, when a deployable or a shared library it copies changes. Every image
+# builds together because the release publishes them together at one version (ADR-0049).
+on:
+  pull_request:
+    paths:
+    - .github/workflows/images.yaml
+    - go.mod
+    - go.sum
+    - backfill/**
+    - core/**
+    - db/**
+    - mediate/**
+    - migrate/**
+    - organize/**
+    - propose/**
+    - provider/**
+    - ratelimit/**
+    - sync/**
+    - ui/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        deployable: [backfill, mediate, migrate, organize, propose, sync, ui]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Build the image
+      uses: ppat/homelab-ops-actions/actions/build-docker-image@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        image_context_path: .
+        dockerfile: ${{ matrix.deployable }}/Dockerfile
+        label_title: mediated-mailbox-${{ matrix.deployable }}
