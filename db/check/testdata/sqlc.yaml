@@ -1,0 +1,41 @@
+---
+# The test library's sqlc configuration. It has the layout db/check requires of the real one, one block
+# per subsection generating into the directory holding its statement files, and reads the real migration
+# chain before the test library's own. Regenerate with sqlc generate in this directory. The generated
+# files are checked in, and sqlc diff here reports drift.
+#
+# listing/removed.sql.go was generated from a statement file deleted afterwards, which the stale-file
+# test must report. reuse/models.go declares a table struct, which the declares-no-types assertion must
+# report.
+version: "2"
+sql:
+- engine: postgresql
+  schema: [../../migrations, migrations]
+  queries: counting
+  gen:
+    go:
+      package: counting
+      out: counting
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: [../../migrations, migrations]
+  queries: listing
+  gen:
+    go:
+      package: listing
+      out: listing
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: [../../migrations, migrations]
+  queries: reuse
+  gen:
+    go:
+      package: reuse
+      out: reuse
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
