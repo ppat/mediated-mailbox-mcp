@@ -6,22 +6,23 @@
 
 ## Context
 
-The system is deliberately several workloads
-([ADR-0022](../operability/0022-four-workloads.md)), the trust anchor's runtime is hardened to
-carry nothing beyond what it needs
-([ADR-0028](../operability/0028-trust-anchor-hardening.md)), and every dependency inside the
-process holding full-mailbox credentials is attack surface. Packaging is where those commitments
-either extend to the artifact layer or quietly stop at the process boundary.
+The system is deliberately several workloads ([ADR-0022](../operability/0022-four-workloads.md)),
+the trust anchor's runtime is hardened to carry nothing beyond what it needs
+([ADR-0028](../operability/0028-trust-anchor-hardening.md)), and every dependency inside a process
+holding full-mailbox credentials is attack surface. Packaging is where those commitments either
+extend to the artifact layer or quietly stop at the process boundary.
 
 ## Decision
 
-- **One image per deployable.** The default position is an image per deployable, held until
-  reality bites and argues for a different cut. The deployables today are the mediator, the UI,
-  and the four batch workloads; the other named components — the gate, the classifier, the
-  scanner, the scan gate, the rate limiter — are not deployables and ride inside deployables as
-  code. Each image bakes only its deployable's own code plus the shared libraries it imports —
-  one deployable's image cannot contain another's code, so "nothing beyond what it needs" reads
-  all the way down to image contents.
+- **One image per deployable.** The default position is an image per deployable, held until reality
+  bites and argues for a different cut. The deployables today are the mediator, the UI, and the four
+  batch workloads; the other named components — the gate, the classifier, the scanner, the scan
+  gate, the rate limiter — are not deployables and ride inside deployables as code. The migration
+  step of [ADR-0048](../data/0048-forward-only-migrations.md) is not a deployable either. It has an
+  image of its own, which carries the migration runner and the migration chain and none of this
+  project's Go code. Each image bakes only its deployable's own code plus the shared libraries it
+  imports — one deployable's image cannot contain another's code, so "nothing beyond what it needs"
+  reads all the way down to image contents.
 - **Everything moves in lockstep.** Images and the deployment artifact that consumes them carry
   one version — the release's. Deployed-together always means built-together; no
   version-compatibility matrix exists to maintain.

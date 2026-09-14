@@ -1,24 +1,26 @@
 # 0028. Hardening the trust anchor: minimal pod, detectable drift, evidence that survives compromise
 
 **Status:** Accepted ·
-**Pillar:** [The mediator is the irreducible trust anchor](../../../DESIGN.md#the-mediator-is-the-irreducible-trust-anchor) ·
+**Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes), [O2](../../../USE_CASES.md#o2--observable)
 
 ## Context
 
-The mediator holds full mailbox credentials; if its pod is owned, redaction is irrelevant — the
-attacker calls the provider directly. The design accepts this as the irreducible trust anchor,
-which converts the question from "how do we prevent it" into "how expensive is it, how fast is it
-noticed, and what evidence survives."
+Every deployable that calls a provider holds full mailbox credentials
+([ADR-0038](./0038-credentials-as-mounted-files.md)). If one of their pods is owned, redaction is
+irrelevant, because the attacker calls the provider directly. The design accepts this as the
+irreducible trust anchor, which converts the question from "how do we prevent it" into "how
+expensive is it, how fast is it noticed, and what evidence survives."
 
 ## Decision
 
 Layered hardening, each layer answering one of those three questions:
 
-- **Raising the cost:** credentials as mounted files that only the mediator can read
-  ([ADR-0038](./0038-credentials-as-mounted-files.md)); the mediator runs hardened and minimal —
-  no elevated privileges, an immutable filesystem, no shell, nothing beyond what it needs — with
-  the hardening enforced by policy, and images signed and verified before they run.
+- **Raising the cost:** credentials as mounted files that only the deployables calling a provider
+  can read ([ADR-0038](./0038-credentials-as-mounted-files.md)). Each of those deployables runs
+  hardened and minimal, with no elevated privileges, an immutable filesystem, no shell, and nothing
+  beyond what it needs. The hardening is enforced by policy, and images are signed and verified
+  before they run.
 - **Audit trail is maintained:** A record of changes is maintained in state store and significant
   events or changes are logged at a corresponding log level.
 - **Recovery documented:** a credential-rotation runbook, so revoke-and-reissue follows a written

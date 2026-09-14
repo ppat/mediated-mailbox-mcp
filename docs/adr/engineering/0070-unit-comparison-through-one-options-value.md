@@ -45,9 +45,14 @@ including the one that ships its own command.
 
 - **`github.com/google/go-cmp` reports differences, called from ordinary `go test` functions.** No
   assertion vocabulary and no suite runner is taken.
-- **Every comparison calls `cmp.Diff` with the shared comparison options**, one `cmp.Options`
-  value held in test support, built from a `cmp.AllowUnexported` entry per type whose unexported
-  fields may be read.
+- **Every comparison calls `cmp.Diff` with the shared comparison options**, one `cmp.Options` value
+  held in test support, built with one `cmp.Exporter` that grants unexported-field access to exactly
+  the types it lists, each by its full import path and type name. Listing names rather than type
+  values means the options package imports none of the packages it names. So an in-package test of a
+  listed package can import the options without an import cycle, and a type under a deployable's
+  `internal/` can be listed, which `cmp.AllowUnexported` cannot do because it must import each
+  type's package. The compiler does not check the names, so a test resolves every listed name to a
+  type and fails on one that names nothing.
 - **Golden files are about thirty lines written here**, using `cmp.Diff` for the mismatch report
   and a `-update` flag that rewrites the file deliberately. No library is taken for them.
 
@@ -55,16 +60,16 @@ including the one that ships its own command.
 
 | The ordinary path | What goes wrong | What catches it |
 | --- | --- | --- |
-| `cmp.Diff` panics on a type with unexported fields unless given `cmp.AllowUnexported` for it | Written at each call site, that permission spreads across the suite and drifts | One `cmp.Options` value, built once and passed everywhere. A type missing from it panics and the panic names the type, so the gap is loud and local |
+| `cmp.Diff` panics on a type with unexported fields unless an option grants access to it | Written at each call site, that permission spreads across the suite and drifts | One `cmp.Options` value, built once and passed everywhere. A type missing from it panics and the panic names the type, so the gap is loud and local |
 | The panic message offers `cmpopts.IgnoreUnexported` among its remedies | `cmp.Diff` then returns the empty string for two values differing in every unexported field, so a test asserting equality passes on values that are not equal | `cmpopts.IgnoreUnexported` is banned by `forbidigo`, configured in [ADR-0071](./0071-static-enforcement-toolchain.md) to refuse that identifier. A checked-in file using it, and the ban-proof script demanding the linter report it, are what prove the ban fires, as [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) requires of any ban standing in for a control |
-| A type carrying an `Equal(T) bool` method is compared by that method, and `cmp.Diff` stops walking its fields | The report then prints both whole values with nothing marked, which is the outcome this decision exists to avoid. The method also takes precedence over `cmp.AllowUnexported`, so adopting it forecloses the other route | No `Equal` method is added to a type in order to satisfy a test |
+| A type carrying an `Equal(T) bool` method is compared by that method, and `cmp.Diff` stops walking its fields | The report then prints both whole values with nothing marked, which is the outcome this decision exists to avoid. The method also takes precedence over any option granting unexported-field access, so adopting it forecloses the other route | No `Equal` method is added to a type in order to satisfy a test |
 
 ### How the decision meets each requirement
 
 | Requirement | Met by |
 | --- | --- |
 | A difference is localised | `cmp.Diff` marks each differing field with `-` and `+` and collapses the identical ones into a line of the form `... // 5 identical fields` |
-| Values with unexported fields can be compared | One `cmp.AllowUnexported` entry per type, inside the shared `cmp.Options` value |
+| Values with unexported fields can be compared | One entry per type, by name, in the `cmp.Exporter` inside the shared `cmp.Options` value, with a test resolving every name |
 | The expected value stays literal in the test | A table-driven test holds the expected struct as a literal, and passes it to `cmp.Diff` as the first argument |
 | Recorded responses are diffed as files | Thirty lines written here, using `cmp.Diff` for the report |
 | No mock, spy or stub surface | There is nothing of the kind in the library |
@@ -160,7 +165,7 @@ one file.
 
 **go-cmp.** The case for it is that it adds one library with no dependencies of its own to buy the
 one thing the standard library cannot do, and buys nothing else. The case against it is the
-permission ceremony. Every type whose fields are unexported needs a `cmp.AllowUnexported` entry
+permission ceremony. Every type whose fields are unexported needs an entry in the shared options
 before it can be compared, and this project's types are like that by design, so the shared
 `cmp.Options` value is a piece of test infrastructure every comparison depends on. A test that
 bypasses it does not fail quietly. It panics, and the panic names the type it could not read.
@@ -218,9 +223,9 @@ tool whose central feature is that construction cannot be used here whatever els
   is [ADR-0040](./0040-pure-core-decisions-as-values.md)'s. If that stopped holding, comparing whole
   returned structs would stop being the operation the suite spends its time on, and the case for
   taking a dependency at all would weaken with it.
-- **A piece of test infrastructure enters the repository**, one `cmp.Options` value carrying a
-  `cmp.AllowUnexported` entry for every type whose unexported fields may be read. Nothing enters
-  production code, which is the property the rejected equality-method route does not have.
+- **A piece of test infrastructure enters the repository**, one `cmp.Options` value whose one
+  exporter names every type whose unexported fields may be read. Nothing enters production code,
+  which is the property the rejected equality-method route does not have.
 - **A ban enters the repository**, on `cmpopts.IgnoreUnexported`, which reports no difference
   between values that differ. [ADR-0071](./0071-static-enforcement-toolchain.md) configures the
   analyser that carries it.

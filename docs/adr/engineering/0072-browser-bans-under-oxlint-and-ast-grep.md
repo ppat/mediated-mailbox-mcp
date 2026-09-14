@@ -55,8 +55,18 @@ is the finding that shapes the decision. The rest broke ties.
 
 - **`oxlint` is the browser layer's linter.** It performs the ordinary checking the type checker
   does not, and it carries four of the five bans as configuration against its own named rules.
-- **The fifth ban is one declarative rule in `ast-grep`.** That is the rule forbidding a signal's
-  value inside a rendering position and a signal reaching a route component's properties.
+  Covering each ban's spellings takes seven rules rather than four. `no-restricted-properties`
+  misses the raw-markup property written as a JSX attribute, which `react/no-danger` reports, `bun
+  test` offers its substitution helpers as globals needing no import, which `no-restricted-globals`
+  reports, and a `require` of the runner escapes `no-restricted-imports`, which
+  `typescript/no-require-imports` reports.
+- **The fifth ban is a declarative rule in `ast-grep`.** It forbids a signal's value inside a
+  rendering position. The ban's other half, a signal reaching a route component's properties, cannot
+  be told apart from an ordinary value by syntax, so the render-counter test of
+  [ADR-0064](./0064-browser-tests-run-under-bun-against-a-dom-shim.md) carries it alone. Two further
+  `ast-grep` rules close spellings oxlint cannot see, a spread object carrying the raw-markup
+  property and a dynamic import of the test runner. A rule written for TypeScript matches nothing in
+  a `.tsx` file, so each of those two is written once for each.
 - **A sanctioned read of a contract field named `value` carries the field name on its own line above
   the suppression comment.** [ADR-0063](./0063-browser-app-is-preact-with-signals.md) requires the
   field to be named, because the rule cannot tell a signal from an ordinary field and a later reader
@@ -109,22 +119,22 @@ documentation describes as alpha.
 | The ordinary path | What goes wrong | What catches it |
 | --- | --- | --- |
 | `no-floating-promises` and `no-misused-promises` are inert unless `oxlint-tsgolint` is installed | Both sit in the configuration, report nothing, and give no indication why. The configuration reads correctly and matches nothing | `oxlint-tsgolint` is a line on the dependency roster, and the roster check fails when the roster and the manifest disagree ([ADR-0063](./0063-browser-app-is-preact-with-signals.md)) |
-| A suppression comment silences one finding where it fires | A ban standing in for a control stops being one at whichever line somebody found inconvenient | Suppressions are found by searching for the comment, and the bans that stand in for controls are proven by their violation files regardless |
+| A suppression comment or a configuration change silences a ban | A ban standing in for a control stops being one wherever somebody found it inconvenient | The ban-proof script refuses any suppression comment naming a ban rule or no rule, and any configuration that can switch a ban off, including a lowered severity, an override excluding files, ignore patterns, a second configuration file and a changed lint command. It allows an oxlint directive naming only ordinary rules and giving its reason, and no `ast-grep` suppression except the sanctioned `value` read of [ADR-0063](./0063-browser-app-is-preact-with-signals.md). Each refused comment is proven by a violation file, and each refused configuration by a case in the ban-proof script's own tests |
 | The list of forbidden document interfaces is a list somebody wrote | A browser shipping a new way to turn a string into markup is not on it, and nothing says so | Nothing catches it. The list is reviewed when a browser the project targets ships such an interface, which is a standing review trigger rather than a check |
 
 ### How the decision meets each requirement
 
 | Requirement | Met by |
 | --- | --- |
-| Every ban is expressed without writing a program | Four through `no-restricted-properties`, `no-restricted-imports`, `no-explicit-any` and `consistent-type-assertions`, and the fifth as an `ast-grep` rule file |
+| Every ban is expressed without writing a program | Four through `no-restricted-properties`, `react/no-danger`, `no-restricted-imports`, `no-restricted-globals`, `typescript/no-require-imports`, `no-explicit-any` and `consistent-type-assertions`, and the fifth as an `ast-grep` rule file, with two more `ast-grep` rules for spellings oxlint cannot see |
 | A ban is provable | Every ban was run against a violation file and a legitimate file, and each gave a non-zero exit on the first and nothing on the second |
 | A ban cannot go quiet without saying so | The fifth ban's schema refuses a mistake in the rule, and the other four are configuration against named rules with nothing to misspell |
-| Suppression is visible | Suppression comments are found by searching for them, and every ban that stands in for a control is proven by its violation file |
+| Suppression is visible | A ban cannot be suppressed at all, apart from the sanctioned `value` read, and an ordinary rule only by a directive naming it with its reason, both checked by the ban-proof script |
 | No second runtime in the test path | Both tools run without a JavaScript runtime beside the one already present |
 | Reads TypeScript and JSX | Both parse the syntax the layer is written in |
 | Catches what the type checker does not | Measured on a seeded application, where the type checker reported nothing and the linter reported every seeded defect |
 | Footprint | Two entries on the dependency roster, each a small package with a compiled binary |
-| Configuration is checked in and readable | One configuration file for the linter and one rule file for the ban that moved |
+| Configuration is checked in and readable | One configuration file for the linter and the rule files for `ast-grep` in one directory |
 
 ### What the implementer would otherwise pay to discover
 
@@ -252,7 +262,7 @@ trying to avoid, arriving on four bans instead of one.
 
 ## Consequences
 
-- **What leaving these choices would cost.** A configuration file and one rule file. No browser
+- **What leaving these choices would cost.** A configuration file and three rule files. No browser
   code changes, because a ban constrains what may be written rather than how anything is written.
 - **What would re-argue this decision.** The pair exists because no one candidate leads on both
   ordering requirements. If the chosen linter gains a rule that expresses the fifth ban as
@@ -268,6 +278,7 @@ trying to avoid, arriving on four bans instead of one.
   trigger and is dispositioned in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - **Assumptions about other components.** The render-counter test of
   [ADR-0064](./0064-browser-tests-run-under-bun-against-a-dom-shim.md) exists and is exact where the
-  fifth ban is approximate, which is what makes that ban the second of two layers. The ban-proof
-  script of [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) can run two tools and match
-  the output of each.
+  fifth ban is approximate, which is what makes that ban the second of two layers, and it is the
+  only layer for a signal reaching a route's properties. The ban-proof script of
+  [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) can run two tools and match the output
+  of each.

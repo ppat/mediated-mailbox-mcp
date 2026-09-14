@@ -28,21 +28,22 @@ project is intended for eventual open sourcing.
   subdirectory, arranged at authoring time.
 - **The Helm chart sits at `packaging/chart/`**, under a common `packaging/` directory so a
   later packaging format lands beside it and nothing moves.
-- **Tests sit with what they test.** A deployable's tests live in its own directory and stay
-  out of its image under [ADR-0049](./0049-image-per-component-lockstep.md)'s
-  runtime-artifacts-only rule. The chart's Helm tests live inside the chart and ride inside
-  the published chart artifact, which is Helm's standard design and an accepted, knowing
-  exception to keeping tests out of distributions. The chainsaw suite tests the assembled
-  system, so it belongs to no single deployable and sits at `tests/chainsaw/`.
+- **Tests sit with what they test.** A deployable's tests live in its own directory, a library's in
+  its own, and both stay out of every image under
+  [ADR-0049](./0049-image-per-component-lockstep.md)'s runtime-artifacts-only rule. The chart's Helm
+  tests live inside the chart and ride inside the published chart artifact, which is Helm's standard
+  design and an accepted, knowing exception to keeping tests out of distributions. The chainsaw
+  suite tests the assembled system, so it belongs to no single deployable and sits at
+  `tests/chainsaw/`.
 - **CI path filters are allow lists**, each a short static enumeration of the directories it
   watches, extended by one entry per new component, never an exclusion of everything else.
-- **Deployables share code only through the shared libraries and never import each other.**
-  A deployable's imports reach its own code, `core/`, the data-access library, and any future
-  narrow named exception ([ADR-0050](./0050-shared-code-pure-or-narrow.md)). One short lint
-  rule enforces this, the same shape as the core purity check of
-  [ADR-0040](./0040-pure-core-decisions-as-values.md), so
-  [ADR-0049](./0049-image-per-component-lockstep.md)'s own-code-only posture holds at the
-  source as well as in the image.
+- **Deployables share code only through the shared libraries and never import each other.** A
+  deployable's imports reach its own code, `core/`, the data-access library, and the other narrow
+  named exceptions of [ADR-0050](./0050-shared-code-pure-or-narrow.md), whose directories
+  [CLAUDE.md](../../../CLAUDE.md#components) names. One short lint rule enforces this, the same
+  shape as the core purity check of [ADR-0040](./0040-pure-core-decisions-as-values.md), so
+  [ADR-0049](./0049-image-per-component-lockstep.md)'s own-code-only posture holds at the source as
+  well as in the image.
 - **One convention names everything the project publishes.** A deployable and its image share
   one name, `mediated-mailbox-` plus the deployable's one job in one plain word, and the job word for the
   reorganization workload is organize. Libraries take the same shape named by their single

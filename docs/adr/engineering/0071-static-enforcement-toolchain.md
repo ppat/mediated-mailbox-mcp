@@ -73,69 +73,78 @@ else broke ties.
   reported by an otherwise ordinary configuration.
 - **Import boundaries are checked by `depguard` with `list-mode: strict`, as `allow` lists with no
   `deny` list anywhere.** `depguard` makes a file that two lists match satisfy both, and does not
-  check a file that no list matches. The lists are these.
-  - **Non-test files of a pure core.** A pure core may import a named set of standard-library
-    packages and other core packages, and nothing else. What may join that set is the membership
-    test in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), which is review discipline because no
-    tool checks it.
-  - **Non-test files of a deployable.** A deployable may import its own code, the shared pure
-    library, and nothing belonging to another deployable.
-  - **Test files.** They are matched by lists of their own, because a core package's tests import
-    what its non-test files may not. A test file's list admits what its package's non-test list
-    admits, plus the standard library's `testing` package, and beyond that only what the tests that
-    package holds need from the records deciding them.
-    - The comparison library and test support of
-      [ADR-0070](./0070-unit-comparison-through-one-options-value.md), in every package.
-    - The property-testing library [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)
-      chooses, ADR-0069's test support and the crash harness, only where the package holds property
-      tests or runs generated crash sequences.
-    - `golang.org/x/tools/go/packages`, only where the package holds the test, described below, that
-      loads a package which must not compile.
-
-    Nothing wider is admitted, because a violation file proving a rule here is an ordinary test
-    file, as noted below under what the implementer would otherwise pay to discover. The file
-    proving the pure-core rule therefore sits among a core package's test files, and it is reported
-    only while those refuse the input or output package it imports.
-  - **Code serving the tests.** The crash harness, the test support of ADR-0070 and ADR-0069, and
-    the `go vet` analyser ADR-0069 writes are ordinary Go code, and Go does not let one package
-    import another's test files, so each is matched in every file by a list of its own. The list for
-    the crash harness and ADR-0069's test support names the property-testing library. The lists for
-    ADR-0070's test support and for the analyser do not, except that the analyser's violation files
-    call the property-testing library, because the rules they break are about calls into it, so the
-    list matching those files names it. Each list admits what that code imports and names no library
-    another record rules out for tests, such as a mocking library under
-    [ADR-0043](./0043-no-mocking.md), a container library under
-    [ADR-0068](./0068-test-substrate-containers-directly.md), or an assertion vocabulary under
-    ADR-0070.
+  check a file that no list matches. The lists are these, and
+  [CLAUDE.md](../../../CLAUDE.md#components) names the directories they match.
+  - **Non-test files of every pure-core package, in any component.** A pure core may import a named
+    set of standard-library packages and other pure-core packages, and nothing else. The list covers
+    the pure-core packages inside deployables and libraries as well as the shared pure library,
+    matched by path. What may join that set is the membership test in
+    [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), which is review discipline because no tool
+    checks it.
+  - **Each deployable.** A deployable may import its own code, the shared pure library, the
+    data-access subsections its list names, and the other named libraries of
+    [ADR-0050](./0050-shared-code-pure-or-narrow.md) it uses, beside the standard library and the
+    outside modules its own code needs, and nothing belonging to another deployable
+    ([ADR-0054](./0054-one-repository-flat-layout-naming-convention.md)).
+  - **Each shared library.** The data-access library, the provider library, the rate limiter and the
+    shared test support each have a list. A component's list names each data-access subsection it
+    may use, so the grant check of [ADR-0066](../data/0066-data-access-generated-from-sql.md) can
+    test the list against the role's grants, while the lists over code that never ships, and over
+    every component's files at once, admit the whole data-access library.
+  - **The mediator's two protocol roots**, each admitting the service layer and nothing below it
+    ([ADR-0030](../operability/0030-api-core-mcp-thin-adapter.md)).
+  - **Non-test code everywhere.** It refuses the shared test support, the provider fake, the
+    contract suite, the property-testing library and the comparison library, so none of them reaches
+    code that ships.
+  - **Test files.** They are matched by lists of their own, because a test imports what its
+    package's non-test files may not. A test file may import what its package's non-test files may,
+    the standard library's `testing` package, the comparison support of
+    [ADR-0070](./0070-unit-comparison-through-one-options-value.md), the provider fake and the
+    contract suite of [ADR-0043](./0043-no-mocking.md), the test support an integration test needs
+    to reach its database ([ADR-0068](./0068-test-substrate-containers-directly.md)), and the
+    outside modules its tests need. The property-testing library
+    [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) chooses, ADR-0069's test support
+    and the crash harness are admitted only in property-test files, crash-sequence files, and the
+    test support that needs them, and `golang.org/x/tools` only in the shared test support, which
+    holds the helper that loads a package which must not compile and the `go vet` analyser.
+  - **A list over every Go file outside all components**, admitting only the standard library, so a
+    directory added outside every other list is still checked.
 
   No list other than those named above names the property-testing library, so it is refused
   everywhere else with no `deny` key written. That holds only while every Go file in the repository
-  is matched by some list. No tool checks that condition, so a package added outside every list's
-  file patterns is checked by nothing, and [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) records
-  it as review discipline.
-- **A construction forbidden by name is refused by `forbidigo`**, which takes a pattern per banned
-  identifier and reports the file and line of a call to it. It is configured here rather than in the
-  records placing bans, which are [ADR-0070](./0070-unit-comparison-through-one-options-value.md)
-  and [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md), so that every such ban has one
-  place to go.
-- **`//nolint` is banned wherever a rule standing in for a control applies**, because under the
-  aggregator a finding can otherwise be silenced at the line where it fires. That is the packages
-  carrying controls, and also every package a ban configured here reaches, which for
-  [ADR-0070](./0070-unit-comparison-through-one-options-value.md)'s ban is any test that compares
-  values, and for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s ban is every
-  package holding property tests or running generated crash sequences, the crash harness or its test
-  support. **No analyser carries this ban.** `nolintlint` is the tool an implementer would reach for
-  and it does not do this. Its own description is that it reports ill-formed or insufficient
-  directives, so a well-formed directive naming a linter and carrying an explanation silences a ban
-  while `nolintlint` at its strictest settings reports nothing. The aggregator offers no option to
-  stop honouring the directives.
-- **Three checks are written here, because no tool offers them.** A search for the `//nolint`
-  directive over the paths the bullet above names. A package that must not compile, loaded with
-  `golang.org/x/tools/go/packages` from inside an ordinary test, which requires type errors to be
-  present. And a script that runs the analysers and the `//nolint` search against the checked-in
-  files violating each ban, requiring each one to be reported. The script also runs the `go vet`
+  is matched by some list, which the list over files outside every component keeps true for such
+  files and review keeps true inside the components.
+- **A finding of a linter standing in for a control cannot be switched off anywhere.** Those linters
+  are `depguard`, `errcheck`, `exhaustive` and `forbidigo`. A violation file proves a ban fires in
+  that file, and says nothing about another line where the finding was switched off, so every proof
+  stays green while the control stops being one. Under the aggregator a finding can be switched off
+  at its line by a directive, by the linter's own ignore comment, or for whole paths by a
+  configuration setting. So the ban-proof script refuses every directive the aggregator honours that
+  can reach one of those linters, including a bare `//nolint`, one naming every linter, and one
+  naming such a linter in any letter case. It refuses `exhaustive`'s own ignore comment and
+  `forbidigo`'s permit comment, and every configuration setting that can exclude their findings,
+  among them an exclusion rule naming no linter or naming such a linter, path exclusions, presets, a
+  generated-file mode other than `disable`, not linting tests, and limits or new-issue modes that
+  hide findings. Every other linter the repository runs is an ordinary linter, and the ordinary
+  linters form one closed list, which [CLAUDE.md](../../../CLAUDE.md#static-analysis-and-formatting)
+  names. A false positive of an ordinary linter may be suppressed by a directive naming only
+  ordinary linters and giving its reason, or by an exclusion rule naming only ordinary linters. The
+  script checks the list against the configuration and the violation files, so a linter newly
+  enabled cannot be suppressed until it is listed. **No analyser carries this rule.** `nolintlint`
+  is the tool an implementer would reach for and it does not do this. Its own description is that it
+  reports ill-formed or insufficient directives, so a well-formed directive naming a linter and
+  carrying an explanation silences a ban while `nolintlint` at its strictest settings reports
+  nothing. The aggregator offers no option to stop honouring the directives.
+- **Three checks are written here, because no tool offers them.** The suppression check above,
+  written to follow the aggregator's own reading of a directive so it refuses exactly what the
+  aggregator would honour, and refusing the spellings the aggregator ignores today as well, so a
+  later release honouring them cannot admit one silently. A package that must not compile, loaded
+  with `golang.org/x/tools/go/packages` through one helper in the shared test support, which
+  requires the exact type error rather than the presence of one. And the ban-proof script, which
+  runs the analysers and the suppression check against the checked-in files violating each ban and
+  each list, requiring each expected finding and no other. The script also runs the `go vet`
   analyser [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) writes for its own
-  placement rules, against that analyser's violation files.
+  placement rules, against that analyser's violation files, once the analyser carries those rules.
 
 ### What each tool's ordinary path does that other records forbid
 
@@ -144,16 +153,13 @@ else broke ties.
 | `default-signifies-exhaustive: true`, which treats a default branch as proof the switch is complete | [ADR-0042](./0042-implementation-stack.md) requires a deny-defaulting default branch on every verdict switch, so under that setting the check goes silent on precisely the code this project is required to write, while continuing to report on code that does not matter | The setting is written out as `false`. The fixture behind the catalogue's exhaustiveness row carries the mandated default branch, so the row cannot pass with the setting wrong |
 | `check-blank` and `check-type-assertions`, which both default to `false` | Discarding an error explicitly is the ordinary way an unchecked error enters code, and it is the case the check skips unless asked | Both settings written out as on, with a checked-in file discarding an error that the ban-proof script requires to be reported |
 | A `deny` list of packages a pure core may not import | The list is a guess about the future. Something added to the standard library later is admitted, and nothing says so | `list-mode: strict`, `allow` lists only, and no `deny` key written anywhere in the configuration |
-| `//nolint` silencing one finding at the line where it fires | A rule standing in for a control stops being a control at whichever line somebody found inconvenient | A search for the directive over those paths, written here because no analyser carries it, with a checked-in file using the directive that the ban-proof script requires the search to report |
+| `//nolint`, a linter's own ignore comment, or a configuration exclusion silencing a finding | A rule standing in for a control stops being a control wherever somebody found it inconvenient | The suppression check, written here because no analyser carries it. Each refused directive and ignore comment is proven by a checked-in violation file the ban-proof script requires the check to report, and each refused configuration setting by a case in the ban-proof script's own tests |
 
 ### Anything deliberately left open
 
-**The per-role import rule is not configured yet.**
-[ADR-0066](../data/0066-data-access-generated-from-sql.md) leaves open where the generated
-data-access packages live, and the rule that one component cannot name another role's package cannot
-be written until that resolves. Under one option the rule is another allow list of the kind this
-record already uses. Under the other the compiler refuses the import and no rule is needed. Nothing
-else in this record depends on which.
+Nothing in the import boundary. The boundary between database roles is a list per component naming
+its data-access subsections, which [ADR-0066](../data/0066-data-access-generated-from-sql.md)'s
+grant check tests against the grants.
 
 ### How the decision meets each requirement
 
@@ -162,7 +168,7 @@ else in this record depends on which.
 | A standard-library package can be refused | `depguard` treats standard-library packages as addressable, so they can be named in `allow` and refused when absent from it |
 | A rule is expressed as what is permitted | `list-mode: strict`, which refuses anything not named in `allow`. Verified by adding `os/exec`, which appears nowhere in the configuration, to a package governed by the core rule and watching it refused |
 | A violation fails the build and says where | A non-zero exit, and a message naming the file, the line, the import and the rule it broke |
-| A rule cannot be switched off quietly | A search refuses `//nolint` wherever a rule standing in for a control applies, which is wider than the packages carrying controls, and the search is itself proven by a file that uses the directive |
+| A rule cannot be switched off quietly | The suppression check refuses every directive, ignore comment and configuration setting that can reach a linter standing in for a control, anywhere in the repository, and allows an ordinary linter's suppression only in a form naming it. Each refused directive is proven by a violation file, and each refused configuration setting by a case in the ban-proof script's own tests |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
 | Footprint | One command. The analysers are inside it rather than beside it, apart from the `go vet` analyser [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) writes for its own placement rules, which runs beside it |
@@ -181,20 +187,45 @@ of the same function as well.
 - **`check-blank` and `check-type-assertions` are both `false` by default.** A configuration that
   enables `errcheck` and stops there does not report `_ = f()`, which is the ordinary way an
   unchecked error enters code.
-- **A violation file proving a ban is an ordinary test file in a package the analysers load.** Under
-  the configuration above the ban reports in a `_test.go` file as readily as in any other, so the
-  file proving it is written where the ban actually applies. A file under `testdata` would not do,
-  because the toolchain excludes that directory and the analysers then load nothing, which the
-  ban-proof script reports as a ban that did not fire.
+- **A violation file proving a ban is an ordinary Go file in a package the analysers load, where the
+  ban applies.** It carries a `banproof` build tag that only the ban-proof script's run enables, so
+  the gating lint stays clean while the script sees each ban fire, and it is named for what it
+  proves. A test file proves a list over test files and a non-test file proves a list over non-test
+  files, because a file one list matches says nothing about another. A file under `testdata` would
+  not do, because the toolchain excludes that directory and the analysers then load nothing, which
+  the ban-proof script reports as a ban that did not fire.
+- **`depguard`'s allow entries are string prefixes, compared with one sorted neighbour.** An entry
+  `os` also admits `os/signal`, so standard-library entries in the pure-core list end in `$`, which
+  makes them exact. Each import is compared only with the entry sorted just before it, so an exact
+  entry under a shorter entry for the same path stops that shorter entry admitting its other
+  subpackages. `$gostd` admits the standard library through one entry per top-level name, and an
+  allowed module whose path starts with `go.` sorts between `go` and `go/ast` and hides every `go/`
+  package, so a list holding one also lists `go/`. The violation file for each list imports the
+  package its sorted neighbour would wrongly admit.
+- **`depguard`'s file patterns match absolute paths.** A pattern such as `**/core/**` also matches
+  every file once the checkout sits under a parent directory with that name, so every project
+  pattern starts with `${base-path}`. The aggregator's cache does not key on the resolved base path,
+  so comparing a configuration across two checkouts needs the cache cleared first. `dir/**.go`
+  matches files directly in `dir`, and `dir/**/*.go` does not.
+- **The aggregator's defaults hide findings.** Files carrying a generated-code header are excluded
+  unless `generated` is `disable`, and a second finding on the same line is dropped unless
+  `uniq-by-line` is `false`. `golangci-lint config verify` refuses a misspelled key, which the
+  aggregator would otherwise ignore.
+- **Linting only what a change touched misses findings a change causes elsewhere.** An enum value
+  added in one package leaves a switch incomplete in another, and a run limited to new issues, to
+  changed files, or to the changed directory reported nothing where a run over the whole module
+  reported the switch. So a path filter decides whether the lint job runs, and the job lints the
+  whole module.
 - **`nolintlint` does not ban a suppression and no setting makes it.** Configured to require an
   explanation, require a specific linter, and report unused directives, it reported nothing against
   a directive that silenced a ban, because that directive was well formed. An implementer reaching
   for it would ship a control that controls nothing with the build staying green.
-- **`forbidigo` runs with `analyze-types: true`.** With it off the ban matches nothing at all, not
-  even the direct call. With it on the ban also survives the two obvious evasions, an aliased
-  import and the function held in a variable, both of which were reported. The checked-in violation
-  file therefore uses the aliased form, because a ban proven against the harder case is proven
-  against the easier one.
+- **`forbidigo` runs with `analyze-types: true` and `exclude-godoc-examples: false`.** The second
+  setting's default skips the bans inside `Example` functions in test files. With it off the ban
+  matches nothing at all, not even the direct call. With it on the ban also survives the two obvious
+  evasions, an aliased import and the function held in a variable, both of which were reported. The
+  checked-in violation file therefore uses the aliased form, because a ban proven against the harder
+  case is proven against the easier one.
 - **`default-signifies-exhaustive` is the difference between a live check and a silent one** on
   this project's code specifically, because of the deny-defaulting `default` branch
   [ADR-0042](./0042-implementation-stack.md) requires on every verdict switch.
@@ -257,7 +288,7 @@ requirement with the check written here, and loses to both remaining candidates 
 
 | Candidate | What it would add to the repository | How a rule is written | What suppression exists |
 | --- | --- | --- | --- |
-| depguard | Nothing. It is inside the aggregator already being taken | A file glob and an allow list per rule | The aggregator's suppression comment, banned separately |
+| depguard | Nothing. It is inside the aggregator already being taken | A file glob and an allow list per rule | The aggregator's suppression comment, restricted separately |
 | go-arch-lint | A second command in the pipeline | Named components with a dependency graph declared once | None at a line. Whole files and directories can be excluded in the shared configuration |
 | A check written here | A program this project maintains | Whatever this project writes, over the list of packages a build reaches | None, because none would be written |
 
@@ -282,11 +313,11 @@ would cost a configuration file and a pipeline step.
 
 **Which strengths could be had without choosing the candidate, and which costs could be confined.**
 The architecture linter keeps one advantage that is not detachable from it, which is naming
-components once and declaring a dependency graph between them rather than repeating file globs. If
-the open per-role rule lands and turns the boundary into a graph of many components, that advantage
-becomes real, and it is worth reopening then for the rules about this project's own packages. It
-will never be worth reopening for the pure-core rule, because the standard-library gap is a
-property of how that tool classifies imports rather than a setting.
+components once and declaring a dependency graph between them rather than repeating file globs. With
+a list per component and per library the boundary is a graph of many components, so that advantage
+is real, and it is worth reopening for the rules about this project's own packages. It will never be
+worth reopening for the pure-core rule, because the standard-library gap is a property of how that
+tool classifies imports rather than a setting.
 
 ### The candidates
 
@@ -301,11 +332,11 @@ cannot run standalone on current Go releases, so the marginal cost is a configur
 The case against it, which is the part worth not softening. Its allow-list behaviour lives in
 `list-mode: strict`, which is not its default, so the denylist shape stays one configuration key
 away and a later editor can reach it without the rule changing visibly. Its upstream has been quiet
-since March 2025. Under the aggregator its findings are suppressible at the line, which is the
-whole reason this record bans the suppression comment and writes a check to enforce that ban. And
-its rules are file globs repeated per rule rather than named components, so a boundary that grows
-into a graph of many components repeats itself in configuration where a purpose-built tool would
-not.
+since March 2025. Under the aggregator its findings are suppressible at the line, which is the whole
+reason this record refuses the suppression comment wherever it could reach a control and writes a
+check to enforce that. And its rules are file globs repeated per rule rather than named components,
+so a boundary that grows into a graph of many components repeats itself in configuration where a
+purpose-built tool would not.
 
 **`go-arch-lint`.** The strongest rival on shape. Allow-list expression is its only mode, so the
 denylist verb does not exist to reach for, and it names components once and declares a dependency
@@ -319,10 +350,10 @@ while leaving the tool perfectly good at the rule it does carry.
 **A check written here.** Its case is real and it is the reason this was close. It would walk
 whatever set the project decided rather than the imports written in one file, and it would have no
 suppression mechanism because none would be written. What decides against it is not capability but
-accumulation. This change already writes a search for the suppression comment, a compile-failure
-assertion and the ban-proof script, and each owned mechanism is cheap alone while the set of them
-is a standing maintenance surface with no upstream. Spending that budget on the one rule an
-existing tool already expresses correctly is the wrong trade.
+accumulation. This change already writes the suppression check, a compile-failure assertion and the
+ban-proof script, and each owned mechanism is cheap alone while the set of them is a standing
+maintenance surface with no upstream. Spending that budget on the one rule an existing tool already
+expresses correctly is the wrong trade.
 
 **`gomodguard`.** Named because a reader who finds it would reasonably wonder. It governs which
 external modules a project may depend on at all, which is a real question this project may want
@@ -396,9 +427,10 @@ failing to passing in both directions.
   not itself govern makes the pure-core rule unsound without any check failing. That is review
   discipline on the configuration and is dispositioned in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
-- **What resolving the open question would move.** Whether the per-role import rule is another allow
-  list here or is enforced by the compiler, and if the boundary becomes a graph of many components,
-  whether the architecture linter is worth reopening for this project's own packages.
+- **The lists now form a graph of many components**, the condition under which the architecture
+  linter is worth reopening for the rules about this project's own packages. It is never worth
+  reopening for the pure-core rule, for the reason the alternatives give.
 - **Assumptions about other components.** Continuous integration can install a pinned command and
-  run it over changed areas of the repository. The packages a pure core is permitted to import
-  reach nothing of this project's, which is what makes checking written imports enough.
+  run it over the whole module whenever a change reaches Go code or the configuration. The packages
+  a pure core is permitted to import reach nothing of this project's, which is what makes checking
+  written imports enough.

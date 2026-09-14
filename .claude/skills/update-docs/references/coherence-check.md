@@ -21,14 +21,14 @@ than a new section. For each check, actually open the files involved — do not 
 - Overlap without contradiction is also a defect: when two outcomes or rules could both plausibly
   claim the same failure, check that the final texts let a cold reader tell which one a given
   failure falsifies — a boundary that lives only in the author's head is not in the documents.
-- **When a change alters a rule or doctrine — not just content — enumerate every statement of
-  that rule across the whole set, front doors included** (CLAUDE.md and README.md restate
-  doctrine even though they hold no facts), exactly as §4 treats renamed terms: every statement
+- **When a change alters a rule or doctrine — not just content — enumerate every statement of that
+  rule across the whole set, front doors included** (CLAUDE.md and README.md restate doctrine, and
+  CLAUDE.md also holds the code's conventions), exactly as §4 treats renamed terms: every statement
   gets a written disposition. A doctrine stated in two places with two readings is the
-  highest-priority contradiction this check exists to catch, because the identifier-shaped map
-  above never reaches it. The same principle runs in reverse when *introducing* a convention: a
-  rule stated in the enforcement layer (`.claude/`) but absent from the in-repo authority it
-  mirrors is a doctrine split — land both statements together.
+  highest-priority contradiction this check exists to catch, because the identifier-shaped map above
+  never reaches it. The same principle runs in reverse when *introducing* a convention: a rule
+  stated in the enforcement layer (`.claude/`) but absent from the in-repo authority it mirrors is a
+  doctrine split — land both statements together.
 
 ## 2. The identifier system
 

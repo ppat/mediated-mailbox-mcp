@@ -7,6 +7,10 @@ paths:
   - "ROADMAP.md"
   - "TESTING.md"
   - "docs/**/*.md"
+  - "db/README.md"
+  - "provider/README.md"
+  - "ratelimit/README.md"
+  - "testsupport/README.md"
 ---
 
 # Rules for every document in the set

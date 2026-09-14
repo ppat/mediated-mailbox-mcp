@@ -57,8 +57,11 @@ survives an edit to its generator, and the reduced input is also written out as 
 test ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The
 browser's rendering tests run in the gating suite on every change under the UI's directory, and the
 one assertion of the content security policy that only a browser can make is a drill
-([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)). Drills
-run at the unit that owes them, and their proof holds only for that date.
+([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
+Integration tests against PostgreSQL run together against one container per run, each test package
+in a database of its own
+([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). Drills run at the
+unit that owes them, and their proof holds only for that date.
 
 ## The proof system
 
@@ -107,11 +110,14 @@ responses are recordings of the real server's output over those fixtures
 
 ## Where tests live
 
-Each deployable's tests live inside that deployable's own directory, and shipped images carry
-no tests ([ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md),
-[ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md)). The chart's Helm
-tests live inside the chart and travel in the published chart artifact, an exception ADR-0054
-accepts knowingly. The chainsaw suite lives at the repository's top level because it tests
-the assembled system rather than any one deployable
+Each deployable's tests live inside that deployable's own directory, each library's inside its own,
+and shipped images carry no tests
+([ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md),
+[ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md)). Test tooling that more
+than one component needs is a library of its own. How test files are named by kind, where violation
+files, fixtures, golden files and must-not-compile cases sit, and how integration tests are started
+are [CLAUDE.md](./CLAUDE.md#tests)'s. The chart's Helm tests live inside the chart and travel in the
+published chart artifact, an exception ADR-0054 accepts knowingly. The chainsaw suite lives at the
+repository's top level because it tests the assembled system rather than any one deployable
 ([ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md),
 [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)).

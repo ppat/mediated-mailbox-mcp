@@ -1106,26 +1106,38 @@ half is Go and the browser half is TypeScript. Design, not yet built.
 
 ```text
 ui/
-  main.go               the server. The entry document, static files, the read API, the decisions, the stream
-  registry/             the dataset registry entries and their queries
-  api/                  the bespoke handlers, the error contract, the request token, identity
+  main.go               the composition root. It embeds browser/dist and hands it to the server
+  Dockerfile            the bundle stage, then the Go stage, then a minimal base
+  internal/
+    registry/           the dataset registry entries, each pointing at the data-access accessors it reads
+    api/                the server. The entry document, static files, the read API, the decisions, the stream,
+                        the bespoke handlers, the error contract, the request token, identity
+    contract/           builds the OpenAPI document from the registry and the handler list
+    core/               pure-core packages private to the UI
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
-  browser/              the TypeScript app
+  browser/              the TypeScript app, with its manifest, lock file, runner, compiler, lint and format settings
+    codegen/            the type generation step's own package (ADR-0065)
+    scripts/            the build and the dataset descriptor table's generator
+    rules/              the ast-grep rules (ADR-0072)
     src/
-      generated/        types and the dataset descriptor table, from ../../contract, never edited
+      generated/        types and the dataset descriptor table, from ui/contract, never edited
       app/              routing, the URL grammar, the cache, theme, the stream client
       lens/             the ladder shell, chart, cohort table, rows table, row detail
       row/              the message row, the sender row, the audit row, the page row, badges
       screens/          home, plan, plans, jobs, run, candidates, policy, system
-    dist/               the bundle, embedded into the Go binary, not checked in
+    test/               the browser tests, the DOM shim's preload, the fixture modules
+    dist/               the bundle, embedded into the Go binary, not checked in except its placeholder
   design/               the mockup sources and their notes
 ```
 
-- **Build.** `bun build` produces `browser/dist`, the Go binary embeds it, and the image of
-  ADR-0049 carries the binary and nothing else. Every build passes the production define ADR-0063
-  names. The contract document is generated from the registry and the handler list in CI, and the
-  browser types and the descriptor table from the document. A stale document, stale types, or a
-  stale descriptor table fails the build (ADR-0065).
+- **Build.** `bun build` produces `browser/dist`, the Go binary embeds it, and the image of ADR-0049
+  carries the binary and nothing else. A placeholder in `browser/dist` keeps Go's build, lint and
+  tests working before any bundle exists, and the image build refuses a bundle that is only the
+  placeholder. Where tests, violation files and tooling sit follows
+  [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions). Every build passes the production define
+  ADR-0063 names. The contract document is generated from the registry and the handler list in CI,
+  and the browser types and the descriptor table from the document. A stale document, stale types,
+  or a stale descriptor table fails the build (ADR-0065).
 - **Dev loop.** The Go server runs against a local Postgres with the synthetic fixtures, in plain
   HTTP under `UI_INSECURE_HTTP=true`, which the server refuses outside the dev loop (a build
   tag or the presence of the fixtures database, the builder's pick). The browser app runs under

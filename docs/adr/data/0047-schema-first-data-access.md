@@ -53,11 +53,12 @@ parameters ([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
   database cannot raise here and why the resulting deny is silent, and this is where the
   compensating assertion lives.
 - **One data-access library, produced from the one schema, serves every component** — so drift
-  between the schema, the queries, and the result types is a build failure everywhere at once
-  rather than a runtime discovery in one workload. The library is impure shared code, deliberately
-  outside the pure core; it is a narrow, single-concern library. Whether its accessors are
-  generated or hand-written under the same discipline, and by which tool, was left to its own
-  record and is decided by [ADR-0066](./0066-data-access-generated-from-sql.md).
+  between the schema, the queries, and the result types is a build failure everywhere at once rather
+  than a runtime discovery in one workload. The library is impure shared code, deliberately outside
+  the shared pure library. It is a narrow, single-concern library, organized in subsections by
+  concern that each component imports selectively ([db/README.md](../../../db/README.md)). Whether
+  its accessors are generated or hand-written under the same discipline, and by which tool, was left
+  to its own record and is decided by [ADR-0066](./0066-data-access-generated-from-sql.md).
 - **Row-level security stays the independent third layer**, behind the signature rule and the
   predicate rule, exactly as [ADR-0016](./0016-schema.md) names it. Nothing here substitutes for
   it.

@@ -3,7 +3,7 @@
 **Status:** Superseded — **Superseded by:**
 [ADR-0038](./0038-credentials-as-mounted-files.md) (delivery and containment) and
 [ADR-0039](./0039-rotation-writeback.md) (rotation write-back) ·
-**Pillar:** [The mediator is the irreducible trust anchor](../../../DESIGN.md#the-mediator-is-the-irreducible-trust-anchor) ·
+**Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes), [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released)
 
 ## Context
