@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "github.vscode-github-actions",
+    "golang.go",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+    "oxc.oxc-vscode",
+    "redhat.vscode-yaml",
+    "sqlfluff.vscode-sqlfluff",
+    "timonwong.shellcheck",
+    "tombi-toml.tombi",
+    "TypeScriptTeam.native-preview"
+  ]
+}

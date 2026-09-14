@@ -1,0 +1,115 @@
+{
+  "docker.languageserver.formatter.ignoreMultilineInstructions": true,
+  "editor.detectIndentation": true,
+  "editor.indentSize": 2,
+  "editor.insertSpaces": true,
+  "explorer.excludeGitIgnore": true,
+  "files.associations": {
+    "packaging/chart/templates/**/*.tpl": "helm",
+    "packaging/chart/templates/**/*.yaml": "helm"
+  },
+  "files.readonlyInclude": {
+    "db/**/*.sql.go": true,
+    "db/**/db.go": true,
+    "db/**/models.go": true,
+    "db/**/querier.go": true,
+    "ui/browser/src/generated/**": true,
+    "ui/contract/openapi.json": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "ui/browser/dist/**": true
+  },
+  "search.exclude": {
+    "**/bun.lock": true,
+    "**/dist": true,
+    "**/node_modules": true,
+    "mise.lock": true
+  },
+  "search.useIgnoreFiles": true,
+
+  "go.alternateTools": {
+    "customFormatter": "golangci-lint"
+  },
+  "go.formatFlags": [
+    "fmt",
+    "--stdin"
+  ],
+  "go.formatTool": "custom",
+  "go.lintFlags": [
+    "--path-mode=abs",
+    "--fast-only"
+  ],
+  "go.lintTool": "golangci-lint",
+  "go.toolsManagement.autoUpdate": false,
+  "gopls": {
+    "build.buildFlags": [
+      "-tags=integration,banproof"
+    ],
+    "build.directoryFilters": [
+      "-**/node_modules",
+      "-ui/browser/dist"
+    ],
+    "formatting.gofumpt": true,
+    "formatting.local": "github.com/ppat/mediated-mailbox-mcp",
+    "ui.diagnostic.vulncheck": "Imports"
+  },
+
+  "js/ts.tsdk.path": "ui/browser/node_modules/typescript",
+  "oxc.fmt.configPath": "ui/browser/.oxfmtrc.json",
+  "oxc.path.oxfmt": "ui/browser/node_modules/.bin/oxfmt",
+  "oxc.path.oxlint": "ui/browser/node_modules/.bin/oxlint",
+  "oxc.useExecPath": true,
+
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/main/schema/markdownlint-cli2-config-schema.json": [
+      ".markdownlint-cli2.yaml"
+    ],
+    "https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/configuration-chainsaw-v1alpha2.json": [
+      "tests/chainsaw/.chainsaw.yaml"
+    ],
+    "https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json": [
+      "tests/chainsaw/**/chainsaw-test.yaml"
+    ]
+  },
+
+  "[dockerfile]": {
+    "editor.detectIndentation": false,
+    "editor.indentSize": 4
+  },
+  "[go]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.detectIndentation": false,
+    "editor.indentSize": 2
+  },
+  "[json]": {
+    "editor.detectIndentation": false,
+    "editor.indentSize": 2
+  },
+  "[shellscript]": {
+    "editor.detectIndentation": false,
+    "editor.indentSize": 2
+  },
+  "[sql]": {
+    "editor.defaultFormatter": "sqlfluff.vscode-sqlfluff",
+    "editor.formatOnSave": false
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true
+  },
+  "[yaml]": {
+    "editor.detectIndentation": false,
+    "editor.indentSize": 2
+  }
+}
