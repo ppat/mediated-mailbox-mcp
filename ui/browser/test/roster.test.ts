@@ -22,9 +22,10 @@ function rosterEntries(text: string): string[] {
 }
 
 function manifestEntries(path: string, manifest: Manifest): string[] {
-  return [...Object.keys(manifest.dependencies ?? {}), ...Object.keys(manifest.devDependencies ?? {})].map(
-    (name) => `${path} ${name}`,
-  );
+  return [
+    ...Object.keys(manifest.dependencies ?? {}),
+    ...Object.keys(manifest.devDependencies ?? {}),
+  ].map((name) => `${path} ${name}`);
 }
 
 // disagreements lists what one side has and the other lacks, in both directions.
@@ -32,8 +33,12 @@ function disagreements(roster: string[], declared: string[]): string[] {
   const inRoster = new Set(roster);
   const inManifests = new Set(declared);
   return [
-    ...roster.filter((entry) => !inManifests.has(entry)).map((entry) => `roster line with no dependency: ${entry}`),
-    ...declared.filter((entry) => !inRoster.has(entry)).map((entry) => `dependency with no roster line: ${entry}`),
+    ...roster
+      .filter((entry) => !inManifests.has(entry))
+      .map((entry) => `roster line with no dependency: ${entry}`),
+    ...declared
+      .filter((entry) => !inRoster.has(entry))
+      .map((entry) => `dependency with no roster line: ${entry}`),
   ];
 }
 

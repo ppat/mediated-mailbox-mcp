@@ -3,7 +3,11 @@ import { expect, test } from "bun:test";
 import { options } from "../scripts/build.ts";
 
 test("the build replaces process.env.NODE_ENV with production", async () => {
-  const result = await Bun.build({ ...options, entrypoints: ["test/probes/define.ts"], minify: false });
+  const result = await Bun.build({
+    ...options,
+    entrypoints: ["test/probes/define.ts"],
+    minify: false,
+  });
   expect(result.success).toBe(true);
   const [output] = result.outputs;
   if (output === undefined) {
