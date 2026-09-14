@@ -1,0 +1,40 @@
+---
+# Import lists for the test library, in the shape of the repository's .golangci.yaml. db/check reads the
+# data-access entries of each list, and its tests require exactly the problems the lists below carry.
+version: "2"
+linters:
+  settings:
+    depguard:
+      rules:
+        # A library-wide list, which may admit the whole library.
+        db:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/"
+
+        # Names only subsections its role can run.
+        reader:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+
+        # Names only subsections its role can run.
+        writer:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/counting$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+
+        # Names a subsection whose update its role holds no grant for.
+        misaligned:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/counting$"
+
+        # Admits every subsection through a prefix.
+        prefix:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/"
+
+        # Names a subsection and has no role.
+        unmapped:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"

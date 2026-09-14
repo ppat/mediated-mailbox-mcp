@@ -1,0 +1,50 @@
+---
+# Test input for the sqlc.yaml layout check and the declares-no-types assertion. sqlc never runs over it,
+# and it names no statement file.
+#
+# Block 0 follows the layout and was never generated, so its directory holds no db.go, which the assertion
+# must report. Every other block breaks one clause of the layout, which the layout check must report.
+version: "2"
+sql:
+- engine: postgresql
+  schema: [../../../migrations, ../migrations]
+  queries: ungenerated
+  gen:
+    go:
+      package: ungenerated
+      out: ungenerated
+- engine: mysql
+  schema: [../../../migrations, ../migrations]
+  queries: engine
+  gen:
+    go:
+      package: engine
+      out: engine
+- engine: postgresql
+  schema: [../../../migrations]
+  queries: chain
+  gen:
+    go:
+      package: chain
+      out: chain
+- engine: postgresql
+  schema: [../../../migrations, ../migrations]
+  queries: statements
+  gen:
+    go:
+      package: moved
+      out: moved
+- engine: postgresql
+  schema: [../../../migrations, ../migrations]
+  queries: named
+  gen:
+    go:
+      package: other
+      out: named
+- engine: postgresql
+  schema: [../../../migrations, ../migrations]
+  queries: nested/dir
+  gen:
+    go:
+      package: nested/dir
+      out: nested/dir
