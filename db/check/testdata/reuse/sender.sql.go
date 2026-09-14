@@ -10,7 +10,10 @@ import (
 )
 
 const getSender = `-- name: GetSender :one
-SELECT account_id, domain, message_count
+SELECT
+    account_id,
+    domain,
+    message_count
 FROM fixture_senders
 WHERE account_id = $1 AND domain = $2
 `

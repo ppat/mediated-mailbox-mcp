@@ -8,6 +8,8 @@ on:
     paths:
     - .github/workflows/data.yaml
     - .golangci.yaml
+    - .sqlfluff
+    - .sqlfluffignore
     - go.mod
     - go.sum
     - mise.lock
@@ -33,6 +35,12 @@ jobs:
         current_git_ref: ${{ github.head_ref || github.ref }}
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    # Layout and ambiguity checks for every SQL file under db/, apart from violation files (.sqlfluffignore).
+    - name: Lint the SQL files
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- sqlfluff lint db/
 
     # sqlc diff fails on a hand-edited, deleted or out-of-date generated file. The test library's configuration
     # reads the real migration chain first, so this also fails on a chain the pinned sqlc cannot read.

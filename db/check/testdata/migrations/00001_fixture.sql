@@ -5,16 +5,16 @@
 
 -- Account-keyed, because it has an account_id column, with a case-insensitive column.
 CREATE TABLE fixture_senders (
-  account_id    text NOT NULL,
-  domain        citext NOT NULL,
-  message_count bigint NOT NULL DEFAULT 0,
-  PRIMARY KEY (account_id, domain)
+    account_id text NOT NULL,
+    domain citext NOT NULL,
+    message_count bigint NOT NULL DEFAULT 0,
+    PRIMARY KEY (account_id, domain)
 );
 
 -- Not account-keyed, because it has no account_id column.
 CREATE TABLE fixture_log (
-  seq     bigserial PRIMARY KEY,
-  message text NOT NULL
+    seq bigserial PRIMARY KEY,
+    message text NOT NULL
 );
 
 GRANT SELECT ON fixture_senders TO check_fixture_reader;

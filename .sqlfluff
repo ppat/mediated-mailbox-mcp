@@ -1,0 +1,15 @@
+# sqlfluff lints every SQL file under db/ except violation files, whose want annotations point at lines
+# (.sqlfluffignore). CI runs sqlfluff lint. sqlfluff fix rewrites a file in place, and a statement file it
+# rewrites needs sqlc generate afterwards, because sqlc embeds each statement's text in the generated Go.
+[sqlfluff]
+dialect = postgres
+# sqlc's @name parameters are not PostgreSQL syntax. The placeholder templater reads them as parameters, so
+# they parse and survive a fix unchanged. goose's markers and sqlc's name annotations are comments.
+templater = placeholder
+max_line_length = 120
+# RF04 refuses every keyword as an identifier, including PostgreSQL's non-reserved keywords such as domain,
+# which PostgreSQL accepts. A reserved keyword already fails PostgreSQL's own parser, which db/check runs.
+exclude_rules = RF04
+
+[sqlfluff:templater:placeholder]
+param_regex = (?<![:@\w])@(?P<param_name>\w+)
