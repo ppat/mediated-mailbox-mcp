@@ -161,3 +161,64 @@ func TestViolationImport(t *testing.T) {
 		}
 	}
 }
+
+// TestBrowserDirectiveProblems runs the classifier over the directive spellings measured against oxlint, with
+// no-restricted-properties as a ban and no-debugger as an ordinary rule.
+func TestBrowserDirectiveProblems(t *testing.T) {
+	bans := []string{"no-restricted-properties"}
+	cases := map[string]bool{
+		// Silences every rule.
+		"// oxlint-disable-next-line":        true,
+		"// eslint-disable-line -- a reason": true,
+		"/* eslint-disable */":               true,
+		"/* oxlint-disable -- reason */":     true,
+		// Names a ban rule, under any plugin prefix.
+		"// oxlint-disable-next-line no-restricted-properties -- reason":                    true,
+		"// eslint-disable-next-line no-debugger, no-restricted-properties -- reason":       true,
+		"// oxlint-disable-next-line @typescript-eslint/no-restricted-properties -- reason": true,
+		"x(); // eslint-disable-line eslint/No-Restricted-Properties -- reason":             true,
+		"/* eslint-disable no-restricted-properties -- reason */":                           true,
+		// Names only ordinary rules but gives no reason.
+		"// oxlint-disable-next-line no-debugger":    true,
+		"// oxlint-disable-next-line no-debugger --": true,
+		"/* eslint-disable no-debugger */ x();":      true,
+		// Spellings oxlint does not honour today, and ast-grep's directive.
+		"// OXLINT-DISABLE-NEXT-LINE no-debugger -- reason": true,
+		"// Eslint-Disable-Line no-debugger -- reason":      true,
+		`const s = "eslint-disabled";`:                      true,
+		"// ast-grep-ignore: markup-prop-ts":                true,
+		// Allowed.
+		"// oxlint-disable-next-line no-debugger -- reason":                    false,
+		"x(); // eslint-disable-line eslint/no-debugger, no-console -- reason": false,
+		"/* eslint-disable no-debugger -- reason */":                           false,
+		"// eslint-enable no-debugger":                                         false,
+		"// an ordinary comment":                                               false,
+	}
+	for text, want := range cases {
+		problems := browserDirectiveProblems(text, bans)
+		if got := len(problems) > 0; got != want {
+			t.Errorf("browserDirectiveProblems(%q) = %q, want refused %v", text, problems, want)
+		}
+	}
+	if got := browserDirectiveProblems("// oxlint-disable-next-line no-debugger -- r // eslint-disable-line", bans); len(got) != 0 {
+		t.Errorf("a directive inside another directive's reason is refused: %q", got)
+	}
+	if got := browserDirectiveProblems("/* oxlint-disable-line no-debugger -- r */ x(); // oxlint-disable-line", bans); len(got) != 1 {
+		t.Errorf("want the second directive on a line refused, got %q", got)
+	}
+}
+
+func TestBanRuleProblems(t *testing.T) {
+	bans := []string{"no-danger", "no-restricted-properties"}
+	if got := banRuleProblems(bans, map[string]bool{"no-danger": true, "no-restricted-properties": true}); len(got) > 0 {
+		t.Fatalf("consistent ban rules refused: %q", got)
+	}
+	got := banRuleProblems(bans, map[string]bool{"no-danger": true, "no-debugger": true})
+	want := []string{
+		"a violation file wants oxlint's no-debugger, which is not on banproof's list of browser ban rules",
+		"no-restricted-properties is on banproof's list of browser ban rules but no violation file wants its findings",
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("problems (-want +got):\n%s", diff)
+	}
+}
