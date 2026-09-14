@@ -1,0 +1,6 @@
+package main
+
+// image is the PostgreSQL image every test run starts. It carries the extensions the schema needs,
+// which the official image lacks for vector. Renovate updates the tag and digest through the custom
+// manager in .github/renovate.json that matches this line.
+const image = "pgvector/pgvector:0.8.6-pg18-trixie@sha256:78bf48b801e792f99e3ac62b5036fd3876e9be48afda16c1e331af1c75ceb2ff"
