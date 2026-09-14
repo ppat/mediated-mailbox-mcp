@@ -1,0 +1,39 @@
+---
+# The test runner's substitution helpers are mocks, which ADR-0043 forbids (ADR-0064). oxlint's
+# no-restricted-imports reports them imported by an import declaration, and typescript/no-require-imports
+# reports any require call. This rule reports the runner's module loaded by a dynamic import, which
+# neither oxlint rule reads.
+#
+# A rule is parsed for one language, so the rule is written once for .ts files and once for .tsx files.
+# The violation files are one of each, so banproof turns red if either goes quiet.
+id: runner-dynamic-import-ts
+language: TypeScript
+severity: error
+message: a dynamic import of bun:test reaches the runner's substitution helpers, which are mocks (ADR-0043, ADR-0064)
+note: import what the test needs from bun:test by name
+rule:
+  kind: call_expression
+  all:
+  - has:
+      field: function
+      kind: import
+  - has:
+      field: arguments
+      has:
+        regex: ^["'`]bun:test["'`]$
+---
+id: runner-dynamic-import-tsx
+language: Tsx
+severity: error
+message: a dynamic import of bun:test reaches the runner's substitution helpers, which are mocks (ADR-0043, ADR-0064)
+note: import what the test needs from bun:test by name
+rule:
+  kind: call_expression
+  all:
+  - has:
+      field: function
+      kind: import
+  - has:
+      field: arguments
+      has:
+        regex: ^["'`]bun:test["'`]$

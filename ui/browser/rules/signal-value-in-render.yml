@@ -1,0 +1,38 @@
+---
+# A signal is passed into JSX, never read there. Reading .value inside a rendering position re-renders
+# the component on every write (ADR-0063, ADR-0072).
+#
+# The rule reads syntax and cannot tell a signal from a contract field named value, so it reports both.
+# A sanctioned read of such a field carries the field's name in a comment on the line above its
+# suppression comment. A read inside a function written directly as an event handler attribute's value,
+# such as onClick, runs outside rendering and is not reported. Any other function in the expression, such
+# as a map callback, runs while rendering and is.
+#
+# The language must be Tsx. TypeScript is also a valid value and matches nothing in a .tsx file,
+# silently. The violation file is .tsx, so banproof turns red if it changes.
+id: signal-value-in-render
+language: Tsx
+severity: error
+message: a signal's value is read inside a rendering position, so the component re-renders on every write
+note: pass the signal itself into JSX (ADR-0063)
+rule:
+  kind: member_expression
+  has:
+    field: property
+    regex: ^value$
+  inside:
+    kind: jsx_expression
+    stopBy: end
+  not:
+    inside:
+      stopBy: end
+      any:
+      - kind: arrow_function
+      - kind: function_expression
+      inside:
+        kind: jsx_expression
+        inside:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^on[A-Z]

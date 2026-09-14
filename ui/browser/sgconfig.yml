@@ -1,0 +1,5 @@
+---
+# ast-grep's project configuration. It carries the browser bans oxlint cannot express as configuration
+# (ADR-0072), one rule file per ban.
+ruleDirs:
+- rules

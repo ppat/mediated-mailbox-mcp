@@ -1,0 +1,54 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "react/rules-of-hooks": "error",
+    "react/no-danger": "error",
+    "typescript/no-require-imports": "error",
+    "no-restricted-properties": [
+      "error",
+      { "property": "innerHTML", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "outerHTML", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "insertAdjacentHTML", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "createContextualFragment", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "setHTMLUnsafe", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "parseHTMLUnsafe", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "parseFromString", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "srcdoc", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "property": "dangerouslySetInnerHTML", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "object": "document", "property": "write", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" },
+      { "object": "document", "property": "writeln", "message": "parses a string as markup. Message-derived text renders as text only (ADR-0063)" }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "bun:test",
+            "importNames": ["mock", "spyOn", "jest", "vi"],
+            "message": "the runner's substitution helpers are mocks, which ADR-0043 forbids (ADR-0064)"
+          }
+        ]
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      { "name": "jest", "message": "the runner's substitution helpers are mocks, which ADR-0043 forbids (ADR-0064)" },
+      { "name": "vi", "message": "the runner's substitution helpers are mocks, which ADR-0043 forbids (ADR-0064)" }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["test/fixtures/**"],
+      "rules": {
+        "typescript/no-explicit-any": "error",
+        "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }]
+      }
+    }
+  ]
+}
