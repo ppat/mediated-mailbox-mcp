@@ -380,7 +380,7 @@ func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node) {
 					r.connected, changed = true, true
 				}
 			case l != nil && r != nil:
-				if (l.connected || r.connected) && !(l.connected && r.connected) && inScope(sc, l) && inScope(sc, r) {
+				if l.connected != r.connected && inScope(sc, l) && inScope(sc, r) {
 					l.connected, r.connected, changed = true, true, true
 				}
 				if !inScope(sc, r) && !slices.Contains(l.through, r) {
@@ -427,7 +427,7 @@ func (c *statementCheck) insertAccount(sc *scope, target *rangeRef, ins *pg.Inse
 	if rows := sel.GetValuesLists(); len(rows) > 0 {
 		for _, row := range rows {
 			items := row.GetList().GetItems()
-			if index >= len(items) || !(isParameter(items[index]) || isCastParameter(items[index])) {
+			if index >= len(items) || !isParameter(items[index]) && !isCastParameter(items[index]) {
 				c.report(target.location, checkAccount, "an insert into account-keyed table %s must take %s from a parameter", target.name, accountColumn)
 			}
 		}
