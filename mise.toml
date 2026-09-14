@@ -1,0 +1,10 @@
+[tools]
+bun = "1.4.2"
+go = "1.27.1"
+golangci-lint = "2.13.2"
+sqlc = "1.31.1"
+"aqua:pressly/goose" = "3.28.0"
+
+[settings]
+# mise.lock records each tool's resolved version, download URL and checksum per platform. It is committed.
+lockfile = true
