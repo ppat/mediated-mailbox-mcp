@@ -1,0 +1,81 @@
+---
+# yamllint disable rule:line-length
+name: go-integration
+
+on:
+  pull_request:
+    paths:
+    - .github/workflows/go-integration.yaml
+    - .golangci.yaml
+    - '*.go'
+    - go.mod
+    - go.sum
+    - mise.lock
+    - mise.toml
+    - backfill/**
+    - core/**
+    - db/**
+    - mediate/**
+    - organize/**
+    - propose/**
+    - provider/**
+    - ratelimit/**
+    - sync/**
+    - testsupport/**
+    - ui/*.go
+    - ui/contract/**
+    - ui/internal/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # The go test command below is the only invocation of the integration tests, and it must stay exactly this.
+    # pgrun fails a run with the tag forgotten, because no test package creates a database, and every integration
+    # package fails without pgrun. A step running plain go test ./... with neither passes while running no
+    # integration test, and nothing but this file can refuse that.
+    #
+    # This run also runs every property test and the crash sequences, so it sets RAPID_SEED non-zero, RAPID_CHECKS
+    # and RAPID_NOFAILFILE=true, and passes no -short (ADR-0069, ADR-0045). The case count and the seed are not
+    # decided in any record, so they are read from the repository variables RAPID_CHECKS and RAPID_SEED. rapid is
+    # admitted only in files named *_property_test.go and *_crash_test.go. Violation files carry the same suffixes
+    # and build only under the banproof tag, so they are not counted. Once such a file exists, a run without a
+    # configured count and a non-zero seed fails.
+    - name: Run the integration tests against one PostgreSQL container
+      shell: bash
+      working-directory: ./current
+      env:
+        GATING_CHECKS: ${{ vars.RAPID_CHECKS }}
+        GATING_SEED: ${{ vars.RAPID_SEED }}
+        RAPID_NOFAILFILE: 'true'
+      # yamllint disable-line rule:indentation
+      run: |
+        count="$(git ls-files -- '*_property_test.go' '*_crash_test.go' ':(exclude)*_violation_*' | wc -l)"
+        if (( count > 0 )); then
+          if [[ ! "$GATING_CHECKS" =~ ^[0-9]+$ ]] || (( 10#$GATING_CHECKS == 0 )); then
+            echo "::error::Property tests or crash sequences exist, but the gating case count is not configured. Set the repository variable RAPID_CHECKS to a positive number."
+            exit 1
+          fi
+          if [[ ! "$GATING_SEED" =~ ^[0-9]+$ ]] || (( 10#$GATING_SEED == 0 )); then
+            echo "::error::Property tests or crash sequences exist, but the gating seed is unset or zero. Set the repository variable RAPID_SEED to a non-zero number."
+            exit 1
+          fi
+          export RAPID_CHECKS="$GATING_CHECKS" RAPID_SEED="$GATING_SEED"
+        fi
+        mise exec -- go tool pgrun -- go test -tags integration ./...
