@@ -28,8 +28,8 @@ var browserDir = filepath.Join("ui", "browser")
 
 // Tool names used in browser want annotations.
 const (
-	toolOxlint      = "oxlint"
-	toolAstGrep     = "ast-grep"
+	toolOxlint  = "oxlint"
+	toolAstGrep = "ast-grep"
 )
 
 var browserViolationName = regexp.MustCompile(`_violation\.tsx?$`)
@@ -41,6 +41,15 @@ var browserWant = regexp.MustCompile(`(?://|/\*)\s*want\s(.*)$`)
 // suppressionDirective matches every directive oxlint or ast-grep honours to silence a finding, and
 // matches it anywhere on a line, strings included, so matching more than the tools honour fails closed.
 var suppressionDirective = regexp.MustCompile(`(?i)(eslint|oxlint)-disable|ast-grep-ignore`)
+
+// sanctionedIgnore is the one suppression the browser layer allows. ADR-0063 sanctions it for a contract
+// field named value read in a rendering position, which the signal rule cannot tell from a signal. The
+// directive sits on its own line, names only that rule, and follows a line comment naming the field, as
+// ADR-0072 states. ast-grep then skips the rule on the next line.
+const sanctionedIgnore = "// ast-grep-ignore: signal-value-in-render"
+
+// fieldNamed matches the line comment naming the field, such as // Row.value is the contract field.
+var fieldNamed = regexp.MustCompile(`^//\s.*\b[A-Za-z_$][\w$]*\.value\b`)
 
 // violationImport matches an import or re-export of a violation module, which would put it in the bundle.
 var violationImport = regexp.MustCompile(`(?:from|import)\s*\(?\s*["'][^"']*_violation(?:\.tsx?)?["']`)
@@ -174,10 +183,15 @@ func browserWantBody(line string) (body string, ok bool) {
 }
 
 // suppressionFindings reports every line holding a suppression directive, ignoring the text of a want
-// annotation on that line.
+// annotation on that line, except the sanctioned read of a field named value. Every ban the browser
+// tools carry stands in for a control, so no other suppression is allowed.
 func suppressionFindings(path string, src []byte) []finding {
 	var out []finding
-	for i, line := range strings.Split(string(src), "\n") {
+	lines := strings.Split(string(src), "\n")
+	for i, line := range lines {
+		if sanctioned(path, lines, i) {
+			continue
+		}
 		text := line
 		if m := browserWant.FindStringIndex(line); m != nil {
 			annotation := line[m[0]:]
@@ -193,6 +207,16 @@ func suppressionFindings(path string, src []byte) []finding {
 		}
 	}
 	return out
+}
+
+// sanctioned reports whether line i of a file is the suppression ADR-0063 sanctions, in the form ADR-0072
+// states. The signal rule reads .tsx files only.
+func sanctioned(path string, lines []string, i int) bool {
+	if !strings.HasSuffix(path, ".tsx") || i == 0 || strings.TrimSpace(lines[i]) != sanctionedIgnore {
+		return false
+	}
+	above := strings.TrimSpace(lines[i-1])
+	return fieldNamed.MatchString(above) && !suppressionDirective.MatchString(above)
 }
 
 // A toolFinding is a finding with the severity its tool gave it.
