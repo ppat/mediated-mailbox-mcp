@@ -1,0 +1,54 @@
+---
+# yamllint disable rule:line-length
+name: go-vulncheck
+
+# govulncheck reports known vulnerabilities in the modules the Go code calls into. Its answer changes when the
+# vulnerability database changes, with no change here, so it also runs weekly.
+on:
+  pull_request:
+    paths:
+    - .github/workflows/go-vulncheck.yaml
+    - '*.go'
+    - go.mod
+    - go.sum
+    - mise.lock
+    - mise.toml
+    - backfill/**
+    - core/**
+    - db/**
+    - mediate/**
+    - organize/**
+    - propose/**
+    - provider/**
+    - ratelimit/**
+    - sync/**
+    - testsupport/**
+    - ui/*.go
+    - ui/internal/**
+  schedule:
+  - cron: '30 5 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check the module for known vulnerabilities
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- govulncheck ./...
