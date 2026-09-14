@@ -18,6 +18,7 @@
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
     "isolatedModules": true,
+    "moduleDetection": "force",
     "allowImportingTsExtensions": true
   },
   "include": [

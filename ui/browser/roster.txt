@@ -6,6 +6,7 @@ package.json          @preact/signals                  data state and the object
 package.json          preact-iso                       routing (ADR-0063)
 package.json          @ast-grep/cli                    carries the bans oxlint cannot express as configuration (ADR-0072)
 package.json          @happy-dom/global-registrator    registers the DOM shim the tests run against (ADR-0064)
+package.json          oxfmt                            the browser layer's formatter, from oxlint's project
 package.json          @types/bun                       types for bun's runtime and test runner, used by the type check
 package.json          oxlint                           the browser layer's linter and the bans it expresses as configuration (ADR-0072)
 package.json          oxlint-tsgolint                  enables oxlint's type-aware rules, which are silent without it (ADR-0072)

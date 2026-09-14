@@ -74,6 +74,11 @@ jobs:
       working-directory: ./current/ui/browser
       run: mise exec -- bun run typecheck
 
+    - name: Check the browser layer's formatting
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: mise exec -- bun run fmt:check
+
     - name: Lint the browser layer
       shell: bash
       working-directory: ./current/ui/browser
