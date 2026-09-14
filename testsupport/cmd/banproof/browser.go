@@ -239,10 +239,10 @@ type oxlintReport struct {
 	}
 }
 
-// runOxlint runs oxlint over the browser layer with the flags the gating run passes, except the one
-// ignoring violation files.
+// runOxlint runs oxlint over the browser layer as the gating run does, without the flag ignoring violation
+// files. Type-aware checking and failing on warnings are options in .oxlintrc.json, which both runs read.
 func runOxlint(dir string) ([]toolFinding, error) {
-	out, err := browserTool(dir, "oxlint", "--type-aware", "--format=json")
+	out, err := browserTool(dir, "oxlint", "--format=json")
 	if err != nil {
 		return nil, err
 	}

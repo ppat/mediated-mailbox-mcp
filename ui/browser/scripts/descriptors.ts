@@ -31,9 +31,13 @@ if (import.meta.main) {
   const document: ContractDocument = await Bun.file(documentPath).json();
   const table = generate(document);
   if (process.argv.includes("--check")) {
-    const checkedIn = await Bun.file(tablePath).text().catch(() => undefined);
+    const checkedIn = await Bun.file(tablePath)
+      .text()
+      .catch(() => undefined);
     if (checkedIn !== table) {
-      console.error(`${tablePath} differs from what ${documentPath} generates. Regenerate with: bun run generate`);
+      console.error(
+        `${tablePath} differs from what ${documentPath} generates. Regenerate with: bun run generate`,
+      );
       process.exit(1);
     }
   } else {

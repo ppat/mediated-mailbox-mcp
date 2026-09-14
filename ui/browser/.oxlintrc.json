@@ -1,10 +1,16 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true
+  },
   "plugins": ["typescript", "unicorn", "oxc", "react"],
   "categories": {
-    "correctness": "error"
+    "correctness": "error",
+    "suspicious": "error"
   },
   "rules": {
+    "react/react-in-jsx-scope": "off",
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",
     "react/rules-of-hooks": "error",
@@ -43,6 +49,18 @@
     ]
   },
   "overrides": [
+    {
+      "files": ["src/app/main.ts"],
+      "rules": {
+        "unicorn/no-empty-file": "off"
+      }
+    },
+    {
+      "files": ["**/*_violation.*"],
+      "rules": {
+        "typescript/no-unsafe-type-assertion": "off"
+      }
+    },
     {
       "files": ["test/fixtures/**"],
       "rules": {
