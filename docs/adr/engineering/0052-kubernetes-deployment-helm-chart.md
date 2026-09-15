@@ -35,11 +35,14 @@ may assume about the user's cluster.
   policy enforcement belong to the cluster the chart lands on: being deployed somewhere does not
   mean the controls hold there — the verification catalogue, not the chart, carries the proof
   obligations.
-- **Tests travel with the chart:** standard Helm tests in this repository, and a chainsaw
-  suite — declarative Kubernetes end-to-end tests — that deploys the chart onto an ephemeral
-  kind cluster and exercises it. The chainsaw harness deploys the chart via flux because the
-  reusable workflow it runs under already stands flux up — harness machinery, not something the
-  chart assumes exists.
+- **Tests travel with the chart:** standard Helm tests in this repository, and a chainsaw suite —
+  declarative Kubernetes end-to-end tests — that deploys the chart onto an ephemeral kind cluster
+  and exercises it. The chainsaw harness deploys the chart via flux, which its workflow installs on
+  the cluster as harness machinery, not something the chart assumes exists. The suite builds no
+  images. It takes a version and deploys the chart with the images already published for that
+  version, and it runs when the packaging or the suite changes, never because a deployable changed.
+  Where no images exist for the version, it reports that it did not run rather than passing, and a
+  suite with no tests fails.
 - **Distribution is OCI, in the same registry as the images, at the lockstep version** — no
   hosted chart repository, no index.
   [ADR-0028](../operability/0028-trust-anchor-hardening.md)'s signed-and-verified rule extends

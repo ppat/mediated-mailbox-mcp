@@ -84,8 +84,8 @@ owns.
 │         └───────────┬──────────┘               │                 │
 │         ┌───────────▼──────────┐               │                 │
 │         │ Rate Limiter         │  shared budget per account,     │
-│         │  (spent from by ALL  │  every process leases from it   │
-│         │   processes)         │                                 │
+│         │  (spent from by each │  every process that calls a     │
+│         │   provider caller)   │  provider leases from it        │
 │         └──────────────────────┘               │                 │
 └────────────────────────────────────────────────┼─────────────────┘
                                                  │
@@ -103,10 +103,10 @@ owns.
 | Redaction Gate | Decide what survives the last hop before any client | mail-mediator |
 | Mutation Authorizer | Enforce per-sensitivity mutation rights on every write | mail-mediator |
 | Sender Classifier | Classify senders deterministically against the policy list | mail-mediator |
-| Provider Port + adapters | Speak each provider's API and expose one canonical model | mail-mediator |
+| Provider Port + adapters | Speak each provider's API and expose one canonical model | mail-mediator, and each batch workload that calls a provider |
 | Scan Gate | Choose which non-restricted bodies get scanned | batch subsystems |
 | Content Scanner | Read bodies it will withhold and emit content-free verdicts | batch subsystems |
-| Rate Limiter | Keep all workloads inside one polite per-account budget | all processes |
+| Rate Limiter | Keep all workloads inside one polite per-account budget | mail-mediator, and each batch workload that calls a provider |
 | Backfill Job | Build the full-history metadata index once | batch workload |
 | Delta Sync | Keep the index current against the provider | batch workload |
 | Reorg Engine | Turn approved plans into reversible bulk mutations | batch workload |
@@ -165,10 +165,11 @@ to the provider, enforcement must be a property of code the operator controls, w
 mediation layer exists at all. If a provider ever offers genuine per-sender token scoping, the
 mediation layer becomes optional and this design should be revisited from the ground up.
 
-Known limit, stated rather than hidden: because the credential cannot be narrowed, a mediator
-compromise exposes the full mailbox. The trust-anchor pillar carries that consequence. Where a
-provider *does* offer narrowing, capability absent from the granted credential (such as permanent
-delete) is a real guarantee, and the design takes it as defense-in-depth wherever it exists.
+Known limit, stated rather than hidden: because the credential cannot be narrowed, a compromise of
+any process holding it exposes the full mailbox. The trust-anchor pillar carries that consequence.
+Where a provider *does* offer narrowing, capability absent from the granted credential (such as
+permanent delete) is a real guarantee, and the design takes it as defense-in-depth wherever it
+exists.
 
 ### One gate, N dumb adapters
 
@@ -309,12 +310,13 @@ the internet reaches the mediator" risk), but it determined by the deployment en
 configuration. As that falls outside the purview of this design, the redaction invariant must not
 depend on the network position of the deployment.
 
-### The mediator is the irreducible trust anchor
+### The mediation layer is the irreducible trust anchor
 
-The mediation layer holds full mailbox credentials. If its process is compromised, redaction is
-moot, because the attacker calls the provider directly. The design does not pretend otherwise.
-The stance is that this anchor is hardened, its blast radius is understood, and evidence of its
-compromise survives outside its own reach.
+The mediation layer holds full mailbox credentials, in every one of its processes that calls a
+provider. If any of those processes is compromised, redaction is moot, because the attacker calls
+the provider directly. The design does not pretend otherwise. The stance is that this anchor is
+hardened, its blast radius is understood, and evidence of its compromise survives outside its own
+reach.
 
 Why: some process must hold the over-privileged credential. That follows from redaction being
 enforced by code, not the token. The design accepts this as the irreducible trust anchor rather
@@ -364,7 +366,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding every unit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
-| Mediator compromise defeats redaction | ADR-0028 (hardening, blast radius, evidence that survives) |
+| Compromise of a process holding provider credentials defeats redaction | ADR-0028 (hardening, blast radius, evidence that survives) |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
 | Un-braided concerns and contract-only knowledge are only tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
 | The corpus is assumed ≤100k messages per account | ADR-0016 records what changes beyond it, and ADR-0066 what stops being affordable |
@@ -383,7 +385,7 @@ are pointers. Each fix and its reasoning live in the records named, never here.
 | Policy-list staleness | certain over time / medium | ADR-0004 |
 | Metadata leakage | certain, accepted / medium | ADR-0001 |
 | Scan-gate residual leakage | accepted / medium | ADR-0007 · ADR-0002 |
-| Mediator compromise | low / catastrophic | ADR-0028 |
+| Compromise of a process holding provider credentials | low / catastrophic | ADR-0028 |
 | Fail-open on classifier or scanner error | low / severe | ADR-0002 · the fail-closed rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Agent context as an exfiltration surface | moderate / medium | ADR-0036 |
 | Bulk mutation error | moderate / severe | ADR-0020 · ADR-0032 |
@@ -402,8 +404,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **The invariant** — the fixed point of [USE_CASES.md](./USE_CASES.md), used as a proper noun
   throughout the documents, meaning full organizational visibility and zero sensitive content,
   held at once.
-- **The mediator** (`mail-mediator`) — the process that holds provider credentials, enforces
-  redaction, and serves the client surface. The trust anchor.
+- **The mediator** (`mail-mediator` in this document's diagram and component table, published as
+  `mediated-mailbox-mediate` from the directory `mediate/`) — the process that enforces redaction
+  and serves the client surface. It holds provider credentials, as every deployable that calls a
+  provider does (ADR-0038, via the [decision-record index](./docs/adr/README.md)), and those
+  processes together are the trust anchor.
 - **Client** — any caller of the serving surface, whether the agent over MCP or any other caller
   of the API. Every client is untrusted by design. Every control assumes a client can be talked
   into, or built to attempt, anything.
@@ -524,8 +529,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Lease** — a short-lived allocation of rate budget to one process, the mechanism by which
   separate workloads share one per-account budget without a coordinator process.
 - **Audit log** — the record of every body served, every denial, and every mutation. Must survive
-  mediator compromise, so no runtime role may update or delete a row of it (grant and bound in
-  ADR-0016 and ADR-0028, via the [decision-record index](./docs/adr/README.md)).
+  the compromise of any process holding provider credentials, so no runtime role may update or
+  delete a row of it (grant and bound in ADR-0016 and ADR-0028, via the [decision-record
+  index](./docs/adr/README.md)).
 - **Masking events / gate decisions** — the per-event records that make masking behavior and scan
   skips tunable from evidence.
 
@@ -569,6 +575,23 @@ top-level documents, a decision record, or a ticket from here without guessing.
   proven by deliberately creating the violation it exists to stop and watching it fire, never by
   observing that nothing bad happened. Catalogued in
   [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md).
+- **Violation file** — a checked-in file that deliberately breaks a check standing in for a control,
+  such as a lint ban, an import rule or a statement-file constraint, placed where the rule applies,
+  so the check's proof can require it to be reported (rule in ADR-0046 and ADR-0071, via the
+  [decision-record index](./docs/adr/README.md)). Where the files sit is
+  [CLAUDE.md](./CLAUDE.md#tests)'s.
+- **Ban-proof script** — the check that runs every lint ban and import rule against its violation
+  files and requires each expected finding and no other, and refuses a suppression that could switch
+  a control's rule off (rule in ADR-0046 and ADR-0071, via the [decision-record
+  index](./docs/adr/README.md)).
+- **Ordinary linter** — a linter the repository runs that stands in for no control, one of a closed
+  list whose findings alone may be suppressed (rule in ADR-0071, via the [decision-record
+  index](./docs/adr/README.md)). The list is
+  [CLAUDE.md](./CLAUDE.md#static-analysis-and-formatting)'s.
+- **Data-access subsection** — one package of the data-access library, grouping the statements and
+  generated code for one table or closely related tables, which a component's import list names when
+  the component may use it (rule in ADR-0066 and ADR-0071, via the [decision-record
+  index](./docs/adr/README.md)).
 - **Answerable-by-doing** — an open empirical question that needs an experiment or accumulated
   data rather than a build, registered with its trigger point so it cannot evaporate.
 

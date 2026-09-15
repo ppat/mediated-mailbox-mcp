@@ -66,7 +66,13 @@ This is a close decision and the Decision says so rather than dressing it up.
   transactional anyway.
 - **The distributed binary is not minimal.** The tree the command form keeps out of this project's
   binaries is still inside the runner binary itself unless it is built with the tags that exclude
-  other databases. That is a property of the step, not of anything this project ships.
+  other databases. That is a property of the step, not of anything this project ships, so the
+  migration step's image builds goose from source with those tags.
+- **Neither `go tool` nor a `tool` directive in the project's module suits the step.** `go tool`
+  ignores build tags, so it cannot build the tagged runner, and a `tool` directive in the project's
+  own module takes part in version selection, so goose's requirements raise shared dependency
+  versions inside the project's binaries. Developers and CI run a pinned release binary instead
+  ([CLAUDE.md](../../../CLAUDE.md#tools-and-versions)).
 
 ## Alternatives considered
 
@@ -173,12 +179,12 @@ another.
 - **The migration step's failure is a failed step before any process starts**, which is the right
   shape for a deployment. [ADR-0048](./0048-forward-only-migrations.md) already accepts a brief
   unavailability during a migration.
-- **Assumptions about other components.** Something outside the application grants the
-  schema-owning role to the migration step and withholds it from the runtime roles. The deployment
-  mechanism runs the step before rolling the deployables, and any mechanism that can run a command
-  can do it, which is what [ADR-0051](../engineering/0051-environment-contract.md) requires. The
-  extensions the schema needs are created by the chain's first migration, which
-  [ADR-0048](./0048-forward-only-migrations.md) decides.
+- **Assumptions about other components.** Something outside the application grants the schema-owning
+  role to the migration step and withholds it from the runtime roles. The deployment mechanism runs
+  the step before rolling the deployables, and any mechanism that can run a command can do it, which
+  is what [ADR-0051](../engineering/0051-environment-contract.md) requires. The extensions the
+  schema needs are created by the bootstrap before the chain and recorded in its first migration,
+  which [ADR-0048](./0048-forward-only-migrations.md) decides.
 - No new control. The constraints this record checked belong to
   [ADR-0048](./0048-forward-only-migrations.md) and
   [ADR-0060](../engineering/0060-no-code-in-the-database.md), whose catalogue rows already exist.

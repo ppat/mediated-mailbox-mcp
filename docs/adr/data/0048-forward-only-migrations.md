@@ -43,9 +43,18 @@ in lockstep, so there is no long window in which old code runs against new schem
 
 - A brief unavailability during a migration is accepted: lockstep versioning dissolves
   expand-contract choreography, and this system's shape tolerates the pause.
-- Database extensions are versioned dependencies of the schema — created as the chain's first
-  migration, with their upgrade cadence owned by the platform's database, not by this
-  repository.
-- Assumptions about other components: something outside the application grants the DDL-owning
-  role to the migration step and withholds it from the runtime roles; the deployment runs the
+- Database extensions are versioned dependencies of the schema, with their upgrade cadence owned by
+  the platform's database, not by this repository. The migration role cannot create all of them,
+  because `vector` is not a trusted extension and only a superuser may create it. So a superuser
+  bootstrap runs before the chain. It creates the roles once per cluster and the extensions once per
+  database, and the chain's first migration keeps `CREATE EXTENSION IF NOT EXISTS` for each
+  extension, which then succeeds without doing anything and still records the dependency. Without
+  the bootstrap, that first migration stops with `permission denied to create extension "vector"`.
+- Grant statements in migrations name roles literally. goose's environment substitution would let
+  names vary, but the generator of [ADR-0066](./0066-data-access-generated-from-sql.md) reads the
+  migration files directly and cannot parse the substitution markers, and a grant to a role that
+  does not exist yet fails, which is why the bootstrap creates the roles first.
+- Assumptions about other components: something outside the application runs the bootstrap as a
+  superuser, creates the application database owned by the migration role, grants the DDL-owning
+  role to the migration step and withholds it from the runtime roles. The deployment runs the
   migration step before rolling the deployables, whatever the deployment mechanism is.

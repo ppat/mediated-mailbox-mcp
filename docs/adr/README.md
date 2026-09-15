@@ -126,7 +126,7 @@ moves it. Records themselves link freely and deep, into
 | 0034 | [One read-only system-status operation exposes recorded per-account operational state](./operability/0034-system-status-operation.md) | Accepted |
 | 0035 | [Every required identifier is discoverable on the same surface; accounts gain a listing](./operability/0035-required-identifiers-are-discoverable.md) | Accepted |
 | 0038 | [Credentials arrive as mounted files](./operability/0038-credentials-as-mounted-files.md) | Accepted |
-| 0039 | [Rotation write-back is delegated; the mediator holds no secret-store credential](./operability/0039-rotation-writeback.md) | Accepted |
+| 0039 | [Rotation write-back is delegated; no deployable holds a secret-store credential](./operability/0039-rotation-writeback.md) | Accepted |
 | 0056 | [The UI is organized around the operator's work](./operability/0056-ui-organized-around-the-operators-work.md) | Accepted |
 | 0057 | [Every analysis lens reads through one dataset endpoint behind a registry](./operability/0057-one-dataset-endpoint-behind-a-registry.md) | Accepted |
 | 0058 | [Live surfaces stream over server-sent events, with polling as the fallback](./operability/0058-live-surfaces-stream-over-server-sent-events.md) | **Proposed** |

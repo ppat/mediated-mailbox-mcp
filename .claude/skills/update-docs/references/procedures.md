@@ -370,6 +370,12 @@ records' `Serves:` headers) for meaning drift against the new text.
 
 ## Front-door files (README.md, CLAUDE.md)
 
-Pointers only. When a change elsewhere alters what these point at (a document's role, the
-resolution order, a rule's location), update the pointer — never let a fact take up residence
-here. CLAUDE.md's standing reminder and document map are its whole job.
+README.md holds pointers only. CLAUDE.md holds its standing reminder, its document map, and the
+code's layout and conventions, and no other fact takes up residence there. When a change elsewhere
+alters what these point at (a document's role, the resolution order, a rule's location), update the
+pointer.
+
+CLAUDE.md's code layout section is mirrored by the rules under `.claude/rules/` that load when code
+is touched (`go.md`, `ci.md`, `db.md`, `browser.md`). A convention changed in either place is
+changed in the other in the same change. The section's headings are link anchors, and the rules also
+cite them by name in plain text, so renaming a heading re-points every link and every such citation.

@@ -20,7 +20,7 @@ one command and a few statements.
 | Requirement | What it demands | Source |
 | --- | --- | --- |
 | Real PostgreSQL, ephemeral | An actual server per run, not a simulation and not a shared instance | [ADR-0043](./0043-no-mocking.md) |
-| The schema's extensions installable | Case-insensitive text, trigram search and vectors, because the chain applies whole and its first migration creates them | [ADR-0016](../data/0016-schema.md), [ADR-0048](../data/0048-forward-only-migrations.md) |
+| The schema's extensions installable | Case-insensitive text, trigram search and vectors, because the chain applies whole after the bootstrap creates them, and its first migration records them | [ADR-0016](../data/0016-schema.md), [ADR-0048](../data/0048-forward-only-migrations.md) |
 | Works where the developer works | Reachable from both continuous integration and a workstation, whatever container access each has | [ADR-0051](./0051-environment-contract.md)'s posture, applied to the test harness |
 | Test-path footprint | What the choice adds to the dependency tree the tests carry | [ADR-0028](../operability/0028-trust-anchor-hardening.md)'s posture, applied to a layer outside the runtime |
 
@@ -37,17 +37,27 @@ layer and nothing above the test harness depends on it.
 
 - **Tests start PostgreSQL with the ordinary container command and connect to it. No container
   library is taken.** The chain applies from empty, which is one command and a few statements.
+- **One container serves a whole test run, and every test package gets its own database.** `go test`
+  runs each package's test binary as a separate process in parallel, so a container started by each
+  package collides on the fixed host port. A test-support program starts the one container, applies
+  the superuser bootstrap and the chain from empty into a template database, runs the test command
+  with the connection details in its environment, and removes the container. Each integration test
+  package creates its own database from the template, so packages running at the same time never
+  share one. The program fails a run in which no test package created a database, and an integration
+  test package fails rather than skips when it is started without the program, so a job that leaves
+  out either one cannot pass. Where the program and the integration tests sit is
+  [CLAUDE.md](../../../CLAUDE.md#tests)'s.
 - **`embedded-postgres` is excluded because it cannot apply this schema's chain.**
   [ADR-0016](../data/0016-schema.md) declares a vector column and
-  [ADR-0048](../data/0048-forward-only-migrations.md) creates the extensions the schema needs in
-  the chain's first migration, so a substrate lacking that extension fails from the first run
-  rather than at some later one.
+  [ADR-0048](../data/0048-forward-only-migrations.md) creates the extensions the schema needs before
+  the chain and records them in its first migration, so a substrate lacking that extension fails
+  from the first run rather than at some later one.
 
 ### How the decision meets each requirement
 
 | Requirement | Met by |
 | --- | --- |
-| Real PostgreSQL, ephemeral | A container started and removed per run |
+| Real PostgreSQL, ephemeral | One container started and removed per run, shared by every test package through a template database |
 | The schema's extensions installable | An image carrying them, which is a choice of image rather than of harness |
 | Works where the developer works | A fixed host port, and nothing else where the container daemon is local |
 | Test-path footprint | Nothing. The container is started by the tool already installed to talk to a daemon |
@@ -78,10 +88,10 @@ layer and nothing above the test harness depends on it.
   the upstream project supplying their binaries. That is a hedge rather than a refusal and is
   recorded at that strength. What makes it decisive is not the strength of the hedge but that the
   dependency sits upstream of the people who would have to act on it.
-- **A template-database substrate**, creating each test's database from a prepared template rather
-  than starting a container per run. The case for it is speed at high test counts. Not chosen,
-  because it is an optimisation over whatever starts the container rather than an alternative to
-  it, and there is no test count to optimise yet.
+- **A database for each test from the prepared template**, rather than one for each test package.
+  The case for it is speed at high test counts. Not chosen, because it is an optimisation over the
+  per-package databases the Decision already creates rather than an alternative to them, and there
+  is no test count to optimise yet.
 
 ## Consequences
 
@@ -95,6 +105,7 @@ layer and nothing above the test harness depends on it.
   workstation argument does not.
 - **Assumptions about other components.** Continuous integration can run a container and reach it.
   The extensions [ADR-0016](../data/0016-schema.md)'s schema declares exist in whatever image is
-  used, which the chain's first migration then creates.
-- No new control. What this record decides is how an existing obligation of
-  [ADR-0043](./0043-no-mocking.md) is met.
+  used, which the bootstrap then creates and the chain's first migration records.
+- One new control, that an integration run which reaches no database cannot pass, catalogued in
+  [docs/VERIFICATIONS.md](../../VERIFICATIONS.md). Otherwise this record decides how an existing
+  obligation of [ADR-0043](./0043-no-mocking.md) is met.

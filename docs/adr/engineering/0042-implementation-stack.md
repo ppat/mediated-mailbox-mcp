@@ -11,13 +11,13 @@ No other document in the set chooses a language. The choice is the least reversi
 the project — the shared libraries make per-component language migration a fiction — and the
 requirements pull in different directions: a type system that can make unsafe states
 unconstructable, a testing ecosystem that carries property-based, mutation, and crash-injection
-machinery, minimal hardened images for the process holding full-mailbox credentials
+machinery, minimal hardened images for the processes holding full-mailbox credentials
 ([ADR-0028](../operability/0028-trust-anchor-hardening.md)), a delivery posture that sizes units
 in days, and an eventual open-source audience.
 
 ## Decision
 
-- **Go, for all six deployables and the shared libraries — including the UI's server side.**
+- **Go, for every deployable's own code and the shared libraries, including the UI's server side.**
 - **TypeScript in the browser, and only there:** a strict-mode single-page app, bundled by bun,
   its types generated in CI from the read API's contract so drift fails the build, and shipped
   as static files served by the UI's Go binary. No JavaScript server runtime runs in
@@ -61,16 +61,15 @@ in days, and an eventual open-source audience.
   inversion: regretting Go is a bounded, discoverable annoyance in which any actual leak still
   requires the same logic bug in the same gate code; regretting Rust is day-sized units bending
   multi-day across the whole schedule — the stall failure that kills solo projects.
-- **TypeScript everywhere.** The case for it: one language from the redaction gate to the
-  approval button, the protocol's reference SDK, the largest UI ecosystem, the highest agent
-  fluency. Rejected: it is weakest on the two vectors the design calls load-bearing. Its types
-  are erased at runtime, so the runtime half of the unconstructability obligation would need a
-  permanently maintained parallel validation layer — the untaken-not-unconstructable shape the
-  design refuses wherever it can. And it puts a JavaScript runtime plus a deep third-party
-  package tree inside the trust anchor — the process holding full-mailbox credentials — drawn
-  from the ecosystem with the worst supply-chain incident record of the candidates. The benefit
-  purchased lands in the least safety-critical component and is substantially replaced by
-  contract-generated types.
+- **TypeScript everywhere.** The case for it: one language from the redaction gate to the approval
+  button, the protocol's reference SDK, the largest UI ecosystem, the highest agent fluency.
+  Rejected: it is weakest on the two vectors the design calls load-bearing. Its types are erased at
+  runtime, so the runtime half of the unconstructability obligation would need a permanently
+  maintained parallel validation layer — the untaken-not-unconstructable shape the design refuses
+  wherever it can. And it puts a JavaScript runtime plus a deep third-party package tree, drawn from
+  the ecosystem with the worst supply-chain incident record of the candidates, inside the trust
+  anchor, which is the processes holding full-mailbox credentials. The benefit purchased lands in
+  the least safety-critical component and is substantially replaced by contract-generated types.
 - **Python.** The case for it: the best property-based testing tool in any ecosystem, the
   native home of the ML tail, maximal iteration speed. Rejected: the weakest static guarantee
   of the four on the project's most emphasized commitment, the hardest path to minimal hardened

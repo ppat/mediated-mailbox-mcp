@@ -69,9 +69,11 @@ exercises, be provable exhaustively and cheaply.
   ([ADR-0032](../mutation/0032-whole-batch-validation.md)) is collecting every verdict before
   the shell enacts anything; fail-closed paths are exercised by feeding error states in and
   asserting deny-verdicts out — plain data against pure functions.
-- Composition happens in each component's own shell; shells are never shared between
-  deployables. The testing strategy's division of labour — exhaustive cheap tests on cores, few
-  integration tests on shells — leans on exactly this shape.
+- Composition happens in each component's own shell, and a deployable's composition root and wiring
+  are never shared with another deployable. The only impure code shared between deployables is the
+  narrow named libraries of [ADR-0050](./0050-shared-code-pure-or-narrow.md). The testing strategy's
+  division of labour — exhaustive cheap tests on cores, few integration tests on shells — leans on
+  exactly this shape.
 - Assumptions about other components: every enforcement component exposes its decision logic in
   a form callable with plain values, and the shell that enacts a verdict records it without
   re-deriving it.

@@ -20,7 +20,8 @@ generated from code ([ADR-0048](./0048-forward-only-migrations.md)), and no data
 to call ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). Reads are projections and
 aggregates, and writes are a small set. What remained to choose on is narrower. How a statement's
 result type comes into being, what can check a statement before it runs, what a component can be
-prevented from linking, and what any of it drags into the process holding full-mailbox credentials.
+prevented from linking, and what any of it drags into the processes holding full-mailbox
+credentials.
 
 One question looks larger than it is. The dataset endpoint of
 [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md) varies its grouping,
@@ -48,9 +49,9 @@ Each derives from a record that already binds, named beside it.
 | Transaction-scoped account | Each transaction sets the account by an ordinary statement before reading, and this survives pooling and statement caching | [ADR-0016](./0016-schema.md), [ADR-0060](../engineering/0060-no-code-in-the-database.md) |
 | Batched writes | Several hundred to a thousand rows per batch without leaving the typed layer | [ADR-0025](../operability/0025-priority-classes-and-leases.md) |
 | Type coverage now | Case-insensitive text, text arrays, JSON, timestamps with zone, big serial | [ADR-0016](./0016-schema.md) |
-| Trust-anchor footprint | What the choice adds to the process holding full-mailbox credentials | [ADR-0028](../operability/0028-trust-anchor-hardening.md) |
+| Trust-anchor footprint | What the choice adds to the processes holding full-mailbox credentials | [ADR-0028](../operability/0028-trust-anchor-hardening.md) |
 | Long-term fit | Governance, release cadence, breaking-change record, and what abandonment costs | The project outlives any tool it picks |
-| Vector column | [ADR-0016](./0016-schema.md) declares a nullable vector column and [ADR-0048](./0048-forward-only-migrations.md) creates its extension in the chain's first migration, so the generator maps the type from the start. Only populating the column waits for the heuristics work | [ADR-0016](./0016-schema.md), [ADR-0004](../classification/0004-sender-list-decides.md) |
+| Vector column | [ADR-0016](./0016-schema.md) declares a nullable vector column and [ADR-0048](./0048-forward-only-migrations.md) creates its extension before the chain and records it in the chain's first migration, so the generator maps the type from the start. Only populating the column waits for the heuristics work | [ADR-0016](./0016-schema.md), [ADR-0004](../classification/0004-sender-list-decides.md) |
 | Crash-harness fit | Data access callable with plain values, with transaction boundaries the harness controls | [ADR-0045](../engineering/0045-crash-injection-testing.md) |
 | Idiom pull | Whether a tool's ordinary path leads toward what these records forbid | The records above, taken together |
 
@@ -79,15 +80,19 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   ([ADR-0028](../operability/0028-trust-anchor-hardening.md)).
 - **The dataset endpoint is enumerated**, one statement per dataset and grouping dimension, plus a
   summary and a rows statement per dataset.
-- **The generator's defaults produce what these records forbid, so the configuration declines
-  them.** Emission of one struct per table is suppressed.
-- **Five constraints bind what a statement file may contain, and they are checked together.** Two
-  are structural questions about a statement and are checked by the parse-tree pass that also
-  checks the account predicate. Three are text matches and are checked as such, either by that pass
-  or by the generator's own rule surface, which can express a text match even though it cannot
-  express the account predicate.
+- **The generator's defaults produce what these records forbid, and configuration declines only part
+  of it.** The configuration omits the table structs no statement uses. No setting stops the
+  generator reusing a table's struct for a statement that selects all of that table's columns in
+  table order, so the assertion that the generated table-struct file declares no types is the
+  mechanism, and a statement it refuses reorders or aliases its columns.
+- **Five constraints bind what a statement file may contain, and they are checked together.** The
+  parse-tree pass the project writes checks all five. The generator's own rule surface cannot carry
+  them, because it sees each statement after a star select has been expanded and named parameters
+  rewritten, and it sees no column types, so it can neither find a star select nor tell a cast
+  against a case-insensitive column from one against plain text. Three of the constraints are still
+  matters of a statement's text and two of its structure, which the table records.
 
-  | Constraint | Why | Checked as |
+  | Constraint | Why | Kind |
   | --- | --- | --- |
   | No star select | The generator expands a star at generation time, so a result type would silently gain every column a future migration adds | Text |
   | No case expression over a parameter in a grouping position | It generates and runs, types the group key as an empty interface, and lets an undeclared dimension reach the database and return one row with a null key, turning a refusal into silent wrong data | Text |
@@ -95,17 +100,21 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   | Every paged read's sort ends with the row's own identity | [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md) requires the total order and leaves the check here. Whether a sort's final term is a dataset's identity column is a question about the statement's shape rather than its text | Structural |
   | The account predicate is present | [ADR-0047](./0047-schema-first-data-access.md)'s rule. A text match cannot tell a predicate on the account from a mention of it in a projection | Structural |
 
-  The generator's own per-query suppression annotation appears in no statement file, because it
-  disables the generator's rule surface and would therefore silently exempt a file from the three
-  text-checked constraints above. It cannot reach the parse-tree pass, which is the project's.
-- **Where the generated per-role packages live is left to implementation time, from exactly two
-  options.** Both make drift a build failure everywhere at once. They differ in what enforces the
-  role boundary.
-
-  | Option | Packages sit | Boundary is | Cost |
-  | --- | --- | --- | --- |
-  | One library directory | Under the shared data-access directory [ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md) names | The import check of [ADR-0040](../engineering/0040-pure-core-decisions-as-values.md), extended | A check rather than the language. A cross-role import compiles cleanly without it |
-  | Emitted per deployable | Under each owning deployable's `internal/`, with the schema, the statements and the generator configuration as the shared artifact | The Go compiler | [ADR-0047](./0047-schema-first-data-access.md)'s one library reads as one generation from one schema rather than one directory |
+  The generator's own per-query suppression annotation appears in no statement file, because a
+  suppression is refused wherever a check stands in for a control
+  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). It cannot reach the parse-tree
+  pass, which is the project's.
+- **Generated code sits in the one data-access directory, in subsections organized by concern rather
+  than per role.** One generated package per subsection, all from the one schema. A statement may be
+  needed by more than one role, so grouping by role would duplicate it. The role boundary is held by
+  two checks instead. Each component's import list names exactly the subsections it may use
+  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), and a test runs every statement
+  of a subsection under the role of each component whose list admits it, planning each one with
+  `EXPLAIN (GENERIC_PLAN)` so nothing executes, so a list admitting a statement the role's grants do
+  not allow fails naming the list, the statement and the role. Which role each component connects as
+  is open in [ROADMAP.md](../../../ROADMAP.md#open-decisions), and the check reads that mapping from
+  one place in `db/check`, failing a list that names subsections without a role and a role that
+  names no such list.
 
 ### How the decision meets each requirement
 
@@ -113,10 +122,10 @@ throughput and latency, because the corpus assumption puts them out of reach of 
 | --- | --- |
 | Account predicate | The parse-tree pass over the declared statement files, run as a build step, reading the account-keyed table list [ADR-0047](./0047-schema-first-data-access.md) requires be derived from the schema |
 | Fenced composition | No identifier reaches SQL from a string, and an undeclared dimension has no generated function. Values still reach SQL, so the sort value is validated against the sortable columns [docs/UI.md](../../UI.md#172-the-registry-entry) declares, on the path that already validates the dimension |
-| Drift is a build failure | Two mechanisms catching different things. Generation fails, naming the column, when a statement does not typecheck against the schema. Regenerate-and-diff catches what typechecking cannot, meaning generated code hand-edited or predating a schema change. It does not catch a configuration change, because it regenerates from the configuration as checked in |
+| Drift is a build failure | Three mechanisms catching different things. Generation fails, naming the column, when a statement does not typecheck against the schema. Regenerate-and-diff catches what typechecking cannot, meaning generated code hand-edited or predating a schema change. A test catches a generated file left behind after its statement file is deleted, which neither regenerating nor the diff notices. None of them catches a configuration change, because generation runs from the configuration as checked in |
 | Schema authority | The generator reads the migration files, and nothing derives schema from code |
-| Per-query result types | One result struct per statement once table-struct emission is suppressed. The generated table-struct file declaring no types is asserted, because suppression is a configuration setting and the assertion is what holds if it is ever changed |
-| Role separation | The generator's multi-block configuration, one package per role over disjoint statement directories, all from the one schema. Separate packages alone are a naming convenience rather than a boundary, since a cross-role import compiles cleanly, so the boundary is whichever mechanism the open layout option resolves to. |
+| Per-query result types | One result struct per statement. The generated table-struct file declaring no types is asserted, because configuration omits only unused table structs and the generator reuses a table's struct for a statement selecting all its columns in table order |
+| Role separation | One generated package per subsection by concern, all from the one schema. Separate packages alone are a naming convenience rather than a boundary, since any import compiles cleanly, so each component's import list names its subsections and a test plans every admitted statement under the component's role |
 | Transaction-scoped account | An ordinary `SET LOCAL` under the driver, whose isolation holds under forced generic plans and under the driver's statement caching |
 | Batched writes | One insert selecting from unnested array parameters, fully typed |
 | Type coverage now | All five map without custom overrides or type registration |
@@ -257,6 +266,14 @@ case-insensitive columns are confinable nowhere.
   barely needs. Its case has weakened since, because the generated-code candidates now produce
   per-statement types with a build-time drift check, which is most of what the scaffolding bought.
 
+### Where generated code sits
+
+- **Each role's generated package under its owning deployable's `internal/`.** The case for it is
+  that the compiler holds the role boundary, so no import check is needed. Not chosen, because a
+  role serving several deployables would be generated once into each of them, the shared transaction
+  helper would be copied into each deployable or split into a library of its own, and a statement
+  several roles need would be duplicated.
+
 ## Consequences
 
 - **The enumerated endpoint is around sixty-four statements at the read surface, and the number is
@@ -282,13 +299,6 @@ case-insensitive columns are confinable nowhere.
   [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md)'s cost of a new
   analysis view**, which now includes one statement per groupable dimension plus a summary and a
   rows statement. That record states the corrected form.
-- **Resolving the layout question to the second option moves three other records.**
-  [ADR-0047](./0047-schema-first-data-access.md)'s one library, and the shared-library rule of
-  [ADR-0050](../engineering/0050-shared-code-pure-or-narrow.md) and
-  [ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md), all read the
-  data-access library as a directory. Under that option the shared artifact is the schema, the
-  statements and the configuration instead, and those three records change in place to say so. The
-  first option moves nothing.
 - **Assumptions about other components.** The migration set is reviewable SQL and is the artifact
   the generator reads. The registry declares every dataset, dimension, filter, sort and result
   type, and its refusal of an undeclared one is application code under any tool. The test substrate

@@ -1,0 +1,27 @@
+# testsupport
+
+A narrow, named shared library, published as `mediated-mailbox-testsupport`. Shared code is pure, or
+it is a library like this one that argues its own case
+([ADR-0050](../docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), and this is its case. The
+conventions it shares with every component are
+[CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
+
+Tests in many components need the same tooling, and most of it does I/O. The failing-case store and
+the golden-file helper write files, and the integration run starts a container. None of it reaches
+an image, because only test files and the tooling programs import it. Its packages are these.
+
+- `compare`, the shared comparison options of
+  [ADR-0070](../docs/adr/engineering/0070-unit-comparison-through-one-options-value.md) and the
+  golden-file helper.
+- `property`, the generator report, failing-case store and operation sampler of
+  [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md).
+- `crash`, the crash harness of [ADR-0045](../docs/adr/engineering/0045-crash-injection-testing.md).
+- `fixture`, the synthetic fixtures.
+- `postgres`, what an integration test package needs to reach its database.
+- `mustnotcompile`, the helper that asserts a forbidden construction fails to compile.
+- `analysis`, the `go vet` analyser of ADR-0069.
+- `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run) and `cmd/vetcheck` (the
+  analyser's program), each run through `go tool`.
+
+The import rules are written per file, so packages importing the property-testing library and
+packages every test may import sit in the one library without one reaching the other.
