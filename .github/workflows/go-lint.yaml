@@ -1,0 +1,65 @@
+---
+# yamllint disable rule:line-length
+name: go-lint
+
+# golangci-lint lints the whole module whenever any Go path or the lint configuration changes. A run over only
+# the changed files or directories misses a finding a change causes elsewhere, such as a switch in an untouched
+# package that a new enum value makes non-exhaustive.
+on:
+  pull_request:
+    paths:
+    - .github/workflows/go-lint.yaml
+    - .golangci.yaml
+    - '*.go'
+    - '**/*.go'
+    - go.mod
+    - go.sum
+    - mise.lock
+    - mise.toml
+    - backfill/**
+    - core/**
+    - db/**
+    - mediate/**
+    - organize/**
+    - propose/**
+    - provider/**
+    - ratelimit/**
+    - sync/**
+    - testsupport/**
+    - ui/*.go
+    - ui/internal/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Verify the configuration
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- golangci-lint config verify
+
+    - name: Lint the whole module
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- golangci-lint run ./...
+
+    - name: Prove every ban and import list still fires
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- go tool banproof

@@ -1,0 +1,29 @@
+{
+  "name": "mediated-mailbox-ui-browser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "bun --cwd=codegen --bun run types && bun scripts/descriptors.ts",
+    "check:generated": "bun --cwd=codegen --bun run types:check && bun scripts/descriptors.ts --check",
+    "build": "bun scripts/build.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "oxlint --ignore-pattern '**/*_violation.*' && ast-grep scan --globs '!**/*_violation.*'",
+    "fmt": "oxfmt '**/*.{ts,tsx}'",
+    "fmt:check": "oxfmt --check '**/*.{ts,tsx}'",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@preact/signals": "2.11.2",
+    "preact": "10.29.8",
+    "preact-iso": "2.12.2"
+  },
+  "devDependencies": {
+    "@ast-grep/cli": "0.45.3",
+    "@happy-dom/global-registrator": "20.14.5",
+    "@types/bun": "1.4.2",
+    "oxfmt": "0.68.0",
+    "oxlint": "1.83.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "typescript": "7.0.2"
+  }
+}

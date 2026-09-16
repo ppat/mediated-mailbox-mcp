@@ -1,0 +1,15 @@
+# Every direct dependency of the browser layer, development ones included, one line each: the manifest that
+# declares it, the package, and why it is there (ADR-0063). test/roster.test.ts fails when this file and the
+# manifests disagree.
+package.json          preact                           the rendering library (ADR-0063)
+package.json          @preact/signals                  data state and the objects the stream replaces (ADR-0063)
+package.json          preact-iso                       routing (ADR-0063)
+package.json          @ast-grep/cli                    carries the bans oxlint cannot express as configuration (ADR-0072)
+package.json          @happy-dom/global-registrator    registers the DOM shim the tests run against (ADR-0064)
+package.json          oxfmt                            the browser layer's formatter, from oxlint's project
+package.json          @types/bun                       types for bun's runtime and test runner, used by the type check
+package.json          oxlint                           the browser layer's linter and the bans it expresses as configuration (ADR-0072)
+package.json          oxlint-tsgolint                  enables oxlint's type-aware rules, which are silent without it (ADR-0072)
+package.json          typescript                       the strict type check, on the native compiler
+codegen/package.json  openapi-typescript               generates the browser types from the contract document (ADR-0065)
+codegen/package.json  typescript                       openapi-typescript's compiler, held at 5.9.3 because the tool calls the compiler API TypeScript 7 removed

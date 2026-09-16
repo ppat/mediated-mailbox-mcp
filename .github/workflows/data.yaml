@@ -1,0 +1,68 @@
+---
+# yamllint disable rule:line-length
+name: data
+
+# The data-access library's generated code and its checks.
+on:
+  pull_request:
+    paths:
+    - .github/workflows/data.yaml
+    - .golangci.yaml
+    - .sqlfluff
+    - .sqlfluffignore
+    - go.mod
+    - go.sum
+    - mise.lock
+    - mise.toml
+    - db/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  data:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # Layout and ambiguity checks for every SQL file under db/, apart from violation files (.sqlfluffignore).
+    - name: Lint the SQL files
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- sqlfluff lint db/
+
+    # sqlc diff fails on a hand-edited, deleted or out-of-date generated file. The test library's configuration
+    # reads the real migration chain first, so this also fails on a chain the pinned sqlc cannot read.
+    - name: Compare the test library's generated code with sqlc's output
+      shell: bash
+      working-directory: ./current/db/check/testdata
+      run: mise exec -- sqlc diff
+
+    # sqlc refuses a configuration without a statement file, so db/sqlc.yaml arrives with the first statement
+    # file. Until then no statement file exists to generate from, which TestEverySQLFileIsRead below enforces.
+    - name: Compare the library's generated code with sqlc's output
+      shell: bash
+      working-directory: ./current/db
+      # yamllint disable-line rule:indentation
+      run: |
+        if [[ -e sqlc.yaml ]]; then
+          mise exec -- sqlc diff
+        else
+          echo "db/sqlc.yaml does not exist, so the library holds no statement file to generate from"
+        fi
+
+    - name: Check statement files, the migration chain, generated code and import lists
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- go test ./db/check

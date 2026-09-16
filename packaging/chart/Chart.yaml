@@ -1,0 +1,12 @@
+---
+# The one Helm chart that stands up every deployable of the system (ADR-0052). Its templates, and the Helm
+# tests under templates/tests, arrive with the deployables they run.
+#
+# The version below is not the chart's release version. The release workflow packages the chart with version
+# and appVersion both set to the release version, so the chart and every image carry one version (ADR-0049).
+apiVersion: v2
+name: mediated-mailbox
+description: Stands up the mediated mailbox system, every deployable and its project-owned wiring
+type: application
+version: 0.0.0
+appVersion: "0.0.0"
