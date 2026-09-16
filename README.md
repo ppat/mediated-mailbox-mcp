@@ -20,7 +20,7 @@ this repository currently contains.
 | [DESIGN.md](./DESIGN.md) | The pillars and invariants — and the Glossary, the single home for vocabulary |
 | [docs/UI.md](./docs/UI.md) | The UI's design: how it is organized, its screens, palettes, framework requirements, and build guidance |
 | [CLAUDE.md](./CLAUDE.md) | Orientation for agents, and the code's layout and conventions. The data-access library and the narrow shared libraries each describe themselves in the README in their own directory |
-| [ROADMAP.md](./ROADMAP.md) | All the work: delivery posture, value path, work units, dependencies, open decisions |
+| [ROADMAP.md](./ROADMAP.md) | All the work: delivery posture, value path, work units with their finish lines, production points, dependencies, open decisions |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: every reversible decision with its context, alternatives, and consequences |
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection — the violation that must fire, and what firing proves |

@@ -60,8 +60,8 @@ one assertion of the content security policy that only a browser can make is a d
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
 Integration tests against PostgreSQL run together against one container per run, each test package
 in a database of its own
-([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). Drills run at the
-unit that owes them, and their proof holds only for that date.
+([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). A drill runs where
+[ROADMAP.md](./ROADMAP.md) places it, and its proof holds only for that date.
 
 ## The proof system
 
