@@ -57,10 +57,11 @@ retired. Decisions are cited by number, each linked to its record, and indexed i
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
 defining it. Table cells and dependency edges within this document may use bare identifiers.
 
-**How this document relates to tickets.** No tickets exist yet. As units are cut into tickets, the
-rule binds both directions. Every ticket names the one unit it serves, every unit here names its
-tickets, and the **Position** line below is re-dated whenever the checklists are reconciled against
-the tickets, so staleness is detectable instead of silent.
+**How this document relates to tickets.** No tickets exist yet. How a ticket is cut and when it is
+done are [CLAUDE.md](./CLAUDE.md#repository-process)'s. As units are cut into tickets, the rule
+binds both directions. Every ticket names the one unit it serves, every unit here names its tickets
+or says it was delivered before any were cut, and the **Position** line below is re-dated whenever
+the checklists are reconciled against the tickets, so staleness is detectable instead of silent.
 
 **Position: 2026-09-16.**
 
@@ -914,3 +915,4 @@ index](./docs/adr/README.md).
 | How rotations arriving at two credential-holding deployables close together are reconciled | Production point 1 | [ADR-0039](./docs/adr/operability/0039-rotation-writeback.md) has the deployable that receives a rotated credential write it to the one writable location. Every deployable that calls a provider holds the credential ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), so two of them can receive rotations close together, and which value the store keeps is the store's behavior, answered on the deploying side |
 | How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |
+| Whether a workflow takes over producing a pull request's component labels from its diff | nothing yet | Settled when the commit vocabulary is derived, which no unit carries. Why, and the interim rule, are [CLAUDE.md](./CLAUDE.md#repository-process)'s |

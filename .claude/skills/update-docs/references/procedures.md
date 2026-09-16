@@ -310,9 +310,13 @@ records' `Serves:` headers) for meaning drift against the new text.
 
 ## Roadmap changes
 
-- Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets —
-  and state what it did NOT deliver. Re-date `**Position:**` whenever checklists are reconciled
-  against reality.
+- Cutting tickets: a ticket is cut from the template to the rules of
+  [CLAUDE.md](../../../../CLAUDE.md#repository-process), and the unit's header names its tickets
+  in the `ticket(s)` slot as linked issue numbers, in the same change. A unit recut here recuts
+  its open tickets, as CLAUDE.md states.
+- Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets or
+  that it was delivered before any were cut, and state what it did NOT deliver. Re-date
+  `**Position:**` whenever checklists are reconciled against reality.
 - New unit: group letter + next index, and a retired identifier is never reused; header
   `**ID — name** → <one outcome> · ticket(s) · <value increment> · finishes at <tested | image |
   packaged>`; prose body naming the records whose mechanisms the unit carries, what proves it, and
@@ -374,10 +378,10 @@ records' `Serves:` headers) for meaning drift against the new text.
 
 ## Front-door files (README.md, CLAUDE.md)
 
-README.md holds pointers only. CLAUDE.md holds its standing reminder, its document map, and the
-code's layout and conventions, and no other fact takes up residence there. When a change elsewhere
-alters what these point at (a document's role, the resolution order, a rule's location), update the
-pointer.
+README.md holds pointers only. CLAUDE.md holds its standing reminder, its document map, the code's
+layout and conventions, and the repository process, and no other fact takes up residence there.
+When a change elsewhere alters what these point at (a document's role, the resolution order, a
+rule's location), update the pointer.
 
 CLAUDE.md's code layout section is mirrored by the rules under `.claude/rules/` that load when code
 is touched (`go.md`, `ci.md`, `db.md`, `browser.md`). A convention changed in either place is

@@ -620,5 +620,10 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [docs/adr/README.md](./docs/adr/README.md).
 - **Work units, value increments, production points, and finish lines** — defined in
   [ROADMAP.md](./ROADMAP.md).
+- **Ticket** — one pull request's worth of work under one work unit, held as a GitHub issue in
+  this repository. Its format is [the template](./.github/ISSUE_TEMPLATE/ticket.md)'s and its
+  rules are [CLAUDE.md](./CLAUDE.md#repository-process)'s. The word keeps its ordinary meaning for
+  a tracker item anywhere else, including the deployment repositories' own tickets that
+  [ROADMAP.md](./ROADMAP.md) names.
 - **Zoom levels L0–L4** — the five levels of the zoom ladder, defined in
   [docs/UI.md](./docs/UI.md#4-the-zoom-ladder).

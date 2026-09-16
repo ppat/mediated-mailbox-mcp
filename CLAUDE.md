@@ -15,19 +15,9 @@ conventions. It points at the documents and never repeats them, so every fact ha
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection, past and pending. A new control lands with its injection row |
 | [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is removed, written only from implementation time |
+| [.github/ISSUE_TEMPLATE/ticket.md](./.github/ISSUE_TEMPLATE/ticket.md) | The format every ticket is cut from. The rules for tickets are under [Repository process](#repository-process) |
 
 Design questions resolve there, in that order: outcome → pillar/glossary → decision record.
-
-## Until v0.0.1 lands
-
-Nothing is implemented yet, so nothing in the document set is final. v0.0.1 is the first
-release, cut when the release pull request
-[#2](https://github.com/ppat/mediated-mailbox-mcp/pull/2) lands. Until then the design, the
-outcomes, the roadmap, and every decision record may be edited in place, including edits that
-reverse a decision, with no supersession and no new number, as long as the entire set stays
-internally consistent after the edit, checked as the `update-docs` skill's coherence check
-describes. The in-place-or-supersede rule stated in the decision-record index takes effect when
-v0.0.1 lands, and this section is removed then.
 
 ## Keep the documents current — a standing duty
 
@@ -303,3 +293,36 @@ are ever made required.
 
 - `docs` is a visible release type here — a documentation PR proposes a release when merged.
   Expected, not accidental.
+- **Tickets.** A ticket ([Glossary](./DESIGN.md#glossary)) is cut from the body of the template at
+  [.github/ISSUE_TEMPLATE/ticket.md](./.github/ISSUE_TEMPLATE/ticket.md), whose header line and
+  sections are its format and whose placeholders say what fills each slot. Units are cut for finish
+  lines, tickets for parallel work inside a unit, so a ticket takes a slice of the unit's body and
+  says what stays with the unit's other tickets. It names the one unit it serves in its header line,
+  and the rule that the unit names its tickets back is [ROADMAP.md](./ROADMAP.md)'s. A unit recut in
+  ROADMAP.md recuts its open tickets. Its title says what lands, in the words the pull request title
+  will use without the commit type, followed by the word unit and the unit's identifier in
+  parentheses. Its links are full URLs to files on `main`. A discovery is a ticket under the unit
+  whose mechanism it concerns, whether or not the unit is delivered, and work no unit covers gets
+  its unit in ROADMAP.md first, since build state has no other home and documents change before
+  code.
+- **A ticket is done** when its pull request has merged with CI green, the unit's acceptance in
+  [ROADMAP.md](./ROADMAP.md) is met for the part keyed to what the ticket lands, and every document
+  its work touched is updated in that pull request, with its GitHub labels matching its diff. The
+  pull request closes the ticket, and the one at which the unit meets its acceptance in ROADMAP.md
+  at its finish line also carries the unit's move to the roadmap's delivered register. A closed
+  ticket means its work has merged to `main`. Released and deployed are later states, tracked apart
+  in ROADMAP.md.
+- **GitHub labels.** A ticket carries `unit:<ID>` for the unit it serves and one
+  `component:<directory>` per component of the [component table](#components) it touches, with the
+  directory spelled as that table's first column spells it without the trailing slash, so
+  `packaging/chart` and `tests/chainsaw` keep both segments. The pull request that closes it carries
+  the unit label and one component label per component its diff touches, and the ticket's component
+  labels are corrected to match when they differ. A change touching no component carries the unit
+  label alone. The author applies every GitHub label at creation and brings a pull request's
+  component labels back in line with its diff before it merges, correcting the ticket's in the same
+  pass. A missing GitHub label is created at first use in its key's color, `unit` in blue `1D76DB`
+  and `component` in purple `5319E7`. Whether a workflow takes over producing a pull request's
+  component labels from its diff is an [open decision](./ROADMAP.md#open-decisions), settled when
+  the commit vocabulary, the closed set of types and scopes a commit header may carry, is derived,
+  since that derivation decides whether a scope carries the component. Tickets carry no other GitHub
+  label, and no milestone or project.
