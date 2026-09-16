@@ -8,7 +8,7 @@ paths:
 You are touching the verification catalogue — the test-plan layer, more durable than any ticket,
 more fluid than the design.
 
-- **A new control lands with its injection row** — in the same change that introduces the
+- **A new control is decided with its injection row** — in the same change that introduces the
   control, never later. An uninstrumented control is an unproven claim.
 - **Rows are violation injections**: written as `<deliberate violation> → <expected refusal>`,
   never "test that X works." The *Proves* column names the claim, cites the decision record by

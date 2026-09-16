@@ -30,6 +30,6 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   ignore comment, or in configuration. An ordinary linter's false positive is suppressed only as
   `//nolint:<linter> // <reason>` (ADR-0071, CLAUDE.md, Static analysis and formatting).
 - **Every lint ban and import rule keeps its violation file, and `go tool banproof` stays green.** A
-  new list or ban lands with its violation file (ADR-0046).
+  new list or ban is added with its violation file (ADR-0046).
 - **No mocks, no container library, and no `Equal` method added for a test**
   (ADR-0043, ADR-0068, ADR-0070). Comparisons pass the shared options from `testsupport/compare`.

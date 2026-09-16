@@ -12,10 +12,10 @@ different states, never collapsed (`main` is not deployed state, in either direc
 
 **Finish lines.** Every unit names the state it must reach to be done, the lowest one that proves
 what it delivers. *Tested* means implemented with the tests [TESTING.md](./TESTING.md) requires for
-what the unit holds, its automatable verification rows proven, and their mutation demonstrations
-recorded. *Image* means tested, and the deployable's image builds, which the images workflow proves.
-*Packaged* means image, and the chart stands the deployables up on a bare kind cluster under the
-chainsaw suite, against a release
+what the unit holds, its automatable verification rows proven, and the mutation demonstrations it
+owes recorded. *Image* means tested, and the deployable's image builds, which the images workflow
+proves. *Packaged* means image, and the chart stands the deployables up on a bare kind cluster under
+the chainsaw suite, against a release
 ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). A unit that delivers
 code inside a deployable or a library is proven at tested. A unit that delivers a deployable, by
 creating or changing its composition root, is proven at image, the deployable's artifact
@@ -40,9 +40,11 @@ its tickets belong to those repositories. *The real mailbox* and *production* ar
 unit is not done while the rows keyed to it are unproven for the part they key to it. A row keyed to
 a unit and a production point is proven at the unit for the mechanism and at the point for the rest.
 An automatable control's acceptance also includes the mutation demonstration recorded in
-[docs/MUTATIONS.md](./docs/MUTATIONS.md)
-([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). A drill or manual
-exercise keyed to a production point is proven there, on its date.
+[docs/MUTATIONS.md](./docs/MUTATIONS.md), owed by the work that lands the control, as
+[ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) defines landing,
+which for a check built ahead of the code it governs is later work than the check itself. Where
+tickets could each land it, the tickets name the one that owes it. A drill or manual exercise keyed
+to a production point is proven there, on its date.
 
 **Identifiers.** Outcomes
 ([C1](./USE_CASES.md#c1--metadata-always-visible)–[C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace),
@@ -57,11 +59,11 @@ retired. Decisions are cited by number, each linked to its record, and indexed i
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
 defining it. Table cells and dependency edges within this document may use bare identifiers.
 
-**How this document relates to tickets.** No tickets exist yet. How a ticket is cut and when it is
-done are [CLAUDE.md](./CLAUDE.md#repository-process)'s. As units are cut into tickets, the rule
-binds both directions. Every ticket names the one unit it serves, every unit here names its tickets
-or says it was delivered before any were cut, and the **Position** line below is re-dated whenever
-the checklists are reconciled against the tickets, so staleness is detectable instead of silent.
+**How this document relates to tickets.** How a ticket is cut and when it is done are
+[CLAUDE.md](./CLAUDE.md#repository-process)'s. As units are cut into tickets, the rule binds both
+directions. Every ticket names the one unit it serves, every unit here names its tickets or says it
+was delivered before any were cut, and the **Position** line below is re-dated whenever the
+checklists are reconciled against the tickets, so staleness is detectable instead of silent.
 
 **Position: 2026-09-16.**
 
@@ -118,22 +120,21 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | Pull request [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), in draft, holds F4. No feature code exists **[measured]** |
+| Code | F4's layout and tooling is merged from pull request [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60) and not yet released. No feature code exists **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | All pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) |
-| Mutations | Nothing demonstrable yet. The ledger stays empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
-| **The delivery gap** | Everything. No unit has landed, and F4, authored in draft, is the front of the line |
+| Verifications | Most of the rows F4's checks prove are proven. F4's remaining rows and every other unit's rows are pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Mutations | None recorded yet. Each is owed by the work that lands its control, as the tickets name. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
+| **The delivery gap** | Every unit. F4 is merged but not done, and what remains of it is in its ticket. No other unit has started |
 
 ## Delivered, mapped to outcomes
 
-Nothing is delivered. This roadmap predates the first line of feature code, and the register starts
-empty, deliberately.
+Nothing is delivered. F4's merged work stays under its unit until the unit is done.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
-MCP endpoint, no index, no gate, no deployment, and no proven property of any kind. The layout, the
-import boundaries and the lint bans are demonstrated by code in pull request #60, which has not
-landed. Every other claim in the design is authored, and none is yet demonstrated by code in this
-repository.
+MCP endpoint, no index, no gate, no deployment, and no proven property of the system itself. The
+layout, the import boundaries and the lint bans are demonstrated by code on `main`, merged from pull
+request [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60). Every other claim in the design
+is authored, and none is yet demonstrated by code in this repository.
 
 ## The value path
 
@@ -340,6 +341,11 @@ inside the sanitization step ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re
 
 - [ ] **S1 — Redaction Gate + Sender Classifier + Mutation Authorizer, isolated** →
   [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) ·
+  [#71](https://github.com/ppat/mediated-mailbox-mcp/issues/71),
+  [#72](https://github.com/ppat/mediated-mailbox-mcp/issues/72),
+  [#79](https://github.com/ppat/mediated-mailbox-mcp/issues/79),
+  [#83](https://github.com/ppat/mediated-mailbox-mcp/issues/83),
+  [#91](https://github.com/ppat/mediated-mailbox-mcp/issues/91) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at tested
   The gate's field-level matrix ([ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md)),
   fetch-time re-evaluation and the deny branches
@@ -360,6 +366,7 @@ inside the sanitization step ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re
   the loader that reads the policy tables rides [D1](#group-d--data-flows).
 - [ ] **S2 — Content Scanner tiers 1–2 + subject masking** →
   [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
+  [#80](https://github.com/ppat/mediated-mailbox-mcp/issues/80) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at tested
   The detection tiers ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)), subject
   masking ([ADR-0003](./docs/adr/redaction/0003-subject-masking.md)) and the verdict type that
@@ -371,6 +378,7 @@ inside the sanitization step ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re
   corpus waits for [production point 1](#production-point-1--the-read-path).
 - [ ] **S3 — Body sanitization + injection hardening** →
   [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) ·
+  [#87](https://github.com/ppat/mediated-mailbox-mcp/issues/87) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at tested
   HTML-to-Markdown conversion through an existing library and the untrusted-content delimiters
   ([ADR-0036](./docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)), and the serve-time
@@ -398,7 +406,9 @@ unconstructability checks, because one program proves them all. [F5](#group-f--f
 excludes permanent delete, because the grant is the adapter's.
 
 - [ ] **F4 — Layout, build, test and static-analysis tooling** → [O6](./USE_CASES.md#o6--deployable)
-  · [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at image
+  · [#69](https://github.com/ppat/mediated-mailbox-mcp/issues/69),
+  [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90) ·
+  [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at image
   The content of pull request [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60). Every
   component laid out as documented packages, the Go module with its linters, formatters and the
   ban-proof program over its violation files, the data-access checks, the browser's build, lint and
@@ -418,11 +428,13 @@ excludes permanent delete, because the grant is the adapter's.
   [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) and
   [ADR-0072](./docs/adr/engineering/0072-browser-bans-under-oxlint-and-ast-grep.md). No feature
   code. It finishes at image because it creates every deployable's composition root and Dockerfile
-  and its images workflow builds them all. It lands first after v0.0.1, before any other unit, and
-  what proves it is every verification row keyed to it, each seen to fail through a violation file
-  or a deliberately broken input
-  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
+  and its images workflow builds them all. It is first after v0.0.1, before any other unit, and what
+  proves it is every verification row keyed to it, each seen to fail through a violation file or a
+  deliberately broken input
+  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). The runner that
+  records mutation demonstrations lands with F4 too, ahead of the first work that owes one.
 - [ ] **F2 — The data layer** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
+  [#70](https://github.com/ppat/mediated-mailbox-mcp/issues/70) ·
   [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
   PostgreSQL as the one store ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md)), the
   schema with no body column and every table account-keyed
@@ -438,8 +450,12 @@ excludes permanent delete, because the grant is the adapter's.
   [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)). Integration-tested against a
   real PostgreSQL container
   ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). How many runtime
-  roles exist is open against this unit.
+  roles exist is open against this unit. Each statement file lands with the unit whose code first
+  calls it.
 - [ ] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
+  [#75](https://github.com/ppat/mediated-mailbox-mcp/issues/75),
+  [#76](https://github.com/ppat/mediated-mailbox-mcp/issues/76),
+  [#77](https://github.com/ppat/mediated-mailbox-mcp/issues/77) ·
   [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
   The provider port's first compilation to a real backend
   ([ADR-0010](./docs/adr/provider/0010-one-provider-port.md)), installed-app OAuth with the modify
@@ -447,12 +463,14 @@ excludes permanent delete, because the grant is the adapter's.
   as mounted files ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), the
   application half of rotation write-back, writing a rotated credential to the one writable location
   and re-reading it on restart ([ADR-0039](./docs/adr/operability/0039-rotation-writeback.md)), and
-  the metadata path. The provider fake and the contract suite every port implementation passes
-  ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)) land here, and the adapter is measured by
-  them. No database. Whether the suite ever runs against the real provider is open. The first real
-  call, and write-back's loop through the store, happen at [production point
+  every operation of the port. The provider fake and the contract suite every port implementation
+  passes ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)) land here, and the adapter is
+  measured by them. No database. Whether the suite ever runs against the real provider is open. The
+  first real call, and write-back's loop through the store, happen at [production point
   1](#production-point-1--the-read-path).
 - [ ] **F3 — Rate limiter + Gmail cost profile** → [O1](./USE_CASES.md#o1--rate-limited-politely) ·
+  [#74](https://github.com/ppat/mediated-mailbox-mcp/issues/74),
+  [#78](https://github.com/ppat/mediated-mailbox-mcp/issues/78) ·
   [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
   The cost profile the adapter declares
   ([ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md)), the conservative target with
@@ -480,6 +498,8 @@ absent override setting, prompt injection, the live adversary and the provider n
 denial, because release happens on the surface.
 
 - [ ] **D1 — Backfill pass 1, full history** → [G2](./USE_CASES.md#g2--historical-understanding) ·
+  [#73](https://github.com/ppat/mediated-mailbox-mcp/issues/73),
+  [#81](https://github.com/ppat/mediated-mailbox-mcp/issues/81) ·
   [V2](#v2--the-corpus-can-be-acquired) · finishes at image
   The backfill workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) making the first
   pass of [ADR-0017](./docs/adr/data/0017-two-pass-backfill.md), metadata, sender classification,
@@ -497,6 +517,8 @@ denial, because release happens on the surface.
   corpus, the pod is killed mid-run on real substrate, and the rate gauge is watched for the real
   ceiling.
 - [ ] **D2 — Scan gate + backfill pass 2** → [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
+  [#82](https://github.com/ppat/mediated-mailbox-mcp/issues/82),
+  [#84](https://github.com/ppat/mediated-mailbox-mcp/issues/84) ·
   [V2](#v2--the-corpus-can-be-acquired) · finishes at image
   The composite gate over pass-1 statistics
   ([ADR-0007](./docs/adr/redaction/0007-composite-scan-gate.md)), restricted bodies never scanned
@@ -509,8 +531,11 @@ denial, because release happens on the surface.
   ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)). The residual is trusted only after
   its skip rates are reviewed at [production point 1](#production-point-1--the-read-path).
 - [ ] **D3 — Client surface (API + thin MCP adapter), read-only** →
-  [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · [V3](#v3--the-agent-arrives-read-only) ·
-  finishes at image
+  [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
+  [#85](https://github.com/ppat/mediated-mailbox-mcp/issues/85),
+  [#86](https://github.com/ppat/mediated-mailbox-mcp/issues/86),
+  [#88](https://github.com/ppat/mediated-mailbox-mcp/issues/88) ·
+  [V3](#v3--the-agent-arrives-read-only) · finishes at image
   The mediator's serving surface, one service layer under two thin roots generated from one registry
   ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md),
   [ADR-0053](./docs/adr/engineering/0053-parity-by-construction.md)), with the read operations of
@@ -530,6 +555,7 @@ denial, because release happens on the surface.
   agent is pointed at the mediator over the fixture corpus and talked into requesting a restricted
   body**, the first end-to-end proof of the invariant against a live adversary, needing no platform.
 - [ ] **D4 — Delta sync** → [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
+  [#89](https://github.com/ppat/mediated-mailbox-mcp/issues/89) ·
   [V3](#v3--the-agent-arrives-read-only) · finishes at image
   The sync workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) polling on the sync
   interval ([ADR-0018](./docs/adr/data/0018-delta-sync-polls.md)), cursor management, gap detection
@@ -571,6 +597,7 @@ group, and [M5](#group-m--mutation-and-approval) follows it, because the decisio
 server and browser app.
 
 - [ ] **M1 — Mutations, non-reorg** → [A1](./USE_CASES.md#a1--asymmetric-mutation) ·
+  [#92](https://github.com/ppat/mediated-mailbox-mcp/issues/92) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
   Single and batch label, move and archive on the client surface under the authorization matrix
   ([ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md)), dry-run on every mutating operation
@@ -585,6 +612,8 @@ server and browser app.
   against the fake here, and what the real provider does with them is learned at [production point
   2](#production-point-2--the-agent-acts).
 - [ ] **M2 — Reorg engine** → [G3](./USE_CASES.md#g3--reorganization) ·
+  [#93](https://github.com/ppat/mediated-mailbox-mcp/issues/93),
+  [#94](https://github.com/ppat/mediated-mailbox-mcp/issues/94) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
   The reorg workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) and the plan
   lifecycle of [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md), plan
@@ -601,6 +630,12 @@ server and browser app.
   this unit. Rollback of a real plan waits for [production point
   2](#production-point-2--the-agent-acts).
 - [ ] **M3 — The UI's reads** → [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
+  [#95](https://github.com/ppat/mediated-mailbox-mcp/issues/95),
+  [#96](https://github.com/ppat/mediated-mailbox-mcp/issues/96),
+  [#97](https://github.com/ppat/mediated-mailbox-mcp/issues/97),
+  [#98](https://github.com/ppat/mediated-mailbox-mcp/issues/98),
+  [#99](https://github.com/ppat/mediated-mailbox-mcp/issues/99),
+  [#100](https://github.com/ppat/mediated-mailbox-mcp/issues/100) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
   The UI's Go server and browser app ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md),
   [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md),
@@ -632,6 +667,7 @@ server and browser app.
   [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md) weighs its result
   and nothing from it is code here. The live-update transport is open against this unit.
 - [ ] **M5 — The UI's decisions** → [G3](./USE_CASES.md#g3--reorganization) ·
+  [#102](https://github.com/ppat/mediated-mailbox-mcp/issues/102) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
   The plan reviewer with approve and reject, and the review queue with confirm and dismiss, the four
   requests that are the UI's only writes ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md)),
@@ -647,6 +683,7 @@ server and browser app.
   ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)).
 - [ ] **M4 — Heuristics job + embeddings** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
+  [#101](https://github.com/ppat/mediated-mailbox-mcp/issues/101) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
   The heuristics workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) proposing
   candidates into the review queue from the heuristics of
@@ -664,6 +701,9 @@ serves [C1](./USE_CASES.md#c1--metadata-always-visible) and also carries
 flagged here rather than split, because one gate decides both.
 
 - [ ] **X2 — Calendar** → [C1](./USE_CASES.md#c1--metadata-always-visible) ·
+  [#104](https://github.com/ppat/mediated-mailbox-mcp/issues/104),
+  [#105](https://github.com/ppat/mediated-mailbox-mcp/issues/105),
+  [#106](https://github.com/ppat/mediated-mailbox-mcp/issues/106) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
   The calendar port and the Google Calendar adapter on the first account's grant, participant-set
   classification and private-event restriction through the same gate, the join link as a content
@@ -672,6 +712,7 @@ flagged here rather than split, because one gate decides both.
   backfill and delta sync deployables. What proves it is its row over calendar fixtures. Re-consent
   on the real grant waits for [production point 2](#production-point-2--the-agent-acts).
 - [ ] **X3 — Second account** → [P3](./USE_CASES.md#p3--multi-account) ·
+  [#108](https://github.com/ppat/mediated-mailbox-mcp/issues/108) ·
   [V5](#v5--a-second-of-everything) · finishes at tested
   The real test of the account model
   ([ADR-0026](./docs/adr/provider/0026-multi-account-contexts.md)). A second account is
@@ -681,6 +722,9 @@ flagged here rather than split, because one gate decides both.
   3](#production-point-3--a-second-of-everything). If anything above the port needs changing, the
   model was wrong, and finding out here, cheaply, is the point.
 - [ ] **X4 — The Fastmail backend** → [P2](./USE_CASES.md#p2--backend-swap) ·
+  [#109](https://github.com/ppat/mediated-mailbox-mcp/issues/109),
+  [#110](https://github.com/ppat/mediated-mailbox-mcp/issues/110),
+  [#111](https://github.com/ppat/mediated-mailbox-mcp/issues/111) ·
   [V5](#v5--a-second-of-everything) · finishes at image
   The JMAP mail adapter and the CalDAV calendar adapter, with scoped tokens per protocol
   ([ADR-0012](./docs/adr/provider/0012-fastmail-scoped-jmap-tokens.md),
@@ -692,7 +736,8 @@ flagged here rather than split, because one gate decides both.
   contract, one layer down from [X3](#group-x--expansion). The provider's throttling behavior is
   discovered at [production point 3](#production-point-3--a-second-of-everything).
 - [ ] **X1 — Scanner tier 3** → [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
-  [V6](#v6--the-learned-tier) · finishes at tested
+  [#113](https://github.com/ppat/mediated-mailbox-mcp/issues/113) · [V6](#v6--the-learned-tier) ·
+  finishes at tested
   The small local model of
   [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md), trained once a few
   hundred confirmed examples exist from the real mailbox, evaluated against held-out fixtures, and
@@ -718,6 +763,7 @@ states, and the install on a bare kind cluster is the standing proof that the ch
 about its cluster.
 
 - [ ] **R1 — Package the read path** → [O6](./USE_CASES.md#o6--deployable) ·
+  [#103](https://github.com/ppat/mediated-mailbox-mcp/issues/103) ·
   [V3](#v3--the-agent-arrives-read-only) · finishes at packaged
   Templates, Helm tests and chainsaw tests for the migration step, the mediator, backfill and delta
   sync, with the pod security contexts of
@@ -729,6 +775,7 @@ about its cluster.
   ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)). The bare-cluster install proof
   stands from here.
 - [ ] **R2 — Package the action path and calendar** → [O6](./USE_CASES.md#o6--deployable) ·
+  [#107](https://github.com/ppat/mediated-mailbox-mcp/issues/107) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at packaged
   Templates, Helm tests and chainsaw tests for the reorg, heuristics and UI deployables, with the
   UI's separate deployment and database role
@@ -738,7 +785,9 @@ about its cluster.
   ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)), added to the chart and its
   suites.
 - [ ] **R3 — Package the second account and the Fastmail backend** →
-  [O6](./USE_CASES.md#o6--deployable) · [V5](#v5--a-second-of-everything) · finishes at packaged
+  [O6](./USE_CASES.md#o6--deployable) ·
+  [#112](https://github.com/ppat/mediated-mailbox-mcp/issues/112) ·
+  [V5](#v5--a-second-of-everything) · finishes at packaged
   The inputs a second account context needs
   ([ADR-0026](./docs/adr/provider/0026-multi-account-contexts.md)) and the Fastmail mail and
   calendar tokens as mounted files
@@ -782,8 +831,10 @@ lands in is the [value path](#the-value-path)'s.
 | Edge | What only the dependency supplies |
 | --- | --- |
 | F4 → every unit | The module, the checks, the workflows, the images and the chart skeleton |
-| S1 → S3 | The sensitivity types and the scan state the serve-time check reads |
+| S1 → S2 | The sensitivity types the scanner's verdict carries |
+| S1 → S3, S2 → S3 | The sensitivity types and the scan state the serve-time check reads, and the pattern tier it runs ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md)) |
 | F2 → F3 | The rate-state row leases are held in ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)) |
+| F5 → F3 | The provider fake whose throttle schedule the controller is proven against, the one test asset [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) names |
 | F2 → M3, M3 → M5 | The schema the fixtures populate, and the UI's server and browser app the decisions live in |
 | S1 → D1, S2 → D1 | Sender classification and subject masking, which pass 1 applies |
 | F2 → D1, F3 → D1, F5 → D1 | The schema backfill writes through, the budget it spends from, the adapter it reads with |
@@ -792,79 +843,84 @@ lands in is the [value path](#the-value-path)'s.
 | S1 → D3, S3 → D3, F2 → D3, F5 → D3 | The gate the surface serves through, the sanitization every body passes, the index it reads, the adapter it fetches with |
 | D2 → D4, F5 → D4 | The gate the tick runs, and the adapter's change cursor |
 | D3 → M1 | The surface the mutating operations live on |
-| M1 → M2, D3 → M2 | The authorized batched-mutation path apply executes through, and the surface the two read-only plan tools live on |
+| M1 → M2, D3 → M2, D1 → M2 | The authorized batched-mutation path apply executes through, the surface the two read-only plan tools live on, and the crash harness and operation sampler apply's crash sequences run on |
 | D1 → M4 | The sender statistics the heuristics read |
 | D1 → X2, D3 → X2, D4 → X2, F5 → X2 | The surface, the workloads and the grant calendar joins |
-| M1 → X3 | The mutation the cross-account injection attempts |
-| F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4 | The contract suite, the rate-profile interface the JMAP profile implements, and the deployables that call a provider |
+| M1 → X3, M2 → X3 | The mutation the cross-account injection attempts, and the reorg workload a second account context also configures |
+| F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the rate-profile interface the JMAP profile implements, the deployables that call a provider, and the calendar side of the port the CalDAV adapter implements |
 | S2 → X1, D2 → X1, D4 → X1 | The tier boundary and version flag tier 3 slots into, the masking events and gate decisions its examples are drawn from, and the scanning workloads it ships in |
 | F2 → R1, D1 → R1, D3 → R1, D4 → R1 | The migration chain the step runs, and the read path's deployables |
-| M2 → R2, M3 → R2, M4 → R2, M5 → R2, X2 → R2 | The action path's deployables and the calendar inputs |
-| X3 → R3, X4 → R3 | The second account's inputs and the Fastmail backend |
+| M2 → R2, M3 → R2, M4 → R2, M5 → R2, X2 → R2, R1 → R2 | The action path's deployables, the calendar inputs, and the chart and suite R2 extends |
+| X3 → R3, X4 → R3, R2 → R3 | The second account's inputs, the Fastmail backend, and the chart and suite R3 adds inputs to |
 
 ### What can be built in parallel
 
 Units in one row share no structural dependency and can be built at once. A row starts once the
 units in its second column are done, and [X1](#group-x--expansion) also waits for the confirmed
-examples stated under [production points](#production-points). The table and the graph below show
-only the edges no other edge implies, while the dependency table above lists each edge with what it
-supplies, including edges another edge implies.
+examples stated under [production points](#production-points). A ticket that needs less than its
+whole unit starts once the tickets it is blocked by land, which can be before its unit's row. The
+table and the graph below show only the edges no other edge implies, while the dependency table
+above lists each edge with what it supplies, including edges another edge implies.
 
 | Can start together | Once |
 | --- | --- |
-| S1 · S2 · F2 · F5 | F4 lands |
-| S3 | S1 |
-| F3 · M3 | F2 |
+| S1 · F2 · F5 | F4's layout and tooling and its mutation demonstration runner are merged |
+| S2 | S1 |
+| S3 | S2 |
+| M3 | F2 |
+| F3 | F2 · F5 |
 | M5 | M3 |
-| D1 | S1 · S2 · F3 · F5 |
+| D1 | S2 · F3 |
 | D3 | S3 · F2 · F5 |
 | D2 · M4 | D1 |
 | D4 | D2 |
 | M1 | D3 |
-| X2 | D3 · D4 |
-| M2 · X3 | M1 |
-| X4 | D4 · M2 |
-| R1 | D3 · D4 |
-| R2 | M2 · M4 · M5 · X2 |
-| R3 | X3 · X4 |
+| X2 · R1 | D3 · D4 |
+| M2 | D1 · M1 |
+| X3 | M2 |
+| X4 | M2 · X2 |
+| R2 | M2 · M4 · M5 · X2 · R1 |
+| R3 | X3 · X4 · R2 |
 | X1 | D4 |
 
 ```mermaid
 flowchart LR
     F4 --> S1
-    F4 --> S2
     F4 --> F2
     F4 --> F5
-    S1 --> S3
-    F2 --> F3
-    F2 --> M3
-    M3 --> M5
-    S1 --> D1
+    S1 --> S2
+    S2 --> S3
     S2 --> D1
+    F2 --> M3
+    F2 --> F3
+    F2 --> D3
+    F5 --> F3
+    F5 --> D3
+    S3 --> D3
+    M3 --> M5
     F3 --> D1
-    F5 --> D1
+    M5 --> R2
     D1 --> D2
     D1 --> M4
-    S3 --> D3
-    F2 --> D3
-    F5 --> D3
-    D2 --> D4
+    D1 --> M2
     D3 --> M1
     D3 --> X2
-    D4 --> X2
-    M1 --> M2
-    M1 --> X3
     D3 --> R1
-    D4 --> R1
-    M2 --> R2
+    D2 --> D4
     M4 --> R2
-    M5 --> R2
-    X2 --> R2
-    X3 --> R3
-    D4 --> X4
-    M2 --> X4
-    X4 --> R3
+    D4 --> X2
+    D4 --> R1
     D4 --> X1
+    M1 --> M2
+    X2 --> X4
+    X2 --> R2
+    M2 --> X3
+    M2 --> X4
+    M2 --> R2
+    X3 --> R3
+    X4 --> R3
+    R1 --> R2
+    R2 --> R3
 ```
 
 ## Orderings that would guarantee waste
@@ -902,6 +958,7 @@ index](./docs/adr/README.md).
 | The feedback verb on masking and gate events | X1 | [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) draws its confirmed examples from corrections made through the UI's masking-events view, and [docs/UI.md](./docs/UI.md#20-what-remains-open) leaves that verb to a record that does not exist. Until it does, no unit produces a confirmed example |
 | Live-update transport for the UI | M3 | [ADR-0058](./docs/adr/operability/0058-live-surfaces-stream-over-server-sent-events.md) proposes server-sent events from the UI's Go server with polling as the fallback. The operator asked for the behavior on 2026-09-10 and has not ruled on the transport. Only the UI's stream client depends on it ([docs/UI.md](./docs/UI.md#9-live-surfaces)) |
 | Policy editing outside the UI, including import and export to a file | Production point 1 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps a file form for import and export. The operator said on 2026-09-10 that such a mechanism may exist. No unit owns it and no record decides its shape. The operator edits policy once real traffic runs, and the delisting transition of [ADR-0037](./docs/adr/redaction/0037-delisting-transition.md) has no trigger until whatever applies a removal exists, so the shape needs a record before production point 1 |
+| How the audit of every applied and refused mutation is guaranteed | M1 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the violation such an audit must refuse, a mutation reaching the provider with no audit row, and leaves it without an injection until a record decides whether the audit write precedes the provider call or a structural check refuses an unaudited path |
 | Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value is unchosen |
 | Real-provider contract-suite runs | Production point 1 | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) defers whether the provider contract suite ever runs against the real provider, and against what mailbox, until the first real adapter is implemented (F5). Complexity and payoff at that point drive it, and the first real mailbox exists at production point 1 |
 | Whether one in-memory model serves both crash-harness targets | M2, D1 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) runs sequence reduction against an in-memory model of the machinery and leaves open whether one model serves both of [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)'s targets, the reorganization apply path at M2 and backfill resume at D1, or each gets its own. Only the harness's own internals depend on the answer |

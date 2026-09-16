@@ -47,13 +47,12 @@ work; they do not replace reading the authority for the file you touch.
    Serves are claims like any other. A claim with no source is removed or taken to the
    operator — no exception for claims that "obviously follow."
 5c. Walk the Decision's bullets once more asking: does this bullet state a rule that is enforced,
-   checked, or called testable? Each yes is a control, and each control lands with its injection
-   row in `docs/VERIFICATIONS.md` in this same change — or with a written parking or
-   rides-on-a-unit disposition. Controls include rules the record restates from other records
-   with widened scope (a posture "applied identically" to a new surface widens the older
-   controls' scope — disposition those too, typically as riding the existing rows). A record
-   introducing N controls while the catalogue gains fewer than N dispositions is an unfinished
-   mint.
+   checked, or called testable? Each yes is a control, and each control is decided with its
+   injection row in `docs/VERIFICATIONS.md` in this same change — or with a written parking or
+   rides-on-a-unit disposition. Controls include rules the record restates from other records with
+   widened scope (a posture "applied identically" to a new surface widens the older controls' scope
+   — disposition those too, typically as riding the existing rows). A record introducing N controls
+   while the catalogue gains fewer than N dispositions is an unfinished mint.
 6. Status: `Accepted` if the operator has agreed to this decision (in conversation counts);
    `Proposed` if adopted by the documents but awaiting ratification — and then also add a row to
    ROADMAP.md's Open decisions table naming what it gates.
@@ -351,8 +350,8 @@ records' `Serves:` headers) for meaning drift against the new text.
   catalogue: a row in its parked/answerable section naming the control, the disposition, and
   where the proof rides. The catalogue claims every control; a disposition living only in a
   record is invisible from the catalogue's side.
-- A new control lands with its row in the same change. Proving a row later: status gains the date
-  and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
+- A new control is decided with its row in the same change. Proving a row later: status gains the
+  date and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
 - Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.
 
 ## Mutation-ledger rows
@@ -360,7 +359,7 @@ records' `Serves:` headers) for meaning drift against the new text.
 - The ledger's own preamble is the format authority. A row names the control, how the
   mechanism was removed or disabled, the tests that went red, the date, and an evidence
   pointer.
-- A row is written at implementation time, when its control lands, and rewritten only when the
+- A row is written when its control lands, as ADR-0046 defines landing, and rewritten only when the
   control or its tests change.
 - A surviving mutant keeps its row open as a defect until the tests are fixed or the mechanism
   is deliberately removed as redundant.
@@ -373,8 +372,8 @@ records' `Serves:` headers) for meaning drift against the new text.
 2. Reconcile TESTING.md in the same change. A new or retired test kind changes the "What to
    test, with what" table, and a changed rule changes the sentence citing it. That sentence
    must be recoverable from the record without meaning drift.
-3. Walk the record's rules for controls (step 5c of the mint procedure). Each new control
-   lands with its `docs/VERIFICATIONS.md` disposition in the same change.
+3. Walk the record's rules for controls (step 5c of the mint procedure). Each new control is decided
+   with its `docs/VERIFICATIONS.md` disposition in the same change.
 
 ## Front-door files (README.md, CLAUDE.md)
 

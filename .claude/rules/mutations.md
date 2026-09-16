@@ -19,8 +19,9 @@ only demonstrations belong here.
   never a schedule. A stale demonstration is this ledger's version of a green that cannot
   fail.
 - **The pairing with docs/VERIFICATIONS.md runs both ways.** A decided control carries its
-  verification row from design time and owes its demonstration from implementation time. A
-  control listed in docs/VERIFICATIONS.md with no row here is unfinished implementation.
+  verification row from design time and owes its demonstration once it lands, as ADR-0046
+  defines landing. A control listed in docs/VERIFICATIONS.md with no row here is unfinished
+  implementation.
 - **A control with no standing automated test stays out.** Nothing exists to demand red from
   it, and proof only by drill or by manual exercise is that case. A drill-proven control that
   also carries standing automated tests owes its row. The line is ADR-0046's.

@@ -49,9 +49,11 @@ that stands in for a control.
 - **A surviving mutant is a defect on the spot.** Either the tests are vacuous or the
   mechanism is redundant, and each finding demands its own action. A mechanism not worth
   testing well is a candidate for removal.
-- **The obligation is event-driven per control, never a standing gate.** The table is produced
-  when the control lands and reproduced when the control or its tests change, at no other
-  time.
+- **The obligation is event-driven per control, never a standing gate.** The table is produced when
+  the control lands and reproduced when the control or its tests change, at no other time. A control
+  lands when the code it governs is implemented, so a check built ahead of that code has not landed
+  its control yet. Where pieces of work that can merge in either order each implement that code, the
+  one named as the control's owner lands it.
 - **A test that proves a [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) row never retires.**
   Once it passes for the first time, it runs in CI on every change from then on, so the proof
   stays current instead of decaying into a claim about one past date. Rows proven by a drill

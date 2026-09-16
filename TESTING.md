@@ -35,7 +35,7 @@ row describes the control's code.
 | The assembled system on a bare cluster | The chart's own tests and the top-level chainsaw suite | [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) |
 | The UI's browser rendering layer, the rows, the ladder, and each screen | Example-based tests run under bun against a DOM shim, on fixture responses recorded from the real server and carrying the metadata marker text, asserting every marker arrives as text in the form ADR-0064 requires | [ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md), on [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)'s markers and [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md)'s rendering rule |
 | A rule the compiler does not check, standing in for a control | The check that enforces it, usually a linter and sometimes a search where no linter reaches, plus the checked-in file that violates it and the script requiring the check to report it | [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) on the server, [ADR-0072](./docs/adr/engineering/0072-browser-bans-under-oxlint-and-ast-grep.md) in the browser, on [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s violation-file rule |
-| A control, meaning a rule the system enforces | The tests that prove its [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) row where the row is automatable, plus its mutation demonstration at acceptance | [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) |
+| A control, meaning a rule the system enforces | The tests that prove its [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) row where the row is automatable, plus its mutation demonstration once the control lands | [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) |
 
 **In standard vocabulary.** This project's unit tests are the example-based and the
 property-based tests. Every property-based test is a unit test, and not every unit test is
@@ -78,8 +78,8 @@ The chain from outcome to evidence, stated once.
    automatable injection becomes a permanent CI test that never retires. A drill and a manual
    exercise prove only that the control worked on the day they ran, as
    [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) records them.
-4. At implementation, every automatable control also gets its mutation demonstration in
-   [docs/MUTATIONS.md](./docs/MUTATIONS.md). The mechanism is removed by a
+4. When it lands, as ADR-0046 defines landing, every automatable control also gets its mutation
+   demonstration in [docs/MUTATIONS.md](./docs/MUTATIONS.md). The mechanism is removed by a
    checked-in patch, the tests must go red, and the script records which ones did
    ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
 

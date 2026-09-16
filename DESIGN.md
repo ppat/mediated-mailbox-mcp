@@ -555,6 +555,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).
 - **Control** — a rule the system enforces. Every control is proven by its violation
   injection, catalogued in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md).
+- **A control lands** — the point at which a control's mutation demonstration becomes owed (rule in
+  ADR-0046, via the [decision-record index](./docs/adr/README.md)). Not the ordinary sense of work
+  landing, which means merging to `main`.
 - **Generator report** — the test support this project writes that classifies each case a
   property-based test generates, reports the mix, and fails the run when a stated minimum share of
   a kind of input is not reached (rule in ADR-0069, via the

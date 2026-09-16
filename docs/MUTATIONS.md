@@ -13,12 +13,9 @@ the tests that went red, the date, and an evidence pointer. The table is the who
 never a pass rate. A surviving mutant holds its row open as a defect until the tests are fixed
 or the mechanism is deliberately deleted as redundant.
 
-**Lifecycle.** A row is produced when its control lands and reproduced when the control or its
-tests change. Between those events it is a claim about its date, while the permanent CI tests
-keep the control's green continuously earned.
-
-This ledger predates the first line of code. No mechanism exists to remove, so no row can exist
-yet, and the empty table is the correct present state.
+**Lifecycle.** A row is produced when its control lands, as ADR-0046 defines landing, and
+reproduced when the control or its tests change. Between those events it is a claim about its
+date, while the permanent CI tests keep the control's green continuously earned.
 
 ## Demonstrations
 

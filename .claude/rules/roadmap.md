@@ -19,9 +19,8 @@ set. Its preamble carries the reading rules; hold these lines:
   silently. Value increments each state `**Value shipped:**` — an increment that cannot name what
   the user gets is not an increment.
 - Checkboxes are the only state marker on units; nuance lives in prose. A unit is not done while
-  the verification rows keyed to it are pending for the part they key to it, nor while any
-  automatable control it delivers is missing its mutation demonstration in docs/MUTATIONS.md
-  (ADR-0046).
+  the verification rows keyed to it are pending for the part they key to it, nor while a mutation
+  demonstration its tickets owe is missing from docs/MUTATIONS.md (ADR-0046).
 - **Delivered work states what it did NOT deliver** alongside what it did, so a cold reader
   cannot over-assume.
 - The delivery posture's non-deferrables list is edited only with the operator's agreement — the
