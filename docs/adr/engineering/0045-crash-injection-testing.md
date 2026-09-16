@@ -11,7 +11,7 @@ permits is silent. A crash-recovery bug in checkpointed apply or rollback is bot
 label state on the real mailbox, and it fails silently until a process dies mid-sequence.
 Sequence-dependent failures are reachable by no other kind of test, because no other kind
 places a crash inside a generated sequence, and a physical kill-the-pod drill proves the real
-substrate exactly once, on one sequence. "Learn from production" cannot cover this class. The
+substrate exactly once, on one sequence. "Learn from the real mailbox" cannot cover this class. The
 pattern this record builds on is the one published in Amazon's S3 ShardStore work (SOSP 2021).
 That pattern is a crash operation in the generator's alphabet, persistence and forward-progress
 invariants checked after recovery, and a deliberately coarse crash model.

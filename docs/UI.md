@@ -1189,8 +1189,8 @@ of [O2](../USE_CASES.md#o2--observable).
 
 ## 19. Building it
 
-**Order of work.** The order M3 builds these pieces in is build state and lives with the unit in
-[ROADMAP.md](../ROADMAP.md), never here.
+**Order of work.** The order the UI's pieces are built in is build state. The unit that carries
+them lives in [ROADMAP.md](../ROADMAP.md), and the order lives in that unit's tickets, never here.
 
 **State model.** Route state is the URL. Data state is per request, keyed by the URL, cached for
 a few seconds. Live surfaces hold one stream subscription whose events replace the matching
@@ -1207,8 +1207,8 @@ view state outside the URL. Do not put a trigger, a procedure, or a function in 
 anything (ADR-0060).
 
 **Tests the UI owes.** Every control the UI carries is dispositioned in
-[docs/VERIFICATIONS.md](./VERIFICATIONS.md), as an injection row keyed to M3 or as a standing
-disposition, and that catalogue, not this document, is the list.
+[docs/VERIFICATIONS.md](./VERIFICATIONS.md), as an injection row keyed to M3, M5 or F4 or as a
+standing disposition, and that catalogue, not this document, is the list.
 [TESTING.md](../TESTING.md) decides the kinds.
 
 ## 20. What remains open
@@ -1221,7 +1221,7 @@ used. What is still open, and where it is tracked:
 | The live-update transport. ADR-0058 is Proposed; only the stream client depends on it ([section 9](#9-live-surfaces)) | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | the same table |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
-| A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | nowhere yet, deliberately |
+| A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 
 ## 21. The mockups
 

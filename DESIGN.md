@@ -364,7 +364,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0007) |
 | The approval surface is itself a target | ADR-0021 (two verbs, scoped role, no credentials) |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
-| A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding every unit |
+| A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
 | Compromise of a process holding provider credentials defeats redaction | ADR-0028 (hardening, blast radius, evidence that survives) |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
@@ -425,6 +425,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
   import. Impure shared needs live in narrow, named exception libraries instead (rule in
   ADR-0050, via the [decision-record index](./docs/adr/README.md)).
 - **Provider** — the managed service actually holding the mail or calendar (Gmail, Fastmail).
+- **The real mailbox** — the operator's own mail at the provider, as distinct from the synthetic
+  fixtures every test runs over.
+- **Production** — the deployed system on the operator's infrastructure, as distinct from the
+  real mailbox it reads. A build's production mode, the toolchain's sense in
+  [docs/UI.md](./docs/UI.md) and ADR-0063, is unrelated.
 
 ### Sensitivity and redaction
 
@@ -613,6 +618,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [USE_CASES.md](./USE_CASES.md) and used as the coordinate system everywhere else.
 - **ADR-NNNN** — decision records, numbered globally in mint order, resolved through
   [docs/adr/README.md](./docs/adr/README.md).
-- **Work units and value increments** — defined in [ROADMAP.md](./ROADMAP.md).
+- **Work units, value increments, production points, and finish lines** — defined in
+  [ROADMAP.md](./ROADMAP.md).
 - **Zoom levels L0–L4** — the five levels of the zoom ladder, defined in
   [docs/UI.md](./docs/UI.md#4-the-zoom-ladder).

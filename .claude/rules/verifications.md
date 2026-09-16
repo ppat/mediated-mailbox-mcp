@@ -13,12 +13,12 @@ more fluid than the design.
 - **Rows are violation injections**: written as `<deliberate violation> → <expected refusal>`,
   never "test that X works." The *Proves* column names the claim, cites the decision record by
   number, and where it earns its keep, names the wrong reading the injection rules out.
-- **Statuses**: pending rows name the roadmap unit that delivers the control; proven rows carry
-  the date and a pointer to the evidence; parked rows carry the standing reason. A row's kind
-  decides whether its proof stays current or holds only for its date (ADR-0046). An
-  automatable injection becomes a permanent CI test with
-  continuous proof. A drill or a manual exercise is a claim about its date, and re-runs after
-  relevant change belong to the affected unit, not this table.
+- **Statuses**: pending rows name the roadmap unit that delivers the control, or the production
+  point at which a drill or manual exercise runs; proven rows carry the date and a pointer to
+  the evidence; parked rows carry the standing reason. A row's kind decides whether its proof
+  stays current or holds only for its date (ADR-0046). An automatable injection becomes a
+  permanent CI test with continuous proof. A drill or a manual exercise is a claim about its
+  date, and re-runs after relevant change belong to the affected unit, not this table.
 - An automatable control also owes its mutation demonstration to `docs/MUTATIONS.md`
   (ADR-0046). This document never carries it.
 - Rows are **rekeyed, not rewritten**, when the work breakdown changes; a recut ticket inherits

@@ -313,19 +313,23 @@ records' `Serves:` headers) for meaning drift against the new text.
 - Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets —
   and state what it did NOT deliver. Re-date `**Position:**` whenever checklists are reconciled
   against reality.
-- New unit: group letter + next index; header `**ID — name** → <one outcome> · ticket(s) ·
-  <value increment>`; prose body; `*Criteria:*` for observability riders. One outcome per unit —
-  a genuine exception is flagged in the group preamble, out loud.
+- New unit: group letter + next index, and a retired identifier is never reused; header
+  `**ID — name** → <one outcome> · ticket(s) · <value increment> · finishes at <tested | image |
+  packaged>`; prose body naming the records whose mechanisms the unit carries, what proves it, and
+  which of its proofs wait for a production point; `*Criteria:*` for observability riders. One
+  outcome per unit — a genuine exception is flagged in the group preamble, out loud.
 - New value increment: `**Units:** / **Value shipped:** / **Why it is …:**` — an increment that
   cannot name the value shipped is not an increment.
-- Update the mapping table (outcome ↔ units, with the Gaps column honest) and the dependency
-  tables (structural/conventional/operational — each edge names what the dependency supplies).
+- Update the mapping table (outcome ↔ units, with the Gaps column honest), the dependency table
+  (structural edges only — each edge names what the dependency supplies), the parallel-build
+  table and its graph, and the production point the unit sits behind.
 
 ## Verification rows
 
 - Shape: `| <deliberate violation> → <expected refusal> | what it proves, ADR-NNNN, and the wrong
-  reading it rules out | <unit link> |`. Pending rows key to the unit that delivers the control;
-  unit identifiers link to their roadmap group anchors.
+  reading it rules out | <unit link> |`. Pending rows key to the unit that delivers the control, or
+  to the production point at which a drill or manual exercise runs; unit identifiers link to their
+  roadmap group anchors and production points to their sections.
 - Before writing the row, name the deliberate violation. If the row's left side is an
   enumeration, an inspection, or a comparison, it is not an injection — restate it as the
   violation that must be refused (introduce the drift, break the rule, plant the fixture — and

@@ -10,7 +10,7 @@ conventions. It points at the documents and never repeats them, so every fact ha
 | [USE_CASES.md](./USE_CASES.md) | What the system is for: the outcomes on five axes, each with a falsifiable acceptance criterion |
 | [DESIGN.md](./DESIGN.md) | The pillars and invariants — and the **Glossary**, the single home for vocabulary. If a term needs defining, it gets defined there, never locally |
 | [docs/UI.md](./docs/UI.md) | The UI's design: the lens model, the zoom ladder, the screens, the palettes, the framework requirements, and the build guidance. Same split test as DESIGN.md, one component |
-| [ROADMAP.md](./ROADMAP.md) | All the work in one place: delivery posture, value path, units, dependencies, open decisions. The only top-level document that tracks build state |
+| [ROADMAP.md](./ROADMAP.md) | All the work in one place: delivery posture, value path, units with their finish lines, production points, dependencies, open decisions. The only top-level document that tracks build state |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: index, record format, statuses, and the granularity rule (one decision per record, cut by the re-argue test) |
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection, past and pending. A new control lands with its injection row |
