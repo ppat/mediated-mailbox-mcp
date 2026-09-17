@@ -311,17 +311,17 @@ records' `Serves:` headers) for meaning drift against the new text.
 ## Roadmap changes
 
 - Cutting tickets: a ticket is cut from the template to the rules of
-  [CLAUDE.md](../../../../CLAUDE.md#repository-process), and the unit's header names its tickets
-  in the `ticket(s)` slot as linked issue numbers, in the same change. A unit recut here recuts
-  its open tickets, as CLAUDE.md states.
+  [CLAUDE.md](../../../../CLAUDE.md#repository-process), and the ticket is added as a sub-issue of
+  [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118) and listed under its unit in the
+  epic's body. A unit recut here recuts its open tickets, as CLAUDE.md states.
 - Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets or
   that it was delivered before any were cut, and state what it did NOT deliver. Re-date
   `**Position:**` whenever checklists are reconciled against reality.
 - New unit: group letter + next index, and a retired identifier is never reused; header
-  `**ID — name** → <one outcome> · ticket(s) · <value increment> · finishes at <tested | image |
-  packaged>`; prose body naming the records whose mechanisms the unit carries, what proves it, and
-  which of its proofs wait for a production point; `*Criteria:*` for observability riders. One
-  outcome per unit — a genuine exception is flagged in the group preamble, out loud.
+  `**ID — name** → <one outcome> · <value increment> · finishes at <tested | image | packaged>`;
+  prose body naming the records whose mechanisms the unit carries, what proves it, and which of its
+  proofs wait for a production point; `*Criteria:*` for observability riders. One outcome per unit
+  — a genuine exception is flagged in the group preamble, out loud.
 - New value increment: `**Units:** / **Value shipped:** / **Why it is …:**` — an increment that
   cannot name the value shipped is not an increment.
 - Update the mapping table (outcome ↔ units, with the Gaps column honest), the dependency table
@@ -351,8 +351,8 @@ records' `Serves:` headers) for meaning drift against the new text.
   catalogue: a row in its parked/answerable section naming the control, the disposition, and
   where the proof rides. The catalogue claims every control; a disposition living only in a
   record is invisible from the catalogue's side.
-- A new control lands with its row in the same change. Proving a row later: status gains the date
-  and an evidence pointer, and the row moves to (or is re-labelled under) the proven section.
+- A new control lands with its row in the same change. Proving a row later: its Status cell gains
+  the date and an evidence pointer, and the row stays where it is.
 - Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.
 
 ## Mutation-ledger rows

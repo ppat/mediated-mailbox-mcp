@@ -17,8 +17,9 @@ or the mechanism is deliberately deleted as redundant.
 tests change. Between those events it is a claim about its date, while the permanent CI tests
 keep the control's green continuously earned.
 
-This ledger predates the first line of code. No mechanism exists to remove, so no row can exist
-yet, and the empty table is the correct present state.
+No feature code exists yet. Each demonstration is recorded with the implementation work that
+touches the surface area its control interacts with, so the empty table is the correct present
+state.
 
 ## Demonstrations
 
