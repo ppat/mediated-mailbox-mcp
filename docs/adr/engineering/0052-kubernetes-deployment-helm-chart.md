@@ -25,7 +25,10 @@ may assume about the user's cluster.
   but does not own arrives as user-supplied inputs.** Postgres, the credential Secrets
   ([ADR-0038](../operability/0038-credentials-as-mounted-files.md)), and the policy
   configuration arrive as Helm values or pre-existing ConfigMaps and Secrets — the policy as a
-  user-supplied ConfigMap or mounted-file reference. Beyond core Kubernetes, neither the chart
+  user-supplied ConfigMap or mounted-file reference. The policy of record lives in the database
+  ([ADR-0004](../classification/0004-sender-list-decides.md),
+  [ADR-0041](./0041-policy-as-immutable-snapshots.md)), so this input is the file the policy
+  import reads, not a second place policy is decided. Beyond core Kubernetes, neither the chart
   nor its tests assume anything about the cluster they land on — no external-secrets, no
   cert-manager. This is ADR-0038's boundary made concrete: a chart that accepts only values and
   pre-existing objects structurally cannot know the secret machinery.
