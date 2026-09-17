@@ -57,7 +57,7 @@ jobs:
         persist-credentials: false
 
     - name: Build, push and sign the image
-      uses: ppat/homelab-ops-actions/actions/build-docker-image@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      uses: ppat/homelab-ops-actions/actions/build-docker-image@2045fb6e6cb00ab099280625b6989cf62ccc1b77 # v2.7.0
       with:
         image_context_path: .
         dockerfile: ${{ matrix.image }}/Dockerfile
@@ -76,7 +76,7 @@ jobs:
       packages: write
     steps:
     - name: Setup the release tag and tools
-      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@1ca11af183c2f3f117e9e83638c3949a399070a0 # v2.6.0
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@2045fb6e6cb00ab099280625b6989cf62ccc1b77 # v2.7.0
       with:
         current_git_ref: ${{ github.ref }}
         current_repository: ${{ github.repository }}
