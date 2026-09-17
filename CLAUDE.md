@@ -298,8 +298,9 @@ are ever made required.
   sections are its format and whose placeholders say what fills each slot. Units are cut for finish
   lines, tickets for parallel work inside a unit, so a ticket takes a slice of the unit's body and
   says what stays with the unit's other tickets. It names the one unit it serves in its header line,
-  and the rule that the unit names its tickets back is [ROADMAP.md](./ROADMAP.md)'s. A unit recut in
-  ROADMAP.md recuts its open tickets. Its title says what lands, in the words the pull request title
+  and it is a sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), which
+  lists the tickets by unit and is not itself a ticket. A unit recut in ROADMAP.md recuts its open
+  tickets. Its title says what lands, in the words the pull request title
   will use without the commit type, followed by the word unit and the unit's identifier in
   parentheses. Its links are full URLs to files on `main`. A discovery is a ticket under the unit
   whose mechanism it concerns, whether or not the unit is delivered, and work no unit covers gets

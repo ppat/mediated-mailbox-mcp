@@ -8,9 +8,9 @@ links that grant account access. The mediator exposes an API — with MCP as a t
 adapter over it — and enforces that line in code, at the last hop before any client, because no
 mailbox credential can be scoped to express it.
 
-**Status: design phase.** No code exists yet; the design, its decisions, the delivery plan, the
-testing strategy, the verification catalogue, and the mutation ledger are authored and are what
-this repository currently contains.
+**Status: design phase.** No feature code exists yet. The design, its decisions, the delivery plan,
+the testing strategy, the verification catalogue, and the mutation ledger are authored, and the
+component layout with its build, test and static-analysis tooling is merged.
 
 ## Where everything lives
 

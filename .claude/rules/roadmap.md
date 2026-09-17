@@ -21,7 +21,8 @@ set. Its preamble carries the reading rules; hold these lines:
 - Checkboxes are the only state marker on units; nuance lives in prose. A unit is not done while
   the verification rows keyed to it are pending for the part they key to it, nor while any
   automatable control it delivers is missing its mutation demonstration in docs/MUTATIONS.md
-  (ADR-0046).
+  (ADR-0046). A demonstration recorded with later work that touches the control's surface area
+  does not hold open the unit that built the control's mechanism.
 - **Delivered work states what it did NOT deliver** alongside what it did, so a cold reader
   cannot over-assume.
 - The delivery posture's non-deferrables list is edited only with the operator's agreement — the

@@ -51,7 +51,9 @@ that stands in for a control.
   testing well is a candidate for removal.
 - **The obligation is event-driven per control, never a standing gate.** The table is produced
   when the control lands and reproduced when the control or its tests change, at no other
-  time.
+  time. Controls are defined in the design, or when a feature is added, and verifications are
+  defined with them. A mutation demonstration proves the control and its verification work, and
+  lands at implementation time.
 - **A test that proves a [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) row never retires.**
   Once it passes for the first time, it runs in CI on every change from then on, so the proof
   stays current instead of decaying into a claim about one past date. Rows proven by a drill
