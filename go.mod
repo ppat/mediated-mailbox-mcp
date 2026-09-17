@@ -12,7 +12,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/pganalyze/pg_query_go/v6 v6.2.2
-	github.com/wasilibs/go-pgquery v0.0.0-20260908021017-318158a2ab67
+	github.com/wasilibs/go-pgquery v0.0.0-20260915022521-81f99195012b
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/tools v0.50.0
 	google.golang.org/protobuf v1.36.12
