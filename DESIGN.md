@@ -553,8 +553,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [decision-record index](./docs/adr/README.md)).
 - **Contract suite** — the one test suite every provider-port implementation must pass
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).
-- **Control** — a rule the system enforces. Every control is proven by its violation
-  injection, catalogued in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md).
+- **Control** — a rule the system enforces, together with the mechanism that enforces it. Every
+  control is proven by its violation injection, catalogued in
+  [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md).
 - **Generator report** — the test support this project writes that classifies each case a
   property-based test generates, reports the mix, and fails the run when a stated minimum share of
   a kind of input is not reached (rule in ADR-0069, via the

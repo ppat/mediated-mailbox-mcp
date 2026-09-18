@@ -703,7 +703,8 @@ reload. Each shows the live indicator in the top bar, a dot in the ok color with
 Ns ago", and pauses its subscription while the tab is hidden, resuming and refetching when it
 becomes visible. A dropped stream shows "live · reconnecting" and the view keeps its last data.
 The transport, the stream's content, and its cadence are ADR-0058, proposed and not yet ratified.
-Only the stream client module depends on that record. The screens read object shapes
+In the browser only the stream client module depends on that record, and on the server only the
+stream endpoint of [section 17.4](#174-the-bespoke-endpoints) does. The screens read object shapes
 ([section 17.5](#175-the-streams-event-shape)) that do not change with the transport, so a
 different ratification replaces one module.
 
@@ -1102,7 +1103,7 @@ The cadence, reconnection, and fallback rules are ADR-0058's.
 ## 18. Repository and build layout
 
 Per ADR-0054 the UI is one top-level directory holding both halves, and per ADR-0042 the server
-half is Go and the browser half is TypeScript. Design, not yet built.
+half is Go and the browser half is TypeScript. How much of it is built is tracked in ROADMAP.md.
 
 ```text
 ui/
@@ -1184,8 +1185,8 @@ ADR-0052 carries them. Every key is read at start.
 The UI emits and never collects (ADR-0051). Every request is logged with its request id, the
 account, the route, and the outcome classified by the error contract's origin. Metrics carry
 read latency by dataset and level, stream subscriber count, and decision outcomes by decision and
-result. No log line and no metric label ever carries message-derived text. This is the UI's share
-of [O2](../USE_CASES.md#o2--observable).
+result. The server serves the health and readiness probes. No log line and no metric label ever
+carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
 
 ## 19. Building it
 
@@ -1207,8 +1208,8 @@ view state outside the URL. Do not put a trigger, a procedure, or a function in 
 anything (ADR-0060).
 
 **Tests the UI owes.** Every control the UI carries is dispositioned in
-[docs/VERIFICATIONS.md](./VERIFICATIONS.md), as an injection row keyed to M3, M5 or F4 or as a
-standing disposition, and that catalogue, not this document, is the list.
+[docs/VERIFICATIONS.md](./VERIFICATIONS.md), as an injection row keyed to the unit that delivers it or
+as a standing disposition, and that catalogue, not this document, is the list.
 [TESTING.md](../TESTING.md) decides the kinds.
 
 ## 20. What remains open
@@ -1218,8 +1219,9 @@ used. What is still open, and where it is tracked:
 
 | Open | Tracked in |
 | --- | --- |
-| The live-update transport. ADR-0058 is Proposed; only the stream client depends on it ([section 9](#9-live-surfaces)) | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
+| The live-update transport. ADR-0058 is Proposed. In the browser only the stream client depends on it ([section 9](#9-live-surfaces)), and on the server the stream endpoint of [section 17.4](#174-the-bespoke-endpoints) does | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | the same table |
+| The configuration key names of [section 18.1](#181-the-configuration-the-ui-declares) | the same table |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 

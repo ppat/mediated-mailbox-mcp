@@ -2,7 +2,7 @@
 
 The mockups behind [docs/UI.md](../../docs/UI.md). This directory holds sources and instruments,
 never reasoning. Why the UI is shaped this way lives in [docs/UI.md](../../docs/UI.md) and in the
-decision records it cites (ADR-0056 through ADR-0062, via the
+decision records it cites (among them ADR-0056 through ADR-0065 and ADR-0072, via the
 [decision-record index](../../docs/adr/README.md)).
 
 ## What is here
