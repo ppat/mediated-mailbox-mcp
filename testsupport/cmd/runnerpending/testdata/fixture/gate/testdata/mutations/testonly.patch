@@ -1,0 +1,18 @@
+control: The gate refuses flagged items
+removes: Nothing, the patch only breaks the test
+packages: ./gate
+tests: TestRefusesFlagged
+scheduled-count: no
+
+diff --git a/gate/gate_test.go b/gate/gate_test.go
+index a1e44b8..a83891f 100644
+--- a/gate/gate_test.go
++++ b/gate/gate_test.go
+@@ -8,6 +8,7 @@ import (
+ )
+ 
+ func TestRefusesFlagged(t *testing.T) {
++	t.Fatal("broken test")
+ 	if gate.Allow(true) {
+ 		t.Fatal("a flagged item passed")
+ 	}

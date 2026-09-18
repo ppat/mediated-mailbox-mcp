@@ -56,7 +56,8 @@ jobs:
     # and RAPID_NOFAILFILE=true, and passes no -short (ADR-0069, ADR-0045). The case count and the seed are not
     # decided in any record, so they are read from the repository variables RAPID_CHECKS and RAPID_SEED. rapid is
     # admitted only in files named *_property_test.go and *_crash_test.go. Violation files carry the same suffixes
-    # and build only under the banproof tag, so they are not counted. Once such a file exists, a run without a
+    # and build only under the banproof tag, so they are not counted. Neither are files under testdata, such as the
+    # mutation runner's fixtures, which ./... never reaches. Once such a file exists, a run without a
     # configured count and a non-zero seed fails.
     - name: Run the integration tests against one PostgreSQL container
       shell: bash
@@ -67,7 +68,7 @@ jobs:
         RAPID_NOFAILFILE: 'true'
       # yamllint disable-line rule:indentation
       run: |
-        count="$(git ls-files -- '*_property_test.go' '*_crash_test.go' ':(exclude)*_violation_*' | wc -l)"
+        count="$(git ls-files -- '*_property_test.go' '*_crash_test.go' ':(exclude)*_violation_*' ':(exclude,glob)**/testdata/**' | wc -l)"
         if (( count > 0 )); then
           if [[ ! "$GATING_CHECKS" =~ ^[0-9]+$ ]] || (( 10#$GATING_CHECKS == 0 )); then
             echo "::error::Property tests or crash sequences exist, but the gating case count is not configured. Set the repository variable RAPID_CHECKS to a positive number."
