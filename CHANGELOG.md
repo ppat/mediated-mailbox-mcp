@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.2](https://github.com/ppat/mediated-mailbox-mcp/compare/v0.0.1...v0.0.2) (2026-09-18)
+
+
+### 🛠 Improvements
+
+* close the coherence gaps between the document set and the tickets ([#120](https://github.com/ppat/mediated-mailbox-mcp/issues/120)) ([8da026a](https://github.com/ppat/mediated-mailbox-mcp/commit/8da026ac861cafd9da65635bebaab339c440eff0))
+* establish the ticket format, its template and its labels ([#67](https://github.com/ppat/mediated-mailbox-mcp/issues/67)) ([26f0890](https://github.com/ppat/mediated-mailbox-mcp/commit/26f0890904236558ab81ab6b50025dc9561d4e81))
+* reconcile the document set with the merged tooling, and track tickets under one epic ([#119](https://github.com/ppat/mediated-mailbox-mcp/issues/119)) ([935c369](https://github.com/ppat/mediated-mailbox-mcp/commit/935c3692a15d684706e4053df4cbd401521cf41e))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* update digest github.com/wasilibs/go-pgquery (318158a -&gt; 81f9919) ([#115](https://github.com/ppat/mediated-mailbox-mcp/issues/115)) ([a0f2943](https://github.com/ppat/mediated-mailbox-mcp/commit/a0f2943c8d9b778ff8f6b098f3efb77bc425d41d))
+
 ## 0.0.1 (2026-09-16)
 
 
