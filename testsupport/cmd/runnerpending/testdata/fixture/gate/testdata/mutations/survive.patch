@@ -1,0 +1,17 @@
+control: The gate refuses flagged items
+removes: Allow is rewritten to the same logic
+packages: ./gate
+tests: TestRefusesFlagged
+scheduled-count: no
+
+diff --git a/gate/gate.go b/gate/gate.go
+index f1b393f..6ede95c 100644
+--- a/gate/gate.go
++++ b/gate/gate.go
+@@ -3,5 +3,5 @@ package gate
+ 
+ // Allow reports whether an item may pass.
+ func Allow(flagged bool) bool {
+-	return !flagged
++	return flagged == false
+ }

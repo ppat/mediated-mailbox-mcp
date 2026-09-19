@@ -38,5 +38,6 @@ require (
 tool (
 	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/banproof
 	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/pgrun
+	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/runnerpending
 	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/vetcheck
 )
