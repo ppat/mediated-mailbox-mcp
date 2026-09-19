@@ -707,3 +707,30 @@ func TestCheckoutEditedDuringTheRunReachesNeitherRun(t *testing.T) {
 		t.Errorf("outcome (-want +got):\n%s", diff)
 	}
 }
+
+// TestConflictedPathIsCopiedOnce puts stages 1, 2 and 3 of twin/twin.go in the index, as an
+// unresolved merge conflict does, which git ls-files --cached lists once per stage.
+func TestConflictedPathIsCopiedOnce(t *testing.T) {
+	root := fixtureRoot(t)
+	hash, err := exec.Command("git", "-C", root, "hash-object", "-w", "twin/twin.go").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stages strings.Builder
+	for stage := 1; stage <= 3; stage++ {
+		fmt.Fprintf(&stages, "100644 %s %d\ttwin/twin.go\n", strings.TrimSpace(string(hash)), stage)
+	}
+	cmd := exec.Command("git", "update-index", "--index-info")
+	cmd.Dir = root
+	cmd.Stdin = strings.NewReader(stages.String())
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git update-index: %v\n%s", err, out)
+	}
+	res, err := demonstrateFixture(t, root, "gate", "red", fixtureEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.held() {
+		t.Errorf("the demonstration did not hold:\n%s", res.report())
+	}
+}
