@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -59,20 +60,33 @@ func copyTree(root string, files []string) (_ string, err error) {
 		case !info.Mode().IsRegular():
 			return "", fmt.Errorf("%s is not a regular file, and the copy the runner works in holds regular files only", rel)
 		}
-		data, err := os.ReadFile(src)
-		if err != nil {
-			return "", err
-		}
 		dst := filepath.Join(dir, filepath.FromSlash(rel))
 		if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 			return "", err
 		}
-		//nolint:gosec // A path git ls-files names under root, written into the copy.
-		if err := os.WriteFile(dst, data, info.Mode().Perm()); err != nil {
+		if err := copyFile(src, dst, info.Mode().Perm()); err != nil {
 			return "", err
 		}
 	}
 	return dir, nil
+}
+
+// copyFile streams src into a new file dst with the given permission bits.
+func copyFile(src, dst string, perm fs.FileMode) (err error) {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer func() { err = errors.Join(err, in.Close()) }()
+	//nolint:gosec // A path git ls-files names under root, written into the copy.
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		return errors.Join(err, out.Close())
+	}
+	return out.Close()
 }
 
 // touchedPaths lists every path the patch at patchPath creates, changes or deletes, relative to root.

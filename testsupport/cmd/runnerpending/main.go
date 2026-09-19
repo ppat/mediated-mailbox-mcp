@@ -1,6 +1,7 @@
 // Command runnerpending runs mutation demonstrations, the proof ADR-0046 requires of an automatable
-// control's tests. A demonstration removes the control's mechanism with a checked-in patch, requires
-// the tests it names to go red, and records which tests went red for the ledger in docs/MUTATIONS.md.
+// control's tests. A demonstration removes the control's mechanism with a checked-in patch,
+// requires the tests it names to go red, and records which tests went red for the ledger in
+// docs/MUTATIONS.md.
 //
 // Each patch is one mutant and is applied alone. A control whose mechanism is broken more than one
 // way, such as a break that makes the code do less and a break that makes it do the wrong thing,
@@ -19,49 +20,54 @@
 //
 // A package entry that is not a relative path is refused, because it would reach go test as a flag.
 // A patch whose file names mark it as touching test code, a _test.go file or anything under a
-// testdata directory, is refused, because a red from a changed test says nothing about the mechanism.
-// Whether a patch removes the control's mechanism rather than test tooling the tests rely on, such
-// as a shared comparison option, is for the review of the patch, which ADR-0046 makes the checked-in
-// artifact.
+// testdata directory, is refused, because a red from a changed test says nothing about the
+// mechanism. Whether a patch removes the control's mechanism rather than test tooling the tests
+// rely on, such as a shared comparison option, is for the review of the patch, which ADR-0046 makes
+// the checked-in artifact.
 //
 // The runner never writes to the checkout it is run from. Each demonstration works in throwaway
 // copies of the working tree as git sees it, which is the tracked files and the untracked files git
 // does not ignore, so an author's uncommitted control and patch are included and ignored build
-// output is not. A copy is removed on every path out of the demonstration. Go's build and module
-// caches live outside the copies, so a copy costs little. For each patch the runner does two things.
+// output is not. Both copies of a demonstration are taken before any of its tests run, the second
+// from the first, so the two runs see the same files apart from the patch even when the checkout
+// changes meanwhile. A copy is removed on every path out of the demonstration. Go's build and
+// module caches live outside the copies, so a copy costs little. For each patch the runner does two
+// things.
 //
-//  1. In one copy it runs the packages' tests unpatched and requires them green, and requires every
-//     named test to have passed there, so a red in the next step is the patch's doing and a
+//  1. In the first copy it runs the packages' tests unpatched and requires them green, and requires
+//     every named test to have passed there, so a red in the next step is the patch's doing and a
 //     misspelled or skipped test is caught rather than silently unmet.
-//  2. In a fresh copy it applies the patch with git apply, runs the same tests, and records every
-//     test that failed. A package that fails without any test failing, such as one the patch stops
-//     from building, is reported and fails the demonstration, because a patch that breaks the build
-//     proves nothing about the tests.
+//  2. In the second copy it applies the patch with git apply, runs the same tests, and records
+//     every test that failed. A package that fails without any test failing, such as one the patch
+//     stops from building, is reported and fails the demonstration, because a patch that breaks the
+//     build proves nothing about the tests.
 //
 // The demonstration holds when every named test went red in every package it ran in. A patch that
-// leaves every test green is reported as a surviving mutant, which ADR-0046 counts as a defect on the
-// spot. After the last patch the runner prints one ledger row per control, as docs/MUTATIONS.md
+// leaves every test green is reported as a surviving mutant, which ADR-0046 counts as a defect on
+// the spot. After the last patch the runner prints one ledger row per control, as docs/MUTATIONS.md
 // defines a row, naming each removal and the tests it turned red, and a surviving mutant marks the
 // row open. A control gets a row only when every one of its patches given in the run held or
 // survived. When one failed, could not be judged, or never ran because the run was interrupted, the
 // runner prints no row and says the control's demonstration is incomplete. The evidence pointer is
 // left to the author.
 //
-// Every run sets RAPID_NOFAILFILE=true, as the gating runs do, because the repository's own test of
-// ADR-0069 fails without it. RAPID_CHECKS passes through from the environment,
-// and -short is never passed, since it divides rapid's case count by five. The runner refuses to run
-// while GOFLAGS is set, in the environment or through go env -w, because go test reads its flags
-// from there and any of them, such as -run or -short, changes which tests run or how. A patch with
-// scheduled-count yes runs with RAPID_CHECKS set from RAPID_SCHEDULED_CHECKS, the count the
-// deep-tests workflow reads from the repository variable of that name, because a rare failure can be
-// reached at the gating count only by luck (ADR-0069). The runner refuses such a patch when
-// RAPID_SCHEDULED_CHECKS is not a positive number. RAPID_SEED passes through when it is set and
-// non-zero. Otherwise the runner picks a seed. Both runs of a patch use the same seed, and the report
-// records the seed and the case count, so a property demonstration can be repeated.
+// A demonstration runs the tests the way the gating run does, and the gating invocation sets
+// RAPID_NOFAILFILE=true (ADR-0069, row 6 of its ordinary-path table), so every run sets it too.
+// RAPID_CHECKS passes through from the environment, and -short is never passed, since it divides
+// rapid's case count by five. The runner refuses to run while GOFLAGS is set, in the environment or
+// through go env -w, because go test reads its flags from there and any of them, such as -run or
+// -short, changes which tests run or how. A patch with scheduled-count yes runs with RAPID_CHECKS
+// set from RAPID_SCHEDULED_CHECKS, the count the deep-tests workflow reads from the repository
+// variable of that name, because a rare failure can be reached at the gating count only by luck
+// (ADR-0069). The runner refuses such a patch when RAPID_SCHEDULED_CHECKS is not a positive number.
+// RAPID_SEED passes through when it is set and non-zero. Otherwise the runner picks a seed. Both
+// runs of a patch use the same seed, and the report records the seed and the case count, so a
+// property demonstration can be repeated.
 //
 // SIGINT, SIGTERM and SIGHUP stop the run, kill the running tests and remove the copies. The runner
-// runs ordinary go test packages, property tests included. It is run by hand when a control lands or changes, never
-// as a standing gate. Run it from the repository root with the patches as arguments.
+// runs ordinary go test packages, property tests included. It is run by hand when a control lands
+// or changes, never as a standing gate. Run it from the repository root with the patches as
+// arguments.
 //
 //	go tool runnerpending core/redact/testdata/mutations/*.patch
 package main
@@ -206,11 +212,18 @@ func demonstrate(ctx context.Context, root string, environ []string, patchPath s
 		return result{}, err
 	}
 
+	// Both copies are taken before any test runs, the second from the first, so the two runs see the
+	// same files apart from the patch even when the checkout changes while the tests run.
 	pristine, err := copyTree(root, files)
 	if err != nil {
 		return result{}, err
 	}
 	defer removeCopy(pristine)
+	patched, err := copyTree(pristine, files)
+	if err != nil {
+		return result{}, err
+	}
+	defer removeCopy(patched)
 	if _, err := gitApply(pristine, "--check", absPatch); err != nil {
 		return result{}, fmt.Errorf("the patch does not apply: %w", err)
 	}
@@ -239,11 +252,6 @@ func demonstrate(ctx context.Context, root string, environ []string, patchPath s
 		return result{}, fmt.Errorf("these tests did not run and pass before the patch was applied: %s", strings.Join(absent, ", "))
 	}
 
-	patched, err := copyTree(root, files)
-	if err != nil {
-		return result{}, err
-	}
-	defer removeCopy(patched)
 	if _, err := gitApply(patched, absPatch); err != nil {
 		return result{}, err
 	}

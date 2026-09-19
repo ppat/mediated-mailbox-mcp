@@ -13,8 +13,8 @@ func TestSeedIsSet(t *testing.T) {
 	}
 }
 
-// TestNoFailFileIsSet stands for the repository's test of ADR-0069, which fails unless
-// RAPID_NOFAILFILE is true.
+// TestNoFailFileIsSet fails unless the run has RAPID_NOFAILFILE=true, which the gating invocation sets
+// (ADR-0069, row 6 of its ordinary-path table) and a demonstration therefore sets too.
 func TestNoFailFileIsSet(t *testing.T) {
 	if v := os.Getenv("RAPID_NOFAILFILE"); v != "true" {
 		t.Fatalf("RAPID_NOFAILFILE is %q", v)

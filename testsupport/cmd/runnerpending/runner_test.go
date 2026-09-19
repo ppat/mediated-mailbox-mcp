@@ -668,3 +668,42 @@ func TestCopyInsideARepositoryIsPatched(t *testing.T) {
 		t.Errorf("the demonstration did not hold:\n%s", res.report())
 	}
 }
+
+// TestCheckoutEditedDuringTheRunReachesNeitherRun edits the mechanism in the checkout while the
+// unpatched tests run, and runs a patch that changes only a comment. Were the patched copy taken
+// after the unpatched run, the edit would reach it alone and turn the named test red, and the
+// comment would look like a removal that held.
+func TestCheckoutEditedDuringTheRunReachesNeitherRun(t *testing.T) {
+	root := fixtureRoot(t)
+	signals := t.TempDir()
+	paused, resume := filepath.Join(signals, "paused"), filepath.Join(signals, "resume")
+	go func() {
+		for range 1500 {
+			if _, err := os.Stat(paused); err == nil {
+				src, err := os.ReadFile(filepath.Join(root, "gate", "gate.go"))
+				if err == nil {
+					edited := strings.Replace(string(src), "return !flagged", "return true", 1)
+					//nolint:gosec // The path is in the test's own temporary checkout.
+					err = os.WriteFile(filepath.Join(root, "gate", "gate.go"), []byte(edited), 0o600)
+				}
+				if err != nil {
+					t.Error(err)
+				}
+				writeFile(t, resume, "", 0o600)
+				return
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}()
+	res, err := demonstrateFixture(t, root, "gate", "noop", fixtureEnv("PAUSED_FILE="+paused, "RESUME_FILE="+resume))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(resume); err != nil {
+		t.Fatal("the checkout was never edited during the unpatched run")
+	}
+	want := outcome{StayedGreen: []string{"TestRefusesFlagged"}, Surviving: true}
+	if diff := cmp.Diff(want, outcomeOf(res), compare.Options); diff != "" {
+		t.Errorf("outcome (-want +got):\n%s", diff)
+	}
+}

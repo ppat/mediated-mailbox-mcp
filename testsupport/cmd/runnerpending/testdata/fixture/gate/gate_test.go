@@ -3,6 +3,7 @@ package gate_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"fixture/gate"
 )
@@ -29,4 +30,23 @@ func TestNoLeftover(t *testing.T) {
 // TestSkipped never runs to a pass, so a demonstration naming it must be refused.
 func TestSkipped(t *testing.T) {
 	t.Skip("skipped on purpose")
+}
+
+// TestPausesWhenAsked lets a test of the runner act while the tests run. When $PAUSED_FILE is set, it
+// creates that file and waits up to ten seconds for $RESUME_FILE to exist.
+func TestPausesWhenAsked(t *testing.T) {
+	paused, resume := os.Getenv("PAUSED_FILE"), os.Getenv("RESUME_FILE")
+	if paused == "" {
+		return
+	}
+	if err := os.WriteFile(paused, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for range 500 {
+		if _, err := os.Stat(resume); err == nil {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("never resumed")
 }
