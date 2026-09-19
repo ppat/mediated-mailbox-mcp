@@ -12,3 +12,11 @@ func TestSeedIsSet(t *testing.T) {
 		t.Fatalf("RAPID_SEED is %q", seed)
 	}
 }
+
+// TestNoFailFileIsSet stands for the repository's test of ADR-0069, which fails unless
+// RAPID_NOFAILFILE is true.
+func TestNoFailFileIsSet(t *testing.T) {
+	if v := os.Getenv("RAPID_NOFAILFILE"); v != "true" {
+		t.Fatalf("RAPID_NOFAILFILE is %q", v)
+	}
+}

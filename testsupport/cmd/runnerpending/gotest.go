@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -88,7 +90,14 @@ func goTest(ctx context.Context, root string, env, packages []string) (testRun, 
 	args := append([]string{"test", "-json", "-count=1"}, packages...)
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = root
-	cmd.Env = env
+	// go test keeps its work directory under GOTMPDIR. Inside the copy it goes when the copy goes,
+	// even when the process group is killed before go can remove it. Patterns such as ./... skip a
+	// directory whose name starts with a dot.
+	gotmp := filepath.Join(root, ".gotmp")
+	if err := os.Mkdir(gotmp, 0o750); err != nil {
+		return testRun{}, err
+	}
+	cmd.Env = append(slices.Clone(env), "GOTMPDIR="+gotmp)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
 	cmd.WaitDelay = 5 * time.Second

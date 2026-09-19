@@ -1,22 +1,21 @@
 control: The gate refuses flagged items
-removes: Allow returns true and leaves a file behind
+removes: Allow returns true, and the patch renames the test file so it no longer runs
 packages: ./gate
 tests: TestRefusesFlagged
 scheduled-count: no
 
 diff --git a/gate/gate.go b/gate/gate.go
-index f1b393f..cea2aec 100644
+index f1b393f..15ae082 100644
 --- a/gate/gate.go
 +++ b/gate/gate.go
-@@ -1,7 +1,10 @@
- // Package gate holds a mechanism for the runner's tests to remove. It refuses flagged items.
- package gate
+@@ -3,5 +3,5 @@ package gate
  
-+import "os"
-+
  // Allow reports whether an item may pass.
  func Allow(flagged bool) bool {
 -	return !flagged
-+	_ = os.WriteFile("leftover", nil, 0o600)
 +	return true
  }
+diff --git a/gate/gate_test.go b/gate/gate_test.txt
+similarity index 100%
+rename from gate/gate_test.go
+rename to gate/gate_test.txt

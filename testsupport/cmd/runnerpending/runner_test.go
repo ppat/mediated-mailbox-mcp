@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -63,11 +65,6 @@ func fixtureRoot(t *testing.T) string {
 	if out, err := exec.Command("git", "init", "--quiet", root).CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
-	// The file leftover.patch leaves behind is ignored, as build output is, so the working tree check
-	// does not see it and only the tests run after the restore can.
-	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("leftover\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	return root
 }
 
@@ -89,22 +86,6 @@ func patchPath(root, pkg, name string) string {
 	return filepath.Join(root, pkg, "testdata", "mutations", name+".patch")
 }
 
-// requireUnpatched fails unless the file at rel under root holds the fixture's original bytes.
-func requireUnpatched(t *testing.T, root, rel string) {
-	t.Helper()
-	want, err := os.ReadFile(filepath.Join("testdata", "fixture", rel))
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := os.ReadFile(filepath.Join(root, rel))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(string(want), string(got), compare.Options); diff != "" {
-		t.Errorf("%s was not restored (-want +got):\n%s", rel, diff)
-	}
-}
-
 func requireAbsent(t *testing.T, path string) {
 	t.Helper()
 	if _, err := os.Lstat(path); !errors.Is(err, fs.ErrNotExist) {
@@ -118,7 +99,6 @@ type outcome struct {
 	Broken      []string
 	StayedGreen []string
 	Surviving   bool
-	NotRestored bool
 	Held        bool
 }
 
@@ -126,7 +106,6 @@ func outcomeOf(r result) outcome {
 	o := outcome{
 		StayedGreen: r.stayedGreen,
 		Surviving:   r.surviving(),
-		NotRestored: r.notRestored != "",
 		Held:        r.held(),
 	}
 	for _, id := range r.red {
@@ -159,7 +138,6 @@ func TestRemovedMechanismTurnsTheRequiredTestRed(t *testing.T) {
 	if diff := cmp.Diff(rows, got, compare.Options); diff != "" {
 		t.Errorf("ledger rows (-want +got):\n%s", diff)
 	}
-	requireUnpatched(t, root, "gate/gate.go")
 }
 
 func TestPatchLeavingEveryTestGreenIsASurvivingMutant(t *testing.T) {
@@ -172,7 +150,6 @@ func TestPatchLeavingEveryTestGreenIsASurvivingMutant(t *testing.T) {
 	if diff := cmp.Diff(want, outcomeOf(res), compare.Options); diff != "" {
 		t.Errorf("outcome (-want +got):\n%s", diff)
 	}
-	requireUnpatched(t, root, "gate/gate.go")
 }
 
 func TestRequiredTestStayingGreenFailsWhileAnotherGoesRed(t *testing.T) {
@@ -215,7 +192,6 @@ func TestRedBeforeThePatchIsRefused(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "red before the patch is applied") || !strings.Contains(err.Error(), "TestUnrelatedFailure") {
 		t.Fatalf("got error %v, want a refusal because the tests are red unpatched", err)
 	}
-	requireUnpatched(t, root, "baseline/baseline.go")
 }
 
 func TestPatchBreakingTheBuildIsNotADemonstration(t *testing.T) {
@@ -227,18 +203,6 @@ func TestPatchBreakingTheBuildIsNotADemonstration(t *testing.T) {
 	want := outcome{Broken: []string{"fixture/gate"}, StayedGreen: []string{"TestRefusesFlagged"}}
 	if diff := cmp.Diff(want, outcomeOf(res), compare.Options); diff != "" {
 		t.Errorf("outcome (-want +got):\n%s", diff)
-	}
-	requireUnpatched(t, root, "gate/gate.go")
-}
-
-func TestTestsRedAfterRestoringFailTheDemonstration(t *testing.T) {
-	root := fixtureRoot(t)
-	res, err := demonstrateFixture(t, root, "gate", "leftover", fixtureEnv())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.held() || !strings.Contains(res.notRestored, "TestNoLeftover") {
-		t.Fatalf("held %v with notRestored %q, want a failed demonstration naming TestNoLeftover", res.held(), res.notRestored)
 	}
 }
 
@@ -256,8 +220,6 @@ func TestScheduledCountReachesRapid(t *testing.T) {
 		if diff := cmp.Diff(want, outcomeOf(res), compare.Options); diff != "" {
 			t.Errorf("outcome (-want +got):\n%s", diff)
 		}
-		// The red property would have written a fail file here without RAPID_NOFAILFILE=true.
-		requireAbsent(t, filepath.Join(root, "count", "testdata", "rapid"))
 	})
 	t.Run("unset", func(t *testing.T) {
 		root := fixtureRoot(t)
@@ -266,49 +228,6 @@ func TestScheduledCountReachesRapid(t *testing.T) {
 			t.Fatalf("got error %v, want a refusal naming RAPID_SCHEDULED_CHECKS", err)
 		}
 	})
-}
-
-// TestInterruptRestoresThePatchedFiles cancels the run while a patched test blocks, as an interrupt
-// does. It requires every file back as it was and the blocked test process gone. The patched code
-// writes its process ID to a file named blocked before it blocks.
-func TestInterruptRestoresThePatchedFiles(t *testing.T) {
-	root := fixtureRoot(t)
-	blocked := filepath.Join(root, "gate", "blocked")
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	pid := make(chan int, 1)
-	go func() {
-		for ctx.Err() == nil {
-			if data, err := os.ReadFile(blocked); err == nil && len(data) > 0 {
-				n, err := strconv.Atoi(string(data))
-				if err == nil {
-					pid <- n
-				}
-				cancel()
-				return
-			}
-			time.Sleep(20 * time.Millisecond)
-		}
-	}()
-	_, err := demonstrate(ctx, root, fixtureEnv(), patchPath(root, "gate", "interrupt"))
-	if err == nil || !errors.Is(err, context.Canceled) {
-		t.Fatalf("got error %v, want the interruption", err)
-	}
-	var stop *stopError
-	if errors.As(err, &stop) {
-		t.Fatalf("restoring failed: %v", err)
-	}
-	requireUnpatched(t, root, "gate/gate.go")
-	requireAbsent(t, filepath.Join(root, "gate", "newdir"))
-	if !strings.Contains(err.Error(), "the working tree differs from before the patch at gate/blocked") {
-		t.Errorf("the error does not name the file the patched code wrote:\n%v", err)
-	}
-	select {
-	case n := <-pid:
-		requireExited(t, n)
-	default:
-		t.Fatal("the patched test never started, so the run was not interrupted while it blocked")
-	}
 }
 
 // requireExited waits briefly for the process to be gone, counting a process that has exited but
@@ -332,28 +251,6 @@ func requireExited(t *testing.T, pid int) {
 	}
 }
 
-// TestFailedRestoreStopsTheRun uses a patch whose tests write into a directory the patch adds, so the
-// directory cannot be removed. The rest must still be restored, and no later patch may run.
-func TestFailedRestoreStopsTheRun(t *testing.T) {
-	root := fixtureRoot(t)
-	var out bytes.Buffer
-	ok := runAll(t.Context(), &out, root, fixtureEnv(), []string{patchPath(root, "gate", "strand"), patchPath(root, "count", "rare")})
-	if ok {
-		t.Error("runAll reported success")
-	}
-	if !strings.Contains(out.String(), "restoring the patched files failed") {
-		t.Errorf("output does not report the failed restore:\n%s", out.String())
-	}
-	if strings.Contains(out.String(), "rare.patch") {
-		t.Errorf("a patch ran after the failed restore:\n%s", out.String())
-	}
-	// The patch that never ran still leaves its control without a row.
-	if want := `No ledger row for "The mechanism holds for every case"`; !strings.Contains(out.String(), want) {
-		t.Errorf("output lacks %q:\n%s", want, out.String())
-	}
-	requireUnpatched(t, root, "gate/gate.go")
-}
-
 func TestRunAllReportsEachPatch(t *testing.T) {
 	root := fixtureRoot(t)
 	var out bytes.Buffer
@@ -364,7 +261,7 @@ func TestRunAllReportsEachPatch(t *testing.T) {
 	for _, want := range []string{
 		"PASS " + patchPath(root, "gate", "red"),
 		"FAIL " + patchPath(root, "gate", "survive"),
-		"surviving mutant",
+		"  surviving mutant: every test stayed green",
 		"Ledger rows for docs/MUTATIONS.md\n| The gate refuses flagged items | (1) Allow returns true without reading the flag<br>(2) Allow is rewritten to the same logic |",
 	} {
 		if !strings.Contains(out.String(), want) {
@@ -398,67 +295,13 @@ func TestGOFLAGSIsRefused(t *testing.T) {
 	}
 }
 
-// TestEmptiedDirectoryIsRestored uses patches that delete, or move elsewhere, the only file in
-// gate/limit, which takes the directory with it.
-func TestEmptiedDirectoryIsRestored(t *testing.T) {
-	for _, patch := range []string{"delete", "moveout"} {
-		t.Run(patch, func(t *testing.T) {
-			root := fixtureRoot(t)
-			res, err := demonstrateFixture(t, root, "gate", patch, fixtureEnv())
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !res.held() {
-				t.Errorf("the demonstration did not hold:\n%s", res.report())
-			}
-			requireUnpatched(t, root, "gate/limit/limit.go")
-			requireAbsent(t, filepath.Join(root, "limits"))
-		})
-	}
-}
-
-// TestRenameIsRestored uses a patch that also renames a file, which deletes the file's old path.
-func TestRenameIsRestored(t *testing.T) {
-	root := fixtureRoot(t)
-	res, err := demonstrateFixture(t, root, "gate", "rename", fixtureEnv())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !res.held() {
-		t.Errorf("the demonstration did not hold:\n%s", res.report())
-	}
-	requireUnpatched(t, root, "twin/twin.go")
-	requireAbsent(t, filepath.Join(root, "twin", "renamed.go"))
-}
-
-// TestModeChangeIsRestored uses a patch that also makes the file it changes executable.
-func TestModeChangeIsRestored(t *testing.T) {
-	root := fixtureRoot(t)
-	path := filepath.Join(root, "gate", "gate.go")
-	before, err := os.Stat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	res, err := demonstrateFixture(t, root, "gate", "mode", fixtureEnv())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !res.held() {
-		t.Errorf("the demonstration did not hold:\n%s", res.report())
-	}
-	after, err := os.Stat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if after.Mode() != before.Mode() {
-		t.Errorf("gate.go has mode %s after the run, and had %s before", after.Mode(), before.Mode())
-	}
-}
-
 func TestPatchTouchingTestCodeIsRefused(t *testing.T) {
 	cases := map[string]string{
 		"testonly": "gate/gate_test.go",
 		"testdata": "gate/testdata/input.txt",
+		// git apply names only the new path of a rename, so the test file renamed away is seen through
+		// the patch's rename from line.
+		"testrename": "gate/gate_test.go",
 	}
 	for patch, path := range cases {
 		t.Run(patch, func(t *testing.T) {
@@ -479,23 +322,6 @@ func TestSkippedRequiredTestIsRefused(t *testing.T) {
 	}
 }
 
-// TestStrayFileFailsTheDemonstrationAndStopsTheRun uses a patch whose code writes a file into another
-// package, outside every path the patch names. No test notices it, so only the working tree check can.
-func TestStrayFileFailsTheDemonstrationAndStopsTheRun(t *testing.T) {
-	root := fixtureRoot(t)
-	var out bytes.Buffer
-	ok := runAll(t.Context(), &out, root, fixtureEnv(), []string{patchPath(root, "gate", "stray"), patchPath(root, "gate", "red")})
-	if ok {
-		t.Error("runAll reported success")
-	}
-	if !strings.Contains(out.String(), "the working tree differs from before the patch at twin/stray.go") {
-		t.Errorf("output does not name the stray file:\n%s", out.String())
-	}
-	if strings.Contains(out.String(), "red.patch") {
-		t.Errorf("a patch ran after the working tree changed:\n%s", out.String())
-	}
-}
-
 // TestSeedIsChosenAndRecorded runs a patch with no RAPID_SEED in the environment. The fixture's
 // TestSeedIsSet fails unless the runs have one, and the report must record it.
 func TestSeedIsChosenAndRecorded(t *testing.T) {
@@ -507,7 +333,7 @@ func TestSeedIsChosenAndRecorded(t *testing.T) {
 	if n, err := strconv.ParseUint(res.seed, 10, 64); err != nil || n == 0 {
 		t.Fatalf("the result records seed %q", res.seed)
 	}
-	if want := "every run had RAPID_SEED=" + res.seed + " and RAPID_CHECKS 1000"; !strings.Contains(res.report(), want) {
+	if want := "both runs had RAPID_SEED=" + res.seed + " and RAPID_CHECKS 1000"; !strings.Contains(res.report(), want) {
 		t.Errorf("report lacks %q:\n%s", want, res.report())
 	}
 }
@@ -571,23 +397,166 @@ func TestRunAllPrintsNoRowForAFailedRemoval(t *testing.T) {
 	}
 }
 
-// TestHangupRestoresThePatchedFiles runs the built program and sends it SIGHUP, as closing its
+func writeFile(t *testing.T, path, content string, mode os.FileMode) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), mode); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func git(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+
+// treeDigest maps every file and directory under root, .git included, to its mode and, for a file,
+// a hash of its content, so two digests differ when anything in the checkout changed.
+func treeDigest(t *testing.T, root string) map[string]string {
+	t.Helper()
+	digest := map[string]string{}
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		state := info.Mode().String()
+		if info.Mode().IsRegular() {
+			//nolint:gosec // The walk is over the test's own temporary checkout.
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			state += fmt.Sprintf(" %x", sha256.Sum256(data))
+		}
+		digest[path] = state
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return digest
+}
+
+func requireEmpty(t *testing.T, dir string) {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		t.Errorf("%s is left in the temporary directory", e.Name())
+	}
+}
+
+// TestCheckoutIsUnchanged runs every fixture patch that ends on its own, the one whose code writes a
+// file into another package included, and requires the checkout byte for byte as it was and no copy
+// left behind.
+func TestCheckoutIsUnchanged(t *testing.T) {
+	root := fixtureRoot(t)
+	var patches []string
+	for _, p := range []struct{ pkg, name string }{
+		{"gate", "red"},
+		{"gate", "survive"},
+		{"gate", "wrong"},
+		{"gate", "twin"},
+		{"gate", "missing"},
+		{"gate", "build"},
+		{"gate", "skip"},
+		{"gate", "stray"},
+		{"gate", "testonly"},
+		{"gate", "testdata"},
+		{"baseline", "double"},
+		{"count", "rare"},
+	} {
+		patches = append(patches, patchPath(root, p.pkg, p.name))
+	}
+	before := treeDigest(t, root)
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
+	var out bytes.Buffer
+	runAll(t.Context(), &out, root, fixtureEnv("RAPID_SCHEDULED_CHECKS=1000"), patches)
+	if !strings.Contains(out.String(), "PASS "+patchPath(root, "gate", "stray")) {
+		t.Errorf("the patch writing into another package did not hold:\n%s", out.String())
+	}
+	if diff := cmp.Diff(before, treeDigest(t, root), compare.Options); diff != "" {
+		t.Errorf("the checkout changed (-before +after):\n%s", diff)
+	}
+	requireEmpty(t, tmp)
+}
+
+// TestInterruptLeavesTheCheckoutUnchanged cancels the run while a patched test blocks, as an
+// interrupt does. The patched code writes its process ID to $BLOCKED_FILE before it blocks. The
+// checkout must be as it was, the blocked test gone, no copy left, and the patch after it never run.
+func TestInterruptLeavesTheCheckoutUnchanged(t *testing.T) {
+	root := fixtureRoot(t)
+	blocked := filepath.Join(t.TempDir(), "blocked")
+	before := treeDigest(t, root)
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	pid := make(chan int, 1)
+	go func() {
+		for ctx.Err() == nil {
+			if data, err := os.ReadFile(blocked); err == nil && len(data) > 0 {
+				if n, err := strconv.Atoi(string(data)); err == nil {
+					pid <- n
+				}
+				cancel()
+				return
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}()
+	var out bytes.Buffer
+	ok := runAll(ctx, &out, root, fixtureEnv("BLOCKED_FILE="+blocked), []string{patchPath(root, "gate", "interrupt"), patchPath(root, "count", "rare")})
+	if ok || !strings.Contains(out.String(), "context canceled") {
+		t.Errorf("runAll returned %v, want a failure from the interruption:\n%s", ok, out.String())
+	}
+	if strings.Contains(out.String(), "rare.patch") {
+		t.Errorf("a patch ran after the interruption:\n%s", out.String())
+	}
+	if want := `No ledger row for "The mechanism holds for every case"`; !strings.Contains(out.String(), want) {
+		t.Errorf("output lacks %q:\n%s", want, out.String())
+	}
+	if diff := cmp.Diff(before, treeDigest(t, root), compare.Options); diff != "" {
+		t.Errorf("the checkout changed (-before +after):\n%s", diff)
+	}
+	requireEmpty(t, tmp)
+	select {
+	case n := <-pid:
+		requireExited(t, n)
+	default:
+		t.Fatal("the patched test never started, so the run was not interrupted while it blocked")
+	}
+}
+
+// TestHangupLeavesTheCheckoutUnchanged runs the built program and sends it SIGHUP, as closing its
 // terminal does, while a patched test blocks.
-func TestHangupRestoresThePatchedFiles(t *testing.T) {
+func TestHangupLeavesTheCheckoutUnchanged(t *testing.T) {
 	bin := filepath.Join(t.TempDir(), "runner")
 	if out, err := exec.Command("go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}
 	root := fixtureRoot(t)
+	blocked := filepath.Join(t.TempDir(), "blocked")
+	tmp := t.TempDir()
+	before := treeDigest(t, root)
 	cmd := exec.Command(bin, filepath.Join("gate", "testdata", "mutations", "interrupt.patch"))
 	cmd.Dir = root
-	cmd.Env = fixtureEnv()
+	cmd.Env = fixtureEnv("BLOCKED_FILE="+blocked, "TMPDIR="+tmp)
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	blocked := filepath.Join(root, "gate", "blocked")
 	deadline := time.Now().Add(60 * time.Second)
 	var pid int
 	for {
@@ -616,38 +585,86 @@ func TestHangupRestoresThePatchedFiles(t *testing.T) {
 	err := cmd.Wait()
 	var exit *exec.ExitError
 	if !errors.As(err, &exit) || exit.ExitCode() != 1 {
-		t.Errorf("the runner ended with %v, want exit status 1 after restoring:\n%s", err, out.String())
+		t.Errorf("the runner ended with %v, want exit status 1 after cleaning up:\n%s", err, out.String())
 	}
-	requireUnpatched(t, root, "gate/gate.go")
-	requireAbsent(t, filepath.Join(root, "gate", "newdir"))
-	if !strings.Contains(out.String(), "the working tree differs from before the patch at gate/blocked") {
-		t.Errorf("the output does not name the file the patched code wrote:\n%s", out.String())
+	if diff := cmp.Diff(before, treeDigest(t, root), compare.Options); diff != "" {
+		t.Errorf("the checkout changed (-before +after):\n%s", diff)
 	}
+	requireEmpty(t, tmp)
 	requireExited(t, pid)
 }
 
-// TestUncheckedTreeIsSaid interrupts a run after moving the fixture's .git directory away, so the
-// comparison of the working tree after the restore cannot run. The error must say so.
-func TestUncheckedTreeIsSaid(t *testing.T) {
+// TestCopyIsTheWorkingTreeAsGitSeesIt copies a tree holding a staged file made executable, an
+// untracked file, an ignored file, and a staged file deleted from the working tree.
+func TestCopyIsTheWorkingTreeAsGitSeesIt(t *testing.T) {
 	root := fixtureRoot(t)
-	blocked := filepath.Join(root, "gate", "blocked")
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	go func() {
-		for ctx.Err() == nil {
-			if data, err := os.ReadFile(blocked); err == nil && len(data) > 0 {
-				if err := os.Rename(filepath.Join(root, ".git"), filepath.Join(root, "git-moved")); err != nil {
-					t.Error(err)
-				}
-				cancel()
-				return
-			}
-			time.Sleep(20 * time.Millisecond)
-		}
-	}()
-	_, err := demonstrate(ctx, root, fixtureEnv(), patchPath(root, "gate", "interrupt"))
-	if err == nil || !strings.Contains(err.Error(), "the working tree was not checked against its state before the patch") {
-		t.Fatalf("got error %v, want it to say the working tree was not checked", err)
+	writeFile(t, filepath.Join(root, ".gitignore"), "ignored.txt\n", 0o600)
+	git(t, root, "add", "--all")
+	//nolint:gosec // The test needs an execute bit to see that the copy keeps it.
+	if err := os.Chmod(filepath.Join(root, "gate", "gate.go"), 0o500); err != nil {
+		t.Fatal(err)
 	}
-	requireUnpatched(t, root, "gate/gate.go")
+	if err := os.Remove(filepath.Join(root, "twin", "twin_test.go")); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(root, "gate", "untracked.txt"), "untracked\n", 0o600)
+	writeFile(t, filepath.Join(root, "gate", "ignored.txt"), "ignored\n", 0o600)
+	files, err := workingTreeFiles(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := copyTree(root, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Error(err)
+		}
+	})
+	info, err := os.Stat(filepath.Join(dir, "gate", "gate.go"))
+	if err != nil {
+		t.Fatalf("the staged file is not in the copy: %v", err)
+	}
+	if info.Mode().Perm() != 0o500 {
+		t.Errorf("gate.go has mode %s in the copy, want -r-x------", info.Mode())
+	}
+	if _, err := os.Stat(filepath.Join(dir, "gate", "untracked.txt")); err != nil {
+		t.Errorf("the untracked file is not in the copy: %v", err)
+	}
+	requireAbsent(t, filepath.Join(dir, "gate", "ignored.txt"))
+	requireAbsent(t, filepath.Join(dir, "twin", "twin_test.go"))
+}
+
+func TestCopyRefusesASymbolicLink(t *testing.T) {
+	root := fixtureRoot(t)
+	if err := os.Symlink("gate.go", filepath.Join(root, "gate", "link")); err != nil {
+		t.Fatal(err)
+	}
+	files, err := workingTreeFiles(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
+	if _, err := copyTree(root, files); err == nil || !strings.Contains(err.Error(), "gate/link is not a regular file") {
+		t.Fatalf("got error %v, want the link refused", err)
+	}
+	requireEmpty(t, tmp)
+}
+
+// TestCopyInsideARepositoryIsPatched puts the copies under a directory that is itself a git
+// repository, as a TMPDIR inside a checkout would. git apply must still patch the copy.
+func TestCopyInsideARepositoryIsPatched(t *testing.T) {
+	root := fixtureRoot(t)
+	outer := t.TempDir()
+	git(t, outer, "init", "--quiet")
+	t.Setenv("TMPDIR", outer)
+	res, err := demonstrateFixture(t, root, "gate", "red", fixtureEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.held() {
+		t.Errorf("the demonstration did not hold:\n%s", res.report())
+	}
 }

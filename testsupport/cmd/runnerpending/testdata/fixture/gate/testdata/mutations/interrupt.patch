@@ -1,11 +1,11 @@
 control: The gate refuses flagged items
-removes: Allow records its process and blocks for a minute, and the patch adds a package
+removes: Allow writes its process ID to $BLOCKED_FILE and blocks for a minute
 packages: ./gate
 tests: TestRefusesFlagged
 scheduled-count: no
 
 diff --git a/gate/gate.go b/gate/gate.go
-index f1b393f..8ade79a 100644
+index f1b393f..afd3742 100644
 --- a/gate/gate.go
 +++ b/gate/gate.go
 @@ -1,7 +1,15 @@
@@ -20,14 +20,7 @@ index f1b393f..8ade79a 100644
 +
  // Allow reports whether an item may pass.
  func Allow(flagged bool) bool {
-+	_ = os.WriteFile("blocked", []byte(strconv.Itoa(os.Getpid())), 0o600)
++	_ = os.WriteFile(os.Getenv("BLOCKED_FILE"), []byte(strconv.Itoa(os.Getpid())), 0o600)
 +	time.Sleep(time.Minute)
  	return !flagged
  }
-diff --git a/gate/newdir/new.go b/gate/newdir/new.go
-new file mode 100644
-index 0000000..aef0095
---- /dev/null
-+++ b/gate/newdir/new.go
-@@ -0,0 +1 @@
-+package newdir

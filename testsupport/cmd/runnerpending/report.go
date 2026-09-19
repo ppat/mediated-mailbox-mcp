@@ -20,7 +20,7 @@ func (r result) report() string {
 	}
 	fmt.Fprintf(&w, "%s %s\n", verdict, r.patch)
 	fmt.Fprintf(&w, "  control: %s\n  removes: %s\n", r.preamble.control, r.preamble.removes)
-	fmt.Fprintf(&w, "  every run had RAPID_SEED=%s and RAPID_CHECKS %s\n", r.seed, checks)
+	fmt.Fprintf(&w, "  both runs had RAPID_SEED=%s and RAPID_CHECKS %s\n", r.seed, checks)
 	if r.surviving() {
 		fmt.Fprintln(&w, "  surviving mutant: every test stayed green with the mechanism removed, so the tests are vacuous or the mechanism is redundant")
 	}
@@ -36,12 +36,6 @@ func (r result) report() string {
 			state = "did not go red"
 		}
 		fmt.Fprintf(&w, "  required %s: %s\n", name, state)
-	}
-	for _, path := range r.strays {
-		fmt.Fprintf(&w, "  the working tree differs from before the patch at %s\n", path)
-	}
-	if r.notRestored != "" {
-		fmt.Fprintf(&w, "  the tests were not green again after the patch was removed\n%s", indent(r.notRestored))
 	}
 	fmt.Fprintln(&w)
 	return w.String()
