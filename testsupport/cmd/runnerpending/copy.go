@@ -16,8 +16,8 @@ import (
 
 // workingTreeFiles lists the working tree as git sees it, relative to root. That is the tracked
 // files and the untracked files git does not ignore, so an author's uncommitted control and patch
-// are included and ignored build output, such as node_modules, is not. --deduplicate lists a path with
-// a merge conflict once rather than once per stage.
+// are included and ignored build output, such as node_modules, is not. --deduplicate lists a path
+// with a merge conflict once rather than once per stage.
 func workingTreeFiles(root string) ([]string, error) {
 	cmd := exec.Command("git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--deduplicate")
 	cmd.Dir = root
