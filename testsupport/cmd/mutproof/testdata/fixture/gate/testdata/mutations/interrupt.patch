@@ -1,0 +1,26 @@
+control: The gate refuses flagged items
+removes: Allow writes its process ID to $BLOCKED_FILE and blocks for a minute
+packages: ./gate
+tests: TestRefusesFlagged
+scheduled-count: no
+
+diff --git a/gate/gate.go b/gate/gate.go
+index f1b393f..afd3742 100644
+--- a/gate/gate.go
++++ b/gate/gate.go
+@@ -1,7 +1,15 @@
+ // Package gate holds a mechanism for the runner's tests to remove. It refuses flagged items.
+ package gate
+ 
++import (
++	"os"
++	"strconv"
++	"time"
++)
++
+ // Allow reports whether an item may pass.
+ func Allow(flagged bool) bool {
++	_ = os.WriteFile(os.Getenv("BLOCKED_FILE"), []byte(strconv.Itoa(os.Getpid())), 0o600)
++	time.Sleep(time.Minute)
+ 	return !flagged
+ }

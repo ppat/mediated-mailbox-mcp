@@ -1,0 +1,17 @@
+control: Double doubles
+removes: Double adds one to twice n
+packages: ./baseline
+tests: TestDoubleZero
+scheduled-count: no
+
+diff --git a/baseline/baseline.go b/baseline/baseline.go
+index d0fa594..2d55195 100644
+--- a/baseline/baseline.go
++++ b/baseline/baseline.go
+@@ -3,5 +3,5 @@ package baseline
+ 
+ // Double returns twice n.
+ func Double(n int) int {
+-	return n * 2
++	return n*2 + 1
+ }

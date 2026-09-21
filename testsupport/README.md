@@ -20,8 +20,10 @@ an image, because only test files and the tooling programs import it. Its packag
 - `postgres`, what an integration test package needs to reach its database.
 - `mustnotcompile`, the helper that asserts a forbidden construction fails to compile.
 - `analysis`, the `go vet` analyser of ADR-0069.
-- `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run) and `cmd/vetcheck` (the
-  analyser's program), each run through `go tool`.
+- `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run), `cmd/vetcheck` (the
+  analyser's program) and `cmd/mutproof` (the runner that records mutation demonstrations, of
+  [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)), each run
+  through `go tool`.
 
 The import rules are written per file, so packages importing the property-testing library and
 packages every test may import sit in the one library without one reaching the other.

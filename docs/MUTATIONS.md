@@ -10,8 +10,12 @@ decision is ADR-0046's, resolved through the [decision-record index](./adr/READM
 
 **A row.** One control, one demonstration. It names how the mechanism was removed or disabled,
 the tests that went red, the date, and an evidence pointer. The table is the whole artifact,
-never a pass rate. A surviving mutant holds its row open as a defect until the tests are fixed
-or the mechanism is deliberately deleted as redundant.
+never a pass rate. A control whose mechanism is broken more than one way, one patch per break,
+numbers each removal in the one row and names the tests each turned red. A surviving mutant holds
+its row open as a defect until the tests are fixed or the mechanism is deliberately deleted as
+redundant, and the row says so beside its date. The runner that applies a demonstration's patches,
+`go tool mutproof` ([testsupport/README.md](../testsupport/README.md)), prints each row in this
+shape.
 
 **Lifecycle.** A row is produced when its control lands and reproduced when the control or its
 tests change. Between those events it is a claim about its date, while the permanent CI tests
