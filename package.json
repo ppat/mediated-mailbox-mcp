@@ -1,0 +1,8 @@
+{
+  "description": "Pins the commitlint the commit-messages gate, the pr-title gate and the commit-taxonomy check all resolve, so one engine judges every string that can land on main, and the parser that reads the workflow files the check inspects.",
+  "devDependencies": {
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "21.2.2",
+    "yaml": "2.9.0"
+  }
+}
