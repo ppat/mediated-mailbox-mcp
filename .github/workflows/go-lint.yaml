@@ -49,6 +49,16 @@ jobs:
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
+    # go.mod and go.sum must hold what the module graph selects and nothing else. Every update leaves a superseded
+    # go.sum entry behind, because go get never prunes, and such an entry is inert, which is why drift survives
+    # green runs unnoticed. An update that shifts what the graph selects of other modules also leaves out a hash
+    # those modules now need, which fails a build or govulncheck whenever one resolves them. -diff reports the
+    # difference and changes no file.
+    - name: Check that go.mod and go.sum are tidy
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- go mod tidy -diff
+
     - name: Verify the configuration
       shell: bash
       working-directory: ./current

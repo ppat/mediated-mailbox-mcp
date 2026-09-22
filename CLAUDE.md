@@ -246,7 +246,7 @@ need the repository's tools install them from `mise.toml` through
 
 | Workflow | Runs on | Does |
 | --- | --- | --- |
-| `go-lint` | Go code, the lint configuration, tool pins | `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, and `go tool banproof` |
+| `go-lint` | Go code, the lint configuration, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, and `go tool banproof` |
 | `go-test` | Go code, tool pins | Unit tests. A gating property run sets `RAPID_NOFAILFILE=true`, passes no `-short`, and reads `RAPID_CHECKS` and a non-zero `RAPID_SEED` from repository variables, failing once a property or crash test exists without them ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
 | `go-integration` | Go code, tool pins | The integration tests under `go tool pgrun` with `-tags integration`, with the same property-run settings |
 | `go-vulncheck` | Go code, and a schedule | `govulncheck` |
@@ -278,7 +278,11 @@ are ever made required.
   `ui/browser/package.json` and `ui/browser/codegen/package.json`, and base images in the
   Dockerfiles. The existing hygiene workflow, its reusable jobs and pre-commit's hygiene hooks carry
   their own pins. Renovate tracks every pin, and groups the Go version and the bun version across
-  the places each is pinned so they move together.
+  the places each is pinned so they move together. It runs `go mod tidy` after an update to a Go
+  dependency, because the update writes the new module's sums and prunes none of the ones the module
+  graph stops selecting, and an update that shifts what the graph selects of other modules leaves
+  out the sums those modules now need. The `go-lint` workflow fails on that drift whatever produced
+  it.
 - **The project's own tooling programs run through `go tool`**, from `tool` directives naming
   packages of this module, which adds no outside dependency. Outside tools with a Go module of their
   own are never `tool` directives in this module, because their requirements would take part in
