@@ -21,3 +21,4 @@ ENV GOOSE_DRIVER=postgres \
     GOOSE_MIGRATION_DIR=/migrations
 ENTRYPOINT ["/goose"]
 CMD ["up"]
+# pr-labels test, never merged
