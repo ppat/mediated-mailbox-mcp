@@ -142,6 +142,9 @@
       "allowedVersions": "<6"
     }
   ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "printConfig": true,

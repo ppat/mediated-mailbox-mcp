@@ -118,7 +118,7 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132) and not yet released. No feature code exists **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132) and [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134) and not yet released. No feature code exists **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
 | Verifications | Every row keyed to F4 is proven, by pull requests #60 and [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | Nothing demonstrable yet. The ledger stays empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
@@ -128,7 +128,7 @@ perfected up front.
 
 - [x] **F4 — Layout, build, test and static-analysis tooling** → [O6](./USE_CASES.md#o6--deployable)
   · [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at image
-  Merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60),
+  Delivered by pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60),
   [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and
   [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), which closed its tickets
   [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90) and
