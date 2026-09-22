@@ -118,22 +118,57 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60) and [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and not yet released. No feature code exists **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132) and not yet released. No feature code exists **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
 | Verifications | Every row keyed to F4 is proven, by pull requests #60 and [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | Nothing demonstrable yet. The ledger stays empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
-| **The delivery gap** | Every unit. F4's layout and tooling are merged, what remains of F4 is in its tickets, and no other unit has started |
+| **The delivery gap** | Every unit except F4, which is delivered. No other unit has started |
 
 ## Delivered, mapped to outcomes
 
-Nothing is delivered. This roadmap predates the first line of feature code, and the register starts
-empty, deliberately.
+- [x] **F4 — Layout, build, test and static-analysis tooling** → [O6](./USE_CASES.md#o6--deployable)
+  · [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at image
+  Merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60),
+  [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and
+  [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), which closed its tickets
+  [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90) and
+  [#69](https://github.com/ppat/mediated-mailbox-mcp/issues/69), and not yet released. Every
+  component laid out as documented packages, the Go module with its linters, formatters and the
+  ban-proof program over its violation files, the data-access checks, the browser's build, lint and
+  test runner, every Dockerfile, the chart skeleton, the chainsaw configuration and every CI
+  workflow, including the release workflow that publishes and signs every image and the chart by
+  digest ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md),
+  [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md),
+  [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). The layout is
+  [CLAUDE.md](./CLAUDE.md#code-layout-and-conventions)'s, deciding records
+  [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md),
+  [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md),
+  [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md),
+  [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md),
+  [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md),
+  [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md),
+  [ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md),
+  [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) and
+  [ADR-0072](./docs/adr/engineering/0072-browser-bans-under-oxlint-and-ast-grep.md). Every
+  verification row keyed to it is proven, each seen to fail through a violation file or a
+  deliberately broken input
+  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). It also
+  delivered the runner that records mutation demonstrations, which runs ordinary Go tests,
+  property tests included. F4 carries the static controls of other outcomes as well, the import
+  boundaries, the lint bans and the lint half of the unconstructability checks, because one
+  program proves them all.
+  **What it did not deliver.** No feature code. No mutation demonstration of any of its controls,
+  each of which is recorded with the implementation work that touches the surface area the control
+  interacts with. The runner's support for integration tests, crash sequences and browser tests,
+  which the first demonstration needing each kind adds. A real release, so the release workflow's
+  keyless signing has run only against a local registry with a key pair standing in, and the first
+  real release is the first to exercise it.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
 MCP endpoint, no index, no gate, no deployment, and no proven property of any feature. The layout
 and the checks whose verification rows are marked proven are demonstrated by code merged from pull
-requests #60 and #131. Every other claim in the design is authored, and none is yet demonstrated by code in
-this repository.
+requests #60 and #131. Every other claim in the design is authored, and none is yet demonstrated by
+code in this repository.
 
 ## The value path
 
@@ -153,7 +188,7 @@ flowchart TB
 
 ### V1 — The safeguard exists before anything flows
 
-**Units:** [F4](#group-f--foundation) · [S1](#group-s--safeguard-machinery) ·
+**Units:** [F4](#delivered-mapped-to-outcomes) · [S1](#group-s--safeguard-machinery) ·
 [S2](#group-s--safeguard-machinery) · [S3](#group-s--safeguard-machinery). **Value shipped:** the
 operator gets the safeguard proven before anything is built on it. The tooling's checks that stand
 in for controls exist and have been seen to fail, and the whole path a body would take, the gate,
@@ -227,7 +262,7 @@ holds, with an entry naming the point.
 
 ### Production point 1 — the read path
 
-- **After:** [F4](#group-f--foundation) · [S1](#group-s--safeguard-machinery) ·
+- **After:** [F4](#delivered-mapped-to-outcomes) · [S1](#group-s--safeguard-machinery) ·
   [S2](#group-s--safeguard-machinery) · [S3](#group-s--safeguard-machinery) ·
   [F2](#group-f--foundation) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
   [D1](#group-d--data-flows) · [D2](#group-d--data-flows) · [D3](#group-d--data-flows) ·
@@ -403,46 +438,12 @@ inside the sanitization step ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re
 
 What everything runs on. The tooling, the store, the adapter, the budget. F1 is retired. Its
 application half lives in [F5](#group-f--foundation) and its platform half at [production point
-1](#production-point-1--the-read-path). [F4](#group-f--foundation) serves one outcome and also
-carries the static controls of others, the import boundaries, the lint bans and the lint half of the
-unconstructability checks, because one program proves them all. [F5](#group-f--foundation) serves
+1](#production-point-1--the-read-path). F4 is delivered and sits in the [delivered
+register](#delivered-mapped-to-outcomes). [F5](#group-f--foundation) serves
 [G1](./USE_CASES.md#g1--whole-mailbox-visibility) and also carries
 [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the scope that
 excludes permanent delete, because the grant is the adapter's.
 
-- [ ] **F4 — Layout, build, test and static-analysis tooling** → [O6](./USE_CASES.md#o6--deployable)
-  · [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at image
-  Most of it merged from pull request [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60),
-  and what remains is in its tickets. Every component laid out as documented packages, the Go
-  module with its linters, formatters and the ban-proof program over its violation files, the
-  data-access checks, the browser's build, lint and test runner, every Dockerfile, the chart
-  skeleton, the chainsaw configuration and every CI workflow, including the release workflow that
-  publishes and signs every image and the chart by digest
-  ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md),
-  [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md),
-  [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). The layout is
-  [CLAUDE.md](./CLAUDE.md#code-layout-and-conventions)'s, deciding records
-  [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md),
-  [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md),
-  [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md),
-  [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) and
-  [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md),
-  [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md),
-  [ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md),
-  [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) and
-  [ADR-0072](./docs/adr/engineering/0072-browser-bans-under-oxlint-and-ast-grep.md). No feature
-  code. It finishes at image because it creates every deployable's composition root and Dockerfile
-  and its images workflow builds them all. It lands first after v0.0.1, before any other unit, and
-  what proves it is every verification row keyed to it, each seen to fail through a violation file
-  or a deliberately broken input
-  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). F4 also builds
-  the runner that records mutation demonstrations. It starts out running ordinary Go tests. The
-  first demonstration that needs integration tests, crash sequences or browser tests adds support
-  for that kind of test to the runner. The mutation demonstration of each of its
-  controls is recorded with the implementation work that touches the surface area the control
-  interacts with, not in F4, so F4 is delivered when its own tickets close. The release workflow's
-  keyless signing has so far run only against a local registry with a key pair standing in, and the
-  first real release is the first to exercise it.
 - [ ] **F2 — The data layer** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
   PostgreSQL as the one store ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md)), the
@@ -935,7 +936,7 @@ about its cluster.
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | No dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's application half at F5, and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Rides D3 as criteria, flagged in Group D's preamble. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
-| [O6](./USE_CASES.md#o6--deployable) deployable | F4 · R1 · R2 · R3 | The chart's skeleton and every workflow land with F4. The bare-cluster install proof stands from R1 |
+| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1 |
 
 ## Dependencies
 

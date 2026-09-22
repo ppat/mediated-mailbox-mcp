@@ -1,0 +1,16 @@
+control: The gate refuses flagged items
+removes: Nothing, a comment in twin changes
+packages: ./gate
+tests: TestRefusesFlagged
+scheduled-count: no
+
+diff --git a/twin/twin.go b/twin/twin.go
+index c87184c..875f48c 100644
+--- a/twin/twin.go
++++ b/twin/twin.go
+@@ -1,4 +1,4 @@
+-// Package twin holds a test with the same name as one in package gate, which no gate patch reaches.
++// Package twin holds one test with the same name as one in package gate, which no gate patch reaches.
+ package twin
+ 
+ // Refuse reports whether a flagged item is refused.

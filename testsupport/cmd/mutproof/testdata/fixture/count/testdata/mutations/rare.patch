@@ -1,0 +1,17 @@
+control: The mechanism holds for every case
+removes: Holds fails from the 500th case on
+packages: ./count
+tests: TestHoldsForEveryCase
+scheduled-count: yes
+
+diff --git a/count/count.go b/count/count.go
+index 5db52b9..1492072 100644
+--- a/count/count.go
++++ b/count/count.go
+@@ -3,5 +3,5 @@ package count
+ 
+ // Holds reports whether the mechanism holds for the nth generated case.
+ func Holds(n int) bool {
+-	return n > 0
++	return n > 0 && n < 500
+ }

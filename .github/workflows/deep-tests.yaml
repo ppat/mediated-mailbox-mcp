@@ -42,16 +42,17 @@ jobs:
     # rapid is admitted only in these files (ADR-0069, enforced by the import lists), so their absence means
     # no property test or crash sequence exists and there is nothing to search. The run is then skipped with a
     # warning rather than passed. Violation files carry the same suffixes and build only under the banproof
-    # tag, so they are not counted.
+    # tag, so they are not counted. Neither are files under testdata, such as the mutation runner's fixtures,
+    # which ./... never reaches.
     - name: Find property tests and crash sequences
       id: find
       shell: bash
       # yamllint disable-line rule:indentation
       run: |
-        count="$(git ls-files -- '*_property_test.go' '*_crash_test.go' ':(exclude)*_violation_*' | wc -l)"
+        count="$(git ls-files -- '*_property_test.go' '*_crash_test.go' ':(exclude)*_violation_*' ':(exclude,glob)**/testdata/**' | wc -l)"
         if (( count == 0 )); then
           echo "::warning::No property test or crash sequence exists, so the deep run has nothing to search. It did not run."
-          printf '### The deep run did not run\n\nNo file named *_property_test.go or *_crash_test.go exists.\n' >> "$GITHUB_STEP_SUMMARY"
+          printf '### The deep run did not run\n\nNo file named *_property_test.go or *_crash_test.go exists outside violation files and testdata.\n' >> "$GITHUB_STEP_SUMMARY"
           echo "present=false" >> "$GITHUB_OUTPUT"
         else
           echo "present=true" >> "$GITHUB_OUTPUT"
