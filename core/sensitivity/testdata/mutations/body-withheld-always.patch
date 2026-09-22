@@ -1,0 +1,19 @@
+control: A message body cannot carry a denying sensitivity
+removes: NewBody refuses every sensitivity, the releasing ones included
+packages: ./core/sensitivity
+tests: TestNoBodyCarriesADenyingSensitivity TestNewBody/scanned TestNewBody/skipped_by_the_gate
+scheduled-count: no
+
+diff --git a/core/sensitivity/sensitivity.go b/core/sensitivity/sensitivity.go
+index b5c78ea..3f17ee0 100644
+--- a/core/sensitivity/sensitivity.go
++++ b/core/sensitivity/sensitivity.go
+@@ -160,7 +160,7 @@ var ErrBodyWithheld = errors.New("sensitivity: the message's sensitivity withhol
+ 
+ // NewBody returns a Body holding text, refusing unless s releases a body.
+ func NewBody(text string, s Sensitivity) (Body, error) {
+-	if !s.ReleasesBody() {
++	if s.ReleasesBody() || !s.ReleasesBody() {
+ 		return Body{}, ErrBodyWithheld
+ 	}
+ 	return Body{text: text}, nil

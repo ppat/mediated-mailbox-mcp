@@ -1,0 +1,28 @@
+control: The analyser refuses a generator report reachable from a property
+removes: function literals assigned to variables are no longer followed, so a property held in a variable escapes
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 2ff3fc8..f4ef910 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -185,7 +185,7 @@ func (w *walker) functions(expr ast.Expr) []ast.Node {
+ 				return []ast.Node{fd.Body}
+ 			}
+ 		}
+-		return w.closures[obj]
++		return map[types.Object][]ast.Node{}[obj]
+ 	case *ast.IndexExpr:
+ 		return w.functions(e.X)
+ 	case *ast.IndexListExpr:
+@@ -219,7 +219,7 @@ func (w *walker) walk(body ast.Node) {
+ 			}
+ 		}
+ 		if id, ok := ast.Unparen(call.Fun).(*ast.Ident); ok {
+-			for _, body := range w.closures[w.pass.TypesInfo.Uses[id]] {
++			for _, body := range map[types.Object][]ast.Node{}[w.pass.TypesInfo.Uses[id]] {
+ 				w.walk(body)
+ 			}
+ 		}

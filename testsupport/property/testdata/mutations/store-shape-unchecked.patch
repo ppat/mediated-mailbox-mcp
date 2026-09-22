@@ -1,0 +1,19 @@
+control: The failing-case store keeps a found failure through a generator edit
+removes: stored cases replay whatever shape they were written with
+packages: ./testsupport/property
+tests: TestAStoredFailingCaseOutlivesAGeneratorEdit
+scheduled-count: no
+
+diff --git a/testsupport/property/check.go b/testsupport/property/check.go
+index 4094906..4334b21 100644
+--- a/testsupport/property/check.go
++++ b/testsupport/property/check.go
+@@ -91,7 +91,7 @@ func load[A any](path, shape string) (stored[A], error) {
+ 	if err := json.Unmarshal(src, &kept); err != nil {
+ 		return kept, fmt.Errorf("%s cannot be read as stored failing cases: %w", path, err)
+ 	}
+-	if kept.Shape != shape {
++	if false && kept.Shape != shape {
+ 		return kept, fmt.Errorf("the stored failing cases in %s were written for the arguments %s, and the draw function now returns %s. "+
+ 			"Write each stored case out as an example-based test against the new arguments, then delete %s", path, kept.Shape, shape, path)
+ 	}

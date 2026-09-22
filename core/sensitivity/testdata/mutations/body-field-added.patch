@@ -1,0 +1,30 @@
+control: A message body cannot carry a denying sensitivity
+removes: the Body gains an exported field that Text returns, so a Body literal can carry any text while the old field stays unexported
+packages: ./core/sensitivity
+tests: TestNoSensitivityCarryingTypeExposesAField
+scheduled-count: no
+
+diff --git a/core/sensitivity/sensitivity.go b/core/sensitivity/sensitivity.go
+index b5c78ea..dc77fdc 100644
+--- a/core/sensitivity/sensitivity.go
++++ b/core/sensitivity/sensitivity.go
+@@ -153,6 +153,8 @@ func (s Sensitivity) ReleasesBody() bool {
+ // Body is a message body released to a client. The zero value holds no text.
+ type Body struct {
+ 	text string
++	// Raw lets code outside the package set the text around NewBody.
++	Raw string
+ }
+ 
+ // ErrBodyWithheld is returned when a body is built for a sensitivity that does not release one.
+@@ -167,4 +169,9 @@ func NewBody(text string, s Sensitivity) (Body, error) {
+ }
+ 
+ // Text returns the body's text.
+-func (b Body) Text() string { return b.text }
++func (b Body) Text() string {
++	if b.Raw != "" {
++		return b.Raw
++	}
++	return b.text
++}

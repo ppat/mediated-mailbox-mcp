@@ -8,9 +8,10 @@ links that grant account access. The mediator exposes an API — with MCP as a t
 adapter over it — and enforces that line in code, at the last hop before any client, because no
 mailbox credential can be scoped to express it.
 
-**Status: design phase.** No feature code exists yet. The design, its decisions, the delivery plan,
-the testing strategy, the verification catalogue, and the mutation ledger are authored, and the
-component layout with its build, test and static-analysis tooling is merged.
+**Status: early implementation.** The design, its decisions, the delivery plan, the testing
+strategy, the verification catalogue, and the mutation ledger are authored. The component layout
+with its build, test and static-analysis tooling is merged, and the safeguard machinery is being
+built. Build state is [ROADMAP.md](./ROADMAP.md)'s.
 
 ## Where everything lives
 
@@ -24,4 +25,4 @@ component layout with its build, test and static-analysis tooling is merged.
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: every reversible decision with its context, alternatives, and consequences |
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection — the violation that must fire, and what firing proves |
-| [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is removed |
+| [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is broken |

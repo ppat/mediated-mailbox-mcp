@@ -14,7 +14,7 @@ conventions. It points at the documents and never repeats them, so every fact ha
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: index, record format, statuses, and the granularity rule (one decision per record, cut by the re-argue test) |
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection, past and pending. A new control lands with its injection row |
-| [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is removed, written only from implementation time |
+| [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is broken, written only from implementation time |
 | [.github/ISSUE_TEMPLATE/ticket.md](./.github/ISSUE_TEMPLATE/ticket.md) | The format every ticket is cut from. The rules for tickets are under [Repository process](#repository-process) |
 
 Design questions resolve there, in that order: outcome → pillar/glossary → decision record.
@@ -141,7 +141,7 @@ in its README.
 | Kind | Where and how |
 | --- | --- |
 | Unit tests | `_test.go` files beside the code, in the external `<package>_test` package unless a test needs unexported access and is not a generator. A shell test against the provider fake, which [TESTING.md](./TESTING.md) counts as an integration test, needs no database, so it is an ordinary test file without the `integration` build tag |
-| Property tests | Files named `*_property_test.go`, in external test packages ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The property-testing library is admitted only in these files, crash-sequence files, and the `testsupport` packages that need it |
+| Property tests | Files named `*_property_test.go`, in external test packages ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The property-testing library is admitted only in these files, crash-sequence files, and the `testsupport` packages that need it. A property runs through `property.Check` and its generator report through `property.Report`, both in `testsupport/property`. Each fails a run whose `RAPID_SEED` is unset or zero or whose `RAPID_NOFAILFILE` is not `true`, so a local `go test` sets the values `go-test.yaml` sets |
 | Crash sequences | Files named `*_crash_test.go` in the component whose machinery they target ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A crash-sequence file whose reduced sequence replays against PostgreSQL also carries the `integration` build tag |
 | Integration tests against PostgreSQL | Files named `*_integration_test.go` carrying the `integration` build tag, and run only under `go tool pgrun` with `-tags integration`. `pgrun` starts one PostgreSQL container for the run and prepares a template database, and each integration test package creates its own database from it through `testsupport/postgres` ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). One test in `testsupport/postgres` runs `pgrun` a second time, on the next port, to prove a run without the tag fails, so with a remote docker daemon both ports need a route. The test image's reference sits in `testsupport/cmd/pgrun/image.go`, pinned by digest and tracked by renovate |
 | Violation files | Placed where the ban or import rule they prove applies, and named for it. A Go violation file ends in `_violation.go` for a rule over non-test files, or in `_violation_test.go`, `_violation_property_test.go` or another test-file suffix for a rule over test files. It carries the `banproof` build tag, so the gating lint never loads it, and holds `// want` annotations naming the finding it must produce ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)). A browser violation file ends in `_violation.ts` or `_violation.tsx`. The gating browser lint and type check skip files with that name, and nothing imports one, so the bundler never reaches it. An SQL violation file ends in `_violation.sql` under `db/check/testdata/violations/`. A few violation files need a target of their own. A deployable's `importtarget` package sits outside `internal/` only so the other deployables' lists have something to refuse, and `residual_violation.go` at the repository root proves the list over Go files outside every component |
@@ -173,9 +173,10 @@ in its README.
 - **The `go vet` analyser** of
   [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) lives in
   `testsupport/analysis` with a `unitchecker` program at `testsupport/cmd/vetcheck`, and runs beside
-  golangci-lint as `go vet -vettool="$(go tool -n vetcheck)"` once it carries its rules. A job
-  running an analyser with no rules would pass while checking nothing, so no job runs it before then
-  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
+  golangci-lint as `go vet -tags integration -vettool="$(go tool -n vetcheck)"`, with the tag
+  golangci-lint's configuration sets. Its two rules refuse a call to
+  `property.Report` or `property.Check` reachable from inside a property, and banproof requires each
+  from its violation file.
 - **`banproof`** is the ban-proof script of
   [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), written as a Go
   program at `testsupport/cmd/banproof` and run as `go tool banproof`. It runs the analysers with
@@ -187,7 +188,9 @@ in its README.
   violation file, and a refused configuration setting by a case in the program's own tests.
 - **The must-not-compile check** loads each case under a package's `testdata/mustnotcompile/`
   through `testsupport/mustnotcompile` and asserts the exact type error
-  ([ADR-0042](./docs/adr/engineering/0042-implementation-stack.md)).
+  ([ADR-0042](./docs/adr/engineering/0042-implementation-stack.md)). The same package's
+  `RequireNoExportedFields` asserts that sensitivity-carrying types expose no field, which a
+  fixture written against today's fields cannot.
 
 #### Browser
 
@@ -248,8 +251,8 @@ need the repository's tools install them from `mise.toml` through
 
 | Workflow | Runs on | Does |
 | --- | --- | --- |
-| `go-lint` | Go code, the lint configuration, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, and `go tool banproof` |
-| `go-test` | Go code, tool pins | Unit tests. A gating property run sets `RAPID_NOFAILFILE=true`, passes no `-short`, and reads `RAPID_CHECKS` and a non-zero `RAPID_SEED` from repository variables, failing once a property or crash test exists without them ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
+| `go-lint` | Go code, the lint configuration, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, the placement analyser under `go vet`, and `go tool banproof` |
+| `go-test` | Go code, tool pins | Unit tests. The gating property run sets a fixed non-zero `RAPID_SEED`, the gating `RAPID_CHECKS` and `RAPID_NOFAILFILE=true` in the workflow and passes no `-short` ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
 | `go-integration` | Go code, tool pins | The integration tests under `go tool pgrun` with `-tags integration`, with the same property-run settings |
 | `go-vulncheck` | Go code, and a schedule | `govulncheck` |
 | `data` | `db/`, its configuration, tool pins | sqlfluff, the generator's diffs, and the `db/check` tests |
@@ -259,7 +262,7 @@ need the repository's tools install them from `mise.toml` through
 | `secrets` | Every pull request | gitleaks |
 | `chart` | `packaging/`, tool pins | `helm lint` |
 | `chainsaw` | `packaging/`, `tests/chainsaw/`, and by hand with a version | The chainsaw suite as ADR-0052 states it, against the images published for the version |
-| `deep-tests` | A schedule, by hand, and a change to the workflow itself | Deep property search and crash-sequence exploration, reading its case count from a repository variable, skipped with a stated reason while no property or crash test exists ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)) |
+| `deep-tests` | A schedule, by hand, and a change to the workflow itself | Deep property search and crash-sequence exploration at the scheduled case count, which a manual run may override, with a fresh seed each run, skipped with a stated reason while no property or crash test exists ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)) |
 | `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, and pushes and signs the chart ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
 | `lint` | Every pull request | The repository's existing hygiene checks, `commit-messages`, commitlint over the branch commits, and `commit-taxonomy`, which derives every header Renovate and release-please can emit and lints it, requires each to be true of its file, and checks a pull request's headers against its diff ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). `commit-taxonomy` carries no path filter, `needs:` or `if:`, because a skipped job satisfies a required check |
 | `pr-title` | Every pull request, on open, edit, synchronize and reopen | commitlint over the pull request title, the string that lands on `main` for a multi-commit pull request ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). Never gated, for the same reason |
@@ -294,9 +297,9 @@ checks that gate the commit vocabulary carry no condition.
   version selection and move shared dependencies inside the project's binaries.
 - **The editor runs the same tools as CI.** `.vscode/settings.json` and `.vscode/extensions.json`
   make golangci-lint the Go formatter and linter with this repository's configuration, have gopls
-  read the `integration` and `banproof` build tags so every Go file is analysed, add the oxc
-  extension for the browser, open generated files read-only, and give the workflow, chart and
-  chainsaw files their schemas.
+  read the `integration` and `banproof` build tags so every Go file is analysed, run tests with the
+  gating run's property settings, add the oxc extension for the browser, open generated files
+  read-only, and give the workflow, chart and chainsaw files their schemas.
 
 ## Repository process
 

@@ -206,26 +206,26 @@ Of the fourteen rules, six are enforced by the linter, the compiler or the analy
 4, 5, 8, 9 and 13. Three are enforced by a test in the suite, rows 1, 6 and 7. Five rest on review,
 rows 2, 10, 11, 12 and 14.
 
+### The case counts, and the coverage of the real generators
+
+**The gating run generates 200 cases per property, with the seed fixed at 1, and the scheduled run
+10,000.** The values are set in the workflow files that run each, so they change with the code.
+ADR-0055 requires a fixed count and does not fix one. At 200 an independent-draw generator over a
+model of the design's three axes reached both releasable combinations and all the boundary
+combinations in every one of twelve seeds tried, with the boundary set needing a median of 103 cases
+and at worst 171. At 100 that median makes coverage close to a coin flip. The scheduled count is
+fifty times the gating count, because a demonstration relying on a rarely firing check runs there.
+
+**The coverage holds for the real generators.** The generator for a message's sensitivity and body
+draws each field independently and reports its mix. Across thirty seeds at 100 and at 200 cases it
+reached the releasable kind and each boundary kind, sender class, content flags and scan state, on
+every seed. The rarest, the scan-state boundary, is 1 of the 32 equally likely combinations and
+never fell below 1 percent of a run. rapid's draws are not uniform at small counts. On one seed at
+100 cases the content-flags boundary came to 4 percent against its 9.4 percent share, and the mix
+settles near the uniform shares by 1,000. So the generator report states each kind's minimum as
+whether the kind is reached at all, not as its expected share.
+
 ### Anything deliberately left open
-
-**The gating case count.** ADR-0055 requires a fixed count and does not fix one. The counts measured
-were 100 and 200, and nothing limits the choice to those. At 200 an independent-draw generator
-reached both releasable combinations and all the boundary combinations in every one of twelve seeds
-tried, with the boundary set needing a median of 103 cases and at worst 171. At 100 that median
-makes coverage close to a coin flip, while a conditional generator reaches the releasable
-combinations in a median of 6 cases. So 100 costs half the run time of 200 and leaves the choice of
-generator shape in doubt, 200 settled it in every seed tried, and a higher count costs more run time
-again. The coverage figures were measured over all 32 combinations rather than the 13 that can
-occur, which makes the boundary comparison between the two generator shapes weaker than the numbers
-suggest.
-
-**Whether the coverage holds for the real generators.** The coverage above was measured against a
-model built from the design's three axes, not against this project's generators. One option is to
-write the real generator for one sensitivity-carrying type twice, once independent-draw and once
-conditional, and compare how often each reaches a released body before writing the rest. The other
-is to write the generators as decided and let the generator report show the mix on every run. The
-first costs one generator written twice and settles the question before anything depends on it. The
-second costs nothing up front and finds out later.
 
 **Whether the backfill target's generators use the same shape.** The collection-generator shape was
 measured for the reorganization plan generator only. For backfill resume, one option is to use the
@@ -484,9 +484,8 @@ writing every generator by hand with fewer conveniences.
   the harness checks them without reaching inside. Every sensitivity-carrying type is built only
   through its constructor, as [ADR-0042](./0042-implementation-stack.md) requires, which is what
   makes the constructor the generator's only route.
-- **What resolving an open question moves.** Fixing the case count at 100 puts the choice of
-  generator shape back in question and makes the measurement against real generators necessary
-  before generators are written. Finding that the real generators need conditional generation
+- **What resolving an open question moves.** Lowering the gating count below 200 puts the choice of
+  generator shape back in question. Finding that a later real generator needs conditional generation
   re-argues this record. Deciding that the operation sampler runs in the gating run changes how long
   that run takes. Sharing one in-memory model between the two harness targets changes only the
   harness's internals.

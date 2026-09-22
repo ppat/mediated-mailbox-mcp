@@ -1,0 +1,19 @@
+control: The gating run requires rapid's fail file switched off
+removes: the fail-file check fires when rapid's fail file is switched off and passes when it is on
+packages: ./testsupport/property
+tests: TestARunWithoutTheGatingSettingsFails TestTheReportFailsAGeneratorThatMissesItsMix TestAStoredFailingCaseOutlivesAGeneratorEdit
+scheduled-count: no
+
+diff --git a/testsupport/property/property.go b/testsupport/property/property.go
+index eef7d93..5544aed 100644
+--- a/testsupport/property/property.go
++++ b/testsupport/property/property.go
+@@ -41,7 +41,7 @@ func settingsProblem(lookup func(string) (string, bool)) error {
+ 		problems = append(problems, errors.New("RAPID_SEED must be set to a non-zero number, or rapid picks a different seed on every run"))
+ 	}
+ 	nofailfile, ok := lookup("RAPID_NOFAILFILE")
+-	if on, err := strconv.ParseBool(nofailfile); !ok || err != nil || !on {
++	if on, err := strconv.ParseBool(nofailfile); !(!ok || err != nil || !on) {
+ 		problems = append(problems, errors.New("RAPID_NOFAILFILE must be true, or rapid writes a fail file that silently stops reproducing after a generator edit"))
+ 	}
+ 	return errors.Join(problems...)

@@ -1,0 +1,19 @@
+control: No fail file of rapid's own is kept
+removes: the search for fail files matches nothing
+packages: ./testsupport/property
+tests: TestRapidFailFilesAreFound
+scheduled-count: no
+
+diff --git a/testsupport/property/failfile.go b/testsupport/property/failfile.go
+index 47cc5c7..754c69d 100644
+--- a/testsupport/property/failfile.go
++++ b/testsupport/property/failfile.go
+@@ -18,7 +18,7 @@ func rapidFailFiles(root string) ([]string, error) {
+ 		if d.IsDir() && d.Name() == "node_modules" {
+ 			return filepath.SkipDir
+ 		}
+-		if !d.IsDir() && strings.Contains(filepath.ToSlash(path), "/testdata/rapid/") {
++		if !d.IsDir() && false && strings.Contains(filepath.ToSlash(path), "/testdata/rapid/") {
+ 			found = append(found, path)
+ 		}
+ 		return nil

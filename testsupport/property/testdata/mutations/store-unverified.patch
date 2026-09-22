@@ -1,0 +1,19 @@
+control: The failing-case store keeps a found failure through a generator edit
+removes: the cleanup stores the last case whenever the test failed, without replaying it
+packages: ./testsupport/property
+tests: TestAnUnrelatedFailureStoresNothing
+scheduled-count: no
+
+diff --git a/testsupport/property/check.go b/testsupport/property/check.go
+index 4094906..31c45f7 100644
+--- a/testsupport/property/check.go
++++ b/testsupport/property/check.go
+@@ -58,7 +58,7 @@ func Check[A any](t *testing.T, draw func(*rapid.T) A, prop func(rapid.TB, A)) {
+ 	t.Cleanup(func() {
+ 		// The test can fail for a reason other than the property, such as a check after Check or
+ 		// rapid refusing too many draws. Only a case that fails the property on its own is stored.
+-		if !t.Failed() || !drew || !fails(t.Name(), prop, last) {
++		if !t.Failed() || !drew {
+ 			return
+ 		}
+ 		kept.Shape = shape
