@@ -49,9 +49,8 @@ The requirements a vocabulary must meet here:
   shares, applied in that order and stopping at the first match. Something ships if an image's
   Dockerfile copies it in, if it is a Dockerfile, or if it sits in the chart's directory.
 - **The component is never in the scope.** The `component:` labels carry it, one per component a
-  diff touches, and a workflow is to produce them from the diff, as
-  [CLAUDE.md's Repository process](../../../CLAUDE.md#repository-process) states, with the
-  author's duty stated there standing until it does.
+  diff touches, and a workflow produces them from the diff, as
+  [CLAUDE.md's Repository process](../../../CLAUDE.md#repository-process) states.
 - **The types are `feat`, `fix`, `perf`, `refactor`, `revert`, `docs`, `test`, `chore` and `ci`.**
   `build` and `style` are refused. `docs` and `test` render and cut a release, by the standing
   ruling that a documentation pull request proposes a release when merged. `chore` and `ci` are

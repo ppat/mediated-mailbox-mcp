@@ -1,0 +1,62 @@
+---
+# yamllint disable rule:line-length
+name: pr-labels
+
+# WHAT THIS KEEPS TRUE
+# A pull request carries one `component:` label per component its diff touches and no other `component:` label.
+# The commit scope never names the component (.claude/rules/commits.md), so these labels are the one channel that
+# does. The components are read from the table in CLAUDE.md's Components section at the pull request's head, so a
+# pull request adding a component row labels the new directory in the same run. A missing label is created in the
+# component color. Labels outside the `component:` prefix are never touched.
+#
+# WHY EVERY EVENT THAT CAN MAKE THE LABELS UNTRUE IS A TRIGGER
+# A push changes the diff, `edited` covers a changed base branch, and `labeled` and `unlabeled` undo a hand edit of
+# a component label. The labels this job writes carry the workflow's own token, and GitHub starts no workflow from
+# an event that token causes, so the job never re-triggers itself.
+#
+# WHY `pull_request` AND NOT `pull_request_target`
+# The job runs the script and reads the table from the pull request's own head, which `pull_request_target` would
+# replace with the base branch's copies. A pull request from a fork gets a read-only token here, so the label
+# writes fail and the run goes red instead of leaving labels that do not match the diff unnoticed.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Adding or removing a label on a pull request needs `pull-requests: write`, even through the issues endpoints, and
+# returns 403 under `issues: write` alone. `issues: write` covers creating a missing repository label.
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  pr-labels:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        # Full history and every branch, so the base branch as it stands now and its merge base are present.
+        fetch-depth: 0
+        ref: ${{ github.event.pull_request.head.sha }}
+        persist-credentials: false
+
+    # First, so that the labels below are set by a mapping that has just shown it maps correctly.
+    - name: Self-test
+      shell: bash
+      run: node .github/scripts/pr-labels/self-test.mjs
+
+    - name: Set the component labels
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: node .github/scripts/pr-labels/sync-pr-labels.mjs

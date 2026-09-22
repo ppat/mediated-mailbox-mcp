@@ -263,6 +263,7 @@ need the repository's tools install them from `mise.toml` through
 | `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, and pushes and signs the chart ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
 | `lint` | Every pull request | The repository's existing hygiene checks, `commit-messages`, commitlint over the branch commits, and `commit-taxonomy`, which derives every header Renovate and release-please can emit and lints it, requires each to be true of its file, and checks a pull request's headers against its diff ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). `commit-taxonomy` carries no path filter, `needs:` or `if:`, because a skipped job satisfies a required check |
 | `pr-title` | Every pull request, on open, edit, synchronize and reopen | commitlint over the pull request title, the string that lands on `main` for a multi-commit pull request ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). Never gated, for the same reason |
+| `pr-labels` | Every pull request, on open, edit, synchronize, reopen, label and unlabel | Sets the pull request's `component:` labels to exactly the components its diff touches, read from the [component table](#components) at the pull request's head, creating a missing label in the component color. A new component needs only its table row. A pull request from a fork cannot write labels, so its run fails |
 | `renovate` | A schedule | Dependency updates |
 
 A job skipped by its own condition counts as passed under a required check, which is why the three
@@ -330,13 +331,13 @@ checks that gate the commit vocabulary carry no condition.
   `component:<directory>` per component of the [component table](#components) it touches, with the
   directory spelled as that table's first column spells it without the trailing slash, so
   `packaging/chart` and `tests/chainsaw` keep both segments. The pull request that closes it carries
-  the unit label and one component label per component its diff touches, and the ticket's component
-  labels are corrected to match when they differ. A change touching no component carries the unit
-  label alone. The author applies every GitHub label at creation and brings a pull request's
-  component labels back in line with its diff before it merges, correcting the ticket's in the same
-  pass. A missing GitHub label is created at first use in its key's color, `unit` in blue `1D76DB`
-  and `component` in purple `5319E7`. The commit scope never carries the component
+  the unit label and one component label per component its diff touches. A change touching no
+  component carries the unit label alone. The author applies the ticket's labels and the pull request's unit label at
+  creation. The `pr-labels` workflow of the [workflow table](#ci-workflows) sets the pull request's
+  component labels from its diff and keeps them in line with it, and the author corrects the
+  ticket's component labels to match the pull request's before it merges. A missing GitHub label is
+  created at first use in its key's color, `unit` in blue `1D76DB` and `component` in purple
+  `5319E7`. The commit scope never carries the component
   ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)),
-  so the component labels are the one channel that does, and a workflow producing them from a pull
-  request's diff is tracked in [ROADMAP.md](./ROADMAP.md). Tickets carry no other GitHub
-  label, and no milestone or project.
+  so the component labels are the one channel that does. Tickets carry no other GitHub label, and
+  no milestone or project.
