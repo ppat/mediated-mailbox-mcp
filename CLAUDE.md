@@ -209,11 +209,13 @@ in its README.
 | Statement and migration files | sqlfluff, from the root `.sqlfluff`, with the generator's parameters read as placeholders. The statement constraints are the parse-tree pass's in `db/check` ([db/README.md](./db/README.md)) |
 | Dockerfiles | hadolint |
 | Commits | gitleaks, over the commits a pull request adds |
+| Commit headers and the pull request title | commitlint, from the root `commitlint.config.js`, whose vocabulary and pairing rule are [.claude/rules/commits.md](./.claude/rules/commits.md)'s |
 | Markdown, YAML, shell, workflows, links, commit messages | The repository's existing hygiene workflow and its reusable jobs |
 
 #### Pre-commit
 
-`.pre-commit-config.yaml` carries the fast, local checks. They are the existing hygiene hooks, and
+`.pre-commit-config.yaml` carries the fast, local checks. They are the existing hygiene hooks, the
+commitlint hook at the commit-msg stage, pinned to the version the root `package.json` pins, and
 local hooks for golangci-lint's formatters, oxfmt, sqlfluff, hadolint and gitleaks. Its exclusions
 keep the text fixers and formatters off files that must stay byte-for-byte as generated or recorded,
 which are generated data-access code, the contract document and browser types, bun lock files,
@@ -259,11 +261,12 @@ need the repository's tools install them from `mise.toml` through
 | `chainsaw` | `packaging/`, `tests/chainsaw/`, and by hand with a version | The chainsaw suite as ADR-0052 states it, against the images published for the version |
 | `deep-tests` | A schedule, by hand, and a change to the workflow itself | Deep property search and crash-sequence exploration, reading its case count from a repository variable, skipped with a stated reason while no property or crash test exists ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)) |
 | `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, and pushes and signs the chart ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
-| `lint` | Every pull request | The repository's existing hygiene checks |
+| `lint` | Every pull request | The repository's existing hygiene checks, `commit-messages`, commitlint over the branch commits, and `commit-taxonomy`, which derives every header Renovate and release-please can emit and lints it, requires each to be true of its file, and checks a pull request's headers against its diff ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). `commit-taxonomy` carries no path filter, `needs:` or `if:`, because a skipped job satisfies a required check |
+| `pr-title` | Every pull request, on open, edit, synchronize and reopen | commitlint over the pull request title, the string that lands on `main` for a multi-commit pull request ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). Never gated, for the same reason |
 | `renovate` | A schedule | Dependency updates |
 
-A job skipped by its own condition counts as passed under a required check, which matters if checks
-are ever made required.
+A job skipped by its own condition counts as passed under a required check, which is why the three
+checks that gate the commit vocabulary carry no condition.
 
 ### Tools and versions
 
@@ -275,14 +278,15 @@ are ever made required.
   and `mise.lock` is committed.** The lock stays in the lock-file format the mise version inside
   `setup-repository-tools` reads, because a lock written by a newer mise in a newer format fails
   every CI job. Go library dependencies are pinned in `go.mod`, browser dependencies in
-  `ui/browser/package.json` and `ui/browser/codegen/package.json`, and base images in the
-  Dockerfiles. The existing hygiene workflow, its reusable jobs and pre-commit's hygiene hooks carry
-  their own pins. Renovate tracks every pin, and groups the Go version and the bun version across
-  the places each is pinned so they move together. It runs `go mod tidy` after an update to a Go
-  dependency, because the update writes the new module's sums and prunes none of the ones the module
-  graph stops selecting, and an update that shifts what the graph selects of other modules leaves
-  out the sums those modules now need. The `go-lint` workflow fails on that drift whatever produced
-  it.
+  `ui/browser/package.json` and `ui/browser/codegen/package.json`, the commitlint the gates and the
+  `commit-taxonomy` check run in the root `package.json` with `bun.lock` committed, and base images
+  in the Dockerfiles. The existing hygiene workflow, its reusable jobs and pre-commit's hygiene
+  hooks carry their own pins. Renovate tracks every pin, and groups the Go version and the bun
+  version across the places each is pinned so they move together. It runs `go mod tidy` after an
+  update to a Go dependency, because the update writes the new module's sums and prunes none of the
+  ones the module graph stops selecting, and an update that shifts what the graph selects of other
+  modules leaves out the sums those modules now need. The `go-lint` workflow fails on that drift
+  whatever produced it.
 - **The project's own tooling programs run through `go tool`**, from `tool` directives naming
   packages of this module, which adds no outside dependency. Outside tools with a Go module of their
   own are never `tool` directives in this module, because their requirements would take part in
@@ -296,7 +300,12 @@ are ever made required.
 ## Repository process
 
 - `docs` is a visible release type here — a documentation PR proposes a release when merged.
-  Expected, not accidental.
+  Expected, not accidental. The commit vocabulary, the closed set of types and scopes a commit
+  header may carry, the pairing rule between them and what each type does to a release, is
+  [.claude/rules/commits.md](./.claude/rules/commits.md)'s, decided by
+  [ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md).
+  The `commit-messages`, `pr-title` and `commit-taxonomy` checks of the
+  [workflow table](#ci-workflows) gate every pull request on it.
 - **Tickets.** A ticket ([Glossary](./DESIGN.md#glossary)) is cut from the body of the template at
   [.github/ISSUE_TEMPLATE/ticket.md](./.github/ISSUE_TEMPLATE/ticket.md), whose header line and
   sections are its format and whose placeholders say what fills each slot. Units are cut for finish
@@ -305,7 +314,7 @@ are ever made required.
   and it is a sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), which
   lists the tickets by unit and is not itself a ticket. A unit recut in ROADMAP.md recuts its open
   tickets. Its title says what lands, in the words the pull request title
-  will use without the commit type, followed by the word unit and the unit's identifier in
+  will use without the commit type and scope, followed by the word unit and the unit's identifier in
   parentheses. Its links are full URLs to files on `main`. A discovery is a ticket under the unit
   whose mechanism it concerns, whether or not the unit is delivered, and work no unit covers gets
   its unit in ROADMAP.md first, since build state has no other home and documents change before
@@ -326,8 +335,8 @@ are ever made required.
   label alone. The author applies every GitHub label at creation and brings a pull request's
   component labels back in line with its diff before it merges, correcting the ticket's in the same
   pass. A missing GitHub label is created at first use in its key's color, `unit` in blue `1D76DB`
-  and `component` in purple `5319E7`. Whether a workflow takes over producing a pull request's
-  component labels from its diff is an [open decision](./ROADMAP.md#open-decisions), settled when
-  the commit vocabulary, the closed set of types and scopes a commit header may carry, is derived,
-  since that derivation decides whether a scope carries the component. Tickets carry no other GitHub
+  and `component` in purple `5319E7`. The commit scope never carries the component
+  ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)),
+  so the component labels are the one channel that does, and a workflow producing them from a pull
+  request's diff is tracked in [ROADMAP.md](./ROADMAP.md). Tickets carry no other GitHub
   label, and no milestone or project.

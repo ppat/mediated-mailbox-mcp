@@ -2,6 +2,11 @@
 paths:
   - ".github/workflows/**"
   - ".github/renovate.json"
+  - ".github/scripts/**"
+  - "commitlint.config.js"
+  - "release-please-config.json"
+  - "package.json"
+  - "bun.lock"
   - "mise.toml"
   - "mise.lock"
   - "**/Dockerfile"
@@ -31,6 +36,10 @@ formatting to Tools and versions. These are the tripwires:
 - **Every tool is at its latest version unless a document says otherwise.** The tools this project's
   own jobs and hooks run are pinned in `mise.toml`, with `mise.lock` committed in the lock format
   CI's mise reads (CLAUDE.md, Tools and versions).
+- **The `commit-taxonomy` and `pr-title` jobs carry no `paths:`, `needs:` or `if:`**, and none may
+  be added, and the `commit-messages` job carries only the condition that is true on every pull
+  request event: a skipped job satisfies a required status check. The commit vocabulary, the pairing
+  rule and what the closure check proves are `.claude/rules/commits.md`'s (ADR-0073).
 - **Every tool a local pre-commit hook runs also runs in a CI workflow**, and generated, recorded
   and fixture files stay excluded from the text fixers and formatters (CLAUDE.md, Static analysis
   and formatting).

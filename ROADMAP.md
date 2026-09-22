@@ -63,7 +63,7 @@ sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), wh
 tickets by unit. The **Position** line below is re-dated whenever the checklists are reconciled
 against the tickets, so staleness is detectable instead of silent.
 
-**Position: 2026-09-18.**
+**Position: 2026-09-22.**
 
 ## Delivery posture
 
@@ -118,9 +118,9 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132) and [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134) and not yet released. No feature code exists **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137) and not yet released. No feature code exists **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Every row keyed to F4 is proven, by pull requests #60 and [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | Nothing demonstrable yet. The ledger stays empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
 | **The delivery gap** | Every unit except F4, which is delivered. No other unit has started |
 
@@ -129,10 +129,12 @@ perfected up front.
 - [x] **F4 — Layout, build, test and static-analysis tooling** → [O6](./USE_CASES.md#o6--deployable)
   · [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at image
   Delivered by pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60),
-  [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and
-  [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), which closed its tickets
-  [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90) and
-  [#69](https://github.com/ppat/mediated-mailbox-mcp/issues/69), and not yet released. Every
+  [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131),
+  [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132) and
+  [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), which closed its tickets
+  [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90),
+  [#69](https://github.com/ppat/mediated-mailbox-mcp/issues/69) and
+  [#135](https://github.com/ppat/mediated-mailbox-mcp/issues/135), and not yet released. Every
   component laid out as documented packages, the Go module with its linters, formatters and the
   ban-proof program over its violation files, the data-access checks, the browser's build, lint and
   test runner, every Dockerfile, the chart skeleton, the chainsaw configuration and every CI
@@ -156,13 +158,17 @@ perfected up front.
   delivered the runner that records mutation demonstrations, which runs ordinary Go tests,
   property tests included. F4 carries the static controls of other outcomes as well, the import
   boundaries, the lint bans and the lint half of the unconstructability checks, because one
-  program proves them all.
+  program proves them all. It also delivered the commit vocabulary with its gates over the branch
+  commits and the pull request title, and the check that derives every header Renovate and
+  release-please can emit and requires each to be inside the vocabulary and true of its file
+  ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)).
   **What it did not deliver.** No feature code. No mutation demonstration of any of its controls,
   each of which is recorded with the implementation work that touches the surface area the control
   interacts with. The runner's support for integration tests, crash sequences and browser tests,
   which the first demonstration needing each kind adds. A real release, so the release workflow's
   keyless signing has run only against a local registry with a key pair standing in, and the first
-  real release is the first to exercise it.
+  real release is the first to exercise it. The workflow that produces a pull request's component
+  labels from its diff, ticket [#136](https://github.com/ppat/mediated-mailbox-mcp/issues/136).
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
 MCP endpoint, no index, no gate, no deployment, and no proven property of any feature. The layout
@@ -1133,4 +1139,3 @@ index](./docs/adr/README.md).
 | How rotations arriving at two credential-holding deployables close together are reconciled | Production point 1 | [ADR-0039](./docs/adr/operability/0039-rotation-writeback.md) has the deployable that receives a rotated credential write it to the one writable location. Every deployable that calls a provider holds the credential ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), so two of them can receive rotations close together, and which value the store keeps is the store's behavior, answered on the deploying side |
 | How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |
-| Whether a workflow takes over producing a pull request's component labels from its diff | nothing yet | Settled when the commit vocabulary is derived, which no unit carries. Why, and the interim rule, are [CLAUDE.md](./CLAUDE.md#repository-process)'s |

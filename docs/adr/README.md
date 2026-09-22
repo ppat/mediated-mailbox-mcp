@@ -161,3 +161,4 @@ moves it. Records themselves link freely and deep, into
 | 0070 | [Unit tests compare returned values with go-cmp, through one shared options value](./engineering/0070-unit-comparison-through-one-options-value.md) | Accepted |
 | 0071 | [Static enforcement runs under golangci-lint, with import boundaries as a closed allow list](./engineering/0071-static-enforcement-toolchain.md) | Accepted |
 | 0072 | [The browser's bans run under oxlint, with the signal-position rule on ast-grep](./engineering/0072-browser-bans-under-oxlint-and-ast-grep.md) | Accepted |
+| 0073 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0073-commit-header-type-sizes-release-scope-names-surface.md) | Accepted |

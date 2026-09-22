@@ -51,7 +51,74 @@
   ],
   "packageRules": [
     {
-      "description": "Go is pinned in go.mod's go directive, in mise.toml for developers and CI, and in every Dockerfile's golang build stage. Every pin of it joins one pull request, on one schedule, so the pins cannot drift apart. The update changes what builds the shipped artifacts, so it takes the ordinary release-cutting commit types rather than the internal-dependencies grouping mise.toml's other tools get",
+      "description": "A rollback, a bump, a replacement or a lock file entry update moves the version a file is built from, so on a shipped file it is a fix like a patch. The shared default preset types these chore, which is hidden, so the change would reach the images with no release. Placed before the internal claims below, which take the file back to chore where nothing ships.",
+      "matchUpdateTypes": [
+        "rollback",
+        "bump",
+        "replacement",
+        "lockfileUpdate"
+      ],
+      "semanticCommitType": "fix"
+    },
+    {
+      "description": [
+        "Every pin in these files is authoring, continuous-integration or test machinery and reaches no consumer: the tool versions in mise.toml, the hooks in .pre-commit-config.yaml, the actions, runners and comment-pinned tools under .github, this repository's own commitlint pins in the root package.json, the type-generation step's manifest, and the PostgreSQL image the integration tests start from testsupport. Without this rule the shared presets type a change to the test PostgreSQL image feat or fix, which cuts a release claiming a shipped artifact changed, and mark every major of an internal tool with a breaking marker, which release-please bumps on and renders as breaking. Claimed by file path with no matchUpdateTypes, so no update type falls through to the preset, and restated locally so a preset bump moves no header. The prefix is written out without the marker: it replaces the shared default preset's major-update prefix, which carries one.",
+        "The go and bun pins in mise.toml are taken back out of this rule by the groups below, because those two build the shipped artifacts."
+      ],
+      "matchFileNames": [
+        ".github/**",
+        ".pre-commit-config.yaml",
+        "mise.toml",
+        "package.json",
+        "testsupport/**",
+        "ui/browser/codegen/**"
+      ],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "internal-dependencies",
+      "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "A browser devDependency is a build, lint or test tool that never enters the bundle, so it is internal wherever its manifest sits. The shared dev-tools preset already scopes it internal-dependencies but leaves the major-update breaking marker in place, so this rule restates the claim locally and writes the prefix without the marker. A browser dependency, the runtime code the bundle ships, is deliberately not matched: it keeps the ordinary release-cutting types, and its majors keep the marker.",
+      "matchManagers": [
+        "bun"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "internal-dependencies",
+      "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "A uses: reference or a runner version moving is the one dependency class whose scope is decidable from the changed lines alone, so it keeps its own name. Restated locally rather than inherited from the shared github-actions preset, and with the prefix written out without the breaking marker: the runner is versioned by calendar, so its next release would otherwise arrive as a breaking major of a surface that ships nothing.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "github-actions",
+      "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "The shared-preset pin decides what every other bot header looks like, so its bumps take the same scope as a hand edit to the file it lives in, and one name then covers every way this repository's commit emission can change. Nothing in the shared presets claims this manager, so without this rule a preset major would arrive as feat with a breaking marker and cut a release. It may not automerge: it is the one dependency that can move commit emission with no local edit.",
+      "matchManagers": [
+        "renovate-config"
+      ],
+      "automerge": false,
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "renovate",
+      "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "A lock file refresh carries no package name, so no rule matching by package or file reaches it and its scope would otherwise be whatever the shared dev-tools preset says today. Keyed on the update type so it holds for any manager that grows a lock file. The browser bundle's lock file can move a shipped transitive dependency under this internal header. That leak is accepted, because a lock refresh is not reviewable per dependency.",
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "internal-dependencies",
+      "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "Go is pinned in go.mod's go directive, in mise.toml for developers and CI, and in every Dockerfile's golang build stage. Every pin of it joins one pull request, on one schedule, so the pins cannot drift apart. The update changes what builds the shipped artifacts, so it takes the ordinary release-cutting commit types rather than the internal-dependencies grouping mise.toml's other tools get. The prefix is set back to unset, the empty string, so the internal-dependencies prefix claimed on mise.toml above does not reach the Go pin there and Renovate builds the plain semantic header again, and the major-update marker is restored by the rule below",
       "matchManagers": [
         "dockerfile",
         "gomod",
@@ -65,7 +132,8 @@
       "schedule": [
         "at any time"
       ],
-      "semanticCommitScope": ""
+      "semanticCommitScope": "",
+      "commitMessagePrefix": ""
     },
     {
       "description": "Renovate reads go.mod's go directive as a minimum and leaves it alone while the minimum holds. Bumping it keeps the directive equal to the Go version the go group moves everywhere else",
@@ -78,7 +146,7 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "bun is pinned in mise.toml for developers and CI, and in the UI Dockerfile's bundle stage. Every pin of it joins one pull request, on one schedule, so the pins cannot drift apart. The update changes what builds the shipped artifacts, so it takes the ordinary release-cutting commit types rather than the internal-dependencies grouping mise.toml's other tools get",
+      "description": "bun is pinned in mise.toml for developers and CI, and in the UI Dockerfile's bundle stage. Every pin of it joins one pull request, on one schedule, so the pins cannot drift apart. The update changes what builds the shipped artifacts, so it takes the ordinary release-cutting commit types rather than the internal-dependencies grouping mise.toml's other tools get. The prefix is set back to unset for the same reason as the go group's",
       "matchManagers": [
         "dockerfile",
         "mise"
@@ -91,7 +159,8 @@
       "schedule": [
         "at any time"
       ],
-      "semanticCommitScope": ""
+      "semanticCommitScope": "",
+      "commitMessagePrefix": ""
     },
     {
       "description": "The go and bun groups reset the commit type mise.toml's grouping sets, per update type, as the default preset assigns it",
@@ -113,7 +182,7 @@
       "semanticCommitType": "feat"
     },
     {
-      "description": "The go and bun groups' patch and digest updates are fixes, as the default preset assigns them",
+      "description": "The go and bun groups' patch and digest updates are fixes, as the default preset assigns them, and so are a rollback, a bump, a replacement and a lock file entry update, which the preset types chore: each moves the version every shipped artifact is built with, so the release cannot be silent",
       "matchDepNames": [
         "go",
         "golang",
@@ -127,9 +196,31 @@
       ],
       "matchUpdateTypes": [
         "patch",
-        "digest"
+        "digest",
+        "rollback",
+        "bump",
+        "replacement",
+        "lockfileUpdate"
       ],
       "semanticCommitType": "fix"
+    },
+    {
+      "description": "A major of Go or bun changes what builds every shipped artifact, so it keeps the breaking marker the shared default preset gives every major, as the mechanical read-before-deploying signal. Restated here because the groups above set the prefix back to unset, which would drop it.",
+      "matchDepNames": [
+        "go",
+        "golang",
+        "bun",
+        "oven/bun"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "gomod",
+        "mise"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "commitMessagePrefix": "{{semanticCommitType}}!:"
     },
     {
       "description": "openapi-typescript calls the TypeScript compiler API that TypeScript 7 removed and declares a peer range of typescript ^5.x (https://github.com/openapi-ts/openapi-typescript/issues/2841). The generation step's own manifest holds TypeScript 5 until that issue is fixed. The browser layer's type check in ui/browser/package.json stays on the latest TypeScript",
@@ -149,6 +240,8 @@
   "prHourlyLimit": 0,
   "printConfig": true,
   "rebaseWhen": "conflicted",
+  "semanticCommitScope": "",
+  "semanticCommits": "enabled",
   "suppressNotifications": [
     "prEditedNotification",
     "prIgnoreNotification"
