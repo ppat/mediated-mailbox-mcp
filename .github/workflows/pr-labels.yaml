@@ -27,9 +27,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+# Creating a repository label takes `issues: write`. Adding or removing a label on a pull request goes through the
+# issues endpoints yet takes `pull-requests: write`, and without it those calls return 403.
 permissions:
   contents: read
   issues: write
+  pull-requests: write
 
 jobs:
   pr-labels:
