@@ -118,11 +118,11 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137) and [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and not yet released. No feature code exists **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137) and [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138), and S1's marker text and synthetic fixtures, merged from pull request [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), none of it yet released. No feature code exists **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
 | Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | Nothing demonstrable yet. The ledger stays empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
-| **The delivery gap** | Every unit except F4, which is delivered. No other unit has started |
+| **The delivery gap** | Every unit except F4, which is delivered. S1 has started, and no other unit has |
 
 ## Delivered, mapped to outcomes
 
