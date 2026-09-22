@@ -50,3 +50,37 @@ jobs:
         image_context_path: .
         dockerfile: ${{ matrix.image }}/Dockerfile
         label_title: mediated-mailbox-${{ matrix.image }}
+
+  # The UI's image must refuse a bundle directory holding only its checked-in placeholder. A named build context
+  # called bundle replaces the Dockerfile's bundle stage, so the server stage copies a directory holding only the
+  # placeholder, laid out at the path the bundle stage writes to. The build must fail with the guard's own output
+  # line, so a build failing anywhere else does not pass this job. The build job above shows the guard passing a
+  # real bundle.
+  ui-placeholder:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Build the UI's image from the placeholder bundle
+      shell: bash
+      # yamllint disable-line rule:indentation
+      run: |
+        placeholder="${RUNNER_TEMP}/placeholder"
+        log="${RUNNER_TEMP}/build.log"
+        mkdir -p "${placeholder}/src/ui/browser/dist"
+        cp ui/browser/dist/.gitkeep "${placeholder}/src/ui/browser/dist/"
+        if docker buildx build --progress=plain --file ui/Dockerfile --build-context "bundle=${placeholder}" \
+          --output type=cacheonly . >"${log}" 2>&1; then
+          cat "${log}"
+          echo "::error::The UI's image built from a bundle directory holding only its placeholder."
+          exit 1
+        fi
+        cat "${log}"
+        if ! grep -qE '^#[0-9]+ [0-9.]+ ui/browser/dist holds no bundle, only its placeholder\.' "${log}"; then
+          echo "::error::The build failed, but not at the guard that refuses the placeholder bundle."
+          exit 1
+        fi

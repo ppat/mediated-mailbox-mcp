@@ -63,7 +63,7 @@ sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), wh
 tickets by unit. The **Position** line below is re-dated whenever the checklists are reconciled
 against the tickets, so staleness is detectable instead of silent.
 
-**Position: 2026-09-17.**
+**Position: 2026-09-18.**
 
 ## Delivery posture
 
@@ -118,9 +118,9 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull request [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60) and not yet released. No feature code exists **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60) and [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and not yet released. No feature code exists **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Rows keyed to F4 that pull request #60 proves are proven. Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Verifications | Every row keyed to F4 is proven, by pull requests #60 and [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | Nothing demonstrable yet. The ledger stays empty until implementation. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) |
 | **The delivery gap** | Every unit. F4's layout and tooling are merged, what remains of F4 is in its tickets, and no other unit has started |
 
@@ -132,7 +132,7 @@ empty, deliberately.
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
 MCP endpoint, no index, no gate, no deployment, and no proven property of any feature. The layout
 and the checks whose verification rows are marked proven are demonstrated by code merged from pull
-request #60. Every other claim in the design is authored, and none is yet demonstrated by code in
+requests #60 and #131. Every other claim in the design is authored, and none is yet demonstrated by code in
 this repository.
 
 ## The value path

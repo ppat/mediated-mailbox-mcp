@@ -13,7 +13,8 @@
 //	go tool pgrun -- go test -tags integration ./...
 //
 // With a remote docker daemon, the published port is on the daemon's machine, so -host names an
-// address that reaches it.
+// address that reaches it. The integration suite also needs the next port reachable, because one of
+// its tests starts a second run of pgrun there (testsupport/postgres).
 package main
 
 import (
