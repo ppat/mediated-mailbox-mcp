@@ -1,0 +1,19 @@
+control: An invalid policy update never displaces the active policy
+removes: every domain suffix is refused, the valid ones included
+packages: ./core/policy
+tests: TestForComposesTheBaseWithTheAccountsOverlay TestSwap TestAnInvalidUpdateNeverDisplacesTheActivePolicy TestLoadAcceptsOverlaysOnlyAnEmptyPolicyAndAnyScript
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index d058c06..67f3343 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -136,7 +136,7 @@ func load(rows []Row) (Snapshot, []string) {
+ // any other character, such as `@`, `/`, `*` or a space, can never match a sender, so it is refused
+ // rather than loaded as a rule that restricts nothing.
+ func validSuffix(suffix string) bool {
+-	if suffix == "" {
++	if true || suffix == "" {
+ 		return false
+ 	}
+ 	for label := range strings.SplitSeq(suffix, ".") {

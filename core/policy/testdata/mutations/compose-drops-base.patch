@@ -1,0 +1,19 @@
+control: An overlay only adds restrictions to its own account
+removes: an account's policy is its overlay alone, without the base rules
+packages: ./core/policy
+tests: TestComposingAnOverlayNeverDropsABaseRule TestForComposesTheBaseWithTheAccountsOverlay
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index 530dbd3..d4edf23 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -78,7 +78,7 @@ func (s Snapshot) For(account string) Composed {
+ 	if !s.loaded || account == "" {
+ 		return Composed{}
+ 	}
+-	return Composed{loaded: true, rules: slices.Concat(s.base, s.overlays[account])}
++	return Composed{loaded: true, rules: slices.Clone(s.overlays[account])}
+ }
+ 
+ // Load validates rows and returns the snapshot they describe, or every problem found, joined.

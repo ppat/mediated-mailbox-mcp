@@ -63,7 +63,7 @@ sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), wh
 tickets by unit. The **Position** line below is re-dated whenever the checklists are reconciled
 against the tickets, so staleness is detectable instead of silent.
 
-**Position: 2026-09-22.**
+**Position: 2026-09-23.**
 
 ## Delivery posture
 
@@ -118,10 +118,10 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137) and [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138), and S1's marker text, synthetic fixtures, sensitivity types and property-testing harness, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141) and [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), none of it yet released. No enforcement component exists **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137) and [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness and policy snapshot, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) and [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), none of it yet released. No enforcement component exists **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
-| Mutations | The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
+| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Mutations | The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
 | **The delivery gap** | Every unit except F4, which is delivered. S1 has started, and no other unit has |
 
 ## Delivered, mapped to outcomes
@@ -174,11 +174,9 @@ perfected up front.
   token cannot write labels, and on the ticket, which the author still corrects by hand.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
-MCP endpoint, no index, no gate and no deployment. The one proven property of the design is that no
-message body can be built carrying a sensitivity that withholds it. It and the checks whose
-verification rows are marked proven are demonstrated by the code of the pull requests those rows
-name. Every other claim in the design is authored, and none is yet demonstrated by code in this
-repository.
+MCP endpoint, no index, no gate and no deployment. The properties and checks whose verification rows
+are marked proven are demonstrated by the code of the pull requests those rows name. Every other
+claim in the design is authored, and none is yet demonstrated by code in this repository.
 
 ## The value path
 

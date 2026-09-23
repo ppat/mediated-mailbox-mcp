@@ -1,0 +1,19 @@
+control: ADR-0041's absence-denies rule
+removes: a policy that never loaded composes each named account's policy as a loaded one with no rules, restricting no sender
+packages: ./core/policy
+tests: TestTheZeroSnapshotRestrictsEverySender TestSwap/an_invalid_first_update_leaves_no_policy
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index d058c06..0c4f46d 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -75,7 +75,7 @@ func (c Composed) Rules() []Rule { return slices.Clone(c.rules) }
+ // For returns the policy account's decisions are made against. Every operation names its account
+ // (ADR-0026), so an empty account name gets the policy that restricts every sender.
+ func (s Snapshot) For(account string) Composed {
+-	if !s.loaded || account == "" {
++	if account == "" {
+ 		return Composed{}
+ 	}
+ 	return Composed{loaded: true, rules: slices.Concat(s.base, s.overlays[account])}
