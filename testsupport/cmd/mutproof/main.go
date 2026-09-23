@@ -6,9 +6,11 @@
 // Each patch is one mutant and is applied alone. A control whose mechanism is broken more than one
 // way, such as a break that makes the code do less and a break that makes it do the wrong thing,
 // has one patch per break, because two breaks applied together can hide each other. A patch is a
-// .patch file in testdata/mutations in the package whose mechanism it removes, which pre-commit's
-// fixers leave byte for byte. It describes itself in the free text before its first diff header,
-// which git apply ignores. The preamble holds exactly these keys, one per line.
+// .patch file in testdata/mutations in the package whose control it demonstrates, which pre-commit's
+// fixers leave byte for byte. That is usually the package whose file the patch edits, and a patch
+// breaking a control through another package's file still sits with the control. It describes
+// itself in the free text before its first diff header, which git apply ignores. The preamble holds
+// exactly these keys, one per line.
 //
 //	control: the control, as the ledger names it
 //	removes: one line saying how the patch removes or disables the mechanism
