@@ -1,0 +1,19 @@
+control: Tier 1 flags a login link
+removes: a link word in the host counts
+packages: ./core/scan
+tests: TestTier1LoginLinks/a_link_word_only_in_the_host
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..dbd3764 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -261,7 +261,7 @@ func (s Scanner) linkRules(url string) []string {
+ 	if i := strings.IndexByte(rest, '#'); i >= 0 {
+ 		rest = rest[:i]
+ 	}
+-	hostEnd := strings.IndexAny(rest, "/?")
++	hostEnd := 0
+ 	if hostEnd < 0 {
+ 		hostEnd = len(rest)
+ 	}

@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: only a space or a hyphen joins digit groups, so a code split by a no-break space is missed
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/a_code_in_groups_joined_by_a_no-break_space TestTier1OneTimeCodes/a_code_in_groups_joined_by_a_narrow_no-break_space TestTier1OneTimeCodes/a_code_in_groups_joined_by_a_thin_space
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..bd4aa30 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -177,7 +177,7 @@ func digitRuns(text string) []segment {
+ 				end++
+ 				continue
+ 			}
+-			if n := separatorAt(text, end); n > 0 && group >= 3 && end+n+3 <= len(text) &&
++			if n := separatorAt(text, end); n == 1 && group >= 3 && end+n+3 <= len(text) &&
+ 				isDigit(text[end+n]) && isDigit(text[end+n+1]) && isDigit(text[end+n+2]) {
+ 				group = 0
+ 				end += n

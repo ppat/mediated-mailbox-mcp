@@ -1,0 +1,19 @@
+control: Subject masking replaces every detected code and nothing else
+removes: a detected code is left in the subject
+packages: ./core/redact
+tests: TestMaskSubject/a_code_after_a_trigger TestMaskingRemovesEveryCode TestARestrictedSendersCodeSubjectIsMasked
+scheduled-count: no
+
+diff --git a/core/redact/masking.go b/core/redact/masking.go
+index 8a050c8..29e12a9 100644
+--- a/core/redact/masking.go
++++ b/core/redact/masking.go
+@@ -58,7 +58,7 @@ func MaskSubject(s scan.Scanner, subject string) Masked {
+ 	var events []Event
+ 	for _, sp := range spans {
+ 		for i := sp.Start; i < sp.End; i++ {
+-			hidden[i] = true
++			hidden[i] = false
+ 		}
+ 		events = append(events, Event{rule: sp.Rule, tier: sp.Tier})
+ 	}

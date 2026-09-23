@@ -1,0 +1,18 @@
+control: A scan verdict carries no text
+removes: the verdict gains a field that could hold an excerpt
+packages: ./core/scan
+tests: TestTheVerdictCarriesNoText
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index 35b97a2..898abb3 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -198,6 +198,7 @@ type Verdict struct {
+ 	tier     int
+ 	version  int
+ 	revision int
++	excerpt  string
+ }
+ 
+ // Flags returns the content flags the scan found.

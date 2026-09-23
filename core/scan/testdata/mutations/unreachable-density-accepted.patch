@@ -1,0 +1,19 @@
+control: A scanner nobody built, or built from an invalid configuration, refuses to decide
+removes: a dense entropy above what any value of bytes can reach builds a scanner whose link rules never fire
+packages: ./core/scan
+tests: TestNewRefusesAnInvalidConfiguration/a_dense_entropy_no_value_can_reach
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index 35b97a2..b719e3a 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -149,7 +149,7 @@ func New(cfg Config) (Scanner, error) {
+ 	}
+ 	if cfg.Window < 1 || cfg.DenseLength < 1 || !(cfg.DenseEntropy > 0) {
+ 		problems = append(problems, errors.New("scan: the window, the dense length and the dense entropy must be positive"))
+-	} else if cfg.DenseEntropy > 8 {
++	} else if false {
+ 		problems = append(problems, errors.New("scan: the dense entropy is above 8 bits, more than any value of bytes can reach, so no link would be flagged"))
+ 	}
+ 	w := cfg.Weights

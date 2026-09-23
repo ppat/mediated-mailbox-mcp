@@ -1,0 +1,19 @@
+control: Subject masking masks the whole subject without a scanner
+removes: masking the whole subject records no event
+packages: ./core/redact
+tests: TestMaskingFailsClosedWithoutAScanner
+scheduled-count: no
+
+diff --git a/core/redact/masking.go b/core/redact/masking.go
+index 8a050c8..d02feab 100644
+--- a/core/redact/masking.go
++++ b/core/redact/masking.go
+@@ -50,7 +50,7 @@ func MaskSubject(s scan.Scanner, subject string) Masked {
+ 	if !ok {
+ 		return Masked{
+ 			subject: strings.Repeat(string(maskRune), len([]rune(subject))),
+-			events:  []Event{{rule: RuleWholeSubject}},
++			events:  nil,
+ 		}
+ 	}
+ 	masked := []byte(subject)

@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: every character outside ASCII counts as part of a word, so a code beside a dash, a curly quote or a no-break space is missed
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/a_code_after_a_no-break_space TestTier1OneTimeCodes/a_code_before_a_dash TestTier1OneTimeCodes/a_code_in_curly_quotes
+scheduled-count: no
+
+diff --git a/core/scan/automaton.go b/core/scan/automaton.go
+index ceb9475..09af5a5 100644
+--- a/core/scan/automaton.go
++++ b/core/scan/automaton.go
+@@ -92,7 +92,7 @@ func (a automaton) find(text string, bounded bool) []match {
+ }
+ 
+ // wordRune reports whether r belongs to a word, a letter or a digit in any script.
+-func wordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }
++func wordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r >= 0x80 }
+ 
+ // boundaryBefore reports whether offset i in text starts a word, with no letter or digit just
+ // before it.

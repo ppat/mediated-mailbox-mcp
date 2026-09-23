@@ -1,0 +1,19 @@
+control: Subject masking takes no sender class and records no text
+removes: masking gains a parameter through which a sender class could skip it
+packages: ./core/redact
+tests: TestMaskingTakesNoSenderClass
+scheduled-count: no
+
+diff --git a/core/redact/masking.go b/core/redact/masking.go
+index 8a050c8..29a2587 100644
+--- a/core/redact/masking.go
++++ b/core/redact/masking.go
+@@ -45,7 +45,7 @@ func (m Masked) Events() []Event { return slices.Clone(m.events) }
+ // masking's tuning, replacing each character of each detection with █. It takes no sender class,
+ // because masking runs on every message, a restricted sender's included (ADR-0003). A Scanner nobody
+ // built by scan.New masks the whole subject.
+-func MaskSubject(s scan.Scanner, subject string) Masked {
++func MaskSubject(s scan.Scanner, subject string, restricted ...bool) Masked {
+ 	spans, ok := s.SubjectSpans(subject)
+ 	if !ok {
+ 		return Masked{

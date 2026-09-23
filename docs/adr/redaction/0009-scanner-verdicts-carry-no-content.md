@@ -41,6 +41,14 @@ class ScanVerdict:
 The scanner reads a body into memory, evaluates the tiers, emits a verdict, drops the body. There
 is no field a body could hide in — the unsafe state is unconstructable rather than merely untaken.
 
+In code the scan verdict holds the content flags, the identifiers of the rules that fired, the tier
+reached, the scanner version and the revision of the scanner's configuration
+([ADR-0005](../classification/0005-tiered-detection.md)). The message identifier and the scan time
+are added by the shell that stores it. The masked subject is subject masking's output, a value of
+its own holding the masked subject and one event per mask naming the rule and tier, because masking
+runs on every message and the body scan does not
+([ADR-0003](./0003-subject-masking.md), [ADR-0008](./0008-restricted-senders-are-never-scanned.md)).
+
 **Residue: nothing body-derived persists or spills.**
 
 - Bodies live in memory only: no body to disk, no spill path, memory-backed scratch space
@@ -48,7 +56,9 @@ is no field a body could hide in — the unsafe state is unconstructable rather 
 - Nothing body-derived is persisted except the masked subject and the flags — no matched text, no
   offsets, no excerpts. Scanner logs record counts and rule identifiers only.
 - `scanner_version` is stamped on every verdict so that when rules improve, affected rows are
-  marked stale and reprocessed — re-scanning is a planned operation, not a migration.
+  marked stale and reprocessed — re-scanning is a planned operation, not a migration. The
+  configuration's revision is stamped beside it, so a change to the vocabulary or the tuning marks
+  rows stale the same way.
 
 **Accepted residual, stated plainly:** non-restricted, gated-in bodies transit mediator memory.
 That channel exists regardless — the mediator fetches bodies to serve them at all. The scanner

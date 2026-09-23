@@ -39,7 +39,53 @@ func Newsletter() Message {
 	}
 }
 
+// OneTimeCode is a verification message with a six-digit code in its subject and its body, as the
+// sanitizing converter's Markdown.
+func OneTimeCode() Message {
+	return Message{
+		FromAddress: marker.Field("codeaddress") + "@security.example",
+		FromName:    marker.Field("codename"),
+		Subject:     marker.Field("codesubject") + " Your code is 419283",
+		Body: marker.Body("code") + "\n\nYour verification code is 419283. It expires in 10 minutes.\n\n" +
+			"# 419283\n",
+	}
+}
+
+// AlphanumericCode is a sign-in message whose code mixes letters and digits, which only tier 2's
+// scoring catches.
+func AlphanumericCode() Message {
+	return Message{
+		FromAddress: marker.Field("alphaaddress") + "@signin.example",
+		FromName:    marker.Field("alphaname"),
+		Subject:     marker.Field("alphasubject") + " Your sign-in code",
+		Body:        marker.Body("alpha") + "\n\nUse this code to sign in.\n\n**7GX4Q2**\n",
+	}
+}
+
+// LoginLink is a message carrying a one-click sign-in link.
+func LoginLink() Message {
+	return Message{
+		FromAddress: marker.Field("linkaddress") + "@login.example",
+		FromName:    marker.Field("linkname"),
+		Subject:     marker.Field("linksubject") + " Sign in to your account",
+		Body:        marker.Body("link") + "\n\n[Sign in](https://login.example/auth/magic/Q7fT2kLm9ZpX4vRw?token=h3J9dK2mQ8xR5tY1vB7n)\n",
+	}
+}
+
+// Receipt is an order receipt full of numbers that are not codes, an order number, a date, a
+// tracking number and prices.
+func Receipt() Message {
+	return Message{
+		FromAddress: marker.Field("receiptaddress") + "@shop.example",
+		FromName:    marker.Field("receiptname"),
+		Subject:     marker.Field("receiptsubject") + " Your order has shipped",
+		Body: marker.Body("receipt") + "\n\nOrder 20240917 shipped on 2024-09-17 with tracking number " +
+			"1Z999AA10123456784.\n\n| Item | Price |\n| --- | --- |\n| Lamp | 42.00 |\n| Total | 42.00 |\n\n" +
+			"Questions? Reply to this message or see https://shop.example/help/orders.\n",
+	}
+}
+
 // All returns every shared fixture.
 func All() []Message {
-	return []Message{Bank(), Newsletter()}
+	return []Message{Bank(), Newsletter(), OneTimeCode(), AlphanumericCode(), LoginLink(), Receipt()}
 }

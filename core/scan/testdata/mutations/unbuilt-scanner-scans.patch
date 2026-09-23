@@ -1,0 +1,19 @@
+control: A scanner nobody built, or built from an invalid configuration, refuses to decide
+removes: a scanner nobody built scans
+packages: ./core/scan
+tests: TestFailClosed
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index 35b97a2..ac09406 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -217,7 +217,7 @@ func (v Verdict) Revision() int { return v.revision }
+ 
+ // Scan returns the verdict on body, a message body as Markdown.
+ func (s Scanner) Scan(body string) Verdict {
+-	if !s.built {
++	if false && !s.built {
+ 		return Verdict{}
+ 	}
+ 	spans, tier := s.detect(body, false)

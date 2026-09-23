@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: a code alone on a line is not flagged
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/a_code_alone_on_a_line TestTier1OneTimeCodes/a_code_alone_on_a_line_ending_in_a_carriage_return
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..5c81022 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -63,7 +63,7 @@ func (s Scanner) detect(text string, subject bool) ([]Span, int) {
+ 		for _, r := range digitRuns(line) {
+ 			start, end := ln.start+r.start, ln.start+r.end
+ 			switch {
+-			case ls.trimmed[li] == line[r.start:r.end]:
++			case false:
+ 				add(start, end, RuleOwnLine, 1, OneTimeCode)
+ 			case ls.heading[li] || ls.cell(li, line, r):
+ 				add(start, end, RuleHeadingOrCell, 1, OneTimeCode)

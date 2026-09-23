@@ -1,0 +1,19 @@
+control: A scanner nobody built, or built from an invalid configuration, refuses to decide
+removes: a subject threshold above the body's builds a scanner
+packages: ./core/scan
+tests: TestNewRefusesAnInvalidConfiguration/a_subject_threshold_above_the_body's
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index 35b97a2..796b359 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -160,7 +160,7 @@ func New(cfg Config) (Scanner, error) {
+ 	}
+ 	if !(cfg.Threshold > 0 && cfg.Threshold <= 1) || !(cfg.SubjectThreshold > 0 && cfg.SubjectThreshold <= 1) {
+ 		problems = append(problems, errors.New("scan: each threshold must be above 0 and at most 1"))
+-	} else if cfg.SubjectThreshold > cfg.Threshold {
++	} else if false {
+ 		problems = append(problems, errors.New("scan: the subject threshold is above the body threshold, but masking a subject is tuned for recall"))
+ 	}
+ 	if len(problems) > 0 {

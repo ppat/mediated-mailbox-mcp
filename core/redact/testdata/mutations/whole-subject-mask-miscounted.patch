@@ -1,0 +1,19 @@
+control: Subject masking masks the whole subject without a scanner
+removes: masking the whole subject writes one █ per byte rather than per character
+packages: ./core/redact
+tests: TestMaskingFailsClosedWithoutAScanner
+scheduled-count: no
+
+diff --git a/core/redact/masking.go b/core/redact/masking.go
+index 8a050c8..0ec86fb 100644
+--- a/core/redact/masking.go
++++ b/core/redact/masking.go
+@@ -49,7 +49,7 @@ func MaskSubject(s scan.Scanner, subject string) Masked {
+ 	spans, ok := s.SubjectSpans(subject)
+ 	if !ok {
+ 		return Masked{
+-			subject: strings.Repeat(string(maskRune), len([]rune(subject))),
++			subject: strings.Repeat(string(maskRune), len(subject)),
+ 			events:  []Event{{rule: RuleWholeSubject}},
+ 		}
+ 	}

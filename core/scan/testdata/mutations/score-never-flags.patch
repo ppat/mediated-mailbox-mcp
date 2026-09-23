@@ -1,0 +1,19 @@
+control: Tier 2 flags a code tier 1 misses, at the configured threshold
+removes: no score reaches the threshold
+packages: ./core/scan
+tests: TestTier2/an_alphanumeric_code_after_a_trigger
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..ca01b43 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -97,7 +97,7 @@ func (s Scanner) detect(text string, subject bool) ([]Span, int) {
+ 			continue
+ 		}
+ 		tier = 2
+-		if s.score(text, t, i, triggers, ls) >= threshold {
++		if s.score(text, t, i, triggers, ls) >= threshold+2 {
+ 			add(t.start, t.end, RuleScore, 2, OneTimeCode)
+ 		}
+ 	}

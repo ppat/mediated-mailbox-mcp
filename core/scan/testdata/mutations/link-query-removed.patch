@@ -1,0 +1,19 @@
+control: Tier 1 flags a login link
+removes: a dense value of a configured parameter is not flagged
+packages: ./core/scan
+tests: TestTier1LoginLinks/a_dense_token_parameter
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..e927700 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -274,7 +274,7 @@ func (s Scanner) linkRules(url string) []string {
+ 	}
+ 	for _, pair := range strings.Split(query, "&") {
+ 		key, value, _ := strings.Cut(pair, "=")
+-		if s.linkParams[strings.ToLower(key)] && s.dense(value) {
++		if s.linkParams[strings.ToLower(key)] && s.dense(value) && false {
+ 			rules = append(rules, RuleLinkQuery)
+ 			break
+ 		}
