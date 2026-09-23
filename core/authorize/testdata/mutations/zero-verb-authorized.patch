@@ -1,0 +1,19 @@
+control: A verb no constant names is refused
+removes: the zero Verb is authorized
+packages: ./core/authorize
+tests: TestFailClosed/the_zero_verb_from_a_normal_sender TestOnlyTheMatrixVerbsAreAuthorized
+scheduled-count: no
+
+diff --git a/core/authorize/authorize.go b/core/authorize/authorize.go
+index 1fca392..efe1d7b 100644
+--- a/core/authorize/authorize.go
++++ b/core/authorize/authorize.go
+@@ -125,7 +125,7 @@ func Decide(verb Verb, class sensitivity.SenderClass) Verdict {
+ 		}
+ 		return Verdict{reason: Authorized}
+ 	case noVerb:
+-		return Verdict{reason: UnknownVerb}
++		return Verdict{reason: Authorized}
+ 	default:
+ 		return Verdict{reason: UnknownVerb}
+ 	}
