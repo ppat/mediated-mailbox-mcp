@@ -1,0 +1,19 @@
+control: The Redaction Gate classifies the sender against the policy it is given
+removes: the sender is classified as if no policy had loaded, whatever policy is given
+packages: ./core/redact
+tests: TestDecide/a_normal_sender,_scanned_clean TestAJustListedDomainDeniesOnTheNextDecision
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..c0fc156 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -102,7 +102,7 @@ func (v Verdict) ShowsAttachmentNames() bool { return v.ReleasesBody() }
+ // Decide returns the gate's verdict on a message from sender, with the content flags and scan state
+ // the index stores, under the account policy p. The lookups are the classifier's.
+ func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitivity.ContentFlags, scan sensitivity.ScanState) Verdict {
+-	c := classify.Classify(p, sender, l)
++	c := classify.Classify(policy.Snapshot{}.For(""), sender, l)
+ 	v := Verdict{sender: c}
+ 	switch {
+ 	case flags.Any() && scan != sensitivity.Scanned():

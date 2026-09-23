@@ -1,0 +1,28 @@
+control: The Redaction Gate releases a body only for a sender the policy does not restrict, with no content flag, scanned or skipped by the scan gate
+removes: a message the scanner has not reached is released
+packages: ./core/redact
+tests: TestFailClosed/an_unscanned_message TestTheGateReleasesOnlyWhatTheRuleReleases
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..ca3444f 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -107,7 +107,7 @@ func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitiv
+ 	switch {
+ 	case flags.Any() && scan != sensitivity.Scanned():
+ 		v.reason = InvalidState
+-	case scan == sensitivity.Pending():
++	case false:
+ 		v.reason = PendingScan
+ 	case scan == sensitivity.SkippedRestricted():
+ 		v.reason = SkippedRestricted
+@@ -115,7 +115,7 @@ func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitiv
+ 		v.reason = RestrictedSender
+ 	case flags.Any():
+ 		v.reason = ContentFlagged
+-	case scan == sensitivity.Scanned(), scan == sensitivity.SkippedGate():
++	case scan == sensitivity.Scanned(), scan == sensitivity.SkippedGate(), scan == sensitivity.Pending():
+ 		v.reason = Released
+ 	default:
+ 		v.reason = InvalidState

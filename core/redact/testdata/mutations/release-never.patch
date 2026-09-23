@@ -1,0 +1,19 @@
+control: The Redaction Gate releases a body only for a sender the policy does not restrict, with no content flag, scanned or skipped by the scan gate
+removes: no body is ever released
+packages: ./core/redact
+tests: TestDecide/a_normal_sender,_scanned_clean TestDecide/a_normal_sender,_skipped_by_the_scan_gate TestTheGateReleasesOnlyWhatTheRuleReleases
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..e88a71a 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -116,7 +116,7 @@ func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitiv
+ 	case flags.Any():
+ 		v.reason = ContentFlagged
+ 	case scan == sensitivity.Scanned(), scan == sensitivity.SkippedGate():
+-		v.reason = Released
++		v.reason = InvalidState
+ 	default:
+ 		v.reason = InvalidState
+ 	}

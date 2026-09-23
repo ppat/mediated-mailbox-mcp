@@ -1,0 +1,19 @@
+control: The snippet and attachment filenames follow the body
+removes: the snippet is shown whatever happens to the body
+packages: ./core/redact
+tests: TestDecide/a_one-time_code TestTheGateReleasesOnlyWhatTheRuleReleases
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..d72c981 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -93,7 +93,7 @@ func (v Verdict) ReleasesBody() bool {
+ }
+ 
+ // ShowsSnippet reports whether the client receives the snippet. It follows the body.
+-func (v Verdict) ShowsSnippet() bool { return v.ReleasesBody() }
++func (v Verdict) ShowsSnippet() bool { return true }
+ 
+ // ShowsAttachmentNames reports whether the client receives attachment filenames rather than only
+ // their types. They follow the body.

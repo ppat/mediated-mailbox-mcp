@@ -1,0 +1,19 @@
+control: The Redaction Gate releases a body only for a sender the policy does not restrict, with no content flag, scanned or skipped by the scan gate
+removes: only a sender a rule lists is restricted, so an unreadable address and a policy that never loaded are released
+packages: ./core/redact
+tests: TestFailClosed/a_policy_that_never_loaded TestFailClosed/a_sender_the_classifier_cannot_read TestFailClosed/a_sender_with_no_registrable_domain
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..3fca461 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -111,7 +111,7 @@ func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitiv
+ 		v.reason = PendingScan
+ 	case scan == sensitivity.SkippedRestricted():
+ 		v.reason = SkippedRestricted
+-	case c.Class().Restricted():
++	case c.Reason() == classify.Listed:
+ 		v.reason = RestrictedSender
+ 	case flags.Any():
+ 		v.reason = ContentFlagged

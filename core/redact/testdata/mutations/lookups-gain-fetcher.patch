@@ -1,0 +1,19 @@
+control: The gate decides without a provider or a body
+removes: the classifier's lookups gain a function through which a provider could be reached
+packages: ./core/redact
+tests: TestTheDecisionTakesNoProviderAndNoBody
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index e163a55..de1b5ec 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -39,6 +39,8 @@ type Lookups struct {
+ 	// public-suffix list, such as golang.org/x/net/publicsuffix.EffectiveTLDPlusOne. It must refuse
+ 	// a name with an empty label, as that function does, because the classifier relies on it to.
+ 	Registrable func(domain string) (string, error)
++	// Body fetches a message body from the provider.
++	Body func(messageID string) (string, error)
+ }
+ 
+ // Reason says why a sender got its class. The zero value is unclassifiable.

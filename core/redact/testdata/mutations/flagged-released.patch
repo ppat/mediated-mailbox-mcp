@@ -1,0 +1,19 @@
+control: The Redaction Gate releases a body only for a sender the policy does not restrict, with no content flag, scanned or skipped by the scan gate
+removes: a message with a one-time code or a login link is released
+packages: ./core/redact
+tests: TestDecide/a_one-time_code TestDecide/a_login_link TestTheGateReleasesOnlyWhatTheRuleReleases
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..041e553 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -113,7 +113,7 @@ func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitiv
+ 		v.reason = SkippedRestricted
+ 	case c.Class().Restricted():
+ 		v.reason = RestrictedSender
+-	case flags.Any():
++	case false:
+ 		v.reason = ContentFlagged
+ 	case scan == sensitivity.Scanned(), scan == sensitivity.SkippedGate():
+ 		v.reason = Released

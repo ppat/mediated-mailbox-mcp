@@ -19,10 +19,12 @@ nothing a client supplies:
 ```
 Gate re-classifies from the index at fetch time
   │  (never trusts caller-supplied sensitivity context)
-  ├─ scan_state = PENDING             → DENY ("pending content scan")
-  ├─ scan_state = SKIPPED_RESTRICTED  → DENY (policy)
-  ├─ sender_class = restricted        → DENY (policy)
-  ├─ content_flags non-empty          → DENY (policy)
+  ├─ content_flags non-empty,
+  │  and scan_state ≠ SCANNED            → DENY ("invalid stored state")
+  ├─ scan_state = PENDING                → DENY ("pending content scan")
+  ├─ scan_state = SKIPPED_RESTRICTED     → DENY (policy)
+  ├─ re-derived class = restricted       → DENY (policy)
+  ├─ content_flags non-empty             → DENY (policy)
   │     all gate denials: provider never contacted, audit row written
   └─ otherwise (SCANNED clean, or SKIPPED_GATE)
         → adapter.get_message_body() → sanitize
@@ -40,6 +42,10 @@ Two properties are the point:
 
 `SKIPPED_GATE` allowing is deliberate and visible in the flow rather than hidden — it is the
 accepted residual of [ADR-0007](./0007-composite-scan-gate.md).
+
+The gate reads the content flags and the scan state the index stores, and never its stored sender
+class. The first branch catches a stored state no message can be in, content flags on a message the
+scanner never read, and names it rather than reporting it as a pending scan.
 
 **The serve-time pattern check.** This record governs whether a body is released; when it says
 release and the message is `SKIPPED_GATE` — never scanned, by the gate's accepted skip — the
@@ -59,6 +65,11 @@ class, at the exact moment of exposure.
 - **Trust the classification cached at enumeration time.** Rejected: a deny-list addition would
   keep leaking until a re-sync — exactly the failure
   [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released) names as falsifying.
+- **Count the stored sender class toward denial as well.** The case for it is that a stored state
+  nobody built, whose sender class is restricted, would be denied as a restricted sender rather than
+  under another reason. Rejected by the operator on 2026-09-23. The delisting transition
+  ([ADR-0037](./0037-delisting-transition.md)) resets the scan state only, and no record decides
+  that the stored class is rewritten, so delisted mail could stay denied after it is scanned.
 - **Accept caller-supplied sensitivity context** (e.g. the sensitivity block a client received
   with the metadata). Rejected: anything a client supplies, a suborned client can forge. Inputs
   to the release decision must come only from state no client can write.

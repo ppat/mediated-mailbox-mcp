@@ -1,0 +1,18 @@
+control: The gate's verdict cannot carry the body it withholds
+removes: the verdict gains an exported field holding the body
+packages: ./core/redact
+tests: TestTheVerdictCannotCarryContent
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..3acca60 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -70,6 +70,7 @@ func (r Reason) String() string {
+ type Verdict struct {
+ 	reason Reason
+ 	sender classify.Verdict
++	Body   string
+ }
+ 
+ // Reason returns why the body was released or withheld.
