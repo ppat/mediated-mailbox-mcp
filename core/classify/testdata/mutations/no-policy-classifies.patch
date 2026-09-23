@@ -1,0 +1,19 @@
+control: The classifier restricts every sender while no policy has loaded
+removes: a policy that never loaded is classified against like an empty one
+packages: ./core/classify
+tests: TestNoPolicyRestrictsEverySender
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index e163a55..a8c5d06 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -91,7 +91,7 @@ func (v Verdict) Rule() string { return v.rule }
+ 
+ // Classify returns the class of the sender of address under the account policy p.
+ func Classify(p policy.Composed, address string, l Lookups) Verdict {
+-	if p.RestrictsAll() {
++	if false && p.RestrictsAll() {
+ 		return Verdict{class: sensitivity.RestrictedSender(), reason: NoPolicy}
+ 	}
+ 	at := strings.LastIndexByte(address, '@')

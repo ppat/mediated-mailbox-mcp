@@ -61,7 +61,7 @@ The choices inside the contract, each with its reason:
 | `enumerate_all` distinct from `changes_since` | Full traversal is resumable but not a delta; backfill needs it and sync must not use it |
 | `ensure_label` in the port | Reorg creates taxonomy; without it each adapter invents its own create-if-missing |
 | Batched mutation ops | Gmail `batchModify` and JMAP `Email/set` both batch natively |
-| `auth_results` in metadata | Required for the spoofing posture in [ADR-0004](../classification/0004-sender-list-decides.md) |
+| `auth_results` in metadata | Carried as message metadata. [ADR-0004](../classification/0004-sender-list-decides.md) lets the policy list alone decide sender class, so classification does not read it |
 | `account_id` everywhere | Multi-account correctness enforced by type, not convention |
 | `rate_profile()` on the port | Cost models are provider knowledge; see [ADR-0023](../operability/0023-adapter-declares-cost.md) |
 

@@ -1,0 +1,19 @@
+control: The policy list alone decides sender class
+removes: a rule matches any domain ending in its text, across label boundaries
+packages: ./core/classify
+tests: TestClassify/a_listed_name_inside_a_longer_label
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index e163a55..dc8edc5 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -115,7 +115,7 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
+ 			if !ok {
+ 				s = strings.ToLower(suffix)
+ 			}
+-			if domain == s || strings.HasSuffix(domain, "."+s) {
++			if strings.HasSuffix(domain, s) {
+ 				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID()}
+ 			}
+ 		}

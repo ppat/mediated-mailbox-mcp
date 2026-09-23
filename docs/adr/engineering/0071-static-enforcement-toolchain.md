@@ -75,12 +75,28 @@ else broke ties.
   `deny` list anywhere.** `depguard` makes a file that two lists match satisfy both, and does not
   check a file that no list matches. The lists are these, and
   [CLAUDE.md](../../../CLAUDE.md#components) names the directories they match.
-  - **Non-test files of every pure-core package, in any component.** A pure core may import a named
-    set of standard-library packages and other pure-core packages, and nothing else. The list covers
-    the pure-core packages inside deployables and libraries as well as the shared pure library,
-    matched by path. What may join that set is the membership test in
-    [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), which is review discipline because no tool
-    checks it.
+  - **Non-test files of every pure-core package, in any component.** A pure core may import other
+    pure-core packages and a named set of outside packages, and nothing else. An outside package
+    joins the set only when its code, and the code of every package it imports, meets all four of
+    these conditions. Outside the test are the Go runtime, `unsafe`, the standard library's
+    `internal/` packages, and `sync` and `io`, whose package state no caller can see. A choice
+    between implementations made from the processor's features is the runtime's too, so `math`
+    passes.
+    1. No code reads or writes a file, the network, the environment or the operating system.
+    2. No code makes a system call.
+    3. No package-level state holds what an earlier call computed from its input. A cache fails
+       this, because it lets a later call skip the computation. A table or data set whose content
+       is fixed passes, whether it is built at initialization or on first use, and so does a pool
+       that recycles working memory and holds no result. `regexp` passes on both counts, and a
+       pattern compiled once into a package-level value is such a table.
+    4. No code has an effect beyond its return values and the values its caller passes in.
+
+    `golang.org/x/net/idna` fails condition 1, because it imports `fmt`, which imports `os`.
+    `golang.org/x/net/publicsuffix` fails it too, because it imports `net/http/cookiejar`.
+
+    The list covers the pure-core packages inside deployables and libraries as well as the shared
+    pure library, matched by path. Admitting a package is review discipline, recorded as the
+    closure row in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), because no tool checks it.
   - **Each deployable.** A deployable may import its own code, the shared pure library, the
     data-access subsections its list names, and the other named libraries of
     [ADR-0050](./0050-shared-code-pure-or-narrow.md) it uses, beside the standard library and the
@@ -230,11 +246,12 @@ of the same function as well.
   this project's code specifically, because of the deny-defaulting `default` branch
   [ADR-0042](./0042-implementation-stack.md) requires on every verdict switch.
 - **`allow`-list checking is transitively sound here only because the list is closed.** `depguard`
-  inspects the imports written in each file and does not follow them. That is enough for
-  the pure-core rule as written, because a core package may import only standard-library packages
-  that reach nothing of this project's and other core packages that the same rule governs. Every
-  path therefore runs through something checked. It stops being enough the moment the allow list
-  admits a package the rule does not itself govern, and nothing detects that.
+  inspects the imports written in each file and does not follow them. That is enough for the
+  pure-core rule as written, because a core package may import only outside packages that meet the
+  four conditions above together with everything they import, which reach nothing of this
+  project's, and other core packages that the same rule governs. Every path therefore runs through
+  something checked. It stops being enough the moment the allow list admits a package that fails
+  the conditions or a project package the rule does not itself govern, and nothing detects that.
 
 ## Alternatives considered
 
