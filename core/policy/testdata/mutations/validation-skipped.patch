@@ -1,0 +1,19 @@
+control: An invalid policy update never displaces the active policy
+removes: load finds problems and reports none, so every update is valid
+packages: ./core/policy
+tests: TestLoadRefusesInvalidRows TestSwap/an_invalid_update_leaves_the_active_policy_in_place TestAnInvalidUpdateNeverDisplacesTheActivePolicy
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index d058c06..5ba8954 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -128,7 +128,7 @@ func load(rows []Row) (Snapshot, []string) {
+ 			s.overlays[row.Account] = append(s.overlays[row.Account], rule)
+ 		}
+ 	}
+-	return s, problems
++	return s, nil
+ }
+ 
+ // validSuffix reports whether suffix has the shape of a domain name, dot-separated labels that are

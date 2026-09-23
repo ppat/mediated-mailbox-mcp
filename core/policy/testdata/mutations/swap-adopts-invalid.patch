@@ -1,0 +1,18 @@
+control: An invalid policy update never displaces the active policy
+removes: Swap adopts every update, so an invalid one replaces the active policy
+packages: ./core/policy
+tests: TestAnInvalidUpdateNeverDisplacesTheActivePolicy TestSwap/an_invalid_update_leaves_the_active_policy_in_place TestSwap/an_invalid_first_update_leaves_no_policy
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index 530dbd3..2d0f4ff 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -167,6 +167,7 @@ func (o Outcome) Problems() []string { return slices.Clone(o.problems) }
+ // active was ever loaded.
+ func Swap(active Snapshot, rows []Row) (Snapshot, Outcome) {
+ 	next, problems := load(rows)
++	problems = nil
+ 	if len(problems) > 0 {
+ 		return active, Outcome{problems: problems}
+ 	}

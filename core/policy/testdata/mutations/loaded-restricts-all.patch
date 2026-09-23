@@ -1,0 +1,19 @@
+control: ADR-0041's absence-denies rule
+removes: a loaded policy also restricts every sender
+packages: ./core/policy
+tests: TestForComposesTheBaseWithTheAccountsOverlay TestSwap/a_valid_update_takes_effect
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index 530dbd3..27f9e04 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -67,7 +67,7 @@ type Composed struct {
+ 
+ // RestrictsAll reports whether every sender is restricted, which holds while no valid policy has
+ // loaded.
+-func (c Composed) RestrictsAll() bool { return !c.loaded }
++func (c Composed) RestrictsAll() bool { return c.loaded || !c.loaded }
+ 
+ // Rules returns a copy of the account's rules, the base rules followed by its overlay rules.
+ func (c Composed) Rules() []Rule { return slices.Clone(c.rules) }

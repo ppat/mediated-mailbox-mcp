@@ -1,0 +1,18 @@
+control: An invalid policy update never displaces the active policy
+removes: Swap reports a valid update accepted and keeps the active policy anyway
+packages: ./core/policy
+tests: TestAnInvalidUpdateNeverDisplacesTheActivePolicy TestSwap/a_valid_update_takes_effect
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index 530dbd3..d8078ba 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -170,5 +170,6 @@ func Swap(active Snapshot, rows []Row) (Snapshot, Outcome) {
+ 	if len(problems) > 0 {
+ 		return active, Outcome{problems: problems}
+ 	}
+-	return next, Outcome{accepted: true}
++	_ = next
++	return active, Outcome{accepted: true}
+ }
