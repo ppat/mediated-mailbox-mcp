@@ -1,0 +1,19 @@
+control: The analyser refuses package-level state declared in a pure core
+removes: an error value is admitted whatever it holds
+packages: ./testsupport/analysis
+tests: TestGlobals
+scheduled-count: no
+
+diff --git a/testsupport/analysis/globals.go b/testsupport/analysis/globals.go
+index f293bbb..e0d942e 100644
+--- a/testsupport/analysis/globals.go
++++ b/testsupport/analysis/globals.go
+@@ -127,7 +127,7 @@ func checkDeclarations(pass *analysis.Pass, file *ast.File) {
+ 				case !types.Identical(obj.Type(), errorType):
+ 					pass.Reportf(id.Pos(), "%s", declaredMessage)
+ 				case len(vs.Values) == 0:
+-				case len(vs.Values) != len(vs.Names) || !constantErrorsNew(pass, vs.Values[i]):
++				case i < 0:
+ 					pass.Reportf(id.Pos(), "%s", errorMessage)
+ 				}
+ 			}

@@ -1,9 +1,10 @@
-// Package analysis holds the go vet analyser for the placement rules ADR-0069 sets on property
-// tests, as a library. The program under testsupport/cmd/vetcheck runs it through go vet, beside
+// Package analysis holds the project's go vet analysers, as a library. Placement carries the rules
+// ADR-0069 sets on property tests, and Globals the rule ADR-0071 sets against package-level state in
+// a pure core. The program under testsupport/cmd/vetcheck runs both through go vet, beside
 // golangci-lint.
 //
-// The analyser honours no suppression comment, which is why it runs under go vet rather than as a
-// golangci-lint plugin.
+// The analysers honour no suppression comment, which is why they run under go vet rather than as
+// golangci-lint plugins.
 //
 // Code runs inside a property when it is a function handed to rapid to run for each generated case,
 // or anything such a function calls in the same package. rapid re-runs a failing property many times
@@ -34,8 +35,8 @@ const (
 	propertyPath = "github.com/ppat/mediated-mailbox-mcp/testsupport/property"
 )
 
-// Analyzer reports ADR-0069's placement rules for property tests.
-var Analyzer = &analysis.Analyzer{
+// Placement reports ADR-0069's placement rules for property tests.
+var Placement = &analysis.Analyzer{
 	Name: "placement",
 	Doc:  "reports property-test code placed where rapid does not run it as written",
 	Run:  run,

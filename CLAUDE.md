@@ -170,13 +170,15 @@ in its README.
   suppression has one form.
 - **`govulncheck`** runs in CI over the module and on a schedule, because its answer changes when
   its vulnerability database does.
-- **The `go vet` analyser** of
-  [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) lives in
-  `testsupport/analysis` with a `unitchecker` program at `testsupport/cmd/vetcheck`, and runs beside
-  golangci-lint as `go vet -tags integration -vettool="$(go tool -n vetcheck)"`, with the tag
-  golangci-lint's configuration sets. Its two rules refuse a call to
-  `property.Report` or `property.Check` reachable from inside a property, and banproof requires each
-  from its violation file.
+- **The `go vet` analysers** live in `testsupport/analysis` with a `unitchecker` program at
+  `testsupport/cmd/vetcheck`, and run beside golangci-lint as
+  `go vet -tags integration -vettool="$(go tool -n vetcheck)"`, with the tag golangci-lint's
+  configuration sets. The placement analyser's two rules refuse a call to `property.Report` or
+  `property.Check` reachable from inside a property
+  ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The globals
+  analyser refuses package-level state in a pure core by the four rules
+  [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. banproof requires
+  each rule from its violation file, where a want annotation names the finding as `vetcheck`.
 - **`banproof`** is the ban-proof script of
   [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), written as a Go
   program at `testsupport/cmd/banproof` and run as `go tool banproof`. It runs the analysers with
@@ -253,7 +255,7 @@ need the repository's tools install them from `mise.toml` through
 
 | Workflow | Runs on | Does |
 | --- | --- | --- |
-| `go-lint` | Go code, the lint configuration, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, the placement analyser under `go vet`, and `go tool banproof` |
+| `go-lint` | Go code, the lint configuration, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, the `go vet` analysers, and `go tool banproof` |
 | `go-test` | Go code, tool pins | Unit tests. The gating property run sets a fixed non-zero `RAPID_SEED`, the gating `RAPID_CHECKS` and `RAPID_NOFAILFILE=true` in the workflow and passes no `-short` ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
 | `go-integration` | Go code, tool pins | The integration tests under `go tool pgrun` with `-tags integration`, with the same property-run settings |
 | `go-vulncheck` | Go code, and a schedule | `govulncheck` |

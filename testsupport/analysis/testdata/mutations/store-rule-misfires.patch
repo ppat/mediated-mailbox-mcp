@@ -5,10 +5,10 @@ tests: TestPlacement
 scheduled-count: no
 
 diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
-index 2ff3fc8..6aa9fe9 100644
+index c3c36a0..800ce75 100644
 --- a/testsupport/analysis/analysis.go
 +++ b/testsupport/analysis/analysis.go
-@@ -208,7 +208,7 @@ func (w *walker) walk(body ast.Node) {
+@@ -210,7 +210,7 @@ func (w *walker) walk(body ast.Node) {
  		}
  		fn := w.callee(call)
  		for name, msg := range messages {

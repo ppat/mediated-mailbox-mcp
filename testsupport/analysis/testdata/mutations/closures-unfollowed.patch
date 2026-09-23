@@ -5,10 +5,10 @@ tests: TestPlacement
 scheduled-count: no
 
 diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
-index 2ff3fc8..f4ef910 100644
+index c3c36a0..665fe0e 100644
 --- a/testsupport/analysis/analysis.go
 +++ b/testsupport/analysis/analysis.go
-@@ -185,7 +185,7 @@ func (w *walker) functions(expr ast.Expr) []ast.Node {
+@@ -187,7 +187,7 @@ func (w *walker) functions(expr ast.Expr) []ast.Node {
  				return []ast.Node{fd.Body}
  			}
  		}
@@ -17,7 +17,7 @@ index 2ff3fc8..f4ef910 100644
  	case *ast.IndexExpr:
  		return w.functions(e.X)
  	case *ast.IndexListExpr:
-@@ -219,7 +219,7 @@ func (w *walker) walk(body ast.Node) {
+@@ -221,7 +221,7 @@ func (w *walker) walk(body ast.Node) {
  			}
  		}
  		if id, ok := ast.Unparen(call.Fun).(*ast.Ident); ok {

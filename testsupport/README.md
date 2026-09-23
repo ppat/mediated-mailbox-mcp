@@ -21,9 +21,10 @@ an image, because only test files and the tooling programs import it. Its packag
 - `mustnotcompile`, the helpers that assert a forbidden construction fails to compile, that a
   type exposes no field, and that a type has exactly the fields or a function exactly the
   parameters named.
-- `analysis`, the `go vet` analyser of ADR-0069.
+- `analysis`, the `go vet` analysers, for ADR-0069's placement rules and ADR-0071's rule against
+  package-level state in a pure core.
 - `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run), `cmd/vetcheck` (the
-  analyser's program) and `cmd/mutproof` (the runner that records mutation demonstrations, of
+  analysers' program) and `cmd/mutproof` (the runner that records mutation demonstrations, of
   [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)), each run
   through `go tool`.
 

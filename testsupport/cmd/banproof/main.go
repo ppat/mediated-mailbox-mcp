@@ -20,8 +20,8 @@
 // ends in _violation.go for a rule over non-test files, or _violation followed by the file kind's own
 // suffix for a rule over test files, such as _violation_test.go or _violation_property_test.go.
 //
-// It also runs go vet with the placement analyser under testsupport/analysis, whose findings want
-// annotations name as placement, the analyser's name.
+// It also runs go vet with the project's analysers under testsupport/analysis, whose findings want
+// annotations name as vetcheck, the program that runs them.
 //
 // With -browser it proves the browser layer's bans instead, the same way, with oxlint, ast-grep and a
 // search for their suppression directives (browser.go). The browser half needs bun and the browser
@@ -234,8 +234,8 @@ func lint(root, tag string) ([]finding, error) {
 // vetFinding matches one diagnostic line go vet prints.
 var vetFinding = regexp.MustCompile(`^(.+\.go):(\d+):\d+: (.*)$`)
 
-// vet runs go vet with the placement analyser over the module and returns its findings, each under
-// the analyser's name.
+// vet runs go vet with the project's analysers over the module and returns their findings, each under
+// the name of the program that runs them.
 func vet(root, tag string) ([]finding, error) {
 	tool, err := command(root, "go", "tool", "-n", "vetcheck")
 	if err != nil {
@@ -272,7 +272,7 @@ func vet(root, tag string) ([]finding, error) {
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, finding{file: absolute(root, m[1]), line: n, tool: "placement", text: m[3]})
+		out = append(out, finding{file: absolute(root, m[1]), line: n, tool: "vetcheck", text: m[3]})
 	}
 	return out, nil
 }
