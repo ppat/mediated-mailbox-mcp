@@ -1,7 +1,9 @@
 // Package mustnotcompile asserts that construction around a package's constructors does not compile.
 // Require asserts that a fixture package fails type checking with one expected message, and
 // RequireNoExportedFields asserts that named struct types expose no field, which catches a field
-// added after the fixtures were written.
+// added after the fixtures were written. RequireFields asserts a struct type's exact fields and
+// RequireParams a function's exact parameters, so a verdict type gains no field and a decision gains
+// no input unnoticed.
 //
 // A package whose types must refuse a construction keeps one fixture per case under
 // testdata/mustnotcompile/<case>/ and calls Require from an ordinary test. The go command skips
@@ -18,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"go/types"
+	"slices"
 	"strings"
 	"testing"
 
@@ -87,16 +90,13 @@ func CheckNoExportedFields(pkgPath string, typeNames ...string) error {
 	if len(typeNames) == 0 {
 		return errors.New("mustnotcompile: no type names given")
 	}
-	pkgs, err := packages.Load(&packages.Config{Mode: packages.NeedName | packages.NeedTypes}, pkgPath)
+	pkg, err := load(pkgPath)
 	if err != nil {
-		return fmt.Errorf("mustnotcompile: loading %s: %w", pkgPath, err)
-	}
-	if len(pkgs) != 1 || len(pkgs[0].Errors) > 0 || pkgs[0].Types == nil {
-		return fmt.Errorf("mustnotcompile: %s did not load as exactly one package without errors", pkgPath)
+		return err
 	}
 	var problems []string
 	for _, name := range typeNames {
-		obj := pkgs[0].Types.Scope().Lookup(name)
+		obj := pkg.Scope().Lookup(name)
 		if obj == nil {
 			problems = append(problems, fmt.Sprintf("%s declares no type %s", pkgPath, name))
 			continue
@@ -116,4 +116,103 @@ func CheckNoExportedFields(pkgPath string, typeNames ...string) error {
 		return fmt.Errorf("mustnotcompile: %s", strings.Join(problems, "\n"))
 	}
 	return nil
+}
+
+// RequireFields fails the test unless CheckFields reports no mismatch.
+func RequireFields(t testing.TB, pkgPath, typeName string, fields ...string) {
+	t.Helper()
+	if err := CheckFields(pkgPath, typeName, fields...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CheckFields returns an error unless the named struct type in the package at pkgPath has exactly
+// fields, in order, each written as its name and type, such as "reason Reason". A field added under
+// any name and of any type then fails, which a must-not-compile fixture naming one field cannot
+// notice.
+func CheckFields(pkgPath, typeName string, fields ...string) error {
+	pkg, err := load(pkgPath)
+	if err != nil {
+		return err
+	}
+	obj := pkg.Scope().Lookup(typeName)
+	if obj == nil {
+		return fmt.Errorf("mustnotcompile: %s declares no type %s", pkgPath, typeName)
+	}
+	st, ok := obj.Type().Underlying().(*types.Struct)
+	if !ok {
+		return fmt.Errorf("mustnotcompile: %s.%s is not a struct", pkgPath, typeName)
+	}
+	got := make([]string, st.NumFields())
+	for i := range st.NumFields() {
+		f := st.Field(i)
+		got[i] = f.Name() + " " + types.TypeString(f.Type(), qualifier(pkg))
+	}
+	if !slices.Equal(got, fields) {
+		return fmt.Errorf("mustnotcompile: %s.%s has the fields %q, want %q", pkgPath, typeName, got, fields)
+	}
+	return nil
+}
+
+// RequireParams fails the test unless CheckParams reports no mismatch.
+func RequireParams(t testing.TB, pkgPath, funcName string, params ...string) {
+	t.Helper()
+	if err := CheckParams(pkgPath, funcName, params...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CheckParams returns an error unless the named function in the package at pkgPath takes exactly
+// params, in order, each written as its type, such as "policy.Composed". A variadic parameter is
+// written with its dots. A parameter added later, such as one a provider could arrive through, then
+// fails.
+func CheckParams(pkgPath, funcName string, params ...string) error {
+	pkg, err := load(pkgPath)
+	if err != nil {
+		return err
+	}
+	fn, ok := pkg.Scope().Lookup(funcName).(*types.Func)
+	if !ok {
+		return fmt.Errorf("mustnotcompile: %s declares no function %s", pkgPath, funcName)
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok {
+		return fmt.Errorf("mustnotcompile: %s.%s has no signature", pkgPath, funcName)
+	}
+	got := make([]string, sig.Params().Len())
+	for i := range sig.Params().Len() {
+		t := sig.Params().At(i).Type()
+		if s, ok := t.(*types.Slice); ok && sig.Variadic() && i == sig.Params().Len()-1 {
+			got[i] = "..." + types.TypeString(s.Elem(), qualifier(pkg))
+			continue
+		}
+		got[i] = types.TypeString(t, qualifier(pkg))
+	}
+	if !slices.Equal(got, params) {
+		return fmt.Errorf("mustnotcompile: %s.%s takes %q, want %q", pkgPath, funcName, got, params)
+	}
+	return nil
+}
+
+// load type-checks the package at pkgPath.
+func load(pkgPath string) (*types.Package, error) {
+	pkgs, err := packages.Load(&packages.Config{Mode: packages.NeedName | packages.NeedTypes}, pkgPath)
+	if err != nil {
+		return nil, fmt.Errorf("mustnotcompile: loading %s: %w", pkgPath, err)
+	}
+	if len(pkgs) != 1 || len(pkgs[0].Errors) > 0 || pkgs[0].Types == nil {
+		return nil, fmt.Errorf("mustnotcompile: %s did not load as exactly one package without errors", pkgPath)
+	}
+	return pkgs[0].Types, nil
+}
+
+// qualifier writes a type from pkg unqualified and a type from any other package with its package
+// name.
+func qualifier(pkg *types.Package) types.Qualifier {
+	return func(p *types.Package) string {
+		if p == pkg {
+			return ""
+		}
+		return p.Name()
+	}
 }

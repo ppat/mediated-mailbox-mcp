@@ -190,7 +190,9 @@ in its README.
   through `testsupport/mustnotcompile` and asserts the exact type error
   ([ADR-0042](./docs/adr/engineering/0042-implementation-stack.md)). The same package's
   `RequireNoExportedFields` asserts that sensitivity-carrying types expose no field, which a
-  fixture written against today's fields cannot.
+  fixture written against today's fields cannot. `RequireFields` asserts a verdict type's exact
+  fields and `RequireParams` a decision's exact parameters, so neither gains a field or an input
+  unnoticed.
 
 #### Browser
 

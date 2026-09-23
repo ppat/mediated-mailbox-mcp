@@ -1,0 +1,19 @@
+control: A verdict reason no case handles withholds the body
+removes: a reason no case names reads as released
+packages: ./core/redact
+tests: TestAnUnhandledReasonWithholds
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 0e209d5..06d376c 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -61,7 +61,7 @@ func (r Reason) String() string {
+ 	case InvalidState:
+ 		return "invalid stored state"
+ 	default:
+-		return "invalid stored state"
++		return "released"
+ 	}
+ }
+ 

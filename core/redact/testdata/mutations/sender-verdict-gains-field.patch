@@ -1,0 +1,18 @@
+control: The gate's verdict cannot carry the body it withholds
+removes: the sender's classification inside the verdict gains a field holding the snippet
+packages: ./core/redact
+tests: TestTheVerdictCannotCarryContent
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index e163a55..273ded9 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -78,6 +78,7 @@ type Verdict struct {
+ 	class  sensitivity.SenderClass
+ 	reason Reason
+ 	rule   string
++	snippet string
+ }
+ 
+ // Class returns the sender class.

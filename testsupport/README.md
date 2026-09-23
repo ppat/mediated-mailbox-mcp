@@ -18,8 +18,9 @@ an image, because only test files and the tooling programs import it. Its packag
 - `crash`, the crash harness of [ADR-0045](../docs/adr/engineering/0045-crash-injection-testing.md).
 - `fixture`, the synthetic fixtures.
 - `postgres`, what an integration test package needs to reach its database.
-- `mustnotcompile`, the helpers that assert a forbidden construction fails to compile and that a
-  type exposes no field.
+- `mustnotcompile`, the helpers that assert a forbidden construction fails to compile, that a
+  type exposes no field, and that a type has exactly the fields or a function exactly the
+  parameters named.
 - `analysis`, the `go vet` analyser of ADR-0069.
 - `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run), `cmd/vetcheck` (the
   analyser's program) and `cmd/mutproof` (the runner that records mutation demonstrations, of
