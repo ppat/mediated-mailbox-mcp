@@ -1,0 +1,19 @@
+control: The policy list alone decides sender class
+removes: a rule matches its own domain only, never a subdomain
+packages: ./core/classify
+tests: TestClassify/a_subdomain_of_a_listed_domain TestClassify/a_second_suffix_of_one_rule TestClassify/a_sender_in_punycode_against_a_rule_in_Unicode
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index e163a55..9c6aba2 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -115,7 +115,7 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
+ 			if !ok {
+ 				s = strings.ToLower(suffix)
+ 			}
+-			if domain == s || strings.HasSuffix(domain, "."+s) {
++			if domain == s {
+ 				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID()}
+ 			}
+ 		}

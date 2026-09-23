@@ -1,0 +1,18 @@
+control: The policy list alone decides sender class
+removes: domains are compared as written, without lowercasing or punycode decoding
+packages: ./core/classify
+tests: TestClassify/mixed_case TestClassify/a_sender_in_punycode_against_a_rule_in_Unicode TestClassify/a_sender_in_Unicode_against_a_rule_in_punycode
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index e163a55..e1f23ba 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -134,5 +134,6 @@ func normalize(domain string, l Lookups) (string, bool) {
+ 	if err != nil {
+ 		return "", false
+ 	}
+-	return strings.ToLower(u), true
++	_ = u
++	return domain, true
+ }

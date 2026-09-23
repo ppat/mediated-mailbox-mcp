@@ -134,9 +134,8 @@ linters:
       #   list holding such an entry also lists go/.
       rules:
 
-        # Non-test files of every pure-core package, in any component (ADR-0040, ADR-0071). The standard-library
-        # entries are the named set that performs no input or output. Adding one is decided by the membership test in
-        # docs/VERIFICATIONS.md.
+        # Non-test files of every pure-core package, in any component (ADR-0040, ADR-0071). Every entry outside
+        # this project meets ADR-0071's four conditions for a pure core's imports, together with everything it imports.
         pure-core:
           list-mode: strict
           files:
@@ -168,7 +167,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
 
-        # Test files of every pure-core package. What the non-test files may import, plus test tooling.
+        # Test files of every pure-core package. What the non-test files may import, plus test tooling and the
+        # functions a shell passes in.
         pure-core-tests:
           list-mode: strict
           files:
@@ -193,6 +193,10 @@ linters:
           - "testing$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
+          # The punycode decoding and the public-suffix list a shell passes to the sender classifier, so its tests run
+          # against the real lookups. Neither is pure, so neither is on the list for non-test files.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
@@ -574,6 +578,8 @@ linters:
           - "go.yaml.in/yaml/v3$"
           # Restores the standard library under go/, which the entry above hides (see the notes at the top).
           - "go/"
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "google.golang.org/protobuf/reflect/protoreflect$"
 
         # Every Go file outside all components, such as a new top-level directory not yet given lists. It

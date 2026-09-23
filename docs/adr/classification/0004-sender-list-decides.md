@@ -41,9 +41,10 @@ rules:
     class: restricted
 ```
 
-Normalization before matching: lowercase, punycode-decode, strip `+tag` address extensions, resolve
-the registrable domain via the public-suffix list. Matching is on registrable-domain suffix, so
-`alerts.fidelity.com` hits without a separate rule.
+Before matching, both the sender's domain and each rule's suffixes are lowercased and
+punycode-decoded, and the sender's registrable domain is resolved via the public-suffix list, where
+a domain with none is classified restricted. Matching is on domain suffix at label boundaries, so
+`alerts.fidelity.com` hits without a separate rule and `notfidelity.com` does not.
 
 **Candidate generation** runs as a periodic job writing to a review queue the operator confirms
 through the UI. Confirmation inserts a policy rule row, written by the UI itself in the same
@@ -63,9 +64,10 @@ classification.
 
 **Spoofing posture.** The `From` header is forgeable, but note the attack's actual shape: spoofing
 *into* the deny list yields more redaction, not less. The real risk is the inverse — the unlisted
-co-brand domain. SPF/DKIM/DMARC results are a *confirming* signal that fails closed: if
-authentication fails and the display name or other signals suggest a listed institution, classify
-restricted anyway. An authentication failure must never downgrade a classification.
+co-brand domain. The list alone decides a sender's class. SPF, DKIM and DMARC results and display
+names are not inputs to the classification, so an authentication failure can never downgrade a
+listed sender and a display name can never make a sender restricted. A display name suggesting a
+listed institution is a signal for the display-name heuristic above, which proposes a candidate.
 
 ## Alternatives considered
 
@@ -82,6 +84,13 @@ restricted anyway. An authentication failure must never downgrade a classificati
   transaction as the decision, with nothing to copy into a file and no process to own the copy.
 - **Exact-domain matching without normalization.** Rejected: it multiplies rules per institution
   and turns every new subdomain into a silent gap.
+- **Authentication results and display names as inputs to classification.** The case for it is
+  that mail from an unlisted co-brand domain that fails SPF, DKIM or DMARC and carries a listed
+  institution's display name would be restricted at once, rather than released until the operator
+  confirms that domain as a candidate. Rejected by the operator on 2026-09-23. The list alone
+  decides, and a display name suggesting a listed institution is a signal for the display-name
+  heuristic, which proposes the domain as a candidate. That window of release until confirmation is
+  the accepted cost.
 
 ## Consequences
 
@@ -91,3 +100,10 @@ restricted anyway. An authentication failure must never downgrade a classificati
   the guarantee that nothing reclassifies itself.
 - Full-history backfill makes the first candidate report comprehensive on day one rather than
   accumulating over months, which is when list staleness would otherwise bite hardest.
+- Assumptions about other components: the classifier is a pure core
+  ([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)), so it imports only what
+  meets [ADR-0071](../engineering/0071-static-enforcement-toolchain.md)'s conditions for a pure
+  core's imports. Neither `golang.org/x/net/idna`, which decodes punycode, nor
+  `golang.org/x/net/publicsuffix`, which holds the public-suffix list, meets them. Each caller
+  passes punycode decoding and the registrable-domain lookup into the classifier as functions, and
+  an address whose domain has no registrable domain is classified restricted.

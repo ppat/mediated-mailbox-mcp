@@ -436,8 +436,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Sender class** — the per-sender axis, `normal` or `restricted`. Decides disposal rights, and
   a restricted class denies the body on its own. Assigned deterministically from the policy list,
   never by heuristic.
-- **Restricted sender** — a sender matching the operator's deny list. Bodies never released.
-  Disposal verbs never authorized.
+- **Restricted sender** — a sender matching the operator's deny list, and any sender the
+  classifier cannot read or classifies while no policy has loaded. Bodies never released. Disposal
+  verbs never authorized.
 - **Content flag** — the per-message axis, a detected MFA code or login link. Decides
   readability. Any flag denies the body.
 - **Scan state** — a message's position relative to the content scanner, meaning pending,

@@ -1,0 +1,19 @@
+control: A sender the classifier cannot read is restricted
+removes: a domain with no registrable domain is classified against the rules like any other
+packages: ./core/classify
+tests: TestClassify/a_public_suffix_alone
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index e163a55..3956dfb 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -106,7 +106,7 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
+ 	if err != nil {
+ 		return Verdict{}
+ 	}
+-	if _, err := l.Registrable(ascii); err != nil {
++	if _, err := l.Registrable(ascii); err != nil && false {
+ 		return Verdict{}
+ 	}
+ 	for _, r := range p.Rules() {
