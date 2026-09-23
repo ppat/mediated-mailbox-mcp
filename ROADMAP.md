@@ -118,10 +118,10 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137) and [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier and Redaction Gate, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144) and [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), none of it yet released. No deployable runs any of it yet **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier and Redaction Gate, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144) and [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), none of it yet released. No deployable runs any of it yet **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), and those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
-| Mutations | The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), and those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
+| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), and those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), and those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
 | **The delivery gap** | Every unit except F4, which is delivered. S1 has started, and no other unit has |
 
 ## Delivered, mapped to outcomes
@@ -136,7 +136,9 @@ perfected up front.
   [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90),
   [#69](https://github.com/ppat/mediated-mailbox-mcp/issues/69),
   [#135](https://github.com/ppat/mediated-mailbox-mcp/issues/135) and
-  [#136](https://github.com/ppat/mediated-mailbox-mcp/issues/136), and not yet released. Every
+  [#136](https://github.com/ppat/mediated-mailbox-mcp/issues/136), and not yet released. Pull
+  request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149) closed the discovery
+  [#148](https://github.com/ppat/mediated-mailbox-mcp/issues/148) after delivery. Every
   component laid out as documented packages, the Go module with its linters, formatters and the
   ban-proof program over its violation files, the data-access checks, the browser's build, lint and
   test runner, every Dockerfile, the chart skeleton, the chainsaw configuration and every CI
@@ -164,14 +166,17 @@ perfected up front.
   commits and the pull request title, and the check that derives every header Renovate and
   release-please can emit and requires each to be inside the vocabulary and true of its file
   ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)),
-  and the workflow that sets a pull request's component labels from its diff.
-  **What it did not deliver.** No feature code. No mutation demonstration of any of its controls,
-  each of which is recorded with the implementation work that touches the surface area the control
-  interacts with. The runner's support for integration tests, crash sequences and browser tests,
-  which the first demonstration needing each kind adds. A real release, so the release workflow's
-  keyless signing has run only against a local registry with a key pair standing in, and the first
-  real release is the first to exercise it. Component labels on a pull request from a fork, whose
-  token cannot write labels, and on the ticket, which the author still corrects by hand.
+  and the workflow that sets a pull request's component labels from its diff. Its `go vet`
+  analysers refuse package-level state in a pure core
+  ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)).
+  **What it did not deliver.** No feature code. No mutation demonstration of the controls it
+  delivered before those rules, each of which is recorded with the implementation work that touches
+  the surface area the control interacts with. The runner's support for integration tests, crash
+  sequences and browser tests, which the first demonstration needing each kind adds. A real
+  release, so the release workflow's keyless signing has run only against a local registry with a
+  key pair standing in, and the first real release is the first to exercise it. Component labels on
+  a pull request from a fork, whose token cannot write labels, and on the ticket, which the author
+  still corrects by hand.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
 MCP endpoint, no index, no gate and no deployment. The properties and checks whose verification rows

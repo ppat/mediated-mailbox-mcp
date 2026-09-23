@@ -122,7 +122,7 @@ else broke ties.
     [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) chooses, ADR-0069's test support
     and the crash harness are admitted only in property-test files, crash-sequence files, and the
     test support that needs them, and `golang.org/x/tools` only in the shared test support, which
-    holds the helper that loads a package which must not compile and the `go vet` analyser.
+    holds the helper that loads a package which must not compile and the `go vet` analysers.
   - **A list over every Go file outside all components**, admitting only the standard library, so a
     directory added outside every other list is still checked.
 
@@ -130,6 +130,28 @@ else broke ties.
   everywhere else with no `deny` key written. That holds only while every Go file in the repository
   is matched by some list, which the list over files outside every component keeps true for such
   files and review keeps true inside the components.
+- **A pure core holds no package-level state, and the project's own `go vet` analysers check it.**
+  The import lists cannot see this. A variable a composition root sets is a dependency no parameter
+  of [ADR-0040](./0040-pure-core-decisions-as-values.md)'s pure core shows, and an exported error
+  value is such a variable too. Four rules carry it.
+  - A non-test file of a pure-core package declares no package-level variable other than the blank
+    identifier and an error value. An error value has no initial value or is made by `errors.New`
+    from a constant message, so it holds nothing a call could change.
+  - No file anywhere writes a pure-core package's package-level variable except by its declaration.
+    A write counts whether it assigns, increments, assigns in a range loop, takes the variable's
+    address, or goes through a field, an index or a pointer. A variable a pure core's test file
+    declares is not part of the core, so its own package and that package's external tests may
+    write it, and whether its file is a test file is read with line directives ignored.
+  - No file links to a pure-core package's symbol with a `go:linkname` directive, which would reach
+    a variable around its declaration.
+  - A non-test file of a pure-core package carries no line directive. Export data gives a variable
+    the file name a directive names, so a directive would make a variable of the core pass for a
+    test file's in the package's external tests.
+
+  The rules sit in their own analyser beside the one carrying
+  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, run by the same
+  program. It honours no suppression comment and matches a pure-core package by its path, as the
+  import list does.
 - **A finding of a linter standing in for a control cannot be switched off anywhere.** Those linters
   are `depguard`, `errcheck`, `exhaustive` and `forbidigo`. A violation file proves a ban fires in
   that file, and says nothing about another line where the finding was switched off, so every proof
@@ -151,16 +173,17 @@ else broke ties.
   reports ill-formed or insufficient directives, so a well-formed directive naming a linter and
   carrying an explanation silences a ban while `nolintlint` at its strictest settings reports
   nothing. The aggregator offers no option to stop honouring the directives.
-- **Three checks are written here, because no tool offers them.** The suppression check above,
-  written to follow the aggregator's own reading of a directive so it refuses exactly what the
-  aggregator would honour, and refusing the spellings the aggregator ignores today as well, so a
-  later release honouring them cannot admit one silently. A package that must not compile, loaded
+- **Four checks are written here, because no tool offers them.** The rules against package-level
+  state in a pure core above. The suppression check above, written to follow the aggregator's own
+  reading of a directive so it refuses exactly what the aggregator would honour, and refusing the
+  spellings the aggregator ignores today as well, so a later release honouring them cannot admit
+  one silently. A package that must not compile, loaded
   with `golang.org/x/tools/go/packages` through one helper in the shared test support, which
   requires the exact type error rather than the presence of one. And the ban-proof script, which
   runs the analysers and the suppression check against the checked-in files violating each ban and
-  each list, requiring each expected finding and no other. The script also runs the `go vet`
-  analyser [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) writes for its own
-  placement rules, against that analyser's violation files, once the analyser carries those rules.
+  each list, requiring each expected finding and no other. The script also runs the project's
+  `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement
+  rules and the rules against package-level state above, against their violation files.
 
 ### What each tool's ordinary path does that other records forbid
 
@@ -187,7 +210,7 @@ grant check tests against the grants.
 | A rule cannot be switched off quietly | The suppression check refuses every directive, ignore comment and configuration setting that can reach a linter standing in for a control, anywhere in the repository, and allows an ordinary linter's suppression only in a form naming it. Each refused directive is proven by a violation file, and each refused configuration setting by a case in the ban-proof script's own tests |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
-| Footprint | One command. The analysers are inside it rather than beside it, apart from the `go vet` analyser [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) writes for its own placement rules, which runs beside it |
+| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules and this record's rules against package-level state in a pure core, which run beside it |
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and
@@ -245,6 +268,9 @@ of the same function as well.
 - **`default-signifies-exhaustive` is the difference between a live check and a silent one** on
   this project's code specifically, because of the deny-defaulting `default` branch
   [ADR-0042](./0042-implementation-stack.md) requires on every verdict switch.
+- **A package path under `core` includes the test binary's generated main package.** `go vet` does
+  not analyse that package, but the analysis test harness does, and its generated file carries no
+  `.go` name. So the rule on declarations checks only files named `.go` that are not test files.
 - **`allow`-list checking is transitively sound here only because the list is closed.** `depguard`
   inspects the imports written in each file and does not follow them. That is enough for the
   pure-core rule as written, because a core package may import only outside packages that meet the
@@ -425,10 +451,19 @@ an analyser embedded inside `golangci-lint`. So the mechanism is a script runnin
 over the checked-in violation files and requiring each to be reported. It was built and taken from
 failing to passing in both directions.
 
+**How to refuse package-level state in a pure core.** The case for `gochecknoglobals` with
+`reassign` is that both are off the shelf and run under the aggregator. `gochecknoglobals` reported
+thirty-seven legitimate package-level variables outside pure cores, so it would need scoping to
+pure-core files by an exclusion rule, and the ban-proof script refuses any exclusion rule naming a
+linter that stands in for a control. It also admits exported error values, which a composition root
+can overwrite, so `reassign` would run beside it over the whole repository, and neither refuses a
+pure core overwriting its own error value. The operator chose on 2026-09-23 the rules in the
+project's own `go vet` analysers, which need no carve-out and refuse that write too.
+
 ## Consequences
 
 - **What leaving these choices would cost.** A configuration file, in every case. The rules
-  themselves are stated in the records that require them and survive any change of tool. The three
+  themselves are stated in the records that require them and survive any change of tool. The four
   checks written here are each small enough to rewrite in an afternoon.
 - **What would re-argue this decision.** The aggregator's central argument is that it rebuilds
   analysers their own maintainers have not released against a current toolchain. If those projects

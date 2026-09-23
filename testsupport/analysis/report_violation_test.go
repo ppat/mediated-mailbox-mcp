@@ -16,6 +16,6 @@ import (
 func TestReportInsideAProperty(t *testing.T) {
 	draw := func(t *rapid.T) bool { return rapid.Bool().Draw(t, "b") }
 	rapid.Check(t, func(rt *rapid.T) {
-		property.Report(t, draw, func(bool) string { return "" }, nil) // want placement "property.Report is reachable from inside a property"
+		property.Report(t, draw, func(bool) string { return "" }, nil) // want vetcheck "property.Report is reachable from inside a property"
 	})
 }

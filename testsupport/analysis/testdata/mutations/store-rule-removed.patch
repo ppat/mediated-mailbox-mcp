@@ -5,10 +5,10 @@ tests: TestPlacement
 scheduled-count: no
 
 diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
-index 2ff3fc8..9038fbb 100644
+index c3c36a0..049460f 100644
 --- a/testsupport/analysis/analysis.go
 +++ b/testsupport/analysis/analysis.go
-@@ -43,7 +43,6 @@ var Analyzer = &analysis.Analyzer{
+@@ -45,7 +45,6 @@ var Placement = &analysis.Analyzer{
  // messages are the findings, one per call that must not run inside a property.
  var messages = map[string]string{
  	"Report": "property.Report is reachable from inside a property, where rapid re-runs a failing case and every re-run would be counted. Call it from its own test",

@@ -1,0 +1,19 @@
+control: The analyser refuses a write to a pure core's package-level variable
+removes: a write naming another package's variable through its package goes unreported
+packages: ./testsupport/analysis
+tests: TestGlobals
+scheduled-count: no
+
+diff --git a/testsupport/analysis/globals.go b/testsupport/analysis/globals.go
+index f293bbb..72279d4 100644
+--- a/testsupport/analysis/globals.go
++++ b/testsupport/analysis/globals.go
+@@ -176,7 +176,7 @@ func written(pass *analysis.Pass, expr ast.Expr) *types.Var {
+ 	case *ast.Ident:
+ 		return pureCoreVar(pass, pass.TypesInfo.Uses[e])
+ 	case *ast.SelectorExpr:
+-		if v := pureCoreVar(pass, pass.TypesInfo.Uses[e.Sel]); v != nil {
++		if v := pureCoreVar(pass, pass.TypesInfo.Uses[e.Sel]); v != nil && false {
+ 			return v
+ 		}
+ 		return written(pass, e.X)

@@ -69,9 +69,10 @@ jobs:
       working-directory: ./current
       run: mise exec -- golangci-lint run ./...
 
-    # The placement analyser of ADR-0069, which honours no suppression comment and so runs under go vet rather than
-    # inside golangci-lint. It sets the integration tag, as .golangci.yaml does, so crash sequences are checked too.
-    - name: Run the placement analyser
+    # The project's analysers, for ADR-0069's placement rules and ADR-0071's pure-core rule, which honour no
+    # suppression comment and so run under go vet rather than inside golangci-lint. It sets the integration tag, as
+    # .golangci.yaml does, so crash sequences are checked too.
+    - name: Run the go vet analysers
       shell: bash
       working-directory: ./current
       run: mise exec -- go vet -tags integration -vettool="$(mise exec -- go tool -n vetcheck)" ./...
