@@ -200,7 +200,7 @@ the other checks just named.
   input, once found, is stored and replayed on every later run.
 - **For a metamorphic relation, the mutation demonstration breaks whatever would let the rule pass
   without the code doing its job.** [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md)
-  requires tests to go red when a mechanism is removed, and for these rules removing a mechanism
+  requires tests to go red when a mechanism is broken, and for these rules removing a mechanism
   often leaves the rule passing. For a round trip that means breaking the reverse step, because a
   forward step that does nothing leaves nothing to reverse and the rule still holds. For a rule that
   repeating a step changes nothing, it means changing what the step produces into something the step

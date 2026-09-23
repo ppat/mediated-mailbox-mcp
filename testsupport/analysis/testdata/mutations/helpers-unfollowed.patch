@@ -1,0 +1,19 @@
+control: The analyser refuses a generator report reachable from a property
+removes: calls to this package's own functions are no longer followed, so a report call inside a helper escapes
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 2ff3fc8..6aefd87 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -215,7 +215,7 @@ func (w *walker) walk(body ast.Node) {
+ 		}
+ 		if fn != nil {
+ 			if fd := w.decls[fn]; fd != nil {
+-				w.walk(fd.Body)
++				_ = fd
+ 			}
+ 		}
+ 		if id, ok := ast.Unparen(call.Fun).(*ast.Ident); ok {

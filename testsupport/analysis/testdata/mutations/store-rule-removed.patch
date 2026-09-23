@@ -1,0 +1,18 @@
+control: The analyser refuses a failing-case store write from inside a property
+removes: the store rule is removed
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 2ff3fc8..9038fbb 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -43,7 +43,6 @@ var Analyzer = &analysis.Analyzer{
+ // messages are the findings, one per call that must not run inside a property.
+ var messages = map[string]string{
+ 	"Report": "property.Report is reachable from inside a property, where rapid re-runs a failing case and every re-run would be counted. Call it from its own test",
+-	"Check":  "property.Check is reachable from inside a property, where it would write the failing-case store on every re-run. Call it from a test function",
+ }
+ 
+ func run(pass *analysis.Pass) (any, error) {

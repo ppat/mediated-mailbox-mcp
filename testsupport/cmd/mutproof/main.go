@@ -57,8 +57,8 @@
 // rapid's case count by five. The runner refuses to run while GOFLAGS is set, in the environment or
 // through go env -w, because go test reads its flags from there and any of them, such as -run or
 // -short, changes which tests run or how. A patch with scheduled-count yes runs with RAPID_CHECKS
-// set from RAPID_SCHEDULED_CHECKS, the count the deep-tests workflow reads from the repository
-// variable of that name, because a rare failure can be reached at the gating count only by luck
+// set from RAPID_SCHEDULED_CHECKS, which the author sets to the count the deep-tests workflow
+// runs, because a rare failure can be reached at the gating count only by luck
 // (ADR-0069). The runner refuses such a patch when RAPID_SCHEDULED_CHECKS is not a positive number.
 // RAPID_SEED passes through when it is set and non-zero. Otherwise the runner picks a seed. Both
 // runs of a patch use the same seed, and the report records the seed and the case count, so a

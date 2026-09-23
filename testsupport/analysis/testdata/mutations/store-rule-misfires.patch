@@ -1,0 +1,19 @@
+control: The analyser refuses a failing-case store write from inside a property
+removes: the store rule also fires on property.Report
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 2ff3fc8..6aa9fe9 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -208,7 +208,7 @@ func (w *walker) walk(body ast.Node) {
+ 		}
+ 		fn := w.callee(call)
+ 		for name, msg := range messages {
+-			if isFunc(fn, propertyPath, name) && !w.reported[finding{call, name}] {
++			if (isFunc(fn, propertyPath, name) || (name == "Check" && isFunc(fn, propertyPath, "Report"))) && !w.reported[finding{call, name}] {
+ 				w.reported[finding{call, name}] = true
+ 				w.pass.Reportf(call.Pos(), "%s", msg)
+ 			}

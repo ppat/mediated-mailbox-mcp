@@ -1,6 +1,6 @@
 # Mutations
 
-The mutation ledger. A row here records one demonstration, that removing a control's mechanism
+The mutation ledger. A row here records one demonstration, that breaking a control's mechanism
 made its tests go red. This ledger and [VERIFICATIONS.md](./VERIFICATIONS.md) are companions
 split by authoring moment. Deciding a control mints its verification row at design time. A
 demonstration can happen only at implementation time, once there is a mechanism to remove and
@@ -8,24 +8,30 @@ tests to fail. A control with no standing automated test never appears here, sin
 exists to demand red from, and proof only by drill or by manual exercise is that case. The
 decision is ADR-0046's, resolved through the [decision-record index](./adr/README.md).
 
-**A row.** One control, one demonstration. It names how the mechanism was removed or disabled,
-the tests that went red, the date, and an evidence pointer. The table is the whole artifact,
-never a pass rate. A control whose mechanism is broken more than one way, one patch per break,
-numbers each removal in the one row and names the tests each turned red. A surviving mutant holds
-its row open as a defect until the tests are fixed or the mechanism is deliberately deleted as
-redundant, and the row says so beside its date. The runner that applies a demonstration's patches,
-`go tool mutproof` ([testsupport/README.md](../testsupport/README.md)), prints each row in this
-shape.
+**A row.** One control, one demonstration. It names how the mechanism was broken, the tests that
+went red, the date, and an evidence pointer. The table is the whole artifact, never a pass rate.
+Every mechanism is broken at least both ways, once so it does less and once so it does the wrong
+thing, one patch per break, and the row numbers each break and names the tests each turned red. A
+surviving mutant holds its row open as a defect until the tests are fixed or the mechanism is
+deliberately deleted as redundant, and the row says so beside its date. The runner that applies a
+demonstration's patches, `go tool mutproof` ([testsupport/README.md](../testsupport/README.md)),
+prints each row in this shape.
 
-**Lifecycle.** A row is produced when its control lands and reproduced when the control or its
-tests change. Between those events it is a claim about its date, while the permanent CI tests
-keep the control's green continuously earned.
-
-No feature code exists yet. Each demonstration is recorded with the implementation work that
-touches the surface area its control interacts with, so the empty table is the correct present
-state.
+**Lifecycle.** A row is produced when its control lands and reproduced when the control, its
+tests, or a generator its tests draw from changes. Between those events it is a claim about its
+date, while the permanent CI tests keep the control's green continuously earned. Each
+demonstration is recorded with the implementation work that touches the surface area its control
+interacts with.
 
 ## Demonstrations
 
-| Control | Mechanism removed | Tests that went red | Date · evidence |
+| Control | How the mechanism was broken | Tests that went red | Date · evidence |
 | --- | --- | --- | --- |
+| A message body cannot carry a denying sensitivity | (1) the Body gains an exported field that Text returns, so a Body literal can carry any text while the old field stays unexported<br>(2) the Body's text field is exported, so a Body literal can hold any text<br>(3) NewBody refuses every sensitivity, the releasing ones included<br>(4) NewBody never refuses, so a body is built for any sensitivity<br>(5) the Sensitivity's class field is exported, so a literal can pair a normal class with any other axes | (1) `TestNoSensitivityCarryingTypeExposesAField` in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`<br>(2) `TestConstructionOutsideTheConstructorsDoesNotCompile`, `TestConstructionOutsideTheConstructorsDoesNotCompile/bodyliteral`, `TestNoSensitivityCarryingTypeExposesAField` in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`<br>(3) `TestNewBody`, `TestNewBody/scanned`, `TestNewBody/skipped_by_the_gate`, `TestNoBodyCarriesADenyingSensitivity` in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`<br>(4) `TestNewBody`, `TestNewBody/login_link`, `TestNewBody/never_constructed`, `TestNewBody/one-time_code`, `TestNewBody/pending_scan`, `TestNewBody/restricted_sender`, `TestNewBody/skipped_as_restricted`, `TestNoBodyCarriesADenyingSensitivity` in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`<br>(5) `TestConstructionOutsideTheConstructorsDoesNotCompile`, `TestConstructionOutsideTheConstructorsDoesNotCompile/sensitivityliteral`, `TestNoSensitivityCarryingTypeExposesAField` in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |
+| The gating run requires a non-zero seed | (1) the seed check fires on a set, non-zero seed and passes an unset or zero one<br>(2) the seed check never fires | (1) `TestARunWithoutTheGatingSettingsFails`, `TestAStoredFailingCaseOutlivesAGeneratorEdit`, `TestAnUnrelatedFailureStoresNothing`, `TestTheReportFailsAGeneratorThatMissesItsMix` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(2) `TestARunWithoutTheGatingSettingsFails`, `TestARunWithoutTheGatingSettingsFails/report/seed_unset`, `TestARunWithoutTheGatingSettingsFails/report/seed_zero`, `TestARunWithoutTheGatingSettingsFails/store/seed_unset`, `TestARunWithoutTheGatingSettingsFails/store/seed_zero` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |
+| The gating run requires rapid's fail file switched off | (1) the fail-file check fires when rapid's fail file is switched off and passes when it is on<br>(2) the fail-file check never fires | (1) `TestARunWithoutTheGatingSettingsFails`, `TestAStoredFailingCaseOutlivesAGeneratorEdit`, `TestAnUnrelatedFailureStoresNothing`, `TestTheReportFailsAGeneratorThatMissesItsMix` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(2) `TestARunWithoutTheGatingSettingsFails`, `TestARunWithoutTheGatingSettingsFails/report/no_fail_file_false`, `TestARunWithoutTheGatingSettingsFails/report/no_fail_file_unset`, `TestARunWithoutTheGatingSettingsFails/store/no_fail_file_false`, `TestARunWithoutTheGatingSettingsFails/store/no_fail_file_unset` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |
+| No fail file of rapid's own is kept | (1) the search for fail files matches nothing<br>(2) the search for fail files looks under testdata/rapids rather than testdata/rapid<br>(3) the search for fail files matches every file under any testdata directory | (1) `TestRapidFailFilesAreFound` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(2) `TestRapidFailFilesAreFound` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(3) `TestNoRapidFailFileIsKept` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |
+| The failing-case store keeps a found failure through a generator edit | (1) the store keeps the first generated case rather than the reduced failing one<br>(2) stored cases replay whatever shape they were written with<br>(3) the cleanup stores the last case whenever the test failed, without replaying it<br>(4) the cleanup never writes the store | (1) `TestAStoredFailingCaseOutlivesAGeneratorEdit` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(2) `TestAStoredFailingCaseOutlivesAGeneratorEdit` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(3) `TestAnUnrelatedFailureStoresNothing` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(4) `TestAStoredFailingCaseOutlivesAGeneratorEdit` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |
+| The generator report fails a generator that misses its stated mix | (1) a kind is reported short when it reaches its minimum and passed when it misses it<br>(2) no kind is ever below its minimum | (1) `TestNoBodyCarriesADenyingSensitivityMix` in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`, `TestARunWithoutTheGatingSettingsFails`, `TestTheReportFailsAGeneratorThatMissesItsMix` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`<br>(2) `TestTheReportFailsAGeneratorThatMissesItsMix` in `github.com/ppat/mediated-mailbox-mcp/testsupport/property` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |
+| The analyser refuses a generator report reachable from a property | (1) function literals assigned to variables are no longer followed, so a property held in a variable escapes<br>(2) calls to this package's own functions are no longer followed, so a report call inside a helper escapes<br>(3) the report rule also fires on property.Check<br>(4) the report rule is removed | (1) `TestPlacement` in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`<br>(2) `TestPlacement` in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`<br>(3) `TestPlacement` in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`<br>(4) `TestPlacement` in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |
+| The analyser refuses a failing-case store write from inside a property | (1) the store rule also fires on property.Report<br>(2) the store rule is removed | (1) `TestPlacement` in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`<br>(2) `TestPlacement` in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis` | 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142) |

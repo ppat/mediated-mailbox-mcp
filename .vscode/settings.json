@@ -41,6 +41,11 @@
     "--fast-only"
   ],
   "go.lintTool": "golangci-lint",
+  "go.testEnvVars": {
+    "RAPID_CHECKS": "200",
+    "RAPID_NOFAILFILE": "true",
+    "RAPID_SEED": "1"
+  },
   "go.toolsManagement.autoUpdate": false,
   "gopls": {
     "build.buildFlags": [

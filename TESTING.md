@@ -52,9 +52,10 @@ and deep crash-sequence exploration run scheduled, never gating
 [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A gating property run takes a
 fixed seed and case count, and a failing property input, once found, is stored and replayed on every
 later run ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)). The seed
-and count reach the gating run through the environment, the failing case is kept in a store that
-survives an edit to its generator, and the reduced input is also written out as an example-based
-test ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The
+and count reach the gating run through the environment the workflows set, a property run without
+the fixed seed fails, the failing case is kept in a store that survives an edit to its generator,
+and the reduced input is also written out as an example-based test
+([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The
 browser's rendering tests run in the gating suite on every change under the UI's directory, and the
 one assertion of the content security policy that only a browser can make is a drill
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
@@ -79,8 +80,10 @@ The chain from outcome to evidence, stated once.
    exercise prove only that the control worked on the day they ran, as
    [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) records them.
 4. At implementation, every automatable control also gets its mutation demonstration in
-   [docs/MUTATIONS.md](./docs/MUTATIONS.md). The mechanism is removed by a
-   checked-in patch, the tests must go red, and the script records which ones did
+   [docs/MUTATIONS.md](./docs/MUTATIONS.md). The mechanism is broken both ways, so it does less
+   and so it does the wrong thing, each by a checked-in patch, the tests must go red on each, and
+   the script records which ones did. The demonstration is repeated when the control, its tests or
+   a generator they draw from changes
    ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
 
 The two catalogues differ by what they prove and when they can be written. A verification row

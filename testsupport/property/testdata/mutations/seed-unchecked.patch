@@ -1,0 +1,19 @@
+control: The gating run requires a non-zero seed
+removes: the seed check never fires
+packages: ./testsupport/property
+tests: TestARunWithoutTheGatingSettingsFails/report/seed_unset TestARunWithoutTheGatingSettingsFails/report/seed_zero TestARunWithoutTheGatingSettingsFails/store/seed_unset TestARunWithoutTheGatingSettingsFails/store/seed_zero
+scheduled-count: no
+
+diff --git a/testsupport/property/property.go b/testsupport/property/property.go
+index eef7d93..8777ece 100644
+--- a/testsupport/property/property.go
++++ b/testsupport/property/property.go
+@@ -37,7 +37,7 @@ func requireSettings(t rapid.TB) {
+ func settingsProblem(lookup func(string) (string, bool)) error {
+ 	var problems []error
+ 	seed, ok := lookup("RAPID_SEED")
+-	if n, err := strconv.ParseUint(seed, 10, 64); !ok || err != nil || n == 0 {
++	if n, err := strconv.ParseUint(seed, 10, 64); false && (!ok || err != nil || n == 0) {
+ 		problems = append(problems, errors.New("RAPID_SEED must be set to a non-zero number, or rapid picks a different seed on every run"))
+ 	}
+ 	nofailfile, ok := lookup("RAPID_NOFAILFILE")

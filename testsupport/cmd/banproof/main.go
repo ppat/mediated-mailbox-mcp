@@ -20,8 +20,8 @@
 // ends in _violation.go for a rule over non-test files, or _violation followed by the file kind's own
 // suffix for a rule over test files, such as _violation_test.go or _violation_property_test.go.
 //
-// The placement analyser under testsupport/analysis has no rule yet, so banproof does not run go vet.
-// The analyser's first rule brings its violation file and a go vet run here.
+// It also runs go vet with the placement analyser under testsupport/analysis, whose findings want
+// annotations name as placement, the analyser's name.
 //
 // With -browser it proves the browser layer's bans instead, the same way, with oxlint, ast-grep and a
 // search for their suppression directives (browser.go). The browser half needs bun and the browser
@@ -45,6 +45,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -145,6 +146,11 @@ func run(tag string) error {
 		return err
 	}
 	found = append(found, lintFindings...)
+	vetFindings, err := vet(root, tag)
+	if err != nil {
+		return err
+	}
+	found = append(found, vetFindings...)
 
 	unmet, unexpected := match(expected, found)
 	for _, w := range unmet {
@@ -223,6 +229,52 @@ func lint(root, tag string) ([]finding, error) {
 		return nil, fmt.Errorf("golangci-lint run failed: %w\n%s", err, stderr.String())
 	}
 	return parseLint(root, stdout.Bytes())
+}
+
+// vetFinding matches one diagnostic line go vet prints.
+var vetFinding = regexp.MustCompile(`^(.+\.go):(\d+):\d+: (.*)$`)
+
+// vet runs go vet with the placement analyser over the module and returns its findings, each under
+// the analyser's name.
+func vet(root, tag string) ([]finding, error) {
+	tool, err := command(root, "go", "tool", "-n", "vetcheck")
+	if err != nil {
+		return nil, fmt.Errorf("go tool -n vetcheck failed: %w\n%s", err, tool)
+	}
+	// integration is set because golangci-lint's configuration sets it, so crash sequences and other
+	// integration-tagged files are checked by both.
+	tags := "integration"
+	if tag != "" {
+		tags += "," + tag
+	}
+	args := []string{"vet", "-vettool=" + strings.TrimSpace(string(tool)), "-tags=" + tags}
+	args = append(args, "./...")
+	cmd := exec.Command("go", args...)
+	cmd.Dir = root
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	err = cmd.Run()
+	var exit *exec.ExitError
+	// go vet exits 1 when it reports findings. Any other failure means it did not vet.
+	if err != nil && (!errors.As(err, &exit) || exit.ExitCode() != 1) {
+		return nil, fmt.Errorf("go vet failed: %w\n%s", err, stderr.String())
+	}
+	var out []finding
+	for _, line := range strings.Split(stderr.String(), "\n") {
+		if line == "" || strings.HasPrefix(line, "# ") {
+			continue
+		}
+		m := vetFinding.FindStringSubmatch(line)
+		if m == nil {
+			return nil, fmt.Errorf("go vet printed a line banproof cannot read: %s\n%s", line, stderr.String())
+		}
+		n, err := strconv.Atoi(m[2])
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, finding{file: absolute(root, m[1]), line: n, tool: "placement", text: m[3]})
+	}
+	return out, nil
 }
 
 func command(dir, name string, args ...string) ([]byte, error) {

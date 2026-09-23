@@ -1,0 +1,19 @@
+control: The analyser refuses a generator report reachable from a property
+removes: the report rule also fires on property.Check
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 2ff3fc8..070eccf 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -208,7 +208,7 @@ func (w *walker) walk(body ast.Node) {
+ 		}
+ 		fn := w.callee(call)
+ 		for name, msg := range messages {
+-			if isFunc(fn, propertyPath, name) && !w.reported[finding{call, name}] {
++			if (isFunc(fn, propertyPath, name) || (name == "Report" && isFunc(fn, propertyPath, "Check"))) && !w.reported[finding{call, name}] {
+ 				w.reported[finding{call, name}] = true
+ 				w.pass.Reportf(call.Pos(), "%s", msg)
+ 			}

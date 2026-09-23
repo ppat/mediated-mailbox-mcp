@@ -1,0 +1,19 @@
+control: The generator report fails a generator that misses its stated mix
+removes: no kind is ever below its minimum
+packages: ./testsupport/property
+tests: TestTheReportFailsAGeneratorThatMissesItsMix
+scheduled-count: no
+
+diff --git a/testsupport/property/report.go b/testsupport/property/report.go
+index 1d31960..46b031d 100644
+--- a/testsupport/property/report.go
++++ b/testsupport/property/report.go
+@@ -48,7 +48,7 @@ func evaluate(counts map[string]int, minimums map[string]float64) (mix, short st
+ 		parts = append(parts, fmt.Sprintf("%s %d (%.1f%%)", kind, counts[kind], 100*share(kind)))
+ 	}
+ 	for _, kind := range slices.Sorted(maps.Keys(minimums)) {
+-		if got := share(kind); got < minimums[kind] {
++		if got := share(kind); got < 0 {
+ 			missed = append(missed, fmt.Sprintf("%s at %.1f%% of %d cases, below the minimum of %.1f%%", kind, 100*got, total, 100*minimums[kind]))
+ 		}
+ 	}

@@ -1,0 +1,42 @@
+control: A message body cannot carry a denying sensitivity
+removes: the Sensitivity's class field is exported, so a literal can pair a normal class with any other axes
+packages: ./core/sensitivity
+tests: TestNoSensitivityCarryingTypeExposesAField TestConstructionOutsideTheConstructorsDoesNotCompile/sensitivityliteral
+scheduled-count: no
+
+diff --git a/core/sensitivity/sensitivity.go b/core/sensitivity/sensitivity.go
+index b5c78ea..0715b5f 100644
+--- a/core/sensitivity/sensitivity.go
++++ b/core/sensitivity/sensitivity.go
+@@ -99,7 +99,7 @@ func (s ScanState) String() string {
+ // Sensitivity combines a message's sender class, content flags and scan state. The zero value is a
+ // restricted sender with both flags, pending scan.
+ type Sensitivity struct {
+-	class SenderClass
++	Sender SenderClass
+ 	flags ContentFlags
+ 	scan  ScanState
+ }
+@@ -122,11 +122,11 @@ func New(class SenderClass, flags ContentFlags, scan ScanState) (Sensitivity, er
+ 	if !class.Restricted() && scan.state == skippedRestricted {
+ 		return Sensitivity{}, ErrNormalSkippedRestricted
+ 	}
+-	return Sensitivity{class: class, flags: flags, scan: scan}, nil
++	return Sensitivity{Sender: class, flags: flags, scan: scan}, nil
+ }
+ 
+ // Class returns the sender class.
+-func (s Sensitivity) Class() SenderClass { return s.class }
++func (s Sensitivity) Class() SenderClass { return s.Sender }
+ 
+ // Flags returns the content flags.
+ func (s Sensitivity) Flags() ContentFlags { return s.flags }
+@@ -137,7 +137,7 @@ func (s Sensitivity) Scan() ScanState { return s.scan }
+ // ReleasesBody reports whether a message of this sensitivity may have its body released. It requires
+ // a normal sender, no content flag, and a scan state of scanned or skipped by the scan gate.
+ func (s Sensitivity) ReleasesBody() bool {
+-	if s.class.Restricted() || s.flags.Any() {
++	if s.Sender.Restricted() || s.flags.Any() {
+ 		return false
+ 	}
+ 	switch s.scan.state {

@@ -40,18 +40,26 @@ that stands in for a control.
 - **No coverage percentage.** What must be tested is the rows of
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) and each roadmap unit's criteria. A
   percentage of lines executed measures neither.
-- **An automatable control's acceptance includes its mutation table.** Remove the mechanism, demand
-  the tests go red, and record which tests failed. The harness is a checked-in patch and a script
-  that applies it, runs the tests, demands red, and records which tests went red before restoring
-  green. The table is the whole artifact, and a pass rate never is. A control with no standing
+- **An automatable control's acceptance includes its mutation table.** Break the mechanism both
+  ways, once so it does less and once so it does the wrong thing, each break its own patch, demand
+  the tests go red on each, and record which tests failed. A check against an absolute value catches
+  the first kind of break, and often only a comparison catches the second, so one break leaves half
+  of what the tests must catch unproven
+  ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) measured both in its crash
+  harness). The harness is a checked-in patch per break and a script that applies each, runs the
+  tests, demands red, and records which tests went red before restoring green. The table is the
+  whole artifact, and a pass rate never is. A control with no standing
   automated test carries no table, since nothing exists to demand red from, and proof only by drill
   or by manual exercise is that case.
 - **A surviving mutant is a defect on the spot.** Either the tests are vacuous or the
   mechanism is redundant, and each finding demands its own action. A mechanism not worth
   testing well is a candidate for removal.
 - **The obligation is event-driven per control, never a standing gate.** The table is produced
-  when the control lands and reproduced when the control or its tests change, at no other
-  time. Controls are defined in the design, or when an outcome (or feature) is added, and verifications are
+  when the control lands and reproduced when the control, its tests, or a generator its tests
+  draw from changes, at no other time. A generator is named because one edited until its report
+  passed moved a planted failure out of the gating run's reach while every test stayed green
+  ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). Controls are defined in the
+  design, or when an outcome (or feature) is added, and verifications are
   defined with them. A mutation demonstration proves the control and its verification work, and
   lands at implementation time.
 - **A test that proves a [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) row never retires.**

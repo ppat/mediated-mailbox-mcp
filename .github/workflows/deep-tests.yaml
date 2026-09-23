@@ -3,8 +3,8 @@
 name: deep-tests
 
 # The longer random search over the same property tests and crash sequences the gating run holds (ADR-0055,
-# ADR-0045), with more cases per property and a fresh seed each run. The case count is not decided in any record,
-# so it is read from the repository variable RAPID_SCHEDULED_CHECKS, and a manual run may override it. It never gates a pull request. It also
+# ADR-0045), with more cases per property and a fresh seed each run. The case count is ADR-0069's scheduled count,
+# set below, and a manual run may override it. It never gates a pull request. It also
 # runs on a pull request changing this file, so the workflow itself is exercised before it lands.
 on:
   schedule:
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       checks:
-        description: Cases generated per property, overriding the RAPID_SCHEDULED_CHECKS repository variable
+        description: Cases generated per property, overriding the scheduled count of 10000
         required: false
         type: string
   pull_request:
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
-      SCHEDULED_CHECKS: ${{ inputs.checks || vars.RAPID_SCHEDULED_CHECKS }}
+      SCHEDULED_CHECKS: ${{ inputs.checks || '10000' }}
       RAPID_NOFAILFILE: 'true'
       RAPID_SEED: ${{ github.run_id }}
     steps:
@@ -83,7 +83,7 @@ jobs:
       # yamllint disable-line rule:indentation
       run: |
         if [[ ! "$SCHEDULED_CHECKS" =~ ^[0-9]+$ ]] || (( 10#$SCHEDULED_CHECKS == 0 )); then
-          echo "::error::Property tests or crash sequences exist, but no case count is configured. Set the repository variable RAPID_SCHEDULED_CHECKS to a positive number, or pass the checks input."
+          echo "::error::The checks input must be a positive number."
           exit 1
         fi
         export RAPID_CHECKS="$SCHEDULED_CHECKS"

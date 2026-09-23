@@ -33,7 +33,7 @@ Classify what you are about to write, before opening any file:
 | How work moves through the repository: a change's release type, how a ticket is cut and when it is done | `CLAUDE.md`, its Repository process section | Every agent working here needs it, and it is process, not design or build state |
 | A change to which test kinds exist, when each applies, or how proof works | A decision record first, then `TESTING.md` in the same change | TESTING.md assembles the strategy and links the records that decide it |
 | A deliberate violation that would prove a control works | `docs/VERIFICATIONS.md` | It is a test plan, keyed to a work unit |
-| A control's mutation demonstration, the record that its tests went red with the mechanism removed | `docs/MUTATIONS.md` | It is the implementation-time ledger, one row per control |
+| A control's mutation demonstration, the record that its tests went red with the mechanism broken | `docs/MUTATIONS.md` | It is the implementation-time ledger, one row per control |
 | Orientation for a newcomer (what the project is, where facts live) | `README.md` / `CLAUDE.md` | Front doors point, and hold no fact about the system. CLAUDE.md also holds the code's conventions |
 
 The ambiguous cases, resolved the way this document set resolves them:
@@ -52,7 +52,7 @@ The ambiguous cases, resolved the way this document set resolves them:
   links the number to the record.
 - **A test scenario versus a mutation demonstration** → a deliberate violation and its expected
   refusal is a `docs/VERIFICATIONS.md` row, minted at design time. The record that tests went
-  red with a mechanism removed is a `docs/MUTATIONS.md` row, possible only at implementation
+  red with a mechanism broken is a `docs/MUTATIONS.md` row, possible only at implementation
   time. One proves the control, and the other audits the control's tests.
 - **A maybe-someday idea, neither targeted nor deliberately excluded** → nowhere. Non-outcomes
   are for deliberate exclusions only; recording a possibility would misstate it either way.

@@ -358,10 +358,9 @@ records' `Serves:` headers) for meaning drift against the new text.
 ## Mutation-ledger rows
 
 - The ledger's own preamble is the format authority. A row names the control, how the
-  mechanism was removed or disabled, the tests that went red, the date, and an evidence
-  pointer.
+  mechanism was broken both ways, the tests that went red, the date, and an evidence pointer.
 - A row is written at implementation time, when its control lands, and rewritten only when the
-  control or its tests change.
+  control, its tests, or a generator its tests draw from changes.
 - A surviving mutant keeps its row open as a defect until the tests are fixed or the mechanism
   is deliberately removed as redundant.
 - A control with no standing automated test gets no row. The line is ADR-0046's.

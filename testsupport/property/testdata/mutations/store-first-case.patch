@@ -1,0 +1,21 @@
+control: The failing-case store keeps a found failure through a generator edit
+removes: the store keeps the first generated case rather than the reduced failing one
+packages: ./testsupport/property
+tests: TestAStoredFailingCaseOutlivesAGeneratorEdit
+scheduled-count: no
+
+diff --git a/testsupport/property/check.go b/testsupport/property/check.go
+index 4094906..0f1a7b2 100644
+--- a/testsupport/property/check.go
++++ b/testsupport/property/check.go
+@@ -74,7 +74,9 @@ func Check[A any](t *testing.T, draw func(*rapid.T) A, prop func(rapid.TB, A)) {
+ 	rapid.Check(t, func(rt *rapid.T) {
+ 		a := draw(rt)
+ 		// rapid replays the reduced failing case last, so this holds that case when the cleanup runs.
+-		last, drew = a, true
++		if !drew {
++			last, drew = a, true
++		}
+ 		prop(rt, a)
+ 	})
+ }

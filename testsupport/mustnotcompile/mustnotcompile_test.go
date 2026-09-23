@@ -37,3 +37,24 @@ func TestCheckRejectsFixturesThatDoNotProveTheConstructionFails(t *testing.T) {
 		})
 	}
 }
+
+// strings.Builder keeps every field unexported, and url.URL exports its fields.
+func TestCheckNoExportedFields(t *testing.T) {
+	mustnotcompile.RequireNoExportedFields(t, "strings", "Builder")
+	cases := []struct {
+		name, pkg, typ, reason string
+	}{
+		{"exported field", "net/url", "URL", "has the exported field Scheme"},
+		{"a function", "strings", "Lines", "strings.Lines is not a struct"},
+		{"missing type", "strings", "Absent", "declares no type Absent"},
+		{"interface", "io", "Reader", "is not a struct"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := mustnotcompile.CheckNoExportedFields(c.pkg, c.typ)
+			if err == nil || !strings.Contains(err.Error(), c.reason) {
+				t.Fatalf("got %v, want an error containing %q", err, c.reason)
+			}
+		})
+	}
+}
