@@ -1,0 +1,20 @@
+control: A verb no constant names is refused
+removes: a value no constant names is authorized for a restricted sender's mail alone
+packages: ./core/authorize
+tests: TestOnlyTheMatrixVerbsAreAuthorized
+scheduled-count: no
+
+diff --git a/core/authorize/authorize.go b/core/authorize/authorize.go
+index 1fca392..6f37092 100644
+--- a/core/authorize/authorize.go
++++ b/core/authorize/authorize.go
+@@ -127,6 +127,9 @@ func Decide(verb Verb, class sensitivity.SenderClass) Verdict {
+ 	case noVerb:
+ 		return Verdict{reason: UnknownVerb}
+ 	default:
++		if class.Restricted() {
++			return Verdict{reason: Authorized}
++		}
+ 		return Verdict{reason: UnknownVerb}
+ 	}
+ }

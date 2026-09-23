@@ -1,0 +1,18 @@
+control: Sender class alone governs mutation, and the verdict holds its reason alone
+removes: the verdict gains a field holding the message's subject
+packages: ./core/authorize
+tests: TestTheDecisionTakesOnlyTheVerbAndTheSenderClass
+scheduled-count: no
+
+diff --git a/core/authorize/authorize.go b/core/authorize/authorize.go
+index 1fca392..e117240 100644
+--- a/core/authorize/authorize.go
++++ b/core/authorize/authorize.go
+@@ -97,6 +97,7 @@ func (r Reason) String() string {
+ // verb.
+ type Verdict struct {
+ 	reason Reason
++	subject string
+ }
+ 
+ // Reason returns why the mutation was authorized or refused.

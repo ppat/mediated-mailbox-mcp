@@ -1,0 +1,22 @@
+control: A restricted sender's mail may only be organized
+removes: a restricted sender's mail may not be labelled
+packages: ./core/authorize
+tests: TestMatrix/label TestTheAuthorizerAllowsOnlyWhatTheRulesAllow
+scheduled-count: no
+
+diff --git a/core/authorize/authorize.go b/core/authorize/authorize.go
+index 1fca392..8403bbe 100644
+--- a/core/authorize/authorize.go
++++ b/core/authorize/authorize.go
+@@ -117,9 +117,9 @@ func (v Verdict) Authorized() bool {
+ // Decide returns the verdict on applying verb to a message from a sender of the given class.
+ func Decide(verb Verb, class sensitivity.SenderClass) Verdict {
+ 	switch verb {
+-	case Label, Unlabel, Move, MarkRead, Star:
++	case Unlabel, Move, MarkRead, Star:
+ 		return Verdict{reason: Authorized}
+-	case Archive, Trash, Spam, Mute:
++	case Label, Archive, Trash, Spam, Mute:
+ 		if class.Restricted() {
+ 			return Verdict{reason: RestrictedSender}
+ 		}

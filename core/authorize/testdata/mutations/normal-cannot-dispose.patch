@@ -1,0 +1,19 @@
+control: A restricted sender's mail may only be organized
+removes: a normal sender's mail may not be archived, trashed, marked spam or muted
+packages: ./core/authorize
+tests: TestMatrix/archive TestTheAuthorizerAllowsOnlyWhatTheRulesAllow TestOnlyTheMatrixVerbsAreAuthorized
+scheduled-count: no
+
+diff --git a/core/authorize/authorize.go b/core/authorize/authorize.go
+index 1fca392..60fe686 100644
+--- a/core/authorize/authorize.go
++++ b/core/authorize/authorize.go
+@@ -123,7 +123,7 @@ func Decide(verb Verb, class sensitivity.SenderClass) Verdict {
+ 		if class.Restricted() {
+ 			return Verdict{reason: RestrictedSender}
+ 		}
+-		return Verdict{reason: Authorized}
++		return Verdict{reason: RestrictedSender}
+ 	case noVerb:
+ 		return Verdict{reason: UnknownVerb}
+ 	default:

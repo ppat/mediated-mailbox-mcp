@@ -1,0 +1,19 @@
+control: A verdict reason no case handles refuses the mutation
+removes: a reason no case names authorizes the mutation
+packages: ./core/authorize
+tests: TestAnUnhandledReasonRefuses
+scheduled-count: no
+
+diff --git a/core/authorize/authorize.go b/core/authorize/authorize.go
+index 1fca392..8827cff 100644
+--- a/core/authorize/authorize.go
++++ b/core/authorize/authorize.go
+@@ -110,7 +110,7 @@ func (v Verdict) Authorized() bool {
+ 	case UnknownVerb, RestrictedSender:
+ 		return false
+ 	default:
+-		return false
++		return true
+ 	}
+ }
+ 
