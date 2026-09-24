@@ -1,0 +1,19 @@
+control: The release step withholds a body it cannot decide on
+removes: a gate-skipped body with no scanner to check it is released
+packages: ./mediate/internal/core/release
+tests: TestFailClosed/a_gate-skipped_body_and_a_scanner_nobody_built TestFailClosed/a_gate-skipped_login_link_and_a_scanner_nobody_built
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..f57e958 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -104,7 +104,7 @@ func Decide(markdown string, state sensitivity.ScanState, s scan.Scanner) Decisi
+ 		v := s.ScanPatterns(markdown)
+ 		switch {
+ 		case v.Version() == 0:
+-			return Decision{reason: NoScanner}
++			return Decision{reason: Released, body: wrap(markdown)}
+ 		case v.Flags().Any():
+ 			return Decision{reason: PatternMatched}
+ 		}

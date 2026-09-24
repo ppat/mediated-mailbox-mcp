@@ -1,0 +1,29 @@
+control: A body that cannot be converted is refused with no Markdown
+removes: a recovered panic's value, which can carry body text, is written into the error
+packages: ./sanitize/markdown
+tests: TestGuardedFailsClosed/a_panic_carrying_body_text
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..3ed9949 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -28,6 +28,7 @@ package markdown
+ 
+ import (
+ 	"errors"
++	"fmt"
+ 	"net/mail"
+ 	"net/url"
+ 	"strconv"
+@@ -87,8 +88,8 @@ func Convert(body string) (string, error) {
+ // text, so the value is never included.
+ func guarded(convert func() (string, error)) (out string, err error) {
+ 	defer func() {
+-		if recover() != nil {
+-			out, err = "", errors.Join(ErrUnconvertible, errors.New("markdown: the converter panicked"))
++		if r := recover(); r != nil {
++			out, err = "", errors.Join(ErrUnconvertible, errors.New("markdown: the converter panicked: "+fmt.Sprint(r)))
+ 		}
+ 	}()
+ 	out, err = convert()

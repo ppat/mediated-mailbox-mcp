@@ -293,6 +293,47 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "pgregory.net/rapid$"
 
+        # The body sanitization library, every file. It is the one place the HTML-to-Markdown converter and the HTML
+        # parser it reads are admitted, and the CommonMark parser is admitted for its tests, which read the output as a
+        # Markdown reader would.
+        sanitize:
+          list-mode: strict
+          files:
+          - "${base-path}/sanitize/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/JohannesKaufmann/html-to-markdown/v2/"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/yuin/goldmark$"
+          - "github.com/yuin/goldmark/"
+          - "golang.org/x/net/html$"
+          - "golang.org/x/net/html/atom$"
+          - "pgregory.net/rapid$"
+
+        # The body sanitization library outside its conversion subsection. The converter is called from
+        # sanitize/markdown alone, so the mediator and the Backfill Job convert with one configuration.
+        sanitize-without-converter:
+          list-mode: strict
+          files:
+          - "${base-path}/sanitize/**.go"
+          - "!${base-path}/sanitize/markdown/**"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "pgregory.net/rapid$"
+
         # The shared test tooling, every file.
         testsupport:
           list-mode: strict
@@ -360,6 +401,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -384,6 +426,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -526,6 +569,7 @@ linters:
           - "!${base-path}/provider/contract/**"
           allow:
           - "$gostd"
+          - "github.com/JohannesKaufmann/html-to-markdown/v2/"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/"
@@ -539,8 +583,11 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/jmap$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
+          - "golang.org/x/net/html$"
+          - "golang.org/x/net/html/atom$"
 
         # Every test file outside the shared test tooling that is not a property test or a crash sequence. rapid
         # and its test support stay out of these (ADR-0069). The shared test tooling's own tests meet its two lists
@@ -568,6 +615,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/propose/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -596,6 +644,7 @@ linters:
           - "!${base-path}/propose/**"
           - "!${base-path}/provider/**"
           - "!${base-path}/ratelimit/**"
+          - "!${base-path}/sanitize/**"
           - "!${base-path}/sync/**"
           - "!${base-path}/testsupport/**"
           - "!${base-path}/ui/**"

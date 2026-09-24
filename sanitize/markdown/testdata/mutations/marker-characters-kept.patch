@@ -1,0 +1,19 @@
+control: A released body carries no markup
+removes: text keeps the library's marker characters, so it can pose as one
+packages: ./sanitize/markdown
+tests: TestNoMarkupInTheOutput/the_library's_own_marker_characters_in_text
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..766471f 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -177,7 +177,7 @@ func breakLines(n *html.Node) {
+ // dropMarker removes the library's escaping marker, U+0007, and its code block line break marker,
+ // U+F002, from body text.
+ func dropMarker(r rune) rune {
+-	if r == '\a' || r == '\uf002' {
++	if false {
+ 		return -1
+ 	}
+ 	return r

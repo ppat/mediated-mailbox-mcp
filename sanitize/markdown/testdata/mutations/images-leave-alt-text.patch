@@ -1,0 +1,35 @@
+control: Every image is dropped from a released body
+removes: an image is dropped but its alternative text is left in its place
+packages: ./sanitize/markdown
+tests: TestImagesAreDropped/a_remote_image TestImagesAreDropped/an_inline_data:_image TestImagesAreDropped/an_embedded_cid:_image TestRawHTMLALinkAndARemoteImage TestTheConvertedBodysForm
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..123152c 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -117,6 +117,24 @@ func newConverter() *converter.Converter {
+ 	c.Register.TagType("th", converter.TagTypeBlock, converter.PriorityEarly)
+ 	c.Register.PreRenderer(dropUnsafeLinkTargets, converter.PriorityEarly)
+ 	c.Register.PreRenderer(flattenCode, converter.PriorityEarly)
++	c.Register.PreRenderer(func(_ converter.Context, doc *html.Node) {
++		var walk func(n *html.Node)
++		walk = func(n *html.Node) {
++			for child := n.FirstChild; child != nil; child = child.NextSibling {
++				walk(child)
++			}
++			if n.Type == html.ElementNode && n.Data == "img" {
++				alt := ""
++				for _, a := range n.Attr {
++					if a.Key == "alt" {
++						alt = a.Val
++					}
++				}
++				n.Type, n.Data, n.DataAtom, n.Attr = html.TextNode, alt, 0, nil
++			}
++		}
++		walk(doc)
++	}, converter.PriorityEarly-1)
+ 	return c
+ }
+ 

@@ -58,7 +58,10 @@ not the scanner, and it does not sit under the scanner's out-of-band placement r
 (timeouts, latency, fail-open pressure), while a pure pattern check on a body already in memory
 has no external calls, no backlog, and bounded microsecond cost. Effect: the accepted residual
 of [ADR-0007](./0007-composite-scan-gate.md) shrinks precisely for the highest-value secret
-class, at the exact moment of exposure.
+class, at the exact moment of exposure. The pattern tier is the Content Scanner's first tier run
+alone, without its scoring tier ([ADR-0005](../classification/0005-tiered-detection.md)). A
+`SKIPPED_GATE` body with no built scanner to check it is withheld, and a scanned body is not
+checked again.
 
 ## Alternatives considered
 

@@ -1,0 +1,19 @@
+control: A released body carries no markup
+removes: the pass flattens inline code but leaves preformatted text to the library's fenced blocks
+packages: ./sanitize/markdown
+tests: TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote_in_a_list TestTheConvertedBodysForm
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..d30ee15 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -122,7 +122,7 @@ func newConverter() *converter.Converter {
+ 
+ // codeElements are the elements the library writes as code, a pre as a fenced block and the rest as
+ // inline code spans.
+-var codeElements = map[string]bool{"pre": true, "code": true, "var": true, "samp": true, "kbd": true, "tt": true}
++var codeElements = map[string]bool{"pre": false, "code": true, "var": true, "samp": true, "kbd": true, "tt": true}
+ 
+ // flattenCode turns every code element into ordinary text, so its content is escaped like any other
+ // text. Code is the one place the library writes text without escaping it, which leaves markup

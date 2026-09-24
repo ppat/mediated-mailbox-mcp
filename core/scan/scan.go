@@ -114,6 +114,7 @@ func DefaultConfig() Config {
 // The zero value refuses to decide.
 type Scanner struct {
 	built      bool
+	patterns   bool
 	cfg        Config
 	triggers   automaton
 	linkWords  automaton
@@ -214,6 +215,15 @@ func (v Verdict) Version() int { return v.version }
 
 // Revision returns the revision of the configuration the verdict was produced under.
 func (v Verdict) Revision() int { return v.revision }
+
+// ScanPatterns returns the verdict of tier 1 alone on body, a message body as Markdown. It is the
+// serve-time pattern check a body released without being scanned passes, which runs the structural
+// patterns and never tier 2's scoring (ADR-0002). A Scanner nobody built returns the zero Verdict, as
+// Scan does.
+func (s Scanner) ScanPatterns(body string) Verdict {
+	s.patterns = true
+	return s.Scan(body)
+}
 
 // Scan returns the verdict on body, a message body as Markdown.
 func (s Scanner) Scan(body string) Verdict {

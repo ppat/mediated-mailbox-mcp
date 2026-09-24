@@ -1,0 +1,18 @@
+control: The release step withholds a body it cannot decide on
+removes: a scan state the gate never releases falls through to release
+packages: ./mediate/internal/core/release
+tests: TestFailClosed/a_pending_scan TestFailClosed/the_zero_scan_state TestFailClosed/skipped_as_restricted
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..8e1630d 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -109,7 +109,6 @@ func Decide(markdown string, state sensitivity.ScanState, s scan.Scanner) Decisi
+ 			return Decision{reason: PatternMatched}
+ 		}
+ 	default:
+-		return Decision{reason: NotReleasable}
+ 	}
+ 	return Decision{reason: Released, body: wrap(markdown)}
+ }

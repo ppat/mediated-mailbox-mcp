@@ -1,0 +1,19 @@
+control: A released body sits inside delimiters it cannot close
+removes: text spelling the delimiters is released as it is
+packages: ./mediate/internal/core/release
+tests: TestABodyCannotCloseTheDelimiters/the_closing_line TestTheReleasedBodysForm
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..d064d56 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -117,7 +117,7 @@ func Decide(markdown string, state sensitivity.ScanState, s scan.Scanner) Decisi
+ // wrap returns markdown between the delimiters, after the directive, with the delimiters' words
+ // replaced wherever markdown spells them.
+ func wrap(markdown string) string {
+-	return directive + "\n\n" + opening + "\n" + neutralize(markdown) + "\n" + closing
++	return directive + "\n\n" + opening + "\n" + markdown + "\n" + closing
+ }
+ 
+ // neutralize replaces every stretch of text whose letters spell keyword, ignoring case and anything

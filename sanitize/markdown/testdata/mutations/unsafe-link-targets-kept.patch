@@ -1,0 +1,19 @@
+control: A link keeps its target only when the target is an absolute http or https URL with a host, or a mailto URL of bare addresses and nothing else
+removes: the pass emptying unsafe link targets is never registered
+packages: ./sanitize/markdown
+tests: TestLinkTargets/javascript TestLinkTargets/an_HTML_data:_target TestLinkTargets/a_relative_path TestTheConvertedBodysForm
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..aaa2879 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -115,7 +115,7 @@ func newConverter() *converter.Converter {
+ 	}
+ 	c.Register.TagType("td", converter.TagTypeBlock, converter.PriorityEarly)
+ 	c.Register.TagType("th", converter.TagTypeBlock, converter.PriorityEarly)
+-	c.Register.PreRenderer(dropUnsafeLinkTargets, converter.PriorityEarly)
++	_ = dropUnsafeLinkTargets
+ 	c.Register.PreRenderer(flattenCode, converter.PriorityEarly)
+ 	return c
+ }

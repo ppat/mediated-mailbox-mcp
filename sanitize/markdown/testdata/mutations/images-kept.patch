@@ -1,0 +1,19 @@
+control: Every image is dropped from a released body
+removes: images are no longer on the list of dropped elements
+packages: ./sanitize/markdown
+tests: TestImagesAreDropped/a_remote_image TestImagesAreDropped/an_inline_data:_image TestImagesAreDropped/an_embedded_cid:_image TestRawHTMLALinkAndARemoteImage TestTheConvertedBodysForm
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..9001621 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -55,7 +55,7 @@ var ErrUnconvertible = errors.New("markdown: the body cannot be converted")
+ // document head.
+ var removed = []string{
+ 	"#comment", "applet", "area", "audio", "base", "button", "canvas", "datalist", "embed", "fieldset",
+-	"form", "frame", "frameset", "head", "iframe", "img", "input", "link", "map", "math", "meta",
++	"form", "frame", "frameset", "head", "iframe", "input", "link", "map", "math", "meta",
+ 	"noembed", "noframes", "noscript", "object", "optgroup", "option", "output", "param", "picture",
+ 	"portal", "script", "select", "source", "style", "svg", "template", "textarea", "title", "track",
+ 	"video",

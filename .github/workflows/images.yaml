@@ -19,6 +19,7 @@ on:
     - propose/**
     - provider/**
     - ratelimit/**
+    - sanitize/**
     - sync/**
     - ui/**
   workflow_dispatch:

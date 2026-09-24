@@ -366,6 +366,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
+| Text a sender hides with CSS is released as ordinary text, and delimiter words written in look-alike letters pass the release step | ADR-0036's consequences |
 | Compromise of a process holding provider credentials defeats redaction | ADR-0028 (hardening, blast radius, evidence that survives) |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
 | Un-braided concerns and contract-only knowledge are only tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
@@ -458,6 +459,10 @@ top-level documents, a decision record, or a ticket from here without guessing.
   ADR-0037, via the [decision-record index](./docs/adr/README.md)).
 - **Serve-time pattern check** — the additional inspection a gate-skipped body passes at
   release (rule in ADR-0002, via the [decision-record index](./docs/adr/README.md)).
+- **Release step** — the mediator's last decision on a body the Redaction Gate lets through,
+  which either wraps its Markdown in the untrusted-content delimiters or withholds it, running the
+  serve-time pattern check on a gate-skipped body on the way (rules in ADR-0036 and ADR-0002, via
+  the [decision-record index](./docs/adr/README.md)).
 - **The residual** — the accepted, measured set of bodies released without having been scanned
   (bounds in ADR-0007 and ADR-0002, via the
   [decision-record index](./docs/adr/README.md)).

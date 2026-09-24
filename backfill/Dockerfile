@@ -9,6 +9,7 @@ COPY core core
 COPY db db
 COPY provider provider
 COPY ratelimit ratelimit
+COPY sanitize sanitize
 COPY backfill/main.go backfill/main.go
 COPY backfill/internal backfill/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-backfill ./backfill

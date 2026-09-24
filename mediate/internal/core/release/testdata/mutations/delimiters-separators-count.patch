@@ -1,0 +1,19 @@
+control: A released body sits inside delimiters it cannot close
+removes: characters between the letters break a match
+packages: ./mediate/internal/core/release
+tests: TestABodyCannotCloseTheDelimiters/the_closing_line TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words TestTheReleasedBodysForm
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..ad44e1f 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -127,7 +127,7 @@ func wrap(markdown string) string {
+ func neutralize(text string) string {
+ 	var letters []letter
+ 	for i, r := range text {
+-		if unicode.IsLetter(r) {
++		if r != 0 {
+ 			letters = append(letters, letter{i, i + utf8.RuneLen(r)})
+ 		}
+ 	}

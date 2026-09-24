@@ -76,7 +76,7 @@ had alternatives live in the records, cited by number. What tests a piece of wor
 [TESTING.md](./TESTING.md)'s, which controls exist and how each is proven is
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s.
 The UI's own layout is [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The
-data-access library and the three narrow shared libraries each describe themselves in a README in
+data-access library and the four narrow shared libraries each describe themselves in a README in
 their own directory.
 
 ### The Go module
@@ -106,6 +106,7 @@ carries the bare word.
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
 | `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, and the contract suite, argued in [provider/README.md](./provider/README.md) |
 | `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
+| `sanitize/` | Library | `mediated-mailbox-sanitize` | The conversion of a body's HTML to clean Markdown, argued in [sanitize/README.md](./sanitize/README.md) |
 | `testsupport/` | Library | `mediated-mailbox-testsupport` | The shared test tooling, argued in [testsupport/README.md](./testsupport/README.md) |
 | `mediate/` | Deployable | `mediated-mailbox-mediate` | The mediator |
 | `backfill/` | Deployable | `mediated-mailbox-backfill` | The Backfill Job |
@@ -120,7 +121,7 @@ carries the bare word.
 A deployable's job word is a verb for what it does, following `organize`. `ui` keeps the directory
 the Glossary gives it. Shared code is the shared pure library, or a narrow, named library that
 argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
-requires. The data-access library's case is ADR-0047's, and each of the other three argues its case
+requires. The data-access library's case is ADR-0047's, and each of the other four argues its case
 in its README.
 
 ### Inside a component

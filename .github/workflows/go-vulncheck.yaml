@@ -22,6 +22,7 @@ on:
     - propose/**
     - provider/**
     - ratelimit/**
+    - sanitize/**
     - sync/**
     - testsupport/**
     - ui/*.go

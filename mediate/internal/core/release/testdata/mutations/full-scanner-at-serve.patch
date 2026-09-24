@@ -1,0 +1,19 @@
+control: A gate-skipped body the structural patterns match is withheld at serve time
+removes: the serve-time check runs the full scanner, tier 2's scoring included
+packages: ./mediate/internal/core/release
+tests: TestServeTimePatternCheck/a_gate-skipped_code_only_tier_2_catches
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..0d710d5 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -101,7 +101,7 @@ func Decide(markdown string, state sensitivity.ScanState, s scan.Scanner) Decisi
+ 	switch state {
+ 	case sensitivity.Scanned():
+ 	case sensitivity.SkippedGate():
+-		v := s.ScanPatterns(markdown)
++		v := s.Scan(markdown)
+ 		switch {
+ 		case v.Version() == 0:
+ 			return Decision{reason: NoScanner}

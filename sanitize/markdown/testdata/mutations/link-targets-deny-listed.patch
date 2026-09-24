@@ -1,0 +1,26 @@
+control: A link keeps its target only when the target is an absolute http or https URL with a host, or a mailto URL of bare addresses and nothing else
+removes: link targets are judged against a deny list of javascript: instead of an allow list
+packages: ./sanitize/markdown
+tests: TestLinkTargets/an_HTML_data:_target TestLinkTargets/vbscript TestLinkTargets/a_local_file TestLinkTargets/a_relative_path TestLinkTargets/mailto_with_no_recipient TestTheConvertedBodysForm
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..db86684 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -209,14 +209,7 @@ func kept(target string) bool {
+ 	if err != nil {
+ 		return false
+ 	}
+-	switch strings.ToLower(u.Scheme) {
+-	case "http", "https":
+-		return u.Host != ""
+-	case "mailto":
+-		return u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && addresses(u.Opaque)
+-	default:
+-		return false
+-	}
++	return strings.ToLower(u.Scheme) != "javascript"
+ }
+ 
+ // addresses reports whether to, the recipients of a mailto URL, names at least one recipient and

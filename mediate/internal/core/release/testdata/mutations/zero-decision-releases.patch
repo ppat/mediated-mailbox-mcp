@@ -1,0 +1,22 @@
+control: The release step withholds a body it cannot decide on
+removes: the zero Decision reports a released body
+packages: ./mediate/internal/core/release
+tests: TestFailClosed/the_zero_decision
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..6e3baf7 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -86,9 +86,9 @@ func (d Decision) Reason() Reason { return d.reason }
+ // and false when the body is withheld.
+ func (d Decision) Body() (string, bool) {
+ 	switch d.reason {
+-	case Released:
++	case Released, Undecided:
+ 		return d.body, true
+-	case Undecided, NotReleasable, NoScanner, PatternMatched:
++	case NotReleasable, NoScanner, PatternMatched:
+ 		return "", false
+ 	default:
+ 		return "", false

@@ -40,7 +40,8 @@ func (s Scanner) SubjectSpans(subject string) ([]Span, bool) {
 }
 
 // detect applies tier 1, then tier 2 to what tier 1 left, and returns the spans in order with the
-// highest tier evaluated. With subject, tier 2 scores against the subject threshold.
+// highest tier evaluated. With subject, tier 2 scores against the subject threshold. A Scanner set to
+// scan patterns alone stops after tier 1.
 func (s Scanner) detect(text string, subject bool) ([]Span, int) {
 	tokens := tokenize(text)
 	var triggers []int
@@ -79,6 +80,10 @@ func (s Scanner) detect(text string, subject bool) ([]Span, int) {
 	}
 	for _, sp := range spans {
 		mark(sp.Start, sp.End)
+	}
+	if s.patterns {
+		// Tier 2 scores tokens, so a scan of the patterns alone leaves it none.
+		tokens = nil
 	}
 	for _, u := range s.url.FindAllStringIndex(text, -1) {
 		end := u[0] + len(strings.TrimRight(text[u[0]:u[1]], ".,;:!?"))

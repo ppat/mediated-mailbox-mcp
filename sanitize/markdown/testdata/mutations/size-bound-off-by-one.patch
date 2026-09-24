@@ -1,0 +1,19 @@
+control: A body that cannot be converted is refused with no Markdown
+removes: a body exactly at the size limit is refused as over it
+packages: ./sanitize/markdown
+tests: TestABodyAtTheSizeLimitConverts
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..ecd9359 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -63,7 +63,7 @@ var removed = []string{
+ 
+ // Convert returns body, a message body's HTML, as clean Markdown.
+ func Convert(body string) (string, error) {
+-	if len(body) > MaxInputBytes {
++	if len(body) >= MaxInputBytes {
+ 		return "", errors.Join(ErrUnconvertible, errors.New("markdown: the body is "+strconv.Itoa(len(body))+
+ 			" bytes, above the limit of "+strconv.Itoa(MaxInputBytes)))
+ 	}

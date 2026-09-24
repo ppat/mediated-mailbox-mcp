@@ -1,0 +1,19 @@
+control: A body that cannot be converted is refused with no Markdown
+removes: a panic in the conversion is no longer recovered
+packages: ./sanitize/markdown
+tests: TestGuardedFailsClosed/a_panic_carrying_body_text
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..86fc85c 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -87,7 +87,7 @@ func Convert(body string) (string, error) {
+ // text, so the value is never included.
+ func guarded(convert func() (string, error)) (out string, err error) {
+ 	defer func() {
+-		if recover() != nil {
++		if false && recover() != nil {
+ 			out, err = "", errors.Join(ErrUnconvertible, errors.New("markdown: the converter panicked"))
+ 		}
+ 	}()
