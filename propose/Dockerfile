@@ -9,6 +9,7 @@ COPY core core
 COPY db db
 COPY provider provider
 COPY ratelimit ratelimit
+COPY sanitize sanitize
 COPY propose/main.go propose/main.go
 COPY propose/internal propose/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-propose ./propose

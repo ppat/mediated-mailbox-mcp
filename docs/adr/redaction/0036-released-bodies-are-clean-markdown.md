@@ -23,10 +23,15 @@ Every released body passes through sanitization, whose output is **clean Markdow
   and the buy-not-build. Markdown beats reduction to plain text twice: it preserves the structure
   that helps the agent (headings, lists, quoting), and its link syntax `[label](target)` makes a
   label-versus-target disagreement visible by construction, replacing a separate
-  link-annotation mechanism.
+  link-annotation mechanism. The library, and the configuration that holds it to this record, are
+  [ADR-0074](./0074-html-to-markdown-v2-converts-bodies.md)'s. A body the conversion refuses is
+  not released, because a body that cannot pass through sanitization cannot be released in the
+  form this record requires.
 - **Wrapped in explicit untrusted-content delimiters**, with a standing directive that enclosed
   content is data, never instruction. This is hardening, not a control — it raises the injection
-  bar; it does not enforce anything.
+  bar; it does not enforce anything. Text in the body whose letters spell the delimiters' words
+  under case folding, with anything between the letters, is replaced, so a body cannot close the
+  wrapping early with those letters.
 - **Remote images dropped** — which also kills tracking pixels, a privacy win independent of
   injection.
 - **Anomalous body-fetch rates alert** — and the audit log records every serve regardless
@@ -71,3 +76,14 @@ agent: the agent remains completely free to act on what it reads.
   [ADR-0002](./0002-fetch-time-re-evaluation.md) hosts its serve-time pattern check there.
 - The Markdown output format is a control; its violation injection is catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
+- Residuals of the conversion. No converter evaluates CSS, so text a sender hides with it, a
+  preheader set to `display:none` for one, is released as ordinary text. Text in a paragraph
+  that looks like a table row is not escaped, which can only make the scanner flag more. The
+  content of a form is dropped with the form. Delimiter words written in letters that do not fold
+  to them, such as fullwidth, mathematical or modifier forms of the same letters or look-alike
+  letters from another script, or paraphrased, are not caught.
+- Assumptions about other components. The mediator converts a body when it serves it, and backfill
+  converts it before the scanner reads it, both through the same shared conversion
+  ([sanitize/README.md](../../../sanitize/README.md)), so a verdict holds for what is served. A
+  body with no HTML part must not pass through the conversion as HTML, which would drop any text in
+  angle brackets. How such a body is released is decided where serving is built.

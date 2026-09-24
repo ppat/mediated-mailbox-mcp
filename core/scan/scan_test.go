@@ -63,6 +63,9 @@ func TestFailClosed(t *testing.T) {
 	if _, ok := zero.SubjectSpans("Nothing"); ok {
 		t.Error("a zero Scanner's SubjectSpans reported a scan")
 	}
+	if diff := cmp.Diff(outcome{MFACode: true, LoginLink: true}, observe(zero.ScanPatterns("Nothing to see here.")), compare.Options); diff != "" {
+		t.Errorf("zero Scanner's ScanPatterns (-want +got):\n%s", diff)
+	}
 	if diff := cmp.Diff(outcome{MFACode: true, LoginLink: true}, observe(scan.Verdict{}), compare.Options); diff != "" {
 		t.Errorf("zero Verdict (-want +got):\n%s", diff)
 	}
@@ -181,6 +184,31 @@ func TestTier1LoginLinks(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			if diff := cmp.Diff(c.want, observe(s.Scan(c.body)), compare.Options); diff != "" {
 				t.Errorf("Scan(%q) (-want +got):\n%s", c.body, diff)
+			}
+		})
+	}
+}
+
+// The serve-time pattern check runs tier 1 alone (ADR-0002). It flags what tier 1's patterns match
+// and nothing only tier 2's scoring would, and reports tier 1 as the highest tier evaluated.
+func TestScanPatterns(t *testing.T) {
+	s := scanner(t)
+	cases := []struct {
+		name, body string
+		want       outcome
+	}{
+		{"the one-time code fixture", fixture.OneTimeCode().Body, code(1, scan.RuleHeadingOrCell, scan.RuleTriggerWindow)},
+		{"the login link fixture", fixture.LoginLink().Body, link(scan.RuleLinkPath, scan.RuleLinkQuery)},
+		{"a code alone on a line", "Welcome back\n\n419283\n", code(1, scan.RuleOwnLine)},
+		{"the alphanumeric code fixture, which only tier 2 catches", fixture.AlphanumericCode().Body, clean(1)},
+		{"nine digits after a trigger, which only tier 2 catches", "Your code is 419283746.", clean(1)},
+		{"the receipt fixture", fixture.Receipt().Body, clean(1)},
+		{"the newsletter fixture", fixture.Newsletter().Body, clean(1)},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if diff := cmp.Diff(c.want, observe(s.ScanPatterns(c.body)), compare.Options); diff != "" {
+				t.Errorf("ScanPatterns(%q) (-want +got):\n%s", c.body, diff)
 			}
 		})
 	}

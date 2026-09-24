@@ -1,0 +1,19 @@
+control: The conversion writes the structure the Content Scanner reads
+removes: the cells of a table the table plugin refuses run together on one line
+packages: ./sanitize/markdown
+tests: TestStructureTheScannerReads/a_layout_table
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..3a86e5b 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -113,8 +113,6 @@ func newConverter() *converter.Converter {
+ 	for _, tag := range removed {
+ 		c.Register.TagType(tag, converter.TagTypeRemove, converter.PriorityEarly)
+ 	}
+-	c.Register.TagType("td", converter.TagTypeBlock, converter.PriorityEarly)
+-	c.Register.TagType("th", converter.TagTypeBlock, converter.PriorityEarly)
+ 	c.Register.PreRenderer(dropUnsafeLinkTargets, converter.PriorityEarly)
+ 	c.Register.PreRenderer(flattenCode, converter.PriorityEarly)
+ 	return c

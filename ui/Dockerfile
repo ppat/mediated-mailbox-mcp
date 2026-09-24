@@ -20,6 +20,7 @@ COPY core core
 COPY db db
 COPY provider provider
 COPY ratelimit ratelimit
+COPY sanitize sanitize
 COPY ui/main.go ui/main.go
 COPY ui/internal ui/internal
 COPY --from=bundle /src/ui/browser/dist ui/browser/dist

@@ -1,0 +1,19 @@
+control: A released body carries no markup
+removes: the pass writing code as escaped text is never registered
+packages: ./sanitize/markdown
+tests: TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote TestNoMarkupInTheOutput/a_code_block_in_a_blockquote TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote_in_a_list TestTheConvertedBodysForm
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..e49b9c9 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -116,7 +116,7 @@ func newConverter() *converter.Converter {
+ 	c.Register.TagType("td", converter.TagTypeBlock, converter.PriorityEarly)
+ 	c.Register.TagType("th", converter.TagTypeBlock, converter.PriorityEarly)
+ 	c.Register.PreRenderer(dropUnsafeLinkTargets, converter.PriorityEarly)
+-	c.Register.PreRenderer(flattenCode, converter.PriorityEarly)
++	_ = flattenCode
+ 	return c
+ }
+ 

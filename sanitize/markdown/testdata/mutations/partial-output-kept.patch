@@ -1,0 +1,19 @@
+control: A body that cannot be converted is refused with no Markdown
+removes: a failed conversion returns whatever output it produced with its error
+packages: ./sanitize/markdown
+tests: TestGuardedFailsClosed/an_error_with_partial_output
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..2523a9f 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -93,7 +93,7 @@ func guarded(convert func() (string, error)) (out string, err error) {
+ 	}()
+ 	out, err = convert()
+ 	if err != nil {
+-		return "", errors.Join(ErrUnconvertible, err)
++		return out, errors.Join(ErrUnconvertible, err)
+ 	}
+ 	return out, nil
+ }

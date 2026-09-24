@@ -1,0 +1,19 @@
+control: A gate-skipped body the structural patterns match is withheld at serve time
+removes: a pattern match on a gate-skipped body no longer withholds it
+packages: ./mediate/internal/core/release
+tests: TestServeTimePatternCheck/a_gate-skipped_login_link TestServeTimePatternCheck/a_gate-skipped_one-time_code
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..1a5e976 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -105,7 +105,7 @@ func Decide(markdown string, state sensitivity.ScanState, s scan.Scanner) Decisi
+ 		switch {
+ 		case v.Version() == 0:
+ 			return Decision{reason: NoScanner}
+-		case v.Flags().Any():
++		case false && v.Flags().Any():
+ 			return Decision{reason: PatternMatched}
+ 		}
+ 	default:

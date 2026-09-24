@@ -1,0 +1,18 @@
+control: A released body sits inside delimiters it cannot close
+removes: the text after the last replaced stretch is dropped
+packages: ./mediate/internal/core/release
+tests: TestServeTimePatternCheck/a_gate-skipped_newsletter TestTheReleasedBodysForm
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..9695649 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -143,7 +143,6 @@ func neutralize(text string) string {
+ 		written = letters[i+len(keyword)-1].end
+ 		i += len(keyword)
+ 	}
+-	b.WriteString(text[written:])
+ 	return b.String()
+ }
+ 

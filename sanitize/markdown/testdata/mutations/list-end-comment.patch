@@ -1,0 +1,19 @@
+control: A released body carries no markup
+removes: the HTML comment the library puts between adjacent lists is switched back on
+packages: ./sanitize/markdown
+tests: TestNoMarkupInTheOutput/two_adjacent_lists
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..3110112 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -104,7 +104,7 @@ func newConverter() *converter.Converter {
+ 		commonmark.NewCommonmarkPlugin(
+ 			commonmark.WithHeadingStyle(commonmark.HeadingStyleATX),
+ 			commonmark.WithStrongDelimiter("**"),
+-			commonmark.WithListEndComment(false),
++			commonmark.WithListEndComment(true),
+ 			commonmark.WithLinkEmptyHrefBehavior(commonmark.LinkBehaviorSkip),
+ 			commonmark.WithLinkEmptyContentBehavior(commonmark.LinkBehaviorSkip),
+ 		),

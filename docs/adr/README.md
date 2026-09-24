@@ -68,6 +68,7 @@ moves it. Records themselves link freely and deep, into
 | 0029 | [Released bodies are sanitized and delimited as untrusted data](./redaction/0029-released-bodies-are-sanitized.md) | **Superseded** |
 | 0036 | [Released bodies are clean Markdown — content and links, nothing else](./redaction/0036-released-bodies-are-clean-markdown.md) | Accepted |
 | 0037 | [Delisting is a designed transition: a removed sender's messages are marked pending scan](./redaction/0037-delisting-transition.md) | Accepted |
+| 0074 | [html-to-markdown v2 converts released bodies, configured through its own hooks](./redaction/0074-html-to-markdown-v2-converts-bodies.md) | Accepted |
 
 ## Classification — `classification/`
 

@@ -9,6 +9,7 @@ COPY core core
 COPY db db
 COPY provider provider
 COPY ratelimit ratelimit
+COPY sanitize sanitize
 COPY sync/main.go sync/main.go
 COPY sync/internal sync/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-sync ./sync

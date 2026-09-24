@@ -1,0 +1,19 @@
+control: Elements that execute, embed, style or collect input are dropped with their content
+removes: no element on the list is dropped, leaving only the library's defaults
+packages: ./sanitize/markdown
+tests: TestActiveContentIsDropped/an_object_and_its_fallback TestActiveContentIsDropped/an_svg_and_its_text TestActiveContentIsDropped/a_template TestActiveContentIsDropped/a_form_and_its_controls TestActiveContentIsDropped/a_video_and_its_fallback TestTheConvertedBodysForm
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..a97b038 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -110,7 +110,7 @@ func newConverter() *converter.Converter {
+ 		),
+ 		table.NewTablePlugin(),
+ 	))
+-	for _, tag := range removed {
++	for _, tag := range removed[:0] {
+ 		c.Register.TagType(tag, converter.TagTypeRemove, converter.PriorityEarly)
+ 	}
+ 	c.Register.TagType("td", converter.TagTypeBlock, converter.PriorityEarly)

@@ -1,0 +1,19 @@
+control: A released body carries no markup
+removes: a preformatted block's line breaks are written as the text of a br tag instead of as br elements
+packages: ./sanitize/markdown
+tests: TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote TestNoMarkupInTheOutput/a_code_block_in_a_blockquote TestNoMarkupInTheOutput/preformatted_lines TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote_in_a_list
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..71e295e 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -160,7 +160,7 @@ func breakLines(n *html.Node) {
+ 			lines := strings.Split(strings.ReplaceAll(child.Data, "\r\n", "\n"), "\n")
+ 			for i, line := range lines {
+ 				if i > 0 {
+-					n.InsertBefore(&html.Node{Type: html.ElementNode, Data: "br", DataAtom: atom.Br}, child)
++					n.InsertBefore(&html.Node{Type: html.TextNode, Data: "<br>"}, child)
+ 				}
+ 				if line != "" {
+ 					n.InsertBefore(&html.Node{Type: html.TextNode, Data: line}, child)

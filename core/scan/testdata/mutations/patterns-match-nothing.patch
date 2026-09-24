@@ -1,0 +1,19 @@
+control: The serve-time pattern check runs the structural patterns and not the scoring
+removes: the pattern check reads an empty body instead of the one it is given
+packages: ./core/scan
+tests: TestScanPatterns/the_one-time_code_fixture TestScanPatterns/the_login_link_fixture TestScanPatterns/a_code_alone_on_a_line
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index 17e764a..e48a36d 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -222,7 +222,7 @@ func (v Verdict) Revision() int { return v.revision }
+ // Scan does.
+ func (s Scanner) ScanPatterns(body string) Verdict {
+ 	s.patterns = true
+-	return s.Scan(body)
++	return s.Scan("")
+ }
+ 
+ // Scan returns the verdict on body, a message body as Markdown.

@@ -1,0 +1,19 @@
+control: The serve-time pattern check runs the structural patterns and not the scoring
+removes: a scan of the patterns alone goes on to tier 2's scoring
+packages: ./core/scan
+tests: TestScanPatterns/the_alphanumeric_code_fixture,_which_only_tier_2_catches TestScanPatterns/nine_digits_after_a_trigger,_which_only_tier_2_catches TestScanPatterns/the_receipt_fixture
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index dd481e3..b588c32 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -81,7 +81,7 @@ func (s Scanner) detect(text string, subject bool) ([]Span, int) {
+ 	for _, sp := range spans {
+ 		mark(sp.Start, sp.End)
+ 	}
+-	if s.patterns {
++	if false && s.patterns {
+ 		// Tier 2 scores tokens, so a scan of the patterns alone leaves it none.
+ 		tokens = nil
+ 	}

@@ -3,6 +3,7 @@ paths:
   - "db/README.md"
   - "provider/README.md"
   - "ratelimit/README.md"
+  - "sanitize/README.md"
   - "testsupport/README.md"
 ---
 

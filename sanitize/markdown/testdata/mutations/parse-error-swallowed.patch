@@ -1,0 +1,19 @@
+control: A body that cannot be converted is refused with no Markdown
+removes: a parse failure returns empty Markdown and no error
+packages: ./sanitize/markdown
+tests: TestFailClosed/600_nested_elements TestFailClosed/600_nested_tables
+scheduled-count: no
+
+diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+index e8737bb..984742b 100644
+--- a/sanitize/markdown/markdown.go
++++ b/sanitize/markdown/markdown.go
+@@ -72,7 +72,7 @@ func Convert(body string) (string, error) {
+ 		// a conversion error. x/net/html refuses a document nesting more than 512 open elements.
+ 		doc, err := html.Parse(strings.NewReader(body))
+ 		if err != nil {
+-			return "", err
++			return "", nil
+ 		}
+ 		out, err := newConverter().ConvertNode(doc)
+ 		if err != nil {

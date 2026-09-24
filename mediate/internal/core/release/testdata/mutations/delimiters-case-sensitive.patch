@@ -1,0 +1,19 @@
+control: A released body sits inside delimiters it cannot close
+removes: the delimiters' words are matched in lower case only
+packages: ./mediate/internal/core/release
+tests: TestABodyCannotCloseTheDelimiters/the_closing_line TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s TestTheReleasedBodysForm
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index dc64550..c351e27 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -154,7 +154,7 @@ type letter struct{ start, end int }
+ func spells(text string, letters []letter) bool {
+ 	for k, l := range letters {
+ 		r, _ := utf8.DecodeRuneInString(text[l.start:l.end])
+-		if !foldsTo(r, rune(keyword[k])) {
++		if r != rune(keyword[k]) {
+ 			return false
+ 		}
+ 	}
