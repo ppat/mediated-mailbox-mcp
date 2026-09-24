@@ -1,0 +1,16 @@
+control: No runtime role can update or delete an audit row
+removes: the chain grants the reorganization workload's role TRUNCATE on the audit log, an erasing operation other than update and delete
+packages: ./db/check
+tests: TestNoRuntimeRoleCanAlterTheAuditLog TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_organize/truncate
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index 368548b..3d55ad5 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -33,3 +33,4 @@ TO mediated_mailbox_ui;
+ GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
+ GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
+ GRANT INSERT ON policy_rules TO mediated_mailbox_ui;
++GRANT TRUNCATE ON audit_log TO mediated_mailbox_organize;

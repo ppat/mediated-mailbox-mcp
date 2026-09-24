@@ -111,6 +111,7 @@ func unreadSQLFiles(t *testing.T, lib library) []string {
 	if lib.violations != "" {
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "statements"))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "migrations"))...)
+		read = append(read, sqlFiles(t, filepath.Join(lib.violations, checkGeneration))...)
 	}
 	var out []string
 	err := walkSkippingTestdata(lib.dir, func(path string, d fs.DirEntry) error {

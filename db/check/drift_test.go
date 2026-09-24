@@ -19,6 +19,12 @@ import (
 // was meant to run it.
 func sqlcDiff(t *testing.T, change func(lib string)) (string, error) {
 	t.Helper()
+	return sqlcIn(t, change, "diff")
+}
+
+// sqlcIn runs sqlc with the given command in a copy made as sqlcDiff describes.
+func sqlcIn(t *testing.T, change func(lib string), command string) (string, error) {
+	t.Helper()
 	sqlc, err := exec.LookPath("sqlc")
 	if err != nil {
 		t.Fatalf("sqlc is not on PATH. Run the tests through mise: %v", err)
@@ -32,14 +38,14 @@ func sqlcDiff(t *testing.T, change func(lib string)) (string, error) {
 		t.Fatal(err)
 	}
 	change(lib)
-	cmd := exec.CommandContext(t.Context(), sqlc, "diff")
+	cmd := exec.CommandContext(t.Context(), sqlc, command)
 	cmd.Dir = lib
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
 	err = cmd.Run()
 	var exit *exec.ExitError
 	if err != nil && !errors.As(err, &exit) {
-		t.Fatalf("running sqlc diff: %v", err)
+		t.Fatalf("running sqlc %s: %v", command, err)
 	}
 	return out.String(), err
 }

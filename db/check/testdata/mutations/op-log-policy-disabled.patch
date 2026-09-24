@@ -1,0 +1,19 @@
+control: The operation log is scoped through its plan's account
+removes: row-level security is not enabled on the operation log, so its policy never applies
+packages: ./db/check
+tests: TestTheOperationLogIsScopedThroughItsPlan TestTheOperationLogIsScopedThroughItsPlan/read_by_another_account TestTheOperationLogIsScopedThroughItsPlan/insert_by_another_account TestTheOperationLogIsScopedThroughItsPlan/update_by_another_account
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index a23f65e..f54f9fa 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -61,7 +61,6 @@ USING (account_id = current_setting('app.account'));
+ -- per row. It runs with the querying role's privileges, so a role reading or writing the log also
+ -- needs to read reorg_plans(plan_id, account_id) (ADR-0075), and reorg_plans' own policy applies to
+ -- it as well.
+-ALTER TABLE reorg_op_log ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY reorg_op_log_plan ON reorg_op_log
+ USING (
+     plan_id IN (

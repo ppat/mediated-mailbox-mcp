@@ -100,6 +100,7 @@ moves it. Records themselves link freely and deep, into
 | 0048 | [Migrations are hand-written SQL, forward-only, run under their own role](./data/0048-forward-only-migrations.md) | Accepted |
 | 0066 | [Data access is generated from hand-written SQL, and the dataset endpoint is enumerated rather than composed](./data/0066-data-access-generated-from-sql.md) | Accepted |
 | 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | Accepted |
+| 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | Accepted |
 
 ## Mutation — `mutation/`
 

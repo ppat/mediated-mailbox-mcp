@@ -1,0 +1,19 @@
+control: The UI's role writes only its decision columns and policy rules
+removes: the UI's update grant on reorg_plans covers every column rather than the three its verb sets
+packages: ./db/check
+tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/reorg_plans/update_plan TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/reorg_plans/update_account_id
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index 368548b..3d603c7 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -30,6 +30,6 @@ job_run_events,
+ job_run_failures,
+ audit_log
+ TO mediated_mailbox_ui;
+-GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
++GRANT UPDATE ON reorg_plans TO mediated_mailbox_ui;
+ GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
+ GRANT INSERT ON policy_rules TO mediated_mailbox_ui;

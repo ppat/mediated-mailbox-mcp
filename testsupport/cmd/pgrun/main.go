@@ -39,11 +39,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
-const (
-	// migrationRole must match the migration role db/bootstrap/roles.sql creates.
-	migrationRole = "mediated_mailbox_migrate"
-	template      = "pgrun_template"
-)
+const template = "pgrun_template"
 
 func main() {
 	host := flag.String("host", "127.0.0.1", "address at which the container's published port is reached")
@@ -112,7 +108,7 @@ func run(host string, port int, command []string) (int, error) {
 	logf("ready after %s", time.Since(started).Round(time.Millisecond))
 
 	prepared := time.Now()
-	if err := prepareTemplate(ctx, admin, connURL(migrationRole, password, host, port, template), password); err != nil {
+	if err := prepareTemplate(ctx, admin, connURL(postgres.MigrationRole, password, host, port, template), password); err != nil {
 		return 1, err
 	}
 	logf("bootstrap and migration chain applied in %s", time.Since(prepared).Round(time.Millisecond))
@@ -177,67 +173,29 @@ func waitReady(ctx context.Context, admin, container string) error {
 	}
 }
 
-// prepareTemplate runs the bootstrap, applies the chain as the migration role, and turns the result
-// into a template no one connects to.
+// prepareTemplate runs the bootstrap, applies the chain from empty as the migration role, and turns
+// the result into a template no one connects to.
 func prepareTemplate(ctx context.Context, admin, migrate, password string) error {
 	conn, err := pgx.Connect(ctx, admin)
 	if err != nil {
 		return err
 	}
 	defer closeConn(conn)
-	if err := execFile(ctx, conn, "db/bootstrap/roles.sql"); err != nil {
+	if err := postgres.ExecFile(ctx, conn, "db/bootstrap/roles.sql"); err != nil {
 		return err
 	}
-	role := pgx.Identifier{migrationRole}.Sanitize()
 	// The bootstrap sets no credentials, so the test run gives the migration role its own.
-	if _, err := conn.Exec(ctx, "ALTER ROLE "+role+" PASSWORD '"+password+"'"); err != nil {
-		return fmt.Errorf("the bootstrap must create the migration role %s: %w", migrationRole, err)
+	if _, err := conn.Exec(ctx, "ALTER ROLE "+pgx.Identifier{postgres.MigrationRole}.Sanitize()+" PASSWORD '"+password+"'"); err != nil {
+		return fmt.Errorf("the bootstrap must create the migration role %s: %w", postgres.MigrationRole, err)
 	}
-	statements := []string{
-		"CREATE DATABASE " + template + " OWNER " + role,
-		"CREATE TABLE " + postgres.RegistryTable + " (package_dir text NOT NULL, database text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT clock_timestamp())",
-	}
-	for _, statement := range statements {
-		if _, err := conn.Exec(ctx, statement); err != nil {
-			return err
-		}
-	}
-
-	templateAdmin, err := neturl.Parse(admin)
-	if err != nil {
+	if _, err := conn.Exec(ctx, "CREATE TABLE "+postgres.RegistryTable+" (package_dir text NOT NULL, database text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT clock_timestamp())"); err != nil {
 		return err
 	}
-	templateAdmin.Path = "/" + template
-	tconn, err := pgx.Connect(ctx, templateAdmin.String())
-	if err != nil {
+	if err := postgres.ApplyChain(ctx, admin, migrate, template, "db/bootstrap/extensions.sql", filepath.Join("db", "migrations")); err != nil {
 		return err
-	}
-	err = execFile(ctx, tconn, "db/bootstrap/extensions.sql")
-	closeConn(tconn)
-	if err != nil {
-		return err
-	}
-
-	goose := exec.CommandContext(ctx, "goose", "-dir", filepath.Join("db", "migrations"), "postgres", migrate, "up")
-	goose.Env = append(os.Environ(), "GOOSE_DRIVER=", "GOOSE_DBSTRING=", "GOOSE_MIGRATION_DIR=")
-	goose.Stdout, goose.Stderr = os.Stderr, os.Stderr
-	if err := goose.Run(); err != nil {
-		return fmt.Errorf("goose up: %w", err)
 	}
 	_, err = conn.Exec(ctx, "ALTER DATABASE "+template+" WITH IS_TEMPLATE true ALLOW_CONNECTIONS false")
 	return err
-}
-
-// execFile runs a SQL file through the simple protocol, which accepts several statements at once.
-func execFile(ctx context.Context, conn *pgx.Conn, path string) error {
-	sql, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	if _, err := conn.Exec(ctx, string(sql), pgx.QueryExecModeSimpleProtocol); err != nil {
-		return fmt.Errorf("%s: %w", path, err)
-	}
-	return nil
 }
 
 func countRegistered(ctx context.Context, admin string) (int, error) {

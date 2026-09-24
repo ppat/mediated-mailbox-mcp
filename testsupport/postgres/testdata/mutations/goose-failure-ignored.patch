@@ -1,0 +1,20 @@
+control: The chain applies from an empty database on every test run
+removes: a migration that fails does not fail the chain's application
+packages: ./testsupport/postgres
+tests: TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty
+scheduled-count: no
+integration: yes
+
+diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
+index cfee0ec..2050300 100644
+--- a/testsupport/postgres/chain.go
++++ b/testsupport/postgres/chain.go
+@@ -54,7 +54,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, bootstrap, dir string
+ 	goose.Env = append(os.Environ(), "GOOSE_DRIVER=", "GOOSE_DBSTRING=", "GOOSE_MIGRATION_DIR=")
+ 	goose.Stdout, goose.Stderr = os.Stderr, os.Stderr
+ 	if err := goose.Run(); err != nil {
+-		return fmt.Errorf("goose up: %w", err)
++		fmt.Fprintf(os.Stderr, "goose up: %v\n", err)
+ 	}
+ 	return nil
+ }

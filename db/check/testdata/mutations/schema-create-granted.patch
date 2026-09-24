@@ -1,0 +1,16 @@
+control: Schema change is confined to the migration role
+removes: the chain grants a runtime role the right to create objects in the schema
+packages: ./db/check
+tests: TestRuntimeRolesCannotChangeTheSchema TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_backfill/create_a_table TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_backfill/create_a_function
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index 368548b..a5c0d28 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -33,3 +33,4 @@ TO mediated_mailbox_ui;
+ GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
+ GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
+ GRANT INSERT ON policy_rules TO mediated_mailbox_ui;
++GRANT CREATE ON SCHEMA public TO mediated_mailbox_backfill;

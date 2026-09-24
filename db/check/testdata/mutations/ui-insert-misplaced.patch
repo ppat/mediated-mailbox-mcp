@@ -1,0 +1,17 @@
+control: The UI's role writes only its decision columns and policy rules
+removes: the UI's insert grant lands on policy_candidates rather than policy_rules
+packages: ./db/check
+tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/confirm_a_candidate TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_candidates/insert
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index 368548b..4c47d2c 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -32,4 +32,4 @@ audit_log
+ TO mediated_mailbox_ui;
+ GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
+ GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
+-GRANT INSERT ON policy_rules TO mediated_mailbox_ui;
++GRANT INSERT ON policy_candidates TO mediated_mailbox_ui;

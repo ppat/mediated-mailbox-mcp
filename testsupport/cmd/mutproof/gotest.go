@@ -83,12 +83,26 @@ type testEvent struct {
 	FailedBuild string
 }
 
-// goTest runs go test -json -count=1 over packages from root with the given environment. The command
-// runs in its own process group, which is killed as a whole when ctx ends, so no test binary outlives
-// an interrupt.
-func goTest(ctx context.Context, root string, env, packages []string) (testRun, error) {
-	args := append([]string{"test", "-json", "-count=1"}, packages...)
-	cmd := exec.CommandContext(ctx, "go", args...)
+// testCommand is the command a demonstration's runs use, go test -json -count=1 over the patch's
+// packages. A patch whose tests are integration tests runs them with the integration tag under pgrun,
+// given the flags in pgrun. pgrun runs from the copy's root, so it prepares the database from the
+// copy's own bootstrap and migration chain, which the patch may have changed.
+func testCommand(p preamble, pgrun []string) []string {
+	test := []string{"go", "test", "-json", "-count=1"}
+	if !p.integration {
+		return append(test, p.packages...)
+	}
+	test = append(append(test, "-tags", "integration"), p.packages...)
+	return slices.Concat([]string{"go", "tool", "pgrun"}, pgrun, []string{"--"}, test)
+}
+
+// goTest runs command, a go test -json run from testCommand, from root with the given environment.
+// The command runs in its own process group, which is signalled as a whole when ctx ends, so no test
+// binary outlives an interrupt. A plain run is killed. A run under pgrun is sent SIGTERM, so pgrun
+// removes its container, and killed only if it has not exited after a grace period.
+func goTest(ctx context.Context, root string, env, command []string) (testRun, error) {
+	//nolint:gosec // The command is go, with arguments built by testCommand.
+	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = root
 	// go test keeps its work directory under GOTMPDIR. Inside the copy it goes when the copy goes,
 	// even when the process group is killed before go can remove it. Patterns such as ./... skip a
@@ -99,8 +113,12 @@ func goTest(ctx context.Context, root string, env, packages []string) (testRun, 
 	}
 	cmd.Env = append(slices.Clone(env), "GOTMPDIR="+gotmp)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
-	cmd.WaitDelay = 5 * time.Second
+	stop, grace := syscall.SIGKILL, 5*time.Second
+	if slices.Contains(command, "pgrun") {
+		stop, grace = syscall.SIGTERM, 30*time.Second
+	}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, stop) }
+	cmd.WaitDelay = grace
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	runErr := cmd.Run()

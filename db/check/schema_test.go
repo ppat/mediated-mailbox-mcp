@@ -160,7 +160,7 @@ func TestPredicateExceptions(t *testing.T) {
 }
 
 // TestStaleExceptionsReported shows the exception check refusing an entry, since the list of real
-// exceptions is empty until the tables ADR-0047 names exist.
+// exceptions is empty until a statement reaches a table ADR-0047 exempts.
 func TestStaleExceptionsReported(t *testing.T) {
 	s := schema{
 		"keyed":   {columns: map[string]column{accountColumn: {typ: "text"}}},

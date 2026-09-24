@@ -1,0 +1,16 @@
+control: Schema change is confined to the migration role
+removes: the bootstrap makes a runtime role a member of the migration role, so it acts as the schema's owner
+packages: ./db/check
+tests: TestRuntimeRolesCannotChangeTheSchema TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/add_a_body_column TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/drop_a_table TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/drop_a_policy
+scheduled-count: no
+integration: yes
+
+diff --git a/db/bootstrap/roles.sql b/db/bootstrap/roles.sql
+index 7faecb0..0d4d3e2 100644
+--- a/db/bootstrap/roles.sql
++++ b/db/bootstrap/roles.sql
+@@ -17,3 +17,4 @@ CREATE ROLE mediated_mailbox_sync LOGIN;
+ CREATE ROLE mediated_mailbox_organize LOGIN;
+ CREATE ROLE mediated_mailbox_propose LOGIN;
+ CREATE ROLE mediated_mailbox_ui LOGIN;
++GRANT mediated_mailbox_migrate TO mediated_mailbox_mediate;
