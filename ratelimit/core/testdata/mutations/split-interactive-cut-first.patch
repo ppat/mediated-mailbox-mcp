@@ -1,0 +1,30 @@
+control: Interactive keeps 30% of the target and sync 20% while a cut comes out of batch, then sync, then interactive
+removes: a cut comes out of interactive first and batch keeps its half of the target
+packages: ./ratelimit/core
+tests: TestShare TestInteractiveKeepsItsShareThroughACut
+scheduled-count: no
+
+diff --git a/ratelimit/core/classes.go b/ratelimit/core/classes.go
+index ad2e7b5..653915c 100644
+--- a/ratelimit/core/classes.go
++++ b/ratelimit/core/classes.go
+@@ -23,15 +23,16 @@ const (
+ // and batch has the rest. A budget below the target is cut from batch first, then from sync, then
+ // from interactive. A value no constant names has no share.
+ func Share(c Class, budget, target float64) float64 {
+-	interactive := min(budget, interactiveFraction*target)
+-	sync := min(budget-interactive, syncFraction*target)
++	batch := min(budget, (1-interactiveFraction-syncFraction)*target)
++	sync := min(budget-batch, syncFraction*target)
++	interactive := budget - batch - sync
+ 	switch c {
+ 	case Interactive:
+ 		return max(interactive, 0)
+ 	case Sync:
+ 		return max(sync, 0)
+ 	case Batch:
+-		return max(budget-interactive-sync, 0)
++		return max(batch, 0)
+ 	default:
+ 		return 0
+ 	}

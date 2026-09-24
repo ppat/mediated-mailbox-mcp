@@ -1,0 +1,19 @@
+control: A stored latest instant ahead of the clock never moves a real grant out of the one-second window
+removes: window membership is judged from the stored latest instant rather than the request's own, so a stored instant ahead of the clock moves every real grant out of the window
+packages: ./ratelimit/core
+tests: TestTwoCallsPastTheHardCapAreNotIssuedInOneSecond TestAFutureStampCountsForOneSecondFromTheRequestThatSeesIt TestAStoredInstantAheadOfTheClockKeepsTheWindow
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..5a9c33c 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -80,7 +80,7 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
+ 	if !req.Class.named() || !(req.Tokens > 0) || req.Tokens > capacity {
+ 		return is, Decision{}
+ 	}
+-	asked := now
++	asked := is.At
+ 	now = max(now, is.At)
+ 	rate := refillRate(s.Rate, l)
+ 	is = refill(is, s, rate, capacity, now)

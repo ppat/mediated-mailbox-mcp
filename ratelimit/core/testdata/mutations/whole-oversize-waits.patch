@@ -1,0 +1,19 @@
+control: A lease holds the whole request, and a request larger than the bucket can ever hold is refused
+removes: a request larger than the bucket can ever hold is left waiting
+packages: ./ratelimit/core
+tests: TestIssue TestIssueRefuses
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..3a7a79e 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -77,7 +77,7 @@ type Decision struct {
+ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, now int64) (Issuance, Decision) {
+ 	l := LimitsFor(ceiling)
+ 	capacity := l.HardCap
+-	if !req.Class.named() || !(req.Tokens > 0) || req.Tokens > capacity {
++	if !req.Class.named() || !(req.Tokens > 0) {
+ 		return is, Decision{}
+ 	}
+ 	asked := now

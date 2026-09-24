@@ -1,0 +1,19 @@
+control: A request draws all but what the classes that outrank it and asked within the last lease period have still to draw of their shares, so an idle class's share is lent
+removes: an idle class's share is reserved as if it had asked, so nothing is lent
+packages: ./ratelimit/core
+tests: TestAValidRequestIsGrantedOnceTheBucketHoldsIt TestIssue TestIssueSplitsByClass TestAnExpiredLeaseIsNotRefunded TestACallCostingMoreThanASecondAtTheFloorIsGranted TestInteractiveKeepsItsShareThroughACut TestAFutureStampCountsForOneSecondFromTheRequestThatSeesIt TestAStoredInstantAheadOfTheClockKeepsTheWindow
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..da3bca4 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -91,7 +91,7 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
+ 	}
+ 	available := is.Level
+ 	for c := Interactive; c < req.Class; c++ {
+-		if addSaturating(is.Asked[c], leaseMillis) > now {
++		if addSaturating(is.Asked[c], leaseMillis) > now || true {
+ 			available -= max(Share(c, rate, l.Target)-held(leases, c, now), 0)
+ 		}
+ 	}

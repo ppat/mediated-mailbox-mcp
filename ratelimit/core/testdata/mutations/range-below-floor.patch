@@ -1,0 +1,19 @@
+control: The controller keeps the rate between the floor and the target
+removes: a throttle's halving is no longer held at the floor, so the rate falls below it
+packages: ./ratelimit/core
+tests: TestThrottled TestNoRunIssuesPastTheHardCap
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..3482541 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -59,7 +59,7 @@ func Throttled(s State, ceiling float64, signal mail.ThrottleSignal, now int64,
+ 		throttles++
+ 	}
+ 	return State{
+-		Rate:         max(l.bounded(s.Rate)*throttleFactor, l.Floor),
++		Rate:         l.bounded(s.Rate) * throttleFactor,
+ 		BackoffUntil: max(s.BackoffUntil, addSaturating(now, wait)),
+ 		Throttles:    throttles,
+ 	}

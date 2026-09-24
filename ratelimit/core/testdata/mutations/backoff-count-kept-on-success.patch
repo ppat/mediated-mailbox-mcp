@@ -1,0 +1,19 @@
+control: A throttle waits out the provider's retry-after when it gives one and a full-jitter draw otherwise
+removes: a success no longer ends the run of throttles, so the bound keeps doubling across successes
+packages: ./ratelimit/core
+tests: TestSucceeded
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..71ec640 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -41,7 +41,7 @@ func Succeeded(s State, ceiling float64, cost mail.OpCost) State {
+ 	if w := cost.Weight; w > 0 && !math.IsInf(w, 1) && rate > 0 {
+ 		rate = min(rate+stepFraction*l.Target*w/rate, l.Target)
+ 	}
+-	return State{Rate: rate, BackoffUntil: s.BackoffUntil}
++	return State{Rate: rate, BackoffUntil: s.BackoffUntil, Throttles: s.Throttles}
+ }
+ 
+ // Throttled returns the state after the provider throttled a call at the instant now. The rate

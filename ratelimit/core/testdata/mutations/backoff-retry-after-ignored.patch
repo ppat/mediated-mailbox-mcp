@@ -1,0 +1,19 @@
+control: A throttle waits out the provider's retry-after when it gives one and a full-jitter draw otherwise
+removes: a retry-after is ignored and full jitter always applies
+packages: ./ratelimit/core
+tests: TestThrottled
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..23fb0d0 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -53,7 +53,7 @@ func Throttled(s State, ceiling float64, signal mail.ThrottleSignal, now int64,
+ 	throttles := max(s.Throttles, 0)
+ 	wait := jitter(throttles, draw)
+ 	if signal.HasRetryAfter && signal.RetryAfterMillis > 0 {
+-		wait = signal.RetryAfterMillis
++		_ = signal.RetryAfterMillis
+ 	}
+ 	if throttles < math.MaxInt {
+ 		throttles++

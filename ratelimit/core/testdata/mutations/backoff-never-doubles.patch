@@ -1,0 +1,19 @@
+control: A throttle waits out the provider's retry-after when it gives one and a full-jitter draw otherwise
+removes: the jitter's bound stays at one second whatever the count of throttles
+packages: ./ratelimit/core
+tests: TestThrottled
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..a2a0dd5 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -93,7 +93,7 @@ func LatencyMeasured(s State, ceiling, median, baseline float64) State {
+ func jitter(throttles int, draw float64) int64 {
+ 	bound := int64(backoffBaseMillis)
+ 	for i := 0; i < throttles && bound < backoffMostMillis; i++ {
+-		bound *= 2
++		break
+ 	}
+ 	bound = min(bound, backoffMostMillis)
+ 	if !(draw >= 0 && draw < 1) {

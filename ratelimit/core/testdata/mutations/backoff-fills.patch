@@ -1,0 +1,19 @@
+control: Nothing is issued during a backoff, and the bucket does not fill during one
+removes: the bucket fills during a backoff
+packages: ./ratelimit/core
+tests: TestIssue
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..19151de 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -123,7 +123,7 @@ func refill(is Issuance, s State, rate, capacity float64, now int64) Issuance {
+ 	if math.IsNaN(is.Level) {
+ 		level = 0
+ 	}
+-	if from := max(is.At, s.BackoffUntil); now > from {
++	if from := is.At; now > from {
+ 		elapsed := now - from
+ 		if elapsed < 0 {
+ 			elapsed = math.MaxInt64

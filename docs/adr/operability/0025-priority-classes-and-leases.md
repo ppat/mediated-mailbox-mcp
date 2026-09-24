@@ -16,14 +16,18 @@ work, and separate processes can collectively overrun a budget each respects ind
 
 | Class | Reservation | Behavior under contention |
 | --- | --- | --- |
-| **Interactive** (client surface: body fetches, listings) | 30% of current rate, guaranteed | never yields |
-| **Sync** (delta job) | 20% | brief queuing acceptable |
+| **Interactive** (client surface: body fetches, listings) | 30% of the target, guaranteed while the rate is at least that | never yields |
+| **Sync** (delta job) | 20% of the target | brief queuing acceptable |
 | **Batch** (backfill, reorg apply) | remaining 50%, yields | absorbs all decrease first |
 
 When the controller halves the rate after a throttle
 ([ADR-0024](./0024-conservative-target-aimd.md)), batch absorbs the entire cut before interactive
 loses anything: the agent stays responsive while backfill quietly slows — the correct priority,
-since backfill has no deadline and the operator does.
+since backfill has no deadline and the operator does. A cut comes out of batch first, then sync,
+then interactive. A class's reservation is held against the classes below it and not against
+those above, while that class asks for it. A class that asked for no lease in the last second
+lends its share, so interactive waits on a lower class at most until a lent lease is spent,
+within one second, and the bucket refills to its call's cost. Batch yields to both.
 
 **Cross-process coordination is a Postgres row, not new infrastructure.** A `rate_state` row per
 account ([ADR-0016](../data/0016-schema.md)) holds the current rate, throttle state, and leased
@@ -34,7 +38,12 @@ per worker is negligible and requires nothing beyond the database already presen
 Two rules keep the leasing honest:
 
 - **Every lease carries an expiry**, so a crashed worker's tokens return to the pool instead of
-  being lost — token loss otherwise presents as slow, mysterious rate collapse.
+  being lost — token loss otherwise presents as slow, mysterious rate collapse. A lease is drawn
+  from [ADR-0024](./0024-conservative-target-aimd.md)'s token bucket, holds at least the cost of
+  the call it is for, and is spent within one second. Its expiry is judged by the database's
+  clock, which every process shares. An expired lease stops counting against its class's share,
+  which is how a crashed worker's tokens return to the pool. Nothing it drew is put back into the
+  bucket, because tokens a worker spent before it crashed would then be issued twice.
 - **The hard cap is enforced at lease issuance** — the issuer never hands out tokens past the cap,
   so no controller bug or worker bug can collectively exceed it.
 
@@ -72,3 +81,5 @@ store-choice reasoning is [ADR-0015](../data/0015-postgres-not-a-kv-store.md)).
 - Lease accounting is load-bearing for politeness: its runaway failure mode and the corresponding
   alert are defined in [ADR-0024](./0024-conservative-target-aimd.md), and its drills in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
+- Every worker holds a lease of its own with an expiry of its own, and the `rate_state` row as
+  [ADR-0016](../data/0016-schema.md) draws it holds one leased amount and one expiry.

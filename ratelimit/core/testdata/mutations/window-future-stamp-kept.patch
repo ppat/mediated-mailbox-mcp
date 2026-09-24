@@ -1,0 +1,18 @@
+control: A stored grant stamped later than the request that sees it counts for one second from that request and then leaves the window
+removes: a stored grant keeps its stamp however far ahead it lies, so it fills the window until the clock reaches it
+packages: ./ratelimit/core
+tests: TestIssue TestAFutureStampCountsForOneSecondFromTheRequestThatSeesIt
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..ba299be 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -148,7 +148,6 @@ func refill(is Issuance, s State, rate, capacity float64, now int64) Issuance {
+ func withinASecond(recent []Issued, asked, now int64) []Issued {
+ 	var kept []Issued
+ 	for _, g := range recent {
+-		g.At = min(g.At, now)
+ 		// Taken from the request's instant rather than added to the stamp, so a grant at the
+ 		// clock's limit still counts instead of saturating straight out of the window.
+ 		if g.At > addSaturating(asked, -leaseMillis) {

@@ -1,0 +1,19 @@
+control: The controller keeps the rate between the floor and the target
+removes: additive increase is no longer held at the target
+packages: ./ratelimit/core
+tests: TestSucceeded TestNoRunIssuesPastTheHardCap
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..ba2fdcc 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -39,7 +39,7 @@ func Succeeded(s State, ceiling float64, cost mail.OpCost) State {
+ 	l := LimitsFor(ceiling)
+ 	rate := l.bounded(s.Rate)
+ 	if w := cost.Weight; w > 0 && !math.IsInf(w, 1) && rate > 0 {
+-		rate = min(rate+stepFraction*l.Target*w/rate, l.Target)
++		rate += stepFraction * l.Target * w / rate
+ 	}
+ 	return State{Rate: rate, BackoffUntil: s.BackoffUntil}
+ }

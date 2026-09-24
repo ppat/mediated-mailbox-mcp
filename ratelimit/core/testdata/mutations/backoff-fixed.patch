@@ -1,0 +1,17 @@
+control: A throttle waits out the provider's retry-after when it gives one and a full-jitter draw otherwise
+removes: the draw is ignored, so every backoff waits the whole bound as a fixed backoff does
+packages: ./ratelimit/core
+tests: TestThrottled
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..b8c975e 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -99,5 +99,5 @@ func jitter(throttles int, draw float64) int64 {
+ 	if !(draw >= 0 && draw < 1) {
+ 		return bound
+ 	}
+-	return int64(draw * float64(bound))
++	return bound
+ }
