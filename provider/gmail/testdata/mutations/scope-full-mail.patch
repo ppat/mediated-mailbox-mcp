@@ -1,0 +1,19 @@
+control: The Gmail grant requests only the modify scope
+removes: the consent requests the full mail scope, which grants permanent delete, in place of the modify scope
+packages: ./provider/gmail
+tests: TestTheConsentRequestsOnlyTheModifyScope TestTheConsentAsksForAnOfflineGrant
+scheduled-count: no
+
+diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go
+index 0c7a071..c3f1bb3 100644
+--- a/provider/gmail/oauth.go
++++ b/provider/gmail/oauth.go
+@@ -18,7 +18,7 @@ import (
+ // gmail.readonly with gmail.labels does not, and it leaves out permanent delete, which only the
+ // full https://mail.google.com/ scope grants. That absence is one of the two structural halves of
+ // ADR-0019's rule that mail is never permanently deleted.
+-const Scope = "https://www.googleapis.com/auth/gmail.modify"
++const Scope = "https://mail.google.com/"
+ 
+ // Google's endpoints for installed-app OAuth.
+ const (

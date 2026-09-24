@@ -1,0 +1,20 @@
+control: The consent redirect hands over a code only with the consent's state
+removes: a redirect with the right state and no code is handed over as an empty code
+packages: ./provider/gmail
+tests: TestTheConsentRedirectRefusesAnErrorOrNoCode/no_code
+scheduled-count: no
+
+diff --git a/provider/gmail/consent.go b/provider/gmail/consent.go
+index 3abb52d..cbd4d50 100644
+--- a/provider/gmail/consent.go
++++ b/provider/gmail/consent.go
+@@ -69,9 +69,6 @@ func consentHandler(state string, results chan<- consentResult) http.Handler {
+ 		case q.Get("error") != "":
+ 			http.Error(w, "consent refused", http.StatusBadRequest)
+ 			decide(consentResult{err: errors.New("gmail: the consent was refused")})
+-		case q.Get("code") == "":
+-			http.Error(w, "no authorization code", http.StatusBadRequest)
+-			decide(consentResult{err: errors.New("gmail: the consent redirect carried no authorization code")})
+ 		default:
+ 			if _, err := io.WriteString(w, "Consent received. This window can be closed.\n"); err != nil {
+ 				decide(consentResult{err: fmt.Errorf("gmail: answering the consent redirect: %w", err)})

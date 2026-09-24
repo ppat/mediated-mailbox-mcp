@@ -1,0 +1,17 @@
+control: A rotated refresh token is held and written back
+removes: a refresh response that leaves the refresh token out counts as rotating it to an empty token
+packages: ./provider/gmail
+tests: TestARefreshThatDoesNotRotateWritesNothing/field_left_out
+scheduled-count: no
+
+diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
+index 9c48994..c2ab4c4 100644
+--- a/provider/gmail/tokensource.go
++++ b/provider/gmail/tokensource.go
+@@ -126,5 +126,5 @@ func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
+ // rotated reports whether a refresh response rotated the refresh token. Google leaves the field
+ // out when it did not.
+ func rotated(held, returned string) bool {
+-	return returned != "" && returned != held
++	return returned != held
+ }

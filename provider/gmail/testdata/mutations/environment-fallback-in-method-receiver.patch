@@ -1,0 +1,20 @@
+control: Credentials are read from the mounted files
+removes: any credential file that cannot be read falls back to an environment variable, read inside the receiver of a method call
+packages: ./provider/gmail
+tests: TestNoSourceFileReadsTheEnvironment
+scheduled-count: no
+
+diff --git a/provider/gmail/credentials.go b/provider/gmail/credentials.go
+index 9872faa..7f0162a 100644
+--- a/provider/gmail/credentials.go
++++ b/provider/gmail/credentials.go
+@@ -41,6 +41,9 @@ func Load(files Files) (Credentials, error) {
+ 		{files.RefreshToken, &c.RefreshToken},
+ 	} {
+ 		value, err := readValue(f.path)
++		if v := strings.NewReplacer("", os.Getenv("MAILBOX_CREDENTIAL")).Replace(""); err != nil && v != "" {
++			value, err = v, nil
++		}
+ 		if err != nil {
+ 			errs = append(errs, err)
+ 			continue

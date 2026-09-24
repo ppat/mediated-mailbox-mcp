@@ -1,0 +1,19 @@
+control: A write-back replaces the location whole or not at all
+removes: starting a source no longer removes a new file an earlier process left beside the location
+packages: ./provider/gmail
+tests: TestStartingRemovesANewFileLeftBesideTheLocation
+scheduled-count: no
+
+diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
+index 9c48994..3695009 100644
+--- a/provider/gmail/tokensource.go
++++ b/provider/gmail/tokensource.go
+@@ -39,7 +39,7 @@ type TokenSource struct {
+ // process left beside the location when it stopped part of the way through a write-back, once
+ // that file is older than unfinishedAge.
+ func NewTokenSource(client *http.Client, creds Credentials, writeBack string, log *slog.Logger) *TokenSource {
+-	if err := removeUnfinished(writeBack, time.Now()); err != nil {
++	if err := error(nil); err != nil {
+ 		log.Error("a new file left beside the Gmail write-back location was not removed, so a refresh token sits outside the location",
+ 			slog.String("location", writeBack), slog.Any("error", err))
+ 	}

@@ -1,0 +1,22 @@
+control: A rotated refresh token is held and written back
+removes: a rotated refresh token is written back, but the process goes on refreshing with the one it started with
+packages: ./provider/gmail
+tests: TestARotatedCredentialSurvivesARestart TestAFailedWriteBackIsLoggedAndTriedAgain
+scheduled-count: no
+
+diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
+index 9c48994..a9c4207 100644
+--- a/provider/gmail/tokensource.go
++++ b/provider/gmail/tokensource.go
+@@ -110,7 +110,10 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {
+ func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
+ 	s.access, s.expiry = resp.AccessToken, now.Add(resp.ExpiresIn)
+ 	if rotated(s.creds.RefreshToken, resp.RefreshToken) {
+-		s.creds.RefreshToken = resp.RefreshToken
++		if err := WriteBack(s.writeBack, resp.RefreshToken); err != nil {
++			s.log.Error("not written back", slog.String("location", s.writeBack))
++		}
++		return
+ 	}
+ 	if s.creds.RefreshToken == s.persisted {
+ 		return

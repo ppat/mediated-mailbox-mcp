@@ -23,3 +23,11 @@ schedule, so the rate limiter's tests can meet throttling without the fake's sto
 and a throttled call changes nothing. The contract suite seeds the mailbox it runs against from the
 synthetic fixtures, adding what a mailbox holds beside a message, its identifiers, thread, date,
 labels and flags, and never assumes an implementation keeps the identifiers it was seeded with.
+
+The Gmail adapter also holds the handling of Google's grant, which every deployable that calls
+Google shares, the Google Calendar adapter included. That is the one-time installed-app consent,
+reading the credential from mounted files, and writing a rotated token back to the one writable
+location
+([ADR-0011](../docs/adr/provider/0011-gmail-auth-installed-app-oauth.md),
+[ADR-0038](../docs/adr/operability/0038-credentials-as-mounted-files.md),
+[ADR-0039](../docs/adr/operability/0039-rotation-writeback.md)).

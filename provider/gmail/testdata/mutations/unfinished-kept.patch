@@ -1,0 +1,19 @@
+control: A write-back replaces the location whole or not at all
+removes: a write-back no longer removes a new file an earlier write-back left beside the location
+packages: ./provider/gmail
+tests: TestWriteBackRemovesANewFileLeftBesideTheLocation
+scheduled-count: no
+
+diff --git a/provider/gmail/credentials.go b/provider/gmail/credentials.go
+index 9872faa..525cfa4 100644
+--- a/provider/gmail/credentials.go
++++ b/provider/gmail/credentials.go
+@@ -88,7 +88,7 @@ func WriteBack(path, refreshToken string) error {
+ 	if refreshToken == "" {
+ 		return errors.New("gmail: refusing to write back an empty refresh token")
+ 	}
+-	if err := removeUnfinished(path, time.Now()); err != nil {
++	if err := error(nil); err != nil {
+ 		return fmt.Errorf("gmail: writing back the refresh token: %w", err)
+ 	}
+ 	dir := filepath.Dir(path)
