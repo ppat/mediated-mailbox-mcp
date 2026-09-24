@@ -115,6 +115,17 @@ linters:
       - pattern: ^cmpopts\.IgnoreUnexported$
         pkg: ^github\.com/google/go-cmp/cmp/cmpopts$
         msg: it reports no difference between values that differ in unexported fields (ADR-0070)
+      # The package-level default registry, the helpers that use it, and the constructors that register into it.
+      # Each process builds its own registry and passes it where metrics are registered (ADR-0076).
+      - pattern: ^prometheus\.(DefaultRegisterer|DefaultGatherer|MustRegister|Register|Unregister)$
+        pkg: ^github\.com/prometheus/client_golang/prometheus$
+        msg: a process registers its metrics on the registry it builds, never the default one (ADR-0076)
+      - pattern: ^promauto\.New
+        pkg: ^github\.com/prometheus/client_golang/prometheus/promauto$
+        msg: promauto's constructors without a registry register into the default one (ADR-0076)
+      - pattern: ^promhttp\.Handler$
+        pkg: ^github\.com/prometheus/client_golang/prometheus/promhttp$
+        msg: it serves the default registry, and a process serves its own through promhttp.HandlerFor (ADR-0076)
 
     depguard:
       # How to read these lists.
@@ -274,9 +285,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
 
-        # The rate limiter, every file. Its pure rules under ratelimit/core also meet the pure-core lists. It names no
-        # data-access subsection yet, because which role a library's statements run under, and so how db/check tests
-        # this list, is an open decision in ROADMAP.md.
+        # The rate limiter, every file. Its pure rules under ratelimit/core also meet the pure-core lists. It is a
+        # library, so it connects as no role of its own. db/check plans the statements of the subsections it names
+        # under the role of each deployable whose list admits it (ADR-0066, ADR-0075).
         ratelimit:
           list-mode: strict
           files:
@@ -285,7 +296,10 @@ linters:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/fake$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
@@ -295,6 +309,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_model/go$"
+          - "go.yaml.in/yaml/v3$"
           - "pgregory.net/rapid$"
 
         # The body sanitization library, every file. It is the one place the HTML-to-Markdown converter and the HTML
@@ -590,6 +607,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
+          - "github.com/prometheus/client_golang/prometheus$"
           - "golang.org/x/net/html$"
           - "golang.org/x/net/html/atom$"
 
@@ -626,6 +644,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
+          - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_model/go$"
           - "github.com/wasilibs/go-pgquery$"
           - "go.yaml.in/yaml/v3$"
           # Restores the standard library under go/, which the entry above hides (see the notes at the top).

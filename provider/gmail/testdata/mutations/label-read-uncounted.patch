@@ -1,0 +1,18 @@
+control: Gmail's cost profile declares each call's worst case, every read of the label table included, and sizes its pages to one second's worth at the hard cap
+removes: a metadata fetch's read of the label table is left out of its cost, so four fetches seem to fit
+packages: ./provider/gmail
+tests: TestCostDeclaresEachCallsWorstCase TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds
+scheduled-count: no
+
+diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
+--- a/provider/gmail/profile.go
++++ b/provider/gmail/profile.go
+@@ -77,7 +77,7 @@
+ 		units = unitsThreadsGet + unitsLabelsList
+ 	case mail.OpGetMessageMetadata:
+ 		if n > 0 {
+-			units = unitsMessagesGet*n + unitsLabelsList
++			units = unitsMessagesGet * n
+ 		}
+ 	case mail.OpGetMessageBody:
+ 		units = unitsMessagesGet

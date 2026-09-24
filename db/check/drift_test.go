@@ -64,7 +64,7 @@ func requireDrift(t *testing.T, out string, err error, files ...string) {
 }
 
 // TestGeneratorDiffRefusesDrift proves the regenerate-and-diff check of ADR-0066 against the test
-// library, because the real library holds no statement file yet. The untouched copy must pass, so each
+// library, whose changes the test makes in a copy. The untouched copy must pass, so each
 // failure below comes from the change made to its copy and not from the copy itself.
 func TestGeneratorDiffRefusesDrift(t *testing.T) {
 	t.Run("untouched", func(t *testing.T) {

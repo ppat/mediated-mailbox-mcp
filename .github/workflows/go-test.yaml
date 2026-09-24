@@ -2,8 +2,9 @@
 # yamllint disable rule:line-length
 name: go-test
 
-# The unit tests of every Go package. db/check reads .golangci.yaml's import lists, and ui/internal/contract
-# compares ui/contract/openapi.json with what it generates, so both files are watched too.
+# The unit tests of every Go package. db/check reads .golangci.yaml's import lists, ui/internal/contract
+# compares ui/contract/openapi.json with what it generates, and ratelimit/lease runs promtool over the chart's
+# alerting rules and renders the template that ships them, so those files are watched too.
 #
 # The gating run of property tests and crash sequences sets RAPID_SEED non-zero, RAPID_CHECKS to the gating case
 # count and RAPID_NOFAILFILE=true, and passes no -short (ADR-0069). go-integration.yaml sets the same values.
@@ -23,6 +24,8 @@ on:
     - db/**
     - mediate/**
     - organize/**
+    - packaging/chart/alerting-rules.yaml
+    - packaging/chart/templates/prometheusrule.yaml
     - propose/**
     - provider/**
     - ratelimit/**

@@ -1,0 +1,18 @@
+control: Missing account-level series fire the absence rule rather than reading as a healthy account
+removes: a failed read of the accounts reports no series and a successful scrape
+packages: ./ratelimit/lease
+tests: TestTheCollectorFailsTheScrapeWhenItCannotRead
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/collector.go b/ratelimit/lease/collector.go
+--- a/ratelimit/lease/collector.go
++++ b/ratelimit/lease/collector.go
+@@ -84,7 +84,6 @@
+ 	defer cancel()
+ 	accounts, err := c.accounts(ctx)
+ 	if err != nil {
+-		ch <- prometheus.NewInvalidMetric(c.rate, fmt.Errorf("listing the accounts: %w", err))
+ 		return
+ 	}
+ 	for _, a := range accounts {

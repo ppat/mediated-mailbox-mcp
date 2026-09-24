@@ -1,0 +1,18 @@
+control: Gmail's cost profile declares each call's worst case, every read of the label table included, and sizes its pages to one second's worth at the hard cap
+removes: EnsureLabel's second read of the label table, after Gmail answers that the label exists, is left out of its cost
+packages: ./provider/gmail
+tests: TestCostDeclaresEachCallsWorstCase
+scheduled-count: no
+
+diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
+--- a/provider/gmail/profile.go
++++ b/provider/gmail/profile.go
+@@ -84,7 +84,7 @@
+ 	case mail.OpListLabels:
+ 		units = unitsLabelsList
+ 	case mail.OpEnsureLabel:
+-		units = unitsLabelsList + unitsLabelsCreate + unitsLabelsList
++		units = unitsLabelsList + unitsLabelsCreate
+ 	case mail.OpMutate:
+ 		units = unitsLabelsList + max(unitsMessageModify, unitsMessagesGet+unitsThreadsModify)*n
+ 	case mail.OpCurrentCursor:

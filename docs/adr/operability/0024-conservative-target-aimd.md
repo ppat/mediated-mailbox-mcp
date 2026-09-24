@@ -6,10 +6,10 @@
 
 ## Context
 
-Documented ceilings are not real ceilings. Gmail's 250 units/sec/user interacts with per-project
-quotas, mailbox size, and account age — accounts hit 429s below the documented number. JMAP
-publishes no number at all ([ADR-0023](./0023-adapter-declares-cost.md)). And the worst outcome is
-not slowness but a provider-side account restriction from sustained abuse — on the operator's
+Documented ceilings are not real ceilings. Gmail's 6,000 units a minute per user per project interacts with
+per-project quotas, mailbox size, and account age — accounts hit 429s below the documented number.
+JMAP publishes no number at all ([ADR-0023](./0023-adapter-declares-cost.md)). And the worst outcome
+is not slowness but a provider-side account restriction from sustained abuse — on the operator's
 personal mailbox. Deliberate politeness is the posture; the question is its mechanism.
 
 ## Decision
@@ -18,7 +18,7 @@ personal mailbox. Deliberate politeness is the posture; the question is its mech
 go above the hard cap:**
 
 ```
-budget_ceiling = profile.budget_per_second()        # 250 for Gmail
+budget_ceiling = profile.budget_per_second()        # 100 for Gmail
 target         = budget_ceiling * 0.50              # the polite default
 hard_cap       = budget_ceiling * 0.80              # never exceeded, ever
 floor          = budget_ceiling * 0.05              # controller's lower bound
@@ -83,15 +83,16 @@ limit counted per minute absorbs both.
 
 Two details matter more than the algorithm choice:
 
-- **Honor `Retry-After` when present; use full jitter when absent** —
-  `random(0, base * 2^n)`, never fixed backoff. Gmail sometimes sends `Retry-After`; Fastmail's
-  behavior gets discovered when its adapter is built. Fixed backoff from a resuming batch job
-  produces synchronized retry waves against yourself. A throttle arriving during a backoff never
-  ends it sooner, so a `Retry-After` is honored in full. The base is one second, n counts the
-  throttles before this one with no success between them, so the first throttle draws with n at
-  zero, and `base * 2^n` stops doubling at 32 seconds, within the 32 or 64 seconds Google Cloud's
-  truncated exponential backoff uses
-  ([Memorystore](https://docs.cloud.google.com/memorystore/docs/redis/exponential-backoff)).
+- **Honor `Retry-After` when present; use full jitter when absent** — `random(0, base * 2^n)`, never
+  fixed backoff. Gmail's [error
+  guide](https://developers.google.com/workspace/gmail/api/guides/handle-errors) does not say it
+  sends `Retry-After`, so it is read whenever it arrives, and Fastmail's behavior gets discovered
+  when its adapter is built. Fixed backoff from a resuming batch job produces synchronized retry
+  waves against yourself. A throttle arriving during a backoff never ends it sooner, so a
+  `Retry-After` is honored in full. The base is one second, n counts the throttles before this one
+  with no success between them, so the first throttle draws with n at zero, and `base * 2^n` stops
+  doubling at 32 seconds, within the 32 or 64 seconds Google Cloud's truncated exponential backoff
+  uses ([Memorystore](https://docs.cloud.google.com/memorystore/docs/redis/exponential-backoff)).
 - **Decrease on latency, not only on errors.** A 429 means the budget was already overshot;
   latency degradation precedes it. Tracking a rolling median against baseline and backing off at
   roughly 2× is the difference between a job that occasionally trips limits and one that
@@ -106,13 +107,16 @@ Two details matter more than the algorithm choice:
 floor and it never recovers, turning an hours-long backfill into days — alert on rate pinned at
 floor beyond a few minutes. *Runaway:* a coordination bug lets workers collectively exceed the
 budget — alert on aggregate observed request rate exceeding `hard_cap`, and page rather than
-dashboard, because runaway is the failure that risks the account restriction.
+dashboard, because runaway is the failure that risks the account restriction. The rules that
+raise both, and exactly what each reads, are
+[ADR-0077](./0077-conditions-raised-as-alerting-rules.md)'s.
 
-What the numbers mean for the one big job: at the 50% target, Gmail metadata fetches run at about
-25 messages/sec, roughly 90k/hour. For a 100k corpus, backfill pass 1 is about 65–75 minutes; pass
-2 fetches only the gated-in, non-restricted fraction (roughly 40–60% of the corpus), another
-30–45 minutes — **about 2.5–3 hours, once**, roughly double the full-rate estimate and an easy
-trade for never antagonizing the provider on a job with no deadline.
+What the numbers mean for the one big job: at the 50% target, Gmail metadata fetches cost 20 units
+each and run at about 2.5 messages/sec, roughly 9,000/hour. For a 100k corpus, backfill pass 1 is
+about 11 hours. Pass 2 fetches only the gated-in, non-restricted fraction, roughly 40–60% of the
+corpus, which takes another 4.4–6.7 hours. That is **about 15.5–18 hours, once**, roughly double
+the full-rate estimate and an easy trade for never antagonizing the provider on a job with no
+deadline.
 
 ## Alternatives considered
 

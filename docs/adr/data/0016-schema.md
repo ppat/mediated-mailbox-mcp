@@ -30,16 +30,35 @@ CREATE TABLE accounts (
 CREATE TABLE rate_state (                 -- cross-process rate coordination (ADR-0025)
   account_id       text PRIMARY KEY REFERENCES accounts,
   current_rate     real NOT NULL,         -- units/sec, controller-managed
-  target_rate      real NOT NULL,         -- the conservative target (ADR-0024)
-  hard_cap         real NOT NULL,         -- never exceeded
-  baseline_p50_ms  real,                  -- for latency-based decrease
+  target_rate      real NOT NULL,         -- the conservative target (ADR-0024), shown only
+  hard_cap         real NOT NULL,         -- never exceeded, shown only
+  baseline_p50_ms  real,                  -- the latency baseline in use, shown only
   last_throttle_at timestamptz,
   backoff_until    timestamptz,
-  leased_tokens    real NOT NULL DEFAULT 0,
-  lease_expires_at timestamptz,
-  classes          jsonb,                  -- {class: {reserved, used}} per priority class, written by the limiter (ADR-0025)
+  throttles        integer NOT NULL DEFAULT 0,  -- throttles since the last success, for the backoff
+  bucket_level     real NOT NULL DEFAULT 0,     -- the token bucket's level (ADR-0024)
+  bucket_filled_at timestamptz,                 -- the instant that level was reached
+  class_asked_at   timestamptz[],               -- when each class last asked, interactive, sync, batch
+  last_granted_at  timestamptz,                 -- the instant of the latest grant
+  latency_window_start timestamptz,             -- the current one-minute latency window
+  latency_samples  integer[],                   -- its samples, in milliseconds
+  latency_medians  real[],                      -- the last ten window medians
+  classes          jsonb,                  -- {class: {reserved, used}} per priority class, written by the limiter (ADR-0025), shown only
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
+-- The issuer recomputes target and cap from the provider's declared ceiling on every issue and
+-- never reads the shown-only columns back, so no write to the row can raise the cap (ADR-0024)
+
+CREATE TABLE rate_grants (                -- every grant of the last second, which are also the live leases (ADR-0024, ADR-0025)
+  grant_id    bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  account_id  text NOT NULL REFERENCES accounts,
+  class       text NOT NULL,              -- interactive | sync | batch
+  tokens      real NOT NULL,
+  issued_at   timestamptz NOT NULL        -- the lease expires one second later
+);
+CREATE INDEX ON rate_grants (account_id, issued_at);
+-- One row per grant, written in the same transaction as the bucket's level. The issuer deletes
+-- rows more than a second old. A lost row widens issuance without the rules seeing it (ADR-0024)
 
 CREATE TABLE senders (                    -- drives the scan gate, memoization, heuristics
   account_id        text NOT NULL REFERENCES accounts,

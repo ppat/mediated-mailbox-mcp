@@ -214,8 +214,9 @@ grant check tests against the grants.
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and
-[ADR-0070](./0070-unit-comparison-through-one-options-value.md) and
-[ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) place such bans. A ban proven by a
+[ADR-0070](./0070-unit-comparison-through-one-options-value.md),
+[ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) and
+[ADR-0076](./0076-metrics-emitted-through-client-golang.md) place such bans. A ban proven by a
 checked-in violation file needs a message naming the file and the line, which it gives. Configured
 with a pattern for `cmpopts.IgnoreUnexported` it reported the call's file and line, stayed silent on
 the `cmp.AllowUnexported` call beside it, and with type analysis enabled reported an aliased import
@@ -473,8 +474,9 @@ project's own `go vet` analysers, which need no carve-out and refuse that write 
   here. A fourth analyser, `forbidigo`, is configured here too, and it is not one of those kinds.
   Those kinds are the enforcement that record's type conventions need, and `forbidigo` carries
   bans other records place on a named construction, which is a different job. Those records are
-  [ADR-0070](./0070-unit-comparison-through-one-options-value.md) and
-  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md).
+  [ADR-0070](./0070-unit-comparison-through-one-options-value.md),
+  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) and
+  [ADR-0076](./0076-metrics-emitted-through-client-golang.md).
 - **The allow list carries a property no tool checks.** Adding a package to it that the rule does
   not itself govern makes the pure-core rule unsound without any check failing. That is review
   discipline on the configuration and is dispositioned in

@@ -1,0 +1,20 @@
+control: Every grant of the last second is stored and counted in the one-second window
+removes: the stored grants are not read into the window, so it counts none of them
+packages: ./ratelimit/lease
+tests: TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -117,7 +117,8 @@
+ 		}
+ 		st, is := stateOf(row), issuanceOf(row)
+ 		recent, grantLeases := recentOf(grants)
+-		is.Recent = recent
++		is.Recent = nil
++		_ = recent
+ 		next, decided := core.Issue(l.ceiling, st, is, grantLeases, req, now)
+ 		d, rate = decided, float64(row.CurrentRate)
+ 		if d.Outcome == core.Refused {

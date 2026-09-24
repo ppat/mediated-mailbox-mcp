@@ -1,0 +1,19 @@
+control: A lease counts against its class's share until it expires one second after it was issued
+removes: every grant is stored as batch's, so a lease counts against the wrong class's share
+packages: ./ratelimit/lease
+tests: TestALiveLeaseCountsAgainstItsClassShare
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -153,7 +153,7 @@
+ 		held = append(held, d.Lease)
+ 		err := q.InsertGrant(ctx, ratestate.InsertGrantParams{
+ 			AccountID: account,
+-			Class:     className(d.Lease.Class),
++			Class:     className(core.Batch),
+ 			Tokens:    float32(d.Lease.Tokens),
+ 			IssuedMs:  grantedAt,
+ 		})

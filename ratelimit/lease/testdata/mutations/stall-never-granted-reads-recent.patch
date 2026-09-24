@@ -1,0 +1,19 @@
+control: The collapse rules fire on five minutes at the floor or with nothing granted, and only while a class asks
+removes: an instant never set reads as just now, so an account waiting on its first grant reads as healthy
+packages: ./ratelimit/lease
+tests: TestTheCollectorReportsEachAccountsRateState
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/collector.go b/ratelimit/lease/collector.go
+--- a/ratelimit/lease/collector.go
++++ b/ratelimit/lease/collector.go
+@@ -137,7 +137,7 @@
+ // was never set and is infinitely long ago.
+ func secondsSince(now, at int64) float64 {
+ 	if at == 0 {
+-		return math.Inf(1)
++		return math.Abs(0)
+ 	}
+ 	return float64(now-at) / 1000
+ }

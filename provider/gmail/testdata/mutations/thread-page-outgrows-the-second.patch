@@ -1,0 +1,18 @@
+control: Gmail's cost profile declares each call's worst case, every read of the label table included, and sizes its pages to one second's worth at the hard cap
+removes: a page of threads holds two threads, whose worst case passes one second's worth at the hard cap
+packages: ./provider/gmail
+tests: TestCostDeclaresEachCallsWorstCase TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds
+scheduled-count: no
+
+diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
+--- a/provider/gmail/profile.go
++++ b/provider/gmail/profile.go
+@@ -31,7 +31,7 @@
+ // thread. A page of EnumerateAll is one messages.list, a messages.get per message and one read of the
+ // label table, 66 units for three messages.
+ const (
+-	threadsPerPage  = 1
++	threadsPerPage  = 2
+ 	messagesPerPage = 3
+ )
+ 

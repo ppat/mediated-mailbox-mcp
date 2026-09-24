@@ -113,8 +113,11 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   `EXPLAIN (GENERIC_PLAN)` so nothing executes, so a list admitting a statement the role's grants do
   not allow fails naming the list, the statement and the role. Which role each component connects as
   is [ADR-0075](./0075-one-runtime-role-per-deployable.md)'s, and the check reads that mapping from
-  one place in `db/check`, failing a list that names subsections without a role and a role that
-  names no such list.
+  one place in `db/check`, failing a deployable's list that names subsections without a role and a
+  role whose deployable's list reaches no subsection, directly or through a shared library. A shared
+  library connects as no role of its own. Its statements run under the role of each deployable whose
+  list admits the library, and the check plans them under each of those roles, reading which
+  deployables admit it from their lists.
 
 ### How the decision meets each requirement
 

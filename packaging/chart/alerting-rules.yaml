@@ -1,0 +1,57 @@
+---
+# The alerting rules of ADR-0077, in the rule-file format Prometheus loads. The chart embeds this file whole in its
+# PrometheusRule resource when alertingRules.enabled is set, and a platform without the Prometheus Operator loads it
+# its own way. Routing a firing rule to a person is the platform's.
+#
+# ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests, run from a Go test in that package.
+# ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule reads none of
+# them. It reads mediated_mailbox_provider_request_cost_total, a counter of the cost, in the provider's units, of
+# every request a spending process sends, which the provider adapter increments where it sends each request and
+# labels by account and by provider, gmail for the Gmail adapter.
+groups:
+- name: mediated-mailbox-rate-limiter
+  rules:
+  # Runaway (ADR-0024). The cost of provider requests counted where each request is sent, summed over every spending
+  # process for the account over one minute, above the hard cap times sixty seconds. A lease is spent up to a second
+  # after it is issued, so a shorter window fires on correct operation. The hard cap is 80% of the provider's declared
+  # ceiling, 80 units a second for Gmail, so each provider has its own threshold.
+  - alert: MediatedMailboxRateRunaway
+    expr: |
+      sum by (account) (increase(mediated_mailbox_provider_request_cost_total{provider="gmail"}[1m])) > 80 * 60
+    labels:
+      severity: page
+    annotations:
+      summary: Requests for account {{ $labels.account }} cost more in the last minute than the hard cap allows.
+
+  # Collapse, the rate pinned at the floor for more than five minutes while a class has asked within the last minute
+  # (ADR-0024), from the mediator's account-level series.
+  - alert: MediatedMailboxRateCollapsed
+    expr: |
+      mediated_mailbox_ratelimit_account_rate <= on (account) mediated_mailbox_ratelimit_account_floor
+      and on (account) mediated_mailbox_ratelimit_account_seconds_since_ask < 60
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: The rate for account {{ $labels.account }} has stayed at its floor for more than five minutes.
+
+  # Collapse with the rate untouched, nothing granted for more than five minutes while a class has asked within the
+  # last minute. It catches issuance stopped by anything else, such as a stored fill instant ahead of the clock.
+  - alert: MediatedMailboxIssuanceStalled
+    expr: |
+      mediated_mailbox_ratelimit_account_seconds_since_grant > 300
+      and on (account) mediated_mailbox_ratelimit_account_seconds_since_ask < 60
+    labels:
+      severity: warning
+    annotations:
+      summary: Nothing has been granted for account {{ $labels.account }} for more than five minutes while work waits.
+
+  # Missing data never reads as a healthy account. The mediator runs continuously and emits every account's series,
+  # while the job workloads' series are absent between their runs by design and are not read here.
+  - alert: MediatedMailboxRateSeriesAbsent
+    expr: absent(mediated_mailbox_ratelimit_account_rate)
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: The mediator's account-level rate series are missing.

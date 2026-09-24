@@ -1,0 +1,19 @@
+control: Every grant of the last second is stored and counted in the one-second window
+removes: the grants of the last second are deleted with the old ones, so the window loses them
+packages: ./ratelimit/lease
+tests: TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -141,7 +141,7 @@
+ // it, and a granted lease gets its row.
+ func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
+ 	limits := core.LimitsFor(l.ceiling)
+-	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
++	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now)}); err != nil {
+ 		return fmt.Errorf("deleting old grants: %w", err)
+ 	}
+ 	if err := q.ClampGrants(ctx, ratestate.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {

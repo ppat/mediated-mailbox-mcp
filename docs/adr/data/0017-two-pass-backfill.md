@@ -46,8 +46,8 @@ Properties the split buys:
   for most unfiled volume. None of it needs a body — which is precisely why this design can offer
   strong organizational capability alongside strong content restriction.
 - **The gate gets real statistics**, not cold-start guesses.
-- The cost is roughly doubled wall-clock, which at this corpus size is minutes-to-hours territory,
-  not days — the arithmetic lives with the rate posture in
+- The cost is roughly doubled wall-clock, which at this corpus size is hours, under a day rather
+  than days — the arithmetic lives with the rate posture in
   [ADR-0024](../operability/0024-conservative-target-aimd.md).
 
 ## Alternatives considered

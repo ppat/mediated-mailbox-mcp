@@ -1,0 +1,17 @@
+{{- /*
+The alerting rules of ADR-0077 as the Prometheus Operator's resource. The value alertingRules.enabled switches it on,
+and it is off by default, so the chart assumes only core Kubernetes (ADR-0052). The default lives here rather than
+in a values file. A platform without the operator loads alerting-rules.yaml at the chart's root its own way. The
+rules are that file embedded whole, which is the file promtool tests.
+*/ -}}
+{{- if (.Values.alertingRules | default dict).enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-alerting-rules
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  {{- .Files.Get "alerting-rules.yaml" | fromYaml | toYaml | nindent 2 }}
+{{- end }}

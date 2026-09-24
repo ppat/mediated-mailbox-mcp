@@ -135,6 +135,7 @@ moves it. Records themselves link freely and deep, into
 | 0059 | [The UI ships two palettes derived in OKLCH and checked for contrast](./operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md) | Accepted |
 | 0061 | [A decision request is accepted only with a token bound to the session that loaded the page](./operability/0061-ui-browser-security-posture.md) | Accepted |
 | 0062 | [The UI serves under a content security policy allowing one origin and no inline script](./operability/0062-ui-content-security-policy.md) | Accepted |
+| 0077 | [Rate collapse, rate runaway, a failed reload and a cursor gap are alerting rules, shipped with the chart and tested in CI](./operability/0077-conditions-raised-as-alerting-rules.md) | Accepted |
 
 ## Engineering — `engineering/`
 
@@ -164,3 +165,4 @@ moves it. Records themselves link freely and deep, into
 | 0071 | [Static enforcement runs under golangci-lint, with import boundaries as a closed allow list](./engineering/0071-static-enforcement-toolchain.md) | Accepted |
 | 0072 | [The browser's bans run under oxlint, with the signal-position rule on ast-grep](./engineering/0072-browser-bans-under-oxlint-and-ast-grep.md) | Accepted |
 | 0073 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0073-commit-header-type-sizes-release-scope-names-surface.md) | Accepted |
+| 0076 | [Metrics are emitted through Prometheus's client_golang, on a registry each process builds](./engineering/0076-metrics-emitted-through-client-golang.md) | Accepted |

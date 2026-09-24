@@ -35,6 +35,7 @@ type accountTable struct {
 // requires it to match the tables the chain holds, so a table added later must be added here.
 var accountTables = map[string]accountTable{
 	"accounts":            {"INSERT INTO accounts (account_id, provider) VALUES ($1, $2)", accountD},
+	"rate_grants":         {"INSERT INTO rate_grants (account_id, class, tokens, issued_at) VALUES ($1, $2, 1, now())", accountB},
 	"rate_state":          {"INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, classes) VALUES ($1, 1, 1, 1, jsonb_build_object('key', $2::text))", accountC},
 	"senders":             {"INSERT INTO senders (account_id, domain) VALUES ($1, $2)", accountB},
 	"messages":            {"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ($1, $2, 't', 'a@example.com', 'example.com', now(), false, 'normal')", accountB},

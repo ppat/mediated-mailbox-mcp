@@ -13,8 +13,8 @@ load-bearing, and it must serve two providers whose limit models are genuinely i
 | | Gmail | JMAP (Fastmail) |
 | --- | --- | --- |
 | Unit of cost | quota units, per-operation weight | requests / concurrent connections |
-| Published budget | 250 units/sec/user | not published as a number |
-| Signal on breach | HTTP 429 + `userRateLimitExceeded` | HTTP 429; limits in the session object |
+| Published budget | 6,000 units a minute per user per project, 100 a second on average ([usage limits](https://developers.google.com/workspace/gmail/api/reference/quota)) | not published as a number |
+| Signal on breach | HTTP 429, or 403 with a reason such as `userRateLimitExceeded` ([error handling](https://developers.google.com/workspace/gmail/api/guides/handle-errors)) | HTTP 429; limits in the session object |
 | Discoverable ceiling | documented constant | `maxConcurrentRequests`, `maxCallsInRequest` |
 | Batching semantics | HTTP batch, 100 sub-requests, **cost charged per sub-request** | multi-id `Email/get` is **one** request |
 
@@ -44,9 +44,12 @@ class RateLimitProfile(Protocol):
     def refresh_limits(self) -> None: ...                # JMAP: re-read session
 ```
 
-- **The Gmail profile:** `cost` returns the documented unit weights; `budget_per_second` is 250;
-  `parse_throttle` distinguishes per-user from per-project throttling (which warrant different
-  responses); `refresh_limits` is a no-op.
+- **The Gmail profile:** `cost` returns the documented unit weights, `budget_per_second` is 100,
+  which is the per-minute limit averaged over its minute, `parse_throttle` distinguishes per-user
+  from per-project throttling by the reason Gmail gives, and `refresh_limits` is a no-op. While one account
+  uses a Google Cloud project, both kinds get the same response, a throttle on that account. How a
+  per-project throttle reaches other accounts in the same project is decided with the second
+  account.
 - **The JMAP profile:** `cost` returns weight 1.0 per JMAP method call regardless of id count;
   `budget_per_second` is derived from `maxConcurrentRequests` in the session object times observed
   throughput; `refresh_limits` re-reads `.well-known/jmap`.
@@ -63,16 +66,25 @@ The Gmail unit weights, because two of their consequences shape other decisions:
 | Operation | Units | Note |
 | --- | --- | --- |
 | `messages.list` | 5 | 500 ids/call — enumeration nearly free |
-| `messages.get` (METADATA) | 5 | dominant backfill cost |
-| `messages.get` (FULL) | 5 | **same as metadata** — body fetch is quota-free relative |
+| `messages.get` (METADATA) | 20 | dominant backfill cost |
+| `messages.get` (FULL) | 20 | **same as metadata** — body fetch is quota-free relative |
+| `threads.get` | 40 | every message of one thread |
 | `batchModify` | 50 | 1000 ids/call — bulk reorg cheap per message |
 
 Row three is why the scan gate is a latency-and-exposure optimization, not a quota one
-([ADR-0007](../redaction/0007-composite-scan-gate.md)). Gmail's HTTP batch endpoint (100
-sub-requests, quota charged per sub-request — 100 round trips collapse into one, roughly 50×
-latency reduction at unchanged quota) is the single highest-leverage throughput technique, and it
-works *with* conservative rate targeting rather than against it: fewer round trips means the same
-throughput at a lower request rate.
+([ADR-0007](../redaction/0007-composite-scan-gate.md)).
+
+A port call's declared cost is its worst case, known before the call, and no call may cost more
+than one second's worth at the hard cap, the largest request
+[ADR-0024](./0024-conservative-target-aimd.md) issues. Where a call's size depends on what it
+returns, such as a page of threads, the adapter sizes the page to fit. Where the caller sets the
+size, as with the identifiers of a metadata fetch or the operations of a mutation, the caller
+splits its work into calls that fit. Gmail's HTTP batch endpoint collapses up to 100 sub-requests
+into one round trip, and each sub-request is still charged, so a batch counts as one call holding
+only as many sub-requests as that second pays for, counting every other provider request the
+call makes.
+Batching then saves round trips at unchanged quota, which works with conservative rate targeting
+rather than against it.
 
 ## Alternatives considered
 

@@ -8,7 +8,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -83,26 +82,26 @@ func explainAs(ctx context.Context, db beginner, role, sql string) (err error) {
 	return err
 }
 
-// grantProblems runs every statement of every subsection a component list names under the role roles
-// gives that component. An import list admitting a component to a statement its role cannot run is a
-// problem naming the list, the statement and the role, found here instead of at run time. A list
-// without a role is skipped, because TestComponentRoles refuses it.
-func grantProblems(t *testing.T, db beginner, admitted map[string][]subsection, roles map[string]string) []string {
+// grantProblems runs every statement of every subsection a list names under each role plans gives
+// it. An import list admitting a component to a statement its role cannot run is a problem naming the
+// list, the statement and the role, found here instead of at run time. A library's list is named with
+// the deployable's list that admits it.
+func grantProblems(t *testing.T, db beginner, lists importLists, roles map[string]string) []string {
 	t.Helper()
 	var out []string
-	for _, list := range slices.Sorted(maps.Keys(admitted)) {
-		role, ok := roles[list]
-		if !ok {
-			continue
+	for _, p := range plans(lists, roles) {
+		named := fmt.Sprintf("list %q names", p.list)
+		if p.via != p.list {
+			named = fmt.Sprintf("list %q, which list %q admits, names", p.list, p.via)
 		}
-		for _, s := range admitted[list] {
+		for _, s := range p.subs {
 			statements := generatedStatements(t, s)
 			if len(statements) == 0 {
 				out = append(out, fmt.Sprintf("subsection %s has no generated statements, so its grants were not tested", s.name))
 			}
 			for _, st := range statements {
-				if err := explainAs(t.Context(), db, role, st.sql); err != nil {
-					out = append(out, fmt.Sprintf("list %q names %s, but role %s cannot run its %s: %v", list, s.name, role, st.name, err))
+				if err := explainAs(t.Context(), db, p.role, st.sql); err != nil {
+					out = append(out, fmt.Sprintf("%s %s, but role %s cannot run its %s: %v", named, s.name, p.role, st.name, err))
 				}
 			}
 		}
@@ -125,14 +124,15 @@ func connect(t *testing.T) *pgx.Conn {
 }
 
 func TestGrantsCoverAdmittedSubsections(t *testing.T) {
-	admitted, _ := realLibrary.admissions(t, realLibrary.subsections(t))
-	requireNoProblems(t, grantProblems(t, connect(t), admitted, componentRoles))
+	lists, _ := realLibrary.admissions(t, realLibrary.subsections(t))
+	requireNoProblems(t, grantProblems(t, connect(t), lists, componentRoles))
 }
 
 // TestGrantProblemsReported applies the test library's roles and schema inside a transaction it rolls
 // back, so the roles, which belong to the whole cluster, never reach another test package. Its import
-// lists hold one list naming a subsection whose update its role holds no grant for, and lists naming
-// only what their roles can run.
+// lists hold one list naming a subsection whose update its role holds no grant for, a library's list
+// naming that subsection and admitted by two lists, one whose role holds no grant for the update and
+// one whose role does, and lists naming only what their roles can run.
 func TestGrantProblemsReported(t *testing.T) {
 	ctx := t.Context()
 	tx, err := connect(t).Begin(ctx)
@@ -155,8 +155,9 @@ func TestGrantProblemsReported(t *testing.T) {
 			t.Fatalf("%s: %v", path, err)
 		}
 	}
-	admitted, _ := testLibrary.admissions(t, testLibrary.subsections(t))
-	requireProblems(t, grantProblems(t, tx, admitted, testRoles), []string{
+	lists, _ := testLibrary.admissions(t, testLibrary.subsections(t))
+	requireProblems(t, grantProblems(t, tx, lists, testRoles), []string{
+		`list "library", which list "narrow" admits, names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
 		`list "misaligned" names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
 	})
 }

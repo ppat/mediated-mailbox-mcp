@@ -49,6 +49,8 @@ evidence of its compromise survives outside its own reach."
 
 - A deployment provisions six runtime credentials beside the migration role's.
 - A new deployable brings a new role with grants for its own statements.
+- A shared library, such as the rate limiter, runs its statements under the role of each
+  deployable that uses it, so each of those roles holds the grants the library's statements need.
 - [ADR-0021](../mutation/0021-approval-surface.md) states the UI's grant. It gives the UI reads on
   most tables, leaving which ones to what its screens read in [docs/UI.md](../../UI.md), and a
   write grant derived from the columns its two verbs set and the row a confirmation inserts. Those
