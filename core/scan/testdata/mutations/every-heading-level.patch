@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: a code in a heading of any level is flagged
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/a_code_in_a_third-level_heading
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..94f1f87 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -240,7 +240,7 @@ func (ls textLayout) lineOf(offset int) int {
+ // heading reports whether line is a first- or second-level Markdown heading.
+ func heading(line string) bool {
+ 	trimmed := strings.TrimLeft(line, " ")
+-	return strings.HasPrefix(trimmed, "# ") || strings.HasPrefix(trimmed, "## ")
++	return strings.HasPrefix(trimmed, "#")
+ }
+ 
+ // cell reports whether run r is the whole content of a cell of line, the li-th line, a Markdown

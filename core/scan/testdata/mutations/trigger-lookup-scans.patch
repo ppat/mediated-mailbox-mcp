@@ -1,0 +1,22 @@
+control: Scanning stays linear in a body's length
+removes: checking a trigger's distance walks every trigger before it
+packages: ./core/scan
+tests: TestScanningStaysLinear
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..4c15550 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -138,7 +138,10 @@ func tokenAt(tokens []segment, offset int) int {
+ // near reports whether a trigger token other than token lies within window tokens of it. The
+ // triggers are sorted.
+ func near(triggers []int, token, window int) bool {
+-	i := sort.SearchInts(triggers, token-window)
++	i := 0
++	for i < len(triggers) && triggers[i] < token-window {
++		i++
++	}
+ 	for ; i < len(triggers) && triggers[i] <= token+window; i++ {
+ 		if triggers[i] != token {
+ 			return true

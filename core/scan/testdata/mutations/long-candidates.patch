@@ -1,0 +1,19 @@
+control: Tier 2 flags a code tier 1 misses, at the configured threshold
+removes: tier 2 scores references of 11 and 12 characters, longer than any one-time code
+packages: ./core/scan
+tests: TestTier2/an_eleven-character_reference_after_a_trigger
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..77f6fd8 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -309,7 +309,7 @@ func entropy(v string) float64 {
+ // candidate reports whether a token is one tier 2 scores, 4 to 10 ASCII letters and digits with at
+ // least one digit.
+ func candidate(tok string) bool {
+-	if len(tok) < 4 || len(tok) > 10 || utf8.RuneCountInString(tok) != len(tok) {
++	if len(tok) < 4 || len(tok) > 12 || utf8.RuneCountInString(tok) != len(tok) {
+ 		return false
+ 	}
+ 	digit := false

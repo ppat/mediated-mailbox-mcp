@@ -1,0 +1,19 @@
+control: A scanner nobody built, or built from an invalid configuration, refuses to decide
+removes: a scanner nobody built reports a scan that found nothing
+packages: ./core/scan
+tests: TestFailClosed
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..6f5e9bd 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -33,7 +33,7 @@ type Span struct {
+ // (ADR-0003).
+ func (s Scanner) SubjectSpans(subject string) ([]Span, bool) {
+ 	if !s.built {
+-		return nil, false
++		return nil, true
+ 	}
+ 	spans, _ := s.detect(subject, true)
+ 	return spans, true

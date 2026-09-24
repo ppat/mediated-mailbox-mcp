@@ -1,0 +1,19 @@
+control: Tier 1 flags a login link
+removes: a long value counts as dense whatever its entropy
+packages: ./core/scan
+tests: TestTier1LoginLinks/a_long_parameter_that_is_not_dense
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..defba3b 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -284,7 +284,7 @@ func (s Scanner) linkRules(url string) []string {
+ 
+ // dense reports whether v is long and varied enough to be a secret rather than a word.
+ func (s Scanner) dense(v string) bool {
+-	return len(v) >= s.cfg.DenseLength && entropy(v) >= s.cfg.DenseEntropy
++	return len(v) >= s.cfg.DenseLength
+ }
+ 
+ // entropy returns the Shannon entropy of v in bits per byte.

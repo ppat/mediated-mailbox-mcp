@@ -1,0 +1,19 @@
+control: Tier 2 flags a code tier 1 misses, at the configured threshold
+removes: a subject is scored against the body threshold
+packages: ./core/scan
+tests: TestSubjectThreshold
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..1fdf8fb 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -89,7 +89,7 @@ func (s Scanner) detect(text string, subject bool) ([]Span, int) {
+ 	}
+ 	threshold := s.cfg.Threshold
+ 	if subject {
+-		threshold = s.cfg.SubjectThreshold
++		threshold = s.cfg.Threshold
+ 	}
+ 	tier := 1
+ 	for i, t := range tokens {

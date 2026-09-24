@@ -1,0 +1,19 @@
+control: Subject masking replaces every detected code and nothing else
+removes: a masked character written in several bytes becomes several █
+packages: ./core/redact
+tests: TestMaskSubject/a_link_holding_an_accented_letter
+scheduled-count: no
+
+diff --git a/core/redact/masking.go b/core/redact/masking.go
+index 8a050c8..fae5ef5 100644
+--- a/core/redact/masking.go
++++ b/core/redact/masking.go
+@@ -71,7 +71,7 @@ func MaskSubject(s scan.Scanner, subject string) Masked {
+ 		}
+ 		b.WriteRune(maskRune)
+ 		i++
+-		for i < len(masked) && hidden[i] && masked[i]&0xC0 == 0x80 {
++		for i < len(masked) && hidden[i] && masked[i]&0xC0 == 0x80 && false {
+ 			i++
+ 		}
+ 	}

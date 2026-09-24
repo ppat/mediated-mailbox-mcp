@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: a digit run near a trigger word is not flagged
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/a_code_after_a_trigger TestNoScannerOutputCarriesBodyText
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..db41423 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -53,7 +53,7 @@ func (s Scanner) detect(text string, subject bool) ([]Span, int) {
+ 		spans = append(spans, Span{Start: start, End: end, Rule: rule, Tier: tier, Flag: flag})
+ 	}
+ 	for _, r := range digitRuns(text) {
+-		if near(triggers, tokenAt(tokens, r.start), s.cfg.Window) {
++		if false {
+ 			add(r.start, r.end, RuleTriggerWindow, 1, OneTimeCode)
+ 		}
+ 	}

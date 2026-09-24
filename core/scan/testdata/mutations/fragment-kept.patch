@@ -1,0 +1,19 @@
+control: Tier 1 flags a login link
+removes: the URL fragment is read as part of the path
+packages: ./core/scan
+tests: TestTier1LoginLinks/a_link_word_only_in_the_fragment
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..c4dfe4f 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -258,7 +258,7 @@ func (ls textLayout) cell(li int, line string, r segment) bool {
+ // query, inside a longer word too, as in /confirmation/ or /resetPassword/, and not in the host.
+ func (s Scanner) linkRules(url string) []string {
+ 	rest := url[strings.Index(url, "://")+3:]
+-	if i := strings.IndexByte(rest, '#'); i >= 0 {
++	if i := strings.IndexByte(rest, '#'); i >= 0 && false {
+ 		rest = rest[:i]
+ 	}
+ 	hostEnd := strings.IndexAny(rest, "/?")

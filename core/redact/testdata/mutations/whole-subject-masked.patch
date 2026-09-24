@@ -1,0 +1,19 @@
+control: Subject masking replaces every detected code and nothing else
+removes: every character of the subject is masked, detected or not
+packages: ./core/redact
+tests: TestMaskSubject/a_subject_with_nothing_to_mask TestMaskingRemovesEveryCode
+scheduled-count: no
+
+diff --git a/core/redact/masking.go b/core/redact/masking.go
+index 8a050c8..1e6b82b 100644
+--- a/core/redact/masking.go
++++ b/core/redact/masking.go
+@@ -64,7 +64,7 @@ func MaskSubject(s scan.Scanner, subject string) Masked {
+ 	}
+ 	var b strings.Builder
+ 	for i := 0; i < len(masked); {
+-		if !hidden[i] {
++		if false {
+ 			b.WriteByte(masked[i])
+ 			i++
+ 			continue

@@ -1,0 +1,18 @@
+control: Subject masking takes no sender class and records no text
+removes: a masking event gains a field that could hold the masked text
+packages: ./core/redact
+tests: TestMaskingTakesNoSenderClass
+scheduled-count: no
+
+diff --git a/core/redact/masking.go b/core/redact/masking.go
+index 8a050c8..83005d9 100644
+--- a/core/redact/masking.go
++++ b/core/redact/masking.go
+@@ -19,6 +19,7 @@ const RuleWholeSubject = "mask.whole_subject"
+ type Event struct {
+ 	rule string
+ 	tier int
++	text string
+ }
+ 
+ // Rule returns the identifier of the rule that detected what was masked.

@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: a trigger word counts at any distance
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/a_trigger_one_past_the_window
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..f24c28a 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -139,7 +139,7 @@ func tokenAt(tokens []segment, offset int) int {
+ // triggers are sorted.
+ func near(triggers []int, token, window int) bool {
+ 	i := sort.SearchInts(triggers, token-window)
+-	for ; i < len(triggers) && triggers[i] <= token+window; i++ {
++	for i = 0; i < len(triggers); i++ {
+ 		if triggers[i] != token {
+ 			return true
+ 		}

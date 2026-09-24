@@ -1,0 +1,19 @@
+control: A scan verdict carries no text
+removes: the verdict records the matched text in place of the rule
+packages: ./core/scan
+tests: TestNoScannerOutputCarriesBodyText TestTheVerdictCarriesNoText
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index 35b97a2..ed560e7 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -232,7 +232,7 @@ func (s Scanner) Scan(body string) Verdict {
+ 		default:
+ 			mfa, link = true, true
+ 		}
+-		rules = append(rules, sp.Rule)
++		rules = append(rules, body[sp.Start:sp.End])
+ 	}
+ 	slices.Sort(rules)
+ 	return Verdict{

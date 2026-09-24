@@ -1,0 +1,19 @@
+control: Tier 1 flags a login link
+removes: a link word counts only as a whole word, so /confirmation/ and /resetPassword/ are missed
+packages: ./core/scan
+tests: TestTier1LoginLinks/a_link_word_inside_a_longer_path_word TestTier1LoginLinks/a_link_word_inside_a_joined_path_word
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..6490d95 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -269,7 +269,7 @@ func (s Scanner) linkRules(url string) []string {
+ 	path, query, _ := strings.Cut(afterHost, "?")
+ 	var rules []string
+ 	segments := strings.Split(path, "/")
+-	if slices.ContainsFunc(segments, s.dense) && len(s.linkWords.find(afterHost, false)) > 0 {
++	if slices.ContainsFunc(segments, s.dense) && len(s.linkWords.find(afterHost, true)) > 0 {
+ 		rules = append(rules, RuleLinkPath)
+ 	}
+ 	for _, pair := range strings.Split(query, "&") {

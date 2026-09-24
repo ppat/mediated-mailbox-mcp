@@ -1,0 +1,23 @@
+control: Scanning stays linear in a body's length
+removes: finding a token's line walks every line before it
+packages: ./core/scan
+tests: TestScanningStaysLinear
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..45bc07d 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -234,7 +234,11 @@ func layout(text string) textLayout {
+ 
+ // lineOf returns the index of the line holding offset.
+ func (ls textLayout) lineOf(offset int) int {
+-	return sort.Search(len(ls.lines), func(i int) bool { return ls.lines[i].end >= offset })
++	i := 0
++	for ls.lines[i].end < offset {
++		i++
++	}
++	return i
+ }
+ 
+ // heading reports whether line is a first- or second-level Markdown heading.

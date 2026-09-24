@@ -118,11 +118,11 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), none of it yet released. No deployable runs any of it yet **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), and S2's content scanner and subject masking, merged from pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), none of it yet released. No deployable runs any of it yet **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and the rows on verdict types for the Mutation Authorizer's verdict by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
-| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and those of the Mutation Authorizer by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
-| **The delivery gap** | Every unit except F4 and S1, which are delivered. No other unit has started |
+| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and the rows on verdict types for the Mutation Authorizer's verdict by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The S2 rows, S2's part of the search of scanner output included, are proven by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and those of the Mutation Authorizer by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The controls of S2's content scanner and subject masking are demonstrated by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
+| **The delivery gap** | Every unit except F4, S1 and S2, which are delivered. No other unit has started |
 
 ## Delivered, mapped to outcomes
 
@@ -218,6 +218,27 @@ perfected up front.
   authorized against and fails a whole batch by authorization class. The policy loader that reads
   the policy tables, built in [D1](#group-d--data-flows). None of its cores runs in a deployable
   yet.
+- [x] **S2 — Content Scanner tiers 1–2 + subject masking** →
+  [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
+  [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
+  Delivered by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), which
+  closed its ticket [#80](https://github.com/ppat/mediated-mailbox-mcp/issues/80), and not yet
+  released. The detection tiers ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)),
+  which read a body as the sanitizing converter's Markdown and take their vocabulary and tuning as
+  configuration, whose defaults are English, with starting values set against an evaluation set
+  written as the default templates of common authentication libraries write codes and links.
+  Subject masking ([ADR-0003](./docs/adr/redaction/0003-subject-masking.md)) and the verdict type
+  that cannot carry content
+  ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), fixture-driven over
+  marker text ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)), with a
+  test that searches scanner output for fixture body text. Every verification row keyed to it is
+  proven, and every control it delivered has its mutation demonstration.
+  **What it did not deliver.** The same search over persisted rows and workload logs, which rides
+  [D2](#group-d--data-flows), where verdicts are first stored. Recording masking events, from the
+  first run that masks a corpus, which is [D1](#group-d--data-flows). Loading the scanner's
+  configuration, which [D1](#group-d--data-flows) decides as the first unit that runs the scanner,
+  because pass 1 masks subjects. Tuning against the real one-time-code formats, which waits for
+  [production point 1](#production-point-1--the-read-path). None of it runs in a deployable yet.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. There is no API or
 MCP endpoint, no index, no gate in front of a client and no deployment. The properties and checks
@@ -244,7 +265,7 @@ flowchart TB
 ### V1 — The safeguard exists before anything flows
 
 **Units:** [F4](#delivered-mapped-to-outcomes) · [S1](#delivered-mapped-to-outcomes) ·
-[S2](#group-s--safeguard-machinery) · [S3](#group-s--safeguard-machinery). **Value shipped:** the
+[S2](#delivered-mapped-to-outcomes) · [S3](#group-s--safeguard-machinery). **Value shipped:** the
 operator gets the safeguard proven before anything is built on it. The tooling's checks that stand
 in for controls exist and have been seen to fail, and the whole path a body would take, the gate,
 the scanner and the sanitization step, is proven offline and cheaply. **Why it is first:** the gate
@@ -318,7 +339,7 @@ holds, with an entry naming the point.
 ### Production point 1 — the read path
 
 - **After:** [F4](#delivered-mapped-to-outcomes) · [S1](#delivered-mapped-to-outcomes) ·
-  [S2](#group-s--safeguard-machinery) · [S3](#group-s--safeguard-machinery) ·
+  [S2](#delivered-mapped-to-outcomes) · [S3](#group-s--safeguard-machinery) ·
   [F2](#group-f--foundation) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
   [D1](#group-d--data-flows) · [D2](#group-d--data-flows) · [D3](#group-d--data-flows) ·
   [D4](#group-d--data-flows) · [R1](#group-r--packaging), the end of
@@ -427,24 +448,13 @@ database, no provider. A criterion that needs a table rides the first unit holdi
 mechanism and the table, [D1](#group-d--data-flows) for masking events and the policy-snapshot
 loader, [D2](#group-d--data-flows) for the leak search over persisted rows and workload logs, and
 [D3](#group-d--data-flows) for body-denial audit rows and the sensitive-fixture check, and those
-units say so. S1 is delivered and sits in the [delivered register](#delivered-mapped-to-outcomes).
+units say so. S1 and S2 are delivered and sit in the
+[delivered register](#delivered-mapped-to-outcomes).
 [S3](#group-s--safeguard-machinery) serves
 [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) and also carries
 [C3](./USE_CASES.md#c3--content-based-secrets-caught)'s serve-time check, because the check runs
 inside the sanitization step ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md)).
 
-- [ ] **S2 — Content Scanner tiers 1–2 + subject masking** →
-  [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
-  [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at tested
-  The detection tiers ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)), subject
-  masking ([ADR-0003](./docs/adr/redaction/0003-subject-masking.md)) and the verdict type that
-  cannot carry content ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)),
-  fixture-driven over marker text
-  ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)), with a test that
-  searches scanner output for fixture body text. The same search over persisted rows and workload
-  logs rides [D2](#group-d--data-flows), where verdicts are first stored. Masking events are recorded
-  from the first run that masks a corpus, which is [D1](#group-d--data-flows). Tuning against the
-  real MFA-format corpus waits for [production point 1](#production-point-1--the-read-path).
 - [ ] **S3 — Body sanitization + injection hardening** →
   [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finishes at tested
@@ -453,7 +463,11 @@ inside the sanitization step ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re
   ([ADR-0036](./docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)), and the serve-time
   pattern check on bodies released unscanned
   ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md)). Needs
-  [S1](#delivered-mapped-to-outcomes) and a fixture in the gate-skipped state. Every released body
+  [S1](#delivered-mapped-to-outcomes) and a fixture in the gate-skipped state. The converter also
+  feeds backfill's pass 2 in [D2](#group-d--data-flows), whose scanner reads the Markdown it
+  produces, so where it lives, a shell package of one deployable or a narrow shared library
+  ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), is decided when this unit
+  builds it. Every released body
   passes through it, so it precedes [D3](#group-d--data-flows), where each serve and each serve-time
   denial is audited. What proves it is its rows over fixtures, the clean Markdown output and the
   serve-time check's verdict. Release volume is observable from the first serve, as
@@ -556,7 +570,10 @@ arrives, because each delta sync tick runs the scan gate.
   that calls a provider, so it also creates the account's database rows from the account's
   configuration ([ADR-0016](./docs/adr/data/0016-schema.md),
   [ADR-0026](./docs/adr/provider/0026-multi-account-contexts.md)), and every later deployable that
-  calls a provider does the same. Checkpoint and resume are proven by the crash harness
+  calls a provider does the same. Pass 1 masks subjects, so it is the first unit that builds the
+  scanner, and it decides how the scanner's configuration is loaded
+  ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)).
+  Checkpoint and resume are proven by the crash harness
   ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md),
   [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). *Criteria:*
   the run, its progress events and its per-item failures are recorded in the job tables from the
@@ -581,11 +598,14 @@ arrives, because each delta sync tick runs the scan gate.
   workload's root beside pass 1. Pass 2 spends from [F3](#group-f--foundation)'s budget in the
   batch class ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)). The
   delisting transition applies to a rule removed by any path, and how a removal reaches it is an
-  [open decision](#open-decisions) settled here. Every improvement to the scanner's patterns is a
-  reviewed change that bumps the scanner version
-  ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)), and tuning against the real mail
-  starts at [production point 1](#production-point-1--the-read-path). So this unit also builds the
-  planned operation that re-scans and re-masks the stored index after a version change
+  [open decision](#open-decisions) settled here. Pass 2 converts each gated-in body with
+  [S3](#group-s--safeguard-machinery)'s converter before scanning it, because the scanner reads
+  Markdown. Every improvement to the scanner's patterns bumps the scanner version, every change to
+  its vocabulary or tuning bumps the configuration's revision
+  ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)),
+  and tuning against the real mail starts at
+  [production point 1](#production-point-1--the-read-path). So this unit also builds the planned
+  operation that re-scans and re-masks the stored index after either changes
   ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), and how that
   operation is started and run is an open decision settled here. What proves it is its rows over a fixture corpus with pass-1
   statistics, and the leak search over persisted rows and workload logs. *Criteria:* pass 2 records
@@ -947,7 +967,7 @@ about its cluster.
 | --- | --- | --- |
 | [C1](./USE_CASES.md#c1--metadata-always-visible) metadata visible | X2 | Mail-side visibility is built by F2, F5 and D3 (G1 units). X2 is the calendar half |
 | [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | — | The gate, the classifier and the authorizer landed with S1, which is delivered. Injection hardening on released bodies is A4's, at S3. The calendar content-release side rides X2. The static controls, import boundaries and the lint half of unconstructability, ride F4. The release-time falsifiers are proven at D3, flagged in Group D's preamble, and the editable-list falsifier at M4, where a confirmed candidate's rule binds, flagged in Group M's preamble |
-| [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | S2 · D2 · X1 | The serve-time check is built in S3 (an A4 unit). Scanning new mail as it arrives is built in D4, a G4 unit |
+| [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | D2 · X1 | The tiers and subject masking landed with S2, which is delivered. The serve-time check is built in S3 (an A4 unit). Scanning new mail as it arrives is built in D4, a G4 unit |
 | [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | Candidate review rides M5 |
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F2 · F5 · D3 | — |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | The agent's reads over sender aggregates and label distribution ride D3 |
@@ -988,7 +1008,7 @@ lands in is the [value path](#the-value-path)'s.
 | F2 → D1, F3 → D1, F5 → D1 | The schema backfill writes through, the budget it spends from, the adapter it reads with |
 | F3 → D1, F3 → D4 | How the conditions the application raises are surfaced. The policy loader's reload-failure alarm and delta sync's gap alert use the same answer |
 | D1 → D2 | The sender statistics the gate evaluates, which cannot exist before pass 1 builds them |
-| S2 → D2 | The tiers pass 2 scans with |
+| S2 → D2, S3 → D2 | The tiers pass 2 scans with, and the converter whose Markdown they read ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)) |
 | S1 → D3, S3 → D3, F2 → D3, F5 → D3, D1 → D3 | The gate the surface serves through, the sanitization every body passes, the index it reads, the adapter it fetches with, the policy loader, the account rows backfill creates, and backfill as the first deployable whose authentication outcome is recorded |
 | D2 → D4, F5 → D4 | The gate the tick runs and the body scanning pass 2 builds, and the adapter's change cursor |
 | F5 → M2 | The provider fake, the contract suite, and the run by hand against the real provider, which any addition to the port for renaming and deleting labels must pass |
@@ -1034,7 +1054,7 @@ supplies, including edges another edge implies.
 | F3 | F2 · F5 |
 | D1 | S2 · F3 |
 | D3 | S3 · D1 |
-| D2 | D1 |
+| D2 | D1 · S3 |
 | D4 | D2 · D3 |
 | M1 | D3 |
 | X2 | D4 · M1 |
@@ -1062,6 +1082,7 @@ flowchart LR
     S2 --> D1
     F3 --> D1
     D1 --> D2
+    S3 --> D2
     R1 --> M4
     R1 --> M5
     S3 --> D3
@@ -1141,7 +1162,7 @@ index](./docs/adr/README.md).
 | The UI's configuration key names | R2 | [docs/UI.md](./docs/UI.md#181-the-configuration-the-ui-declares) lists the keys with example names and says the names are settled when the chart of [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) carries them. The UI's server built at M3 and the decisions built at M5 read the keys under those example names, so they depend on the keys existing, not on their final names. The chart is the first thing that needs the final names. R2 adds the UI's deployment to the chart, so they are decided there, and the UI's server switches to the names settled there |
 | Whether a run's detail is shown as a panel of the `runs` dataset or on the Run screen | M3 | [docs/UI.md](./docs/UI.md#5-information-architecture-and-the-url) lists `runs` among the datasets with a row detail, but its route table and [section 8.4](./docs/UI.md#84-run) open every run on the Run screen, which is the reason `plans` and `candidates` have no row detail. The contract generator refuses a row path that both a dataset and a screen claim. It is decided where the `runs` dataset and the Run screen are built |
 | Whether a plan touching exactly a quarter of the corpus needs the second confirmation | M5 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) requires it for a plan touching more than a quarter, and [docs/UI.md](./docs/UI.md#82-plan-reviewer) for a plan touching a quarter or more. It is decided where approve, and the server's recalculation of the plan's share, are built |
-| How the stored index is re-scanned and re-masked after a scanner version change | D2 | [ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md) marks rows as stale and re-scans them as a planned operation, without saying how that operation is started or run. [ADR-0005](./docs/adr/classification/0005-tiered-detection.md) makes every pattern improvement a reviewed change that bumps the scanner version, and tuning against the real mail starts at production point 1, so the first version change comes after that point. Between production points a new version ships with no manual step, so the read path packaged at R1 must already re-scan on a version change. It is decided where scan results are first stored, R1 packages whatever the answer needs, and the learned tier, shipped behind the scanner-version flag, follows it |
+| How the stored index is re-scanned and re-masked after a scanner version change or a configuration revision | D2 | [ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md) marks rows as stale and re-scans them as a planned operation, without saying how that operation is started or run. [ADR-0005](./docs/adr/classification/0005-tiered-detection.md) makes every pattern improvement bump the scanner version and every vocabulary or tuning change bump the configuration's revision, and tuning against the real mail starts at production point 1, so the first version change comes after that point. Between production points a new version ships with no manual step, so the read path packaged at R1 must already re-scan on a version change. It is decided where scan results are first stored, R1 packages whatever the answer needs, and the learned tier, shipped behind the scanner-version flag, follows it |
 | How a reorganization or batch operation is represented in Go | M1 | [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) leaves the representation undecided. The shared validation core used by both the mediator and the reorg workload depends on it, so it is decided where that core is first built |
 | Whether the heuristics' embeddings run in Go or in a separate deployable | M4 | [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md) allows either. It is decided where the heuristics workload is built |
 | The calendar index schema | X2 | [ADR-0016](./docs/adr/data/0016-schema.md) has no calendar table, and storing calendar data needs one. It is decided, and recorded beside ADR-0016, where the tables are built, before calendar is wired into the deployables |

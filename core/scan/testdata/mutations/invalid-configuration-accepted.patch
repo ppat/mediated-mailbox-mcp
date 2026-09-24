@@ -1,0 +1,19 @@
+control: A scanner nobody built, or built from an invalid configuration, refuses to decide
+removes: an invalid configuration builds a scanner
+packages: ./core/scan
+tests: TestNewRefusesAnInvalidConfiguration
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index 35b97a2..4b3bb99 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -163,7 +163,7 @@ func New(cfg Config) (Scanner, error) {
+ 	} else if cfg.SubjectThreshold > cfg.Threshold {
+ 		problems = append(problems, errors.New("scan: the subject threshold is above the body threshold, but masking a subject is tuned for recall"))
+ 	}
+-	if len(problems) > 0 {
++	if false && len(problems) > 0 {
+ 		return Scanner{}, errors.Join(problems...)
+ 	}
+ 	params := map[string]bool{}

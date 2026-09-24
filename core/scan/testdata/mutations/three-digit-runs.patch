@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: a run of three digits counts as a code
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/three_digits
+scheduled-count: no
+
+diff --git a/core/scan/detect.go b/core/scan/detect.go
+index 90688c7..218de2a 100644
+--- a/core/scan/detect.go
++++ b/core/scan/detect.go
+@@ -185,7 +185,7 @@ func digitRuns(text string) []segment {
+ 			}
+ 			break
+ 		}
+-		if digits >= 4 && digits <= 8 && boundaryAfter(text, end) {
++		if digits >= 3 && digits <= 8 && boundaryAfter(text, end) {
+ 			runs = append(runs, segment{i, end})
+ 		}
+ 		i = end + 1

@@ -1,0 +1,19 @@
+control: Tier 1 flags a one-time code near a trigger, alone on a line, or in a heading or table cell
+removes: a trigger word inside a longer word counts
+packages: ./core/scan
+tests: TestTier1OneTimeCodes/a_trigger_inside_a_longer_word TestAutomaton
+scheduled-count: no
+
+diff --git a/core/scan/automaton.go b/core/scan/automaton.go
+index ceb9475..25f67a4 100644
+--- a/core/scan/automaton.go
++++ b/core/scan/automaton.go
+@@ -83,7 +83,7 @@ func (a automaton) find(text string, bounded bool) []match {
+ 		node = a.next[node][b]
+ 		for _, w := range a.words[node] {
+ 			start := i + 1 - a.sizes[w]
+-			if !bounded || boundaryBefore(text, start) && boundaryAfter(text, i+1) {
++			if true {
+ 				found = append(found, match{start: start, end: i + 1, word: w})
+ 			}
+ 		}
