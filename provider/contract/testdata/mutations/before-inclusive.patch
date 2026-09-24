@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's Before includes a message dated at the instant
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/a_query_selects_exactly_the_threads_it_names/before_the_instant_a_message_is_dated,_which_it_excludes
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..6d7f7d7 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -490,7 +490,7 @@ func matches(q mail.Query, m mail.MessageMetadata) bool {
+ 	case mail.QueryAfter:
+ 		return m.Date >= q.Instant()
+ 	case mail.QueryBefore:
+-		return m.Date < q.Instant()
++		return m.Date <= q.Instant()
+ 	case mail.QueryInLabel:
+ 		return slices.Contains(m.Labels, q.Label())
+ 	case mail.QueryFrom:

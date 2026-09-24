@@ -17,3 +17,9 @@ provider fake of [ADR-0043](../docs/adr/engineering/0043-no-mocking.md), which o
 import, and `contract`, the contract suite every implementation passes, ordinary code so each
 implementation's tests can run it. The Provider Port interface and the canonical model are pure and
 sit in `core/mail`.
+
+The fake keeps a mailbox in memory. Its throttle is a wrapper around any port that applies a
+schedule, so the rate limiter's tests can meet throttling without the fake's storage knowing of it,
+and a throttled call changes nothing. The contract suite seeds the mailbox it runs against from the
+synthetic fixtures, adding what a mailbox holds beside a message, its identifiers, thread, date,
+labels and flags, and never assumes an implementation keeps the identifiers it was seeded with.

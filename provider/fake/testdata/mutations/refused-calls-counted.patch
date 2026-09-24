@@ -1,0 +1,23 @@
+control: The provider fake throttles on schedule, and a throttled call has no effect
+removes: the ceiling counts the calls it refuses as spent
+packages: ./provider/fake
+tests: TestCeilingThrottlesAboveTheRate
+scheduled-count: no
+
+diff --git a/provider/fake/throttle.go b/provider/fake/throttle.go
+index c72b9e8..d120541 100644
+--- a/provider/fake/throttle.go
++++ b/provider/fake/throttle.go
+@@ -61,11 +61,10 @@ func Ceiling(weightPerSecond float64, signal mail.ThrottleSignal) Schedule {
+ 				total += s.weight
+ 			}
+ 		}
+-		window = kept
++		window = append(kept, spent{at: c.At, weight: c.Cost.Weight})
+ 		if total+c.Cost.Weight > weightPerSecond {
+ 			return mail.ThrottleError{Signal: signal}
+ 		}
+-		window = append(window, spent{at: c.At, weight: c.Cost.Weight})
+ 		return nil
+ 	}
+ }

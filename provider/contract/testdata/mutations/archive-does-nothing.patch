@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's archive leaves the message in the inbox
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/each_verb_changes_exactly_what_it_names/archive
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..5a3bcb0 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -318,7 +318,7 @@ func (f *Fake) apply(op mail.MutationOp) error {
+ 		case authorize.Label, authorize.Unlabel, authorize.Move:
+ 			t.meta.Labels = relabel(t.meta.Labels, op.AddLabel(), op.RemoveLabel())
+ 		case authorize.Archive:
+-			t.meta.Labels = relabel(t.meta.Labels, "", mail.Inbox)
++			t.meta.Labels = relabel(t.meta.Labels, "", "")
+ 		case authorize.Trash:
+ 			t.meta.Labels = relabel(t.meta.Labels, mail.Trash, mail.Inbox)
+ 		case authorize.Spam:

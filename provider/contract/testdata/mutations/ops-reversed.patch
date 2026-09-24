@@ -1,0 +1,21 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake applies a batch's ops in reverse order
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/each_verb_changes_exactly_what_it_names/two_ops_on_one_message,_applied_in_order
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..d56a423 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -294,8 +294,8 @@ func (f *Fake) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutation
+ 	f.mu.Lock()
+ 	defer f.mu.Unlock()
+ 	result := mail.MutationResult{Errors: make([]error, len(ops))}
+-	for i, op := range ops {
+-		result.Errors[i] = f.apply(op)
++	for i := len(ops) - 1; i >= 0; i-- {
++		result.Errors[i] = f.apply(ops[i])
+ 	}
+ 	return result, nil
+ }

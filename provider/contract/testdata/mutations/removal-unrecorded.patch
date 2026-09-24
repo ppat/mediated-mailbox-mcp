@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake records no change when mail is removed
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/delivered_mail_is_added_and_removed_mail_is_removed TestTheFakePassesTheContract/a_message_delivered_and_then_changed_or_removed_is_reported_once
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..1428afb 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -125,7 +125,7 @@ func (f *Fake) Remove(id string) error {
+ 		return fmt.Errorf("fake: message %q: %w", id, mail.ErrNotFound)
+ 	}
+ 	delete(f.byID, id)
+-	f.history = append(f.history, change{id: id, kind: removed})
++	_ = change{id: id, kind: removed}
+ 	return nil
+ }
+ 

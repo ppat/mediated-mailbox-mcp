@@ -1,0 +1,18 @@
+control: The provider fake throttles on schedule, and a throttled call has no effect
+removes: a throttled mutation still reaches the wrapped port
+packages: ./provider/fake
+tests: TestAThrottledCallHasNoEffect
+scheduled-count: no
+
+diff --git a/provider/fake/throttle.go b/provider/fake/throttle.go
+index c72b9e8..3c3f3d3 100644
+--- a/provider/fake/throttle.go
++++ b/provider/fake/throttle.go
+@@ -154,6 +154,7 @@ func (t *Throttled) EnsureLabel(ctx context.Context, path string) (mail.Label, e
+ // Mutate implements the port.
+ func (t *Throttled) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.MutationResult, error) {
+ 	if err := t.admit(ctx, mail.OpMutate, len(ops)); err != nil {
++		_, _ = t.inner.Mutate(ctx, ops)
+ 		return mail.MutationResult{}, err
+ 	}
+ 	return t.inner.Mutate(ctx, ops)

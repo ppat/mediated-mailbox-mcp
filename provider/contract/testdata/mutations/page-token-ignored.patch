@@ -1,0 +1,20 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's enumeration starts from the first message whatever page token it is given
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/enumeration_returns_every_message_once_with_what_was_seeded TestTheFakePassesTheContract/enumeration_resumes_from_any_page_token
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..4577496 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -399,7 +399,8 @@ func (f *Fake) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page
+ 	if err := ctx.Err(); err != nil {
+ 		return mail.Page[mail.MessageMetadata]{}, err
+ 	}
+-	start, err := parseToken(page, "m")
++	_, err := parseToken(page, "m")
++	start := 0
+ 	if err != nil {
+ 		return mail.Page[mail.MessageMetadata]{}, err
+ 	}

@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake applies a batch holding an op no constructor built
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/a_batch_holding_an_op_no_constructor_built_applies_nothing
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..3f9bea3 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -287,7 +287,7 @@ func (f *Fake) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutation
+ 		return mail.MutationResult{}, err
+ 	}
+ 	for i, op := range ops {
+-		if !op.Built() {
++		if false && !op.Built() {
+ 			return mail.MutationResult{}, fmt.Errorf("fake: op %d was not built by a constructor: %w", i, mail.ErrInvalid)
+ 		}
+ 	}

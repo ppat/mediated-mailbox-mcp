@@ -1,0 +1,18 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's mute leaves the thread in the inbox
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/each_verb_changes_exactly_what_it_names/mute,_which_mutes_the_whole_thread_and_takes_it_out_of_the_inbox
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..c06bf9f 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -329,7 +329,6 @@ func (f *Fake) apply(op mail.MutationOp) error {
+ 			t.meta.Flags.Starred = true
+ 		case authorize.Mute:
+ 			t.meta.Flags.Muted = true
+-			t.meta.Labels = relabel(t.meta.Labels, "", mail.Inbox)
+ 		default:
+ 			return fmt.Errorf("fake: verb %s: %w", op.Verb(), mail.ErrInvalid)
+ 		}
