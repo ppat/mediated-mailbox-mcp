@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake reports delivered mail as modified
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/delivered_mail_is_added_and_removed_mail_is_removed TestTheFakePassesTheContract/a_message_delivered_and_then_changed_or_removed_is_reported_once
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..c843fae 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -112,7 +112,7 @@ func (f *Fake) Deliver(m Message) error {
+ 	if err := f.insert(m); err != nil {
+ 		return err
+ 	}
+-	f.history = append(f.history, change{id: m.Metadata.ID, kind: added})
++	f.history = append(f.history, change{id: m.Metadata.ID, kind: modified})
+ 	return nil
+ }
+ 

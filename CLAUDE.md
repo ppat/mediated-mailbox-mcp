@@ -102,7 +102,7 @@ carries the bare word.
 
 | Directory | Kind | Published as | Holds |
 | --- | --- | --- | --- |
-| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, `mail` (the canonical model, the Provider Port interface and the rate profile types), and `marker` (the marker text of [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
+| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, `mail` (the canonical model, the Provider Port interface, the canonical query and the rate profile types), and `marker` (the marker text of [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
 | `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, and the contract suite, argued in [provider/README.md](./provider/README.md) |
 | `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
@@ -195,7 +195,9 @@ in its README.
   `RequireNoExportedFields` asserts that sensitivity-carrying types expose no field, which a
   fixture written against today's fields cannot. `RequireFields` asserts a verdict type's exact
   fields and `RequireParams` a decision's exact parameters, so neither gains a field or an input
-  unnoticed.
+  unnoticed. `RequireMethods` asserts an interface's exact methods and signatures, and
+  `RequireReturning` and `RequireResults` which of its methods return a type and exactly what they
+  return, as the Provider Port's one body-returning operation needs.
 
 #### Browser
 

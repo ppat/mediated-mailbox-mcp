@@ -1,0 +1,19 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: the body fetch returns the message's metadata beside its body, so body and metadata travel together
+packages: ./core/mail
+tests: TestOnlyTheBodyFetchReturnsABody
+scheduled-count: no
+
+diff --git a/core/mail/port.go b/core/mail/port.go
+index cd61424..f6ddb6b 100644
+--- a/core/mail/port.go
++++ b/core/mail/port.go
+@@ -22,7 +22,7 @@ type Port[C any] interface {
+ 	GetMessageMetadata(ctx C, ids []string) ([]MessageMetadata, error)
+ 	// GetMessageBody returns a message's body, or ErrNotFound. It is the only operation that
+ 	// returns body content, and the gate guards every call to it (ADR-0002).
+-	GetMessageBody(ctx C, id string) (MessageBody, error)
++	GetMessageBody(ctx C, id string) (MessageMetadata, MessageBody, error)
+ 	// ListLabels returns every label the account has, Inbox, Trash and Spam included.
+ 	ListLabels(ctx C) ([]Label, error)
+ 	// EnsureLabel returns the label at path, creating it when the account lacks it. It returns

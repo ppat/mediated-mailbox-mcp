@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake reports a mutated message as added
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/a_change_is_reported_once,_as_a_modification
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..4a20575 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -334,7 +334,7 @@ func (f *Fake) apply(op mail.MutationOp) error {
+ 			return fmt.Errorf("fake: verb %s: %w", op.Verb(), mail.ErrInvalid)
+ 		}
+ 		if !slices.Equal(before.Labels, t.meta.Labels) || before.Flags != t.meta.Flags {
+-			f.history = append(f.history, change{id: t.meta.ID, kind: modified})
++			f.history = append(f.history, change{id: t.meta.ID, kind: added})
+ 		}
+ 	}
+ 	return nil

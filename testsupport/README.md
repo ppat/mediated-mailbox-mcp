@@ -21,8 +21,10 @@ an image, because only test files and the tooling programs import it. Its packag
   the bootstrap and the migration chain to an empty database that `pgrun` and the chain's own tests
   share.
 - `mustnotcompile`, the helpers that assert a forbidden construction fails to compile, that a
-  type exposes no field, and that a type has exactly the fields or a function exactly the
-  parameters named.
+  type exposes no field, that a type has exactly the fields or a function exactly the
+  parameters named, that an interface has exactly the methods named with exactly their
+  signatures, and that exactly the named methods of an interface return a given type, with exactly
+  the results named.
 - `analysis`, the `go vet` analysers, for ADR-0069's placement rules and ADR-0071's rule against
   package-level state in a pure core.
 - `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run), `cmd/vetcheck` (the

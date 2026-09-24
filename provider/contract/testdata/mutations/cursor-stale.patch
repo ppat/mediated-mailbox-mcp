@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's current cursor is always its first
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/a_change_is_reported_once,_as_a_modification
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..879afa3 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -355,7 +355,7 @@ func (f *Fake) CurrentCursor(ctx context.Context) (mail.Cursor, error) {
+ 	}
+ 	f.mu.Lock()
+ 	defer f.mu.Unlock()
+-	return cursor(len(f.history)), nil
++	return cursor(0), nil
+ }
+ 
+ // ChangesSince implements the port. It returns every change after the cursor in one change set.

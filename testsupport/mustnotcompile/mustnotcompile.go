@@ -3,7 +3,9 @@
 // RequireNoExportedFields asserts that named struct types expose no field, which catches a field
 // added after the fixtures were written. RequireFields asserts a struct type's exact fields and
 // RequireParams a function's exact parameters, so a verdict type gains no field and a decision gains
-// no input unnoticed.
+// no input unnoticed. RequireMethods asserts an interface's exact methods and signatures,
+// RequireReturning which of its methods return a value carrying a type, and RequireResults a
+// method's exact results, so an interface gains no operation and no path to a type unnoticed.
 //
 // A package whose types must refuse a construction keeps one fixture per case under
 // testdata/mustnotcompile/<case>/ and calls Require from an ordinary test. The go command skips
@@ -192,6 +194,180 @@ func CheckParams(pkgPath, funcName string, params ...string) error {
 		return fmt.Errorf("mustnotcompile: %s.%s takes %q, want %q", pkgPath, funcName, got, params)
 	}
 	return nil
+}
+
+// RequireReturning fails the test unless CheckReturning reports no mismatch.
+func RequireReturning(t testing.TB, pkgPath, ifaceName, typeName string, methods ...string) {
+	t.Helper()
+	if err := CheckReturning(pkgPath, ifaceName, typeName, methods...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CheckReturning returns an error unless exactly the named methods of the interface ifaceName, in
+// sorted order, return a value through which the type typeName can be reached, both declared in the
+// package at pkgPath. A type is reached through a result itself, a pointer, slice, array, map or
+// channel, a struct field, a generic type's instance, and the results of an interface's methods. A
+// method gaining a result that carries the type then fails, and so does a type a result already
+// carries gaining a field of it.
+func CheckReturning(pkgPath, ifaceName, typeName string, methods ...string) error {
+	pkg, err := load(pkgPath)
+	if err != nil {
+		return err
+	}
+	iface, err := lookupInterface(pkg, pkgPath, ifaceName)
+	if err != nil {
+		return err
+	}
+	target, ok := pkg.Scope().Lookup(typeName).(*types.TypeName)
+	if !ok {
+		return fmt.Errorf("mustnotcompile: %s declares no type %s", pkgPath, typeName)
+	}
+	var got []string
+	for i := range iface.NumMethods() {
+		m := iface.Method(i)
+		results := resultsOf(m)
+		for j := range results.Len() {
+			if reaches(results.At(j).Type(), target, map[types.Type]bool{}) {
+				got = append(got, m.Name())
+				break
+			}
+		}
+	}
+	slices.Sort(got)
+	if !slices.Equal(got, methods) {
+		return fmt.Errorf("mustnotcompile: the methods of %s.%s returning %s are %q, want %q", pkgPath, ifaceName, typeName, got, methods)
+	}
+	return nil
+}
+
+// RequireMethods fails the test unless CheckMethods reports no mismatch.
+func RequireMethods(t testing.TB, pkgPath, ifaceName string, methods ...string) {
+	t.Helper()
+	if err := CheckMethods(pkgPath, ifaceName, methods...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CheckMethods returns an error unless the interface ifaceName in the package at pkgPath has exactly
+// methods, in the sorted order go/types lists them, each written as its name and its signature, such
+// as "Read func(p []byte) (n int, err error)". A method added under any name, or a signature changed,
+// then fails, which a check following one result type cannot notice.
+func CheckMethods(pkgPath, ifaceName string, methods ...string) error {
+	pkg, err := load(pkgPath)
+	if err != nil {
+		return err
+	}
+	iface, err := lookupInterface(pkg, pkgPath, ifaceName)
+	if err != nil {
+		return err
+	}
+	got := make([]string, iface.NumMethods())
+	for i := range iface.NumMethods() {
+		m := iface.Method(i)
+		got[i] = m.Name() + " " + types.TypeString(m.Type(), qualifier(pkg))
+	}
+	if !slices.Equal(got, methods) {
+		return fmt.Errorf("mustnotcompile: %s.%s has the methods %q, want %q", pkgPath, ifaceName, got, methods)
+	}
+	return nil
+}
+
+// RequireResults fails the test unless CheckResults reports no mismatch.
+func RequireResults(t testing.TB, pkgPath, ifaceName, method string, results ...string) {
+	t.Helper()
+	if err := CheckResults(pkgPath, ifaceName, method, results...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CheckResults returns an error unless the method of the interface ifaceName in the package at
+// pkgPath returns exactly results, in order, each written as its type, such as "MessageBody".
+func CheckResults(pkgPath, ifaceName, method string, results ...string) error {
+	pkg, err := load(pkgPath)
+	if err != nil {
+		return err
+	}
+	iface, err := lookupInterface(pkg, pkgPath, ifaceName)
+	if err != nil {
+		return err
+	}
+	for i := range iface.NumMethods() {
+		m := iface.Method(i)
+		if m.Name() != method {
+			continue
+		}
+		res := resultsOf(m)
+		got := make([]string, res.Len())
+		for j := range res.Len() {
+			got[j] = types.TypeString(res.At(j).Type(), qualifier(pkg))
+		}
+		if !slices.Equal(got, results) {
+			return fmt.Errorf("mustnotcompile: %s.%s.%s returns %q, want %q", pkgPath, ifaceName, method, got, results)
+		}
+		return nil
+	}
+	return fmt.Errorf("mustnotcompile: %s.%s has no method %s", pkgPath, ifaceName, method)
+}
+
+func lookupInterface(pkg *types.Package, pkgPath, name string) (*types.Interface, error) {
+	obj := pkg.Scope().Lookup(name)
+	if obj == nil {
+		return nil, fmt.Errorf("mustnotcompile: %s declares no type %s", pkgPath, name)
+	}
+	iface, ok := obj.Type().Underlying().(*types.Interface)
+	if !ok {
+		return nil, fmt.Errorf("mustnotcompile: %s.%s is not an interface", pkgPath, name)
+	}
+	return iface, nil
+}
+
+// resultsOf returns a method's results. A method's type is always a signature.
+func resultsOf(m *types.Func) *types.Tuple {
+	sig, ok := m.Type().(*types.Signature)
+	if !ok {
+		return types.NewTuple()
+	}
+	return sig.Results()
+}
+
+// reaches reports whether target can be reached from t, as CheckReturning describes.
+func reaches(t types.Type, target *types.TypeName, seen map[types.Type]bool) bool {
+	if seen[t] {
+		return false
+	}
+	seen[t] = true
+	if n, ok := t.(*types.Named); ok && n.Origin().Obj() == target {
+		return true
+	}
+	switch u := t.Underlying().(type) {
+	case *types.Pointer:
+		return reaches(u.Elem(), target, seen)
+	case *types.Slice:
+		return reaches(u.Elem(), target, seen)
+	case *types.Array:
+		return reaches(u.Elem(), target, seen)
+	case *types.Chan:
+		return reaches(u.Elem(), target, seen)
+	case *types.Map:
+		return reaches(u.Key(), target, seen) || reaches(u.Elem(), target, seen)
+	case *types.Struct:
+		for i := range u.NumFields() {
+			if reaches(u.Field(i).Type(), target, seen) {
+				return true
+			}
+		}
+	case *types.Interface:
+		for i := range u.NumMethods() {
+			results := resultsOf(u.Method(i))
+			for j := range results.Len() {
+				if reaches(results.At(j).Type(), target, seen) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // load type-checks the package at pkgPath.

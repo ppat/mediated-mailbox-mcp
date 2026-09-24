@@ -1,0 +1,22 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's thread listing starts from the first thread when given a page token it did not issue
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/thread_listing_refuses_a_page_token_it_did_not_issue
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 22535f7..5a49159 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -181,10 +181,7 @@ func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToke
+ 	if !q.Valid() {
+ 		return mail.Page[mail.ThreadMetadata]{}, fmt.Errorf("fake: the query is not valid: %w", mail.ErrInvalid)
+ 	}
+-	start, err := parseToken(page, "t")
+-	if err != nil {
+-		return mail.Page[mail.ThreadMetadata]{}, err
+-	}
++	start, _ := parseToken(page, "t")
+ 	f.mu.Lock()
+ 	defer f.mu.Unlock()
+ 	var out mail.Page[mail.ThreadMetadata]

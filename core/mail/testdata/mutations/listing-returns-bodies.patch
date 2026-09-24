@@ -1,0 +1,19 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: thread listing is retyped to return bodies
+packages: ./core/mail
+tests: TestOnlyTheBodyFetchReturnsABody
+scheduled-count: no
+
+diff --git a/core/mail/port.go b/core/mail/port.go
+index cd61424..3ff6e66 100644
+--- a/core/mail/port.go
++++ b/core/mail/port.go
+@@ -14,7 +14,7 @@ import "errors"
+ type Port[C any] interface {
+ 	// ListThreads returns a page of the threads holding at least one message that q selects, each
+ 	// with every one of its messages. It returns ErrInvalid for a query Valid refuses.
+-	ListThreads(ctx C, q Query, page PageToken) (Page[ThreadMetadata], error)
++	ListThreads(ctx C, q Query, page PageToken) (Page[MessageBody], error)
+ 	// GetThreadMetadata returns one thread with every one of its messages, or ErrNotFound.
+ 	GetThreadMetadata(ctx C, threadID string) (ThreadMetadata, error)
+ 	// GetMessageMetadata returns the metadata of each message ids names, in the order of ids. An

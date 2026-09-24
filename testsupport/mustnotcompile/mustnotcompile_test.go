@@ -107,3 +107,77 @@ func TestCheckNoExportedFields(t *testing.T) {
 		})
 	}
 }
+
+// Of http.RoundTripper's one method, RoundTrip returns a Response, which carries a Request in a
+// field, and hash.Hash's Sum and Size return neither.
+func TestCheckReturning(t *testing.T) {
+	mustnotcompile.RequireReturning(t, "net/http", "RoundTripper", "Response", "RoundTrip")
+	mustnotcompile.RequireReturning(t, "net/http", "RoundTripper", "Request", "RoundTrip")
+	mustnotcompile.RequireReturning(t, "net/http", "Handler", "Response")
+	cases := []struct {
+		name, pkg, iface, typ string
+		methods               []string
+		reason                string
+	}{
+		{"a method left out", "net/http", "RoundTripper", "Response", nil, `are ["RoundTrip"]`},
+		{"a method too many", "net/http", "Handler", "Response", []string{"ServeHTTP"}, "are []"},
+		{"not an interface", "net/http", "Request", "Response", nil, "is not an interface"},
+		{"missing interface", "net/http", "Absent", "Response", nil, "declares no type Absent"},
+		{"missing type", "net/http", "RoundTripper", "Absent", nil, "declares no type Absent"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := mustnotcompile.CheckReturning(c.pkg, c.iface, c.typ, c.methods...)
+			if err == nil || !strings.Contains(err.Error(), c.reason) {
+				t.Fatalf("got %v, want an error containing %q", err, c.reason)
+			}
+		})
+	}
+}
+
+// http.RoundTripper's RoundTrip returns a Response pointer and an error.
+func TestCheckResults(t *testing.T) {
+	mustnotcompile.RequireResults(t, "net/http", "RoundTripper", "RoundTrip", "*Response", "error")
+	cases := []struct {
+		name, pkg, iface, method string
+		results                  []string
+		reason                   string
+	}{
+		{"a result left out", "net/http", "RoundTripper", "RoundTrip", []string{"*Response"}, `returns ["*Response" "error"]`},
+		{"another type", "net/http", "RoundTripper", "RoundTrip", []string{"Response", "error"}, "returns"},
+		{"missing method", "net/http", "RoundTripper", "Absent", nil, "has no method Absent"},
+		{"not an interface", "net/http", "Request", "Write", nil, "is not an interface"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := mustnotcompile.CheckResults(c.pkg, c.iface, c.method, c.results...)
+			if err == nil || !strings.Contains(err.Error(), c.reason) {
+				t.Fatalf("got %v, want an error containing %q", err, c.reason)
+			}
+		})
+	}
+}
+
+// io.ReadCloser has exactly Close and Read, with their signatures.
+func TestCheckMethods(t *testing.T) {
+	mustnotcompile.RequireMethods(t, "io", "ReadCloser", "Close func() error", "Read func(p []byte) (n int, err error)")
+	cases := []struct {
+		name, pkg, iface string
+		methods          []string
+		reason           string
+	}{
+		{"a method left out", "io", "ReadCloser", []string{"Read func(p []byte) (n int, err error)"}, `has the methods ["Close func() error" "Read func(p []byte) (n int, err error)"]`},
+		{"a method too many", "io", "Reader", []string{"Close func() error", "Read func(p []byte) (n int, err error)"}, "has the methods"},
+		{"another signature", "io", "Reader", []string{"Read func(p []byte) error"}, "has the methods"},
+		{"not an interface", "strings", "Builder", nil, "is not an interface"},
+		{"missing interface", "io", "Absent", nil, "declares no type Absent"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := mustnotcompile.CheckMethods(c.pkg, c.iface, c.methods...)
+			if err == nil || !strings.Contains(err.Error(), c.reason) {
+				t.Fatalf("got %v, want an error containing %q", err, c.reason)
+			}
+		})
+	}
+}

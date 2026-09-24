@@ -44,6 +44,7 @@ class MailProvider(Protocol):
     async def ensure_label(self, path: str) -> Label: ...             # for reorg
     async def mutate(self, ops: list[MutationOp]) -> MutationResult: ...
     async def changes_since(self, cursor: str) -> ChangeSet: ...
+    async def current_cursor(self) -> str: ...                        # where delta sync starts
     async def enumerate_all(self, cursor: str | None) -> Page[MessageMetadata]: ...
 
     # Cost declaration — the adapter is the only layer that knows what
@@ -59,6 +60,7 @@ The choices inside the contract, each with its reason:
 | `Query` is a canonical AST | Gmail `q=` and JMAP `Filter` differ; each adapter compiles the AST. Keeps Gmail syntax out of the agent's model |
 | `changes_since` returns an opaque cursor | Gmail `historyId`, JMAP `state` — same semantics, different tokens |
 | `enumerate_all` distinct from `changes_since` | Full traversal is resumable but not a delta; backfill needs it and sync must not use it |
+| `current_cursor` in the port | Delta sync needs a first cursor to start from, which Gmail's profile `historyId` and JMAP's `state` each supply |
 | `ensure_label` in the port | Reorg creates taxonomy; without it each adapter invents its own create-if-missing |
 | Batched mutation ops | Gmail `batchModify` and JMAP `Email/set` both batch natively |
 | `auth_results` in metadata | Carried as message metadata. [ADR-0004](../classification/0004-sender-list-decides.md) lets the policy list alone decide sender class, so classification does not read it |
