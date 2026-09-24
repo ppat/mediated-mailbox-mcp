@@ -1,0 +1,20 @@
+control: A transaction that did not set the account fails before any data access
+removes: the helper refuses a connection as the Beginner rather than a transaction
+packages: ./db/tx
+tests: TestRunRefusesATransaction TestRunScopesTheTransactionToTheAccount TestTheAccountEndsWithItsTransaction
+scheduled-count: no
+integration: yes
+
+diff --git a/db/tx/tx.go b/db/tx/tx.go
+index f565213..6eb87bb 100644
+--- a/db/tx/tx.go
++++ b/db/tx/tx.go
+@@ -37,7 +37,7 @@ var ErrAccountNotSet = errors.New("the transaction's account setting does not ho
+ // returns nil and rolls back otherwise. An empty account fails, since it is the state a transaction
+ // that never set the account is in.
+ func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error) error {
+-	if _, nested := db.(pgx.Tx); nested {
++	if _, nested := db.(*pgx.Conn); nested {
+ 		return ErrInsideTransaction
+ 	}
+ 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {

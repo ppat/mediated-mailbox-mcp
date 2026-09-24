@@ -119,7 +119,7 @@ func outcomeOf(r result) outcome {
 
 func demonstrateFixture(t *testing.T, root, pkg, patch string, env []string) (result, error) {
 	t.Helper()
-	return demonstrate(t.Context(), root, env, patchPath(root, pkg, patch))
+	return demonstrate(t.Context(), root, env, nil, patchPath(root, pkg, patch))
 }
 
 func TestRemovedMechanismTurnsTheRequiredTestRed(t *testing.T) {
@@ -254,7 +254,7 @@ func requireExited(t *testing.T, pid int) {
 func TestRunAllReportsEachPatch(t *testing.T) {
 	root := fixtureRoot(t)
 	var out bytes.Buffer
-	ok := runAll(t.Context(), &out, root, fixtureEnv(), []string{patchPath(root, "gate", "red"), patchPath(root, "gate", "survive")})
+	ok := runAll(t.Context(), &out, root, fixtureEnv(), nil, []string{patchPath(root, "gate", "red"), patchPath(root, "gate", "survive")})
 	if ok {
 		t.Error("runAll reported success with a surviving mutant among the patches")
 	}
@@ -388,7 +388,7 @@ func TestLedgerRowsOnePerCompleteControl(t *testing.T) {
 func TestRunAllPrintsNoRowForAFailedRemoval(t *testing.T) {
 	root := fixtureRoot(t)
 	var out bytes.Buffer
-	runAll(t.Context(), &out, root, fixtureEnv(), []string{patchPath(root, "gate", "red"), patchPath(root, "gate", "wrong")})
+	runAll(t.Context(), &out, root, fixtureEnv(), nil, []string{patchPath(root, "gate", "red"), patchPath(root, "gate", "wrong")})
 	if strings.Contains(out.String(), "Ledger rows") {
 		t.Errorf("a row was printed for an incomplete control:\n%s", out.String())
 	}
@@ -481,7 +481,7 @@ func TestCheckoutIsUnchanged(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("TMPDIR", tmp)
 	var out bytes.Buffer
-	runAll(t.Context(), &out, root, fixtureEnv("RAPID_SCHEDULED_CHECKS=1000"), patches)
+	runAll(t.Context(), &out, root, fixtureEnv("RAPID_SCHEDULED_CHECKS=1000"), nil, patches)
 	if !strings.Contains(out.String(), "PASS "+patchPath(root, "gate", "stray")) {
 		t.Errorf("the patch writing into another package did not hold:\n%s", out.String())
 	}
@@ -516,7 +516,7 @@ func TestInterruptLeavesTheCheckoutUnchanged(t *testing.T) {
 		}
 	}()
 	var out bytes.Buffer
-	ok := runAll(ctx, &out, root, fixtureEnv("BLOCKED_FILE="+blocked), []string{patchPath(root, "gate", "interrupt"), patchPath(root, "count", "rare")})
+	ok := runAll(ctx, &out, root, fixtureEnv("BLOCKED_FILE="+blocked), nil, []string{patchPath(root, "gate", "interrupt"), patchPath(root, "count", "rare")})
 	if ok || !strings.Contains(out.String(), "context canceled") {
 		t.Errorf("runAll returned %v, want a failure from the interruption:\n%s", ok, out.String())
 	}

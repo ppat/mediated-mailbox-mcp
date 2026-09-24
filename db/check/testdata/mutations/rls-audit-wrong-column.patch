@@ -1,0 +1,17 @@
+control: Row-level security scopes every account-keyed table to the transaction's account
+removes: the audit log's policy compares the actor column with the account rather than account_id
+packages: ./db/check
+tests: TestRowLevelSecurityScopesEveryAccountTable TestRowLevelSecurityScopesEveryAccountTable/audit_log/read_by_the_owning_account TestRowLevelSecurityScopesEveryAccountTable/audit_log/update_by_the_owning_account TestRowLevelSecurityScopesEveryAccountTable/audit_log/insert_by_the_owning_account
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index a23f65e..9847788 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -84,4 +84,4 @@ USING (account_id = current_setting('app.account'));
+ 
+ ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY audit_log_account ON audit_log
+-USING (account_id = current_setting('app.account'));
++USING (actor = current_setting('app.account'));

@@ -1,0 +1,20 @@
+control: The chain applies from an empty database on every test run
+removes: goose applies the chain to the database the migration URL names rather than the one just created empty
+packages: ./testsupport/postgres
+tests: TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty
+scheduled-count: no
+integration: yes
+
+diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
+index cfee0ec..49f9d18 100644
+--- a/testsupport/postgres/chain.go
++++ b/testsupport/postgres/chain.go
+@@ -46,7 +46,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, bootstrap, dir string
+ 		return err
+ 	}
+ 
+-	databaseMigrate, err := inDatabase(migrate, name)
++	databaseMigrate, err := migrate, nil
+ 	if err != nil {
+ 		return err
+ 	}

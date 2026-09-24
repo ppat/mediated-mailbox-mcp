@@ -17,7 +17,9 @@ an image, because only test files and the tooling programs import it. Its packag
   [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md).
 - `crash`, the crash harness of [ADR-0045](../docs/adr/engineering/0045-crash-injection-testing.md).
 - `fixture`, the synthetic fixtures.
-- `postgres`, what an integration test package needs to reach its database.
+- `postgres`, what an integration test package needs to reach its database, and the application of
+  the bootstrap and the migration chain to an empty database that `pgrun` and the chain's own tests
+  share.
 - `mustnotcompile`, the helpers that assert a forbidden construction fails to compile, that a
   type exposes no field, and that a type has exactly the fields or a function exactly the
   parameters named.

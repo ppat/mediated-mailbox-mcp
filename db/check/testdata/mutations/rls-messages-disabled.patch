@@ -1,0 +1,19 @@
+control: Row-level security scopes every account-keyed table to the transaction's account
+removes: row-level security is not enabled on messages, so its policy never applies
+packages: ./db/check
+tests: TestRowLevelSecurityScopesEveryAccountTable TestRowLevelSecurityScopesEveryAccountTable/messages/read_by_another_account TestRowLevelSecurityScopesEveryAccountTable/messages/update_by_another_account TestRowLevelSecurityScopesEveryAccountTable/messages/insert_by_another_account
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index a23f65e..f9603a0 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -22,7 +22,6 @@ ALTER TABLE senders ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY senders_account ON senders
+ USING (account_id = current_setting('app.account'));
+ 
+-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY messages_account ON messages
+ USING (account_id = current_setting('app.account'));
+ 

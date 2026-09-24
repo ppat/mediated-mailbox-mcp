@@ -1,0 +1,14 @@
+control: A statement cannot read a column the schema does not hold
+removes: a later migration renames messages.message_id to body, so the schema holds a body column in an identifier's place
+packages: ./db/check
+tests: TestGenerationRefusesAColumnTheSchemaDoesNotHold TestGenerationRefusesAColumnTheSchemaDoesNotHold/body_column_violation.sql
+scheduled-count: no
+
+diff --git a/db/migrations/00005_message_id_renamed.sql b/db/migrations/00005_message_id_renamed.sql
+new file mode 100644
+index 0000000..b53db5c
+--- /dev/null
++++ b/db/migrations/00005_message_id_renamed.sql
+@@ -0,0 +1,2 @@
++-- +goose Up
++ALTER TABLE messages RENAME COLUMN message_id TO body;

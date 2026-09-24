@@ -1,0 +1,20 @@
+control: A transaction that did not set the account fails before any data access
+removes: the helper sets the account for the session rather than the transaction, so it outlives the transaction
+packages: ./db/tx
+tests: TestTheAccountEndsWithItsTransaction
+scheduled-count: no
+integration: yes
+
+diff --git a/db/tx/tx.go b/db/tx/tx.go
+index f565213..b6c775c 100644
+--- a/db/tx/tx.go
++++ b/db/tx/tx.go
+@@ -42,7 +42,7 @@ func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error
+ 	}
+ 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
+ 		// set_config with its third argument true is SET LOCAL, taking the value as a parameter.
+-		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', $1, true)", account); err != nil {
++		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', $1, false)", account); err != nil {
+ 			return fmt.Errorf("setting the account: %w", err)
+ 		}
+ 		var got string

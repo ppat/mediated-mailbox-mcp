@@ -18,10 +18,16 @@ type preamble struct {
 	tests    []string
 	// scheduled is true when the demonstration goes red only at the scheduled case count.
 	scheduled bool
+	// integration is true when the tests run with the integration tag under pgrun.
+	integration bool
 }
 
-// preambleKeys are the keys a preamble must carry, each exactly once, and the only keys it may carry.
-var preambleKeys = []string{"control", "removes", "packages", "tests", "scheduled-count"}
+// preambleKeys are the keys a preamble must carry, each exactly once. optionalKeys may be given once,
+// and no other key may appear.
+var (
+	preambleKeys = []string{"control", "removes", "packages", "tests", "scheduled-count"}
+	optionalKeys = []string{"integration"}
+)
 
 // parsePatch reads the preamble of the patch at path, which must be a .patch file directly in a
 // testdata/mutations directory, the only place the pre-commit fixers leave byte for byte. It refuses a
@@ -49,8 +55,8 @@ func parsePatch(path string, src []byte) (preamble, error) {
 		}
 		key, value, ok := strings.Cut(text, ":")
 		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
-		if !ok || !slices.Contains(preambleKeys, key) {
-			return p, fmt.Errorf("%s:%d: the preamble holds only the keys %s, one per line", path, line, strings.Join(preambleKeys, ", "))
+		if !ok || !slices.Contains(slices.Concat(preambleKeys, optionalKeys), key) {
+			return p, fmt.Errorf("%s:%d: the preamble holds only the keys %s, one per line", path, line, strings.Join(slices.Concat(preambleKeys, optionalKeys), ", "))
 		}
 		if _, dup := values[key]; dup {
 			return p, fmt.Errorf("%s:%d: %s is given twice", path, line, key)
@@ -91,6 +97,13 @@ func parsePatch(path string, src []byte) (preamble, error) {
 	case "no":
 	default:
 		return p, errors.New(path + ": scheduled-count is yes or no")
+	}
+	switch values["integration"] {
+	case "yes":
+		p.integration = true
+	case "no", "":
+	default:
+		return p, errors.New(path + ": integration is yes or no")
 	}
 	return p, nil
 }

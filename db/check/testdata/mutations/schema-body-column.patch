@@ -1,0 +1,18 @@
+control: A statement cannot read a column the schema does not hold
+removes: the chain gives messages a body column, so the schema no longer withholds it
+packages: ./db/check
+tests: TestGenerationRefusesAColumnTheSchemaDoesNotHold TestGenerationRefusesAColumnTheSchemaDoesNotHold/body_column_violation.sql
+scheduled-count: no
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 2d59457..640b3a9 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -66,6 +66,7 @@ CREATE TABLE messages (
+     from_name text,
+     -- Masked at rest if a code was detected.
+     subject text,
++    body text,
+     subject_masked boolean NOT NULL DEFAULT false,
+     sent_at timestamptz NOT NULL,
+     labels text[] NOT NULL DEFAULT '{}',

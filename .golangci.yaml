@@ -271,8 +271,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
 
-        # The rate limiter, every file. Its pure rules under ratelimit/core also meet the pure-core lists. It names
-        # each data-access subsection it may use, which db/check tests against its role's grants.
+        # The rate limiter, every file. Its pure rules under ratelimit/core also meet the pure-core lists. It names no
+        # data-access subsection yet, because which role a library's statements run under, and so how db/check tests
+        # this list, is an open decision in ROADMAP.md.
         ratelimit:
           list-mode: strict
           files:

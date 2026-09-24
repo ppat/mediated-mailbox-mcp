@@ -112,7 +112,7 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   of a subsection under the role of each component whose list admits it, planning each one with
   `EXPLAIN (GENERIC_PLAN)` so nothing executes, so a list admitting a statement the role's grants do
   not allow fails naming the list, the statement and the role. Which role each component connects as
-  is open in [ROADMAP.md](../../../ROADMAP.md#open-decisions), and the check reads that mapping from
+  is [ADR-0075](./0075-one-runtime-role-per-deployable.md)'s, and the check reads that mapping from
   one place in `db/check`, failing a list that names subsections without a role and a role that
   names no such list.
 
@@ -269,10 +269,9 @@ case-insensitive columns are confinable nowhere.
 ### Where generated code sits
 
 - **Each role's generated package under its owning deployable's `internal/`.** The case for it is
-  that the compiler holds the role boundary, so no import check is needed. Not chosen, because a
-  role serving several deployables would be generated once into each of them, the shared transaction
-  helper would be copied into each deployable or split into a library of its own, and a statement
-  several roles need would be duplicated.
+  that the compiler holds the role boundary, so no import check is needed. Not chosen, because the
+  shared transaction helper would be copied into each deployable or split into a library of its own,
+  and a statement several roles need would be duplicated.
 
 ## Consequences
 

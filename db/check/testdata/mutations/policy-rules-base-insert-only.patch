@@ -1,0 +1,22 @@
+control: A policy-rule write names the transaction's account
+removes: the base-rule policy admits inserting base rules rather than reading them
+packages: ./db/check
+tests: TestAPolicyRuleWriteNamesTheTransactionsAccount TestAPolicyRuleWriteNamesTheTransactionsAccount/the_UI_inserts_a_base_rule TestAPolicyRuleWriteNamesTheTransactionsAccount/the_UI_reads_the_base_rule
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index a23f65e..edcd787 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -41,8 +41,8 @@ USING (account_id = current_setting('app.account'));
+ ALTER TABLE policy_rules ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY policy_rules_account ON policy_rules
+ USING (account_id = current_setting('app.account'));
+-CREATE POLICY policy_rules_base ON policy_rules FOR SELECT
+-USING (account_id IS NULL);
++CREATE POLICY policy_rules_base ON policy_rules FOR INSERT
++WITH CHECK (account_id IS NULL);
+ 
+ ALTER TABLE masking_events ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY masking_events_account ON masking_events

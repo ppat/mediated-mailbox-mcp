@@ -522,8 +522,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   one must do, how the set of them is established, and which tables are excepted are ADR-0047's
   (via the [decision-record index](./docs/adr/README.md)).
 - **Runtime role** — a database role a running deployable connects as, holding only the grants its
-  work needs, as distinct from the schema-owning role the migration step uses (roles in ADR-0048
-  and ADR-0021, via the [decision-record index](./docs/adr/README.md)).
+  work needs, as distinct from the schema-owning role the migration step uses (roles in ADR-0048,
+  ADR-0021 and ADR-0075, via the [decision-record index](./docs/adr/README.md)).
 - **The migration chain** — the ordered set of hand-written migration files that builds the
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's
   (via the [decision-record index](./docs/adr/README.md)).

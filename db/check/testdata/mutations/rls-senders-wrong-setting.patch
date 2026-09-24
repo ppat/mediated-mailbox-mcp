@@ -1,0 +1,20 @@
+control: Row-level security scopes every account-keyed table to the transaction's account
+removes: the senders policy reads a setting no transaction sets, so it compares the account with nothing
+packages: ./db/check
+tests: TestRowLevelSecurityScopesEveryAccountTable TestRowLevelSecurityScopesEveryAccountTable/senders/read_by_the_owning_account TestRowLevelSecurityScopesEveryAccountTable/senders/update_by_the_owning_account TestRowLevelSecurityScopesEveryAccountTable/senders/insert_by_the_owning_account
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index a23f65e..1631721 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -20,7 +20,7 @@ USING (account_id = current_setting('app.account'));
+ 
+ ALTER TABLE senders ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY senders_account ON senders
+-USING (account_id = current_setting('app.account'));
++USING (account_id = current_setting('app.acount', true));
+ 
+ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY messages_account ON messages

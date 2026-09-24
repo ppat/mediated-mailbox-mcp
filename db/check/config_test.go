@@ -9,9 +9,9 @@ import (
 )
 
 // componentRoles names the database role each component's code runs statements as, keyed by the
-// component's import list. It is empty because no component list names a generated subsection yet.
-// How many runtime roles exist and which component runs as which is not decided. An entry arrives with
-// the first list naming a subsection, and TestComponentRoles refuses either without the other.
+// component's import list. A deployable's role is mediated_mailbox_ followed by its directory
+// (ADR-0075). It is empty because no component list names a generated subsection yet. An entry arrives
+// with the first list naming a subsection, and TestComponentRoles refuses either without the other.
 var componentRoles = map[string]string{}
 
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no

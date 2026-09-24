@@ -118,11 +118,11 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), S2's content scanner and subject masking, merged from pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), and S3's body sanitization and serve-time pattern check, merged from pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), none of it yet released. No deployable runs any of it yet **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), S2's content scanner and subject masking, merged from pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), S3's body sanitization and serve-time pattern check, merged from pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and F2's schema, migration chain, runtime roles and transaction helper, merged from pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), none of it yet released. No deployable runs any of it yet **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and the rows on verdict types for the Mutation Authorizer's verdict by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The S2 rows, S2's part of the search of scanner output included, are proven by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), and the S3 rows and S3's parts of the rows it shares with D3 by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
-| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and those of the Mutation Authorizer by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The controls of S2's content scanner and subject masking are demonstrated by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), and those of S3's conversion, release step and the scanner's pattern entry point by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
-| **The delivery gap** | Every unit except F4, S1, S2 and S3, which are delivered. No other unit has started |
+| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and the rows on verdict types for the Mutation Authorizer's verdict by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The S2 rows, S2's part of the search of scanner output included, are proven by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), the S3 rows and S3's parts of the rows it shares with D3 by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and the F2 rows by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and those of the Mutation Authorizer by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The controls of S2's content scanner and subject masking are demonstrated by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), those of S3's conversion, release step and the scanner's pattern entry point by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and those of F2's data layer by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
+| **The delivery gap** | Every unit except F4, S1, S2, S3 and F2, which are delivered. No other unit has started |
 
 ## Delivered, mapped to outcomes
 
@@ -177,6 +177,32 @@ perfected up front.
   key pair standing in, and the first real release is the first to exercise it. Component labels on
   a pull request from a fork, whose token cannot write labels, and on the ticket, which the author
   still corrects by hand.
+- [x] **F2 — The data layer** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
+  [V2](#v2--the-corpus-can-be-acquired) · finished at tested
+  Delivered by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), which
+  closed its ticket [#70](https://github.com/ppat/mediated-mailbox-mcp/issues/70), and not yet
+  released. PostgreSQL as the one store
+  ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md)), the schema with no body column and
+  every table account-keyed ([ADR-0016](./docs/adr/data/0016-schema.md)), and the forward-only
+  migration chain under its own role, applied from empty on every test run
+  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
+  [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)), holding no database-resident code
+  ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). The runtime roles, one per
+  deployable ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)), the UI's grant
+  ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md)), the audit log append-only to every
+  runtime role, row-level security on every account-keyed table with the operation log scoped
+  through its plan, and the transaction helper that sets and verifies the account
+  ([ADR-0016](./docs/adr/data/0016-schema.md),
+  [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)). Integration-tested against a real
+  PostgreSQL container ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)),
+  and the mutation demonstration runner now runs integration tests. Every verification row keyed to
+  it is proven for its part, the generated data-access functions' part waiting for the first
+  statement file, and every control it delivered has its mutation demonstration. **What it did not
+  deliver.** Any statement file or the generator's configuration, which the unit whose code first
+  calls a statement writes, together with the grants that statement needs. The map from component to
+  database role, whose entries arrive with the first import list that admits a data-access
+  subsection, because the check refuses a role that no such list names. No deployable connects to the
+  database yet.
 - [x] **S1 — Redaction Gate + Sender Classifier + Mutation Authorizer, isolated** →
   [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -294,7 +320,7 @@ is provable against fixtures.
 
 ### V2 — The corpus can be acquired
 
-**Units:** [F2](#group-f--foundation) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
+**Units:** [F2](#delivered-mapped-to-outcomes) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
 [D1](#group-d--data-flows) · [D2](#group-d--data-flows). **Value shipped:** the machinery that
 acquires a full-history metadata index (every sender classified, every subject masked, sender
 statistics built, scan verdicts recorded) politely enough to never antagonize the provider, proven
@@ -360,12 +386,13 @@ holds, with an entry naming the point.
 
 - **After:** [F4](#delivered-mapped-to-outcomes) · [S1](#delivered-mapped-to-outcomes) ·
   [S2](#delivered-mapped-to-outcomes) · [S3](#delivered-mapped-to-outcomes) ·
-  [F2](#group-f--foundation) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
+  [F2](#delivered-mapped-to-outcomes) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
   [D1](#group-d--data-flows) · [D2](#group-d--data-flows) · [D3](#group-d--data-flows) ·
   [D4](#group-d--data-flows) · [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only).
 - **Supplied there:**
-  - PostgreSQL with the superuser bootstrap, the migration role and the runtime roles' credentials
+  - PostgreSQL with the superuser bootstrap, the migration role, and the credentials of the runtime
+    roles the mediator, backfill and delta sync connect as
     ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
     [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)).
   - The Gmail OAuth client and refresh token, with the consent screen published so the token does
@@ -409,6 +436,8 @@ holds, with an entry naming the point.
 - **Supplied there:**
   - The UI's database role credential and TLS material, and whether an authenticating proxy forwards
     an identity header ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md)).
+  - The database role credentials of the reorganization workload and the heuristics job
+    ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)).
   - Re-consent on the first account's grant for the calendar scope
     ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)).
   - The module's change for the three new deployables and the UI's inputs, with its tickets in the
@@ -479,29 +508,11 @@ check runs inside the sanitization step
 What everything runs on. The tooling, the store, the adapter, the budget. F1 is retired. Its
 application half lives in [F5](#group-f--foundation) and its platform half at [production point
 1](#production-point-1--the-read-path). F4 is delivered and sits in the [delivered
-register](#delivered-mapped-to-outcomes). [F5](#group-f--foundation) serves
+register](#delivered-mapped-to-outcomes), and so is F2. [F5](#group-f--foundation) serves
 [G1](./USE_CASES.md#g1--whole-mailbox-visibility) and also carries
 [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the scope that
 excludes permanent delete, because the grant is the adapter's.
 
-- [ ] **F2 — The data layer** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
-  [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
-  PostgreSQL as the one store ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md)), the
-  schema with no body column and every table account-keyed
-  ([ADR-0016](./docs/adr/data/0016-schema.md)), the forward-only migration chain under its own role
-  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
-  [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)), data access generated from
-  hand-written statements ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md),
-  [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)), a chain that holds no
-  database-resident code ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)), and
-  the runtime roles with their grants, including the append-only audit grants and the plan-scoped
-  op-log policy ([ADR-0016](./docs/adr/data/0016-schema.md),
-  [ADR-0021](./docs/adr/mutation/0021-approval-surface.md),
-  [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)). Integration-tested against a
-  real PostgreSQL container
-  ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). How many runtime
-  roles exist is open against this unit. Each statement file is written by the unit whose code
-  first calls it.
 - [ ] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
   The provider port's first compilation to a real backend
@@ -527,7 +538,7 @@ excludes permanent delete, because the grant is the adapter's.
   simulated provider that throttles on schedule, so convergence and recovery are proven before the
   real one. The hard cap holds when the controller is fed deliberately bad inputs, and the
   interactive class keeps its reserved share while batch work absorbs a rate reduction
-  ([O1](./USE_CASES.md#o1--rate-limited-politely)). Needs [F2](#group-f--foundation)'s rate-state
+  ([O1](./USE_CASES.md#o1--rate-limited-politely)). Needs [F2](#delivered-mapped-to-outcomes)'s rate-state
   row. *Criteria:* rate, lease and throttle gauges and the total observed request rate are emitted,
   and the two conditions of [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)
   are raised, one when the rate stays at its floor for more than a few minutes, and one when the
@@ -700,7 +711,7 @@ as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), becau
 of its screens' worth-a-look cards. [M3](#group-m--mutation-and-approval) reads the schema over
 synthetic fixtures
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), so it
-starts once [F2](#group-f--foundation) and [S1](#delivered-mapped-to-outcomes)'s marker text and
+starts once [F2](#delivered-mapped-to-outcomes) and [S1](#delivered-mapped-to-outcomes)'s marker text and
 fixtures exist and builds beside the D group and the rest of this group, and
 [M5](#group-m--mutation-and-approval) follows it, because the decisions live in the UI's server and
 browser app. M4 and M5 also come after [R1](#group-r--packaging), which decides how a newly added
@@ -773,7 +784,7 @@ policy rule changes the classifications already stored in the index.
   ([ADR-0059](./docs/adr/operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md))
   and the content security policy
   ([ADR-0062](./docs/adr/operability/0062-ui-content-security-policy.md)), built to
-  [docs/UI.md](./docs/UI.md). Its scoped database role is created at [F2](#group-f--foundation)
+  [docs/UI.md](./docs/UI.md). Its scoped database role is created at [F2](#delivered-mapped-to-outcomes)
   and its separate deployment is packaged at [R2](#group-r--packaging). The UI's Go server and
   its fixture database exist before the browser tests are written
   ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
@@ -967,7 +978,7 @@ about its cluster.
 | [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | — | The gate, the classifier and the authorizer landed with S1, which is delivered. Injection hardening on released bodies is A4's, and landed with S3, which is delivered. The calendar content-release side rides X2. The static controls, import boundaries and the lint half of unconstructability, ride F4. The release-time falsifiers are proven at D3, flagged in Group D's preamble, and the editable-list falsifier at M4, where a confirmed candidate's rule binds, flagged in Group M's preamble |
 | [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | D2 · X1 | The tiers and subject masking landed with S2, which is delivered. The serve-time check landed with S3, an A4 unit, which is delivered. Scanning new mail as it arrives is built in D4, a G4 unit |
 | [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | Candidate review rides M5 |
-| [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F2 · F5 · D3 | — |
+| [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F5 · D3 | The data layer landed with F2, which is delivered |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | The agent's reads over sender aggregates and label distribution ride D3 |
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M5 | — |
 | [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | D4 | — |
@@ -1141,7 +1152,7 @@ index](./docs/adr/README.md).
 | Whether the tier-3 model's weights ship in the binary or beside it in the image | X1 | [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lets a final stage copy runtime artifacts and [CLAUDE.md](./CLAUDE.md#images) says a Go deployable's image copies only its binary. No record decides which the model is, and beside the binary would need that convention to admit a second artifact |
 | The feedback verb on masking and gate events | X1 | [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) takes its confirmed examples from corrections the operator makes in the UI's masking-events view, and [docs/UI.md](./docs/UI.md#20-what-remains-open) leaves that verb to a record that does not exist yet. No unit produces a confirmed example until the verb exists, so X1 builds the verb and writes its record first. Training waits for the examples the verb then produces |
 | Live-update transport for the UI | M3 | [ADR-0058](./docs/adr/operability/0058-live-surfaces-stream-over-server-sent-events.md) proposes server-sent events from the UI's Go server, with polling as the fallback. The operator asked for the behavior on 2026-09-10 and has not ruled on the transport. In the browser only the stream client depends on it, and on the server only the stream endpoint does ([docs/UI.md](./docs/UI.md#9-live-surfaces)). So it is decided where the UI's server and its stream endpoint are built |
-| Policy editing outside the UI, including import and export to a file | R1 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database and a file form for import and export. The operator said on 2026-09-10 that such a mechanism may exist, and on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file. The first thing that needs it is supplying the policy through the chart at [production point 1](#production-point-1--the-read-path), so R1 builds the import and export and records their format |
+| Policy editing outside the UI, including import and export to a file | R1 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database and a file form for import and export. The operator said on 2026-09-10 that such a mechanism may exist, and on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file. The first thing that needs it is supplying the policy through the chart at [production point 1](#production-point-1--the-read-path), so R1 builds the import and export and records their format, and the database role they run as, since [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) gives roles to deployables only, and the policy on the policy rules lets a writer name only its own account, never the base policy's null one |
 | How the audit of every applied and refused mutation is guaranteed | M1 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the violation to refuse, a mutation reaching the provider with no audit row. It has no injection for it until a record decides between two mechanisms, writing the audit row before the provider call, or a structural check that refuses any path without an audit row. M1 writes the first audited mutation, so it decides, and M2's apply follows the same answer |
 | Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value has not been chosen. The UI reads the same value from configuration ([docs/UI.md](./docs/UI.md)), so the screens depend only on the setting existing, not on its value |
 | How an approved plan starts applying, and how a rollback is requested | M2 | [ADR-0022](./docs/adr/operability/0022-four-workloads.md) starts apply on human approval and [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) rolls back by replaying the op log, and neither says what starts either one. The UI only writes the plan's status and never calls the mediator ([docs/UI.md](./docs/UI.md)). The reorg workload's composition root depends on the answer, so it is decided where that root is built |
@@ -1171,7 +1182,9 @@ index](./docs/adr/README.md).
 | Whether one in-memory model serves both crash-harness targets | M2, D1 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) runs sequence reduction against an in-memory model of the machinery and leaves open whether one model serves both of [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)'s targets, the reorganization apply path at M2 and backfill resume at D1, or each gets its own. Only the harness's own internals depend on the answer |
 | Whether the backfill target's generators use the same shape as the reorganization plan generator | D1 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) measured the collection-generator shape for the reorganization plan generator only, and states two options for backfill resume, using the same shape and reading the generator report, or measuring a conditional generator against it first |
 | Whether the operation sampler also runs in the gating run | D1, M2 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) places it in the scheduled run and leaves the gating run open, stating what each option costs |
-| How many runtime database roles exist | F2 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) gives migrations their own role and [ADR-0021](./docs/adr/mutation/0021-approval-surface.md) gives the user interface its own. The mapping from the deployables to runtime roles is stated nowhere. [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)'s grant check reads that mapping before any component's import list may admit a data-access subsection |
 | How rotations arriving at two credential-holding deployables close together are reconciled | Production point 1 | [ADR-0039](./docs/adr/operability/0039-rotation-writeback.md) has the deployable that receives a rotated credential write it to the one writable location. Every deployable that calls a provider holds the credential ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), so two of them can receive rotations close together, and which value the store keeps is the store's behavior, answered on the deploying side |
 | How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
+| How an unscoped account listing reads every account through the accounts table's row-level security | D3 | [ADR-0016](./docs/adr/data/0016-schema.md) puts row-level security on every account-keyed table, and the accounts table is one, so a query sees only the account its transaction set. The client surface's account listing ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) and [docs/UI.md](./docs/UI.md)'s accounts endpoint are both unscoped and need every account's row, and [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) names the listing a deliberate exception to its account-predicate rule, which that row-level security stands behind. D3 builds the first of them |
+| How generated data-access functions are held to run through the transaction helper | F3, D1 | [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) runs every unit of data access in a transaction that set and verified the account, and `db/tx` does so, but a generated function accepts any database handle, a pool included. Whichever of the two units writes the first statement file decides it, and the pending part of the unset-account row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) waits on it |
+| Which role a shared library's statements run under, and how the grant check covers a library's import list | F3 | [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) gives each deployable a role of its own. The rate limiter is a library whose lease statements every spender runs, and [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)'s grant check maps each import list to one role, which a library's list does not have |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |

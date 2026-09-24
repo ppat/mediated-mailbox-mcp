@@ -1,0 +1,21 @@
+control: A transaction that did not set the account fails before any data access
+removes: the helper no longer compares the setting it reads back with the account
+packages: ./db/tx
+tests: TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage
+scheduled-count: no
+integration: yes
+
+diff --git a/db/tx/tx.go b/db/tx/tx.go
+index f565213..d643df8 100644
+--- a/db/tx/tx.go
++++ b/db/tx/tx.go
+@@ -49,9 +49,6 @@ func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error
+ 		if err := tx.QueryRow(ctx, "SELECT coalesce(current_setting('app.account', true), '')").Scan(&got); err != nil {
+ 			return fmt.Errorf("reading the account back: %w", err)
+ 		}
+-		if got == "" || got != account {
+-			return fmt.Errorf("%w: it reads back as %q", ErrAccountNotSet, got)
+-		}
+ 		return fn(tx)
+ 	})
+ }

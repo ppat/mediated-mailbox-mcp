@@ -1,0 +1,20 @@
+control: The operation log is scoped through its plan's account
+removes: the policy admits the plans of every account but the transaction's own
+packages: ./db/check
+tests: TestTheOperationLogIsScopedThroughItsPlan TestTheOperationLogIsScopedThroughItsPlan/read_by_the_plan's_account TestTheOperationLogIsScopedThroughItsPlan/insert_by_the_plan's_account TestTheOperationLogIsScopedThroughItsPlan/update_by_the_plan's_account
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index a23f65e..2c47edd 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -66,7 +66,7 @@ CREATE POLICY reorg_op_log_plan ON reorg_op_log
+ USING (
+     plan_id IN (
+         SELECT reorg_plans.plan_id FROM reorg_plans
+-        WHERE reorg_plans.account_id = current_setting('app.account')
++        WHERE reorg_plans.account_id <> current_setting('app.account')
+     )
+ );
+ 

@@ -10,13 +10,14 @@
 // fixers leave byte for byte. That is usually the package whose file the patch edits, and a patch
 // breaking a control through another package's file still sits with the control. It describes
 // itself in the free text before its first diff header, which git apply ignores. The preamble holds
-// exactly these keys, one per line.
+// these keys, one per line, each exactly once apart from integration, which may be left out.
 //
 //	control: the control, as the ledger names it
 //	removes: one line saying how the patch removes or disables the mechanism
 //	packages: package paths relative to the repository root, such as ./core/redact or ./core/...
 //	tests: the tests that must go red, by the names go test reports, subtests included
 //	scheduled-count: yes when the demonstration goes red only at the scheduled case count, else no
+//	integration: yes when the tests are integration tests against PostgreSQL, else no, the default
 //	diff --git a/core/redact/redact.go b/core/redact/redact.go
 //	...
 //
@@ -66,10 +67,18 @@
 // runs of a patch use the same seed, and the report records the seed and the case count, so a
 // property demonstration can be repeated.
 //
-// SIGINT, SIGTERM and SIGHUP stop the run, kill the running tests and remove the copies. The runner
-// runs ordinary go test packages, property tests included. It is run by hand when a control lands
-// or changes, never as a standing gate. Run it from the repository root with the patches as
-// arguments.
+// A patch with integration yes runs both copies' tests with the integration tag under pgrun, started
+// from the copy's root, so each run's database is prepared from that copy's bootstrap and migration
+// chain and a patch to either reaches the patched run. pgrun starts one container per run, so the two
+// runs of a patch use the same port in turn. The runner's -host and -port flags are passed to pgrun,
+// for a remote container daemon (testsupport/cmd/pgrun). A patch that needs integration tests and
+// leaves the key out fails at step 1, since its named tests do not build without the tag.
+//
+// SIGINT, SIGTERM and SIGHUP stop the run, stop the running tests and remove the copies. The running
+// tests are killed, or under pgrun sent SIGTERM first, so pgrun removes its container. The runner runs
+// ordinary go test packages, property tests and integration tests included. It is run by hand when a
+// control lands or changes, never as a standing gate. Run it from the repository root with the
+// patches as arguments.
 //
 //	go tool mutproof core/redact/testdata/mutations/*.patch
 package main
@@ -94,8 +103,11 @@ import (
 )
 
 func main() {
+	host := flag.String("host", "", "passed to pgrun as -host for a patch whose tests are integration tests")
+	port := flag.Int("port", 0, "passed to pgrun as -port for a patch whose tests are integration tests")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: go tool mutproof patch...")
+		fmt.Fprintln(os.Stderr, "usage: go tool mutproof [-host address] [-port port] patch...")
+		flag.PrintDefaults()
 	}
 	flag.Parse()
 	if flag.NArg() == 0 {
@@ -114,7 +126,14 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
-	if !runAll(ctx, os.Stdout, root, os.Environ(), flag.Args()) {
+	var pgrun []string
+	if *host != "" {
+		pgrun = append(pgrun, "-host", *host)
+	}
+	if *port != 0 {
+		pgrun = append(pgrun, "-port", strconv.Itoa(*port))
+	}
+	if !runAll(ctx, os.Stdout, root, os.Environ(), pgrun, flag.Args()) {
 		stop()
 		os.Exit(1)
 	}
@@ -122,7 +141,8 @@ func main() {
 
 // runAll runs every patch in turn, then prints the ledger rows, and reports whether every
 // demonstration held. It stops when the run is interrupted and carries on past any other failure.
-func runAll(ctx context.Context, w io.Writer, root string, environ, patches []string) bool {
+// pgrun holds the flags given to pgrun for a patch whose tests are integration tests.
+func runAll(ctx context.Context, w io.Writer, root string, environ, pgrun, patches []string) bool {
 	// Every patch's control is read first, so a patch that errs or never runs still counts against
 	// its control's row.
 	entries := make([]ledgerEntry, len(patches))
@@ -135,7 +155,7 @@ func runAll(ctx context.Context, w io.Writer, root string, environ, patches []st
 	}
 	ok := true
 	for i, patch := range patches {
-		res, err := demonstrate(ctx, root, environ, patch)
+		res, err := demonstrate(ctx, root, environ, pgrun, patch)
 		if err != nil {
 			ok = false
 			if _, writeErr := fmt.Fprintf(w, "FAIL %s\n%v\n\n", patch, err); writeErr != nil {
@@ -192,7 +212,7 @@ func (r result) held() bool {
 // demonstrate runs one patch through the two steps in the package comment, in copies of the working
 // tree at root. An error means the demonstration could not be judged. A judged demonstration that
 // failed is a result that did not hold.
-func demonstrate(ctx context.Context, root string, environ []string, patchPath string) (result, error) {
+func demonstrate(ctx context.Context, root string, environ, pgrun []string, patchPath string) (result, error) {
 	src, err := os.ReadFile(patchPath)
 	if err != nil {
 		return result{}, err
@@ -236,7 +256,7 @@ func demonstrate(ctx context.Context, root string, environ []string, patchPath s
 	if tests := testCodePaths(paths); len(tests) > 0 {
 		return result{}, fmt.Errorf("the patch touches test code, so a red under it says nothing about the mechanism: %s", strings.Join(tests, ", "))
 	}
-	baseline, err := goTest(ctx, pristine, env, p.packages)
+	baseline, err := goTest(ctx, pristine, env, testCommand(p, pgrun))
 	if err != nil {
 		return result{}, err
 	}
@@ -257,7 +277,7 @@ func demonstrate(ctx context.Context, root string, environ []string, patchPath s
 	if _, err := gitApply(patched, absPatch); err != nil {
 		return result{}, err
 	}
-	mutant, err := goTest(ctx, patched, env, p.packages)
+	mutant, err := goTest(ctx, patched, env, testCommand(p, pgrun))
 	if err != nil {
 		return result{}, err
 	}
