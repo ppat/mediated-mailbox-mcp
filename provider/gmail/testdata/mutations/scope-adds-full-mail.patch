@@ -1,0 +1,19 @@
+control: The Gmail grant requests only the modify scope
+removes: the consent requests the full mail scope beside the modify scope
+packages: ./provider/gmail
+tests: TestTheConsentRequestsOnlyTheModifyScope TestTheConsentAsksForAnOfflineGrant
+scheduled-count: no
+
+diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go
+index 0c7a071..757321c 100644
+--- a/provider/gmail/oauth.go
++++ b/provider/gmail/oauth.go
+@@ -44,7 +44,7 @@ func AuthorizationURL(clientID, redirectURI, state, verifier string) string {
+ 		"prompt":                {"consent"},
+ 		"redirect_uri":          {redirectURI},
+ 		"response_type":         {"code"},
+-		"scope":                 {Scope},
++		"scope":                 {Scope + " https://mail.google.com/"},
+ 		"state":                 {state},
+ 	}
+ 	return authEndpoint + "?" + q.Encode()

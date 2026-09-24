@@ -1,0 +1,18 @@
+control: The Gmail grant requests only the modify scope
+removes: the consent asks Google to fold every scope the account granted this client before into the new token
+packages: ./provider/gmail
+tests: TestTheConsentRequestsOnlyTheModifyScope TestTheConsentAsksForAnOfflineGrant
+scheduled-count: no
+
+diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go
+index 0c7a071..95a0a1d 100644
+--- a/provider/gmail/oauth.go
++++ b/provider/gmail/oauth.go
+@@ -41,6 +41,7 @@ func AuthorizationURL(clientID, redirectURI, state, verifier string) string {
+ 		"client_id":             {clientID},
+ 		"code_challenge":        {base64.RawURLEncoding.EncodeToString(challenge[:])},
+ 		"code_challenge_method": {"S256"},
++		"include_granted_scopes": {"true"},
+ 		"prompt":                {"consent"},
+ 		"redirect_uri":          {redirectURI},
+ 		"response_type":         {"code"},

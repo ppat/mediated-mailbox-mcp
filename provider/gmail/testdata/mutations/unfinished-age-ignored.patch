@@ -1,0 +1,19 @@
+control: A write-back replaces the location whole or not at all
+removes: a new file beside the location is removed whatever its age, so another deployable's write in progress is removed too
+packages: ./provider/gmail
+tests: TestWriteBackRemovesANewFileLeftBesideTheLocation TestStartingRemovesANewFileLeftBesideTheLocation TestANewFileLeftBesideTheLocationIsRemovedOnlyOnceItIsOld
+scheduled-count: no
+
+diff --git a/provider/gmail/credentials.go b/provider/gmail/credentials.go
+index 9872faa..da50c3c 100644
+--- a/provider/gmail/credentials.go
++++ b/provider/gmail/credentials.go
+@@ -154,7 +154,7 @@ func removeUnfinished(path string, now time.Time) error {
+ 			errs = append(errs, err)
+ 			continue
+ 		}
+-		if now.Sub(info.ModTime()) > unfinishedAge {
++		if info != nil {
+ 			errs = append(errs, os.Remove(filepath.Join(dir, e.Name())))
+ 		}
+ 	}

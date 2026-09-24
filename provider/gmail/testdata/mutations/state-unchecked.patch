@@ -1,0 +1,19 @@
+control: The consent redirect hands over a code only with the consent's state
+removes: the redirect's state is never checked
+packages: ./provider/gmail
+tests: TestTheConsentRedirectRefusesAWrongOrMissingState
+scheduled-count: no
+
+diff --git a/provider/gmail/consent.go b/provider/gmail/consent.go
+index 3abb52d..bae2261 100644
+--- a/provider/gmail/consent.go
++++ b/provider/gmail/consent.go
+@@ -64,7 +64,7 @@ func consentHandler(state string, results chan<- consentResult) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+ 		q := r.URL.Query()
+ 		switch {
+-		case q.Get("state") != state:
++		case false:
+ 			http.Error(w, "state mismatch", http.StatusBadRequest)
+ 		case q.Get("error") != "":
+ 			http.Error(w, "consent refused", http.StatusBadRequest)

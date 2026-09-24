@@ -1,0 +1,19 @@
+control: The consent redirect hands over a code only with the consent's state
+removes: the consent's state is compared with the redirect's code rather than its state
+packages: ./provider/gmail
+tests: TestTheConsentRedirectHandsOverTheCode
+scheduled-count: no
+
+diff --git a/provider/gmail/consent.go b/provider/gmail/consent.go
+index 3abb52d..aed22f8 100644
+--- a/provider/gmail/consent.go
++++ b/provider/gmail/consent.go
+@@ -64,7 +64,7 @@ func consentHandler(state string, results chan<- consentResult) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+ 		q := r.URL.Query()
+ 		switch {
+-		case q.Get("state") != state:
++		case q.Get("code") != state:
+ 			http.Error(w, "state mismatch", http.StatusBadRequest)
+ 		case q.Get("error") != "":
+ 			http.Error(w, "consent refused", http.StatusBadRequest)

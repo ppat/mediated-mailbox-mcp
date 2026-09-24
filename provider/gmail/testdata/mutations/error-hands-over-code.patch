@@ -1,0 +1,19 @@
+control: The consent redirect hands over a code only with the consent's state
+removes: a redirect carrying an error is handed over as a code
+packages: ./provider/gmail
+tests: TestTheConsentRedirectRefusesAnErrorOrNoCode/error
+scheduled-count: no
+
+diff --git a/provider/gmail/consent.go b/provider/gmail/consent.go
+index 3abb52d..cad7595 100644
+--- a/provider/gmail/consent.go
++++ b/provider/gmail/consent.go
+@@ -68,7 +68,7 @@ func consentHandler(state string, results chan<- consentResult) http.Handler {
+ 			http.Error(w, "state mismatch", http.StatusBadRequest)
+ 		case q.Get("error") != "":
+ 			http.Error(w, "consent refused", http.StatusBadRequest)
+-			decide(consentResult{err: errors.New("gmail: the consent was refused")})
++			decide(consentResult{code: q.Get("code")})
+ 		case q.Get("code") == "":
+ 			http.Error(w, "no authorization code", http.StatusBadRequest)
+ 			decide(consentResult{err: errors.New("gmail: the consent redirect carried no authorization code")})
