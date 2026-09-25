@@ -1,5 +1,5 @@
 control: Issuance holds to the hard cap the declared ceiling gives, whatever the rate state stores
-removes: the ceiling is read back from the stored target, so raising the target raises the cap
+removes: the ceiling is read back from the stored target, and the limits it gives are written back, so raising the target raises the cap
 packages: ./ratelimit/lease
 tests: TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance
 scheduled-count: no
@@ -8,15 +8,51 @@ integration: yes
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -118,6 +118,11 @@
+@@ -123,13 +123,18 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
  		st, is := stateOf(row), issuanceOf(row)
  		recent, grantLeases := recentOf(grants)
  		is.Recent = recent
+-		next, decided := core.Issue(l.limits, st, is, grantLeases, req, now)
 +		var storedTarget float64
 +		if err := t.QueryRow(ctx, "SELECT target_rate FROM rate_state WHERE account_id = $1", account).Scan(&storedTarget); err != nil {
 +			return err
 +		}
-+		l.ceiling = storedTarget / 0.5
- 		next, decided := core.Issue(l.ceiling, st, is, grantLeases, req, now)
++		limits := core.LimitsFor(storedTarget / 0.5)
++		next, decided := core.Issue(limits, st, is, grantLeases, req, now)
  		d, rate = decided, float64(row.CurrentRate)
  		if d.Outcome == core.Refused {
+ 			return nil
+ 		}
+ 		wait = l.waitFor(st, next, req, now)
+-		return l.storeIssuance(ctx, q, account, st, next, grantLeases, d, now)
++		return l.storeIssuance(ctx, q, account, limits, st, next, grantLeases, d, now)
+ 	})
+ 	if err != nil {
+ 		return core.Decision{}, 0, err
+@@ -144,7 +149,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
+ // storeIssuance writes what issuance keeps after one request. The grants more than a second old are
+ // deleted, a grant stamped ahead of the instant issuance reached is moved back to it as the rules take
+ // it, and a granted lease gets its row.
+-func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
++func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, limits core.Limits, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
+ 	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
+ 		return fmt.Errorf("deleting old grants: %w", err)
+ 	}
+@@ -165,14 +170,14 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, accou
+ 			return fmt.Errorf("storing the grant: %w", err)
+ 		}
+ 	}
+-	classes, err := classesShown(st, l.limits, held, next.At)
++	classes, err := classesShown(st, limits, held, next.At)
+ 	if err != nil {
+ 		return err
+ 	}
+ 	return q.UpdateIssuance(ctx, ratestate.UpdateIssuanceParams{
+ 		AccountID:          account,
+-		TargetRate:         float32(l.limits.Target()),
+-		HardCap:            float32(l.limits.HardCap()),
++		TargetRate:         float32(limits.Target()),
++		HardCap:            float32(limits.HardCap()),
+ 		BucketLevel:        roundDown32(next.Level),
+ 		BucketFilledMs:     stored(next.At),
+ 		InteractiveAskedMs: stored(next.Asked[core.Interactive]),

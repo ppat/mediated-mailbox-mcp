@@ -30,16 +30,23 @@ func (refusingTokens) AccessToken(context.Context) (string, error) {
 	return "", errors.New("invalid_grant")
 }
 
-// counted is one series of the request cost counter.
+// counted is one series of the request cost counter or of the hard cap.
 type counted struct {
 	Account  string
 	Provider string
 	Value    float64
 }
 
-// gatheredCost reads the request cost counter back from the registry, by the name and the labels the
-// runaway rule matches on.
-func gatheredCost(t *testing.T, reg *prometheus.Registry) []counted {
+// The two series the adapter emits, by the names the runaway rule matches.
+const (
+	costSeries    = "mediated_mailbox_provider_request_cost_total"
+	hardCapSeries = "mediated_mailbox_provider_hard_cap"
+)
+
+// gathered reads the series named name back from the registry, with the labels the runaway rule
+// matches on. A series the adapter does not emit, or a label the rule does not expect, fails the
+// test.
+func gathered(t *testing.T, reg *prometheus.Registry, name string) []counted {
 	t.Helper()
 	families, err := reg.Gather()
 	if err != nil {
@@ -47,12 +54,15 @@ func gatheredCost(t *testing.T, reg *prometheus.Registry) []counted {
 	}
 	var out []counted
 	for _, f := range families {
-		if f.GetName() != "mediated_mailbox_provider_request_cost_total" {
+		if f.GetName() != costSeries && f.GetName() != hardCapSeries {
 			t.Errorf("the registry holds a series named %q", f.GetName())
 			continue
 		}
+		if f.GetName() != name {
+			continue
+		}
 		for _, m := range f.GetMetric() {
-			c := counted{Value: m.GetCounter().GetValue()}
+			c := counted{Value: m.GetCounter().GetValue() + m.GetGauge().GetValue()}
 			for _, l := range m.GetLabel() {
 				switch l.GetName() {
 				case "account":
@@ -60,13 +70,19 @@ func gatheredCost(t *testing.T, reg *prometheus.Registry) []counted {
 				case "provider":
 					c.Provider = l.GetValue()
 				default:
-					t.Errorf("the counter carries a label named %q", l.GetName())
+					t.Errorf("the series carries a label named %q", l.GetName())
 				}
 			}
 			out = append(out, c)
 		}
 	}
 	return out
+}
+
+// gatheredCost reads the request cost counter back from the registry.
+func gatheredCost(t *testing.T, reg *prometheus.Registry) []counted {
+	t.Helper()
+	return gathered(t, reg, costSeries)
 }
 
 // testAdapter returns an adapter whose every request fails once it is counted, with the registry its
@@ -88,8 +104,9 @@ func testAdapter(t *testing.T) (*Adapter, *prometheus.Registry, context.Context)
 }
 
 // Every request the adapter sends is counted at what Gmail charges for it, under the account and
-// the gmail provider label, whether or not it succeeds, and nothing about a lease enters into it
-// (ADR-0077). Each port call here sends one request that fails.
+// the gmail provider label, whether or not it succeeds, and nothing about a lease enters into it.
+// The account's hard cap is emitted beside the count (ADR-0077). Each port call here sends one
+// request that fails.
 func TestEveryRequestSentIsCounted(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -119,11 +136,17 @@ func TestEveryRequestSentIsCounted(t *testing.T) {
 			if diff := cmp.Diff(want, gatheredCost(t, reg), compare.Options); diff != "" {
 				t.Errorf("request cost counted (-want +got):\n%s", diff)
 			}
+			// The hard cap beside the count is 80% of Gmail's declared 100 units a second.
+			wantCap := []counted{{Account: "you@example.com", Provider: "gmail", Value: 80}}
+			if diff := cmp.Diff(wantCap, gathered(t, reg, hardCapSeries), compare.Options); diff != "" {
+				t.Errorf("hard cap emitted (-want +got):\n%s", diff)
+			}
 		})
 	}
 }
 
-// A request that never leaves, because no access token was had, is not counted.
+// A request that never leaves, because no access token was had, is not counted, and sets no hard
+// cap.
 func TestARequestNeverSentIsNotCounted(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	metrics, err := NewMetrics(reg)
@@ -139,6 +162,9 @@ func TestARequestNeverSentIsNotCounted(t *testing.T) {
 	}
 	if got := gatheredCost(t, reg); len(got) != 0 {
 		t.Errorf("request cost counted %+v, want nothing", got)
+	}
+	if got := gathered(t, reg, hardCapSeries); len(got) != 0 {
+		t.Errorf("hard cap emitted %+v, want nothing", got)
 	}
 }
 

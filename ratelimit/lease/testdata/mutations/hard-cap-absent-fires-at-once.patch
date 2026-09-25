@@ -1,0 +1,17 @@
+control: Cost counted for an account with no hard cap emitted fires the missing-threshold rule
+removes: the rule fires on its first evaluation rather than after the condition has held for five minutes
+packages: ./ratelimit/lease
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -44,7 +44,6 @@ groups:
+     expr: |
+       sum by (account) (increase(mediated_mailbox_provider_request_cost_total[5m])) > 0
+       unless on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m]))
+-    for: 5m
+     labels:
+       severity: warning
+     annotations:

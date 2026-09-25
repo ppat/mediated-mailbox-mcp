@@ -1,0 +1,18 @@
+control: An account may lower its target to any value above the floor, and nothing may raise it above half the ceiling
+removes: the stored target is compared with the floor in full precision, so a target the four-byte rate state stores equal to the floor is accepted
+packages: ./ratelimit/core
+tests: TestLimitsWithTarget TestLimitsWithTarget/lowered_to_the_next_number_above_the_floor,_stored_equal_to_it TestLimitsWithTarget/lowered_under_a_ceiling_past_the_four-byte_range
+scheduled-count: no
+
+diff --git a/ratelimit/core/limits.go b/ratelimit/core/limits.go
+--- a/ratelimit/core/limits.go
++++ b/ratelimit/core/limits.go
+@@ -61,7 +61,7 @@ func LimitsWithTarget(ceiling, target float64) (Limits, error) {
+ 		return Limits{}, ErrTargetOutOfRange
+ 	}
+ 	l := limitsAt(ceiling, target)
+-	if target < defaultTargetFraction && l.floor > 0 && !(float32(l.target) > float32(l.floor)) {
++	if target < defaultTargetFraction && l.floor > 0 && !(l.target > l.floor) {
+ 		return Limits{}, ErrTargetOutOfRange
+ 	}
+ 	return l, nil

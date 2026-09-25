@@ -79,10 +79,12 @@ type step struct {
 }
 
 // run is one account's history. Kind names the deliberately bad input it carries, and the run is
-// otherwise drawn from valid values.
+// otherwise drawn from valid values. Target is the target as a fraction of the ceiling, the default
+// or one an account lowered.
 type run struct {
 	Kind         int
 	Ceiling      number
+	Target       number
 	Start        int64
 	Rate         number
 	Level        number
@@ -197,12 +199,24 @@ func drawKind(t *rapid.T) int {
 	}
 }
 
+// drawTarget draws the default target half the time, and otherwise a target an account lowered,
+// from just above the floor up to the default (ADR-0024). The lowest is far enough above the floor
+// that the four-byte storage of the rate cannot round it onto the floor, which LimitsWithTarget
+// refuses.
+func drawTarget(t *rapid.T) float64 {
+	if rapid.Bool().Draw(t, "target lowered") {
+		return rapid.Float64Range(0.0501, 0.5).Draw(t, "lowered target as a share of the ceiling")
+	}
+	return 0.5
+}
+
 func drawRun(t *rapid.T) run {
 	kind := drawKind(t)
 	ceiling := rapid.SampledFrom([]float64{100, 250, 1, 1e6}).Draw(t, "ceiling")
 	r := run{
 		Kind:    kind,
 		Ceiling: number(ceiling),
+		Target:  number(drawTarget(t)),
 		Start:   rapid.Int64Range(0, 2_000_000_000_000).Draw(t, "start"),
 		Rate:    number(ceiling * rapid.Float64Range(0.05, 0.5).Draw(t, "rate as a share of the ceiling")),
 	}
@@ -212,6 +226,9 @@ func drawRun(t *rapid.T) run {
 	var bad []step
 	switch kinds[kind] {
 	case "bad ceiling":
+		// Judged at the default target, since a lowered target under a ceiling past the four-byte
+		// range is refused.
+		r.Target = 0.5
 		// An infinite ceiling is the one that would fix an unbounded budget, so it is drawn half
 		// the time and the rest share the other half.
 		r.Ceiling = posInf
@@ -359,11 +376,10 @@ type grant struct {
 	tokens float64
 }
 
-// replay runs r through the rules as a shell would, keeping every lease Issue returns, and returns
-// the grants in issue order. check is called after every controller rule with the state it
-// returned.
-func replay(r run, check func(core.State)) []grant {
-	ceiling := float64(r.Ceiling)
+// replay runs r through the rules under the limits l as a shell would, keeping every lease Issue
+// returns, and returns the grants in issue order. check is called after every controller rule with
+// the state it returned.
+func replay(r run, l core.Limits, check func(core.State)) []grant {
 	s := core.State{Rate: float64(r.Rate), BackoffUntil: r.BackoffUntil, Throttles: r.Throttles}
 	is := core.Issuance{Level: float64(r.Level), At: r.At}
 	var leases []core.Lease
@@ -375,7 +391,7 @@ func replay(r run, check func(core.State)) []grant {
 		switch st.Op {
 		case opRequest:
 			var d core.Decision
-			is, d = core.Issue(ceiling, s, is, leases, core.Request{Class: core.Class(st.Class), Tokens: float64(st.Tokens)}, clock)
+			is, d = core.Issue(l, s, is, leases, core.Request{Class: core.Class(st.Class), Tokens: float64(st.Tokens)}, clock)
 			// Issuance's clock is the latest instant of every request it decided, and a refused
 			// request is not decided.
 			if d.Outcome != core.Refused {
@@ -386,17 +402,17 @@ func replay(r run, check func(core.State)) []grant {
 				leases = append(leases, d.Lease)
 			}
 		case opSuccess:
-			s = core.Succeeded(s, ceiling, mail.OpCost{Weight: float64(st.Cost), OpsCount: 1})
+			s = core.Succeeded(s, l, mail.OpCost{Weight: float64(st.Cost), OpsCount: 1})
 			check(s)
 		case opThrottle:
 			signal := mail.ThrottleSignal{RetryAfterMillis: st.RetryAfter, HasRetryAfter: st.HasRetryAfter}
-			s = core.Throttled(s, ceiling, signal, clock, float64(st.Draw))
+			s = core.Throttled(s, l, signal, clock, float64(st.Draw))
 			check(s)
 		case opServerError:
-			s = core.ServerErrored(s, ceiling)
+			s = core.ServerErrored(s, l)
 			check(s)
 		case opLatency:
-			s = core.LatencyMeasured(s, ceiling, float64(st.Median), float64(st.Baseline))
+			s = core.LatencyMeasured(s, l, float64(st.Median), float64(st.Baseline))
 			check(s)
 		case opCorruptRate:
 			s.Rate = float64(st.Value)
@@ -414,28 +430,34 @@ func replay(r run, check func(core.State)) []grant {
 	return grants
 }
 
-// A postcondition over every run, bad inputs included, with the hard cap and the target 80% and 50%
-// of the declared ceiling (ADR-0024). The tokens issued inside any one-second window sum to at most
-// the hard cap, and over a window of any length they stay within the hard cap plus the target
-// times its length. The second bound is not asserted on a run whose store handed back an instant
-// behind the grants or ahead of the clock. An instant behind lets the bucket refill a stretch it
-// already refilled, which the rules cannot tell from idle time, while the one-second window still
-// holds. The grants are measured on the run's own clock, so an instant ahead is judged by the real
-// second it lands in. Every controller rule returns a
-// rate between the floor and the target. TestAValidRequestIsGrantedOnceTheBucketHoldsIt pairs this with the check that issuance
-// grants at all, which an issuer granting nothing would fail.
+// A postcondition over every run, bad inputs included, with the hard cap 80% of the declared
+// ceiling and the target half of it or lowered to any value above the floor (ADR-0024). The tokens
+// issued inside any one-second window sum to at most the hard cap, and over a window of any length
+// they stay within the hard cap plus the target times its length. The second bound is not asserted
+// on a run whose store handed back an instant behind the grants or ahead of the clock. An instant
+// behind lets the bucket refill a stretch it already refilled, which the rules cannot tell from
+// idle time, while the one-second window still holds. The grants are measured on the run's own
+// clock, so an instant ahead is judged by the real second it lands in. Every controller rule
+// returns a rate between the floor and the target. TestAValidRequestIsGrantedOnceTheBucketHoldsIt
+// pairs this with the check that issuance grants at all, which an issuer granting nothing would
+// fail.
 func TestNoRunIssuesPastTheHardCap(t *testing.T) {
 	property.Check(t, drawRun, func(t rapid.TB, r run) {
 		ceiling := float64(r.Ceiling)
+		fraction := float64(r.Target)
+		l, err := core.LimitsWithTarget(ceiling, fraction)
+		if err != nil {
+			t.Fatalf("LimitsWithTarget(%v, %v): %v", ceiling, fraction, err)
+		}
 		bucketBound := kinds[r.Kind] != "stored instant come back behind or ahead of the grants"
 		budget := finitePositive(ceiling)
 		hardCap, target := 0.0, 0.0
 		if budget {
-			hardCap, target = 0.8*ceiling, 0.5*ceiling
+			hardCap, target = 0.8*ceiling, fraction*ceiling
 		}
-		grants := replay(r, func(s core.State) {
-			if budget && !(s.Rate >= 0.05*ceiling && s.Rate <= 0.5*ceiling) {
-				t.Fatalf("kind %q: rate %v outside the floor %v and the target %v", kinds[r.Kind], s.Rate, 0.05*ceiling, 0.5*ceiling)
+		grants := replay(r, l, func(s core.State) {
+			if budget && !(s.Rate >= 0.05*ceiling && s.Rate <= target) {
+				t.Fatalf("kind %q: rate %v outside the floor %v and the target %v", kinds[r.Kind], s.Rate, 0.05*ceiling, target)
 			}
 		})
 		slices.SortStableFunc(grants, func(a, b grant) int { return compareInstants(a.at, b.at) })
@@ -480,6 +502,23 @@ func TestNoRunIssuesPastTheHardCapMix(t *testing.T) {
 	property.Report(t, drawRun, kindOfRun, minimums)
 }
 
+func targetOfRun(r run) string {
+	if r.Target < 0.5 {
+		return "lowered target"
+	}
+	return "default target"
+}
+
+// The generator report of the target the property above draws, so a generator edit that stops
+// lowering it is caught. Each is drawn on an even coin flip, less the rare lowered draw that lands
+// on the default itself.
+func TestNoRunIssuesPastTheHardCapTargetMix(t *testing.T) {
+	property.Report(t, drawRun, targetOfRun, map[string]float64{
+		"lowered target": 0.3,
+		"default target": 0.3,
+	})
+}
+
 // request is a valid request against an empty bucket, with no class asking before it and no
 // backoff.
 type request struct {
@@ -510,7 +549,7 @@ func TestAValidRequestIsGrantedOnceTheBucketHoldsIt(t *testing.T) {
 		wait := int64(math.Ceil(a.Tokens/a.Rate*1000)) + 1
 		is := core.Issuance{At: a.Start}
 		at := a.Start + wait
-		_, d := core.Issue(a.Ceiling, core.State{Rate: a.Rate}, is, nil, core.Request{Class: core.Class(a.Class), Tokens: a.Tokens}, at)
+		_, d := core.Issue(core.LimitsFor(a.Ceiling), core.State{Rate: a.Rate}, is, nil, core.Request{Class: core.Class(a.Class), Tokens: a.Tokens}, at)
 		if d.Outcome != core.Granted || d.Lease.Tokens != a.Tokens || d.Lease.Class != core.Class(a.Class) || d.Lease.Expires != at+1000 {
 			t.Fatalf("%+v: after %d ms the decision is %+v, want %v tokens granted until %d", a, wait, d, a.Tokens, at+1000)
 		}

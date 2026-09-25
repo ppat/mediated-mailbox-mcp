@@ -8,16 +8,16 @@ integration: yes
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -141,7 +141,7 @@
+@@ -145,7 +145,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
+ // deleted, a grant stamped ahead of the instant issuance reached is moved back to it as the rules take
  // it, and a granted lease gets its row.
  func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
- 	limits := core.LimitsFor(l.ceiling)
 -	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
 +	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - 60*leaseMillis)}); err != nil {
  		return fmt.Errorf("deleting old grants: %w", err)
  	}
  	if err := q.ClampGrants(ctx, ratestate.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {
-@@ -337,7 +337,7 @@
+@@ -339,7 +339,7 @@ func recentOf(grants []ratestate.GrantsRow) ([]core.Issued, []core.Lease) {
  	leases := make([]core.Lease, 0, len(grants))
  	for _, g := range grants {
  		recent = append(recent, core.Issued{At: g.IssuedMs, Tokens: float64(g.Tokens)})

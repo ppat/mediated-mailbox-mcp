@@ -1,0 +1,18 @@
+control: Cost counted for an account with no hard cap emitted fires the missing-threshold rule
+removes: the hard cap's window is five minutes, so a hard cap that left five minutes ago still hides its absence and the account goes ten minutes with nothing firing
+packages: ./ratelimit/lease
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -43,7 +43,7 @@ groups:
+   - alert: MediatedMailboxRateHardCapAbsent
+     expr: |
+       sum by (account) (increase(mediated_mailbox_provider_request_cost_total[5m])) > 0
+-      unless on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m]))
++      unless on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[5m]))
+     for: 5m
+     labels:
+       severity: warning

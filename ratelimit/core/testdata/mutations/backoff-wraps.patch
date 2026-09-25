@@ -5,13 +5,12 @@ tests: TestThrottled
 scheduled-count: no
 
 diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
-index d113493..e0d6765 100644
 --- a/ratelimit/core/controller.go
 +++ b/ratelimit/core/controller.go
-@@ -60,7 +60,7 @@ func Throttled(s State, ceiling float64, signal mail.ThrottleSignal, now int64,
+@@ -58,7 +58,7 @@ func Throttled(s State, l Limits, signal mail.ThrottleSignal, now int64, draw fl
  	}
  	return State{
- 		Rate:         max(l.bounded(s.Rate)*throttleFactor, l.Floor),
+ 		Rate:         max(l.bounded(s.Rate)*throttleFactor, l.floor),
 -		BackoffUntil: max(s.BackoffUntil, addSaturating(now, wait)),
 +		BackoffUntil: max(s.BackoffUntil, now+wait),
  		Throttles:    throttles,

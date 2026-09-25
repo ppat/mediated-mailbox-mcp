@@ -1,5 +1,6 @@
 // Package mail holds the canonical mail model, the Provider Port interface the adapters implement,
-// the canonical query, and the rate profile types adapters declare (ADR-0010, ADR-0023).
+// the canonical query, and the rate profile types adapters declare with the hard-cap fraction every
+// call is sized within (ADR-0010, ADR-0023, ADR-0024).
 //
 // Everything above the port speaks these types, and only an adapter knows a provider's own shapes.
 // The package is a pure core, so it holds types, constructors and the interfaces and nothing that

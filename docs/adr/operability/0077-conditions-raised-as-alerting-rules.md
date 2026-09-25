@@ -43,9 +43,15 @@ paged.
 - **The runaway rule reads the cost of provider requests counted where each request is sent,**
   never a figure derived from lease accounting, because a runaway is the failure in which lease
   accounting is wrong. Each spending process emits its own count, and the rule sums them for the
-  account over one minute. A lease is spent up to a second after it is issued, so a shorter window fires on
-  correct operation, and Gmail counts its own limit per minute. The rule fires when that minute
-  holds more than `hard_cap` times sixty seconds of cost.
+  account over two minutes. A lease is spent up to a second after it is issued, so a window of
+  seconds fires on correct operation, and a counter's increase needs two samples inside its window,
+  so a one-minute window never fires on a platform that scrapes once a minute. The rule fires when
+  those two minutes hold more than `hard_cap` times 120 seconds of cost. Each spending process
+  emits its account's `hard_cap` beside its count, from the ceiling its provider's adapter
+  declares, and the rule reads the highest `hard_cap` seen over the same two minutes, so a process
+  that exits or misses a scrape does not take the threshold with it. A second rule fires when an
+  account's cost is counted and no `hard_cap` is, so a process that forgets it cannot silence the
+  first. The runaway rule serves every provider.
 - **Collapse is two rules, each only while a class has asked within the last minute**, so an idle
   account never trips them. One fires when the rate stays at the floor for more than five minutes,
   the case [ADR-0024](./0024-conservative-target-aimd.md) names. The other fires when nothing has
@@ -83,12 +89,14 @@ paged.
 - The page reaching a person is proven on the deploying side, as the write-back failure is.
 - Each spending process counts the cost of the provider requests it sends. A process that exits
   between two scrapes can leave its last requests uncounted, which matters for delta sync's short
-  ticks, and how its count reaches the runaway rule is decided with delta sync.
-- The runaway rule's minute does not see the one more bucket a forward step of the database clock
-  or a stale stored instant can release ([ADR-0024](./0024-conservative-target-aimd.md)), since a
-  minute at the target stays far below its threshold. A stored instant that stays stale holds
-  issuance at `hard_cap`, which at most equals the threshold over a whole minute, so the rule, which
-  fires only above it, stays silent.
+  ticks, and how its count reaches the runaway rule is decided with delta sync. More generally the
+  rules see a process's cost only once it has been scraped twice inside their window, so a runaway
+  spread across processes that each live less than two scrape intervals reaches neither rule.
+- The runaway rule's two minutes do not see the one more bucket a forward step of the database
+  clock or a stale stored instant can release ([ADR-0024](./0024-conservative-target-aimd.md)),
+  since two minutes at the target stay far below its threshold. A stored instant that stays stale
+  holds issuance at `hard_cap`, which at most equals the threshold over two whole minutes, so the
+  rule, which fires only above it, stays silent.
 - Assumptions about other components: the platform scrapes every spending process and the
   mediator, keeps the series long enough for a five-minute rule, and routes the runaway rule to a
   person.

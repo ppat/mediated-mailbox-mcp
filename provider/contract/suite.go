@@ -134,6 +134,7 @@ func Run(t *testing.T, cfg Config) {
 		{"a message delivered and then removed is reported once, as removed", seeded, removedDeliveryIsRemoved, true},
 		{"a cursor the implementation cannot read is a gap", empty, foreignCursorIsAGap, false},
 		{"the rate profile declares a budget and a cost for every operation", empty, rateProfileDeclares, false},
+		{"every call the rate profile sizes fits one second at the hard cap", empty, rateProfileFitsTheHardCap, false},
 		{"the rate profile recognises the port's throttle", empty, rateProfileParsesThrottles, false},
 		{"a cancelled call fails and changes nothing", seeded, cancelledCallsFail, false},
 	}
@@ -309,10 +310,10 @@ func mailboxKeys() []string {
 }
 
 // fits returns how many messages one call of op may name, up to most. It is the most whose cost
-// stays within one second's worth at the hard cap, which ADR-0024 sets at 80% of the budget the
-// profile declares, so the caller learns what fits by asking the profile (ADR-0023).
+// stays within one second's worth at the hard cap, the hard-cap fraction of the budget the profile
+// declares (ADR-0024), so the caller learns what fits by asking the profile (ADR-0023).
 func fits(p mail.RateLimitProfile[context.Context], op mail.Operation, most int) int {
-	limit := 0.8 * p.BudgetPerSecond()
+	limit := mail.HardCapFraction * p.BudgetPerSecond()
 	n := 1
 	for n < most && p.Cost(mail.ProviderOp{Operation: op, Messages: n + 1}).Weight <= limit {
 		n++
@@ -1148,10 +1149,31 @@ var operations = []mail.Operation{
 func RunProfile(t *testing.T, p mail.RateLimitProfile[context.Context]) {
 	t.Helper()
 	t.Run("the rate profile declares a budget and a cost for every operation", func(t *testing.T) { profileDeclares(t, p) })
+	t.Run("every call the rate profile sizes fits one second at the hard cap", func(t *testing.T) { profileFitsTheHardCap(t, p) })
 	t.Run("the rate profile recognises the port's throttle", func(t *testing.T) { profileParsesThrottles(t, p) })
 }
 
 func rateProfileDeclares(t *testing.T, s *subject) { profileDeclares(t, s.port.RateProfile()) }
+
+func rateProfileFitsTheHardCap(t *testing.T, s *subject) {
+	profileFitsTheHardCap(t, s.port.RateProfile())
+}
+
+// profileFitsTheHardCap requires every operation naming no message, and every operation naming one,
+// to cost no more than one second's worth at the hard cap, the hard-cap fraction of the budget the
+// profile declares (ADR-0023, ADR-0024). A call costing more is refused at lease issuance every time
+// it is asked for, so an implementation must size its pages, and allow the smallest call a caller
+// can make, within it. A caller splits a larger call by asking the profile what fits.
+func profileFitsTheHardCap(t *testing.T, p mail.RateLimitProfile[context.Context]) {
+	limit := mail.HardCapFraction * p.BudgetPerSecond()
+	for _, op := range operations {
+		for _, n := range []int{0, 1} {
+			if c := p.Cost(mail.ProviderOp{Operation: op, Messages: n}); c.Weight > limit {
+				t.Errorf("Cost of operation %d naming %d messages is %v, past one second's worth at the hard cap, %v", op, n, c.Weight, limit)
+			}
+		}
+	}
+}
 
 func rateProfileParsesThrottles(t *testing.T, s *subject) {
 	profileParsesThrottles(t, s.port.RateProfile())

@@ -1,8 +1,9 @@
 // Package core holds the rate limiter's pure rules (ADR-0024, ADR-0025). These are the target, the
-// hard cap and the floor as fractions of the declared ceiling, the AIMD controller, backoff after a
-// throttle, the latency baseline, the priority-class split, lease issuance from a token bucket and a
-// one-second window under the hard cap, and the expiry rule that returns a crashed worker's tokens
-// to the pool. Every rule takes the state it decides from and returns the state or decision it
+// hard cap and the floor as fractions of the declared ceiling, with a target an account may lower
+// and nothing may raise, the AIMD controller, backoff after a throttle, the latency baseline, the
+// priority-class split, lease issuance from a token bucket and a one-second window under the hard
+// cap, and the expiry rule that returns a crashed worker's tokens to the pool. Every rule takes the
+// limits it decides under and the state it decides from, and returns the state or decision it
 // reached as a value, and the lease code in ratelimit/lease stores and enacts it. How that state is
 // stored is the lease code's.
 //

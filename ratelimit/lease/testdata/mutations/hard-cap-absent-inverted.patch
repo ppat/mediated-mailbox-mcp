@@ -1,0 +1,18 @@
+control: Cost counted for an account with no hard cap emitted fires the missing-threshold rule
+removes: the rule fires for the accounts that have a hard cap rather than those that lack one
+packages: ./ratelimit/lease
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -43,7 +43,7 @@ groups:
+   - alert: MediatedMailboxRateHardCapAbsent
+     expr: |
+       sum by (account) (increase(mediated_mailbox_provider_request_cost_total[5m])) > 0
+-      unless on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m]))
++      and on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m]))
+     for: 5m
+     labels:
+       severity: warning

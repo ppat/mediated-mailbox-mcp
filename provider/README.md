@@ -13,7 +13,8 @@ so the adapters are shared code, and they do network I/O, so they cannot sit in 
 adapter per deployable would break the one-adapter-per-provider contract. So one library holds
 `gmail`, `gcal`, `jmap` and `caldav`, each with the rate profile its provider needs
 ([ADR-0023](../docs/adr/operability/0023-adapter-declares-cost.md)). Each adapter counts the cost of
-every request where it sends it, the series the runaway rule reads
+every request where it sends it and emits the account's hard cap beside the count, the series the
+runaway rule reads
 ([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)), so the library
 registers metrics through client_golang on a registry its caller passes in
 ([ADR-0076](../docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)). It also holds
@@ -41,3 +42,19 @@ location
 ([ADR-0011](../docs/adr/provider/0011-gmail-auth-installed-app-oauth.md),
 [ADR-0038](../docs/adr/operability/0038-credentials-as-mounted-files.md),
 [ADR-0039](../docs/adr/operability/0039-rotation-writeback.md)).
+
+## Series and the rules that read them
+
+Every adapter emits both series, labelled by `account` and by `provider`, whose value is the
+adapter's own name, such as `gmail`. Two alerting rules in `packaging/chart/alerting-rules.yaml`
+read them, and neither holds a provider's number of its own.
+
+| Rule | Reads | Fires when |
+| --- | --- | --- |
+| `MediatedMailboxRateRunaway` | Both | The cost summed over every spending process for the account over two minutes passes the highest hard cap emitted for it over those two minutes, times 120 seconds |
+| `MediatedMailboxRateHardCapAbsent` | Both | The account's cost grew over the last five minutes and no hard cap was emitted for it in the last two, held for five minutes, since the runaway rule has no threshold for that account |
+
+| Series | Kind | Value |
+| --- | --- | --- |
+| `mediated_mailbox_provider_request_cost_total` | Counter | The cost of every request the process sent for the account, in the provider's units, failed requests included |
+| `mediated_mailbox_provider_hard_cap` | Gauge | The account's hard cap in the provider's units per second, `mail.HardCapFraction` of the ceiling the adapter's rate profile declares, set each time a request is counted |

@@ -1,4 +1,4 @@
-control: The runaway rule fires on a minute of provider request cost above the hard cap, summed over every spending process
+control: The runaway rule fires on two minutes of provider request cost above the hard cap times 120 seconds, summed over every spending process
 removes: the runaway rule takes the busiest process for the account rather than summing them
 packages: ./ratelimit/lease
 tests: TestAlertingRules
@@ -7,12 +7,12 @@ scheduled-count: no
 diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
 --- a/packaging/chart/alerting-rules.yaml
 +++ b/packaging/chart/alerting-rules.yaml
-@@ -17,7 +17,7 @@
-   # ceiling, 80 units a second for Gmail, so each provider has its own threshold.
+@@ -23,7 +23,7 @@ groups:
+   # ceiling beside a new one judges by the higher.
    - alert: MediatedMailboxRateRunaway
      expr: |
--      sum by (account) (increase(mediated_mailbox_provider_request_cost_total{provider="gmail"}[1m])) > 80 * 60
-+      max by (account) (increase(mediated_mailbox_provider_request_cost_total{provider="gmail"}[1m])) > 80 * 60
+-      sum by (account) (increase(mediated_mailbox_provider_request_cost_total[2m]))
++      max by (account) (increase(mediated_mailbox_provider_request_cost_total[2m]))
+       > on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m])) * 120
      labels:
        severity: page
-     annotations:

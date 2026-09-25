@@ -8,41 +8,233 @@ rule_files:
 evaluation_interval: 15s
 
 tests:
-# Runaway. One process spends 1500 units every 15 seconds, 6000 a minute against Gmail's 4800, and another 1000,
-# 4000 a minute. Only the first account's rule fires.
-- interval: 15s
+# The runaway cases are scraped once a minute, the slowest interval the rule's two-minute window serves, apart from
+# the case of a process that has gone, which needs a faster scrape to be seen at all.
+
+# Runaway. One process spends 6000 units a minute against Gmail's hard cap of 80 units a second, 9600 over two
+# minutes, and another 4000 a minute. Each process emits its account's hard cap beside its count. Only the first
+# account's rule fires.
+- interval: 1m
   input_series:
   - series: 'mediated_mailbox_provider_request_cost_total{account="over",provider="gmail",instance="backfill"}'
-    values: '0+1500x10'
+    values: '0+6000x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="over",provider="gmail",instance="backfill"}'
+    values: '80x10'
   - series: 'mediated_mailbox_provider_request_cost_total{account="under",provider="gmail",instance="backfill"}'
-    values: '0+1000x10'
+    values: '0+4000x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="under",provider="gmail",instance="backfill"}'
+    values: '80x10'
   alert_rule_test:
-  - eval_time: 2m
+  - eval_time: 5m
     alertname: MediatedMailboxRateRunaway
     exp_alerts:
     - exp_labels:
         account: over
         severity: page
       exp_annotations:
-        summary: Requests for account over cost more in the last minute than the hard cap allows.
+        summary: Requests for account over cost more in the last two minutes than the hard cap allows.
 
-# Runaway summed across processes. Two processes each spend 3000 units a minute for one account, under 4800 alone
-# and 6000 together, so the rule fires.
-- interval: 15s
+# Runaway summed across processes. Two processes each spend 3000 units a minute for one account, under 9600 over two
+# minutes alone and 12000 together, so the rule fires.
+- interval: 1m
   input_series:
   - series: 'mediated_mailbox_provider_request_cost_total{account="shared",provider="gmail",instance="backfill"}'
-    values: '0+750x10'
+    values: '0+3000x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="shared",provider="gmail",instance="backfill"}'
+    values: '80x10'
   - series: 'mediated_mailbox_provider_request_cost_total{account="shared",provider="gmail",instance="mediate"}'
-    values: '0+750x10'
+    values: '0+3000x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="shared",provider="gmail",instance="mediate"}'
+    values: '80x10'
   alert_rule_test:
-  - eval_time: 2m
+  - eval_time: 5m
     alertname: MediatedMailboxRateRunaway
     exp_alerts:
     - exp_labels:
         account: shared
         severity: page
       exp_annotations:
-        summary: Requests for account shared cost more in the last minute than the hard cap allows.
+        summary: Requests for account shared cost more in the last two minutes than the hard cap allows.
+
+# Runaway for providers that are not Gmail, each threshold read from the hard cap the spending process emits. Two
+# accounts of a provider whose hard cap is 20 units a second, 2400 over two minutes, spend 3200 and 1600 over two
+# minutes, and only the first fires. A third account, of a provider whose hard cap is 200 units a second, 24000 over
+# two minutes, spends 12000, above Gmail's 9600, and stays silent.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="small-over",provider="other",instance="backfill"}'
+    values: '0+1600x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="small-over",provider="other",instance="backfill"}'
+    values: '20x10'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="small-under",provider="other",instance="backfill"}'
+    values: '0+800x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="small-under",provider="other",instance="backfill"}'
+    values: '20x10'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="large",provider="another",instance="backfill"}'
+    values: '0+6000x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="large",provider="another",instance="backfill"}'
+    values: '200x10'
+  alert_rule_test:
+  - eval_time: 5m
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts:
+    - exp_labels:
+        account: small-over
+        severity: page
+      exp_annotations:
+        summary: Requests for account small-over cost more in the last two minutes than the hard cap allows.
+
+# Runaway from a process that has gone, scraped every 30 seconds. It spends 3000 units every 30 seconds, 12000 over
+# two minutes against 9600, and both its series go stale at three and a half minutes, as they do when the process
+# exits or misses a scrape. The two minutes still hold its cost and its hard cap, so the rule fires.
+- interval: 30s
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="gone",provider="gmail",instance="backfill"}'
+    values: '0+3000x6 stale'
+  - series: 'mediated_mailbox_provider_hard_cap{account="gone",provider="gmail",instance="backfill"}'
+    values: '80x6 stale'
+  alert_rule_test:
+  - eval_time: 3m30s
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts:
+    - exp_labels:
+        account: gone
+        severity: page
+      exp_annotations:
+        summary: Requests for account gone cost more in the last two minutes than the hard cap allows.
+
+# Runaway while two processes disagree on the hard cap, as during a rollout that changes a declared ceiling. One
+# emits 20 units a second and the other 40, and together they spend 4000 over two minutes, under the higher cap's 4800
+# and over the lower's 2400 and the mean's 3600. The rule judges by the higher and stays silent.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="rollout",provider="other",instance="old"}'
+    values: '0+1000x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="rollout",provider="other",instance="old"}'
+    values: '20x10'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="rollout",provider="other",instance="new"}'
+    values: '0+1000x10'
+  - series: 'mediated_mailbox_provider_hard_cap{account="rollout",provider="other",instance="new"}'
+    values: '40x10'
+  alert_rule_test:
+  - eval_time: 5m
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts: []
+
+# The runaway rule's threshold missing, scraped once a minute. The account "blind" has its cost counted and no hard
+# cap emitted, so the runaway rule cannot fire for it however much it spends. The missing-threshold rule is pending
+# once two samples of the cost have grown, and fires once that has held for five minutes. The account "seen" emits
+# both and the account "idle" spends nothing, and neither fires.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="blind",provider="other",instance="backfill"}'
+    values: '0+6000x15'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="seen",provider="gmail",instance="backfill"}'
+    values: '0+100x15'
+  - series: 'mediated_mailbox_provider_hard_cap{account="seen",provider="gmail",instance="backfill"}'
+    values: '80x15'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="idle",provider="other",instance="backfill"}'
+    values: '500x15'
+  alert_rule_test:
+  - eval_time: 5m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts: []
+  - eval_time: 7m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts:
+    - exp_labels:
+        account: blind
+        severity: warning
+      exp_annotations:
+        summary: Requests for account blind are counted with no hard cap to judge a runaway by.
+  - eval_time: 7m
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts: []
+
+# The handover from the runaway rule to the missing-threshold rule, scraped once a minute. Process A spends for the
+# account and emits its hard cap, and its series go stale at two minutes. Process B spends 6000 units a minute for the
+# same account and never emits a hard cap. The runaway rule fires while A's hard cap is in its two minutes and falls
+# silent at three. The missing-threshold rule is pending from three minutes and fires at eight, so the account goes
+# five minutes with nothing firing.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="handover",provider="gmail",instance="a"}'
+    values: '0+100x1 stale'
+  - series: 'mediated_mailbox_provider_hard_cap{account="handover",provider="gmail",instance="a"}'
+    values: '80x1 stale'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="handover",provider="other",instance="b"}'
+    values: '0+6000x15'
+  alert_rule_test:
+  - eval_time: 2m
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts:
+    - exp_labels:
+        account: handover
+        severity: page
+      exp_annotations:
+        summary: Requests for account handover cost more in the last two minutes than the hard cap allows.
+  - eval_time: 3m
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts: []
+  - eval_time: 7m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts: []
+  - eval_time: 8m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts:
+    - exp_labels:
+        account: handover
+        severity: warning
+      exp_annotations:
+        summary: Requests for account handover are counted with no hard cap to judge a runaway by.
+
+# The missing-threshold rule through missed scrapes, scraped once a minute. A process with no hard cap spends 6000 units
+# a minute and misses one scrape in every four, as a process spinning hard enough to run away may. The cost's five
+# minutes always hold two samples, so the condition holds from the first minute and the rule fires at six minutes
+# and still fires at twenty.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="spinning",provider="other",instance="backfill"}'
+    values: '0 6000 12000 _ 24000 30000 36000 _ 48000 54000 60000 _ 72000 78000 84000 _ 96000 102000
+             108000 _ 120000 126000 132000 _ 144000 150000'
+  alert_rule_test:
+  - eval_time: 5m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts: []
+  - eval_time: 6m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts:
+    - exp_labels:
+        account: spinning
+        severity: warning
+      exp_annotations:
+        summary: Requests for account spinning are counted with no hard cap to judge a runaway by.
+  - eval_time: 20m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts:
+    - exp_labels:
+        account: spinning
+        severity: warning
+      exp_annotations:
+        summary: Requests for account spinning are counted with no hard cap to judge a runaway by.
+
+# A process that emitted its hard cap and exited, scraped once a minute. Its last samples are at two minutes and its
+# series go stale at three. The hard cap leaves its two minutes at four minutes, and the cost's five minutes hold
+# two samples until six, so the condition holds for under two minutes, short of the five the rule waits, and the
+# rule never fires.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="exited",provider="gmail",instance="backfill"}'
+    values: '0+1000x2 stale'
+  - series: 'mediated_mailbox_provider_hard_cap{account="exited",provider="gmail",instance="backfill"}'
+    values: '80x2 stale'
+  alert_rule_test:
+  - eval_time: 6m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts: []
+  - eval_time: 10m
+    alertname: MediatedMailboxRateHardCapAbsent
+    exp_alerts: []
 
 # Collapse, with a class asking throughout. The account "floor" has its rate at the floor and grants still made, and
 # the account "stalled" has its rate above the floor and nothing granted for over five minutes. Each fires only its

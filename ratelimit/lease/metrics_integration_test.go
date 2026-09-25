@@ -21,9 +21,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
-// requestCostName is the count of provider request cost the runaway rule reads. The Gmail adapter
-// emits it where each request is sent, so nothing in this package declares it.
-const requestCostName = "mediated_mailbox_provider_request_cost_total"
+// The two series the runaway rule reads, the count of provider request cost and the account's hard
+// cap beside it. The provider adapters emit both where each request is sent, so nothing in this
+// package declares them.
+const (
+	requestCostName = "mediated_mailbox_provider_request_cost_total"
+	hardCapName     = "mediated_mailbox_provider_hard_cap"
+)
 
 // reloadFailedName is the policy loader's reload-failure series, which the policy reload rule reads.
 const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
@@ -189,10 +193,10 @@ func TestTheCollectorFailsTheScrapeWhenItCannotRead(t *testing.T) {
 	}
 }
 
-// Every series the alerting rules read, apart from the provider request cost the Gmail adapter
-// emits and the reload-failure series the policy loader emits, is one the collector or a Limiter
-// emits under that exact name, so a rule never watches a name nothing emits (ADR-0076). The policy
-// loader's own tests hold its series to the same check.
+// Every series the alerting rules read, apart from the two the provider adapters emit and the
+// reload-failure series the policy loader emits, is one the collector or a Limiter emits under that
+// exact name, so a rule never watches a name nothing emits (ADR-0076). The policy loader's own tests
+// hold its series to the same check.
 func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
@@ -207,7 +211,7 @@ func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	reg.MustRegister(lease.NewCollector(spenders(t), func(context.Context) ([]lease.Account, error) {
 		return []lease.Account{{ID: account, Ceiling: ceiling}}, nil
 	}))
-	emitted := map[string]bool{requestCostName: true, reloadFailedName: true}
+	emitted := map[string]bool{requestCostName: true, hardCapName: true, reloadFailedName: true}
 	for s := range gathered(t, reg) {
 		emitted[s.name] = true
 	}

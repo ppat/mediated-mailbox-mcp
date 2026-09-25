@@ -1,0 +1,25 @@
+control: The Gmail adapter emits its account's hard cap beside the count of request cost, from the ceiling its rate profile declares
+removes: the adapter never sets the hard cap, so the runaway rule has nothing to compare the count against
+packages: ./provider/gmail
+tests: TestEveryRequestSentIsCounted TestEveryRequestSentIsCounted/a_label_listing TestEveryRequestSentIsCounted/a_body TestEveryRequestSentIsCounted/a_thread TestEveryRequestSentIsCounted/a_cursor TestEveryRequestSentIsCounted/changes TestEveryRequestSentIsCounted/an_enumeration
+scheduled-count: no
+
+diff --git a/provider/gmail/metrics.go b/provider/gmail/metrics.go
+--- a/provider/gmail/metrics.go
++++ b/provider/gmail/metrics.go
+@@ -2,8 +2,6 @@ package gmail
+ 
+ import (
+ 	"github.com/prometheus/client_golang/prometheus"
+-
+-	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+ )
+ 
+ // The series the runaway rule reads, in packaging/chart/alerting-rules.yaml (ADR-0077). The rule
+@@ -49,6 +47,5 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
+ // beside it, the hard-cap fraction of the ceiling Gmail's rate profile declares. The runaway rule
+ // compares the one against the other, so it holds no provider's number of its own.
+ func (m *Metrics) countRequest(account string, units int) {
+-	m.hardCap.WithLabelValues(account, providerLabel).Set(mail.HardCapFraction * Profile{}.BudgetPerSecond())
+ 	m.requestCost.WithLabelValues(account, providerLabel).Add(float64(units))
+ }
