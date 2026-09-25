@@ -1,0 +1,21 @@
+control: Golden fails a test whose content differs from its recorded golden file
+removes: a differing comparison is computed and discarded, so no mismatch ever fails a test
+packages: ./testsupport/compare
+tests: TestGoldenMismatchFails
+scheduled-count: no
+
+diff --git a/testsupport/compare/golden.go b/testsupport/compare/golden.go
+index ad061c4..2aee725 100644
+--- a/testsupport/compare/golden.go
++++ b/testsupport/compare/golden.go
+@@ -44,9 +44,7 @@ func Golden(t *testing.T, name string, got []byte) {
+ 	if err != nil {
+ 		t.Fatalf("reading %s: %v", path, err)
+ 	}
+-	if d := goldenDiff(want, got); d != "" {
+-		t.Errorf("%s differs from the recorded golden file (-want +got):\n%s", path, d)
+-	}
++	_ = goldenDiff(want, got)
+ }
+ 
+ // goldenDiff reports how want and got differ, through the shared comparison options, or the empty

@@ -1,0 +1,25 @@
+control: Golden fails a test whose golden file does not exist, rather than creating it
+removes: a missing golden file is written from got and the run returns, instead of failing
+packages: ./testsupport/compare
+tests: TestGoldenMissingFileFails
+scheduled-count: no
+
+diff --git a/testsupport/compare/golden.go b/testsupport/compare/golden.go
+index d75e823..d4cac56 100644
+--- a/testsupport/compare/golden.go
++++ b/testsupport/compare/golden.go
+@@ -45,7 +45,13 @@ func Golden(t *testing.T, name string, got []byte) {
+ 	}
+ 	want, err := os.ReadFile(path)
+ 	if errors.Is(err, os.ErrNotExist) {
+-		t.Fatalf("%s does not exist. Run go test -update in this package to record it", path)
++		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
++			t.Fatalf("creating %s: %v", filepath.Dir(path), err)
++		}
++		if err := os.WriteFile(path, got, 0o600); err != nil {
++			t.Fatalf("writing %s: %v", path, err)
++		}
++		return
+ 	}
+ 	if err != nil {
+ 		t.Fatalf("reading %s: %v", path, err)
