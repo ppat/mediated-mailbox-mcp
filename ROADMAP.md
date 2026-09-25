@@ -63,7 +63,7 @@ sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), wh
 tickets by unit. The **Position** line below is re-dated whenever the checklists are reconciled
 against the tickets, so staleness is detectable instead of silent.
 
-**Position: 2026-09-24.**
+**Position: 2026-09-25.**
 
 ## Delivery posture
 
@@ -389,26 +389,28 @@ redesign after agent workflows exist.
 
 ### V3 — The agent arrives, read-only
 
-**Units:** [D3](#group-d--data-flows) · [D4](#group-d--data-flows) · [R1](#group-r--packaging), then
-[production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
-the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
-invariant proven against a live adversary (the operator deliberately trying to talk the real agent
-into a restricted body) before the point. **Why here:** connecting the agent read-only is the first
-end-to-end proof of the invariant against a real adversary. Mutation capability opens only after
-that proof exists.
+**Units:** [D3](#group-d--data-flows) · [D4](#group-d--data-flows) ·
+[M3](#group-m--mutation-and-approval) · [R1](#group-r--packaging), then [production point
+1](#production-point-1--the-read-path). **Value shipped:** the first value from the deployed system,
+an agent doing whole-mailbox analysis over live, current data, with the invariant proven against a
+live adversary (the operator deliberately trying to talk the real agent into a restricted body)
+before the point, and the UI's screens that show the read path's work, runs, failures, rate and
+sync state, so the operator can watch production point 1 and judge it. **Why here:**
+connecting the agent read-only is the first end-to-end proof of the invariant against a real
+adversary. Mutation capability opens only after that proof exists.
 
 ### V4 — The agent acts, and calendar joins mail
 
 **Units:** [M1](#group-m--mutation-and-approval) · [M2](#group-m--mutation-and-approval) ·
-[M3](#group-m--mutation-and-approval) · [M4](#group-m--mutation-and-approval) ·
-[M5](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), then
+[M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
+[M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), then
 [production point 2](#production-point-2--the-agent-acts). **Value shipped:** the system's headline
 capability (organize, then propose and enact a mailbox-wide reorganization) with approval, rollback
 and the review loops that keep the policy list alive, and calendar behind the same invariant. **Why
 here:** mutation opens only after the read invariant survived a live adversary, and calendar joins
 once the mail vertical it mirrors works. **One disposition inside this band:** approval is a
-hand-written database update until [M5](#group-m--mutation-and-approval) lands. The UI is what makes
-review humane, and it arrives inside the same band as the engine it reviews.
+hand-written database update until [M5](#group-m--mutation-and-approval) lands. The UI's review screens
+are what make review humane, and they arrive inside the same band as the engine they review.
 
 ### V5 — A second of everything
 
@@ -445,11 +447,11 @@ holds, with an entry naming the point.
   [S2](#delivered-mapped-to-outcomes) · [S3](#delivered-mapped-to-outcomes) ·
   [F2](#delivered-mapped-to-outcomes) · [F5](#delivered-mapped-to-outcomes) · [F3](#delivered-mapped-to-outcomes) ·
   [D1](#group-d--data-flows) · [D2](#group-d--data-flows) · [D3](#group-d--data-flows) ·
-  [D4](#group-d--data-flows) · [R1](#group-r--packaging), the end of
+  [D4](#group-d--data-flows) · [M3](#group-m--mutation-and-approval) · [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only).
 - **Supplied there:**
   - PostgreSQL with the superuser bootstrap, the migration role, and the credentials of the runtime
-    roles the mediator, backfill and delta sync connect as
+    roles the mediator, backfill, delta sync and the UI connect as
     ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
     [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)).
   - The Gmail OAuth client and refresh token, with the consent screen published so the token does
@@ -468,8 +470,10 @@ holds, with an entry naming the point.
     write-back more than ten minutes later. Which value the store keeps when
     two deployables receive rotations close together is an [open decision](#open-decisions) answered
     on the deploying side.
+  - The UI's TLS material, and whether an authenticating proxy forwards an identity header
+    ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md)).
   - The module in homelab-ops-kubernetes-apps and its use from homelab-ops-kubernetes-clusters, the
-    first deployment of the system, with their tickets cut in those repositories.
+    first deployment of the system, the UI included, with their tickets cut in those repositories.
   - The credential-rotation runbook
     ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)), written on the deploying
     side.
@@ -489,20 +493,17 @@ holds, with an entry naming the point.
 ### Production point 2 — the agent acts
 
 - **After:** [M1](#group-m--mutation-and-approval) · [M2](#group-m--mutation-and-approval) ·
-  [M3](#group-m--mutation-and-approval) · [M4](#group-m--mutation-and-approval) ·
-  [M5](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), the
+  [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
+  [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), the
   end of [V4](#v4--the-agent-acts-and-calendar-joins-mail).
 - **Preconditions:** [production point 1](#production-point-1--the-read-path) has run long enough
   for the index to hold the real corpus and the review loops to have traffic.
 - **Supplied there:**
-  - The UI's database role credential and TLS material, and whether an authenticating proxy forwards
-    an identity header ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md)).
   - The database role credentials of the reorganization workload and the heuristics job
     ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)).
   - Re-consent on the first account's grant for the calendar scope
     ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)).
-  - The module's change for the three new deployables and the UI's inputs, with its tickets in the
-    sibling repositories.
+  - The module's change for the two new deployables, with its tickets in the sibling repositories.
 - **Proven only there:** rollback of a real plan of around a thousand messages before any plan of
   corpus scale is trusted
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md)), apply after a
@@ -738,14 +739,19 @@ a confirmed candidate's rule binds on the next classification there
 and also carries
 [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything)'s volume alert
 as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), because that rule is one
-of its screens' worth-a-look cards. [M3](#group-m--mutation-and-approval) reads the schema over
-synthetic fixtures
+of its screens' worth-a-look cards. [M3](#group-m--mutation-and-approval) sits in
+[V3](#v3--the-agent-arrives-read-only), ahead of the rest of this group, because its screens show
+the read path's work at [production point 1](#production-point-1--the-read-path). It reads the
+schema over synthetic fixtures
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), so it
-starts once [F2](#delivered-mapped-to-outcomes) and [S1](#delivered-mapped-to-outcomes)'s marker text and
-fixtures exist and builds beside the D group and the rest of this group, and
-[M5](#group-m--mutation-and-approval) follows it, because the decisions live in the UI's server and
-browser app. M4 and M5 also come after [R1](#group-r--packaging), which decides how a newly added
-policy rule changes the classifications already stored in the index.
+starts once [F2](#delivered-mapped-to-outcomes) and [S1](#delivered-mapped-to-outcomes)'s marker
+text and fixtures exist and builds beside the D group. [M6](#group-m--mutation-and-approval)
+builds the UI's remaining read screens on [M3](#group-m--mutation-and-approval)'s server and
+browser app once [M2](#group-m--mutation-and-approval) has plans to show, and
+[M5](#group-m--mutation-and-approval) follows it, because the decisions act on the plan reviewer and
+the review queue [M6](#group-m--mutation-and-approval) shows. M4 and M5 also come after
+[R1](#group-r--packaging), which decides how a newly added policy rule changes the classifications
+already stored in the index.
 
 - [ ] **M1 — Mutations, non-reorg** → [A1](./USE_CASES.md#a1--asymmetric-mutation) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
@@ -795,8 +801,9 @@ policy rule changes the classifications already stored in the index.
   database update until [M5](#group-m--mutation-and-approval) lands. The maximum plan age is open against
   this unit. Rollback of a real plan waits for [production point
   2](#production-point-2--the-agent-acts).
-- [ ] **M3 — The UI's reads** → [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
-  [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
+- [ ] **M3 — The UI's reads of the read path** →
+  [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
+  [V3](#v3--the-agent-arrives-read-only) · finishes at image
   The UI's Go server and browser app ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md),
   [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md),
   [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md)), the dataset
@@ -808,28 +815,31 @@ policy rule changes the classifications already stored in the index.
   ([ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md)) and the
   browser tests
   ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), the
-  lens model and every screen without a decision control, the live surfaces
+  lens model, the home screen, the jobs and run screens and the system screen, the live surfaces
   ([ADR-0058](./docs/adr/operability/0058-live-surfaces-stream-over-server-sent-events.md)), the
   palettes
   ([ADR-0059](./docs/adr/operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md))
   and the content security policy
   ([ADR-0062](./docs/adr/operability/0062-ui-content-security-policy.md)), built to
   [docs/UI.md](./docs/UI.md). Its scoped database role is created at [F2](#delivered-mapped-to-outcomes)
-  and its separate deployment is packaged at [R2](#group-r--packaging). The UI's Go server and
+  and its separate deployment is packaged at [R1](#group-r--packaging). The UI's Go server and
   its fixture database exist before the browser tests are written
   ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
   *Criteria:* message-derived text renders inert, the dataset registry refuses what it does not
-  declare, no lens answers without an account
+  declare, no account-scoped route or dataset answers without an account, the account list being
+  the one unscoped read
   ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md),
   [ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md)), and the
   content security policy holds
   ([ADR-0062](./docs/adr/operability/0062-ui-content-security-policy.md)), and the UI's server
   serves the health and readiness probes, the metrics endpoint and structured logs
   ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The worth-a-look rules
-  surface scan backlog, masking, body-serve volume, sync gaps and plan expiry inside the
-  application. The framework spike ran on 2026-09-10 **[measured]**, outside this repository and on
-  the chosen candidate, so
-  [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md) weighs its result
+  surface scan backlog, masking, body-serve volume and sync gaps inside the application. Until
+  [M6](#group-m--mutation-and-approval) lands, the UI links only to the screens that exist. The plans
+  screens, home's plan row and expiry rule, the analysis lenses and the review queue and policy
+  screens are M6's, so the maximum plan age the UI's configuration carries is first read there.
+  The framework spike ran on 2026-09-10 **[measured]**, outside this repository and on the chosen
+  candidate, so [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md) weighs its result
   and nothing from it is code here. The live-update transport is open against this unit.
   So is whether a run's detail is a panel of the `runs` dataset or the Run screen.
 - [ ] **M4 — Heuristics job + embeddings** →
@@ -864,6 +874,29 @@ policy rule changes the classifications already stored in the index.
   decision's status without its companion columns and, on confirm, its rule row
   ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). Decision outcomes are counted
   as metrics ([docs/UI.md](./docs/UI.md#182-the-uis-own-observability)).
+- [ ] **M6 — The UI's plans, analysis lenses, review queue and policy screens** →
+  [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
+  [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
+  The plans screen and the plan reviewer without its decision controls, over the `ops` dataset and
+  the plan and sample endpoints
+  ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
+  [ADR-0022](./docs/adr/operability/0022-four-workloads.md)), home's plan row and expiry rule, the
+  analysis lenses over the `messages`, `senders`, `masking`, `gate` and `audit` datasets, the review
+  queue without its decision controls, and the policy screen with the `rules` dataset, built to
+  [docs/UI.md](./docs/UI.md) sections 8.2, 8.5 to 8.7 and 8.9 on
+  [M3](#group-m--mutation-and-approval)'s server, browser app and lens model
+  ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md),
+  [ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md),
+  [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md),
+  [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)). Its datasets are generated
+  from statements, and its screens are tested in the browser tests over recorded fixtures
+  ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)). It
+  adds datasets and screens inside the UI's server and browser app and touches no composition root,
+  so it finishes at tested, and none of its proofs waits for a production point. *Criteria:* every
+  dataset it adds is declared in the registry with the statements it requires, and
+  [M3](#group-m--mutation-and-approval)'s controls hold on every screen it adds. It follows
+  [M2](#group-m--mutation-and-approval), which settles the maximum plan age the plans screens read, so
+  the UI's configuration carries that value as its default.
 
 ### Group X — expansion
 
@@ -943,9 +976,9 @@ The chart of [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-c
 the assembled system, so its templates, its Helm tests and the chainsaw suite are built once per
 production point rather than once per deployable. Each unit finishes packaged, which needs a
 release, because the chainsaw suite deploys the images published for a version. Until
-[R2](#group-r--packaging) lands the chart stands up the migration step and the read path's three
-deployables, the mediator, backfill and delta sync, and no other, whatever else a release's images
-carry, and from [R2](#group-r--packaging) it stands up every deployable, as
+[R2](#group-r--packaging) lands the chart stands up the migration step, the read path's three
+deployables, the mediator, backfill and delta sync, and the UI, and no other, whatever else a
+release's images carry, and from [R2](#group-r--packaging) it stands up every deployable, as
 [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) requires.
 [R3](#group-r--packaging) adds inputs only. What proves an R unit is the chainsaw suite passing
 against its release, as [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)
@@ -954,8 +987,9 @@ about its cluster.
 
 - [ ] **R1 — Package the read path** → [O6](./USE_CASES.md#o6--deployable) ·
   [V3](#v3--the-agent-arrives-read-only) · finishes at packaged
-  Templates, Helm tests and chainsaw tests for the migration step, the mediator, backfill and delta
-  sync, with the pod security contexts of
+  Templates, Helm tests and chainsaw tests for the migration step, the mediator, backfill, delta
+  sync and the UI, with the UI's separate deployment and database role
+  ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md)), the pod security contexts of
   [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md), credentials mounted as files
   ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), the one writable
   location rotation write-back uses
@@ -970,26 +1004,25 @@ about its cluster.
   values or pre-existing objects
   ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). How the chart runs
   the migration step is open against this unit
-  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)). Two
+  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)). Three
   [open decisions](#open-decisions) are settled here. One is how a newly added policy rule changes
   the classifications already stored in the index, and the chart includes whatever that answer
   needs. The other is which pull request closes a packaging ticket whose proof needs a release
-  published after it merges. The chart also includes whatever [D2](#group-d--data-flows)'s re-scan
-  after a scanner version change needs. The bare-cluster install proof stands from here.
+  published after it merges. The third is the UI's configuration key names. The chart also
+  includes whatever [D2](#group-d--data-flows)'s re-scan after a scanner version change needs.
+  The bare-cluster install proof stands from here.
 - [ ] **R2 — Package the action path and calendar** → [O6](./USE_CASES.md#o6--deployable) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at packaged
-  Templates, Helm tests and chainsaw tests for the reorg, heuristics and UI deployables, with the
-  reorg workload under the same pod security contexts, mounted credentials and writable write-back
+  Templates, Helm tests and chainsaw tests for the reorg and heuristics deployables, with the reorg
+  workload under the same pod security contexts, mounted credentials and writable write-back
   location as the read path's provider-calling deployables
   ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md),
   [ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md),
-  [ADR-0039](./docs/adr/operability/0039-rotation-writeback.md)), the UI's separate deployment and
-  database role
-  ([ADR-0021](./docs/adr/mutation/0021-approval-surface.md)), the two workloads' invocation, the
+  [ADR-0039](./docs/adr/operability/0039-rotation-writeback.md)), the two workloads' invocation, the
   heuristics job on its schedule and reorg apply on approval
   ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)), and the calendar scope's inputs
   ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)), added to the chart and its
-  suites. The UI's configuration key names are an [open decision](#open-decisions) settled here.
+  suites.
 - [ ] **R3 — Package the second account and the Fastmail backend** →
   [O6](./USE_CASES.md#o6--deployable) · [V5](#v5--a-second-of-everything) · finishes at packaged
   The inputs a second account context needs
@@ -1021,7 +1054,7 @@ about its cluster.
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | — | The rate limiter and the Gmail cost profile landed with F3, which is delivered. The real ceiling reveals itself at production point 1 |
 | [O2](./USE_CASES.md#o2--observable) observable | — | No dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | No dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's application half at F5, and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
-| [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 | The decisions ride M5, a G3 unit |
+| [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Rides D3 as criteria, flagged in Group D's preamble. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
 | [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1 |
 
@@ -1038,7 +1071,7 @@ lands in is the [value path](#the-value-path)'s.
 | S1 → S2 | The sensitivity types the scanner's verdict carries |
 | S1 → S3, S2 → S3 | The sensitivity types and the scan state the serve-time check reads, and the pattern tier it runs ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md)) |
 | S1 → F3, F2 → F3, F5 → F3 | The property-testing setup the hard-cap test runs under ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)), the rate-state row and grants table leases are held in ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), the provider fake whose throttle schedule the controller is tested against ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)), and the Gmail adapter's count of each request's cost, which F3's observed-rate criterion reads ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
-| F2 → M3, M3 → M5 | The schema the fixtures populate, and the UI's server and browser app the decisions live in |
+| F2 → M3, M3 → M6, M2 → M6, M3 → M5, M6 → M5 | The schema the fixtures populate, the UI's server and browser app the later screens and the decisions live in, the plans and the maximum plan age the plans screens read, and the plan reviewer and review queue the decisions act on |
 | F2 → every later unit that holds a database role | The runtime database roles, created with the schema, that each unit's component connects to the database as |
 | S1 → M3, S1 → F5 | The marker text and synthetic fixtures the UI's recorded fixtures, the provider fake and the adapter's tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | S1 → R1, D2 → R1 | The policy snapshot validation the import writes through, how a removed rule reaches the delisting transition, and the re-scan after a scanner version change, which the packaged read path runs |
@@ -1059,17 +1092,17 @@ lands in is the [value path](#the-value-path)'s.
 | S3 → X2 | The sanitization a released event description goes through ([ADR-0036](./docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)) |
 | D1 → D4 | The policy loader and the account rows delta sync reuses |
 | D3 → D4 | How the last provider authentication outcome is recorded, which delta sync follows |
-| M3 → X1, M5 → X1 | The masking-events and gate views and the UI's decision path the feedback verb joins |
+| M6 → X1, M5 → X1 | The masking-events and gate views and the UI's decision path the feedback verb joins |
 | S1 → D2, S1 → M1, S1 → M2, S1 → X2 | The pure cores these units run, the classifier, the gate and the authorization matrix |
 | F2 → M1, F2 → M2, F2 → M4, F2 → X2, F2 → D4 | The schema each writes through |
-| F2 → R2 | The runtime database roles the reorg, heuristics and UI deployables connect as |
+| F2 → R2 | The runtime database roles the reorg and heuristics deployables connect as |
 | D1 → X3 | How an account's rows are created from the account's configuration, which a second account follows |
 | M1 → X3, M2 → X3, D4 → X3, M4 → X3, X2 → X3 | The mutation the cross-account injection attempts, the reorg, delta sync and heuristics workloads a second account also configures, and the calendar client every account holds, which the injection also covers |
 | S1 → F2, and S1 → every later unit | The marker text and synthetic fixtures later tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the provider fake, the convention for running the suite against the real provider, the rate limiter the Fastmail backend spends through, the deployables that call a provider, how a label is renamed and deleted at the provider, and the calendar side of the port the CalDAV adapter implements. The Fastmail wiring also follows the answers on account rows and on recording the authentication outcome |
 | S2 → X1, D2 → X1, D4 → X1 | The tier boundary and the scanner version tier 3 fits into, the masking events and gate decisions its training examples come from, the re-scan that ships it, and the scanning workloads it runs in |
-| F2 → R1, D1 → R1, D3 → R1, D4 → R1 | The migration chain the step runs, and the read path's deployables |
-| M2 → R2, M3 → R2, M4 → R2, M5 → R2, X2 → R2, R1 → R2 | The action path's deployables, the calendar inputs, and the chart and suites R2 adds to |
+| F2 → R1, D1 → R1, D3 → R1, D4 → R1, M3 → R1 | The migration chain the step runs, the runtime database role the UI connects as, the read path's deployables and the UI |
+| M2 → R2, M4 → R2, X2 → R2, R1 → R2 | The action path's deployables, the calendar inputs, and the chart and suites R2 adds to |
 | X3 → R3, X4 → R3, R2 → R3 | The second account's inputs, the Fastmail backend, and the chart and suites R3 adds to |
 | R1 → R2, R1 → R3 | Which pull request closes a packaging ticket whose proof needs a release published after it merges, which R2 and R3 follow |
 
@@ -1099,10 +1132,11 @@ supplies, including edges another edge implies.
 | M2 | M1 |
 | X3 | M2 · M4 · X2 |
 | X4 | M2 · X2 |
-| R1 | D4 |
+| R1 | D4 · M3 |
 | M4 | R1 |
-| M5 | M3 · R1 |
-| R2 | M2 · M4 · M5 · X2 |
+| M6 | M3 · M2 |
+| M5 | M6 · R1 |
+| R2 | M2 · M4 · X2 |
 | R3 | X3 · X4 · R2 |
 | X1 | M5 |
 
@@ -1116,7 +1150,10 @@ flowchart LR
     F2 --> F3
     F5 --> F3
     F2 --> M3
-    M3 --> M5
+    M3 --> M6
+    M2 --> M6
+    M6 --> M5
+    M3 --> R1
     S2 --> D1
     F3 --> D1
     D1 --> D2
@@ -1136,7 +1173,6 @@ flowchart LR
     X2 --> X3
     D4 --> R1
     M2 --> R2
-    M5 --> R2
     X2 --> R2
     M4 --> R2
     X3 --> R3
@@ -1158,9 +1194,11 @@ The inverse of the value path. Each is an anti-constraint the posture must not b
   day one.
 - Evaluating the scan gate before pass-1 statistics exist. A gate deciding blind is either
   scan-everything (the cost it exists to avoid) or skip-blind (the leak it exists to prevent).
-- Shipping the UI's value before the reorg engine's. Building the UI in parallel against fixtures is
-  fine, but the increment that carries it carries the engine first, because a review screen with
-  nothing to review is no value.
+- Shipping the UI's review value before the reorg engine's. Building the UI in parallel against
+  fixtures is fine, but the increment that carries the review screens carries the engine first,
+  because a review screen with nothing to review is no value. The screens that show the read path's
+  work are the exception, since at [production point 1](#production-point-1--the-read-path) that
+  work exists to show.
 - Training tier 3 on synthetic data because real labels haven't accumulated. Confident wrong answers
   on exactly the ambiguous cases.
 - Adding a second datastore for coordination before contention exists. Infrastructure for a
@@ -1183,7 +1221,7 @@ index](./docs/adr/README.md).
 | Live-update transport for the UI | M3 | [ADR-0058](./docs/adr/operability/0058-live-surfaces-stream-over-server-sent-events.md) proposes server-sent events from the UI's Go server, with polling as the fallback. The operator asked for the behavior on 2026-09-10 and has not ruled on the transport. In the browser only the stream client depends on it, and on the server only the stream endpoint does ([docs/UI.md](./docs/UI.md#9-live-surfaces)). So it is decided where the UI's server and its stream endpoint are built |
 | Policy editing outside the UI, including import and export to a file | R1 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database and a file form for import and export. The operator said on 2026-09-10 that such a mechanism may exist, and on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file. The first thing that needs it is supplying the policy through the chart at [production point 1](#production-point-1--the-read-path), so R1 builds the import and export and records their format, and the database role they run as, since [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) gives roles to deployables only, and the policy on the policy rules lets a writer name only its own account, never the base policy's null one |
 | How the audit of every applied and refused mutation is guaranteed | M1 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the violation to refuse, a mutation reaching the provider with no audit row. It has no injection for it until a record decides between two mechanisms, writing the audit row before the provider call, or a structural check that refuses any path without an audit row. M1 writes the first audited mutation, so it decides, and M2's apply follows the same answer |
-| Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value has not been chosen. The UI reads the same value from configuration ([docs/UI.md](./docs/UI.md)), so the screens depend only on the setting existing, not on its value |
+| Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value has not been chosen. The UI reads the same value from configuration ([docs/UI.md](./docs/UI.md)), and the value settled here is also that key's default, so the plans screens M6 builds follow this answer |
 | How an approved plan starts applying, and how a rollback is requested | M2 | [ADR-0022](./docs/adr/operability/0022-four-workloads.md) starts apply on human approval and [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) rolls back by replaying the op log, and neither says what starts either one. The UI only writes the plan's status and never calls the mediator ([docs/UI.md](./docs/UI.md)). The reorg workload's composition root depends on the answer, so it is decided where that root is built |
 | How a newly deny-listed domain is denied on the next call when each process loads policy on its own schedule | D3 | [ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md) and [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) require the denial on the next call, and [ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md) lets each process decide how often it loads a policy snapshot. Releasing a message body is the first thing that needs the answer, so it is decided where body release is built. Releasing gated calendar content follows the same answer |
 | Which pull request closes a packaging ticket whose proof needs a release published after it merges | R1 | An R unit is proven by running the chainsaw suite against the images published for a release ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), and that release is only cut after the pull request that changes the chart has merged. [CLAUDE.md](./CLAUDE.md#repository-process) says a ticket is closed by the pull request that meets its part of the unit's acceptance. Nothing says which pull request closes a packaging ticket in that case, or who starts the chainsaw run. It is decided where the first packaging unit is built, and R2 and R3 follow it |
@@ -1195,7 +1233,7 @@ index](./docs/adr/README.md).
 | Whether bounded crash-sequence runs gate pull requests or run on the schedule | D1 | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) and [TESTING.md](./TESTING.md) allow them in the gating suite if they prove fast enough. It is decided where the crash harness is first built, and M2's crash sequences follow it |
 | What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet |
 | How a reorganization renames and deletes a label at the provider | M2 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) plans creating, renaming and deleting labels, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md)'s port has `ensure_label` and `mutate` and nothing to rename or delete a label. It is decided where apply is built, together with any addition to the port, the provider fake and the contract suite |
-| The UI's configuration key names | R2 | [docs/UI.md](./docs/UI.md#181-the-configuration-the-ui-declares) lists the keys with example names and says the names are settled when the chart of [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) carries them. The UI's server built at M3 and the decisions built at M5 read the keys under those example names, so they depend on the keys existing, not on their final names. The chart is the first thing that needs the final names. R2 adds the UI's deployment to the chart, so they are decided there, and the UI's server switches to the names settled there |
+| The UI's configuration key names | R1 | [docs/UI.md](./docs/UI.md#181-the-configuration-the-ui-declares) lists the keys with example names and says the names are settled when the chart of [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) carries them. The UI's server built at M3, and the screens and decisions built at M6 and M5, read the keys under those example names, so they depend on the keys existing, not on their final names. The chart is the first thing that needs the final names. R1 adds the UI's deployment to the chart, so they are decided there, and the UI's server switches to the names settled there |
 | Whether a run's detail is shown as a panel of the `runs` dataset or on the Run screen | M3 | [docs/UI.md](./docs/UI.md#5-information-architecture-and-the-url) lists `runs` among the datasets with a row detail, but its route table and [section 8.4](./docs/UI.md#84-run) open every run on the Run screen, which is the reason `plans` and `candidates` have no row detail. The contract generator refuses a row path that both a dataset and a screen claim. It is decided where the `runs` dataset and the Run screen are built |
 | Whether a plan touching exactly a quarter of the corpus needs the second confirmation | M5 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) requires it for a plan touching more than a quarter, and [docs/UI.md](./docs/UI.md#82-plan-reviewer) for a plan touching a quarter or more. It is decided where approve, and the server's recalculation of the plan's share, are built |
 | How the stored index is re-scanned and re-masked after a scanner version change or a configuration revision | D2 | [ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md) marks rows as stale and re-scans them as a planned operation, without saying how that operation is started or run. [ADR-0005](./docs/adr/classification/0005-tiered-detection.md) makes every pattern improvement bump the scanner version and every vocabulary or tuning change bump the configuration's revision, and tuning against the real mail starts at production point 1, so the first version change comes after that point. Between production points a new version ships with no manual step, so the read path packaged at R1 must already re-scan on a version change. It is decided where scan results are first stored, R1 packages whatever the answer needs, and the learned tier, shipped behind the scanner-version flag, follows it |
@@ -1211,7 +1249,7 @@ index](./docs/adr/README.md).
 | Whether the operation sampler also runs in the gating run | D1, M2 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) places it in the scheduled run and leaves the gating run open, stating what each option costs |
 | How rotations arriving at two credential-holding deployables close together are reconciled | Production point 1 | [ADR-0039](./docs/adr/operability/0039-rotation-writeback.md) has the deployable that receives a rotated credential write it to the one writable location. Every deployable that calls a provider holds the credential ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), so two of them can receive rotations close together, and which value the store keeps is the store's behavior, answered on the deploying side |
 | How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
-| How an unscoped account listing reads every account through the accounts table's row-level security | D3 | [ADR-0016](./docs/adr/data/0016-schema.md) puts row-level security on every account-keyed table, and the accounts table is one, so a query sees only the account its transaction set. The client surface's account listing ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) and [docs/UI.md](./docs/UI.md)'s accounts endpoint are both unscoped and need every account's row, and [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) names the listing a deliberate exception to its account-predicate rule, which that row-level security stands behind. D3 builds the first of them |
+| How an unscoped account listing reads every account through the accounts table's row-level security | D3, M3 | [ADR-0016](./docs/adr/data/0016-schema.md) puts row-level security on every account-keyed table, and the accounts table is one, so a query sees only the account its transaction set. The client surface's account listing ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) and [docs/UI.md](./docs/UI.md)'s accounts endpoint are both unscoped and need every account's row, and [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) names the listing a deliberate exception to its account-predicate rule, which that row-level security stands behind. Whichever of D3 and M3 builds its listing first decides it, and the other follows |
 | How generated data-access functions are held to run through the transaction helper | D1 | [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) runs every unit of data access in a transaction that set and verified the account, and `db/tx` does so, but a generated function accepts any database handle, a pool included. F3 writes the first statement file and calls it only inside the helper. A check that holds every later call to the helper is a `go vet` analyser the operator named `txhelper`, built with D1's first statements, so the row stays open until then, and the pending part of the unset-account row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) waits on it |
 | How delta sync's request count reaches the runaway rule when a tick ends between scrapes | D4 | [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md) counts the cost of provider requests in each spending process and sums them for the runaway rule. [ADR-0022](./docs/adr/operability/0022-four-workloads.md) runs delta sync every five minutes for seconds at a time, so a tick can end between two scrapes and leave its requests uncounted. Delta sync is built in D4, so it is decided there |
 | How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0026](./docs/adr/provider/0026-multi-account-contexts.md) gives each account its own OAuth client, but two clients can sit in one project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |

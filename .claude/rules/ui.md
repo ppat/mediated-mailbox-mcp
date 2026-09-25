@@ -14,7 +14,7 @@ and rate of change. Hold these lines:
 - **The session that builds the UI reads this document and the records it cites, and nothing
   else.** Nothing here may depend on a mockup under `ui/design/`.
 - **No build state.** What is built, when, or in what order lives in ROADMAP.md. Sequencing that
-  reads as a plan belongs with the UI's units there, M3 and M5, or with their tickets.
+  reads as a plan belongs with the UI's units there, M3, M6 and M5, or with their tickets.
 - **No alternatives weighed.** A choice with real alternatives is a record, and this document
   cites it.
 - **Section numbers are anchors.** Other documents link into sections by number, so a section is
