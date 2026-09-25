@@ -1,0 +1,17 @@
+control: The collapse rules fire on five minutes at the floor or with nothing granted, and only while a class asks
+removes: the floor rule fires whether or not a class asked in the last minute
+packages: ./ratelimit/lease
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -28,7 +28,6 @@
+   - alert: MediatedMailboxRateCollapsed
+     expr: |
+       mediated_mailbox_ratelimit_account_rate <= on (account) mediated_mailbox_ratelimit_account_floor
+-      and on (account) mediated_mailbox_ratelimit_account_seconds_since_ask < 60
+     for: 5m
+     labels:
+       severity: warning

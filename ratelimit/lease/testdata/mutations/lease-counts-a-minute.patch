@@ -1,0 +1,28 @@
+control: A lease counts against its class's share until it expires one second after it was issued
+removes: a stored grant is kept for a minute and its lease counts against its class's share all that time
+packages: ./ratelimit/lease
+tests: TestACrashedWorkersLeaseStopsCountingAtItsExpiry
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -141,7 +141,7 @@
+ // it, and a granted lease gets its row.
+ func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
+ 	limits := core.LimitsFor(l.ceiling)
+-	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
++	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - 60*leaseMillis)}); err != nil {
+ 		return fmt.Errorf("deleting old grants: %w", err)
+ 	}
+ 	if err := q.ClampGrants(ctx, ratestate.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {
+@@ -337,7 +337,7 @@
+ 	leases := make([]core.Lease, 0, len(grants))
+ 	for _, g := range grants {
+ 		recent = append(recent, core.Issued{At: g.IssuedMs, Tokens: float64(g.Tokens)})
+-		leases = append(leases, core.Lease{Class: classNamed(g.Class), Tokens: float64(g.Tokens), Expires: g.IssuedMs + leaseMillis})
++		leases = append(leases, core.Lease{Class: classNamed(g.Class), Tokens: float64(g.Tokens), Expires: g.IssuedMs + 60*leaseMillis})
+ 	}
+ 	return recent, leases
+ }

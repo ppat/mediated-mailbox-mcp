@@ -30,20 +30,26 @@ lends its share, so interactive waits on a lower class at most until a lent leas
 within one second, and the bucket refills to its call's cost. Batch yields to both.
 
 **Cross-process coordination is a Postgres row, not new infrastructure.** A `rate_state` row per
-account ([ADR-0016](../data/0016-schema.md)) holds the current rate, throttle state, and leased
-tokens. Processes acquire it via advisory lock or `SELECT ... FOR UPDATE SKIP LOCKED`, lease
-roughly one second's worth of tokens, and work from the lease locally. One round trip per second
-per worker is negligible and requires nothing beyond the database already present.
+account ([ADR-0016](../data/0016-schema.md)) holds the current rate, throttle state, and the token
+bucket, and a table beside it holds every grant of the last second, which are the leased tokens.
+Processes acquire it via advisory lock or `SELECT ... FOR UPDATE SKIP LOCKED`, lease roughly one
+second's worth of tokens, and work from the lease locally. The issuer reads the database's clock
+after the lock is held, because `now()` is fixed when the transaction starts and a worker that
+waited would stamp its lease early. The transaction runs at read committed, where each statement
+sees what the lock's previous holder committed. One round trip per second per worker is negligible
+and requires nothing beyond the database already present.
 
 Two rules keep the leasing honest:
 
 - **Every lease carries an expiry**, so a crashed worker's tokens return to the pool instead of
   being lost — token loss otherwise presents as slow, mysterious rate collapse. A lease is drawn
   from [ADR-0024](./0024-conservative-target-aimd.md)'s token bucket, holds at least the cost of
-  the call it is for, and is spent within one second. Its expiry is judged by the database's
-  clock, which every process shares. An expired lease stops counting against its class's share,
+  the call it is for, and is spent within one second. It expires one second after it is issued,
+  judged by the database's clock, which every process shares. An expired lease stops counting against its class's share,
   which is how a crashed worker's tokens return to the pool. Nothing it drew is put back into the
-  bucket, because tokens a worker spent before it crashed would then be issued twice.
+  bucket, because tokens a worker spent before it crashed would then be issued twice. Every ask
+  records its class's ask instant whether or not it is granted, and a worker still waiting asks
+  again at least once a lease period, so an abandoned ask stops counting as demand.
 - **The hard cap is enforced at lease issuance** — the issuer never hands out tokens past the cap,
   so no controller bug or worker bug can collectively exceed it.
 
@@ -81,5 +87,5 @@ store-choice reasoning is [ADR-0015](../data/0015-postgres-not-a-kv-store.md)).
 - Lease accounting is load-bearing for politeness: its runaway failure mode and the corresponding
   alert are defined in [ADR-0024](./0024-conservative-target-aimd.md), and its drills in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
-- Every worker holds a lease of its own with an expiry of its own, and the `rate_state` row as
-  [ADR-0016](../data/0016-schema.md) draws it holds one leased amount and one expiry.
+- Every worker holds a lease of its own, one row per grant in the grants table
+  [ADR-0016](../data/0016-schema.md) draws, and the issuer deletes rows more than a second old.

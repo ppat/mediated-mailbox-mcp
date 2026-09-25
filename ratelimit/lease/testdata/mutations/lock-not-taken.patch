@@ -1,0 +1,20 @@
+control: A worker that waited on the account's lock is stamped with the clock read after it got the lock
+removes: no lock is taken, so issuers for one account do not take turns
+packages: ./ratelimit/lease
+tests: TestAWorkerThatWaitedOnTheLockIsStampedAfterIt
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -279,9 +279,6 @@
+ // lock takes the account's lock and then reads the database's clock in a statement of its own, so a
+ // worker that waited on the lock is stamped with the time it got it (ADR-0025).
+ func (l *Limiter) lock(ctx context.Context, q *ratestate.Queries, account string) (int64, error) {
+-	if err := q.LockRateState(ctx, account); err != nil {
+-		return 0, fmt.Errorf("locking the rate state: %w", err)
+-	}
+ 	now, err := q.ClockMillis(ctx)
+ 	if err != nil {
+ 		return 0, fmt.Errorf("reading the database's clock: %w", err)

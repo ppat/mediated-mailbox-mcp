@@ -1,0 +1,22 @@
+control: Issuance holds to the hard cap the declared ceiling gives, whatever the rate state stores
+removes: the ceiling is read back from the stored hard cap, so the cap column is the cap
+packages: ./ratelimit/lease
+tests: TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -118,6 +118,11 @@
+ 		st, is := stateOf(row), issuanceOf(row)
+ 		recent, grantLeases := recentOf(grants)
+ 		is.Recent = recent
++		var storedCap float64
++		if err := t.QueryRow(ctx, "SELECT hard_cap FROM rate_state WHERE account_id = $1", account).Scan(&storedCap); err != nil {
++			return err
++		}
++		l.ceiling = storedCap / 0.8
+ 		next, decided := core.Issue(l.ceiling, st, is, grantLeases, req, now)
+ 		d, rate = decided, float64(row.CurrentRate)
+ 		if d.Outcome == core.Refused {

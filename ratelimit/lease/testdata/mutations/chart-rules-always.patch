@@ -1,0 +1,18 @@
+control: The chart ships the tested alerting rules only when its switch is on
+removes: the template renders the rules whatever the switch says
+packages: ./ratelimit/lease
+tests: TestTheChartShipsTheRulesOnlyWhenSwitchedOn
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/prometheusrule.yaml b/packaging/chart/templates/prometheusrule.yaml
+--- a/packaging/chart/templates/prometheusrule.yaml
++++ b/packaging/chart/templates/prometheusrule.yaml
+@@ -4,7 +4,7 @@
+ in a values file. A platform without the operator loads alerting-rules.yaml at the chart's root its own way. The
+ rules are that file embedded whole, which is the file promtool tests.
+ */ -}}
+-{{- if (.Values.alertingRules | default dict).enabled }}
++{{- if true }}
+ apiVersion: monitoring.coreos.com/v1
+ kind: PrometheusRule
+ metadata:

@@ -1,0 +1,19 @@
+control: The collapse rules fire on five minutes at the floor or with nothing granted, and only while a class asks
+removes: the floor is emitted at full precision, so a rate held at a floor a four-byte float rounds up reads as above it
+packages: ./ratelimit/lease
+tests: TestAFloorRateReadsAsAtTheFloor
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/collector.go b/ratelimit/lease/collector.go
+--- a/ratelimit/lease/collector.go
++++ b/ratelimit/lease/collector.go
+@@ -125,7 +125,7 @@
+ 		{c.rate, float64(row.CurrentRate)},
+ 		// The floor at the precision the rate is stored at, so a rate held at the floor reads as
+ 		// equal to it whatever the floor's value.
+-		{c.floor, float64(float32(limits.Floor))},
++		{c.floor, limits.Floor},
+ 		{c.bucket, float64(row.BucketLevel)},
+ 		{c.sinceAsk, secondsSince(now, asked)},
+ 		{c.sinceGot, secondsSince(now, row.LastGrantedMs)},

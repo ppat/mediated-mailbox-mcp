@@ -1,0 +1,16 @@
+control: The chart ships the tested alerting rules only when its switch is on
+removes: the resource carries no rules rather than the tested file
+packages: ./ratelimit/lease
+tests: TestTheChartShipsTheRulesOnlyWhenSwitchedOn
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/prometheusrule.yaml b/packaging/chart/templates/prometheusrule.yaml
+--- a/packaging/chart/templates/prometheusrule.yaml
++++ b/packaging/chart/templates/prometheusrule.yaml
+@@ -13,5 +13,5 @@
+     app.kubernetes.io/name: {{ .Chart.Name }}
+     app.kubernetes.io/instance: {{ .Release.Name }}
+ spec:
+-  {{- .Files.Get "alerting-rules.yaml" | fromYaml | toYaml | nindent 2 }}
++  groups: []
+ {{- end }}

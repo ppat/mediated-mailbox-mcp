@@ -1,0 +1,19 @@
+control: A request costing more than one second's worth at the hard cap is refused at once, never left waiting
+removes: a refused request returns an empty lease and no error, as if granted
+packages: ./ratelimit/lease
+tests: TestARequestPastTheHardCapIsRefusedAtOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -80,7 +80,7 @@
+ 		case core.Granted:
+ 			return d.Lease, nil
+ 		case core.Refused:
+-			return core.Lease{}, ErrRefused
++			return d.Lease, nil
+ 		case core.Waiting:
+ 		}
+ 		timer := time.NewTimer(wait)

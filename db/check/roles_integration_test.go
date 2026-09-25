@@ -225,8 +225,12 @@ func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
 	columns := map[string][]string{}
+	// An identity column generated always can be set only to its default, and PostgreSQL refuses any
+	// other value before it checks the grant, so its update sets the default.
+	generated := map[string]bool{}
 	rows, err := tx.Query(ctx, `
-		SELECT c.table_name, c.column_name FROM information_schema.columns c
+		SELECT c.table_name, c.column_name, c.identity_generation IS NOT DISTINCT FROM 'ALWAYS'
+		FROM information_schema.columns c
 		JOIN pg_tables p ON p.schemaname = c.table_schema AND p.tablename = c.table_name
 		WHERE c.table_schema = 'public' ORDER BY c.table_name, c.ordinal_position`)
 	if err != nil {
@@ -234,10 +238,12 @@ func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 	}
 	for rows.Next() {
 		var table, column string
-		if err := rows.Scan(&table, &column); err != nil {
+		var always bool
+		if err := rows.Scan(&table, &column, &always); err != nil {
 			t.Fatal(err)
 		}
 		columns[table] = append(columns[table], column)
+		generated[table+"."+column] = always
 	}
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
@@ -278,7 +284,11 @@ func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 		for _, column := range columns[table] {
 			if !slices.Contains(uiUpdates[table], column) {
 				c := pgx.Identifier{column}.Sanitize()
-				writes["update "+column] = "UPDATE " + quoted + " SET " + c + " = " + c
+				value := c
+				if generated[table+"."+column] {
+					value = "DEFAULT"
+				}
+				writes["update "+column] = "UPDATE " + quoted + " SET " + c + " = " + value
 			}
 		}
 		for _, name := range slices.Sorted(maps.Keys(writes)) {

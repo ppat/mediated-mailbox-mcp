@@ -392,7 +392,7 @@ are pointers. Each fix and its reasoning live in the records named, never here.
 | Bulk mutation error | moderate / severe | ADR-0020 · ADR-0032 |
 | Scan backlog as silent utility loss | low / moderate | ADR-0007 |
 | UI as a write path | low / moderate | ADR-0021 |
-| Rate-controller pathology (collapse or runaway) | moderate / medium | ADR-0024 · ADR-0025 |
+| Rate-controller pathology (collapse or runaway) | moderate / medium | ADR-0024 · ADR-0025 · ADR-0077 |
 | Policy reload failure leaves a published rule unapplied | low / medium | ADR-0041 |
 
 ## Glossary

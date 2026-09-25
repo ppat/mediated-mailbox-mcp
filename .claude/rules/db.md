@@ -24,7 +24,9 @@ tripwires:
   own test library.
 - **Generated code is never edited by hand.** Regenerate it, and the drift checks compare it.
 - **A component's import list names each subsection it uses**, and the grant check tests that list
-  against the component's role (ADR-0066, ADR-0071).
+  against the component's role (ADR-0066, ADR-0071). A shared library has no role of its own, so
+  its list is tested against the role of each deployable whose list admits the library, and each of
+  those roles is granted what the library's statements need (ADR-0075).
 - **Each deployable connects as a runtime role of its own, holding only what its statements need**
   (ADR-0075). Nothing automated refuses a grant beyond that, so review each migration that grants a
   privilege against the statements it serves. A row-level security policy that looks up another

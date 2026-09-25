@@ -38,3 +38,58 @@ linters:
         unmapped:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
+
+        # A library's list, naming a subsection. A library connects as no role of its own, so the subsection is
+        # planned under the role of each list that admits the code this list governs.
+        library:
+          files:
+          - "${base-path}/fixturelib/**.go"
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/counting$"
+
+        # Admits the library, and its role holds no grant for the update the library's subsection runs.
+        narrow:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/"
+
+        # Admits one package of the library, and its role can run everything the library's subsection runs.
+        wide:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease$"
+
+        # A library's list naming a subsection, whose code no list with a role admits.
+        orphan:
+          files:
+          - "${base-path}/orphanlib/**.go"
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
+
+        # Admits the library and has no role, so the library's statements would run under a role nothing tested.
+        propose:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/"
+
+        # Admits only a subdirectory of the library, so it does not admit the library.
+        coreonly:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/core/"
+
+        # A cross-cutting list admitting the library's code, which is not a deployable admitting the library.
+        everything:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/"
+
+        # Admits the package that runs the library's statements through a prefix entry, and has no role.
+        leaseprefix:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease"
+
+        # Admits only the library's pure core, by its exact package, which runs none of its statements.
+        coreexact:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/core$"
+
+        # Admits only a package that runs the library's statements through another of its packages, and has no role.
+        facadeonly:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/facade$"

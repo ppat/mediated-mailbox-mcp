@@ -49,18 +49,10 @@ jobs:
       working-directory: ./current/db/check/testdata
       run: mise exec -- sqlc diff
 
-    # sqlc refuses a configuration without a statement file, so db/sqlc.yaml arrives with the first statement
-    # file. Until then no statement file exists to generate from, which TestEverySQLFileIsRead below enforces.
     - name: Compare the library's generated code with sqlc's output
       shell: bash
       working-directory: ./current/db
-      # yamllint disable-line rule:indentation
-      run: |
-        if [[ -e sqlc.yaml ]]; then
-          mise exec -- sqlc diff
-        else
-          echo "db/sqlc.yaml does not exist, so the library holds no statement file to generate from"
-        fi
+      run: mise exec -- sqlc diff
 
     - name: Check statement files, the migration chain, generated code and import lists
       shell: bash

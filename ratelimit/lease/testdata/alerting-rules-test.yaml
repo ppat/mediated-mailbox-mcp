@@ -1,0 +1,152 @@
+---
+# promtool's unit tests of the chart's alerting rules (ADR-0077), run by TestAlertingRules. Each rule fires above its
+# threshold and stays silent below it. Series are sampled every 15 seconds, so 'a+bxN' is N+1 samples a quarter
+# minute apart.
+rule_files:
+- ../../../packaging/chart/alerting-rules.yaml
+
+evaluation_interval: 15s
+
+tests:
+# Runaway. One process spends 1500 units every 15 seconds, 6000 a minute against Gmail's 4800, and another 1000,
+# 4000 a minute. Only the first account's rule fires.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="over",provider="gmail",instance="backfill"}'
+    values: '0+1500x10'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="under",provider="gmail",instance="backfill"}'
+    values: '0+1000x10'
+  alert_rule_test:
+  - eval_time: 2m
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts:
+    - exp_labels:
+        account: over
+        severity: page
+      exp_annotations:
+        summary: Requests for account over cost more in the last minute than the hard cap allows.
+
+# Runaway summed across processes. Two processes each spend 3000 units a minute for one account, under 4800 alone
+# and 6000 together, so the rule fires.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_provider_request_cost_total{account="shared",provider="gmail",instance="backfill"}'
+    values: '0+750x10'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="shared",provider="gmail",instance="mediate"}'
+    values: '0+750x10'
+  alert_rule_test:
+  - eval_time: 2m
+    alertname: MediatedMailboxRateRunaway
+    exp_alerts:
+    - exp_labels:
+        account: shared
+        severity: page
+      exp_annotations:
+        summary: Requests for account shared cost more in the last minute than the hard cap allows.
+
+# Collapse, with a class asking throughout. The account "floor" has its rate at the floor and grants still made, and
+# the account "stalled" has its rate above the floor and nothing granted for over five minutes. Each fires only its
+# own rule, the first after five minutes at the floor.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_ratelimit_account_rate{account="floor"}'
+    values: '5x40'
+  - series: 'mediated_mailbox_ratelimit_account_floor{account="floor"}'
+    values: '5x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_ask{account="floor"}'
+    values: '1x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_grant{account="floor"}'
+    values: '1x40'
+  - series: 'mediated_mailbox_ratelimit_account_rate{account="stalled"}'
+    values: '20x40'
+  - series: 'mediated_mailbox_ratelimit_account_floor{account="stalled"}'
+    values: '5x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_ask{account="stalled"}'
+    values: '1x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_grant{account="stalled"}'
+    values: '301+15x40'
+  alert_rule_test:
+  - eval_time: 4m
+    alertname: MediatedMailboxRateCollapsed
+    exp_alerts: []
+  - eval_time: 6m
+    alertname: MediatedMailboxRateCollapsed
+    exp_alerts:
+    - exp_labels:
+        account: floor
+        severity: warning
+      exp_annotations:
+        summary: The rate for account floor has stayed at its floor for more than five minutes.
+  - eval_time: 6m
+    alertname: MediatedMailboxIssuanceStalled
+    exp_alerts:
+    - exp_labels:
+        account: stalled
+        severity: warning
+      exp_annotations:
+        summary: Nothing has been granted for account stalled for more than five minutes while work waits.
+  - eval_time: 6m
+    alertname: MediatedMailboxRateSeriesAbsent
+    exp_alerts: []
+
+# The stall rule's threshold from below. A class asks throughout and the last grant is 290 seconds old, under the
+# five minutes, so the rule stays silent.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_ratelimit_account_rate{account="waiting"}'
+    values: '20x40'
+  - series: 'mediated_mailbox_ratelimit_account_floor{account="waiting"}'
+    values: '5x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_ask{account="waiting"}'
+    values: '1x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_grant{account="waiting"}'
+    values: '290x40'
+  alert_rule_test:
+  - eval_time: 6m
+    alertname: MediatedMailboxIssuanceStalled
+    exp_alerts: []
+
+# The same two accounts with no class asking in the last minute. Neither rule fires.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_ratelimit_account_rate{account="floor"}'
+    values: '5x40'
+  - series: 'mediated_mailbox_ratelimit_account_floor{account="floor"}'
+    values: '5x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_ask{account="floor"}'
+    values: '61+15x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_grant{account="floor"}'
+    values: '400+15x40'
+  - series: 'mediated_mailbox_ratelimit_account_rate{account="stalled"}'
+    values: '20x40'
+  - series: 'mediated_mailbox_ratelimit_account_floor{account="stalled"}'
+    values: '5x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_ask{account="stalled"}'
+    values: '61+15x40'
+  - series: 'mediated_mailbox_ratelimit_account_seconds_since_grant{account="stalled"}'
+    values: '400+15x40'
+  alert_rule_test:
+  - eval_time: 6m
+    alertname: MediatedMailboxRateCollapsed
+    exp_alerts: []
+  - eval_time: 6m
+    alertname: MediatedMailboxIssuanceStalled
+    exp_alerts: []
+
+# The mediator's series absent. Only a job workload's series is present, and the absence rule fires after five
+# minutes.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_ratelimit_granted_total{account="a",class="batch",instance="backfill"}'
+    values: '0+10x40'
+  alert_rule_test:
+  - eval_time: 4m
+    alertname: MediatedMailboxRateSeriesAbsent
+    exp_alerts: []
+  - eval_time: 6m
+    alertname: MediatedMailboxRateSeriesAbsent
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+      exp_annotations:
+        summary: The mediator's account-level rate series are missing.

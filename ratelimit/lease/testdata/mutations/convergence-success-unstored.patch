@@ -1,0 +1,18 @@
+control: The controller converges below a real ceiling and recovers after throttling
+removes: a success stores no additive increase, so the rate never climbs back after a cut
+packages: ./ratelimit/lease
+tests: TestTheControllerConvergesBelowARealCeilingAndRecovers
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -201,7 +201,6 @@
+ // windows before it and then joins them (ADR-0024).
+ func (l *Limiter) Succeeded(ctx context.Context, account string, cost mail.OpCost, latency time.Duration) error {
+ 	return l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
+-		st = core.Succeeded(st, l.ceiling, cost)
+ 		next, median, closed := lat.window.Add(now, latency.Milliseconds())
+ 		lat.window = next
+ 		if closed {

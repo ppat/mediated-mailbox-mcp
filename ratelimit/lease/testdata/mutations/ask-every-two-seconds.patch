@@ -1,0 +1,19 @@
+control: Every ask records its class's ask instant, and a waiting worker asks again within each lease period
+removes: a waiting worker asks again every two seconds, longer than a lease period
+packages: ./ratelimit/lease
+tests: TestAnAskIsRecordedAndRenewedUntilTheWorkerStops
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -192,7 +192,7 @@
+ 	case rate > 0 && req.Tokens > next.Level:
+ 		wait = time.Duration(min((req.Tokens-next.Level)/rate, 1) * float64(time.Second))
+ 	}
+-	return min(max(wait, shortestWait), longestWait)
++	return max(wait, 2*time.Second)
+ }
+ 
+ // Succeeded records that a call of the given cost succeeded after latency, measured by the caller on

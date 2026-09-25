@@ -1,0 +1,17 @@
+---
+# The data-access library's sqlc configuration (ADR-0066). Each block reads the migration chain and
+# generates one subsection into the directory holding its statement files, the layout db/check requires.
+# Regenerate with sqlc generate in this directory. The generated files are checked in, and sqlc diff here
+# reports drift.
+version: "2"
+sql:
+- engine: postgresql
+  schema: migrations
+  queries: ratestate
+  gen:
+    go:
+      package: ratestate
+      out: ratestate
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true

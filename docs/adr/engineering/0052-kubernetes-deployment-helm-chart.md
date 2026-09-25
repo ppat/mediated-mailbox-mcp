@@ -31,14 +31,18 @@ may assume about the user's cluster.
   import reads, not a second place policy is decided. Beyond core Kubernetes, neither the chart
   nor its tests assume anything about the cluster they land on — no external-secrets, no
   cert-manager. This is ADR-0038's boundary made concrete: a chart that accepts only values and
-  pre-existing objects structurally cannot know the secret machinery.
+  pre-existing objects structurally cannot know the secret machinery. The one exception is the
+  alerting rules of [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md), which
+  the chart renders as the Prometheus Operator's resource only when a value switched off by
+  default turns them on.
 - **Project-owned configuration and policy hardening ship in the chart; their enforcement is the
   platform's.** The pod security contexts are core fields and comply with the hardening
   posture ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). Admission machinery and
   policy enforcement belong to the cluster the chart lands on: being deployed somewhere does not
   mean the controls hold there — the verification catalogue, not the chart, carries the proof
   obligations.
-- **Tests travel with the chart:** standard Helm tests in this repository, and a chainsaw suite —
+- **Tests travel with the chart:** standard Helm tests in this repository, rule unit tests over
+  the alerting rules it ships, and a chainsaw suite —
   declarative Kubernetes end-to-end tests — that deploys the chart onto an ephemeral kind cluster
   and exercises it. The chainsaw harness deploys the chart via flux, which its workflow installs on
   the cluster as harness machinery, not something the chart assumes exists. The suite builds no

@@ -16,8 +16,8 @@ import (
 const module = "github.com/ppat/mediated-mailbox-mcp"
 
 // library is a tree laid out as the data-access library. Every check runs over the real library and
-// over the test library under testdata. The real library holds no statement file yet, so a check run
-// over it alone could pass having read nothing. The test library holds content each check must accept
+// over the test library under testdata. The real library holds only what every check accepts, so a
+// check run over it alone could pass having refused nothing. The test library holds content each check must accept
 // or refuse, and the tests over it require exactly that, so a check weakened until it reads or
 // refuses nothing turns them red.
 type library struct {
@@ -29,6 +29,14 @@ type library struct {
 	// libraryWide names the import lists that may admit the whole library, because none of them is a
 	// component's own list.
 	libraryWide []string
+	// crossCutting names the import lists that span components, such as the lists over every pure
+	// core or over files outside every component. None is a deployable's, so none runs a library's
+	// statements under a role, and admitting a library's code through one is not a deployable
+	// admitting the library.
+	crossCutting []string
+	// root is the directory the module's import paths are read from, the repository's root for the
+	// real library, where a library list's globs name the directories its packages sit in.
+	root string
 }
 
 var (
@@ -39,15 +47,19 @@ var (
 		importLists: "../../.golangci.yaml",
 		// The data-access library's own list, the test tooling lists over code that never ships, and the
 		// lists over all non-test code and all ordinary tests, which leave each component to its own list.
-		libraryWide: []string{"db", "non-test-code", "ordinary-tests", "testsupport", "testsupport-without-rapid"},
+		libraryWide:  []string{"db", "non-test-code", "ordinary-tests", "testsupport", "testsupport-without-rapid"},
+		crossCutting: []string{"provider-test-code", "pure-core", "pure-core-tests", "residual"},
+		root:         "../..",
 	}
 	testLibrary = library{
-		dir:         "testdata",
-		migrations:  []string{"../migrations", "testdata/migrations"},
-		bootstrap:   "testdata/bootstrap",
-		violations:  "testdata/violations",
-		importLists: "testdata/golangci.yaml",
-		libraryWide: []string{"db"},
+		dir:          "testdata",
+		migrations:   []string{"../migrations", "testdata/migrations"},
+		bootstrap:    "testdata/bootstrap",
+		violations:   "testdata/violations",
+		importLists:  "testdata/golangci.yaml",
+		libraryWide:  []string{"db"},
+		crossCutting: []string{"everything"},
+		root:         "testdata",
 	}
 	// layoutLibrary holds only a sqlc.yaml whose blocks break the layout the checks rely on, and one
 	// block that follows it and was never generated. sqlc never runs over it.

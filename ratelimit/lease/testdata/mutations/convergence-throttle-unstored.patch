@@ -1,0 +1,20 @@
+control: The controller converges below a real ceiling and recovers after throttling
+removes: a throttle stores the state it read, so the rate stays at the target above the real ceiling
+packages: ./ratelimit/lease
+tests: TestTheControllerConvergesBelowARealCeilingAndRecovers
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -217,7 +217,8 @@
+ func (l *Limiter) Throttled(ctx context.Context, account string, signal mail.ThrottleSignal) error {
+ 	draw := l.draw()
+ 	err := l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
+-		return core.Throttled(st, l.ceiling, signal, now, draw), lat, now
++		_ = draw
++		return st, lat, now
+ 	})
+ 	if err == nil {
+ 		l.metrics.observeThrottle(account, signal.Scope)
