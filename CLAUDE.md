@@ -76,7 +76,7 @@ had alternatives live in the records, cited by number. What tests a piece of wor
 [TESTING.md](./TESTING.md)'s, which controls exist and how each is proven is
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s.
 The UI's own layout is [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The
-data-access library and the four narrow shared libraries each describe themselves in a README in
+data-access library and the five narrow shared libraries each describe themselves in a README in
 their own directory.
 
 ### The Go module
@@ -104,6 +104,7 @@ carries the bare word.
 | --- | --- | --- | --- |
 | `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, `mail` (the canonical model, the Provider Port interface, the canonical query and the rate profile types), and `marker` (the marker text of [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
+| `policyload/` | Library | `mediated-mailbox-policyload` | The loading of the policy tables into one snapshot, and the reload-failure alarm, argued in [policyload/README.md](./policyload/README.md) |
 | `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
 | `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
 | `sanitize/` | Library | `mediated-mailbox-sanitize` | The conversion of a body's HTML to clean Markdown, argued in [sanitize/README.md](./sanitize/README.md) |
@@ -121,7 +122,7 @@ carries the bare word.
 A deployable's job word is a verb for what it does, following `organize`. `ui` keeps the directory
 the Glossary gives it. Shared code is the shared pure library, or a narrow, named library that
 argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
-requires. The data-access library's case is ADR-0047's, and each of the other four argues its case
+requires. The data-access library's case is ADR-0047's, and each of the other five argues its case
 in its README.
 
 ### Inside a component

@@ -41,9 +41,9 @@ These are not outcomes. They bound every outcome and every design choice.
 - **Fail closed, everywhere.** Every ambiguous or error state (a policy that has never validly
   loaded, scanner backlog, classification failure, unscanned message) resolves to *deny the
   body*. "Allow" requires an affirmative safe classification, never the mere absence of a
-  positive signal. A policy update that fails validation is not an ambiguous state. It never
-  takes effect. The active valid policy continues to govern, and the failure is raised
-  loudly. Over-redaction is the correct failure direction. Under-redaction is a leak.
+  positive signal. A policy reload that fails, in its read or its validation, is not an
+  ambiguous state. It never takes effect. The active valid policy continues to govern, and the
+  failure is raised loudly. Over-redaction is the correct failure direction. Under-redaction is a leak.
 - **Self-hosted on infrastructure already owned.** The mediation layer runs on the operator's
   infrastructure. Mail transport and storage stay with the mail provider. Only the
   mediation/filtering layer is self-hosted.

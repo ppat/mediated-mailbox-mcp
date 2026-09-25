@@ -1,0 +1,20 @@
+control: An account whose own rules the loader did not read is held to the policy that restricts every sender
+removes: the accounts the loader read are held to the policy that restricts every sender, and the ones it did not read get the base rules
+packages: ./policyload
+tests: TestTheLoaderComposesEachAccountsPolicy TestAnEmptyPolicyReadWholeIsAccepted TestAnInvalidUpdateNeverDisplacesTheActivePolicy TestAReloadItsCallerCancelledRaisesNoAlarm TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules
+scheduled-count: no
+integration: yes
+
+diff --git a/policyload/load.go b/policyload/load.go
+index 6ed1b43..dc078e7 100644
+--- a/policyload/load.go
++++ b/policyload/load.go
+@@ -72,7 +72,7 @@ func (s Snapshot) Loaded() bool { return s.policy.Loaded() }
+ // snapshot never read gets the policy that restricts every sender, because the base rules alone
+ // would leave out every restriction its own rules add.
+ func (s Snapshot) For(account string) policy.Composed {
+-	if _, read := slices.BinarySearch(s.accounts, account); !read {
++	if _, read := slices.BinarySearch(s.accounts, account); read {
+ 		return policy.Composed{}
+ 	}
+ 	return s.policy.For(account)

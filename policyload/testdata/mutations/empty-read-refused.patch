@@ -1,0 +1,21 @@
+control: A read of the policy tables the loader cannot trust never replaces the active policy
+removes: a read that found no rules is taken as a failed read, so a policy with no rules read whole never takes effect
+packages: ./policyload
+tests: TestAnEmptyPolicyReadWholeIsAccepted
+scheduled-count: no
+integration: yes
+
+diff --git a/policyload/load.go b/policyload/load.go
+index 6ed1b43..f2a309b 100644
+--- a/policyload/load.go
++++ b/policyload/load.go
+@@ -122,6 +122,9 @@ func (l *Loader) Reload(ctx context.Context) error {
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+ 	rows, err := l.read(ctx)
++	if err == nil && len(rows) == 0 {
++		err = errors.New("no rules")
++	}
+ 	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
+ 		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
+ 	}

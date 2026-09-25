@@ -37,13 +37,14 @@ decision ever being made against one policy and audited against another.
   exact cut is each job's to make; the spirit — small units, prompt uptake — is the rule.
 - **No valid snapshot means no policy, and absence denies.** If a valid snapshot has never been
   loaded, the fail-closed constraint applies as it always does: deny the body.
-- **An invalid update never takes effect.** It displaces nothing: the active valid policy
+- **A failed reload never takes effect,** whether the update does not validate or the read of
+  the policy source cannot be trusted. It displaces nothing: the active valid policy
   remains active — not a fallback, not a retained historical state, but the same current,
   correct policy that has governed all along — and the failure alarms loudly. Beyond that alarm
-  and its trace in the audit or the logs, the system keeps no memory of the failed update. The
-  accepted cost, stated plainly: until the operator fixes the bad edit, whatever protection
-  that edit was meant to add is not yet active — which is exactly why the failure must be loud
-  and immediate rather than a log line.
+  and its trace in the audit or the logs, the system keeps no memory of the failed reload. The
+  accepted cost, stated plainly: until the operator fixes the bad edit, or a read of the source
+  succeeds again, whatever protection the unapplied edits were meant to add is not yet active —
+  which is exactly why the failure must be loud and immediate rather than a log line.
 
 ## Alternatives considered
 
@@ -54,9 +55,10 @@ decision ever being made against one policy and audited against another.
   stop meaning anything.
 - **Denying everything whenever a reload fails.** The maximally cautious reading of fail-closed.
   Rejected: fail-closed resolves *ambiguity* toward deny, but the active policy is not
-  ambiguity — it is a valid policy the operator affirmatively published, and an update that
-  fails validation never displaced it. Denying the whole mailbox because an edit had a typo is
-  over-redaction with no safety gained.
+  ambiguity — it is a valid policy the operator affirmatively published, and a reload that failed,
+  on an update that does not validate or on a read that cannot be trusted, never displaced it.
+  Denying the whole mailbox because an edit had a typo or a read hit a fault is over-redaction
+  with no safety gained.
 
 ## Consequences
 

@@ -1,0 +1,18 @@
+control: The reload-failure series reads 1 while the latest policy reload failed and 0 once one succeeds
+removes: a reload that succeeds sets the series to 1, as a failure does
+packages: ./policyload
+tests: TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules TestAnEmptyPolicyReadWholeIsAccepted TestAnInvalidUpdateNeverDisplacesTheActivePolicy TestAReloadItsCallerCancelledRaisesNoAlarm
+scheduled-count: no
+integration: yes
+
+
+diff --git a/policyload/metrics.go b/policyload/metrics.go
+index 381ec2d..21b0968 100644
+--- a/policyload/metrics.go
++++ b/policyload/metrics.go
+@@ -27,4 +27,4 @@ func newMetrics(reg prometheus.Registerer) (*metrics, error) {
+ 
+ func (m *metrics) failed() { m.reloadFailed.Set(1) }
+ 
+-func (m *metrics) succeeded() { m.reloadFailed.Set(0) }
++func (m *metrics) succeeded() { m.reloadFailed.Set(1) }

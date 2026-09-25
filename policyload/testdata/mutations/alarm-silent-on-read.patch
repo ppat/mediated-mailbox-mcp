@@ -1,0 +1,19 @@
+control: The reload-failure series reads 1 while the latest policy reload failed and 0 once one succeeds
+removes: a reload whose read failed leaves the series as it was
+packages: ./policyload
+tests: TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules TestAReloadItsCallerCancelledRaisesNoAlarm
+scheduled-count: no
+integration: yes
+
+diff --git a/policyload/load.go b/policyload/load.go
+index 6ed1b43..6631091 100644
+--- a/policyload/load.go
++++ b/policyload/load.go
+@@ -126,7 +126,6 @@ func (l *Loader) Reload(ctx context.Context) error {
+ 		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
+ 	}
+ 	if err != nil {
+-		l.metrics.failed()
+ 		return fmt.Errorf("%w: %w", ErrUntrustedRead, err)
+ 	}
+ 	next, outcome := policy.Swap(l.active.Load().policy, rows)

@@ -1,0 +1,20 @@
+control: A read of the policy tables the loader cannot trust never replaces the active policy
+removes: a read that fails for one account keeps the rows read before it, so the accounts read earlier replace the active policy
+packages: ./policyload
+tests: TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules
+scheduled-count: no
+integration: yes
+
+diff --git a/policyload/load.go b/policyload/load.go
+index 6ed1b43..d2630a9 100644
+--- a/policyload/load.go
++++ b/policyload/load.go
+@@ -162,7 +162,7 @@ func (l *Loader) read(ctx context.Context) ([]policy.Row, error) {
+ 			return nil
+ 		})
+ 		if err != nil {
+-			return nil, fmt.Errorf("account %s: %w", account, err)
++			break
+ 		}
+ 		if i == 0 {
+ 			base = inherited
