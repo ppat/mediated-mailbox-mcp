@@ -241,9 +241,9 @@ func vet(root, tag string) ([]finding, error) {
 	if err != nil {
 		return nil, fmt.Errorf("go tool -n vetcheck failed: %w\n%s", err, tool)
 	}
-	// integration is set because golangci-lint's configuration sets it, so crash sequences and other
-	// integration-tagged files are checked by both.
-	tags := "integration"
+	// integration and gmail_live are set because golangci-lint's configuration sets them, so crash
+	// sequences, other integration-tagged files and the contract run against Gmail are checked by both.
+	tags := "integration,gmail_live"
 	if tag != "" {
 		tags += "," + tag
 	}

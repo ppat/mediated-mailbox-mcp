@@ -1,0 +1,20 @@
+control: The consent accepts a grant of the modify scope alone
+removes: a code exchange's response without a refresh token is read as a grant
+packages: ./provider/gmail
+tests: TestGrantFrom/no_refresh_token
+scheduled-count: no
+
+diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go
+index 2f1df5c..f4fa7e7 100644
+--- a/provider/gmail/oauth.go
++++ b/provider/gmail/oauth.go
+@@ -82,9 +82,6 @@ func grantFrom(body []byte) (Grant, error) {
+ 	if err := onlyModify(resp.Scope); err != nil {
+ 		return Grant{}, err
+ 	}
+-	if resp.RefreshToken == "" {
+-		return Grant{}, errors.New("gmail: the consent returned no refresh token")
+-	}
+ 	return Grant{RefreshToken: resp.RefreshToken, AccessToken: resp.AccessToken}, nil
+ }
+ 

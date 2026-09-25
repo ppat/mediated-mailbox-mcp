@@ -27,10 +27,14 @@ an image, because only test files and the tooling programs import it. Its packag
   the results named.
 - `analysis`, the `go vet` analysers, for ADR-0069's placement rules and ADR-0071's rule against
   package-level state in a pure core.
+- `livecontract`, the guard a contract run against a real provider calls first, which skips the
+  run unless `cmd/livecontract` started it, and the invocation that command runs
+  ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)).
 - `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run), `cmd/vetcheck` (the
-  analysers' program) and `cmd/mutproof` (the runner that records mutation demonstrations, of
-  [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)), each run
-  through `go tool`.
+  analysers' program), `cmd/mutproof` (the runner that records mutation demonstrations, of
+  [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)) and
+  `cmd/livecontract` (the one command that runs a provider's contract run against the real
+  provider), each run through `go tool`.
 
 The import rules are written per file, so packages importing the property-testing library and
 packages every test may import sit in the one library without one reaching the other.

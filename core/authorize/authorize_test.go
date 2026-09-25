@@ -39,7 +39,7 @@ func TestFailClosed(t *testing.T) {
 	}{
 		{"the zero verb from a normal sender", zeroVerb, sensitivity.NormalSender(), unknown},
 		{"the zero verb from a restricted sender", zeroVerb, sensitivity.RestrictedSender(), unknown},
-		{"a value past the last verb", authorize.Mute + 1, sensitivity.NormalSender(), unknown},
+		{"a value past the last verb", authorize.Spam + 1, sensitivity.NormalSender(), unknown},
 		{"the largest value", authorize.Verb(255), sensitivity.NormalSender(), unknown},
 		{"archive under a sender class nobody built", authorize.Archive, zeroClass, restricted},
 	}
@@ -75,7 +75,6 @@ func TestMatrix(t *testing.T) {
 		{authorize.Archive, authorized, restricted},
 		{authorize.Trash, authorized, restricted},
 		{authorize.Spam, authorized, restricted},
-		{authorize.Mute, authorized, restricted},
 	}
 	for _, c := range cases {
 		t.Run(c.verb.String(), func(t *testing.T) {
@@ -114,7 +113,7 @@ func TestOnlyTheMatrixVerbsAreAuthorized(t *testing.T) {
 	}
 	organize := []string{"label", "unlabel", "move", "mark_read", "star"}
 	want := map[string][]string{
-		"normal":       append(append([]string{}, organize...), "archive", "trash", "spam", "mute"),
+		"normal":       append(append([]string{}, organize...), "archive", "trash", "spam"),
 		"restricted":   organize,
 		"nobody built": organize,
 	}
@@ -125,7 +124,7 @@ func TestOnlyTheMatrixVerbsAreAuthorized(t *testing.T) {
 
 // Every value a Verb can hold has a name, and only a verb of the matrix has its own.
 func TestVerbNames(t *testing.T) {
-	named := []string{"no verb", "label", "unlabel", "move", "mark_read", "star", "archive", "trash", "spam", "mute"}
+	named := []string{"no verb", "label", "unlabel", "move", "mark_read", "star", "archive", "trash", "spam"}
 	var got, want []string
 	for v := range 256 {
 		got = append(got, authorize.Verb(v).String())

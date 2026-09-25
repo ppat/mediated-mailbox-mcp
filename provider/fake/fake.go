@@ -305,37 +305,30 @@ func (f *Fake) apply(op mail.MutationOp) error {
 	if !ok {
 		return fmt.Errorf("fake: message %q: %w", op.MessageID(), mail.ErrNotFound)
 	}
+	// Only a label an op adds must exist (ADR-0010). Removing one the message or the account lacks
+	// changes nothing and succeeds.
 	if add := op.AddLabel(); add != "" && !f.labels[add] {
 		return fmt.Errorf("fake: label %q: %w", add, mail.ErrNotFound)
 	}
-	targets := []*stored{s}
-	if op.Verb() == authorize.Mute {
-		targets = f.threadOf(s.meta.ThreadID)
+	before := clone(s.meta)
+	switch op.Verb() {
+	case authorize.Label, authorize.Unlabel, authorize.Move:
+		s.meta.Labels = relabel(s.meta.Labels, op.AddLabel(), op.RemoveLabel())
+	case authorize.Archive:
+		s.meta.Labels = relabel(s.meta.Labels, "", mail.Inbox)
+	case authorize.Trash:
+		s.meta.Labels = relabel(s.meta.Labels, mail.Trash, mail.Inbox)
+	case authorize.Spam:
+		s.meta.Labels = relabel(s.meta.Labels, mail.Spam, mail.Inbox)
+	case authorize.MarkRead:
+		s.meta.Flags.Read = true
+	case authorize.Star:
+		s.meta.Flags.Starred = true
+	default:
+		return fmt.Errorf("fake: verb %s: %w", op.Verb(), mail.ErrInvalid)
 	}
-	for _, t := range targets {
-		before := clone(t.meta)
-		switch op.Verb() {
-		case authorize.Label, authorize.Unlabel, authorize.Move:
-			t.meta.Labels = relabel(t.meta.Labels, op.AddLabel(), op.RemoveLabel())
-		case authorize.Archive:
-			t.meta.Labels = relabel(t.meta.Labels, "", mail.Inbox)
-		case authorize.Trash:
-			t.meta.Labels = relabel(t.meta.Labels, mail.Trash, mail.Inbox)
-		case authorize.Spam:
-			t.meta.Labels = relabel(t.meta.Labels, mail.Spam, mail.Inbox)
-		case authorize.MarkRead:
-			t.meta.Flags.Read = true
-		case authorize.Star:
-			t.meta.Flags.Starred = true
-		case authorize.Mute:
-			t.meta.Flags.Muted = true
-			t.meta.Labels = relabel(t.meta.Labels, "", mail.Inbox)
-		default:
-			return fmt.Errorf("fake: verb %s: %w", op.Verb(), mail.ErrInvalid)
-		}
-		if !slices.Equal(before.Labels, t.meta.Labels) || before.Flags != t.meta.Flags {
-			f.history = append(f.history, change{id: t.meta.ID, kind: modified})
-		}
+	if !slices.Equal(before.Labels, s.meta.Labels) || before.Flags != s.meta.Flags {
+		f.history = append(f.history, change{id: s.meta.ID, kind: modified})
 	}
 	return nil
 }
@@ -461,16 +454,6 @@ func (f *Fake) threads() [][]*stored {
 		th := groups[id]
 		sort.SliceStable(th, func(a, b int) bool { return th[a].meta.Date < th[b].meta.Date })
 		out[i] = th
-	}
-	return out
-}
-
-func (f *Fake) threadOf(threadID string) []*stored {
-	var out []*stored
-	for _, s := range f.ordered() {
-		if s.meta.ThreadID == threadID {
-			out = append(out, s)
-		}
 	}
 	return out
 }

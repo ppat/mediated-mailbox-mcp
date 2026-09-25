@@ -23,7 +23,6 @@ The Mutation Authorizer applies this matrix to every operation:
 | `archive` | ✅ | ❌ | ✅ |
 | `trash` | ✅ | ❌ | ✅ |
 | `spam` / `junk` | ✅ | ❌ | ✅ |
-| `mute` | ✅ | ❌ | ✅ |
 | `delete` (permanent) | ❌ **never** | ❌ | ❌ |
 
 The rules behind the matrix:
@@ -33,7 +32,7 @@ The rules behind the matrix:
   mutation rights — an expired MFA mail is exactly the clutter the agent should archive, even
   though its body was withheld.
 - **Restricted means organize-only.** Label and move, nothing that removes a message from view:
-  no archive, trash, spam, or mute.
+  no archive, trash, or spam.
 - **Permanent delete exists nowhere.** It is absent from the client surface *and* from the granted
   token capability ([ADR-0011](../provider/0011-gmail-auth-installed-app-oauth.md)) — the
   guarantee is structural twice over, not a policy check.
@@ -53,6 +52,11 @@ The rules behind the matrix:
 - **Best-effort batches (apply what is authorized, report the rest).** Rejected: partial
   application of a mixed batch is a surprising state that reads as success; a whole-batch failure
   is legible and retryable after the caller splits it deliberately.
+- **A `mute` verb.** Rejected because Gmail's API cannot mute a thread. It refuses the `MUTED`
+  label as invalid, and [ADR-0010](../provider/0010-one-provider-port.md) counts an operation one
+  backend cannot express as a bug in the contract. Archive takes a message out of view, though
+  unlike mute it does not keep later replies out of the inbox. If a provider's API gains mute, mute
+  returns as a new verb.
 
 ## Consequences
 

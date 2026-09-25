@@ -26,9 +26,9 @@ import (
 // The environment variables that turn this test binary into the child of
 // TestAFailedWriteLeavesTheLocationAsItWas.
 const (
-	childPath  = "GMAIL_TEST_WRITE_BACK_PATH"
-	childToken = "GMAIL_TEST_WRITE_BACK_TOKEN"
-	childLimit = "GMAIL_TEST_WRITE_BACK_FILE_SIZE_LIMIT"
+	childPath  = "MEDIATED_MAILBOX_WRITE_BACK_CHILD_PATH"
+	childToken = "MEDIATED_MAILBOX_WRITE_BACK_CHILD_TOKEN"
+	childLimit = "MEDIATED_MAILBOX_WRITE_BACK_CHILD_FILE_SIZE_LIMIT"
 )
 
 func TestMain(m *testing.M) {

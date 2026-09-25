@@ -1,0 +1,19 @@
+control: A Gmail port call sends no request past the cost it declares, and a caller-sized call fits one lease
+removes: a metadata fetch takes any number of identifiers, so a call can cost more than the rate limiter issues at once
+packages: ./provider/gmail
+tests: TestCallerSizedCallsPastTheSecondAreRefused
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index c8479f2..60b8099 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -261,7 +261,7 @@ func (a *Adapter) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.
+ 	if err := ctx.Err(); err != nil {
+ 		return nil, err
+ 	}
+-	if len(ids) > idsPerMetadataCall {
++	if false && len(ids) > idsPerMetadataCall {
+ 		return nil, fmt.Errorf("gmail: %d identifiers in one call, at most %d: %w", len(ids), idsPerMetadataCall, mail.ErrInvalid)
+ 	}
+ 	return a.begin(mail.OpGetMessageMetadata, len(ids)).metadata(ctx, ids)

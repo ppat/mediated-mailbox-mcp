@@ -1,0 +1,19 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: the count is labelled with a provider value the runaway rule does not match
+packages: ./provider/gmail
+tests: TestEveryRequestSentIsCounted TestACallIsHeldToItsDeclaredCost
+scheduled-count: no
+
+diff --git a/provider/gmail/metrics.go b/provider/gmail/metrics.go
+index d4f2785..4e5d9af 100644
+--- a/provider/gmail/metrics.go
++++ b/provider/gmail/metrics.go
+@@ -9,7 +9,7 @@ import (
+ const requestCostName = "mediated_mailbox_provider_request_cost_total"
+ 
+ // providerLabel is this adapter's value of the counter's provider label.
+-const providerLabel = "gmail"
++const providerLabel = "google"
+ 
+ // Metrics are the adapter's series in one process (ADR-0076). A process builds them once on its own
+ // registry and passes them to every Adapter it builds, one per account.

@@ -1,0 +1,19 @@
+control: The contract suite compares, changes and prints only the mail each case added, and a scoped case's listings return only threads carrying its own label
+removes: the change feed keeps the changes to mail the case did not add
+packages: ./provider/fake
+tests: TestTheScopedSuitePassesOverMailItDidNotAdd
+scheduled-count: no
+
+diff --git a/provider/contract/suite.go b/provider/contract/suite.go
+index fd6f153..85258dc 100644
+--- a/provider/contract/suite.go
++++ b/provider/contract/suite.go
+@@ -973,7 +973,7 @@ func drain(t *testing.T, s *subject, c mail.Cursor) (changes, mail.Cursor) {
+ 	ours := func(ids []string) []string {
+ 		var out []string
+ 		for _, id := range ids {
+-			if _, ok := s.keys[id]; ok {
++			if _, ok := s.keys[id]; ok || id != "" {
+ 				out = append(out, id)
+ 			}
+ 		}

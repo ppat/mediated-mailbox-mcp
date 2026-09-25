@@ -1,0 +1,49 @@
+---
+# yamllint disable rule:line-length
+name: gmail-contract
+
+# The Gmail adapter's contract suite against real Gmail, on the account set aside for testing (ADR-0043). It needs
+# that account's credentials, so it runs once a week on the main branch and by hand on any branch, never
+# automatically on a pull request and never with the other integration tests. Every other test runs without
+# provider credentials (TESTING.md). The run adds its own marked messages to the account and checks and reports
+# only those, so its log shows nothing of the account's other mail.
+on:
+  schedule:
+  - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+# Every run shares the one test account and its rate budget, so two runs never overlap, and a run is never
+# cancelled part of the way through.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    # Longer than the 55-minute go test timeout go tool livecontract sets plus the setup, so the test binary, which
+    # stops starting cases ten minutes before its deadline, ends before the job is killed and its cleanups run.
+    timeout-minutes: 75
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@2045fb6e6cb00ab099280625b6989cf62ccc1b77 # v2.7.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # go tool livecontract is the one way the live test runs. It runs the one test under its build tag and sets the
+    # marker the test requires, and any other invocation skips it. GMAIL_TEST_ACCOUNT is the test account's address,
+    # which the run confirms the credential belongs to before it adds anything.
+    - name: Run the contract suite against Gmail
+      shell: bash
+      working-directory: ./current
+      env:
+        GMAIL_TEST_ACCOUNT: ${{ secrets.GMAIL_TEST_ACCOUNT }}
+        GMAIL_TEST_CLIENT_ID: ${{ secrets.GMAIL_TEST_CLIENT_ID }}
+        GMAIL_TEST_CLIENT_SECRET: ${{ secrets.GMAIL_TEST_CLIENT_SECRET }}
+        GMAIL_TEST_REFRESH_TOKEN: ${{ secrets.GMAIL_TEST_REFRESH_TOKEN }}
+      run: mise exec -- go tool livecontract gmail

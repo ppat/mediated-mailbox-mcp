@@ -1,0 +1,19 @@
+control: A Gmail port call sends no request past the cost it declares, and a caller-sized call fits one lease
+removes: a call compares what it spent before the request with its declared cost, so the request that takes it past is sent
+packages: ./provider/gmail
+tests: TestACallIsHeldToItsDeclaredCost TestWithin
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index c8479f2..46dd7b1 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -71,7 +71,7 @@ func (a *Adapter) begin(op mail.Operation, messages int) *call {
+ 
+ // within reports whether a request costing units keeps a call that has spent spent within its
+ // declared cost.
+-func within(spent, units, declared int) bool { return spent+units <= declared }
++func within(spent, units, declared int) bool { return spent <= declared }
+ 
+ // do sends a request of the call, and refuses without sending one that would take the call past its
+ // declared cost.

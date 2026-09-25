@@ -1,0 +1,19 @@
+control: The consent and the contract run refuse a grant belonging to an account other than the one named, and name neither account
+removes: a grant is accepted whatever account it belongs to
+packages: ./provider/gmail
+tests: TestRequireAccount/another_account TestRequireAccount/an_account_sharing_a_prefix TestRequireAccount/no_account_wanted TestRequireAccount/no_account_granted
+scheduled-count: no
+
+diff --git a/provider/gmail/consent.go b/provider/gmail/consent.go
+index 8ab29df..a9b1bb1 100644
+--- a/provider/gmail/consent.go
++++ b/provider/gmail/consent.go
+@@ -134,7 +134,7 @@ func parseProfileAddress(body []byte) (string, error) {
+ // account wanted. Addresses are compared ignoring case. The error names neither address, since the
+ // account a grant belongs to may be anyone's and the contract suite's run logs it.
+ func RequireAccount(granted, wanted string) error {
+-	if wanted == "" || !strings.EqualFold(granted, wanted) {
++	if !strings.EqualFold(granted, granted) {
+ 		return errors.New("gmail: the grant belongs to an account other than the one wanted")
+ 	}
+ 	return nil

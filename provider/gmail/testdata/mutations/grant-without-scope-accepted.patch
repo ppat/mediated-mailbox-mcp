@@ -1,0 +1,19 @@
+control: The consent accepts a grant of the modify scope alone
+removes: a grant naming no scope is accepted
+packages: ./provider/gmail
+tests: TestTheExchangeAcceptsOnlyTheModifyScope
+scheduled-count: no
+
+diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go
+index 61d2573..a692bd0 100644
+--- a/provider/gmail/oauth.go
++++ b/provider/gmail/oauth.go
+@@ -85,7 +85,7 @@ func ExchangeCode(ctx context.Context, client *http.Client, clientID, clientSecr
+ // onlyModify refuses a granted scope list that is anything but Scope alone. Google lists the
+ // granted scopes separated by spaces.
+ func onlyModify(scope string) error {
+-	if granted := strings.Fields(scope); len(granted) != 1 || granted[0] != Scope {
++	if granted := strings.Fields(scope); len(granted) > 1 || len(granted) == 1 && granted[0] != Scope {
+ 		return fmt.Errorf("gmail: the consent granted the scopes %q, and only %s is accepted", granted, Scope)
+ 	}
+ 	return nil

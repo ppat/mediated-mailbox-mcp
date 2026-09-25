@@ -1,0 +1,19 @@
+control: A contract run against a real provider needs a deliberate command of its own, so no accidental or incidental test invocation reaches the provider
+removes: the guard lets a live test through under any provider's marker
+packages: ./testsupport/livecontract ./provider/gmail
+tests: TestRequire/another_provider's_marker TestRequire/a_marker_in_another_case TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker
+scheduled-count: no
+
+diff --git a/testsupport/livecontract/livecontract.go b/testsupport/livecontract/livecontract.go
+index e6816e4..e97b076 100644
+--- a/testsupport/livecontract/livecontract.go
++++ b/testsupport/livecontract/livecontract.go
+@@ -37,7 +37,7 @@ func providers() map[string]live {
+ // first, before it reads a credential or calls the provider.
+ func Require(t testing.TB, provider string) {
+ 	t.Helper()
+-	if os.Getenv(Marker) != provider {
++	if os.Getenv(Marker) == "" {
+ 		t.Skipf("the contract run against %s runs only through go tool livecontract %s", provider, provider)
+ 	}
+ }

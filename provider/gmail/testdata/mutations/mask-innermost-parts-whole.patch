@@ -1,0 +1,19 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: the mask's innermost parts are selected whole, so every body beneath them comes back
+packages: ./provider/gmail
+tests: TestMetadataReadsNameNoBody/messages.get TestMetadataReadsNameNoBody/threads.get
+scheduled-count: no
+
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 71c01d0..61407b1 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -101,7 +101,7 @@ const partsDepth = 6
+ // and each part's type and file name to partsDepth levels. Gmail's metadata format keeps the body
+ // out as well but returns no parts, so no attachment names.
+ func metadataFields() string {
+-	parts := ""
++	parts := "parts"
+ 	for range partsDepth {
+ 		inner := "mimeType,filename"
+ 		if parts != "" {

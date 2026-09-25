@@ -1,0 +1,19 @@
+control: The contract suite compares, changes and prints only the mail each case added, and a scoped case's listings return only threads carrying its own label
+removes: a message the case did not add is taken as the case's
+packages: ./provider/fake
+tests: TestTheScopedSuitePassesOverMailItDidNotAdd
+scheduled-count: no
+
+diff --git a/provider/contract/suite.go b/provider/contract/suite.go
+index fd6f153..f20f830 100644
+--- a/provider/contract/suite.go
++++ b/provider/contract/suite.go
+@@ -266,7 +266,7 @@ func (s *subject) key(t *testing.T, m mail.MessageMetadata) (string, bool) {
+ 	if strings.HasSuffix(m.Subject, s.mark) {
+ 		t.Fatalf("a message with the subject %q carries this case's mark under an identifier the case was never given", m.Subject)
+ 	}
+-	return "", false
++	return "", true
+ }
+ 
+ // query returns q, conjoined with the case's label when the case is scoped.

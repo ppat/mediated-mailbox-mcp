@@ -1,0 +1,19 @@
+control: A Gmail port call sends no request past the cost it declares, and a caller-sized call fits one lease
+removes: a mutation takes any number of ops, so a call can cost more than the rate limiter issues at once
+packages: ./provider/gmail
+tests: TestCallerSizedCallsPastTheSecondAreRefused
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index c8479f2..0414c85 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -348,7 +348,7 @@ func (a *Adapter) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutat
+ 			return mail.MutationResult{}, fmt.Errorf("gmail: op %d was not built by a constructor: %w", i, mail.ErrInvalid)
+ 		}
+ 	}
+-	if len(ops) > opsPerMutation {
++	if false && len(ops) > opsPerMutation {
+ 		return mail.MutationResult{}, fmt.Errorf("gmail: %d ops in one call, at most %d: %w", len(ops), opsPerMutation, mail.ErrInvalid)
+ 	}
+ 	if err := ctx.Err(); err != nil {

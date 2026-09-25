@@ -5,15 +5,15 @@ tests: TestTheFakePassesTheContract/each_verb_changes_exactly_what_it_names/arch
 scheduled-count: no
 
 diff --git a/provider/fake/fake.go b/provider/fake/fake.go
-index 22535f7..5a3bcb0 100644
+index f09bfb0..d3f219e 100644
 --- a/provider/fake/fake.go
 +++ b/provider/fake/fake.go
-@@ -318,7 +318,7 @@ func (f *Fake) apply(op mail.MutationOp) error {
- 		case authorize.Label, authorize.Unlabel, authorize.Move:
- 			t.meta.Labels = relabel(t.meta.Labels, op.AddLabel(), op.RemoveLabel())
- 		case authorize.Archive:
--			t.meta.Labels = relabel(t.meta.Labels, "", mail.Inbox)
-+			t.meta.Labels = relabel(t.meta.Labels, "", "")
- 		case authorize.Trash:
- 			t.meta.Labels = relabel(t.meta.Labels, mail.Trash, mail.Inbox)
- 		case authorize.Spam:
+@@ -315,7 +315,7 @@ func (f *Fake) apply(op mail.MutationOp) error {
+ 	case authorize.Label, authorize.Unlabel, authorize.Move:
+ 		s.meta.Labels = relabel(s.meta.Labels, op.AddLabel(), op.RemoveLabel())
+ 	case authorize.Archive:
+-		s.meta.Labels = relabel(s.meta.Labels, "", mail.Inbox)
++		s.meta.Labels = relabel(s.meta.Labels, "", "")
+ 	case authorize.Trash:
+ 		s.meta.Labels = relabel(s.meta.Labels, mail.Trash, mail.Inbox)
+ 	case authorize.Spam:

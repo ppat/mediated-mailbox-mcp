@@ -1,0 +1,18 @@
+control: A contract run against a real provider needs a deliberate command of its own, so no accidental or incidental test invocation reaches the provider
+removes: the command runs the live test without setting the marker, so it only ever skips
+packages: ./testsupport/livecontract
+tests: TestInvocation
+scheduled-count: no
+
+diff --git a/testsupport/livecontract/livecontract.go b/testsupport/livecontract/livecontract.go
+index e6816e4..d71480e 100644
+--- a/testsupport/livecontract/livecontract.go
++++ b/testsupport/livecontract/livecontract.go
+@@ -65,6 +65,6 @@ func Invocation(provider string, environ []string) (Command, error) {
+ 	env := slices.DeleteFunc(slices.Clone(environ), func(v string) bool { return strings.HasPrefix(v, Marker+"=") })
+ 	return Command{
+ 		Args: []string{"test", "-tags", p.tag, "-count=1", "-timeout", p.timeout, "-v", "-run", "^" + p.test + "$", p.pkg},
+-		Env:  append(env, Marker+"="+provider),
++		Env:  env,
+ 	}, nil
+ }

@@ -5,15 +5,15 @@ tests: TestTheFakePassesTheContract/a_change_is_reported_once,_as_a_modification
 scheduled-count: no
 
 diff --git a/provider/fake/fake.go b/provider/fake/fake.go
-index 22535f7..d620897 100644
+index f09bfb0..12c88cd 100644
 --- a/provider/fake/fake.go
 +++ b/provider/fake/fake.go
-@@ -334,7 +334,7 @@ func (f *Fake) apply(op mail.MutationOp) error {
- 			return fmt.Errorf("fake: verb %s: %w", op.Verb(), mail.ErrInvalid)
- 		}
- 		if !slices.Equal(before.Labels, t.meta.Labels) || before.Flags != t.meta.Flags {
--			f.history = append(f.history, change{id: t.meta.ID, kind: modified})
-+			_ = change{id: t.meta.ID, kind: modified}
- 		}
+@@ -328,7 +328,7 @@ func (f *Fake) apply(op mail.MutationOp) error {
+ 		return fmt.Errorf("fake: verb %s: %w", op.Verb(), mail.ErrInvalid)
+ 	}
+ 	if !slices.Equal(before.Labels, s.meta.Labels) || before.Flags != s.meta.Flags {
+-		f.history = append(f.history, change{id: s.meta.ID, kind: modified})
++		_ = change{id: s.meta.ID, kind: modified}
  	}
  	return nil
+ }

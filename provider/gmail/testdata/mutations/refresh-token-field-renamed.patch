@@ -5,15 +5,15 @@ tests: TestARotatedCredentialSurvivesARestart TestParseTokenResponse/refresh_tha
 scheduled-count: no
 
 diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go
-index 0c7a071..899914c 100644
+index 61d2573..6b325ad 100644
 --- a/provider/gmail/oauth.go
 +++ b/provider/gmail/oauth.go
-@@ -94,7 +94,7 @@ func parseTokenResponse(body []byte) (tokenResponse, error) {
+@@ -118,7 +118,7 @@ func parseTokenResponse(body []byte) (tokenResponse, error) {
  	var raw struct {
  		AccessToken  string `json:"access_token"`
  		ExpiresIn    int64  `json:"expires_in"`
 -		RefreshToken string `json:"refresh_token"`
 +		RefreshToken string `json:"refreshToken"`
+ 		Scope        string `json:"scope"`
  	}
  	if err := json.Unmarshal(body, &raw); err != nil {
- 		return tokenResponse{}, fmt.Errorf("gmail: reading the token response: %w", err)

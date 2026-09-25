@@ -30,7 +30,7 @@ row describes the control's code.
 | Pure-core logic | Example-based tests, comparing the returned value against a literal expected one through the shared comparison options. No property checks what the sender classifier or the scan gate decides, because their policy rules are the only definition of the right answer | [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md), with the comparison of [ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md) |
 | A rule the documents already state | A property-based test executing that rule against generated inputs, of a kind ADR-0055 admits, generated and reduced by the library [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) chooses, alongside the generator report that record has the project write | [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md), [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) |
 | A shell against a real dependency | An integration test against the real thing (real Postgres, containerized and ephemeral) or against the provider fake. Never a mock | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md), on [ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md)'s core/shell shape, with the container started as [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md) decides |
-| Any implementation of the provider port, the fake included | The one contract suite every port implementation must pass | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) |
+| Any implementation of the provider port, the fake included | The one contract suite every port implementation must pass. A real adapter also passes it against its real provider, on an account set aside for that run, and is not done until it has | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) |
 | Sequence-dependent stateful machinery where a crash is silent and hard to reverse | Generated crash-injection sequences from the crash harness, whose sequences and their reduction come from the same library the properties use, with a fresh operation mix drawn for each sequence in the scheduled run, plus the physical drill the verification catalogue demands. ADR-0045 commits the first two targets, the reorg apply/rollback path and backfill resume, and defers any others | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md), [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) |
 | An alerting rule | A rule unit test under `promtool test rules`, run from a Go test, firing above its threshold and silent below it | [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md) |
 | The assembled system on a bare cluster | The chart's own tests and the top-level chainsaw suite | [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) |
@@ -62,7 +62,14 @@ one assertion of the content security policy that only a browser can make is a d
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
 Integration tests against PostgreSQL run together against one container per run, each test package
 in a database of its own
-([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). A drill runs where
+([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). The contract
+suite's run against a real provider needs credentials, held as GitHub Actions secrets, to an
+account set aside for it ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)). It runs only
+when started deliberately through a command of its own, `go tool livecontract <provider>`, and
+any other test invocation leaves it out. Its workflow runs that command once a week on the main
+branch and whenever it is started by hand on any branch, never automatically on a pull request.
+Every
+other test runs without provider credentials. A drill runs where
 [ROADMAP.md](./ROADMAP.md) places it, and its proof holds only for that date.
 
 ## The proof system

@@ -22,7 +22,6 @@ const (
 	unitsMessageModify = 5
 	unitsThreadsList   = 10
 	unitsThreadsGet    = 40
-	unitsThreadsModify = 10
 )
 
 // The largest page each listing returns, sized so that its worst case costs no more than one
@@ -35,6 +34,14 @@ const (
 	messagesPerPage = 3
 )
 
+// The most a caller may ask of one call whose size it sets, the largest that fits one second's worth
+// at the hard cap. A metadata fetch of three identifiers costs 61 units, and a mutation of three ops
+// costs 61. The adapter refuses a larger call, so the caller splits its work.
+const (
+	idsPerMetadataCall = 3
+	opsPerMutation     = 3
+)
+
 // Profile is Gmail's rate profile. Every call's cost is declared before the call as its worst case in
 // Gmail's quota units, the sum of what the Gmail methods it calls are charged, counting every read of
 // the label table the adapter makes to map label identifiers to paths.
@@ -43,19 +50,21 @@ const (
 // one second's worth at the hard cap. Where the caller sets the size, as with the identifiers of a
 // metadata fetch or the ops of a mutation, the cost grows with it, and a call past one second's worth
 // is refused at lease issuance, so the caller splits its work into calls that fit. At today's prices
-// a metadata fetch holds three identifiers and a mutation two ops. An HTTP batch is one call, holding
+// a metadata fetch holds three identifiers and a mutation three ops. An HTTP batch is one call, holding
 // only as many sub-requests as that second pays for.
 //
 //   - ListThreads costs a read of the label table for its query, a threads.list, a threads.get for
 //     each thread of its page, and a read of the label table for the messages.
 //   - GetThreadMetadata costs a threads.get and a read of the label table.
-//   - GetMessageMetadata costs a messages.get per identifier and a read of the label table, and
-//     nothing for no identifier, since then it calls nothing.
+//   - GetMessageMetadata costs a messages.get per identifier and a read of the label table. With no
+//     identifier it calls nothing, and it still declares the read of the label table, because the
+//     rate limiter refuses a call costing nothing (ADR-0024) and the port gives every operation a
+//     positive cost, so a caller never has to leave that call out.
 //   - GetMessageBody costs a messages.get.
 //   - ListLabels costs a read of the label table. EnsureLabel costs a read of the label table, a
 //     labels.create, and a second read when Gmail answers that the label already exists.
-//   - Mutate costs a read of the label table and, per op, the dearest way an op is applied, mute,
-//     which reads the message for its thread and modifies the thread.
+//   - Mutate costs a read of the label table and, per op, the dearest way an op is applied, a read
+//     of the message for an op left with nothing to change.
 //   - CurrentCursor costs a getProfile, and ChangesSince a history.list and a read of the label
 //     table.
 //   - EnumerateAll costs a messages.list, a messages.get for each message of its page and a read
@@ -76,9 +85,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
 	case mail.OpGetThreadMetadata:
 		units = unitsThreadsGet + unitsLabelsList
 	case mail.OpGetMessageMetadata:
-		if n > 0 {
-			units = unitsMessagesGet*n + unitsLabelsList
-		}
+		units = unitsMessagesGet*n + unitsLabelsList
 	case mail.OpGetMessageBody:
 		units = unitsMessagesGet
 	case mail.OpListLabels:
@@ -86,7 +93,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
 	case mail.OpEnsureLabel:
 		units = unitsLabelsList + unitsLabelsCreate + unitsLabelsList
 	case mail.OpMutate:
-		units = unitsLabelsList + max(unitsMessageModify, unitsMessagesGet+unitsThreadsModify)*n
+		units = unitsLabelsList + max(unitsMessageModify, unitsMessagesGet)*n
 	case mail.OpCurrentCursor:
 		units = unitsGetProfile
 	case mail.OpChangesSince:

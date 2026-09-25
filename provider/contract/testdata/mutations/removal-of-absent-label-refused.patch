@@ -1,0 +1,20 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake refuses an op removing a label the account lacks
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/removing_a_label_the_message_or_the_account_lacks_changes_nothing
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index f09bfb0..6e36ed0 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -310,6 +310,9 @@ func (f *Fake) apply(op mail.MutationOp) error {
+ 	if add := op.AddLabel(); add != "" && !f.labels[add] {
+ 		return fmt.Errorf("fake: label %q: %w", add, mail.ErrNotFound)
+ 	}
++	if remove := op.RemoveLabel(); remove != "" && !f.labels[remove] {
++		return fmt.Errorf("fake: label %q: %w", remove, mail.ErrNotFound)
++	}
+ 	before := clone(s.meta)
+ 	switch op.Verb() {
+ 	case authorize.Label, authorize.Unlabel, authorize.Move:

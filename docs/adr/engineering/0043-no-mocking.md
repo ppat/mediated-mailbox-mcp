@@ -11,7 +11,7 @@ goes green by measuring the accuracy of the assumptions it was built from, which
 what there was no reason to trust. The dependencies this system leans on carry claims that
 only the real thing can prove. Account-scoped query enforcement, schema constraints, and role
 grants are claims about the database's behavior, not about ours. The mail provider, meanwhile,
-is impractical to run inside a test suite at all.
+is impractical to run inside the suite every change runs.
 
 ## Decision
 
@@ -27,10 +27,18 @@ is impractical to run inside a test suite at all.
 - **The simulated provider that throttles on schedule (the rate limiter's test dependency) is
   an instance of the fake.** It is the same contract plus a throttle schedule. One test asset,
   not two.
-- **Whether the contract suite ever runs against the real provider, and against what mailbox,
-  is deliberately deferred** until the first real adapter is implemented, because the
-  complexity and the payoff at that point drive it. The open decision is registered in
-  [ROADMAP.md](../../../ROADMAP.md).
+- **Every real adapter also passes the contract suite against its real provider**, on an account
+  set aside for testing, never the real mailbox. The suite assumes nothing about what that account
+  already holds and never deletes from it. Before it adds anything, the run confirms the credential
+  belongs to the account named as the test account and stops if it does not. Each run adds the messages it needs through the grant
+  the adapter holds, marks them as that run's, and checks and reports only what it added, since the
+  account's other mail is unknown and the run's logs may be public. When a case ends, the run
+  takes off every message the case added the labels it added the message with, so no later run's
+  listing reaches it, then moves the message to the trash and leaves it there for the provider to
+  purge. A case that
+  needs a message gone from the account runs against the fake alone, because nothing in this
+  system deletes mail. How each provider's run is credentialed is settled with its adapter. When
+  the run happens is [TESTING.md](../../../TESTING.md)'s.
 
 ## Alternatives considered
 
@@ -44,6 +52,13 @@ is impractical to run inside a test suite at all.
   suite measures assumption accuracy, and reaching for a mock is itself the sign that the
   code under test is braided ([ADR-0040](./0040-pure-core-decisions-as-values.md)), meaning
   the decision was not separated from the I/O feeding it.
+- **Trust the fake alone and never run the suite against the real provider.** The case for it is
+  that the run needs credentials and an account of its own. Rejected because a fake built from
+  documentation is only as right as the documentation, and only the real provider shows where it
+  differs.
+- **Run the suite against the operator's own mailbox, or a labelled part of it.** The case for it
+  is that no second account is needed. Rejected because touching the real mailbox outside a
+  production point is not allowed.
 
 ## Consequences
 
@@ -51,8 +66,8 @@ is impractical to run inside a test suite at all.
   with maintenance weight, priced in by its own contract-suite obligation.
 - A fake built from the provider's documentation encodes beliefs about the provider. The class
   of defect where the real provider behaves differently from its documentation is caught only
-  by the real thing. That bound is accepted, and it is why the real-provider question above
-  stays open rather than closed.
+  by the real thing. That is why every real adapter's contract suite also runs against the real
+  provider, and between those runs the bound is accepted.
 - Assumptions about other components: the provider port's contract
   ([ADR-0010](../provider/0010-one-provider-port.md)) is explicit enough to write the contract
   suite against.

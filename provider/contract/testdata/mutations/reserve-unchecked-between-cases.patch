@@ -1,0 +1,19 @@
+control: The contract suite stops a reserve before its test's deadline, inside a case as well as between cases, so every case it ran cleans up
+removes: the suite starts every case whatever time is left
+packages: ./provider/fake
+tests: TestTheSuiteStopsAReserveBeforeItsDeadline
+scheduled-count: no
+
+diff --git a/provider/contract/suite.go b/provider/contract/suite.go
+index 2546dd5..034e7c4 100644
+--- a/provider/contract/suite.go
++++ b/provider/contract/suite.go
+@@ -138,7 +138,7 @@ func Run(t *testing.T, cfg Config) {
+ 		{"a cancelled call fails and changes nothing", seeded, cancelledCallsFail, false},
+ 	}
+ 	for i, c := range cases {
+-		if r.late(t) {
++		if false {
+ 			t.Errorf("stopped %d cases short of the end, %s before the test's deadline, so the cases already run can clean up", len(cases)-i, cfg.Reserve)
+ 			return
+ 		}

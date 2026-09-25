@@ -1,0 +1,20 @@
+control: The Gmail adapter requires only a label an op adds to exist, and an op left with nothing to change still finds its message
+removes: an unlabel of a label the account lacks is not found
+packages: ./provider/gmail
+tests: TestOpChange/unlabel_a_label_the_account_lacks TestOpChange/unlabel_a_label_the_model_leaves_out
+scheduled-count: no
+
+diff --git a/provider/gmail/mutation.go b/provider/gmail/mutation.go
+index f5d8fee..a73f9f7 100644
+--- a/provider/gmail/mutation.go
++++ b/provider/gmail/mutation.go
+@@ -45,7 +45,8 @@ func opChange(op mail.MutationOp, labels labelTable) (labelChange, error) {
+ 		add, err := added(op.AddLabel())
+ 		return labelChange{Add: add}, err
+ 	case authorize.Unlabel:
+-		return labelChange{Remove: removed(op.RemoveLabel())}, nil
++		remove, err := added(op.RemoveLabel())
++		return labelChange{Remove: remove}, err
+ 	case authorize.Move:
+ 		add, err := added(op.AddLabel())
+ 		if err != nil {

@@ -63,6 +63,7 @@ The choices inside the contract, each with its reason:
 | `current_cursor` in the port | Delta sync needs a first cursor to start from, which Gmail's profile `historyId` and JMAP's `state` each supply |
 | `ensure_label` in the port | Reorg creates taxonomy; without it each adapter invents its own create-if-missing |
 | Batched mutation ops | Gmail `batchModify` and JMAP `Email/set` both batch natively |
+| Only a label an op adds must exist | Removing a label a message does not carry, or one the account does not have, changes nothing and succeeds, so a retried batch never fails on work already done. Adding an absent label is refused, because it would mean creating taxonomy outside `ensure_label` |
 | `auth_results` in metadata | Carried as message metadata. [ADR-0004](../classification/0004-sender-list-decides.md) lets the policy list alone decide sender class, so classification does not read it |
 | `account_id` everywhere | Multi-account correctness enforced by type, not convention |
 | `rate_profile()` on the port | Cost models are provider knowledge; see [ADR-0023](../operability/0023-adapter-declares-cost.md) |
@@ -73,13 +74,16 @@ What each adapter compiles, per concern:
 | --- | --- | --- |
 | Delta sync | `history.list` from `historyId`; gap → resync | `Email/changes` from `state`; `cannotCalculateChanges` → resync |
 | Full enumeration | `messages.list` + `pageToken` | `Email/query` position/anchor |
-| Metadata fetch | `format=METADATA` — **provider guarantees no body** | `Email/get` with explicit `properties`, omitting `bodyValues` |
+| Metadata fetch | `format=FULL` with a `fields` mask naming no `body` — **provider guarantees no body** | `Email/get` with explicit `properties`, omitting `bodyValues` |
 | Labels | flat IDs | mailbox tree; adapter flattens to paths |
 | Batch | `batchModify`, 1000 ids | `Email/set` multi-update |
 
-Gmail's `format=METADATA` is a genuine asset: on the enumeration path the provider itself
-guarantees no body crosses the wire, making gate-side redaction defense-in-depth rather than sole
-defense. The contract is shaped so adapters can exploit such guarantees wherever a provider offers
+Gmail's field mask is a genuine asset: Google filters the response to the fields it names, so on
+the enumeration path the provider itself guarantees no body crosses the wire, making gate-side
+redaction defense-in-depth rather than sole defense. `format=METADATA` would give the same
+guarantee but returns only headers, with no MIME parts and so no attachment names, which the port
+promises. The mask names each part's type and file name to a fixed nesting depth, so an attachment
+nested deeper than that depth is not seen. The contract is shaped so adapters can exploit such guarantees wherever a provider offers
 them.
 
 ## Alternatives considered

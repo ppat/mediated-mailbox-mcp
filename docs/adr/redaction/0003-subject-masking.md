@@ -39,7 +39,7 @@ What the agent receives, concretely:
                   "scan_state": "scanned",
                   "rule_ids": ["content.mfa.subject_numeric_6"]},
   "body_available": false,
-  "allowed_mutations": ["label", "move", "archive", "trash", "spam", "mute"],
+  "allowed_mutations": ["label", "move", "archive", "trash", "spam"],
   "note": "Verification code redacted. Body withheld." }
 ```
 

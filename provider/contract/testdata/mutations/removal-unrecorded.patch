@@ -1,7 +1,7 @@
 control: The contract suite fails an implementation that breaks a promise of the port
 removes: the fake records no change when mail is removed
 packages: ./provider/fake
-tests: TestTheFakePassesTheContract/delivered_mail_is_added_and_removed_mail_is_removed TestTheFakePassesTheContract/a_message_delivered_and_then_changed_or_removed_is_reported_once
+tests: TestTheFakePassesTheContract/removed_mail_is_removed TestTheFakePassesTheContract/a_message_delivered_and_then_removed_is_reported_once,_as_removed
 scheduled-count: no
 
 diff --git a/provider/fake/fake.go b/provider/fake/fake.go

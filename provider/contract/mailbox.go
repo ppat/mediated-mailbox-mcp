@@ -3,15 +3,22 @@
 // artifact rather than prose.
 //
 // It is ordinary Go code rather than a test file, because Go cannot import another package's test
-// files. Each implementation's own tests call Run with a Harness that builds the implementation over
-// a mailbox holding exactly the messages Mailbox returns, and that delivers and removes mail from the
-// provider's side, outside the port.
+// files. Each implementation's own tests call Run with a Harness that builds the implementation and
+// adds mail to it from the provider's side, outside the port.
 //
-// The suite never assumes an implementation keeps the identifiers a message was seeded with, since a
-// real provider assigns its own. It finds each message by its subject, which is distinct across the
-// mailbox, and compares only what the seed decides. Every expectation is written out as a literal
-// here rather than computed by logic an implementation could share, so an implementation that
-// ignores a query, drops a field or mutates the wrong message fails.
+// The suite assumes nothing about what a mailbox holds beyond what it added, because a real
+// provider's run goes against a test account whose other contents are unknown (ADR-0043). Each case
+// adds its own messages, marks them with a text in the subject that no other case or run shares,
+// and checks and reports only the messages carrying it. A listing is read until every message the
+// case added has been seen, a change set is read for the messages the case added, and a message
+// that does not carry the mark is never compared or printed, since a real run's logs may be public.
+// The suite deletes nothing. A case that needs a message gone from the mailbox runs only against an
+// implementation whose harness can remove one, which a real provider's cannot.
+//
+// The suite never assumes an implementation keeps the identifiers a message was added with, since a
+// real provider assigns its own, and compares only what the seed decides. Every expectation is
+// written out as a literal here rather than computed by logic an implementation could share, so an
+// implementation that ignores a query, drops a field or mutates the wrong message fails.
 package contract
 
 import (
@@ -20,9 +27,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 )
 
-// Message is one message the mailbox holds, as the harness seeds it. Metadata.ID and
-// Metadata.ThreadID are keys naming the message and its thread within the mailbox, which an
-// implementation may keep or replace with its own. The snippet, the size and the authentication
+// Message is one message the mailbox holds, as the harness adds it. Metadata.ID and
+// Metadata.ThreadID are keys naming the message and its thread within one case's messages, which
+// an implementation may keep or replace with its own. The snippet, the size and the authentication
 // results are left for the implementation to derive, as a provider does.
 type Message struct {
 	Metadata mail.MessageMetadata
@@ -37,37 +44,45 @@ var (
 	receipts = marker.Field("receiptslabel")
 )
 
-// base is 2024-09-01T09:00:00Z, the date of the oldest message. The messages are a day apart.
+// defaultBase is 2024-09-01T09:00:00Z, the date of the oldest message Mailbox returns.
+const defaultBase = mail.UnixMilli(1725181200000)
+
+// The messages are dated a step apart from the base. A margin is less than a step, so an instant a
+// margin from a message's date falls between it and its neighbours. The step is a minute, so a real
+// provider's run can date its messages just before it starts, and they are the account's newest.
 const (
-	base = mail.UnixMilli(1725181200000)
-	hour = mail.UnixMilli(3600000)
-	day  = 24 * hour
+	step   = mail.UnixMilli(60000)
+	margin = mail.UnixMilli(10000)
 )
 
 // Mailbox returns the messages every implementation is tested over, the shared synthetic fixtures
-// placed in a mailbox. It adds what the mailbox holds about each message rather than the message
-// itself, the keys, the thread, the date, the labels and the flags. The newsletter and its reply
-// share a thread. Two messages sit outside the inbox, one of them unlabelled.
-func Mailbox() []Message {
+// placed in a mailbox, dated from 2024-09-01T09:00:00Z and carrying no case's mark. It adds what the
+// mailbox holds about each message rather than the message itself, the keys, the thread, the date,
+// the labels and the flags. The newsletter and its reply share a thread. Two messages sit outside
+// the inbox, one of them unlabelled.
+func Mailbox() []Message { return mailbox("", defaultBase) }
+
+// mailbox returns Mailbox's messages with mark appended to every subject and dated from base.
+func mailbox(mark string, base mail.UnixMilli) []Message {
 	return []Message{
-		seed("bank", "bank", fixture.Bank(), 0, mail.Flags{Read: true}, mail.Inbox, finance),
-		seed("newsletter", "newsletter", fixture.Newsletter(), 1, mail.Flags{Read: true, Starred: true}, mail.Inbox, reading),
-		seed("code", "code", fixture.OneTimeCode(), 2, mail.Flags{}, mail.Inbox),
-		seed("alpha", "alpha", fixture.AlphanumericCode(), 3, mail.Flags{}, mail.Inbox),
-		seed("link", "link", fixture.LoginLink(), 4, mail.Flags{Read: true}),
-		seed("receipt", "receipt", fixture.Receipt(), 5, mail.Flags{Read: true}, receipts),
-		seed("reply", "newsletter", fixture.NewsletterReply(), 6, mail.Flags{}, mail.Inbox, reading),
+		seed(mark, base, "bank", "bank", fixture.Bank(), 0, mail.Flags{Read: true}, mail.Inbox, finance),
+		seed(mark, base, "newsletter", "newsletter", fixture.Newsletter(), 1, mail.Flags{Read: true, Starred: true}, mail.Inbox, reading),
+		seed(mark, base, "code", "code", fixture.OneTimeCode(), 2, mail.Flags{}, mail.Inbox),
+		seed(mark, base, "alpha", "alpha", fixture.AlphanumericCode(), 3, mail.Flags{}, mail.Inbox),
+		seed(mark, base, "link", "link", fixture.LoginLink(), 4, mail.Flags{Read: true}),
+		seed(mark, base, "receipt", "receipt", fixture.Receipt(), 5, mail.Flags{Read: true}, receipts),
+		seed(mark, base, "reply", "newsletter", fixture.NewsletterReply(), 6, mail.Flags{}, mail.Inbox, reading),
 	}
 }
 
-func seed(key, thread string, f fixture.Message, days mail.UnixMilli, flags mail.Flags, labels ...string) Message {
+func seed(mark string, base mail.UnixMilli, key, thread string, f fixture.Message, steps mail.UnixMilli, flags mail.Flags, labels ...string) Message {
 	m := mail.MessageMetadata{
 		ID:              key,
 		ThreadID:        thread,
 		From:            mail.Address{Email: f.FromAddress, Name: f.FromName},
 		To:              []mail.Address{{Email: f.ToAddress}},
-		Subject:         f.Subject,
-		Date:            base + days*day,
+		Subject:         f.Subject + mark,
+		Date:            base + steps*step,
 		Labels:          labels,
 		Flags:           flags,
 		HasAttachments:  len(f.Attachments) > 0,
@@ -80,17 +95,17 @@ func seed(key, thread string, f fixture.Message, days mail.UnixMilli, flags mail
 	return Message{Metadata: m, Body: mail.MessageBody{Text: f.Body}}
 }
 
-// late is a message the suite delivers during a case, as mail arriving. It is the receipt fixture
-// with a subject of its own, so the suite finds it by subject like every other message.
-func late() Message {
+// late is a message a case delivers, as mail arriving. It is the receipt fixture with a subject of
+// its own, so the suite tells it apart by subject like every other message.
+func late(mark string, base mail.UnixMilli) Message {
 	f := fixture.Receipt()
 	f.Subject = marker.Field("latesubject") + " Your order has shipped"
-	return seed("late", "late", f, 7, mail.Flags{}, mail.Inbox)
+	return seed(mark, base, "late", "late", f, 7, mail.Flags{}, mail.Inbox)
 }
 
-// brief is a message the suite delivers and then removes during a case.
-func brief() Message {
+// brief is a message a case delivers and then removes.
+func brief(mark string, base mail.UnixMilli) Message {
 	f := fixture.Receipt()
 	f.Subject = marker.Field("briefsubject") + " Your order has shipped"
-	return seed("brief", "brief", f, 8, mail.Flags{}, mail.Inbox)
+	return seed(mark, base, "brief", "brief", f, 8, mail.Flags{}, mail.Inbox)
 }

@@ -1,0 +1,18 @@
+control: The contract suite compares, changes and prints only the mail each case added, and a scoped case's listings return only threads carrying its own label
+removes: each page of an enumeration is logged whole, the mail the case did not add included
+packages: ./provider/fake
+tests: TestTheScopedSuitePassesOverMailItDidNotAdd
+scheduled-count: no
+
+diff --git a/provider/contract/suite.go b/provider/contract/suite.go
+index fd6f153..9837fe7 100644
+--- a/provider/contract/suite.go
++++ b/provider/contract/suite.go
+@@ -345,6 +345,7 @@ func (s *subject) enumerate(t *testing.T, page mail.PageToken, want []string) ([
+ 		if err != nil {
+ 			t.Fatalf("EnumerateAll: %v", err)
+ 		}
++		t.Logf("page %v", got.Items)
+ 		var keys []string
+ 		for _, m := range got.Items {
+ 			key, ours := s.key(t, m)

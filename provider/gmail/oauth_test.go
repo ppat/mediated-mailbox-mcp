@@ -13,7 +13,7 @@ import (
 // consentQuery parses the consent page address for fixed inputs.
 func consentQuery(t *testing.T) (*url.URL, url.Values) {
 	t.Helper()
-	u, err := url.Parse(gmail.AuthorizationURL("client-id", "http://127.0.0.1:8080/", "the-state", "verifier"))
+	u, err := url.Parse(gmail.AuthorizationURL("client-id", "http://127.0.0.1:8080/", "the-state", "verifier", ""))
 	if err != nil {
 		t.Fatalf("AuthorizationURL is not a URL: %v", err)
 	}
@@ -53,5 +53,18 @@ func TestTheConsentAsksForAnOfflineGrant(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, q, compare.Options); diff != "" {
 		t.Errorf("consent query (-want +got):\n%s", diff)
+	}
+}
+
+// A login hint names the account the grant is meant for, and adds nothing else to the request.
+func TestTheConsentCarriesTheLoginHint(t *testing.T) {
+	u, err := url.Parse(gmail.AuthorizationURL("client-id", "http://127.0.0.1:8080/", "the-state", "verifier", "test@example.com"))
+	if err != nil {
+		t.Fatalf("AuthorizationURL is not a URL: %v", err)
+	}
+	_, without := consentQuery(t)
+	without.Set("login_hint", "test@example.com")
+	if diff := cmp.Diff(without, u.Query(), compare.Options); diff != "" {
+		t.Errorf("consent query with a login hint (-want +got):\n%s", diff)
 	}
 }

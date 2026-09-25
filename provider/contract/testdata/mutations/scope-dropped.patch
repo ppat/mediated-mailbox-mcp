@@ -1,0 +1,19 @@
+control: The contract suite compares, changes and prints only the mail each case added, and a scoped case's listings return only threads carrying its own label
+removes: a scoped case lists its queries without its label
+packages: ./provider/fake
+tests: TestTheScopedSuitePassesOverMailItDidNotAdd
+scheduled-count: no
+
+diff --git a/provider/contract/suite.go b/provider/contract/suite.go
+index fd6f153..cb54335 100644
+--- a/provider/contract/suite.go
++++ b/provider/contract/suite.go
+@@ -274,7 +274,7 @@ func (s *subject) query(q mail.Query) mail.Query {
+ 	if s.scope == "" {
+ 		return q
+ 	}
+-	return mail.And(mail.InLabel(s.scope), q)
++	return q
+ }
+ 
+ // mailboxKeys are the keys of the messages Mailbox holds, sorted.

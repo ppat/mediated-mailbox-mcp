@@ -3,24 +3,27 @@ package gmail
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
-// Consent runs the one-time interactive consent for one account and returns its refresh token. An
-// operator runs it outside every deployable, since no deployable obtains a credential itself
-// (ADR-0038). It prints the consent page's address to prompt, receives Google's redirect on a
-// loopback address, and exchanges the code for the refresh token.
-func Consent(ctx context.Context, client *http.Client, clientID, clientSecret string, prompt io.Writer) (string, error) {
+// Consent runs the one-time interactive consent for one account and returns its grant. An operator
+// runs it outside every deployable, since no deployable obtains a credential itself (ADR-0038). It
+// prints the consent page's address to prompt, receives Google's redirect on a loopback address,
+// and exchanges the code for the grant. A login hint, when given, is the address of the account the
+// grant is meant for.
+func Consent(ctx context.Context, client *http.Client, clientID, clientSecret, loginHint string, prompt io.Writer) (Grant, error) {
 	state, verifier := rand.Text(), rand.Text()+rand.Text()
 	var lc net.ListenConfig
 	ln, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
-		return "", fmt.Errorf("gmail: listening for the consent redirect: %w", err)
+		return Grant{}, fmt.Errorf("gmail: listening for the consent redirect: %w", err)
 	}
 	redirectURI := "http://" + ln.Addr().String() + "/"
 
@@ -33,7 +36,7 @@ func Consent(ctx context.Context, client *http.Client, clientID, clientSecret st
 	go func() { served <- srv.Serve(ln) }()
 
 	var code string
-	if _, err = fmt.Fprintf(prompt, "Open this address and grant access:\n%s\n", AuthorizationURL(clientID, redirectURI, state, verifier)); err == nil {
+	if _, err = fmt.Fprintf(prompt, "Open this address and grant access:\n%s\n", AuthorizationURL(clientID, redirectURI, state, verifier, loginHint)); err == nil {
 		select {
 		case r := <-results:
 			code, err = r.code, r.err
@@ -45,7 +48,7 @@ func Consent(ctx context.Context, client *http.Client, clientID, clientSecret st
 	shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	if err := errors.Join(err, srv.Shutdown(shutdown)); err != nil {
-		return "", err
+		return Grant{}, err
 	}
 	return ExchangeCode(ctx, client, clientID, clientSecret, code, verifier, redirectURI)
 }
@@ -87,4 +90,52 @@ func consentHandler(state string, results chan<- consentResult) http.Handler {
 type consentResult struct {
 	code string
 	err  error
+}
+
+// Address returns the address of the account an access token belongs to, read from the account's
+// profile. It is how the operator, and the contract suite's run against Gmail, confirm which account
+// a grant is for.
+func Address(ctx context.Context, client *http.Client, accessToken string) (string, error) {
+	r := profileRequest()
+	req, err := http.NewRequestWithContext(ctx, r.Method, r.URL(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	res, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("gmail: reading the profile: %w", err)
+	}
+	body, readErr := io.ReadAll(io.LimitReader(res.Body, maxResponse))
+	if err := errors.Join(readErr, res.Body.Close()); err != nil {
+		return "", fmt.Errorf("gmail: reading the profile: %w", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("gmail: reading the profile answered %s", res.Status)
+	}
+	return parseProfileAddress(body)
+}
+
+// parseProfileAddress reads the account's address from a profile response.
+func parseProfileAddress(body []byte) (string, error) {
+	var raw struct {
+		EmailAddress string `json:"emailAddress"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return "", fmt.Errorf("gmail: reading the profile: %w", err)
+	}
+	if raw.EmailAddress == "" {
+		return "", errors.New("gmail: the profile has no address")
+	}
+	return raw.EmailAddress, nil
+}
+
+// RequireAccount refuses a grant whose account, the address the account's profile gives, is not the
+// account wanted. Addresses are compared ignoring case. The error names neither address, since the
+// account a grant belongs to may be anyone's and the contract suite's run logs it.
+func RequireAccount(granted, wanted string) error {
+	if wanted == "" || !strings.EqualFold(granted, wanted) {
+		return errors.New("gmail: the grant belongs to an account other than the one wanted")
+	}
+	return nil
 }
