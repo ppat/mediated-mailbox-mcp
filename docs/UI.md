@@ -1173,7 +1173,7 @@ ADR-0052 carries them. Every key is read at start.
 | `UI_IDENTITY_HEADER` | the header name an authenticating proxy forwards; when set, its value is recorded on decisions and a decision without it is refused | no |
 | `UI_OPERATOR_NAME` | the identity recorded on decisions when no header is declared | yes when the header is unset |
 | `UI_TOKEN_KEY` | the key behind the request token, replacing the per-process key when more than one replica runs | no |
-| `UI_MAX_PLAN_AGE` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | yes |
+| `UI_MAX_PLAN_AGE` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
 | `UI_SAMPLE_SIZE` | the plan sample's size | no, defaults to 24 |
 | `UI_SYNC_INTERVAL`, `UI_HEURISTICS_INTERVAL` | the intervals displayed on the jobs cards (ADR-0018's sync interval, the heuristics interval) | no, defaults to the records' values |
 | `UI_ATTENTION_BACKLOG_SHARE`, `UI_ATTENTION_MASK_COUNT`, `UI_ATTENTION_SERVE_FACTOR`, `UI_ATTENTION_GAP_DAYS`, `UI_ATTENTION_EXPIRY_DAYS` | the "worth a look" thresholds of [section 8.1](#81-home), one key per rule, 0 disabling the rule | no, defaults apply |
@@ -1190,8 +1190,8 @@ carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2-
 
 ## 19. Building it
 
-**Order of work.** The order the UI's pieces are built in is build state. The unit that carries
-them lives in [ROADMAP.md](../ROADMAP.md), and the order lives in that unit's tickets, never here.
+**Order of work.** The order the UI's pieces are built in is build state. The units that carry
+them live in [ROADMAP.md](../ROADMAP.md), and the order lives in their tickets, never here.
 
 **State model.** Route state is the URL. Data state is per request, keyed by the URL, cached for
 a few seconds. Live surfaces hold one stream subscription whose events replace the matching
