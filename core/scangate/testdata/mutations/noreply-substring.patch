@@ -1,0 +1,19 @@
+control: The scan gate scans a message with no List-Id from a listed local part
+removes: a local part matches when it holds a listed one anywhere inside it
+packages: ./core/scangate
+tests: TestDecide/a_local_part_holding_a_listed_one_inside_it
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..d1099a3 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -193,7 +193,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 
+ func noReply(c Config, localPart string) bool {
+ 	for _, p := range c.NoReplyLocalParts {
+-		if strings.EqualFold(p, localPart) {
++		if strings.Contains(strings.ToLower(localPart), strings.ToLower(p)) {
+ 			return true
+ 		}
+ 	}

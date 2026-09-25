@@ -1,0 +1,19 @@
+control: The default thresholds are ADR-0007's figures
+removes: the default local-part list holds only noreply and no-reply
+packages: ./core/scangate
+tests: TestDefaultConfigIsADR0007s
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..d910672 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -42,7 +42,7 @@ type Config struct {
+ // DefaultConfig returns ADR-0007's thresholds.
+ func DefaultConfig() Config {
+ 	return Config{
+-		NoReplyLocalParts: []string{"noreply", "no-reply", "security", "accounts", "verify", "auth", "support"},
++		NoReplyLocalParts: []string{"noreply", "no-reply"},
+ 		SmallBytes:        30 * 1024,
+ 		RecentAgeMillis:   24 * 60 * 60 * 1000,
+ 		LowVolume:         20,

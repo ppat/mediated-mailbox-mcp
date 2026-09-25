@@ -1,0 +1,23 @@
+control: The first rule in ADR-0007's order gives the reason
+removes: the prior hit rule is checked before the low-volume rule
+packages: ./core/scangate
+tests: TestDecide/low_volume_wins_over_a_prior_hit
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..6b502d7 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -180,10 +180,10 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: NoReplyLocalPart}
+ 	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
+ 		return Verdict{reason: RecentSmall}
+-	case in.SenderVolume < c.LowVolume:
+-		return Verdict{reason: LowVolume}
+ 	case in.PriorHits > 0:
+ 		return Verdict{reason: PriorHit}
++	case in.SenderVolume < c.LowVolume:
++		return Verdict{reason: LowVolume}
+ 	case in.SenderVolume > c.HighVolume && in.PriorHits == 0 && in.ListID:
+ 		return Verdict{reason: HighVolumeNoHits}
+ 	default:

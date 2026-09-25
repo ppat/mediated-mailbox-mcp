@@ -1,0 +1,19 @@
+control: The high-volume rule skips only a message carrying a List-Id from a sender above the mark with no prior hit
+removes: the high-volume rule never skips
+packages: ./core/scangate
+tests: TestDecide/a_high-volume_sender_with_no_prior_hit,_a_List-Id_and_no_subject_signal TestDecide/a_sender_far_above_the_high-volume_mark
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..bca7f31 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -184,8 +184,6 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: LowVolume}
+ 	case in.PriorHits > 0:
+ 		return Verdict{reason: PriorHit}
+-	case in.SenderVolume > c.HighVolume && in.PriorHits == 0 && in.ListID:
+-		return Verdict{reason: HighVolumeNoHits}
+ 	default:
+ 		return Verdict{reason: Default}
+ 	}

@@ -1,0 +1,21 @@
+control: A verdict nobody built decides nothing
+removes: an undecided verdict scans, the zero value included
+packages: ./core/scangate
+tests: TestTheZeroVerdictDecidesNothing TestAConfigThatCannotDecide/a_zero_Config
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..741e939 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -140,7 +140,9 @@ func (v Verdict) Scans() bool {
+ 	switch v.reason {
+ 	case SubjectSignal, NoReplyLocalPart, RecentSmall, LowVolume, PriorHit, Default:
+ 		return true
+-	case Undecided, Restricted, HighVolumeNoHits:
++	case Undecided:
++		return true
++	case Restricted, HighVolumeNoHits:
+ 		return false
+ 	default:
+ 		return false

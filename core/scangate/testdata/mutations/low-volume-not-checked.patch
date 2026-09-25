@@ -1,0 +1,19 @@
+control: The scan gate scans a sender below the low-volume mark
+removes: a low sender volume no longer asks for a scan
+packages: ./core/scangate
+tests: TestDecide/a_sender_below_the_low-volume_mark TestDecide/low_volume_wins_over_a_prior_hit
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..47eb28f 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -180,8 +180,6 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: NoReplyLocalPart}
+ 	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
+ 		return Verdict{reason: RecentSmall}
+-	case in.SenderVolume < c.LowVolume:
+-		return Verdict{reason: LowVolume}
+ 	case in.PriorHits > 0:
+ 		return Verdict{reason: PriorHit}
+ 	case in.SenderVolume > c.HighVolume && in.PriorHits == 0 && in.ListID:

@@ -1,0 +1,19 @@
+control: A restricted sender's body is never scanned
+removes: the restricted reason records skipped_gate rather than skipped_restricted
+packages: ./core/scangate
+tests: TestDecide/a_restricted_sender_whose_every_other_input_asks_for_a_scan TestDecide/an_input_nobody_filled_in
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..a4d40b5 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -156,7 +156,7 @@ func (v Verdict) Decided() bool { return v.reason != Undecided }
+ func (v Verdict) State() sensitivity.ScanState {
+ 	switch v.reason {
+ 	case Restricted:
+-		return sensitivity.SkippedRestricted()
++		return sensitivity.SkippedGate()
+ 	case HighVolumeNoHits:
+ 		return sensitivity.SkippedGate()
+ 	case Undecided, SubjectSignal, NoReplyLocalPart, RecentSmall, LowVolume, PriorHit, Default:

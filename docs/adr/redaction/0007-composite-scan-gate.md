@@ -29,7 +29,7 @@ be rare — with **scan as the default** and the skip branches explicit and narr
 
 ```
 skip if sender_class == RESTRICTED           → SKIPPED_RESTRICTED
-scan if subject matches Tier-1 subject patterns
+scan if subject was masked at rest
 scan if List-Id absent AND local-part in {noreply, no-reply, security,
                                           accounts, verify, auth, support}
 scan if size < 30KB AND age < 24h AND List-Id absent
@@ -39,8 +39,28 @@ skip if sender_volume > 500 AND zero prior hits AND List-Id present
 otherwise → scan
 ```
 
-Gate decisions are memoized per sender, keyed on sender plus subject shape, so the predicate's cost
-amortizes across a sender's traffic.
+The rules above read their inputs, and the gate records its decisions, as follows.
+
+- **The subject signal is pass 1's masking record.** A subject is masked at rest by pass 1
+  ([ADR-0003](./0003-subject-masking.md)), so the scanner's patterns cannot run on it again. A
+  subject pass 1 masked for any reason matches, the whole subject masked when the scanner could not
+  decide included.
+- **`List-Id` is the message's own header**, present or absent. The sender's share of messages with
+  a `List-Id` feeds the heuristics, not the gate.
+- **Every decision records its reason**, scans as well as skips. The reason is the first rule above
+  that matches, in the order listed, named `restricted`, `subject_signal`, `noreply_local_part`,
+  `recent_small`, `low_volume`, `prior_hit`, `high_volume_no_hits`, and `default` for a message no
+  rule names.
+- **The thresholds are values the gate is given**, so they are tuned from evidence as the audit
+  section below describes. Their defaults are the figures above, with 30KB read as 30,720 bytes and
+  a message's age measured against the instant the caller passes in. Thresholds that cannot decide,
+  one below 1 or a high-volume mark below the low-volume mark, leave the message pending rather than
+  skipping it, and a restricted sender is skipped whatever they are.
+- **A local part matches a listed name when the whole local part equals it**, ignoring letter case,
+  so `No-Reply` matches and `noreply-billing` does not.
+- **Gate decisions are memoized per sender**, keyed on sender plus subject shape, so the
+  predicate's cost amortizes across a sender's traffic. What the shape is, and how a new hit clears
+  the memo, are not yet decided.
 
 A message's relation to the scanner is a first-class state, because "not scanned" has three
 distinct meanings with different consequences:

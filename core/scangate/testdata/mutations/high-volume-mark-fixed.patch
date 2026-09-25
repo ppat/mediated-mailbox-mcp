@@ -1,0 +1,19 @@
+control: The thresholds are the ones the caller passes
+removes: the high-volume mark is fixed at 500 whatever the Config says
+packages: ./core/scangate
+tests: TestDecideReadsTheConfig/a_sender_above_a_lowered_high-volume_mark
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..384e580 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -184,7 +184,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: LowVolume}
+ 	case in.PriorHits > 0:
+ 		return Verdict{reason: PriorHit}
+-	case in.SenderVolume > c.HighVolume && in.PriorHits == 0 && in.ListID:
++	case in.SenderVolume > 500 && in.PriorHits == 0 && in.ListID:
+ 		return Verdict{reason: HighVolumeNoHits}
+ 	default:
+ 		return Verdict{reason: Default}

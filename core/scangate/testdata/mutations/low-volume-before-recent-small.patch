@@ -1,0 +1,23 @@
+control: The first rule in ADR-0007's order gives the reason
+removes: the low-volume rule is checked before the recent small rule
+packages: ./core/scangate
+tests: TestDecide/a_recent_small_message_wins_over_low_volume
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..e79c3d4 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -178,10 +178,10 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: SubjectSignal}
+ 	case !in.ListID && noReply(c, in.LocalPart):
+ 		return Verdict{reason: NoReplyLocalPart}
+-	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
+-		return Verdict{reason: RecentSmall}
+ 	case in.SenderVolume < c.LowVolume:
+ 		return Verdict{reason: LowVolume}
++	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
++		return Verdict{reason: RecentSmall}
+ 	case in.PriorHits > 0:
+ 		return Verdict{reason: PriorHit}
+ 	case in.SenderVolume > c.HighVolume && in.PriorHits == 0 && in.ListID:

@@ -1,0 +1,19 @@
+control: The scan gate scans a sender with a prior scan hit
+removes: a prior scan hit no longer asks for a scan
+packages: ./core/scangate
+tests: TestDecide/a_sender_with_one_prior_hit
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..9be15ec 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -182,8 +182,6 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: RecentSmall}
+ 	case in.SenderVolume < c.LowVolume:
+ 		return Verdict{reason: LowVolume}
+-	case in.PriorHits > 0:
+-		return Verdict{reason: PriorHit}
+ 	case in.SenderVolume > c.HighVolume && in.PriorHits == 0 && in.ListID:
+ 		return Verdict{reason: HighVolumeNoHits}
+ 	default:
