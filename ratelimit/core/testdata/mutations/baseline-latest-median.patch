@@ -1,0 +1,19 @@
+control: The latency baseline is the lowest of the last ten medians of one-minute windows holding at least 20 samples
+removes: the baseline is the latest median rather than the lowest, so a rise becomes the baseline at once
+packages: ./ratelimit/core
+tests: TestBaseline
+scheduled-count: no
+
+diff --git a/ratelimit/core/latency.go b/ratelimit/core/latency.go
+index e32d3d5..27f18bd 100644
+--- a/ratelimit/core/latency.go
++++ b/ratelimit/core/latency.go
+@@ -62,7 +62,7 @@ func RememberMedian(recent []float64, median float64) []float64 {
+ func Baseline(recent []float64) float64 {
+ 	lowest := math.Inf(1)
+ 	for _, m := range recent[max(len(recent)-baselineMedians, 0):] {
+-		if m > 0 && m < lowest {
++		if m > 0 {
+ 			lowest = m
+ 		}
+ 	}

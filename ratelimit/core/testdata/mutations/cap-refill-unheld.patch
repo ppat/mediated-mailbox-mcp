@@ -1,0 +1,19 @@
+control: The tokens issued inside any one-second window sum to at most the hard cap, and over a longer window stay within the hard cap plus the target times its length, while the stored state is kept whole and current, and the clock does not step forward
+removes: the bucket refills at whatever rate the state holds, not held at the target
+packages: ./ratelimit/core
+tests: TestNoRunIssuesPastTheHardCap TestIssue
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..c69118a 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -112,7 +112,7 @@ func refillRate(rate float64, l Limits) float64 {
+ 	if !(rate > 0) {
+ 		return 0
+ 	}
+-	return min(rate, l.Target)
++	return rate
+ }
+ 
+ // refill returns issuance with the bucket filled at the rate from the later of its last instant and

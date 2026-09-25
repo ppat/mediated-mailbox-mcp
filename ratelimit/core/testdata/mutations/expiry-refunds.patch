@@ -1,0 +1,22 @@
+control: An expired lease stops counting against its class's share, and nothing it drew is put back into the bucket
+removes: a lease that expired since the last request is put back into the bucket
+packages: ./ratelimit/core
+tests: TestNoRunIssuesPastTheHardCap TestAnExpiredLeaseIsNotRefunded
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..cc13c37 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -83,6 +83,11 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
+ 	asked := now
+ 	now = max(now, is.At)
+ 	rate := refillRate(s.Rate, l)
++	for _, h := range leases {
++		if h.Expires > is.At && h.Expires <= now {
++			is.Level += h.Tokens
++		}
++	}
+ 	is = refill(is, s, rate, capacity, now)
+ 	is.Recent = withinASecond(is.Recent, asked, now)
+ 	is.Asked[req.Class] = now

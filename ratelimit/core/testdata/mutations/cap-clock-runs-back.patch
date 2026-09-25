@@ -1,0 +1,18 @@
+control: The tokens issued inside any one-second window sum to at most the hard cap, and over a longer window stay within the hard cap plus the target times its length, while the stored state is kept whole and current, and the clock does not step forward
+removes: the issuer's clock follows an instant earlier than the last, so a stretch of time fills the bucket twice
+packages: ./ratelimit/core
+tests: TestNoRunIssuesPastTheHardCap TestIssue
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..68eeb41 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -81,7 +81,6 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
+ 		return is, Decision{}
+ 	}
+ 	asked := now
+-	now = max(now, is.At)
+ 	rate := refillRate(s.Rate, l)
+ 	is = refill(is, s, rate, capacity, now)
+ 	is.Recent = withinASecond(is.Recent, asked, now)

@@ -1,0 +1,19 @@
+control: The latency baseline is the lowest of the last ten medians of one-minute windows holding at least 20 samples
+removes: a window never closes, so no median is ever taken
+packages: ./ratelimit/core
+tests: TestLatencyWindowAdd
+scheduled-count: no
+
+diff --git a/ratelimit/core/latency.go b/ratelimit/core/latency.go
+index e32d3d5..1ccdc7e 100644
+--- a/ratelimit/core/latency.go
++++ b/ratelimit/core/latency.go
+@@ -27,7 +27,7 @@ type LatencyWindow struct {
+ // along with the closed window's median and whether it had one. A negative latency is not a
+ // measurement and is left out. Add appends to Samples as append does.
+ func (w LatencyWindow) Add(now, latency int64) (next LatencyWindow, median float64, ok bool) {
+-	if now >= addSaturating(w.Start, latencyWindowMillis) {
++	if false {
+ 		median, ok = Median(w.Samples)
+ 		w = LatencyWindow{Start: now}
+ 	}

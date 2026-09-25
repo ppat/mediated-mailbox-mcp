@@ -1,0 +1,37 @@
+control: A stored grant stamped later than the request that sees it counts for one second from that request and then leaves the window
+removes: a stored grant's stamp is held to the stored latest instant rather than the request's, so a stored instant that came back behind moves every real grant out of the window
+packages: ./ratelimit/core
+tests: TestNoRunIssuesPastTheHardCap TestIssue TestAFutureStampCountsForOneSecondFromTheRequestThatSeesIt
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..b4b4e7f 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -80,11 +80,12 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
+ 	if !req.Class.named() || !(req.Tokens > 0) || req.Tokens > capacity {
+ 		return is, Decision{}
+ 	}
++	stored := is.At
+ 	asked := now
+ 	now = max(now, is.At)
+ 	rate := refillRate(s.Rate, l)
+ 	is = refill(is, s, rate, capacity, now)
+-	is.Recent = withinASecond(is.Recent, asked, now)
++	is.Recent = withinASecond(is.Recent, stored, asked, now)
+ 	is.Asked[req.Class] = now
+ 	if now < s.BackoffUntil {
+ 		return is, Decision{Outcome: Waiting}
+@@ -145,10 +146,10 @@ func refill(is Issuance, s State, rate, capacity float64, now int64) Issuance {
+ // now and would move every real grant out of the window the same way. When the clock itself steps
+ // back, grants stamped before the step stay in the window until the clock catches up with them. The
+ // bucket refills nothing over that stretch either, so issuance was already held back.
+-func withinASecond(recent []Issued, asked, now int64) []Issued {
++func withinASecond(recent []Issued, stored, asked, now int64) []Issued {
+ 	var kept []Issued
+ 	for _, g := range recent {
+-		g.At = min(g.At, now)
++		g.At = min(g.At, stored)
+ 		// Taken from the request's instant rather than added to the stamp, so a grant at the
+ 		// clock's limit still counts instead of saturating straight out of the window.
+ 		if g.At > addSaturating(asked, -leaseMillis) {

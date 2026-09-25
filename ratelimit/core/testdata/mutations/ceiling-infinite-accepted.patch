@@ -1,0 +1,19 @@
+control: A ceiling that is not a finite positive number fixes no budget
+removes: an infinite ceiling fixes an infinite budget
+packages: ./ratelimit/core
+tests: TestLimitsFor TestNoBudgetHoldsTheRateAtZero TestNoRunIssuesPastTheHardCap TestIssueRefuses
+scheduled-count: no
+
+diff --git a/ratelimit/core/limits.go b/ratelimit/core/limits.go
+index c79381d..a2c9db6 100644
+--- a/ratelimit/core/limits.go
++++ b/ratelimit/core/limits.go
+@@ -25,7 +25,7 @@ type Limits struct {
+ // none reads a limit from stored state.
+ func LimitsFor(ceiling float64) Limits {
+ 	floor := ceiling * floorFraction
+-	if !(floor > 0) || math.IsInf(ceiling, 1) {
++	if !(floor > 0) {
+ 		return Limits{}
+ 	}
+ 	return Limits{

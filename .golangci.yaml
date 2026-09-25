@@ -202,6 +202,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/organize/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/propose/internal/core/"
+          # The rate limiter's pure core is one package rather than a directory of packages, so its external tests
+          # import it by its exact path.
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core/"
           - "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"

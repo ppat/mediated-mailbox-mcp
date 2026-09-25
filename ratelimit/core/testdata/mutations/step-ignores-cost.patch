@@ -1,0 +1,19 @@
+control: Additive increase grows the rate by 2% of the target times the call's cost over the current rate
+removes: the step ignores the call's cost, so a costly success grows the rate no more than a cheap one
+packages: ./ratelimit/core
+tests: TestSucceeded TestTheRateClimbsFromTheFloorToTheTargetIn45Seconds TestTheClimbHoldsForManySmallSuccesses
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..abdb062 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -39,7 +39,7 @@ func Succeeded(s State, ceiling float64, cost mail.OpCost) State {
+ 	l := LimitsFor(ceiling)
+ 	rate := l.bounded(s.Rate)
+ 	if w := cost.Weight; w > 0 && !math.IsInf(w, 1) && rate > 0 {
+-		rate = min(rate+stepFraction*l.Target*w/rate, l.Target)
++		rate = min(rate+stepFraction*l.Target/rate, l.Target)
+ 	}
+ 	return State{Rate: rate, BackoffUntil: s.BackoffUntil}
+ }

@@ -1,0 +1,19 @@
+control: A throttle halves the rate, a server error cuts it to 80% and a latency median above twice the baseline cuts it to 90%
+removes: a latency median above the baseline itself cuts the rate, not only one above twice it
+packages: ./ratelimit/core
+tests: TestLatencyMeasured TestALastingRiseBecomesTheBaseline
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+index d113493..ce35863 100644
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -82,7 +82,7 @@ func ServerErrored(s State, ceiling float64) State {
+ func LatencyMeasured(s State, ceiling, median, baseline float64) State {
+ 	l := LimitsFor(ceiling)
+ 	rate := l.bounded(s.Rate)
+-	if baseline > 0 && !math.IsInf(baseline, 1) && !math.IsInf(median, 1) && median > latencyTrigger*baseline {
++	if baseline > 0 && !math.IsInf(baseline, 1) && !math.IsInf(median, 1) && median > baseline {
+ 		rate = max(rate*latencyFactor, l.Floor)
+ 	}
+ 	return State{Rate: rate, BackoffUntil: s.BackoffUntil, Throttles: s.Throttles}

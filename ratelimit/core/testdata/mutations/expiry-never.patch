@@ -1,0 +1,19 @@
+control: An expired lease stops counting against its class's share, and nothing it drew is put back into the bucket
+removes: a lease never expires, so a crashed worker's tokens never return to its class's share
+packages: ./ratelimit/core
+tests: TestIssueSplitsByClass TestLive
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+index 351728c..db9cb47 100644
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -189,7 +189,7 @@ func held(leases []Lease, c Class, now int64) float64 {
+ func Live(leases []Lease, now int64) []Lease {
+ 	var live []Lease
+ 	for _, h := range leases {
+-		if h.Expires > now {
++		if true {
+ 			live = append(live, h)
+ 		}
+ 	}

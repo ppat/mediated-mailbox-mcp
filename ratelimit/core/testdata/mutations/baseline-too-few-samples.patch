@@ -1,0 +1,19 @@
+control: The latency baseline is the lowest of the last ten medians of one-minute windows holding at least 20 samples
+removes: a window with fewer than 20 samples has a median
+packages: ./ratelimit/core
+tests: TestMedian TestLatencyWindowAdd
+scheduled-count: no
+
+diff --git a/ratelimit/core/latency.go b/ratelimit/core/latency.go
+index e32d3d5..abb8dd2 100644
+--- a/ratelimit/core/latency.go
++++ b/ratelimit/core/latency.go
+@@ -39,7 +39,7 @@ func (w LatencyWindow) Add(now, latency int64) (next LatencyWindow, median float
+ 
+ // Median returns the median of a window's samples, and false when the window holds fewer than 20.
+ func Median(samples []int64) (float64, bool) {
+-	if len(samples) < minWindowSamples {
++	if len(samples) == 0 {
+ 		return 0, false
+ 	}
+ 	sorted := slices.Sorted(slices.Values(samples))
