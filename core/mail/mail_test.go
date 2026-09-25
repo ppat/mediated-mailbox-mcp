@@ -56,7 +56,6 @@ func TestConstructorsBuildTheirVerb(t *testing.T) {
 		{"star", b(mail.StarOp("m")), op{Verb: "star", ID: "m", Built: true}},
 		{"trash", b(mail.TrashOp("m")), op{Verb: "trash", ID: "m", Built: true}},
 		{"spam", b(mail.SpamOp("m")), op{Verb: "spam", ID: "m", Built: true}},
-		{"mute", b(mail.MuteOp("m")), op{Verb: "mute", ID: "m", Built: true}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -83,7 +82,6 @@ func TestAnIncompleteOpIsRefused(t *testing.T) {
 		{"a move with no target", second(mail.MoveOp("m", "Finance", ""))},
 		{"a move to where it starts", second(mail.MoveOp("m", "Finance", "Finance"))},
 		{"an archive with no message", second(mail.ArchiveOp(""))},
-		{"a mute with no message", second(mail.MuteOp(""))},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -265,7 +263,7 @@ func TestMetadataTypesHaveNoBodyField(t *testing.T) {
 		"HasAttachments bool", "AttachmentNames []string", "Snippet string", "ListID string",
 		"AuthResults AuthResults")
 	mustnotcompile.RequireFields(t, pkg, "Address", "Email string", "Name string")
-	mustnotcompile.RequireFields(t, pkg, "Flags", "Read bool", "Starred bool", "Muted bool")
+	mustnotcompile.RequireFields(t, pkg, "Flags", "Read bool", "Starred bool")
 	mustnotcompile.RequireFields(t, pkg, "AuthResults", "SPF string", "DKIM string", "DMARC string")
 	mustnotcompile.RequireFields(t, pkg, "ThreadMetadata", "AccountID string", "ID string", "Messages []MessageMetadata")
 	mustnotcompile.RequireFields(t, pkg, "Page", "Items []T", "Next PageToken")

@@ -1,0 +1,18 @@
+control: The contract suite stops a reserve before its test's deadline, inside a case as well as between cases, so every case it ran cleans up
+removes: an enumeration pages on past the reserve
+packages: ./provider/fake
+tests: TestTheSuiteStopsAReserveBeforeItsDeadline
+scheduled-count: no
+
+diff --git a/provider/contract/suite.go b/provider/contract/suite.go
+index 2546dd5..344b289 100644
+--- a/provider/contract/suite.go
++++ b/provider/contract/suite.go
+@@ -363,7 +363,6 @@ func (s *subject) enumerate(t *testing.T, page mail.PageToken, want []string) ([
+ 		limit = maxPages
+ 	}
+ 	for range limit {
+-		s.inTime(t)
+ 		got, err := s.port.EnumerateAll(t.Context(), page)
+ 		if err != nil {
+ 			t.Fatalf("EnumerateAll: %v", err)

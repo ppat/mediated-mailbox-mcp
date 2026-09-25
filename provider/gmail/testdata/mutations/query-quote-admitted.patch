@@ -1,0 +1,19 @@
+control: A canonical value cannot change the Gmail request it is written into
+removes: the check on an address admits the double quote, so an address can close its quotes and add an operator
+packages: ./provider/gmail
+tests: TestQueryValuesCannotInjectOperators
+scheduled-count: no
+
+diff --git a/provider/gmail/query.go b/provider/gmail/query.go
+index 0edca49..d2c5fd4 100644
+--- a/provider/gmail/query.go
++++ b/provider/gmail/query.go
+@@ -74,7 +74,7 @@ func quotable(address string) bool {
+ 	for _, c := range address {
+ 		switch {
+ 		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9':
+-		case strings.ContainsRune(".@_+-%", c):
++		case strings.ContainsRune(".@_+-%\"", c):
+ 		default:
+ 			return false
+ 		}

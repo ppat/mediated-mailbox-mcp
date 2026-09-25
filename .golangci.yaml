@@ -11,6 +11,7 @@ run:
   # file that needs it. banproof adds its own tag on the command line, which golangci-lint appends to these.
   build-tags:
   - integration
+  - gmail_live
 
 issues:
   # The defaults hide a second finding on a line and cap repeated findings, which would drop a finding
@@ -252,7 +253,8 @@ linters:
           - "google.golang.org/protobuf/reflect/protoreflect$"
           - "pgregory.net/rapid$"
 
-        # The provider adapter library, every file.
+        # The provider adapter library, every file. client_golang is admitted for the count of provider request cost an
+        # adapter keeps where it sends each request (ADR-0076, ADR-0077).
         provider:
           list-mode: strict
           files:
@@ -265,8 +267,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/prometheus/client_golang/prometheus$"
           - "pgregory.net/rapid$"
 
         # Non-test files of the provider fake and the contract suite, which only tests use. The list for
@@ -398,6 +402,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/analysis$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           # banproof reads .golangci.yaml.
@@ -641,6 +646,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"

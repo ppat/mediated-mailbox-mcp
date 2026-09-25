@@ -1,0 +1,19 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: the metadata mask names each part's body beside its type and file name
+packages: ./provider/gmail
+tests: TestMetadataReadsNameNoBody/messages.get TestMetadataReadsNameNoBody/threads.get
+scheduled-count: no
+
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 71c01d0..49767c0 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -103,7 +103,7 @@ const partsDepth = 6
+ func metadataFields() string {
+ 	parts := ""
+ 	for range partsDepth {
+-		inner := "mimeType,filename"
++		inner := "mimeType,filename,body"
+ 		if parts != "" {
+ 			inner += "," + parts
+ 		}

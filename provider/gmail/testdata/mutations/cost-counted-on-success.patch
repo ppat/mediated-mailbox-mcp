@@ -1,0 +1,26 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: a request is counted only once Gmail answers it with success, so a failed request goes uncounted
+packages: ./provider/gmail
+tests: TestEveryRequestSentIsCounted TestACallIsHeldToItsDeclaredCost
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index c8479f2..b6c81ce 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -107,7 +107,6 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+ 	if body != nil {
+ 		req.Header.Set("Content-Type", "application/json")
+ 	}
+-	a.metrics.countRequest(a.account, r.Units)
+ 	res, err := a.client.Do(req)
+ 	if err != nil {
+ 		if ctx.Err() != nil {
+@@ -122,6 +121,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+ 	if res.StatusCode < 200 || res.StatusCode > 299 {
+ 		return nil, parseError(res.StatusCode, res.Header.Get("Retry-After"), time.Now(), data)
+ 	}
++	a.metrics.countRequest(a.account, r.Units)
+ 	return data, nil
+ }
+ 

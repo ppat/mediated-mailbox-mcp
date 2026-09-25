@@ -1,0 +1,19 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: a thread read sends the full format without the mask, so every message's body comes back
+packages: ./provider/gmail
+tests: TestMetadataReadsNameNoBody/threads.get
+scheduled-count: no
+
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 71c01d0..e0341fe 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -128,7 +128,7 @@ func messageRequest(id, format string) request {
+ // threadRequest reads the thread id names, every message of it through the metadata mask. The
+ // caller has checked id with validID.
+ func threadRequest(id string) request {
+-	q := url.Values{"format": {formatFull}, "fields": {"id,historyId,messages(" + metadataFields() + ")"}}
++	q := url.Values{"format": {formatFull}}
+ 	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet}
+ }
+ 

@@ -97,7 +97,7 @@ irreversible, or the failure it permits is silent*.
   catastrophically and silently. It cannot be "learned from" on the real mailbox because nothing
   visibly breaks when it leaks.
 - **The rate hard cap before the first corpus-scale run against the real mailbox**, which is
-  [production point 1](#production-point-1--the-read-path). [F3](#group-f--foundation) also precedes
+  [production point 1](#production-point-1--the-read-path). [F3](#delivered-mapped-to-outcomes) also precedes
   [D1](#group-d--data-flows) as a build dependency, so backfill spends from the budget from its
   first page. Collectively overrunning the provider's budget risks a provider-side account
   restriction on the operator's personal mailbox, which is not recoverable by iteration.
@@ -118,11 +118,11 @@ perfected up front.
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), S2's content scanner and subject masking, merged from pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), S3's body sanitization and serve-time pattern check, merged from pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), F2's schema, migration chain, runtime roles and transaction helper, merged from pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), F5's canonical model, Provider Port, provider fake and contract suite, merged from pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), F5's Gmail OAuth, mounted credentials and rotation write-back, merged from pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), F3's rate controller rules, merged from pull request [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156), and F3's leases, Gmail cost profile, metrics and alerting rules, merged from pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), none of it yet released. No deployable runs any of it yet **[measured]** |
+| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), S2's content scanner and subject masking, merged from pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), S3's body sanitization and serve-time pattern check, merged from pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), F2's schema, migration chain, runtime roles and transaction helper, merged from pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), F5's canonical model, Provider Port, provider fake and contract suite, merged from pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), F5's Gmail OAuth, mounted credentials and rotation write-back, merged from pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), F3's rate controller rules, merged from pull request [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156), F3's leases, Gmail cost profile, metrics and alerting rules, merged from pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and F5's Gmail adapter and its contract run against real Gmail, merged from pull request [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), none of it yet released. No deployable runs any of it yet **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and the rows on verdict types for the Mutation Authorizer's verdict by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The S2 rows, S2's part of the search of scanner output included, are proven by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), the S3 rows and S3's parts of the rows it shares with D3 by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), the F2 rows by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), the F5 row for the body fetch being the port's one body path by pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), the F5 rows for the grant's scope and mounted credentials, and F5's half of the rotation row, by pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), and the F3 rows by pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
-| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and those of the Mutation Authorizer by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The controls of S2's content scanner and subject masking are demonstrated by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), those of S3's conversion, release step and the scanner's pattern entry point by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), those of F2's data layer by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), those of F5's canonical model, provider fake and contract suite by pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), those of F5's Gmail OAuth and credential handling by pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), those of F3's rate controller rules by pull request [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156), and those of F3's leases, alerting rules and the grant check's planning of a shared library's statements by pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
-| **The delivery gap** | Every unit except F4, S1, S2, S3 and F2, which are delivered. F5 has started, with the canonical model, the Provider Port, the provider fake, the contract suite and the Gmail OAuth and credential handling. F3 has started, with the rate controller's pure rules, the leases, Gmail's cost profile, the metrics and the alerting rules. No other unit has started |
+| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and the rows on verdict types for the Mutation Authorizer's verdict by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The S2 rows, S2's part of the search of scanner output included, are proven by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), the S3 rows and S3's parts of the rows it shares with D3 by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), the F2 rows by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), the F5 row for the body fetch being the port's one body path by pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), the F5 rows for the grant's scope and mounted credentials, and F5's half of the rotation row, by pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), the F3 rows by pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and the rest of the F5 rows by pull request [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), two of them by hand against real Gmail. Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149). The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and those of the Mutation Authorizer by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The controls of S2's content scanner and subject masking are demonstrated by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), those of S3's conversion, release step and the scanner's pattern entry point by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), those of F2's data layer by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), those of F5's canonical model, provider fake and contract suite by pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), those of F5's Gmail OAuth and credential handling by pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), those of F3's rate controller rules by pull request [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156), those of F3's leases, alerting rules and the grant check's planning of a shared library's statements by pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and those of F5's Gmail adapter, its contract run against real Gmail and the command that run requires by pull request [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
+| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5 and F3, which are delivered. No other unit has started |
 
 ## Delivered, mapped to outcomes
 
@@ -203,6 +203,60 @@ perfected up front.
   database role, whose entries arrive with the first import list that admits a data-access
   subsection, because the check refuses a role that no such list names. No deployable connects to the
   database yet.
+- [x] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
+  [V2](#v2--the-corpus-can-be-acquired) · finished at tested
+  Delivered by pull requests [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154),
+  [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155) and
+  [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), which closed its tickets
+  [#75](https://github.com/ppat/mediated-mailbox-mcp/issues/75),
+  [#76](https://github.com/ppat/mediated-mailbox-mcp/issues/76) and
+  [#77](https://github.com/ppat/mediated-mailbox-mcp/issues/77), and not yet released. The
+  canonical model and the provider port's first compilation to a real backend
+  ([ADR-0010](./docs/adr/provider/0010-one-provider-port.md)), with every operation of the port and
+  the cost of each request it sends counted for the runaway rule
+  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). Installed-app
+  OAuth with the modify scope and the operator's consent command
+  ([ADR-0011](./docs/adr/provider/0011-gmail-auth-installed-app-oauth.md)), credentials read as
+  mounted files ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), and the
+  application half of rotation write-back
+  ([ADR-0039](./docs/adr/operability/0039-rotation-writeback.md)). The provider fake and the
+  contract suite every port implementation passes
+  ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)), which the adapter passed against real
+  Gmail on an account set aside for testing, through `go tool livecontract gmail` with the
+  credentials the `gmail-contract` workflow uses, run by hand because GitHub dispatches a workflow
+  only once it is on `main`. The
+  workflow's own first run, dispatched after this merge, is what checks its setup and how it passes
+  the secrets, and from then on it runs as [TESTING.md](./TESTING.md#when-tests-run) says.
+  Mute left the verbs, because Gmail's API cannot mute a thread
+  ([ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md)). Every verification row keyed to
+  it is proven for its part, two of them by hand against real Gmail, and every control it delivered
+  has its mutation demonstration. **What it did not deliver.** The first real call from a
+  deployable, and write-back's loop through the store, which happen at [production point
+  1](#production-point-1--the-read-path). The contract cases that need a message removed from the
+  account, which run against the fake alone because nothing in this system deletes mail. No
+  deployable calls the adapter yet.
+- [x] **F3 — Rate limiter + Gmail cost profile** → [O1](./USE_CASES.md#o1--rate-limited-politely) ·
+  [V2](#v2--the-corpus-can-be-acquired) · finished at tested
+  Delivered by pull requests [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156) and
+  [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), which closed its tickets
+  [#74](https://github.com/ppat/mediated-mailbox-mcp/issues/74) and
+  [#78](https://github.com/ppat/mediated-mailbox-mcp/issues/78), with the total observed request
+  rate arriving in [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158) as the Gmail
+  adapter's count of each request it sends, and not yet released. The cost profile the adapter
+  declares ([ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md)), the conservative
+  target with the hard cap and AIMD
+  ([ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)), and priority classes and
+  database leases ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), tested
+  against a simulated provider that throttles on schedule. The rate, lease and throttle series are
+  emitted through [ADR-0076](./docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)'s
+  library, and collapse and runaway are raised as
+  [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)'s alerting rules,
+  shipped with the chart and tested with `promtool`. Every verification row keyed to it is proven,
+  and every control it delivered has its mutation demonstration. **What it did not deliver.**
+  Mounting the account-level collector on the mediator's metrics endpoint, which is
+  [D3](#group-d--data-flows)'s. How delta sync's request count reaches the runaway rule, decided at
+  [D4](#group-d--data-flows). The real ceiling for the account, which reveals itself at [production
+  point 1](#production-point-1--the-read-path). No deployable spends from the budget yet.
 - [x] **S1 — Redaction Gate + Sender Classifier + Mutation Authorizer, isolated** →
   [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -320,7 +374,7 @@ is provable against fixtures.
 
 ### V2 — The corpus can be acquired
 
-**Units:** [F2](#delivered-mapped-to-outcomes) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
+**Units:** [F2](#delivered-mapped-to-outcomes) · [F5](#delivered-mapped-to-outcomes) · [F3](#delivered-mapped-to-outcomes) ·
 [D1](#group-d--data-flows) · [D2](#group-d--data-flows). **Value shipped:** the machinery that
 acquires a full-history metadata index (every sender classified, every subject masked, sender
 statistics built, scan verdicts recorded) politely enough to never antagonize the provider, proven
@@ -386,7 +440,7 @@ holds, with an entry naming the point.
 
 - **After:** [F4](#delivered-mapped-to-outcomes) · [S1](#delivered-mapped-to-outcomes) ·
   [S2](#delivered-mapped-to-outcomes) · [S3](#delivered-mapped-to-outcomes) ·
-  [F2](#delivered-mapped-to-outcomes) · [F5](#group-f--foundation) · [F3](#group-f--foundation) ·
+  [F2](#delivered-mapped-to-outcomes) · [F5](#delivered-mapped-to-outcomes) · [F3](#delivered-mapped-to-outcomes) ·
   [D1](#group-d--data-flows) · [D2](#group-d--data-flows) · [D3](#group-d--data-flows) ·
   [D4](#group-d--data-flows) · [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only).
@@ -471,7 +525,7 @@ holds, with an entry naming the point.
 - **Learned only there:** how Fastmail throttles under the system's real workload, which Fastmail
   does not document ([ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md)). Simpler
   facts, such as whether Fastmail sends a `Retry-After` header, can already show up when the
-  contract suite is run by hand against Fastmail at [X4](#group-x--expansion)
+  contract suite runs against Fastmail at [X4](#group-x--expansion)
   ([ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)).
 
 What accumulates from [production point 1](#production-point-1--the-read-path) onward is the masking
@@ -510,53 +564,11 @@ check runs inside the sanitization step
 ### Group F — foundation
 
 What everything runs on. The tooling, the store, the adapter, the budget. F1 is retired. Its
-application half lives in [F5](#group-f--foundation) and its platform half at [production point
-1](#production-point-1--the-read-path). F4 is delivered and sits in the [delivered
-register](#delivered-mapped-to-outcomes), and so is F2. [F5](#group-f--foundation) serves
-[G1](./USE_CASES.md#g1--whole-mailbox-visibility) and also carries
-[A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the scope that
-excludes permanent delete, because the grant is the adapter's.
-
-- [ ] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
-  [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
-  The provider port's first compilation to a real backend
-  ([ADR-0010](./docs/adr/provider/0010-one-provider-port.md)), installed-app OAuth with the modify
-  scope ([ADR-0011](./docs/adr/provider/0011-gmail-auth-installed-app-oauth.md)), credentials read
-  as mounted files ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), the
-  application half of rotation write-back, writing a rotated credential to the one writable location
-  and re-reading it on restart ([ADR-0039](./docs/adr/operability/0039-rotation-writeback.md)), and
-  every operation of the port, counting the cost of each request it sends for the runaway rule
-  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The provider
-  fake and the contract suite every port implementation
-  passes ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)) land here, and the adapter is
-  measured by them. The adapter is not done until the suite has also passed against the real
-  provider. That run is an integration test started by hand whenever it is needed, never on a pull
-  request or a schedule. Which mailbox and credential that run uses is an open decision. No database. The first real
-  call from a deployable, and write-back's
-  loop through the store, happen at [production point 1](#production-point-1--the-read-path).
-- [ ] **F3 — Rate limiter + Gmail cost profile** → [O1](./USE_CASES.md#o1--rate-limited-politely) ·
-  [V2](#v2--the-corpus-can-be-acquired) · finishes at tested
-  The cost profile the adapter declares
-  ([ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md)), the conservative target with
-  the hard cap and AIMD ([ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)),
-  priority classes and database leases
-  ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), tested against a
-  simulated provider that throttles on schedule, so convergence and recovery are proven before the
-  real one. The hard cap holds when the controller is fed deliberately bad inputs, and the
-  interactive class keeps its reserved share while batch work absorbs a rate reduction
-  ([O1](./USE_CASES.md#o1--rate-limited-politely)). Needs [F2](#delivered-mapped-to-outcomes)'s rate-state
-  row. *Criteria:* rate, lease and throttle series and the total observed request rate are emitted
-  through [ADR-0076](./docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)'s
-  library, and the two conditions of
-  [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md), collapse and runaway, are
-  raised as the alerting rules
-  [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md) states, shipped
-  with the chart and tested with `promtool`. Runaway must page someone rather than only show on a
-  dashboard. F3 builds the collector that reads each account's rate-state row for the account-level
-  series, and D3 mounts it on the mediator's metrics endpoint. The total observed request rate is the count the Gmail adapter keeps
-  of each request it sends, so F3 meets that criterion when F5's adapter lands.
-  The real ceiling for the account reveals itself at [production point
-  1](#production-point-1--the-read-path).
+application half lives in [F5](#delivered-mapped-to-outcomes) and its platform half at [production
+point 1](#production-point-1--the-read-path). F4, F2, F5 and F3 are delivered and sit in the
+[delivered register](#delivered-mapped-to-outcomes), so no unit of this group remains. F5 also
+carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the scope
+that excludes permanent delete, because the grant is the adapter's.
 
 ### Group D — data flows
 
@@ -582,7 +594,7 @@ arrives, because each delta sync tick runs the scan gate.
   The backfill workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) making the first
   pass of [ADR-0017](./docs/adr/data/0017-two-pass-backfill.md), metadata, sender classification,
   subject masking and sender aggregates, checkpointed per page, spending from
-  [F3](#group-f--foundation)'s budget. The first deployable that loads a policy snapshot from the
+  [F3](#delivered-mapped-to-outcomes)'s budget. The first deployable that loads a policy snapshot from the
   tables and raises the reload-failure alarm
   ([ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)), through a shared
   library every later deployable that loads policy uses. It is the first deployable
@@ -614,7 +626,7 @@ arrives, because each delta sync tick runs the scan gate.
   out of band ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), skip
   decisions recorded from the first evaluation, and the delisting transition
   ([ADR-0037](./docs/adr/redaction/0037-delisting-transition.md)). Wired into the backfill
-  workload's root beside pass 1. Pass 2 spends from [F3](#group-f--foundation)'s budget in the
+  workload's root beside pass 1. Pass 2 spends from [F3](#delivered-mapped-to-outcomes)'s budget in the
   batch class ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)). The
   delisting transition applies to a rule removed by any path, and how a removal reaches it is an
   [open decision](#open-decisions) settled here. Pass 2 converts each gated-in body with
@@ -651,7 +663,7 @@ arrives, because each delta sync tick runs the scan gate.
   timestamps ([ADR-0033](./docs/adr/operability/0033-utc-only-timestamps.md)), and the failure
   contract clients tell apart. TLS and bearer auth on both roots. Every served body passes through
   [S3](#delivered-mapped-to-outcomes)'s conversion and release step, and how a body with no HTML
-  part is released is decided here. Body fetches spend from [F3](#group-f--foundation)'s budget
+  part is released is decided here. Body fetches spend from [F3](#delivered-mapped-to-outcomes)'s budget
   in the interactive class ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)).
   A newly deny-listed domain is denied on the next call
   ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md)), and how the mediator meets
@@ -685,7 +697,7 @@ arrives, because each delta sync tick runs the scan gate.
   for example when their sender is removed from the sensitive list. The normal scanning machinery
   picks them up ([ADR-0037](./docs/adr/redaction/0037-delisting-transition.md)), and how it reaches
   them once backfill's pass 2 has ended is an [open decision](#open-decisions) settled here. Every tick spends from
-  [F3](#group-f--foundation)'s budget in the sync class
+  [F3](#delivered-mapped-to-outcomes)'s budget in the sync class
   ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)). What proves it is the
   cursor-gap injection over the fake, and the leak search over delta sync's logs. *Criteria:* every tick and every gap recovery is a recorded
   run, the cursor's write time is recorded with it, gate decisions and masking events are recorded
@@ -732,10 +744,10 @@ policy rule changes the classifications already stored in the index.
 
 - [ ] **M1 — Mutations, non-reorg** → [A1](./USE_CASES.md#a1--asymmetric-mutation) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
-  Single and batch label and unlabel, move, archive, mark read, star, trash, spam and mute on the
+  Single and batch label and unlabel, move, archive, mark read, star, trash and spam on the
   client surface
   under the authorization matrix ([ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md)),
-  spending from [F3](#group-f--foundation)'s budget in the interactive class
+  spending from [F3](#delivered-mapped-to-outcomes)'s budget in the interactive class
   ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), dry-run on every
   mutating operation ([ADR-0031](./docs/adr/mutation/0031-dry-run-on-mutating-operations.md)), and
   whole-batch validation before the first write
@@ -760,7 +772,7 @@ policy rule changes the classifications already stored in the index.
   plans so the two read-only plan tools have their identifiers
   ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)), the two
   read-only plan tools on the client surface, checkpointed apply spending from
-  [F3](#group-f--foundation)'s budget in the batch class
+  [F3](#delivered-mapped-to-outcomes)'s budget in the batch class
   ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), the op log, and rollback
   as exact replay. How an approved plan starts applying, and how a rollback is requested, are an
   [open decision](#open-decisions) settled where the reorg workload is built, and neither is a
@@ -872,9 +884,8 @@ the adapter.
   [open decisions](#open-decisions) are settled. One is what the calendar side of the provider port
   and the canonical calendar model look like. The other is how calendar calls share an account's rate
   budget. What proves it is its rows over
-  calendar fixtures, including dry-run on calendar mutations. As with [F5](#group-f--foundation), the
-  adapter is not done until the contract suite has also passed against the real provider in a run
-  started by hand. *Criteria:* every release and every denial of gated calendar content writes its
+  calendar fixtures, including dry-run on calendar mutations. As with [F5](#delivered-mapped-to-outcomes), the
+  adapter is not done until the contract suite has also passed against the real provider. *Criteria:* every release and every denial of gated calendar content writes its
   audit row, a released event description is converted to clean Markdown like a message body
   ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md),
   [ADR-0036](./docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)), and every applied and
@@ -902,7 +913,7 @@ the adapter.
   [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) requires of the token, is an
   [open decision](#open-decisions) settled where the JMAP adapter is built. The real
   test of the provider contract, one layer down from [X3](#group-x--expansion). What running the
-  contract suite by hand against Fastmail shows about its throttling is learned here, and how it
+  contract suite against Fastmail shows about its throttling is learned here, and how it
   throttles under the system's real workload is learned at
   [production point 3](#production-point-3--a-second-of-everything).
 - [ ] **X1 — Scanner tier 3** → [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
@@ -991,18 +1002,18 @@ about its cluster.
 | [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | — | The gate, the classifier and the authorizer landed with S1, which is delivered. Injection hardening on released bodies is A4's, and landed with S3, which is delivered. The calendar content-release side rides X2. The static controls, import boundaries and the lint half of unconstructability, ride F4. The release-time falsifiers are proven at D3, flagged in Group D's preamble, and the editable-list falsifier at M4, where a confirmed candidate's rule binds, flagged in Group M's preamble |
 | [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | D2 · X1 | The tiers and subject masking landed with S2, which is delivered. The serve-time check landed with S3, an A4 unit, which is delivered. Scanning new mail as it arrives is built in D4, a G4 unit |
 | [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | Candidate review rides M5 |
-| [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | F5 · D3 | The data layer landed with F2, which is delivered |
+| [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | D3 | The data layer landed with F2 and the adapter with F5, both delivered |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | The agent's reads over sender aggregates and label distribution ride D3 |
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M5 | — |
 | [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | D4 | — |
-| [P1](./USE_CASES.md#p1--one-contract) one contract | — | No dedicated unit, correctly. The contract is authored in the decision records, first compiled by F5 and proven by X4 |
+| [P1](./USE_CASES.md#p1--one-contract) one contract | — | No dedicated unit, correctly. The contract is authored in the decision records, first compiled by F5, which is delivered, and proven by X4 |
 | [P2](./USE_CASES.md#p2--backend-swap) backend swap | X4 | — |
 | [P3](./USE_CASES.md#p3--multi-account) multi-account | X3 | The identifier-discoverability criterion ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) rides D3 |
 | [A1](./USE_CASES.md#a1--asymmetric-mutation) asymmetric mutation | M1 | — |
-| [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) no destructive action | — | No dedicated unit, correctly. One structural half lands with F5 (token scope), the other with M1 (client surface). Whether Fastmail's mail token can be kept from permanently deleting mail is an open decision in X4. Criteria ride those units |
+| [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) no destructive action | — | No dedicated unit, correctly. One structural half landed with F5 (token scope), which is delivered, the other with M1 (client surface). Whether Fastmail's mail token can be kept from permanently deleting mail is an open decision in X4. Criteria ride those units |
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | D3 · M3 | The conversion, the delimiters and the serve-time check landed with S3, which is delivered. Serving every body through them is D3's, a G1 unit. The volume alert rides M3, an O4 unit, as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), over the audit rows D3 writes |
-| [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | F3 | — |
+| [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | — | The rate limiter and the Gmail cost profile landed with F3, which is delivered. The real ceiling reveals itself at production point 1 |
 | [O2](./USE_CASES.md#o2--observable) observable | — | No dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | No dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's application half at F5, and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 | The decisions ride M5, a G3 unit |
@@ -1033,12 +1044,12 @@ lands in is the [value path](#the-value-path)'s.
 | S2 → D2, S3 → D2 | The tiers pass 2 scans with, and the converter whose Markdown they read ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)) |
 | S1 → D3, S3 → D3, F2 → D3, F5 → D3, D1 → D3 | The gate the surface serves through, the sanitization every body passes, the index it reads, the adapter it fetches with, the policy loader, the account rows backfill creates, and backfill as the first deployable whose authentication outcome is recorded |
 | D2 → D4, F5 → D4 | The gate the tick runs and the body scanning pass 2 builds, and the adapter's change cursor |
-| F5 → M2 | The provider fake, the contract suite, and the run by hand against the real provider, which any addition to the port for renaming and deleting labels must pass |
+| F5 → M2 | The provider fake, the contract suite, and its run against the real provider, which any addition to the port for renaming and deleting labels must pass |
 | D3 → M1 | The surface the mutating operations live on |
 | M1 → M2, D3 → M2, D1 → M2 | The authorized batch mutation path apply runs through, the surface the two read-only plan tools live on, the crash harness with its operation sampler, the policy loader and the account rows, and how the last authentication outcome is recorded |
 | R1 → M4, R1 → M5 | How a newly added policy rule changes the classifications already stored in the index. The import decides it, and a confirmed candidate's rule follows it |
 | D1 → M4 | The sender statistics the heuristics read, and the policy loader the heuristics workload uses |
-| D1 → X2, D3 → X2, D4 → X2, F5 → X2, M1 → X2 | The surface, the workloads and the Google grant calendar joins, the dry-run and authorized mutation path calendar mutations run through, the provider fake, and the convention for running the contract suite by hand against the real provider. Calendar also follows the answers on account rows, on recording the authentication outcome and on denying a newly deny-listed domain on the next call |
+| D1 → X2, D3 → X2, D4 → X2, F5 → X2, M1 → X2 | The surface, the workloads and the Google grant calendar joins, the dry-run and authorized mutation path calendar mutations run through, the provider fake, and the convention for running the contract suite against the real provider. Calendar also follows the answers on account rows, on recording the authentication outcome and on denying a newly deny-listed domain on the next call |
 | F3 → D2, F3 → D3, F3 → D4, F3 → M1, F3 → M2, F3 → X2 | The rate budget each spends from ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), and for D3 the collector of each account's rate-state series its metrics endpoint carries ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
 | S3 → X2 | The sanitization a released event description goes through ([ADR-0036](./docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)) |
 | D1 → D4 | The policy loader and the account rows delta sync reuses |
@@ -1050,7 +1061,7 @@ lands in is the [value path](#the-value-path)'s.
 | D1 → X3 | How an account's rows are created from the account's configuration, which a second account follows |
 | M1 → X3, M2 → X3, D4 → X3, M4 → X3, X2 → X3 | The mutation the cross-account injection attempts, the reorg, delta sync and heuristics workloads a second account also configures, and the calendar client every account holds, which the injection also covers |
 | S1 → F2, and S1 → every later unit | The marker text and synthetic fixtures later tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
-| F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the provider fake, the convention for running the suite by hand against the real provider, the rate limiter the Fastmail backend spends through, the deployables that call a provider, how a label is renamed and deleted at the provider, and the calendar side of the port the CalDAV adapter implements. The Fastmail wiring also follows the answers on account rows and on recording the authentication outcome |
+| F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the provider fake, the convention for running the suite against the real provider, the rate limiter the Fastmail backend spends through, the deployables that call a provider, how a label is renamed and deleted at the provider, and the calendar side of the port the CalDAV adapter implements. The Fastmail wiring also follows the answers on account rows and on recording the authentication outcome |
 | S2 → X1, D2 → X1, D4 → X1 | The tier boundary and the scanner version tier 3 fits into, the masking events and gate decisions its training examples come from, the re-scan that ships it, and the scanning workloads it runs in |
 | F2 → R1, D1 → R1, D3 → R1, D4 → R1 | The migration chain the step runs, and the read path's deployables |
 | M2 → R2, M3 → R2, M4 → R2, M5 → R2, X2 → R2, R1 → R2 | The action path's deployables, the calendar inputs, and the chart and suites R2 adds to |
@@ -1176,7 +1187,6 @@ index](./docs/adr/README.md).
 | How a removed policy rule reaches the delisting transition | D2 | [ADR-0037](./docs/adr/redaction/0037-delisting-transition.md) sets a removed sender's messages back to pending scan, and nothing says how the removal is detected. It is decided where that transition is built |
 | How messages returned to pending scan are scanned once backfill has ended | D4 | [ADR-0037](./docs/adr/redaction/0037-delisting-transition.md) has the normal scanning machinery pick up a delisted sender's messages like any other unscanned mail, and [ADR-0007](./docs/adr/redaction/0007-composite-scan-gate.md) treats a growing pending backlog as a failure. Backfill's pass 2 scans them while it runs, and no record says how the normal machinery reaches them after pass 2 ends. Delta sync is the scanning that keeps running after backfill, so it is decided there |
 | How a newly added policy rule changes the classifications already stored in the index | R1 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) says policy edits reclassify senders, and [docs/UI.md](./docs/UI.md) shows a confirmed rule as in effect, but nothing says how a new rule changes classifications already stored. The first import happens before the index is filled, and every later import adds rules to a filled index, so the import is the first work that needs the answer and it is decided there. M4 and M5 come after R1 and follow the same answer |
-| How the contract suite is run by hand against the real provider | F5 | The operator ruled that an adapter is not done until the contract suite passes against the real provider, in a run started by hand, never on a pull request or a schedule. The repository's integration tests run on every pull request, and [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)'s test runner fails any run that creates no database, so this run needs its own way to start. It is decided where the first adapter is built, and the later adapters follow it |
 | Whether bounded crash-sequence runs gate pull requests or run on the schedule | D1 | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) and [TESTING.md](./TESTING.md) allow them in the gating suite if they prove fast enough. It is decided where the crash harness is first built, and M2's crash sequences follow it |
 | What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet |
 | How a reorganization renames and deletes a label at the provider | M2 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) plans creating, renaming and deleting labels, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md)'s port has `ensure_label` and `mutate` and nothing to rename or delete a label. It is decided where apply is built, together with any addition to the port, the provider fake and the contract suite |
@@ -1189,19 +1199,17 @@ index](./docs/adr/README.md).
 | The calendar index schema | X2 | [ADR-0016](./docs/adr/data/0016-schema.md) has no calendar table, and storing calendar data needs one. It is decided, and recorded beside ADR-0016, where the tables are built, before calendar is wired into the deployables |
 | The calendar side of the provider port and the canonical calendar model | X2 | [ADR-0026](./docs/adr/provider/0026-multi-account-contexts.md) puts a calendar provider on each account, [ADR-0027](./docs/adr/provider/0027-calendar-classification.md) adds a calendar part to the data model, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md) defines only the mail side of the port. The Google Calendar adapter is the first work that implements it, so it is decided there. Calendar classification, the calendar tables, the calendar operations and the CalDAV adapter follow it |
 | How calendar calls share an account's rate budget | X2 | [ADR-0026](./docs/adr/provider/0026-multi-account-contexts.md) gives an account one rate profile and one rate controller, [ADR-0016](./docs/adr/data/0016-schema.md) keeps one rate-state row per account, and [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) defines costs for mail calls only. No record says what a calendar call costs, or how throttling on calendar calls affects the account's controller. The Google Calendar adapter makes the first calendar calls, so it is decided there. The calendar wiring, the CalDAV adapter and the Fastmail wiring follow it |
-| Which mailbox and credential the contract suite uses when run by hand against the real provider | F5, X2, X4 | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) put off deciding whether the contract suite ever runs against the real provider, and against which mailbox, until the first real adapter is built (F5). The operator ruled on 2026-09-17 that an adapter is not done until the suite passes against the real provider, in a run started by hand whenever needed, never on a pull request or a schedule. Which mailbox each run uses, and which credential it holds, is still open, and each adapter unit settles it for its provider before its adapter can be done. The run needs a credential before the production point that would normally supply one, so the answer also says how that credential is supplied. Running it against the operator's real mailbox would touch production outside a production point, which the delivery posture does not allow. The suite also delivers and removes mail to check change sets, and a removal the provider reports as a change may need a deletion the adapter's own scope does not grant, so the run's seeding may need a credential of its own |
-| Whether a Fastmail mail token can be issued without the ability to permanently delete mail | X4 | [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) requires that the granted token cannot permanently delete, [ADR-0012](./docs/adr/provider/0012-fastmail-scoped-jmap-tokens.md) scopes Fastmail tokens by protocol, and [DESIGN.md](./DESIGN.md) treats a capability missing from a credential as a guarantee wherever the provider allows it. No record says whether a Fastmail mail token can leave out permanent delete, or what takes its place if it cannot. The JMAP adapter is the first work that holds that token, so it is decided there, and its run by hand against Fastmail attempts the delete |
+| Which credentials the contract suite's run against a real provider holds | X2, X4 | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) runs it on an account set aside for testing, never the real mailbox, assuming nothing about what the account holds and deleting nothing, and [TESTING.md](./TESTING.md#when-tests-run) says where its credentials are held. For Gmail the operator ruled that nothing deletes mail, the test harness included, and supplies an old, unused account whose contents the run must not assume. So the run holds the adapter's modify grant alone and adds its messages by insertion, which that grant permits. The operator also ruled that the run may move a message it added to the trash and leave it there for Gmail to purge. Each later adapter unit settles its own provider |
+| Whether a Fastmail mail token can be issued without the ability to permanently delete mail | X4 | [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) requires that the granted token cannot permanently delete, [ADR-0012](./docs/adr/provider/0012-fastmail-scoped-jmap-tokens.md) scopes Fastmail tokens by protocol, and [DESIGN.md](./DESIGN.md) treats a capability missing from a credential as a guarantee wherever the provider allows it. No record says whether a Fastmail mail token can leave out permanent delete, or what takes its place if it cannot. The JMAP adapter is the first work that holds that token, so it is decided there, and its run against Fastmail is followed by a delete attempted by hand |
 | Whether one in-memory model serves both crash-harness targets | M2, D1 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) runs sequence reduction against an in-memory model of the machinery and leaves open whether one model serves both of [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)'s targets, the reorganization apply path at M2 and backfill resume at D1, or each gets its own. Only the harness's own internals depend on the answer |
 | Whether the backfill target's generators use the same shape as the reorganization plan generator | D1 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) measured the collection-generator shape for the reorganization plan generator only, and states two options for backfill resume, using the same shape and reading the generator report, or measuring a conditional generator against it first |
 | Whether the operation sampler also runs in the gating run | D1, M2 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) places it in the scheduled run and leaves the gating run open, stating what each option costs |
 | How rotations arriving at two credential-holding deployables close together are reconciled | Production point 1 | [ADR-0039](./docs/adr/operability/0039-rotation-writeback.md) has the deployable that receives a rotated credential write it to the one writable location. Every deployable that calls a provider holds the credential ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)), so two of them can receive rotations close together, and which value the store keeps is the store's behavior, answered on the deploying side |
 | How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
 | How an unscoped account listing reads every account through the accounts table's row-level security | D3 | [ADR-0016](./docs/adr/data/0016-schema.md) puts row-level security on every account-keyed table, and the accounts table is one, so a query sees only the account its transaction set. The client surface's account listing ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) and [docs/UI.md](./docs/UI.md)'s accounts endpoint are both unscoped and need every account's row, and [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) names the listing a deliberate exception to its account-predicate rule, which that row-level security stands behind. D3 builds the first of them |
-| How generated data-access functions are held to run through the transaction helper | D1 | [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) runs every unit of data access in a transaction that set and verified the account, and `db/tx` does so, but a generated function accepts any database handle, a pool included. F3 writes the first statement file and calls it only inside the helper. A check that holds every later call to the helper needs an analyser the operator names, so the row stays open, and the pending part of the unset-account row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) waits on it |
+| How generated data-access functions are held to run through the transaction helper | D1 | [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) runs every unit of data access in a transaction that set and verified the account, and `db/tx` does so, but a generated function accepts any database handle, a pool included. F3 writes the first statement file and calls it only inside the helper. A check that holds every later call to the helper is a `go vet` analyser the operator named `txhelper`, built with D1's first statements, so the row stays open until then, and the pending part of the unset-account row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) waits on it |
 | How delta sync's request count reaches the runaway rule when a tick ends between scrapes | D4 | [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md) counts the cost of provider requests in each spending process and sums them for the runaway rule. [ADR-0022](./docs/adr/operability/0022-four-workloads.md) runs delta sync every five minutes for seconds at a time, so a tick can end between two scrapes and leave its requests uncounted. Delta sync is built in D4, so it is decided there |
 | How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0026](./docs/adr/provider/0026-multi-account-contexts.md) gives each account its own OAuth client, but two clients can sit in one project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
 | Whether the rate may rise above the target so a ceiling above the declared one can be found | X4 | [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md) keeps the rate between the floor and the target, which is half the declared ceiling, so the controller can find only a lower real ceiling. [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) has the controller discover JMAP's budget from a conservative guess, which needs finding a higher one, and [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)'s own alternatives count discovery as the only way to find JMAP's. ADR-0024's token bucket and one-second window are sized from the hard cap, which the answer does not move. Gmail publishes its ceiling, so only the JMAP adapter depends on the answer, and it is decided there |
-| What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, spam, or mute", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
-| Whether mute can be expressed on each provider | F5 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lists mute among the verbs, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md) counts an operation one backend cannot express as a bug in the contract. Whether Gmail's API and JMAP expose mute is not yet checked. The fake models it as the thread leaving the inbox with a flag on each of its messages, and the Gmail adapter checks it first |
-| Where the one-time Gmail consent is run from | F5 | [ADR-0011](./docs/adr/provider/0011-gmail-auth-installed-app-oauth.md) obtains the refresh token by installed-app consent an operator runs once, and the function that runs it exists in the Gmail adapter. It is not a deployable ([ADR-0038](./docs/adr/operability/0038-credentials-as-mounted-files.md)) and not test tooling, so the command that runs it has no home yet. The Gmail adapter's ticket decides it, because the contract suite's run against real Gmail needs a credential obtained the same way |
+| What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |

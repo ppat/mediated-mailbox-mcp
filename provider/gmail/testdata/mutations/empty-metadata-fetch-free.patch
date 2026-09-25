@@ -1,0 +1,21 @@
+control: Gmail's cost profile declares each call's worst case, every read of the label table included, and sizes its pages to one second's worth at the hard cap
+removes: a metadata fetch naming no identifier is declared to cost nothing, so the rate limiter refuses it
+packages: ./provider/gmail
+tests: TestTheProfileMeetsTheContract/the_rate_profile_declares_a_budget_and_a_cost_for_every_operation
+scheduled-count: no
+
+diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
+index ab4fbbc..9e5b428 100644
+--- a/provider/gmail/profile.go
++++ b/provider/gmail/profile.go
+@@ -86,7 +86,9 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
+ 	case mail.OpGetThreadMetadata:
+ 		units = unitsThreadsGet + unitsLabelsList
+ 	case mail.OpGetMessageMetadata:
+-		units = unitsMessagesGet*n + unitsLabelsList
++		if n > 0 {
++			units = unitsMessagesGet*n + unitsLabelsList
++		}
+ 	case mail.OpGetMessageBody:
+ 		units = unitsMessagesGet
+ 	case mail.OpListLabels:

@@ -12,9 +12,13 @@ reorganization workload applies plans, all through the Provider Port
 so the adapters are shared code, and they do network I/O, so they cannot sit in `core/`. Writing an
 adapter per deployable would break the one-adapter-per-provider contract. So one library holds
 `gmail`, `gcal`, `jmap` and `caldav`, each with the rate profile its provider needs
-([ADR-0023](../docs/adr/operability/0023-adapter-declares-cost.md)). It also holds `fake`, the
-provider fake of [ADR-0043](../docs/adr/engineering/0043-no-mocking.md), which only test files may
-import, and `contract`, the contract suite every implementation passes, ordinary code so each
+([ADR-0023](../docs/adr/operability/0023-adapter-declares-cost.md)). Each adapter counts the cost of
+every request where it sends it, the series the runaway rule reads
+([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)), so the library
+registers metrics through client_golang on a registry its caller passes in
+([ADR-0076](../docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)). It also holds
+`fake`, the provider fake of [ADR-0043](../docs/adr/engineering/0043-no-mocking.md), which only test
+files may import, and `contract`, the contract suite every implementation passes, ordinary code so each
 implementation's tests can run it. The Provider Port interface and the canonical model are pure and
 sit in `core/mail`.
 
@@ -23,6 +27,12 @@ schedule, so the rate limiter's tests can meet throttling without the fake's sto
 and a throttled call changes nothing. The contract suite seeds the mailbox it runs against from the
 synthetic fixtures, adding what a mailbox holds beside a message, its identifiers, thread, date,
 labels and flags, and never assumes an implementation keeps the identifiers it was seeded with.
+Against a real provider it adds its messages to a test account it does not control, each marked as
+that run's, and checks and reports only those, never assuming or touching the account's other mail
+([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)). The one-time Gmail consent runs from
+`gmail/cmd/consent`, an operator's command that no deployable runs. It takes the address of the
+account the grant is meant for and refuses a grant that belongs to another account or holds any
+scope but the modify scope.
 
 The Gmail adapter also holds the handling of Google's grant, which every deployable that calls
 Google shares, the Google Calendar adapter included. That is the one-time installed-app consent,

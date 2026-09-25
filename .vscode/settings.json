@@ -49,7 +49,7 @@
   "go.toolsManagement.autoUpdate": false,
   "gopls": {
     "build.buildFlags": [
-      "-tags=integration,banproof"
+      "-tags=integration,banproof,gmail_live"
     ],
     "build.directoryFilters": [
       "-**/node_modules",

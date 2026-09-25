@@ -1,0 +1,24 @@
+control: The Gmail adapter requires only a label an op adds to exist, and an op left with nothing to change still finds its message
+removes: an op left with nothing to change is reported applied without reading its message, so an unknown message is never found
+packages: ./provider/gmail
+tests: TestAnOpChangingNothingReadsItsMessage
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index 418a827..51e4945 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -387,12 +387,7 @@ func (c *call) apply(ctx context.Context, op mail.MutationOp, labels labelTable)
+ 		return fmt.Errorf("gmail: message %q: %w", id, mail.ErrNotFound)
+ 	}
+ 	if change.none() {
+-		body, err := c.do(ctx, messageRequest(id, formatMinimal))
+-		if err != nil {
+-			return err
+-		}
+-		_, err = parseMessage(body)
+-		return err
++		return nil
+ 	}
+ 	req, err := modifyRequest(id, change.Add, change.Remove)
+ 	if err != nil {

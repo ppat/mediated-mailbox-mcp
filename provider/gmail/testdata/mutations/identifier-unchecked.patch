@@ -1,0 +1,20 @@
+control: A canonical value cannot change the Gmail request it is written into
+removes: any non-empty identifier is written into a request path
+packages: ./provider/gmail
+tests: TestValidID
+scheduled-count: no
+
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 6f23fd0..6e26938 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -36,6 +36,9 @@ func (r request) URL() string {
+ // hexadecimal, and the check admits the URL-safe characters around them, so an identifier can
+ // never change the path it is written into.
+ func validID(id string) bool {
++	if id != "" {
++		return true
++	}
+ 	if id == "" {
+ 		return false
+ 	}

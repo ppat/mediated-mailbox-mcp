@@ -1,0 +1,19 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: a thread read carries the price of a thread listing, so it is counted and held at a quarter of what Gmail charges
+packages: ./provider/gmail
+tests: TestRequests TestEveryRequestSentIsCounted TestACallIsHeldToItsDeclaredCost
+scheduled-count: no
+
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 71c01d0..1459889 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -129,7 +129,7 @@ func messageRequest(id, format string) request {
+ // caller has checked id with validID.
+ func threadRequest(id string) request {
+ 	q := url.Values{"format": {formatFull}, "fields": {"id,historyId,messages(" + metadataFields() + ")"}}
+-	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet}
++	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsList}
+ }
+ 
+ // modifyRequest adds and removes label identifiers on a message, or on every message of a thread.

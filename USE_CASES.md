@@ -342,7 +342,7 @@ permanently delete anything.**
 
 *Falsified by any of:*
 
-- A restricted-sender message being archived, trashed, marked spam, or muted by the agent.
+- A restricted-sender message being archived, trashed, or marked spam by the agent.
   Organize-only means label and move, nothing that removes it from view. Losing an IRS notice to
   spam is the specific harm this guards against.
 - Any message, sensitive or not, being permanently deleted. Permanent delete is absent from both

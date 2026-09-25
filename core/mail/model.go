@@ -41,8 +41,6 @@ type Address struct {
 type Flags struct {
 	Read    bool
 	Starred bool
-	// Muted is set on every message of a muted thread.
-	Muted bool
 }
 
 // AuthResults are the sender authentication results a message carries, each an RFC 8601 result

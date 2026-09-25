@@ -1,0 +1,19 @@
+control: A canonical value cannot change the Gmail request it is written into
+removes: an address is written into the search text whatever characters it holds
+packages: ./provider/gmail
+tests: TestQueryValuesCannotInjectOperators
+scheduled-count: no
+
+diff --git a/provider/gmail/query.go b/provider/gmail/query.go
+index 0edca49..b0f0533 100644
+--- a/provider/gmail/query.go
++++ b/provider/gmail/query.go
+@@ -48,7 +48,7 @@ func compileNode(q mail.Query, labels labelTable, s *search, terms *[]string) er
+ 			s.LabelIDs = append(s.LabelIDs, id)
+ 		}
+ 	case mail.QueryFrom:
+-		if quotable(q.Address()) {
++		if q.Address() != "" {
+ 			*terms = append(*terms, `from:"`+q.Address()+`"`)
+ 		}
+ 	case mail.QueryAnd:

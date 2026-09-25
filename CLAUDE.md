@@ -104,7 +104,7 @@ carries the bare word.
 | --- | --- | --- | --- |
 | `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, `mail` (the canonical model, the Provider Port interface, the canonical query and the rate profile types), and `marker` (the marker text of [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
-| `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, and the contract suite, argued in [provider/README.md](./provider/README.md) |
+| `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
 | `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
 | `sanitize/` | Library | `mediated-mailbox-sanitize` | The conversion of a body's HTML to clean Markdown, argued in [sanitize/README.md](./sanitize/README.md) |
 | `testsupport/` | Library | `mediated-mailbox-testsupport` | The shared test tooling, argued in [testsupport/README.md](./testsupport/README.md) |
@@ -129,6 +129,7 @@ in its README.
 | Convention | Rule |
 | --- | --- |
 | Composition root | A deployable's `main.go` at its directory root is its one hand-written composition root ([ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md)). Nothing else in the deployable is `package main` |
+| Operator commands | A command an operator runs by hand, which no deployable runs, sits under its library as `cmd/<name>/` in `package main`. The one-time Gmail consent is `provider/gmail/cmd/consent` ([ADR-0011](./docs/adr/provider/0011-gmail-auth-installed-app-oauth.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
 | Private code | Everything else a deployable holds sits under `<deployable>/internal/`, so the compiler refuses an import from another component as well as the import rules of [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md). The one exception is an `importtarget` package holding a violation file, described under [Tests](#tests) |
 | Pure core | Pure-core code sits under a directory named `core`. That is the top-level `core/`, `<deployable>/internal/core/<concern>/`, and `<library>/core/` inside a library that holds pure rules of its own. The word means the Glossary's pure core wherever it appears, so the core import check matches every one of them by path, anchored at the repository root |
 | Shell packages | Named for what they do, for example `api`, `mcp`, `service`, `lease`, `gmail`. No package is named `util`, `common` or `helpers` |
@@ -145,6 +146,7 @@ in its README.
 | Property tests | Files named `*_property_test.go`, in external test packages ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The property-testing library is admitted only in these files, crash-sequence files, and the `testsupport` packages that need it. A property runs through `property.Check` and its generator report through `property.Report`, both in `testsupport/property`. Each fails a run whose `RAPID_SEED` is unset or zero or whose `RAPID_NOFAILFILE` is not `true`, so a local `go test` sets the values `go-test.yaml` sets |
 | Crash sequences | Files named `*_crash_test.go` in the component whose machinery they target ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A crash-sequence file whose reduced sequence replays against PostgreSQL also carries the `integration` build tag |
 | Integration tests against PostgreSQL | Files named `*_integration_test.go` carrying the `integration` build tag, and run only under `go tool pgrun` with `-tags integration`. `pgrun` starts one PostgreSQL container for the run and prepares a template database, and each integration test package creates its own database from it through `testsupport/postgres` ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). One test in `testsupport/postgres` runs `pgrun` a second time, on the next port, to prove a run without the tag fails, so with a remote docker daemon both ports need a route. The test image's reference sits in `testsupport/cmd/pgrun/image.go`, pinned by digest and tracked by renovate |
+| Contract runs against a real provider | Files named `*_live_test.go` beside the adapter, carrying a build tag of the provider's own, `gmail_live` for Gmail, so no other test run compiles them, while lint and the `go vet` analysers read them. They add their own marked messages and check and report only those ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)). They run only through `go tool livecontract <provider>`, from `testsupport/cmd/livecontract`, which sets the marker the live test requires. Run any other way, the build tag included, a live test skips and names the command, so no accidental or incidental test invocation reaches a real provider |
 | Violation files | Placed where the ban or import rule they prove applies, and named for it. A Go violation file ends in `_violation.go` for a rule over non-test files, or in `_violation_test.go`, `_violation_property_test.go` or another test-file suffix for a rule over test files. It carries the `banproof` build tag, so the gating lint never loads it, and holds `// want` annotations naming the finding it must produce ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)). A browser violation file ends in `_violation.ts` or `_violation.tsx`. The gating browser lint and type check skip files with that name, and nothing imports one, so the bundler never reaches it. An SQL violation file ends in `_violation.sql` under `db/check/testdata/violations/`. A few violation files need a target of their own. A deployable's `importtarget` package sits outside `internal/` only so the other deployables' lists have something to refuse, and `residual_violation.go` at the repository root proves the list over Go files outside every component |
 | Must-not-compile fixtures | Under `testdata/mustnotcompile/<case>/`, loaded by `testsupport/mustnotcompile` ([ADR-0042](./docs/adr/engineering/0042-implementation-stack.md)) |
 | Golden files | Under `testdata/golden/` in the package that owns them, written and compared by the golden-file helper in `testsupport/compare` ([ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md)) |
@@ -172,10 +174,10 @@ in its README.
 - **`govulncheck`** runs in CI over the module and on a schedule, because its answer changes when
   its vulnerability database does.
 - **The `go vet` analysers** live in `testsupport/analysis` with a `unitchecker` program at
-  `testsupport/cmd/vetcheck`, and run beside golangci-lint as
-  `go vet -tags integration -vettool="$(go tool -n vetcheck)"`, with the tag golangci-lint's
-  configuration sets. The placement analyser's two rules refuse a call to `property.Report` or
-  `property.Check` reachable from inside a property
+  `testsupport/cmd/vetcheck`, and run beside golangci-lint as `go vet -tags integration,gmail_live
+  -vettool="$(go tool -n vetcheck)"`, with the tags golangci-lint's configuration sets. The
+  placement analyser's two rules refuse a call to `property.Report` or `property.Check` reachable
+  from inside a property
   ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The globals
   analyser refuses package-level state in a pure core by the four rules
   [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. banproof requires
@@ -261,6 +263,7 @@ need the repository's tools install them from `mise.toml` through
 | `go-lint` | Go code, the lint configuration, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, the `go vet` analysers, and `go tool banproof` |
 | `go-test` | Go code, the chart's alerting rules with the template that ships them, tool pins | Unit tests, which include `promtool test rules` over the alerting rules and a render of the chart that ships them ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The gating property run sets a fixed non-zero `RAPID_SEED`, the gating `RAPID_CHECKS` and `RAPID_NOFAILFILE=true` in the workflow and passes no `-short` ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
 | `go-integration` | Go code, the chart's alerting rules, tool pins | The integration tests under `go tool pgrun` with `-tags integration`, with the same property-run settings |
+| `gmail-contract` | A weekly schedule on the main branch, and by hand on any branch | `go tool livecontract gmail`, the Gmail adapter's contract suite against the test account, with its credentials from GitHub Actions secrets ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)). Never automatically on a pull request |
 | `go-vulncheck` | Go code, and a schedule | `govulncheck` |
 | `data` | `db/`, its configuration, tool pins | sqlfluff, the generator's diffs, and the `db/check` tests |
 | `ui` | `ui/`, the migration chain, the ban-proof program, tool pins | One job, which runs in order the contract, types and descriptor drift checks of [ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md), `bun build`, the UI's Go build and tests, the type check, the formatting check, browser lint, `go tool banproof -browser`, and `bun test`. The Go tests and the browser tests share the job because the recorded fixtures are regenerated in the job that runs the Go tests they come from ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
@@ -304,7 +307,7 @@ checks that gate the commit vocabulary carry no condition.
   version selection and move shared dependencies inside the project's binaries.
 - **The editor runs the same tools as CI.** `.vscode/settings.json` and `.vscode/extensions.json`
   make golangci-lint the Go formatter and linter with this repository's configuration, have gopls
-  read the `integration` and `banproof` build tags so every Go file is analysed, run tests with the
+  read the `integration`, `banproof` and `gmail_live` build tags so every Go file is analysed, run tests with the
   gating run's property settings, add the oxc extension for the browser, open generated files
   read-only, and give the workflow, chart and chainsaw files their schemas.
 

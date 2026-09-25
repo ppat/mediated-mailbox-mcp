@@ -1,0 +1,20 @@
+control: The contract suite compares, changes and prints only the mail each case added, and a scoped case's listings return only threads carrying its own label
+removes: a case stars the first message an enumeration returns rather than one it added
+packages: ./provider/fake
+tests: TestTheScopedSuitePassesOverMailItDidNotAdd
+scheduled-count: no
+
+diff --git a/provider/contract/suite.go b/provider/contract/suite.go
+index 2546dd5..fd79620 100644
+--- a/provider/contract/suite.go
++++ b/provider/contract/suite.go
+@@ -1054,6 +1054,9 @@ func cursorNow(t *testing.T, s *subject) mail.Cursor {
+ }
+ 
+ func noActivityNoChanges(t *testing.T, s *subject) {
++	if listed, err := s.port.EnumerateAll(t.Context(), ""); err == nil && len(listed.Items) > 0 {
++		mutate(t, s, built(t)(mail.StarOp(listed.Items[0].ID)))
++	}
+ 	got, _ := drain(t, s, cursorNow(t, s))
+ 	if diff := cmp.Diff(changes{}, got, compare.Options); diff != "" {
+ 		t.Errorf("changes with no activity (-want +got):\n%s", diff)

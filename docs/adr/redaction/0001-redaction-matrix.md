@@ -71,7 +71,7 @@ What the agent receives, concretely — first the unremarkable case, for contras
   "sensitivity": {"sender_class": "normal", "content_flags": [],
                   "scan_state": "scanned"},
   "body_available": true,
-  "allowed_mutations": ["label", "move", "archive", "trash", "spam", "mute"] }
+  "allowed_mutations": ["label", "move", "archive", "trash", "spam"] }
 ```
 
 And for a restricted sender:

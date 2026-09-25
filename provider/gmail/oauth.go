@@ -33,8 +33,9 @@ const maxTokenResponse = 1 << 20
 // nothing else, and it leaves out include_granted_scopes, which would fold every scope the account
 // ever granted this client into the new token. access_type=offline and prompt=consent make Google
 // return a refresh token even when the account consented before. The code challenge is the S256
-// PKCE challenge of verifier.
-func AuthorizationURL(clientID, redirectURI, state, verifier string) string {
+// PKCE challenge of verifier. A login hint, when given, is the address of the account the grant is
+// meant for, so Google offers that account first.
+func AuthorizationURL(clientID, redirectURI, state, verifier, loginHint string) string {
 	challenge := sha256.Sum256([]byte(verifier))
 	q := url.Values{
 		"access_type":           {"offline"},
@@ -47,25 +48,53 @@ func AuthorizationURL(clientID, redirectURI, state, verifier string) string {
 		"scope":                 {Scope},
 		"state":                 {state},
 	}
+	if loginHint != "" {
+		q.Set("login_hint", loginHint)
+	}
 	return authEndpoint + "?" + q.Encode()
 }
 
-// ExchangeCode trades the authorization code the consent page returned for the account's refresh
-// token. The operator stores that token in the secret store, from which it reaches the deployables
-// as a mounted file (ADR-0038).
-func ExchangeCode(ctx context.Context, client *http.Client, clientID, clientSecret, code, verifier, redirectURI string) (string, error) {
+// Grant is what the consent returns, the account's refresh token and a first access token.
+type Grant struct {
+	RefreshToken string
+	AccessToken  string
+}
+
+// ExchangeCode trades the authorization code the consent page returned for the account's grant. It
+// refuses a grant holding any scope but Scope, so the token is known to lack permanent delete
+// rather than assumed to (ADR-0011). The operator stores the refresh token in the secret store,
+// from which it reaches the deployables as a mounted file (ADR-0038).
+func ExchangeCode(ctx context.Context, client *http.Client, clientID, clientSecret, code, verifier, redirectURI string) (Grant, error) {
 	body, err := postForm(ctx, client, exchangeForm(clientID, clientSecret, code, verifier, redirectURI))
 	if err != nil {
-		return "", err
+		return Grant{}, err
 	}
+	return grantFrom(body)
+}
+
+// grantFrom reads the code exchange's response body as a grant. It refuses a response holding any
+// scope but Scope, or no refresh token.
+func grantFrom(body []byte) (Grant, error) {
 	resp, err := parseTokenResponse(body)
 	if err != nil {
-		return "", err
+		return Grant{}, err
+	}
+	if err := onlyModify(resp.Scope); err != nil {
+		return Grant{}, err
 	}
 	if resp.RefreshToken == "" {
-		return "", errors.New("gmail: the consent returned no refresh token")
+		return Grant{}, errors.New("gmail: the consent returned no refresh token")
 	}
-	return resp.RefreshToken, nil
+	return Grant{RefreshToken: resp.RefreshToken, AccessToken: resp.AccessToken}, nil
+}
+
+// onlyModify refuses a granted scope list that is anything but Scope alone. Google lists the
+// granted scopes separated by spaces.
+func onlyModify(scope string) error {
+	if granted := strings.Fields(scope); len(granted) != 1 || granted[0] != Scope {
+		return fmt.Errorf("gmail: the consent granted the scopes %q, and only %s is accepted", granted, Scope)
+	}
+	return nil
 }
 
 // exchangeForm is the token request that trades an authorization code. The verifier binds it to
@@ -82,11 +111,12 @@ func exchangeForm(clientID, clientSecret, code, verifier, redirectURI string) ur
 }
 
 // tokenResponse is the part of Google's token endpoint response this package uses. A refresh
-// response carries a refresh token only when Google rotated it.
+// response carries a refresh token only when Google rotated it. Scope lists the granted scopes.
 type tokenResponse struct {
 	AccessToken  string
 	ExpiresIn    time.Duration
 	RefreshToken string
+	Scope        string
 }
 
 // parseTokenResponse reads a token endpoint response body.
@@ -95,6 +125,7 @@ func parseTokenResponse(body []byte) (tokenResponse, error) {
 		AccessToken  string `json:"access_token"`
 		ExpiresIn    int64  `json:"expires_in"`
 		RefreshToken string `json:"refresh_token"`
+		Scope        string `json:"scope"`
 	}
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return tokenResponse{}, fmt.Errorf("gmail: reading the token response: %w", err)
@@ -109,6 +140,7 @@ func parseTokenResponse(body []byte) (tokenResponse, error) {
 		AccessToken:  raw.AccessToken,
 		ExpiresIn:    time.Duration(raw.ExpiresIn) * time.Second,
 		RefreshToken: raw.RefreshToken,
+		Scope:        raw.Scope,
 	}, nil
 }
 

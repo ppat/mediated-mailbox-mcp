@@ -34,8 +34,6 @@ const (
 	Trash
 	// Spam marks a message as spam, which some providers call junk.
 	Spam
-	// Mute mutes a thread.
-	Mute
 )
 
 // String names the verb as the client surface spells it.
@@ -57,8 +55,6 @@ func (v Verb) String() string {
 		return "trash"
 	case Spam:
 		return "spam"
-	case Mute:
-		return "mute"
 	case noVerb:
 		return "no verb"
 	default:
@@ -119,7 +115,7 @@ func Decide(verb Verb, class sensitivity.SenderClass) Verdict {
 	switch verb {
 	case Label, Unlabel, Move, MarkRead, Star:
 		return Verdict{reason: Authorized}
-	case Archive, Trash, Spam, Mute:
+	case Archive, Trash, Spam:
 		if class.Restricted() {
 			return Verdict{reason: RestrictedSender}
 		}

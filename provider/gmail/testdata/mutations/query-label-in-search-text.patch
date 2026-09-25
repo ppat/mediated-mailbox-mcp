@@ -1,0 +1,20 @@
+control: A canonical value cannot change the Gmail request it is written into
+removes: a label path is written into the search text as a label term rather than sent as a label identifier
+packages: ./provider/gmail
+tests: TestQueryValuesCannotInjectOperators TestCompileQuery
+scheduled-count: no
+
+diff --git a/provider/gmail/query.go b/provider/gmail/query.go
+index 0edca49..90a5020 100644
+--- a/provider/gmail/query.go
++++ b/provider/gmail/query.go
+@@ -44,7 +44,8 @@ func compileNode(q mail.Query, labels labelTable, s *search, terms *[]string) er
+ 			s.None = true
+ 			return nil
+ 		}
+-		if !slices.Contains(s.LabelIDs, id) {
++		*terms = append(*terms, `label:"`+q.Label()+`"`)
++		if false && !slices.Contains(s.LabelIDs, id) {
+ 			s.LabelIDs = append(s.LabelIDs, id)
+ 		}
+ 	case mail.QueryFrom:

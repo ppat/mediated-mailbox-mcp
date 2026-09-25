@@ -68,10 +68,6 @@ func TrashOp(messageID string) (MutationOp, error) { return bare(authorize.Trash
 // SpamOp returns the op marking a message as spam, which adds Spam and removes Inbox.
 func SpamOp(messageID string) (MutationOp, error) { return bare(authorize.Spam, messageID) }
 
-// MuteOp returns the op muting the thread a message belongs to. It sets Muted on each message of
-// the thread and removes Inbox from each, since a muted thread leaves view (ADR-0019).
-func MuteOp(messageID string) (MutationOp, error) { return bare(authorize.Mute, messageID) }
-
 // Verb returns the verb the op applies. The zero MutationOp returns the zero Verb, which the
 // authorizer refuses.
 func (o MutationOp) Verb() authorize.Verb { return o.verb }

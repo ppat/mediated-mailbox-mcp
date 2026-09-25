@@ -19,7 +19,7 @@ type args struct {
 
 func draw(t *rapid.T) args {
 	return args{
-		Verb:       rapid.Uint8Range(0, uint8(authorize.Mute)+3).Draw(t, "verb"),
+		Verb:       rapid.Uint8Range(0, uint8(authorize.Spam)+3).Draw(t, "verb"),
 		Restricted: rapid.Bool().Draw(t, "restricted"),
 	}
 }
@@ -28,7 +28,7 @@ func draw(t *rapid.T) args {
 // organized.
 var (
 	organize = map[authorize.Verb]bool{authorize.Label: true, authorize.Unlabel: true, authorize.Move: true, authorize.MarkRead: true, authorize.Star: true}
-	dispose  = map[authorize.Verb]bool{authorize.Archive: true, authorize.Trash: true, authorize.Spam: true, authorize.Mute: true}
+	dispose  = map[authorize.Verb]bool{authorize.Archive: true, authorize.Trash: true, authorize.Spam: true}
 )
 
 // authorizes states ADR-0019's rules over the drawn arguments, apart from the code.

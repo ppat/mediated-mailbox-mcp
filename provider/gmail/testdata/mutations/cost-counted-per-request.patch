@@ -1,0 +1,17 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: each request is counted as one, whatever Gmail charges for it
+packages: ./provider/gmail
+tests: TestEveryRequestSentIsCounted TestACallIsHeldToItsDeclaredCost
+scheduled-count: no
+
+diff --git a/provider/gmail/metrics.go b/provider/gmail/metrics.go
+index d4f2785..a7f16b8 100644
+--- a/provider/gmail/metrics.go
++++ b/provider/gmail/metrics.go
+@@ -33,5 +33,5 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
+ 
+ // countRequest adds one request's cost to the account's count.
+ func (m *Metrics) countRequest(account string, units int) {
+-	m.requestCost.WithLabelValues(account, providerLabel).Add(float64(units))
++	m.requestCost.WithLabelValues(account, providerLabel).Inc()
+ }

@@ -1,0 +1,19 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: a message's metadata read sends the full format without the mask, so the whole body comes back
+packages: ./provider/gmail
+tests: TestMetadataReadsNameNoBody/messages.get
+scheduled-count: no
+
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 71c01d0..b4e773f 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -115,7 +115,7 @@ func metadataFields() string {
+ // metadataRequest reads the message id names through the metadata mask. The caller has checked id
+ // with validID.
+ func metadataRequest(id string) request {
+-	q := url.Values{"format": {formatFull}, "fields": {metadataFields()}}
++	q := url.Values{"format": {formatFull}}
+ 	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet}
+ }
+ 

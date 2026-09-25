@@ -29,27 +29,50 @@ func newFake(t *testing.T, account string, mailbox []contract.Message) *fake.Fak
 	return f
 }
 
-// implementation offers the fake behind port, delivering and removing mail through the fake's own
-// test controls.
-func implementation(f *fake.Fake, port mail.Port[context.Context]) contract.Implementation {
-	return contract.Implementation{
-		Port:    port,
-		Deliver: func(m contract.Message) error { return f.Deliver(fake.Message{Metadata: m.Metadata, Body: m.Body}) },
-		Remove:  f.Remove,
+// harness builds a fake for each case, with pages of two, offered behind the port wrap returns,
+// delivering and removing mail through the fake's own test controls. The fake keeps the key a
+// message is delivered under as its identifier.
+func harness(wrap func(*fake.Fake) mail.Port[context.Context]) contract.Harness {
+	return sized(2, wrap)
+}
+
+// sized is harness with pages of pageSize.
+func sized(pageSize int, wrap func(*fake.Fake) mail.Port[context.Context]) contract.Harness {
+	return func(t *testing.T, account string) contract.Implementation {
+		f, err := fake.New(fake.Config{Account: account, PageSize: pageSize})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return contract.Implementation{
+			Port: wrap(f),
+			Deliver: func(m contract.Message) (string, error) {
+				return m.Metadata.ID, f.Deliver(fake.Message{Metadata: m.Metadata, Body: m.Body})
+			},
+			Remove: f.Remove,
+		}
 	}
 }
 
 func TestTheFakePassesTheContract(t *testing.T) {
-	contract.Run(t, func(t *testing.T, account string, mailbox []contract.Message) contract.Implementation {
-		f := newFake(t, account, mailbox)
-		return implementation(f, f)
+	contract.Run(t, contract.Config{
+		Harness: harness(func(f *fake.Fake) mail.Port[context.Context] { return f }),
+		Run:     "fake",
 	})
 }
 
 // A fake behind a schedule that throttles nothing is the same implementation of the port.
 func TestTheThrottledFakePassesTheContract(t *testing.T) {
-	contract.Run(t, func(t *testing.T, account string, mailbox []contract.Message) contract.Implementation {
-		f := newFake(t, account, mailbox)
-		return implementation(f, fake.Throttle(f, fake.Never(), time.Now))
+	contract.Run(t, contract.Config{
+		Harness: harness(func(f *fake.Fake) mail.Port[context.Context] { return fake.Throttle(f, fake.Never(), time.Now) }),
+		Run:     "fake",
+	})
+}
+
+// A fake whose every listing fits one page passes too, so the suite does not fail an implementation
+// that issues no page token at all.
+func TestTheFakePassesTheContractOnOnePage(t *testing.T) {
+	contract.Run(t, contract.Config{
+		Harness: sized(100, func(f *fake.Fake) mail.Port[context.Context] { return f }),
+		Run:     "fake",
 	})
 }

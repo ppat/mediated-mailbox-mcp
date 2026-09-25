@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -76,5 +77,33 @@ func TestTheConsentRedirectHandsOverTheCode(t *testing.T) {
 	}
 	if got == nil || got.err != nil || got.code != "the-code" {
 		t.Errorf("the handler handed over %+v, want the code", got)
+	}
+}
+
+// A grant is accepted only for the account wanted, whatever the case of either address, and the
+// refusal names neither address.
+func TestRequireAccount(t *testing.T) {
+	for _, granted := range []string{"test@example.com", "Test@Example.COM"} {
+		if err := RequireAccount(granted, "test@example.com"); err != nil {
+			t.Errorf("RequireAccount(%q) refused the wanted account: %v", granted, err)
+		}
+	}
+	for name, c := range map[string]struct{ granted, wanted string }{
+		"another account":             {"someone@example.com", "test@example.com"},
+		"an account sharing a prefix": {"test@example.com.evil", "test@example.com"},
+		"no account wanted":           {"test@example.com", ""},
+		"no account granted":          {"", "test@example.com"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := RequireAccount(c.granted, c.wanted)
+			if err == nil {
+				t.Fatalf("RequireAccount accepted %s", name)
+			}
+			for _, address := range []string{c.granted, c.wanted} {
+				if address != "" && strings.Contains(err.Error(), address) {
+					t.Errorf("the refusal %q names the address %q", err, address)
+				}
+			}
+		})
 	}
 }

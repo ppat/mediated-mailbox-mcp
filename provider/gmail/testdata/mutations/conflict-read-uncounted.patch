@@ -5,14 +5,15 @@ tests: TestCostDeclaresEachCallsWorstCase
 scheduled-count: no
 
 diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
+index 626971f..02f4e32 100644
 --- a/provider/gmail/profile.go
 +++ b/provider/gmail/profile.go
-@@ -84,7 +84,7 @@
+@@ -91,7 +91,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
  	case mail.OpListLabels:
  		units = unitsLabelsList
  	case mail.OpEnsureLabel:
 -		units = unitsLabelsList + unitsLabelsCreate + unitsLabelsList
 +		units = unitsLabelsList + unitsLabelsCreate
  	case mail.OpMutate:
- 		units = unitsLabelsList + max(unitsMessageModify, unitsMessagesGet+unitsThreadsModify)*n
+ 		units = unitsLabelsList + max(unitsMessageModify, unitsMessagesGet)*n
  	case mail.OpCurrentCursor:

@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/contract"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
@@ -27,16 +28,16 @@ func TestCostDeclaresEachCallsWorstCase(t *testing.T) {
 		{mail.ProviderOp{Operation: mail.OpListThreads}, mail.OpCost{Weight: 52}},
 		{mail.ProviderOp{Operation: mail.OpGetThreadMetadata}, mail.OpCost{Weight: 41}},
 		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: 3}, mail.OpCost{Weight: 61, OpsCount: 3}},
-		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata}, mail.OpCost{}},
+		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata}, mail.OpCost{Weight: 1}},
 		{mail.ProviderOp{Operation: mail.OpGetMessageBody, Messages: 1}, mail.OpCost{Weight: 20, OpsCount: 1}},
 		{mail.ProviderOp{Operation: mail.OpListLabels}, mail.OpCost{Weight: 1}},
 		{mail.ProviderOp{Operation: mail.OpEnsureLabel}, mail.OpCost{Weight: 7}},
-		{mail.ProviderOp{Operation: mail.OpMutate, Messages: 2}, mail.OpCost{Weight: 61, OpsCount: 2}},
+		{mail.ProviderOp{Operation: mail.OpMutate, Messages: 3}, mail.OpCost{Weight: 61, OpsCount: 3}},
 		{mail.ProviderOp{Operation: mail.OpCurrentCursor}, mail.OpCost{Weight: 1}},
 		{mail.ProviderOp{Operation: mail.OpChangesSince}, mail.OpCost{Weight: 3}},
 		{mail.ProviderOp{Operation: mail.OpEnumerateAll}, mail.OpCost{Weight: 66}},
 		{mail.ProviderOp{}, mail.OpCost{}},
-		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: -1}, mail.OpCost{}},
+		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: -1}, mail.OpCost{Weight: 1}},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprint(c.op), func(t *testing.T) {
@@ -50,7 +51,7 @@ func TestCostDeclaresEachCallsWorstCase(t *testing.T) {
 // A call whose size depends on what it returns is sized by the adapter to fit one second's worth at
 // the hard cap, so a listing is never refused. A call whose size the caller sets fits at its largest
 // size and not one past it, so the caller splits its work there. At today's prices a metadata fetch
-// holds three identifiers and a mutation two ops (ADR-0023).
+// holds three identifiers and a mutation three ops (ADR-0023).
 func TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds(t *testing.T) {
 	cost := func(op mail.Operation, messages int) float64 {
 		return gmail.Profile{}.Cost(mail.ProviderOp{Operation: op, Messages: messages}).Weight
@@ -60,7 +61,7 @@ func TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds(t *testing.T) {
 			t.Errorf("operation %d costs %v, past one second's worth at the hard cap, %d", op, got, hardCap)
 		}
 	}
-	for op, largest := range map[mail.Operation]int{mail.OpGetMessageMetadata: 3, mail.OpMutate: 2} {
+	for op, largest := range map[mail.Operation]int{mail.OpGetMessageMetadata: 3, mail.OpMutate: 3} {
 		if got := cost(op, largest); got > hardCap {
 			t.Errorf("operation %d on %d messages costs %v, want it to fit %d", op, largest, got, hardCap)
 		}
@@ -68,6 +69,13 @@ func TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds(t *testing.T) {
 			t.Errorf("operation %d on %d messages costs %v, want it past %d", op, largest+1, got, hardCap)
 		}
 	}
+}
+
+// The profile meets the port's rate-profile contract, the same cases the contract suite runs against
+// the adapter, run here on the pure profile so no credential is needed to catch a profile that
+// breaks it.
+func TestTheProfileMeetsTheContract(t *testing.T) {
+	contract.RunProfile(t, gmail.Profile{})
 }
 
 // The budget is Gmail's 6,000 units a minute per user per project, averaged over its minute.

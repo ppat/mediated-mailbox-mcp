@@ -79,7 +79,8 @@ than one second's worth at the hard cap, the largest request
 [ADR-0024](./0024-conservative-target-aimd.md) issues. Where a call's size depends on what it
 returns, such as a page of threads, the adapter sizes the page to fit. Where the caller sets the
 size, as with the identifiers of a metadata fetch or the operations of a mutation, the caller
-splits its work into calls that fit. Gmail's HTTP batch endpoint collapses up to 100 sub-requests
+splits its work into calls that fit, learning what fits by asking the profile what a candidate
+call costs. Gmail's HTTP batch endpoint collapses up to 100 sub-requests
 into one round trip, and each sub-request is still charged, so a batch counts as one call holding
 only as many sub-requests as that second pays for, counting every other provider request the
 call makes.
