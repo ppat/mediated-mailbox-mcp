@@ -12,8 +12,8 @@ diff --git a/ratelimit/lease/collector.go b/ratelimit/lease/collector.go
  		{c.rate, float64(row.CurrentRate)},
  		// The floor at the precision the rate is stored at, so a rate held at the floor reads as
  		// equal to it whatever the floor's value.
--		{c.floor, float64(float32(limits.Floor))},
-+		{c.floor, limits.Floor},
+-		{c.floor, float64(float32(limits.Floor()))},
++		{c.floor, limits.Floor()},
  		{c.bucket, float64(row.BucketLevel)},
  		{c.sinceAsk, secondsSince(now, asked)},
  		{c.sinceGot, secondsSince(now, row.LastGrantedMs)},

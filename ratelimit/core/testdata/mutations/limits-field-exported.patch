@@ -1,0 +1,65 @@
+control: Limits carries no exported field, so no code outside the package can build one and raise its target
+removes: the hard cap becomes an exported field, so code outside the package can build a Limits around its constructors
+packages: ./ratelimit/core
+tests: TestLimitsIsBuiltOnlyByItsConstructors
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -75,7 +75,7 @@ type Decision struct {
+ // period has still to draw of its share. A class that did not ask within that period is idle, and
+ // its share is lent. A lease counts against its class's share until it expires.
+ func Issue(l Limits, s State, is Issuance, leases []Lease, req Request, now int64) (Issuance, Decision) {
+-	capacity := l.hardCap
++	capacity := l.HardCapValue
+ 	if !req.Class.named() || !(req.Tokens > 0) || req.Tokens > capacity {
+ 		return is, Decision{}
+ 	}
+@@ -94,7 +94,7 @@ func Issue(l Limits, s State, is Issuance, leases []Lease, req Request, now int6
+ 			available -= max(Share(c, rate, l.target)-held(leases, c, now), 0)
+ 		}
+ 	}
+-	if req.Tokens > available || windowed(is.Recent)+req.Tokens > l.hardCap {
++	if req.Tokens > available || windowed(is.Recent)+req.Tokens > l.HardCapValue {
+ 		return is, Decision{Outcome: Waiting}
+ 	}
+ 	is.Level -= req.Tokens
+diff --git a/ratelimit/core/limits.go b/ratelimit/core/limits.go
+--- a/ratelimit/core/limits.go
++++ b/ratelimit/core/limits.go
+@@ -26,9 +26,9 @@ var ErrTargetOutOfRange = errors.New("ratelimit: the target must lie above the f
+ // and none reads a limit from stored state. The zero value fixes no budget, and every request under
+ // it is refused.
+ type Limits struct {
+-	target  float64
+-	hardCap float64
+-	floor   float64
++	target       float64
++	HardCapValue float64
++	floor        float64
+ }
+ 
+ // Target is the polite default and the highest rate the controller reaches, half the ceiling
+@@ -36,7 +36,7 @@ type Limits struct {
+ func (l Limits) Target() float64 { return l.target }
+ 
+ // HardCap is the most tokens issued inside any one-second window.
+-func (l Limits) HardCap() float64 { return l.hardCap }
++func (l Limits) HardCap() float64 { return l.HardCapValue }
+ 
+ // Floor is the lowest rate the controller goes to.
+ func (l Limits) Floor() float64 { return l.floor }
+@@ -75,9 +75,9 @@ func limitsAt(ceiling, target float64) Limits {
+ 		return Limits{}
+ 	}
+ 	return Limits{
+-		target:  ceiling * target,
+-		hardCap: ceiling * mail.HardCapFraction,
+-		floor:   floor,
++		target:       ceiling * target,
++		HardCapValue: ceiling * mail.HardCapFraction,
++		floor:        floor,
+ 	}
+ }
+ 

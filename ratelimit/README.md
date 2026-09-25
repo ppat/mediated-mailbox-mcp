@@ -39,5 +39,8 @@ gauge or counter labelled by `account`. The alerting rules that read them are
 | `mediated_mailbox_ratelimit_account_seconds_since_grant` | Gauge, infinite when nothing was granted | The mediator's collector | The stall rule |
 
 The runaway rule reads none of these, because a runaway is the failure in which lease accounting is
-wrong. It reads the cost of provider requests counted where each request is sent, which the
-alerting rules file names.
+wrong. It reads the cost of provider requests counted where each request is sent, against the
+account's hard cap each spending process emits beside that count from its provider's declared
+ceiling. A second rule fires when an account's cost is counted and no hard cap is, since the
+runaway rule then has no threshold. The provider adapters emit both series, and
+[provider/README.md](../provider/README.md) lists them with the two rules.

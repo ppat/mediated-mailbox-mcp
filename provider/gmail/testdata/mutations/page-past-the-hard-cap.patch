@@ -1,0 +1,18 @@
+control: Every call the Gmail rate profile sizes fits one second's worth at the hard cap, read from the hard-cap fraction
+removes: an enumeration page holds four messages, 86 units, past the hard cap of 80
+packages: ./provider/gmail
+tests: TestTheProfileMeetsTheContract TestTheProfileMeetsTheContract/every_call_the_rate_profile_sizes_fits_one_second_at_the_hard_cap TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds
+scheduled-count: no
+
+diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
+--- a/provider/gmail/profile.go
++++ b/provider/gmail/profile.go
+@@ -31,7 +31,7 @@ const (
+ // label table, 66 units for three messages.
+ const (
+ 	threadsPerPage  = 1
+-	messagesPerPage = 3
++	messagesPerPage = 4
+ )
+ 
+ // The most a caller may ask of one call whose size it sets, the largest that fits one second's worth

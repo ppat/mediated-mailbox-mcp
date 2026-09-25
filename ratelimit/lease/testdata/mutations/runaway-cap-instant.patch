@@ -1,0 +1,18 @@
+control: The runaway rule judges each account by the highest hard cap its processes emitted over its two minutes, so a process that has gone keeps its threshold
+removes: the hard cap is read at the instant of evaluation, so a process whose series went stale takes the threshold with it
+packages: ./ratelimit/lease
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -24,7 +24,7 @@ groups:
+   - alert: MediatedMailboxRateRunaway
+     expr: |
+       sum by (account) (increase(mediated_mailbox_provider_request_cost_total[2m]))
+-      > on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m])) * 120
++      > on (account) max by (account) (mediated_mailbox_provider_hard_cap) * 120
+     labels:
+       severity: page
+     annotations:

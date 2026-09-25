@@ -3,12 +3,10 @@ removes: every other class that asked reserves its share, so interactive waits o
 packages: ./ratelimit/core
 tests: TestIssueSplitsByClass
 scheduled-count: no
-
 diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
-index 351728c..9a124bb 100644
 --- a/ratelimit/core/lease.go
 +++ b/ratelimit/core/lease.go
-@@ -90,7 +90,10 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
+@@ -89,7 +89,10 @@ func Issue(l Limits, s State, is Issuance, leases []Lease, req Request, now int6
  		return is, Decision{Outcome: Waiting}
  	}
  	available := is.Level
@@ -18,5 +16,5 @@ index 351728c..9a124bb 100644
 +			continue
 +		}
  		if addSaturating(is.Asked[c], leaseMillis) > now {
- 			available -= max(Share(c, rate, l.Target)-held(leases, c, now), 0)
+ 			available -= max(Share(c, rate, l.target)-held(leases, c, now), 0)
  		}

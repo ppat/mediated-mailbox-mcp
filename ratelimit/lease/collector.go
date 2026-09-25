@@ -96,7 +96,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 
 func (c *Collector) collect(ctx context.Context, ch chan<- prometheus.Metric, a Account) error {
 	limits := core.LimitsFor(a.Ceiling)
-	row := ratestate.RateStateRow{CurrentRate: float32(limits.Target)}
+	row := ratestate.RateStateRow{CurrentRate: float32(limits.Target())}
 	var now int64
 	err := tx.Run(ctx, c.db, a.ID, func(t pgx.Tx) error {
 		q := ratestate.New(t)
@@ -125,7 +125,7 @@ func (c *Collector) collect(ctx context.Context, ch chan<- prometheus.Metric, a 
 		{c.rate, float64(row.CurrentRate)},
 		// The floor at the precision the rate is stored at, so a rate held at the floor reads as
 		// equal to it whatever the floor's value.
-		{c.floor, float64(float32(limits.Floor))},
+		{c.floor, float64(float32(limits.Floor()))},
 		{c.bucket, float64(row.BucketLevel)},
 		{c.sinceAsk, secondsSince(now, asked)},
 		{c.sinceGot, secondsSince(now, row.LastGrantedMs)},

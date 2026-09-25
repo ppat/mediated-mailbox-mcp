@@ -1,0 +1,18 @@
+control: An account may lower its target to any value above the floor, and nothing may raise it above half the ceiling
+removes: a target must lie above 0.0625 of the ceiling rather than above the floor, so a target close to the floor is refused
+packages: ./ratelimit/core
+tests: TestLimitsWithTarget TestLimitsWithTarget/lowered_close_to_the_floor TestLimitsWithTarget/lowered_to_the_first_target_stored_above_the_floor
+scheduled-count: no
+
+diff --git a/ratelimit/core/limits.go b/ratelimit/core/limits.go
+--- a/ratelimit/core/limits.go
++++ b/ratelimit/core/limits.go
+@@ -57,7 +57,7 @@ func LimitsFor(ceiling float64) Limits {
+ // stored equal to the floor, or below it, is refused too, however far above the floor its fraction
+ // lies in full precision. A ceiling that fixes no budget gives the zero Limits, as LimitsFor does.
+ func LimitsWithTarget(ceiling, target float64) (Limits, error) {
+-	if !(target > floorFraction && target <= defaultTargetFraction) {
++	if !(target > 0.0625 && target <= defaultTargetFraction) {
+ 		return Limits{}, ErrTargetOutOfRange
+ 	}
+ 	l := limitsAt(ceiling, target)

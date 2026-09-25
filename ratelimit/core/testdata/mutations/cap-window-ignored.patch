@@ -5,14 +5,13 @@ tests: TestNoRunIssuesPastTheHardCap TestIssue TestTwoCallsPastTheHardCapAreNotI
 scheduled-count: no
 
 diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
-index 351728c..6379b04 100644
 --- a/ratelimit/core/lease.go
 +++ b/ratelimit/core/lease.go
-@@ -95,7 +95,7 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
- 			available -= max(Share(c, rate, l.Target)-held(leases, c, now), 0)
+@@ -94,7 +94,7 @@ func Issue(l Limits, s State, is Issuance, leases []Lease, req Request, now int6
+ 			available -= max(Share(c, rate, l.target)-held(leases, c, now), 0)
  		}
  	}
--	if req.Tokens > available || windowed(is.Recent)+req.Tokens > l.HardCap {
+-	if req.Tokens > available || windowed(is.Recent)+req.Tokens > l.hardCap {
 +	if req.Tokens > available {
  		return is, Decision{Outcome: Waiting}
  	}

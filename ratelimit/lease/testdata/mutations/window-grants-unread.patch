@@ -8,13 +8,13 @@ integration: yes
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -117,7 +117,8 @@
+@@ -122,7 +122,8 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
  		}
  		st, is := stateOf(row), issuanceOf(row)
  		recent, grantLeases := recentOf(grants)
 -		is.Recent = recent
 +		is.Recent = nil
 +		_ = recent
- 		next, decided := core.Issue(l.ceiling, st, is, grantLeases, req, now)
+ 		next, decided := core.Issue(l.limits, st, is, grantLeases, req, now)
  		d, rate = decided, float64(row.CurrentRate)
  		if d.Outcome == core.Refused {

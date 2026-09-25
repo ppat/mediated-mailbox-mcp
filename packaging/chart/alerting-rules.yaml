@@ -5,24 +5,50 @@
 #
 # ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules, and
 # policyload/testdata/alerting-rules-test.yaml those of the policy reload rule, each run from a Go test in its package.
-# ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule reads none of
-# them. It reads mediated_mailbox_provider_request_cost_total, a counter of the cost, in the provider's units, of
-# every request a spending process sends, which the provider adapter increments where it sends each request and
-# labels by account and by provider, gmail for the Gmail adapter.
+# ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule and the rule for
+# its missing threshold read none of them. They read two series every spending process emits through its provider
+# adapter, labelled by account and by provider. mediated_mailbox_provider_request_cost_total counts the cost, in the
+# provider's units, of every request the process sends. mediated_mailbox_provider_hard_cap is the account's hard cap
+# in the provider's units per second, from the ceiling the adapter declares. provider/README.md lists both.
 groups:
 - name: mediated-mailbox-rate-limiter
   rules:
   # Runaway (ADR-0024). The cost of provider requests counted where each request is sent, summed over every spending
-  # process for the account over one minute, above the hard cap times sixty seconds. A lease is spent up to a second
-  # after it is issued, so a shorter window fires on correct operation. The hard cap is 80% of the provider's declared
-  # ceiling, 80 units a second for Gmail, so each provider has its own threshold.
+  # process for the account over two minutes, above the hard cap times 120 seconds. A lease is spent up to a second
+  # after it is issued, so a window of seconds fires on correct operation, and a counter's increase needs two samples
+  # inside its window, so a one-minute window never fires on a platform that scrapes once a minute. The hard cap is
+  # read from the series each spending process emits beside its count, so one rule serves every provider. It is the
+  # highest hard cap seen over the same two minutes, because the cost of a process that exits or misses a scrape stays
+  # in the window while its hard cap would leave an instant query at once. Every process spending for an account
+  # emits the same hard cap, and max takes one value per account from them, so a rollout that briefly carries an old
+  # ceiling beside a new one judges by the higher.
   - alert: MediatedMailboxRateRunaway
     expr: |
-      sum by (account) (increase(mediated_mailbox_provider_request_cost_total{provider="gmail"}[1m])) > 80 * 60
+      sum by (account) (increase(mediated_mailbox_provider_request_cost_total[2m]))
+      > on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m])) * 120
     labels:
       severity: page
     annotations:
-      summary: Requests for account {{ $labels.account }} cost more in the last minute than the hard cap allows.
+      summary: Requests for account {{ $labels.account }} cost more in the last two minutes than the hard cap allows.
+
+  # The runaway rule's threshold missing. An account whose request cost grew over the last five minutes while no
+  # spending process emitted its hard cap in the last two has no threshold, so the runaway rule cannot fire for it
+  # (ADR-0077). The hard cap's window is the runaway rule's own, so the rule starts counting as soon as the runaway
+  # rule loses its threshold, and within one process the hard cap goes absent only after two scrapes in a row are
+  # missed. The cost's window is wider, so one missed scrape, which empties an increase over two minutes at a
+  # one-minute scrape, does not reset the five minutes the condition must hold. A process that exits leaves the
+  # condition true for about three minutes, under those five. The rule fires once the condition has held for five
+  # minutes, as the absence rule does, because a process that never emits the hard cap is a lasting defect rather
+  # than a passing gap.
+  - alert: MediatedMailboxRateHardCapAbsent
+    expr: |
+      sum by (account) (increase(mediated_mailbox_provider_request_cost_total[5m])) > 0
+      unless on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m]))
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: Requests for account {{ $labels.account }} are counted with no hard cap to judge a runaway by.
 
   # Collapse, the rate pinned at the floor for more than five minutes while a class has asked within the last minute
   # (ADR-0024), from the mediator's account-level series.

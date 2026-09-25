@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"errors"
 	"math"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
 
 // declared is the ceiling the tests declare, 250 units a second. Its target is 125, its hard cap 200
@@ -17,28 +19,146 @@ const declared = 250.0
 
 func cost(weight float64) mail.OpCost { return mail.OpCost{Weight: weight, OpsCount: 1} }
 
+// shown is a Limits as its three rates, for comparing.
+type shown struct{ Target, HardCap, Floor float64 }
+
+func show(l core.Limits) shown { return shown{l.Target(), l.HardCap(), l.Floor()} }
+
 func TestLimitsFor(t *testing.T) {
 	cases := []struct {
 		name    string
 		ceiling float64
-		want    core.Limits
+		want    shown
 	}{
-		{"declared", declared, core.Limits{Target: 125, HardCap: 200, Floor: 12.5}},
-		{"one unit", 1, core.Limits{Target: 0.5, HardCap: 0.8, Floor: 0.05}},
-		{"the largest float", math.MaxFloat64, core.Limits{Target: math.MaxFloat64 * 0.5, HardCap: math.MaxFloat64 * 0.8, Floor: math.MaxFloat64 * 0.05}},
-		{"zero", 0, core.Limits{}},
-		{"negative", -250, core.Limits{}},
-		{"not a number", math.NaN(), core.Limits{}},
-		{"positive infinity", math.Inf(1), core.Limits{}},
-		{"negative infinity", math.Inf(-1), core.Limits{}},
-		{"so small the floor rounds to zero", math.SmallestNonzeroFloat64, core.Limits{}},
+		{"declared", declared, shown{Target: 125, HardCap: 200, Floor: 12.5}},
+		{"one unit", 1, shown{Target: 0.5, HardCap: 0.8, Floor: 0.05}},
+		{"the largest float", math.MaxFloat64, shown{Target: math.MaxFloat64 * 0.5, HardCap: math.MaxFloat64 * 0.8, Floor: math.MaxFloat64 * 0.05}},
+		{"zero", 0, shown{}},
+		{"negative", -250, shown{}},
+		{"not a number", math.NaN(), shown{}},
+		{"positive infinity", math.Inf(1), shown{}},
+		{"negative infinity", math.Inf(-1), shown{}},
+		{"so small the floor rounds to zero", math.SmallestNonzeroFloat64, shown{}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, core.LimitsFor(c.ceiling), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, show(core.LimitsFor(c.ceiling)), compare.Options); diff != "" {
 				t.Errorf("LimitsFor(%v) (-want +got):\n%s", c.ceiling, diff)
 			}
 		})
+	}
+}
+
+// An account may lower its target to any value above the floor, and nothing may raise it above
+// half the ceiling. The hard cap and the floor stay where the ceiling puts them whatever the target
+// (ADR-0024).
+func TestLimitsWithTarget(t *testing.T) {
+	aboveFloor := math.Nextafter(0.05, 1)
+	// The smallest fraction whose target the rate state stores above the floor under the declared
+	// ceiling, one four-byte step above 12.5 over the ceiling.
+	storedAbove := float64(math.Nextafter32(12.5, 13)) / declared
+	cases := []struct {
+		name    string
+		ceiling float64
+		target  float64
+		want    shown
+		err     error
+	}{
+		{"the default", declared, 0.5, shown{Target: 125, HardCap: 200, Floor: 12.5}, nil},
+		{"lowered", declared, 0.2, shown{Target: 50, HardCap: 200, Floor: 12.5}, nil},
+		{"lowered close to the floor", declared, 0.0625, shown{Target: 15.625, HardCap: 200, Floor: 12.5}, nil},
+		{"lowered to the next number above the floor, stored equal to it", declared, aboveFloor, shown{}, core.ErrTargetOutOfRange},
+		{"lowered to the first target stored above the floor", declared, storedAbove, shown{Target: declared * storedAbove, HardCap: 200, Floor: 12.5}, nil},
+		{"the default under a ceiling past the four-byte range", math.MaxFloat64, 0.5, shown{Target: math.MaxFloat64 * 0.5, HardCap: math.MaxFloat64 * 0.8, Floor: math.MaxFloat64 * 0.05}, nil},
+		{"lowered under a ceiling past the four-byte range", math.MaxFloat64, 0.2, shown{}, core.ErrTargetOutOfRange},
+		{"lowered to the floor", declared, 0.05, shown{}, core.ErrTargetOutOfRange},
+		{"lowered under a ceiling that fixes no budget", 0, 0.2, shown{}, nil},
+		{"raised above half the ceiling", declared, 0.5000001, shown{}, core.ErrTargetOutOfRange},
+		{"raised to the hard cap", declared, 0.8, shown{}, core.ErrTargetOutOfRange},
+		{"below the floor", declared, 0.0499999, shown{}, core.ErrTargetOutOfRange},
+		{"zero", declared, 0, shown{}, core.ErrTargetOutOfRange},
+		{"negative", declared, -0.2, shown{}, core.ErrTargetOutOfRange},
+		{"not a number", declared, math.NaN(), shown{}, core.ErrTargetOutOfRange},
+		{"infinite", declared, math.Inf(1), shown{}, core.ErrTargetOutOfRange},
+		{"raised under a ceiling that fixes no budget", 0, 0.8, shown{}, core.ErrTargetOutOfRange},
+		{"at the floor under a ceiling that fixes no budget", 0, 0.05, shown{}, core.ErrTargetOutOfRange},
+		{"below the floor under a ceiling that fixes no budget", 0, 0.02, shown{}, core.ErrTargetOutOfRange},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			l, err := core.LimitsWithTarget(c.ceiling, c.target)
+			if !errors.Is(err, c.err) || (c.err == nil) != (err == nil) {
+				t.Errorf("LimitsWithTarget(%v, %v) returned %v, want %v", c.ceiling, c.target, err, c.err)
+			}
+			if diff := cmp.Diff(c.want, show(l), compare.Options); diff != "" {
+				t.Errorf("LimitsWithTarget(%v, %v) (-want +got):\n%s", c.ceiling, c.target, diff)
+			}
+		})
+	}
+}
+
+// Limits carries no exported field, so no code outside the package can build one around
+// LimitsFor and LimitsWithTarget and raise its target (ADR-0024).
+func TestLimitsIsBuiltOnlyByItsConstructors(t *testing.T) {
+	mustnotcompile.RequireNoExportedFields(t, "github.com/ppat/mediated-mailbox-mcp/ratelimit/core", "Limits")
+}
+
+// lowered is the declared ceiling's limits with the target lowered to a fifth of the ceiling, 50
+// units a second, and the hard cap and the floor at 200 and 12.5 as ever.
+func lowered(t *testing.T) core.Limits {
+	t.Helper()
+	l, err := core.LimitsWithTarget(declared, 0.2)
+	if err != nil {
+		t.Fatalf("LimitsWithTarget: %v", err)
+	}
+	return l
+}
+
+// Under a lowered target the controller never rises above it, and a cut starts from it. Its step
+// is 2% of the lowered target (ADR-0024).
+func TestTheControllerHoldsALoweredTarget(t *testing.T) {
+	l := lowered(t)
+	cases := []struct {
+		name string
+		rule func(core.State) core.State
+		in   core.State
+		want core.State
+	}{
+		// 2% of 50 is 1, times a cost of 5, over a rate of 12.5.
+		{"a success grows the rate by 2% of the lowered target", func(s core.State) core.State { return core.Succeeded(s, l, cost(5)) }, core.State{Rate: 12.5}, core.State{Rate: 12.9}},
+		{"a success stops at the lowered target", func(s core.State) core.State { return core.Succeeded(s, l, cost(100)) }, core.State{Rate: 49}, core.State{Rate: 50}},
+		{"a huge success reaches only the lowered target", func(s core.State) core.State { return core.Succeeded(s, l, cost(math.MaxFloat64)) }, core.State{Rate: 20}, core.State{Rate: 50}},
+		{"a stored rate at the default target is brought down to it", func(s core.State) core.State { return core.Succeeded(s, l, cost(1)) }, core.State{Rate: 125}, core.State{Rate: 50}},
+		{"a server error falls from it", func(s core.State) core.State { return core.ServerErrored(s, l) }, core.State{Rate: 125}, core.State{Rate: 40}},
+		{"a latency cut falls from it", func(s core.State) core.State { return core.LatencyMeasured(s, l, 300, 100) }, core.State{Rate: 125}, core.State{Rate: 45}},
+		{"a throttle halves from it", func(s core.State) core.State { return core.Throttled(s, l, mail.ThrottleSignal{}, 0, 0) }, core.State{Rate: 125}, core.State{Rate: 25, Throttles: 1}},
+		{"the floor holds under it", func(s core.State) core.State { return core.ServerErrored(s, l) }, core.State{Rate: 13}, core.State{Rate: 12.5}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if diff := cmp.Diff(c.want, c.rule(c.in), compare.Options); diff != "" {
+				t.Errorf("(-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// The climb to a lowered target stops at it. Each second's successes spend the whole rate and grow
+// it by 2% of the lowered target, one unit, so the 37.5 units from the floor take 38 seconds.
+func TestTheRateClimbsToALoweredTargetAndNoFurther(t *testing.T) {
+	l := lowered(t)
+	s := core.State{Rate: 12.5}
+	for second := 1; second <= 100; second++ {
+		s = core.Succeeded(s, l, cost(s.Rate))
+		if s.Rate > 50 {
+			t.Fatalf("after %d seconds the rate rose to %v, past the lowered target of 50", second, s.Rate)
+		}
+		if second == 37 && s.Rate >= 50 {
+			t.Errorf("the rate reached the lowered target after 37 seconds, want 38")
+		}
+	}
+	if s.Rate != 50 {
+		t.Errorf("after 100 seconds the rate is %v, want the lowered target of 50", s.Rate)
 	}
 }
 
@@ -68,7 +188,7 @@ func TestSucceeded(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, core.Succeeded(c.in, declared, cost(c.cost)), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, core.Succeeded(c.in, core.LimitsFor(declared), cost(c.cost)), compare.Options); diff != "" {
 				t.Errorf("Succeeded (-want +got):\n%s", diff)
 			}
 		})
@@ -82,7 +202,7 @@ func TestTheRateClimbsFromTheFloorToTheTargetIn45Seconds(t *testing.T) {
 	s := core.State{Rate: 12.5}
 	seconds := 0
 	for s.Rate < 125 && seconds < 1000 {
-		s = core.Succeeded(s, declared, cost(s.Rate))
+		s = core.Succeeded(s, core.LimitsFor(declared), cost(s.Rate))
 		seconds++
 	}
 	if seconds != 45 {
@@ -99,7 +219,7 @@ func TestTheClimbHoldsForManySmallSuccesses(t *testing.T) {
 	for s.Rate < 125 && seconds < 1000 {
 		each := s.Rate / 10
 		for range 10 {
-			s = core.Succeeded(s, declared, cost(each))
+			s = core.Succeeded(s, core.LimitsFor(declared), cost(each))
 		}
 		seconds++
 	}
@@ -121,7 +241,7 @@ func TestServerErrored(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, core.ServerErrored(c.in, declared), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, core.ServerErrored(c.in, core.LimitsFor(declared)), compare.Options); diff != "" {
 				t.Errorf("ServerErrored (-want +got):\n%s", diff)
 			}
 		})
@@ -148,13 +268,13 @@ func TestLatencyMeasured(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			in := core.State{Rate: 100, BackoffUntil: 5, Throttles: 1}
 			want := core.State{Rate: c.want, BackoffUntil: 5, Throttles: 1}
-			if diff := cmp.Diff(want, core.LatencyMeasured(in, declared, c.median, c.baseline), compare.Options); diff != "" {
+			if diff := cmp.Diff(want, core.LatencyMeasured(in, core.LimitsFor(declared), c.median, c.baseline), compare.Options); diff != "" {
 				t.Errorf("LatencyMeasured (-want +got):\n%s", diff)
 			}
 		})
 	}
 	t.Run("held at the floor", func(t *testing.T) {
-		got := core.LatencyMeasured(core.State{Rate: 13}, declared, 300, 100)
+		got := core.LatencyMeasured(core.State{Rate: 13}, core.LimitsFor(declared), 300, 100)
 		if diff := cmp.Diff(core.State{Rate: 12.5}, got, compare.Options); diff != "" {
 			t.Errorf("LatencyMeasured (-want +got):\n%s", diff)
 		}
@@ -203,7 +323,7 @@ func TestThrottled(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, core.Throttled(c.in, declared, c.signal, c.now, c.draw), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, core.Throttled(c.in, core.LimitsFor(declared), c.signal, c.now, c.draw), compare.Options); diff != "" {
 				t.Errorf("Throttled (-want +got):\n%s", diff)
 			}
 		})
@@ -214,11 +334,11 @@ func TestThrottled(t *testing.T) {
 func TestNoBudgetHoldsTheRateAtZero(t *testing.T) {
 	for _, ceiling := range []float64{0, -1, math.NaN(), math.Inf(1)} {
 		s := core.State{Rate: 100}
-		s = core.Succeeded(s, ceiling, cost(5))
+		s = core.Succeeded(s, core.LimitsFor(ceiling), cost(5))
 		if s.Rate != 0 {
 			t.Errorf("Succeeded under a ceiling of %v gave rate %v, want 0", ceiling, s.Rate)
 		}
-		s = core.ServerErrored(core.State{Rate: 100}, ceiling)
+		s = core.ServerErrored(core.State{Rate: 100}, core.LimitsFor(ceiling))
 		if s.Rate != 0 {
 			t.Errorf("ServerErrored under a ceiling of %v gave rate %v, want 0", ceiling, s.Rate)
 		}

@@ -3,13 +3,11 @@ removes: a retry-after of zero or in the past is honored, so the backoff ends at
 packages: ./ratelimit/core
 tests: TestThrottled
 scheduled-count: no
-
 diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
-index d113493..609df56 100644
 --- a/ratelimit/core/controller.go
 +++ b/ratelimit/core/controller.go
-@@ -52,7 +52,7 @@ func Throttled(s State, ceiling float64, signal mail.ThrottleSignal, now int64,
- 	l := LimitsFor(ceiling)
+@@ -50,7 +50,7 @@ func Succeeded(s State, l Limits, cost mail.OpCost) State {
+ func Throttled(s State, l Limits, signal mail.ThrottleSignal, now int64, draw float64) State {
  	throttles := max(s.Throttles, 0)
  	wait := jitter(throttles, draw)
 -	if signal.HasRetryAfter && signal.RetryAfterMillis > 0 {

@@ -29,9 +29,12 @@
 //
 // Every request is also counted where it is sent, at what Gmail charges for it, on
 // mediated_mailbox_provider_request_cost_total with the account and provider="gmail", the series
-// the runaway rule reads (ADR-0077). A request is counted once it is built and before it leaves, so
-// one that fails is counted as well, and one never sent because no access token was had is not. The
-// count knows nothing of leases, so a request sent without one is counted like any other.
+// the runaway rule reads (ADR-0077). Beside the count the adapter sets
+// mediated_mailbox_provider_hard_cap for the account, the hard-cap fraction of the ceiling the rate
+// profile declares, which the rule compares the count against. A request is counted once it is
+// built and before it leaves, so one that fails is counted as well, and one never sent because no
+// access token was had is not. The count knows nothing of leases, so a request sent without one is
+// counted like any other.
 //
 // # Operations
 //

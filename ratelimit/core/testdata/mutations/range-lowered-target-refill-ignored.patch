@@ -1,0 +1,30 @@
+control: Issuance never refills the bucket past a lowered target
+removes: the bucket refills at the stored rate held at half the ceiling rather than at the account's lowered target
+packages: ./ratelimit/core
+tests: TestIssueUnderALoweredTarget TestIssueUnderALoweredTarget/a_second_refills_the_lowered_target's_worth TestIssueUnderALoweredTarget/and_no_more_than_that
+scheduled-count: no
+
+diff --git a/ratelimit/core/lease.go b/ratelimit/core/lease.go
+--- a/ratelimit/core/lease.go
++++ b/ratelimit/core/lease.go
+@@ -1,6 +1,10 @@
+ package core
+ 
+-import "math"
++import (
++	"math"
++
++	"github.com/ppat/mediated-mailbox-mcp/core/mail"
++)
+ 
+ // leaseMillis is how long a lease counts against its class's share, one second (ADR-0025).
+ const leaseMillis = 1000
+@@ -111,7 +115,7 @@ func refillRate(rate float64, l Limits) float64 {
+ 	if !(rate > 0) {
+ 		return 0
+ 	}
+-	return min(rate, l.target)
++	return min(rate, l.hardCap/mail.HardCapFraction*defaultTargetFraction)
+ }
+ 
+ // refill returns issuance with the bucket filled at the rate from the later of its last instant and

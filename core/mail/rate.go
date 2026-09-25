@@ -95,6 +95,13 @@ func Throttled(err error) (ThrottleSignal, bool) {
 	return ThrottleSignal{}, false
 }
 
+// HardCapFraction is the hard cap as a fraction of the ceiling a rate profile declares, the most the
+// rate limiter issues inside any one second, for every provider (ADR-0024). A call costing more than
+// one second's worth at the hard cap is refused, so whatever sizes a call sizes it within this
+// fraction of BudgetPerSecond (ADR-0023). It sits beside the profile because the rate limiter, the
+// adapters and the contract suite all read it, and the adapters cannot import the rate limiter.
+const HardCapFraction = 0.80
+
 // RateLimitProfile is what an implementation declares about its provider's costs and limits, so
 // everything above it sees only a weight and a budget (ADR-0023).
 type RateLimitProfile[C any] interface {

@@ -5,17 +5,16 @@ tests: TestSucceeded TestServerErrored TestThrottled TestNoBudgetHoldsTheRateAtZ
 scheduled-count: no
 
 diff --git a/ratelimit/core/limits.go b/ratelimit/core/limits.go
-index c79381d..ac03da4 100644
 --- a/ratelimit/core/limits.go
 +++ b/ratelimit/core/limits.go
-@@ -39,10 +39,6 @@ func LimitsFor(ceiling float64) Limits {
+@@ -71,10 +71,6 @@ func LimitsWithTarget(ceiling, target float64) (Limits, error) {
  // taken as the floor.
  func (l Limits) bounded(rate float64) float64 {
  	switch {
--	case !(rate > l.Floor):
--		return l.Floor
--	case rate > l.Target:
--		return l.Target
+-	case !(rate > l.floor):
+-		return l.floor
+-	case rate > l.target:
+-		return l.target
  	default:
  		return rate
  	}

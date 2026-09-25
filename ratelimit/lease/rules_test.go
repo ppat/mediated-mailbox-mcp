@@ -40,10 +40,13 @@ func run(t *testing.T, tool string, args ...string) (string, error) {
 }
 
 // TestAlertingRules runs promtool's unit tests of the chart's alerting rules (ADR-0077). Runaway fires
-// on a minute of provider request cost above the hard cap times sixty seconds, from one process or
-// summed over two, and stays silent below it. Collapse fires on five minutes at the floor, the stall
-// rule on five minutes with nothing granted, neither while no class has asked in the last minute,
-// and the absence rule when the mediator's series are missing.
+// on two minutes of provider request cost above the hard cap times 120 seconds, from one process or
+// summed over two, scraped once a minute, and stays silent below it, with the highest hard cap the
+// processes emitted for the account over those two minutes, whatever the provider and after the
+// process has gone. The missing-threshold rule fires on cost counted with no hard cap. Collapse
+// fires on five minutes at the floor, the stall rule on five minutes with nothing granted, neither
+// while no class has asked in the last minute, and the absence rule when the mediator's series are
+// missing.
 func TestAlertingRules(t *testing.T) {
 	if out, err := run(t, "promtool", "test", "rules", "testdata/alerting-rules-test.yaml"); err != nil {
 		t.Errorf("promtool test rules failed: %v\n%s", err, out)

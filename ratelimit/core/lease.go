@@ -60,8 +60,8 @@ type Decision struct {
 	Lease   Lease
 }
 
-// Issue decides a request at the instant now, given the controller's state, what issuance kept
-// and the leases already issued. It returns what issuance keeps next and the decision.
+// Issue decides a request at the instant now under the limits l, given the controller's state, what
+// issuance kept and the leases already issued. It returns what issuance keeps next and the decision.
 //
 // Tokens come from a bucket that refills at the current rate, held at the target, and holds at most
 // one second's worth at the hard cap. Beside the bucket, the tokens issued inside any one-second
@@ -74,9 +74,8 @@ type Decision struct {
 // everything in the bucket except what each class that outranks it and asked within the last lease
 // period has still to draw of its share. A class that did not ask within that period is idle, and
 // its share is lent. A lease counts against its class's share until it expires.
-func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, now int64) (Issuance, Decision) {
-	l := LimitsFor(ceiling)
-	capacity := l.HardCap
+func Issue(l Limits, s State, is Issuance, leases []Lease, req Request, now int64) (Issuance, Decision) {
+	capacity := l.hardCap
 	if !req.Class.named() || !(req.Tokens > 0) || req.Tokens > capacity {
 		return is, Decision{}
 	}
@@ -92,10 +91,10 @@ func Issue(ceiling float64, s State, is Issuance, leases []Lease, req Request, n
 	available := is.Level
 	for c := Interactive; c < req.Class; c++ {
 		if addSaturating(is.Asked[c], leaseMillis) > now {
-			available -= max(Share(c, rate, l.Target)-held(leases, c, now), 0)
+			available -= max(Share(c, rate, l.target)-held(leases, c, now), 0)
 		}
 	}
-	if req.Tokens > available || windowed(is.Recent)+req.Tokens > l.HardCap {
+	if req.Tokens > available || windowed(is.Recent)+req.Tokens > l.hardCap {
 		return is, Decision{Outcome: Waiting}
 	}
 	is.Level -= req.Tokens
@@ -112,7 +111,7 @@ func refillRate(rate float64, l Limits) float64 {
 	if !(rate > 0) {
 		return 0
 	}
-	return min(rate, l.Target)
+	return min(rate, l.target)
 }
 
 // refill returns issuance with the bucket filled at the rate from the later of its last instant and

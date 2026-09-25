@@ -1,0 +1,18 @@
+control: Cost counted for an account with no hard cap emitted fires the missing-threshold rule
+removes: the cost's window is two minutes, so one missed scrape at a one-minute scrape empties the condition and resets the five minutes it must hold
+packages: ./ratelimit/lease
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -42,7 +42,7 @@ groups:
+   # than a passing gap.
+   - alert: MediatedMailboxRateHardCapAbsent
+     expr: |
+-      sum by (account) (increase(mediated_mailbox_provider_request_cost_total[5m])) > 0
++      sum by (account) (increase(mediated_mailbox_provider_request_cost_total[2m])) > 0
+       unless on (account) max by (account) (max_over_time(mediated_mailbox_provider_hard_cap[2m]))
+     for: 5m
+     labels:

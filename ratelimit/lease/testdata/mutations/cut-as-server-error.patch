@@ -12,9 +12,9 @@ diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
  func (l *Limiter) Throttled(ctx context.Context, account string, signal mail.ThrottleSignal) error {
  	draw := l.draw()
  	err := l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
--		return core.Throttled(st, l.ceiling, signal, now, draw), lat, now
+-		return core.Throttled(st, l.limits, signal, now, draw), lat, now
 +		_ = draw
-+		return core.ServerErrored(st, l.ceiling), lat, now
++		return core.ServerErrored(st, l.limits), lat, now
  	})
  	if err == nil {
  		l.metrics.observeThrottle(account, signal.Scope)

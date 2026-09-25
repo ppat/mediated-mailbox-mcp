@@ -33,6 +33,16 @@ live only in a default value get raised eventually. The cap is enforced at the p
 issuance ([ADR-0025](./0025-priority-classes-and-leases.md)), not only inside the controller, so a
 controller bug cannot exceed it.
 
+The target is the one value here an operator may tune. An account's configuration may lower it,
+to any value above the floor, for an account whose provider quota other applications share, and
+nothing may raise it above half the ceiling. A target that would be stored equal to the floor is
+refused, because a rate held at the floor is the collapse the alert pages on. A lowered target
+lowers the sustained rate and not the burst, since the bucket still holds one second at the hard
+cap, so a minute can spend up to sixty seconds at the target plus one second at the hard cap. The
+other fractions and every rule below are the same for every provider and every account. What
+differs by provider is the ceiling they are fractions of, which the adapter declares
+([ADR-0023](./0023-adapter-declares-cost.md)).
+
 **The controller is AIMD — additive increase, multiplicative decrease** — the same algorithm TCP
 uses, for the same reason: it converges on an unknown ceiling without needing to know it, and
 degrades politely under contention.

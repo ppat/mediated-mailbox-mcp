@@ -5,15 +5,14 @@ tests: TestLatencyMeasured TestALastingRiseBecomesTheBaseline
 scheduled-count: no
 
 diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
-index d113493..7d4e5ac 100644
 --- a/ratelimit/core/controller.go
 +++ b/ratelimit/core/controller.go
-@@ -83,7 +83,7 @@ func LatencyMeasured(s State, ceiling, median, baseline float64) State {
- 	l := LimitsFor(ceiling)
+@@ -79,7 +79,7 @@ func ServerErrored(s State, l Limits) State {
+ func LatencyMeasured(s State, l Limits, median, baseline float64) State {
  	rate := l.bounded(s.Rate)
  	if baseline > 0 && !math.IsInf(baseline, 1) && !math.IsInf(median, 1) && median > latencyTrigger*baseline {
--		rate = max(rate*latencyFactor, l.Floor)
-+		rate = max(rate, l.Floor)
+-		rate = max(rate*latencyFactor, l.floor)
++		rate = max(rate, l.floor)
  	}
  	return State{Rate: rate, BackoffUntil: s.BackoffUntil, Throttles: s.Throttles}
  }

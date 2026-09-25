@@ -178,7 +178,7 @@ func TestALastingRiseBecomesTheBaseline(t *testing.T) {
 	var recent []float64
 	s := core.State{Rate: 100}
 	closeWindow := func(median float64) {
-		s = core.LatencyMeasured(s, declared, median, core.Baseline(recent))
+		s = core.LatencyMeasured(s, core.LimitsFor(declared), median, core.Baseline(recent))
 		recent = core.RememberMedian(recent, median)
 	}
 	for range 10 {

@@ -1,0 +1,18 @@
+control: The controller never raises the rate above a lowered target
+removes: the additive increase stops at half the ceiling rather than at the account's lowered target
+packages: ./ratelimit/core
+tests: TestTheControllerHoldsALoweredTarget TestTheControllerHoldsALoweredTarget/a_success_stops_at_the_lowered_target TestTheControllerHoldsALoweredTarget/a_huge_success_reaches_only_the_lowered_target TestTheRateClimbsToALoweredTargetAndNoFurther TestNoRunIssuesPastTheHardCap
+scheduled-count: no
+
+diff --git a/ratelimit/core/controller.go b/ratelimit/core/controller.go
+--- a/ratelimit/core/controller.go
++++ b/ratelimit/core/controller.go
+@@ -38,7 +38,7 @@ type State struct {
+ func Succeeded(s State, l Limits, cost mail.OpCost) State {
+ 	rate := l.bounded(s.Rate)
+ 	if w := cost.Weight; w > 0 && !math.IsInf(w, 1) && rate > 0 {
+-		rate = min(rate+stepFraction*l.target*w/rate, l.target)
++		rate = min(rate+stepFraction*l.target*w/rate, l.hardCap/mail.HardCapFraction*defaultTargetFraction)
+ 	}
+ 	return State{Rate: rate, BackoffUntil: s.BackoffUntil}
+ }
