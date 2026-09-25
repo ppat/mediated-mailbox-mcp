@@ -192,8 +192,9 @@ tested against its failure modes, and kept small.
 Every ambiguous or error state (a policy that has never validly loaded, scanner backlog,
 classification failure, unscanned message) resolves to *deny the body*. "Allow" requires an
 affirmative safe classification. The mere absence of a positive signal is never enough. Work that
-has not happened yet is a deny state, not an open door. A policy update that fails validation is
-not an ambiguous state. It never takes effect, and the active valid policy continues to govern.
+has not happened yet is a deny state, not an open door. A policy reload that fails, in its read or
+its validation, is not an ambiguous state. It never takes effect, and the active valid policy
+continues to govern.
 
 Why: the failure directions are asymmetric. Over-redaction is an inconvenience the operator can see
 and tune. Under-redaction is a leak that cannot be recalled. A system whose degraded modes all

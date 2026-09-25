@@ -3,8 +3,9 @@
 name: go-test
 
 # The unit tests of every Go package. db/check reads .golangci.yaml's import lists, ui/internal/contract
-# compares ui/contract/openapi.json with what it generates, and ratelimit/lease runs promtool over the chart's
-# alerting rules and renders the template that ships them, so those files are watched too.
+# compares ui/contract/openapi.json with what it generates, ratelimit/lease runs promtool over the chart's
+# alerting rules and renders the template that ships them, and policyload runs promtool over the same rules, so
+# those files are watched too.
 #
 # The gating run of property tests and crash sequences sets RAPID_SEED non-zero, RAPID_CHECKS to the gating case
 # count and RAPID_NOFAILFILE=true, and passes no -short (ADR-0069). go-integration.yaml sets the same values.
@@ -24,6 +25,7 @@ on:
     - db/**
     - mediate/**
     - organize/**
+    - policyload/**
     - packaging/chart/alerting-rules.yaml
     - packaging/chart/templates/prometheusrule.yaml
     - propose/**

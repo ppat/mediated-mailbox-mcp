@@ -1,0 +1,61 @@
+---
+# promtool's unit tests of the policy reload rule (ADR-0077), run by TestAlertingRules. Series are sampled every
+# 15 seconds, so each value in a sequence is a quarter minute after the one before it.
+rule_files:
+- ../../packaging/chart/alerting-rules.yaml
+
+evaluation_interval: 15s
+
+tests:
+# One process reloads successfully, then fails from its second minute to its third, then succeeds again. Another
+# process succeeds throughout. The rule fires only for the first process and only while its latest reload failed.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_policyload_reload_failed{instance="backfill"}'
+    values: '0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0'
+  - series: 'mediated_mailbox_policyload_reload_failed{instance="mediate"}'
+    values: '0x15'
+  alert_rule_test:
+  - eval_time: 45s
+    alertname: MediatedMailboxPolicyReloadFailed
+    exp_alerts: []
+  - eval_time: 1m
+    alertname: MediatedMailboxPolicyReloadFailed
+    exp_alerts:
+    - exp_labels:
+        instance: backfill
+        severity: page
+      exp_annotations:
+        summary: >-
+          A policy reload failed in backfill. A process that loaded policy earlier keeps its last good snapshot, and
+          one that never did restricts every sender.
+  - eval_time: 2m45s
+    alertname: MediatedMailboxPolicyReloadFailed
+    exp_alerts:
+    - exp_labels:
+        instance: backfill
+        severity: page
+      exp_annotations:
+        summary: >-
+          A policy reload failed in backfill. A process that loaded policy earlier keeps its last good snapshot, and
+          one that never did restricts every sender.
+  - eval_time: 3m
+    alertname: MediatedMailboxPolicyReloadFailed
+    exp_alerts: []
+
+# A process whose first reload failed before its first scrape. Its series starts at 1, and the rule fires at once.
+- interval: 15s
+  input_series:
+  - series: 'mediated_mailbox_policyload_reload_failed{instance="backfill"}'
+    values: '1x4'
+  alert_rule_test:
+  - eval_time: 0s
+    alertname: MediatedMailboxPolicyReloadFailed
+    exp_alerts:
+    - exp_labels:
+        instance: backfill
+        severity: page
+      exp_annotations:
+        summary: >-
+          A policy reload failed in backfill. A process that loaded policy earlier keeps its last good snapshot, and
+          one that never did restricts every sender.

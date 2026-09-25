@@ -7,6 +7,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 COPY core core
 COPY db db
+COPY policyload policyload
 COPY provider provider
 COPY ratelimit ratelimit
 COPY sanitize sanitize

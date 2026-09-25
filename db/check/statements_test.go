@@ -290,7 +290,7 @@ func (c *statementCheck) query(n *pg.Node, outer *scope) {
 	default:
 		return
 	}
-	c.accountEqualities(sc, conds)
+	c.accountEqualities(sc, conds, n.GetSelectStmt() != nil)
 	for _, e := range append(exprs, conds...) {
 		c.expression(sc, e)
 	}
@@ -346,8 +346,10 @@ func (c *statementCheck) citextComparison(sc *scope, a *pg.A_Expr, columnSide, p
 
 // accountEqualities records which references the conditions tie to an account parameter, through
 // equalities joined by AND. A predicate under OR or NOT does not restrict the rows, so it is not
-// followed.
-func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node) {
+// followed, apart from the account-or-null form accountOrNull accepts when reads is set. Only a
+// select reads, so an update, a delete or an insert from a query never takes that form, since each
+// would reach the base rules every account inherits.
+func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node, reads bool) {
 	var equalities [][2]*pg.Node
 	var conjuncts func(n *pg.Node)
 	conjuncts = func(n *pg.Node) {
@@ -355,6 +357,10 @@ func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node) {
 			for _, arg := range b.GetArgs() {
 				conjuncts(arg)
 			}
+			return
+		}
+		if eq, ok := c.accountOrNull(sc, n); ok && reads {
+			equalities = append(equalities, eq)
 			return
 		}
 		if a := n.GetAExpr(); a != nil && a.GetKind() == pg.A_Expr_Kind_AEXPR_OP && slices.Equal(names(a.GetName()), []string{"="}) && a.GetLexpr() != nil {
@@ -395,6 +401,43 @@ func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node) {
 }
 
 func inScope(sc *scope, r *rangeRef) bool { return slices.Contains(sc.refs, r) }
+
+// accountOrNull returns the equality inside n when n is exactly the predicate ADR-0047 states for a
+// table in nullAccountTables, the account column equal to a parameter OR the same column IS NULL,
+// in either order. Anything looser, such as a null test alone, a null test on another column or
+// reference, or the form on any other table, is not accepted.
+func (c *statementCheck) accountOrNull(sc *scope, n *pg.Node) ([2]*pg.Node, bool) {
+	b := n.GetBoolExpr()
+	if b == nil || b.GetBoolop() != pg.BoolExprType_OR_EXPR || len(b.GetArgs()) != 2 {
+		return [2]*pg.Node{}, false
+	}
+	var eq *pg.A_Expr
+	var null *pg.NullTest
+	for _, arg := range b.GetArgs() {
+		if a := arg.GetAExpr(); a != nil && a.GetKind() == pg.A_Expr_Kind_AEXPR_OP && slices.Equal(names(a.GetName()), []string{"="}) && a.GetLexpr() != nil {
+			eq = a
+		}
+		if t := arg.GetNullTest(); t != nil && t.GetNulltesttype() == pg.NullTestType_IS_NULL {
+			null = t
+		}
+	}
+	if eq == nil || null == nil {
+		return [2]*pg.Node{}, false
+	}
+	nulled, nullParam := c.accountSide(sc, null.GetArg())
+	if nulled == nil || nullParam {
+		return [2]*pg.Node{}, false
+	}
+	if _, listed := nullAccountTables[nulled.name]; !listed || nulled.table == nil {
+		return [2]*pg.Node{}, false
+	}
+	l, lParam := c.accountSide(sc, eq.GetLexpr())
+	r, rParam := c.accountSide(sc, eq.GetRexpr())
+	if l == nulled && rParam || r == nulled && lParam {
+		return [2]*pg.Node{eq.GetLexpr(), eq.GetRexpr()}, true
+	}
+	return [2]*pg.Node{}, false
+}
 
 // accountSide returns the reference whose account column n names, or whether n is a parameter.
 func (c *statementCheck) accountSide(sc *scope, n *pg.Node) (*rangeRef, bool) {
@@ -447,7 +490,7 @@ func (c *statementCheck) insertAccount(sc *scope, target *rangeRef, ins *pg.Inse
 	if sel.GetWhereClause() != nil {
 		conds = append(conds, sel.GetWhereClause())
 	}
-	c.accountEqualities(inner, conds)
+	c.accountEqualities(inner, conds, false)
 	for _, e := range append(sel.GetTargetList(), conds...) {
 		c.expression(inner, e)
 	}

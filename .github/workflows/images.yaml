@@ -16,6 +16,7 @@ on:
     - mediate/**
     - migrate/**
     - organize/**
+    - policyload/**
     - propose/**
     - provider/**
     - ratelimit/**

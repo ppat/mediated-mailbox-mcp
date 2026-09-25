@@ -15,3 +15,13 @@ sql:
       sql_package: pgx/v5
       emit_interface: true
       omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: policyrules
+  gen:
+    go:
+      package: policyrules
+      out: policyrules
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true

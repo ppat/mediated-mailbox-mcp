@@ -1,0 +1,20 @@
+control: A reload its caller cancelled keeps the active policy and raises no alarm
+removes: a reload whose deadline passed is taken as one its caller cancelled, so reloads that keep timing out raise no alarm
+packages: ./policyload
+tests: TestAReloadItsCallerCancelledRaisesNoAlarm
+scheduled-count: no
+integration: yes
+
+diff --git a/policyload/load.go b/policyload/load.go
+index 6ed1b43..a70448a 100644
+--- a/policyload/load.go
++++ b/policyload/load.go
+@@ -122,7 +122,7 @@ func (l *Loader) Reload(ctx context.Context) error {
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+ 	rows, err := l.read(ctx)
+-	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
++	if err != nil && ctx.Err() != nil {
+ 		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
+ 	}
+ 	if err != nil {

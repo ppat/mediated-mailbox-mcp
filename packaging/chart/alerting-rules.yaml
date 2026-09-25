@@ -3,7 +3,8 @@
 # PrometheusRule resource when alertingRules.enabled is set, and a platform without the Prometheus Operator loads it
 # its own way. Routing a firing rule to a person is the platform's.
 #
-# ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests, run from a Go test in that package.
+# ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules, and
+# policyload/testdata/alerting-rules-test.yaml those of the policy reload rule, each run from a Go test in its package.
 # ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule reads none of
 # them. It reads mediated_mailbox_provider_request_cost_total, a counter of the cost, in the provider's units, of
 # every request a spending process sends, which the provider adapter increments where it sends each request and
@@ -55,3 +56,18 @@ groups:
       severity: warning
     annotations:
       summary: The mediator's account-level rate series are missing.
+
+- name: mediated-mailbox-policy
+  rules:
+  # A failed policy reload (ADR-0041), in any process that loads policy. The policy loader sets its series to 1 when a
+  # reload fails, in its read of the policy tables or in their validation, and back to 0 when one succeeds. The rule
+  # fires at the first evaluation that sees the failure and stays firing until a reload succeeds. Meanwhile a process
+  # whose earlier reload succeeded keeps that snapshot, and one whose first load failed restricts every sender.
+  - alert: MediatedMailboxPolicyReloadFailed
+    expr: mediated_mailbox_policyload_reload_failed > 0
+    labels:
+      severity: page
+    annotations:
+      summary: >-
+        A policy reload failed in {{ $labels.instance }}. A process that loaded policy earlier keeps its last good
+        snapshot, and one that never did restricts every sender.

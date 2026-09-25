@@ -19,6 +19,7 @@ on:
     - db/**
     - mediate/**
     - organize/**
+    - policyload/**
     - propose/**
     - provider/**
     - ratelimit/**

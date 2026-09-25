@@ -17,6 +17,14 @@ const accountColumn = "account_id"
 // chain, so an entry left behind by a dropped table or column fails TestPredicateExceptions.
 var predicateExceptions = map[string]string{}
 
+// nullAccountTables names the account-keyed tables whose rows with a null account every account
+// inherits, each with its reason. A statement on one of them may state its account predicate as
+// ADR-0047 does, the account column equal to a parameter or null, and nothing looser. Every entry
+// must name an account-keyed table in the chain, as predicateExceptions' entries must.
+var nullAccountTables = map[string]string{
+	"policy_rules": "a base rule carries no account and every account inherits it (ADR-0004, ADR-0047)",
+}
+
 // column is one column of a table, as the migration chain declares it.
 type column struct {
 	typ   string // the type's unqualified name, such as citext
@@ -154,13 +162,18 @@ func TestAccountKeyedTablesDerived(t *testing.T) {
 }
 
 func TestPredicateExceptions(t *testing.T) {
-	if stale := staleExceptions(readSchema(t, realLibrary.migrationChain(t)), predicateExceptions); len(stale) > 0 {
+	s := readSchema(t, realLibrary.migrationChain(t))
+	if stale := staleExceptions(s, predicateExceptions); len(stale) > 0 {
 		t.Errorf("predicate exceptions naming no account-keyed table: %v", stale)
+	}
+	if stale := staleExceptions(s, nullAccountTables); len(stale) > 0 {
+		t.Errorf("tables taking the account-or-null predicate that are not account-keyed: %v", stale)
 	}
 }
 
-// TestStaleExceptionsReported shows the exception check refusing an entry, since the list of real
-// exceptions is empty until a statement reaches a table ADR-0047 exempts.
+// TestStaleExceptionsReported shows the stale-entry check refusing entries, since neither real list
+// holds a stale one. predicateExceptions is empty until a statement reaches a table ADR-0047 exempts
+// outright, and nullAccountTables names policy_rules, which is account-keyed.
 func TestStaleExceptionsReported(t *testing.T) {
 	s := schema{
 		"keyed":   {columns: map[string]column{accountColumn: {typ: "text"}}},

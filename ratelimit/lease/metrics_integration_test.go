@@ -25,6 +25,9 @@ import (
 // emits it where each request is sent, so nothing in this package declares it.
 const requestCostName = "mediated_mailbox_provider_request_cost_total"
 
+// reloadFailedName is the policy loader's reload-failure series, which the policy reload rule reads.
+const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
+
 // series is one gathered sample, by metric name and account.
 type series struct {
 	name, account, other string
@@ -187,8 +190,9 @@ func TestTheCollectorFailsTheScrapeWhenItCannotRead(t *testing.T) {
 }
 
 // Every series the alerting rules read, apart from the provider request cost the Gmail adapter
-// emits, is one the collector or a Limiter emits under that exact name, so a rule never watches a
-// name nothing emits (ADR-0076).
+// emits and the reload-failure series the policy loader emits, is one the collector or a Limiter
+// emits under that exact name, so a rule never watches a name nothing emits (ADR-0076). The policy
+// loader's own tests hold its series to the same check.
 func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
@@ -203,7 +207,7 @@ func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	reg.MustRegister(lease.NewCollector(spenders(t), func(context.Context) ([]lease.Account, error) {
 		return []lease.Account{{ID: account, Ceiling: ceiling}}, nil
 	}))
-	emitted := map[string]bool{requestCostName: true}
+	emitted := map[string]bool{requestCostName: true, reloadFailedName: true}
 	for s := range gathered(t, reg) {
 		emitted[s.name] = true
 	}

@@ -76,6 +76,12 @@ func explainAs(ctx context.Context, db beginner, role, sql string) (err error) {
 	if _, err := tx.Exec(ctx, "SET LOCAL ROLE "+pgx.Identifier{role}.Sanitize()); err != nil {
 		return err
 	}
+	// The planner evaluates current_setting in a row-level security policy to estimate how many rows
+	// match, as it does for the base-rule reads, and the setting raises while no transaction has set
+	// it. Any account serves, since planning reads no rows.
+	if _, err := tx.Exec(ctx, "SELECT set_config('app.account', 'grant-check', true)"); err != nil {
+		return err
+	}
 	// The simple protocol sends the text as it is, so the server reads $n as parameters of the plan
 	// rather than of the EXPLAIN.
 	_, err = tx.Exec(ctx, "EXPLAIN (GENERIC_PLAN) "+sql, pgx.QueryExecModeSimpleProtocol)

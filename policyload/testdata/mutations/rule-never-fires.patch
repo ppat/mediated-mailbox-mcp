@@ -1,0 +1,20 @@
+control: The policy reload rule fires while a process's latest reload failed, and only then
+removes: the rule compares the series with a value it never exceeds, so it never fires
+packages: ./policyload
+tests: TestAlertingRules
+scheduled-count: no
+
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+index ec20c8d..6bd1bd6 100644
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -64,7 +64,7 @@ groups:
+   # fires at the first evaluation that sees the failure and stays firing until a reload succeeds. Meanwhile a process
+   # whose earlier reload succeeded keeps that snapshot, and one whose first load failed restricts every sender.
+   - alert: MediatedMailboxPolicyReloadFailed
+-    expr: mediated_mailbox_policyload_reload_failed > 0
++    expr: mediated_mailbox_policyload_reload_failed > 1
+     labels:
+       severity: page
+     annotations:

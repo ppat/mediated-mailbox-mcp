@@ -8,6 +8,7 @@ paths:
   - "TESTING.md"
   - "docs/**/*.md"
   - "db/README.md"
+  - "policyload/README.md"
   - "provider/README.md"
   - "ratelimit/README.md"
   - "sanitize/README.md"

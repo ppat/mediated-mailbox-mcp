@@ -253,6 +253,26 @@ linters:
           - "google.golang.org/protobuf/reflect/protoreflect$"
           - "pgregory.net/rapid$"
 
+        # The policy loader, every file. It is a library, so it connects as no role of its own. db/check plans the
+        # statements of the subsection it names under the role of each deployable whose list admits it (ADR-0066,
+        # ADR-0075). client_golang is admitted for the reload-failure series (ADR-0076, ADR-0077).
+        policyload:
+          list-mode: strict
+          files:
+          - "${base-path}/policyload/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/policy$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/policyrules$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/policyload$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/prometheus/client_golang/prometheus$"
+
         # The provider adapter library, every file. client_golang is admitted for the count of provider request cost an
         # adapter keeps where it sends each request (ADR-0076, ADR-0077).
         provider:
@@ -422,9 +442,12 @@ linters:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown$"
@@ -434,6 +457,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/prometheus/client_golang/prometheus$"
           - "pgregory.net/rapid$"
 
         # Deployable mediate, every file. A deployable imports its own code and the shared libraries, never another
@@ -603,6 +627,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
+          - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/propose/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/caldav$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gcal$"
@@ -639,6 +664,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
+          - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/propose/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
@@ -671,6 +697,7 @@ linters:
           - "!${base-path}/db/**"
           - "!${base-path}/mediate/**"
           - "!${base-path}/organize/**"
+          - "!${base-path}/policyload/**"
           - "!${base-path}/propose/**"
           - "!${base-path}/provider/**"
           - "!${base-path}/ratelimit/**"
