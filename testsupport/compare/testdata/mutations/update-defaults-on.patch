@@ -1,0 +1,19 @@
+control: -update is off by default, so an ordinary run of go test never writes a golden file by itself
+removes: the flag defaults to true, so an ordinary run enters update mode and writes instead of comparing
+packages: ./testsupport/compare
+tests: TestGoldenMismatchFails TestGoldenMissingFileFails
+scheduled-count: no
+
+diff --git a/testsupport/compare/golden.go b/testsupport/compare/golden.go
+index d75e823..37bb62e 100644
+--- a/testsupport/compare/golden.go
++++ b/testsupport/compare/golden.go
+@@ -14,7 +14,7 @@ import (
+ // registered here, once, so every package's tests share one flag rather than each registering its
+ // own and panicking on the second registration. The gating CI run passes no flag to go test, so it
+ // stays false there and a run never writes a golden file by itself.
+-var update = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
++var update = flag.Bool("update", true, "rewrite golden files instead of comparing against them")
+ 
+ // Golden compares got against the golden file at testdata/golden/name, read relative to the calling
+ // test's own package directory, the way CLAUDE.md's testdata convention reads every testdata file

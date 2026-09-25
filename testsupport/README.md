@@ -11,8 +11,11 @@ the golden-file helper write files, and the integration run starts a container. 
 an image, because only test files and the tooling programs import it. Its packages are these.
 
 - `compare`, the shared comparison options of
-  [ADR-0070](../docs/adr/engineering/0070-unit-comparison-through-one-options-value.md) and the
-  golden-file helper.
+  [ADR-0070](../docs/adr/engineering/0070-unit-comparison-through-one-options-value.md), and its
+  golden-file helper, `Golden`. It compares `got` against the file at `testdata/golden/name` in the
+  calling test's own package directory, through the shared options, and fails a golden file that
+  does not exist rather than creating one. A name that would leave `testdata/golden/` is refused.
+  Run with `-update`, it writes `got` to that file, byte for byte, instead of comparing.
 - `property`, the generator report, failing-case store and operation sampler of
   [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md).
 - `crash`, the crash harness of [ADR-0045](../docs/adr/engineering/0045-crash-injection-testing.md).

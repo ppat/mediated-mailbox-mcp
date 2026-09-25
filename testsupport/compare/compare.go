@@ -1,5 +1,8 @@
 // Package compare holds the one comparison options value every Go unit test passes to cmp.Diff.
-// The golden-file helper belongs here too.
+// The golden-file helper belongs here too. It compares and writes files under a Go package's own
+// testdata/golden directory only. It does not yet reach the UI's recorded browser fixtures, which
+// live beside the browser tests instead. Whether and how it serves them is for the ticket that
+// first records one.
 //
 // Permission to read a type's unexported fields is granted here and nowhere else, one entry per
 // type in readableTypes. The entries are fully qualified type names rather than type values, so
