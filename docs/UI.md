@@ -223,11 +223,12 @@ The op log, the accounts table, and the rate state are read by the bespoke endpo
 | Jobs | runs, failures | the jobs summary, the run summary |
 | System | | accounts, rate state, the system summary |
 
-**Policy is the one exception to per-account rows.** Policy is configuration, not account data
-(ADR-0004's base policy and ADR-0085's per-account overlays). `/{account}/policy` shows the base
-rules, marked "base", and the account's overlay rules (ADR-0004). No row of another account's data
-is shown, so the per-account rule of [section 1](#1-what-the-ui-is-for) is not breached. Nothing
-else on any screen shows a row outside the account in the path.
+**Policy is the one exception to per-account rows.** Policy lives in the database, as ADR-0004's
+base policy shared by every account and ADR-0085's per-account overlays, so it is not one
+account's data. `/{account}/policy` shows the base rules, marked "base", and the account's overlay
+rules (ADR-0004). No row of another account's data is shown, so the per-account rule of
+[section 1](#1-what-the-ui-is-for) is not breached. Nothing else on any screen shows a row outside
+the account in the path.
 
 **Decisions.** Two, each with two outcomes. A plan is approved or rejected, a candidate is
 confirmed or dismissed. Four requests carry them, all by database grant (ADR-0084), which calls
@@ -907,8 +908,8 @@ setups.
   to bind the request token, whether or not an authenticating proxy sits in front. On the first
   response the UI issues the cookie `ui_session`, a random id, `HttpOnly`, `Secure`,
   `SameSite=Strict`, with browser-session lifetime. The token is an HMAC of the session id under a
-  key generated at process start, or the configured `UI_TOKEN_KEY` when more than one replica runs,
-  and its lifetime is the session's. Every state-changing request sends it in the
+  key generated at process start, or the key in the file `UI_TOKEN_KEY_FILE` names when more than
+  one replica runs, and its lifetime is the session's. Every state-changing request sends it in the
   `X-Request-Token` header, and the server checks it against the cookie, so a request forged from
   another origin fails. The four decision requests are `POST` and carry the status the screen shows
   for conflict detection. They and the requests of OAuth client setup and account setup are the
@@ -1177,18 +1178,21 @@ ui/
 The UI knows its environment contract and never its platform (ADR-0051), and standing it up
 requires only what its artifacts declare ([O6](../USE_CASES.md#o6--deployable)). This is the
 declaration, as design, with illustrative key names. The names are settled when the chart of
-ADR-0052 carries them. Every key is read at start.
+ADR-0052 carries them, under ADR-0078's rule that a value's configuration path is its one name, from
+which its environment name and flag derive, so each key can come from the file, the environment or
+a flag. Every key is read at start, and no key carries secret material, which arrives as a mounted
+file whose path a key names (ADR-0079).
 
 | Key | Value | Required |
 | --- | --- | --- |
-| `UI_DATABASE_URL` | the Postgres connection for the UI's own role (ADR-0084) | yes |
+| `UI_DATABASE_*` | the Postgres connection settings for the UI's own role (ADR-0084), rendered into the connection string, with the password read from a password file whose path a key names | yes |
 | `UI_LISTEN` | the address and port to serve on | yes |
 | `UI_TLS_CERT`, `UI_TLS_KEY` | paths to the TLS material, mounted as files (ADR-0079's convention) | yes, unless `UI_INSECURE_HTTP` |
 | `UI_SEAL_PUBLIC_KEY_FILE` | the path of the mounted public key the UI seals credentials to (ADR-0081) | yes |
 | `UI_INSECURE_HTTP` | `true` serves plain HTTP, refused outside the dev loop | no |
 | `UI_IDENTITY_HEADER` | the header name an authenticating proxy forwards; when set, its value is recorded on decisions and a decision without it is refused | no |
 | `UI_OPERATOR_NAME` | the identity recorded on decisions when no header is declared | yes when the header is unset |
-| `UI_TOKEN_KEY` | the key behind the request token, replacing the per-process key when more than one replica runs | no |
+| `UI_TOKEN_KEY_FILE` | the path of a mounted file holding the key behind the request token, replacing the per-process key when more than one replica runs | no |
 | `UI_MAX_PLAN_AGE` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
 | `UI_SAMPLE_SIZE` | the plan sample's size | no, defaults to 24 |
 | `UI_SYNC_INTERVAL`, `UI_HEURISTICS_INTERVAL` | the intervals displayed on the jobs cards (ADR-0018's sync interval, the heuristics interval) | no, defaults to the records' values |

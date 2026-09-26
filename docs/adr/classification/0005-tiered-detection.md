@@ -151,5 +151,7 @@ shipping the rules, never the model.
   [SendGrid's](https://support.sendgrid.com/hc/en-us/articles/44375837088795-How-to-Know-if-my-Links-Are-Shortened-by-SendGrid),
   hides both the parameter name and the link word.
 - Assumptions about other components. The shell converts a body to Markdown with the sanitizing
-  converter before scanning it, so every path that scans runs the converter too. The shell that
-  first runs the scanner decides how configuration is loaded.
+  converter before scanning it, so every path that scans runs the converter too. The
+  configuration arrives through the layers of
+  [ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md), as the scanner's
+  own section.

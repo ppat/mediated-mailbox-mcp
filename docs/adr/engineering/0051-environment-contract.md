@@ -19,7 +19,8 @@ application's business.
 
 - **The app does not know its platform.** Not which orchestrator runs it, not what invokes its
   batch jobs, not what network or cluster surrounds it. Everything arrives through the
-  environment contract: configuration as files and/or environment variables; secret material
+  environment contract: configuration as files, environment variables and flags, layered as
+  [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) decides; secret material
   always as files ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)); plain HTTP
   health and readiness probes; structured logs to standard output; Prometheus-format metrics on
   a metrics endpoint; and the standing assumption that any process can be killed at any point.
