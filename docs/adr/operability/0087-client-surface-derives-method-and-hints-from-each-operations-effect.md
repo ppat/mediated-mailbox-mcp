@@ -174,8 +174,9 @@ What an implementer would otherwise pay to discover:
 
 A cell reads "holds" when the design meets the requirement by its own structure, "weakens" when it
 meets it only with added discipline or with a gap a check must close, and "fails" when it cannot
-meet it. Every cell is a judgment over the evidence the passages cite. The Gateway API cell and the
-`ServeMux` facts were read from source, and nothing on this grid was measured.
+meet it. Every cell is a judgment over the evidence the passages cite. That `ServeMux` routes
+`QUERY` was measured. The `ServeMux` wildcard limit, in `pattern.go`, and the Gateway API's method
+enum were read from source.
 
 | Design | R1 | R2 | R3 | R4 | R5 | R6 | R8 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
