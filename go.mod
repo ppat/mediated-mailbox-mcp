@@ -14,7 +14,7 @@ require (
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/pganalyze/pg_query_go/v6 v6.2.2
 	github.com/prometheus/client_golang v1.24.1
-	github.com/prometheus/client_model v0.6.2
+	github.com/prometheus/client_model v0.6.3
 	github.com/wasilibs/go-pgquery v0.0.0-20260915022521-81f99195012b
 	github.com/yuin/goldmark v1.8.6
 	go.yaml.in/yaml/v3 v3.0.5
