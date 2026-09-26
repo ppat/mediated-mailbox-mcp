@@ -1,0 +1,19 @@
+control: The thresholds are the ones the caller passes
+removes: the local-part list is ADR-0007's whatever the Config says
+packages: ./core/scangate
+tests: TestDecideReadsTheConfig/a_configured_local_part TestDecideReadsTheConfig/a_default_local_part_left_out_of_the_configuration
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..14df2c8 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -192,7 +192,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ }
+ 
+ func noReply(c Config, localPart string) bool {
+-	for _, p := range c.NoReplyLocalParts {
++	for _, p := range DefaultConfig().NoReplyLocalParts {
+ 		if strings.EqualFold(p, localPart) {
+ 			return true
+ 		}

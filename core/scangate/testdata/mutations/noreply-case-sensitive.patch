@@ -1,0 +1,19 @@
+control: The scan gate scans a message with no List-Id from a listed local part
+removes: a local part matches a listed one only in the same letter case
+packages: ./core/scangate
+tests: TestDecide/a_noreply_local_part_in_another_letter_case
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..7257b19 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -193,7 +193,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 
+ func noReply(c Config, localPart string) bool {
+ 	for _, p := range c.NoReplyLocalParts {
+-		if strings.EqualFold(p, localPart) {
++		if strings.Compare(p, localPart) == 0 {
+ 			return true
+ 		}
+ 	}

@@ -1,0 +1,23 @@
+control: A Config that cannot decide decides nothing
+removes: a Config that cannot decide leaves a restricted sender undecided rather than skipped as restricted
+packages: ./core/scangate
+tests: TestAConfigThatCannotDecide/a_restricted_sender_under_a_zero_Config
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..e555b16 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -170,10 +170,10 @@ func (v Verdict) State() sensitivity.ScanState {
+ // age measured at now.
+ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 	switch {
+-	case in.Class.Restricted():
+-		return Verdict{reason: Restricted}
+ 	case !c.valid():
+ 		return Verdict{}
++	case in.Class.Restricted():
++		return Verdict{reason: Restricted}
+ 	case in.SubjectMasked:
+ 		return Verdict{reason: SubjectSignal}
+ 	case !in.ListID && noReply(c, in.LocalPart):

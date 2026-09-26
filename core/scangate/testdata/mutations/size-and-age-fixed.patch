@@ -1,0 +1,19 @@
+control: The thresholds are the ones the caller passes
+removes: the size and age marks are fixed at 30,720 bytes and 24 hours whatever the Config says
+packages: ./core/scangate
+tests: TestDecideReadsTheConfig/a_message_at_a_lowered_size_mark TestDecideReadsTheConfig/a_message_at_a_shortened_age_mark
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..9f55d73 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -178,7 +178,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: SubjectSignal}
+ 	case !in.ListID && noReply(c, in.LocalPart):
+ 		return Verdict{reason: NoReplyLocalPart}
+-	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
++	case !in.ListID && in.SizeBytes < 30*1024 && int64(now-in.SentAt) < 24*60*60*1000:
+ 		return Verdict{reason: RecentSmall}
+ 	case in.SenderVolume < c.LowVolume:
+ 		return Verdict{reason: LowVolume}

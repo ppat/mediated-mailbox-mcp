@@ -1,0 +1,21 @@
+control: A verdict nobody built decides nothing
+removes: an undecided verdict records skipped_gate, the zero value included
+packages: ./core/scangate
+tests: TestTheZeroVerdictDecidesNothing TestAConfigThatCannotDecide/a_zero_Config
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..2655eb8 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -159,7 +159,9 @@ func (v Verdict) State() sensitivity.ScanState {
+ 		return sensitivity.SkippedRestricted()
+ 	case HighVolumeNoHits:
+ 		return sensitivity.SkippedGate()
+-	case Undecided, SubjectSignal, NoReplyLocalPart, RecentSmall, LowVolume, PriorHit, Default:
++	case Undecided:
++		return sensitivity.SkippedGate()
++	case SubjectSignal, NoReplyLocalPart, RecentSmall, LowVolume, PriorHit, Default:
+ 		return sensitivity.Pending()
+ 	default:
+ 		return sensitivity.Pending()

@@ -1,0 +1,19 @@
+control: The scan gate scans a small recent message with no List-Id
+removes: a message exactly at the size mark counts as small
+packages: ./core/scangate
+tests: TestDecide/a_recent_message_at_the_size_mark
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..0efbddd 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -178,7 +178,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: SubjectSignal}
+ 	case !in.ListID && noReply(c, in.LocalPart):
+ 		return Verdict{reason: NoReplyLocalPart}
+-	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
++	case !in.ListID && in.SizeBytes <= c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
+ 		return Verdict{reason: RecentSmall}
+ 	case in.SenderVolume < c.LowVolume:
+ 		return Verdict{reason: LowVolume}

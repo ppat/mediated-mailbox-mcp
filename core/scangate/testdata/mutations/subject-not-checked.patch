@@ -1,0 +1,19 @@
+control: The scan gate scans a subject pass 1 masked
+removes: a masked subject no longer asks for a scan
+packages: ./core/scangate
+tests: TestDecide/a_subject_pass_1_masked TestDecide/a_subject_signal_wins_over_every_later_rule
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..81263a2 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -174,8 +174,6 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: Restricted}
+ 	case !c.valid():
+ 		return Verdict{}
+-	case in.SubjectMasked:
+-		return Verdict{reason: SubjectSignal}
+ 	case !in.ListID && noReply(c, in.LocalPart):
+ 		return Verdict{reason: NoReplyLocalPart}
+ 	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:

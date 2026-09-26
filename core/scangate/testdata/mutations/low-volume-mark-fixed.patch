@@ -1,0 +1,19 @@
+control: The thresholds are the ones the caller passes
+removes: the low-volume mark is fixed at 20 whatever the Config says
+packages: ./core/scangate
+tests: TestDecideReadsTheConfig/a_sender_below_a_raised_low-volume_mark
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..d596d6d 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -180,7 +180,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: NoReplyLocalPart}
+ 	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
+ 		return Verdict{reason: RecentSmall}
+-	case in.SenderVolume < c.LowVolume:
++	case in.SenderVolume < 20:
+ 		return Verdict{reason: LowVolume}
+ 	case in.PriorHits > 0:
+ 		return Verdict{reason: PriorHit}

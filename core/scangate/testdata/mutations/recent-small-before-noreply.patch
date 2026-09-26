@@ -1,0 +1,23 @@
+control: The first rule in ADR-0007's order gives the reason
+removes: the recent small rule is checked before the local-part rule
+packages: ./core/scangate
+tests: TestDecide/a_noreply_local_part_wins_over_the_recent_small_rule
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..03208d6 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -176,10 +176,10 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{}
+ 	case in.SubjectMasked:
+ 		return Verdict{reason: SubjectSignal}
+-	case !in.ListID && noReply(c, in.LocalPart):
+-		return Verdict{reason: NoReplyLocalPart}
+ 	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
+ 		return Verdict{reason: RecentSmall}
++	case !in.ListID && noReply(c, in.LocalPart):
++		return Verdict{reason: NoReplyLocalPart}
+ 	case in.SenderVolume < c.LowVolume:
+ 		return Verdict{reason: LowVolume}
+ 	case in.PriorHits > 0:

@@ -1,0 +1,19 @@
+control: A Config that cannot decide decides nothing
+removes: every Config decides, a zero one included
+packages: ./core/scangate
+tests: TestAConfigThatCannotDecide/a_zero_Config TestAConfigThatCannotDecide/a_high-volume_mark_below_the_low-volume_mark TestAConfigThatCannotDecide/a_low-volume_mark_of_zero TestAConfigThatCannotDecide/a_size_mark_of_zero TestAConfigThatCannotDecide/an_age_mark_of_zero
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..e017c08 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -172,8 +172,6 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 	switch {
+ 	case in.Class.Restricted():
+ 		return Verdict{reason: Restricted}
+-	case !c.valid():
+-		return Verdict{}
+ 	case in.SubjectMasked:
+ 		return Verdict{reason: SubjectSignal}
+ 	case !in.ListID && noReply(c, in.LocalPart):

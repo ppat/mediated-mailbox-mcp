@@ -1,0 +1,19 @@
+control: The scan gate scans a subject pass 1 masked
+removes: an unmasked subject asks for a scan and a masked one does not
+packages: ./core/scangate
+tests: TestDecide/a_subject_pass_1_masked TestDecide/a_high-volume_sender_with_no_prior_hit,_a_List-Id_and_no_subject_signal
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..ffecf15 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -174,7 +174,7 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: Restricted}
+ 	case !c.valid():
+ 		return Verdict{}
+-	case in.SubjectMasked:
++	case !in.SubjectMasked:
+ 		return Verdict{reason: SubjectSignal}
+ 	case !in.ListID && noReply(c, in.LocalPart):
+ 		return Verdict{reason: NoReplyLocalPart}

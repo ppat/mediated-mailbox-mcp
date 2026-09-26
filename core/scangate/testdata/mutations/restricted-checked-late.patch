@@ -1,0 +1,28 @@
+control: A restricted sender's body is never scanned
+removes: the sender class is checked after the scan rules, so a restricted sender any scan rule names is scanned
+packages: ./core/scangate
+tests: TestDecide/a_restricted_sender_whose_every_other_input_asks_for_a_scan
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..4a44fb5 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -170,8 +170,6 @@ func (v Verdict) State() sensitivity.ScanState {
+ // age measured at now.
+ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 	switch {
+-	case in.Class.Restricted():
+-		return Verdict{reason: Restricted}
+ 	case !c.valid():
+ 		return Verdict{}
+ 	case in.SubjectMasked:
+@@ -184,6 +182,8 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{reason: LowVolume}
+ 	case in.PriorHits > 0:
+ 		return Verdict{reason: PriorHit}
++	case in.Class.Restricted():
++		return Verdict{reason: Restricted}
+ 	case in.SenderVolume > c.HighVolume && in.PriorHits == 0 && in.ListID:
+ 		return Verdict{reason: HighVolumeNoHits}
+ 	default:

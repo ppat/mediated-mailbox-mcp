@@ -1,0 +1,19 @@
+control: The scan gate scans a message with no List-Id from a listed local part
+removes: a listed local part no longer asks for a scan
+packages: ./core/scangate
+tests: TestDecide/a_noreply_local_part_with_no_List-Id TestDecide/a_noreply_local_part_wins_over_the_recent_small_rule
+scheduled-count: no
+
+diff --git a/core/scangate/scangate.go b/core/scangate/scangate.go
+index 587af5b..2e002e7 100644
+--- a/core/scangate/scangate.go
++++ b/core/scangate/scangate.go
+@@ -176,8 +176,6 @@ func Decide(c Config, now mail.UnixMilli, in Input) Verdict {
+ 		return Verdict{}
+ 	case in.SubjectMasked:
+ 		return Verdict{reason: SubjectSignal}
+-	case !in.ListID && noReply(c, in.LocalPart):
+-		return Verdict{reason: NoReplyLocalPart}
+ 	case !in.ListID && in.SizeBytes < c.SmallBytes && int64(now-in.SentAt) < c.RecentAgeMillis:
+ 		return Verdict{reason: RecentSmall}
+ 	case in.SenderVolume < c.LowVolume:
