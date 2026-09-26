@@ -1,0 +1,19 @@
+control: The analyser refuses a read of the environment outside a deployable's composition root
+removes: a deployable's internal packages are exempt
+packages: ./testsupport/analysis
+tests: TestEnvironment
+scheduled-count: no
+
+diff --git a/testsupport/analysis/environment.go b/testsupport/analysis/environment.go
+index 7b9eab8..854fd8e 100644
+--- a/testsupport/analysis/environment.go
++++ b/testsupport/analysis/environment.go
+@@ -49,7 +49,7 @@ var environmentReaders = map[string]string{
+ func runEnvironment(pass *analysis.Pass) (any, error) {
+ 	path := pass.Pkg.Path()
+ 	rel, ok := strings.CutPrefix(path, modulePath+"/")
+-	if path != modulePath && (!ok || rel == "testsupport" || strings.HasPrefix(rel, "testsupport/")) {
++	if path != modulePath && (!ok || rel == "testsupport" || strings.HasPrefix(rel, "testsupport/") || strings.Contains(rel, "/internal/")) {
+ 		return nil, nil
+ 	}
+ 	root := pass.Pkg.Name() == "main" && ok && !strings.Contains(rel, "/")

@@ -1,0 +1,25 @@
+control: Every environment variable under the prefix names a declared value, in upper case, once
+removes: a variable under the prefix is matched ignoring case, so a mixed-case name sets the value it resembles
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_in_mixed_case TestEveryMistakeIsRefusedAtStart/an_environment_variable_with_the_prefix_in_lower_case
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..851e80c 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -295,13 +295,11 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+ 			continue
+ 		}
+ 		switch {
+-		case name != upper:
+-			return nil, "", fmt.Errorf("environment variable %s: its name is not upper case, and names under %s are", name, Prefix)
+ 		case seen[name]:
+ 			return nil, "", fmt.Errorf("environment variable %s: it is set twice", name)
+ 		}
+ 		seen[name] = true
+-		rest := strings.TrimPrefix(name, Prefix)
++		rest := strings.TrimPrefix(upper, Prefix)
+ 		if rest == fileVariable {
+ 			if text == "" {
+ 				return nil, "", fmt.Errorf("environment variable %s: it names no file", name)

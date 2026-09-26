@@ -1,0 +1,20 @@
+control: No file is read unless a flag or the environment names one
+removes: an empty --config-file= is taken as naming no file, so every value falls back to the other layers
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_flag_naming_an_empty_file
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..21de087 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -338,9 +338,6 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+ 		}
+ 		seen[name] = true
+ 		if name == fileFlag {
+-			if text == "" {
+-				return nil, "", fmt.Errorf("flag --%s: it names no file", name)
+-			}
+ 			file = text
+ 			continue
+ 		}

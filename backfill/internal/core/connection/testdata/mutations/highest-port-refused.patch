@@ -1,0 +1,19 @@
+control: The database section is validated before anything else starts
+removes: port 65535 is refused as outside the range
+packages: ./backfill/internal/core/connection
+tests: TestAUsableValueIsAccepted
+scheduled-count: no
+
+diff --git a/backfill/internal/core/connection/connection.go b/backfill/internal/core/connection/connection.go
+index c672e53..3aee8fb 100644
+--- a/backfill/internal/core/connection/connection.go
++++ b/backfill/internal/core/connection/connection.go
+@@ -33,7 +33,7 @@ func Validate(c Config) error {
+ 		return errors.New("database.user is empty")
+ 	case c.PasswordFile == "":
+ 		return errors.New("database.password_file is empty")
+-	case c.Port < 1 || c.Port > 65535:
++	case c.Port < 1 || c.Port >= 65535:
+ 		return errors.New("database.port " + strconv.Itoa(c.Port) + " is outside 1 to 65535")
+ 	}
+ 	switch c.SSLMode {

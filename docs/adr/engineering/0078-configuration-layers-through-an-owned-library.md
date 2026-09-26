@@ -70,9 +70,9 @@ calls for one and the second because policy lives in the database.
   `--scanner.triggers.de`. `--help` is generated from the same declaration and lists each
   value's path, environment name, flag and default. Every deployable uses the one prefix.
 - **Keyed values.** Per-language word lists are a map keyed by language, so a flag or an
-  environment variable can override one language's list or add a language. Map keys match
-  `[a-z0-9_]+` without `__`, because a key becomes a segment of an environment name, so a language
-  tag such as `pt-BR` is written `pt_br`.
+  environment variable can override one language's list or add a language. Map keys are runs of
+  `[a-z0-9]` joined by single underscores, with none leading or trailing, because a key becomes a
+  segment of an environment name, so a language tag such as `pt-BR` is written `pt_br`.
 - **A value from an environment variable or a flag.** A string field takes the text verbatim. Any
   other field decodes the text as a YAML value into the field's type, so a list is
   `[verify, "log in"]`. An explicit null is refused.
@@ -91,6 +91,14 @@ calls for one and the second because policy lives in the database.
   every connection setting a deployable uses is a configuration value rendered into the connection
   string on every start, the password comes from a password file, and a deployable refuses to start
   while `PGPASSWORD` or `PGSSLPASSWORD` is set.
+  - Every deployable's connection settings are one `database` section. `host`, `name` and
+    `password_file` are required. `port` defaults to 5432, `user` to the deployable's own runtime
+    role ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)), and `sslmode` to
+    `verify-full`. `sslrootcert` is optional and holds the path of a mounted CA file.
+  - The file `password_file` names holds the password alone, not a libpq password file. One
+    trailing newline, written `\n` or `\r\n`, is trimmed from it, because files written by editors
+    and by `kubectl create secret --from-file` commonly end in one. A file holding no password once
+    that newline is trimmed refuses the start.
 - **Read once, at start, by the library.** The composition root passes the library its arguments,
   its environment and its root configuration type. The library reads the file those name, layers the
   values, and returns them with each value's source and a revision per top-level concern, or an
@@ -128,7 +136,7 @@ What the ordinary path of the libraries measured does that this record forbids:
 | An unknown file key accepted and zero-valued | A misspelled setting silently takes its default | The strict decode, with a test and a mutation patch |
 | A case-insensitive key match | `Triggers` and `triggers` race | Exact matching, with a test |
 | A stray `PGPASSWORD` | It overrides the mounted password file | The refusal at start, with a test and a mutation patch |
-| `os.Getenv`, `os.LookupEnv` or `os.Environ` in a deployable or a shared library outside a composition root | A setting bypasses the layers and their refusals | A `go vet` analyser under [ADR-0071](./0071-static-enforcement-toolchain.md), scoped by path to the deployables and the shared libraries outside composition roots, test files and the test tooling, proven by a violation file. A `forbidigo` rule cannot carry that scope, because exempting files from it takes an exclusion naming a linter that stands in for a control, which ADR-0071 refuses |
+| A standard-library function that returns an environment variable's value by a name its caller gives, or the environment as a whole, which is `os.Getenv`, `os.LookupEnv`, `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` or `(*exec.Cmd).Environ`, used in a deployable or a shared library outside a composition root | A setting bypasses the layers and their refusals | A `go vet` analyser under [ADR-0071](./0071-static-enforcement-toolchain.md), scoped by path to the deployables and the shared libraries outside composition roots, test files and the test tooling, proven by a violation file. A `forbidigo` rule cannot carry that scope, because exempting files from it takes an exclusion naming a linter that stands in for a control, which ADR-0071 refuses. Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, `os.TempDir` and `http.ProxyFromEnvironment`, carry no setting and stay allowed |
 
 | Requirement | Met by |
 | --- | --- |
@@ -146,9 +154,12 @@ What the ordinary path of the libraries measured does that this record forbids:
 What an implementer would otherwise pay to discover:
 
 - `go.yaml.in/yaml/v3` is the maintained continuation of the archived `gopkg.in/yaml.v3`. It
-  refuses duplicate keys always, refuses unknown keys under `KnownFields(true)`, and its boolean
-  table holds only `true` and `false`, so a language code `no` is never a boolean. It does not
-  refuse a second document, a null document or an alias on its own, so the library checks those.
+  refuses duplicate keys always and refuses unknown keys under `KnownFields(true)`. It resolves an
+  untyped scalar as a boolean only for `true` and `false`, in lower, title or upper case, so a
+  language code `no` in a list of strings stays a string. Decoding into a boolean field still
+  accepts `yes`, `on`, `no` and `off`, so the library refuses those words itself, in every layer,
+  along with any spelling other than `true` and `false`. It does not refuse a second document,
+  a null document or an alias on its own, so the library checks those too.
 - Kubernetes injects `<SERVICE>_SERVICE_HOST`-style variables for every Service in a namespace, and
   a Service named `mediated-mailbox-ui` yields `MEDIATED_MAILBOX_UI_SERVICE_HOST`, which the
   unknown-variable refusal would refuse. A chart sets `enableServiceLinks: false`.

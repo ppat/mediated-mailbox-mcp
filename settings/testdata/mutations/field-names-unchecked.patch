@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a field's yaml tag is no longer checked, so an empty, upper-case or optioned tag is taken as its name
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_field_with_no_tag TestADeclarationThatCannotBeConfiguredIsRefused/a_tag_with_an_option TestADeclarationThatCannotBeConfiguredIsRefused/an_inlined_field TestADeclarationThatCannotBeConfiguredIsRefused/a_name_in_upper_case TestADeclarationThatCannotBeConfiguredIsRefused/a_name_ending_in_an_underscore
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..36d1bd2 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -81,7 +81,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 			switch {
+ 			case !f.IsExported():
+ 				return nil, fmt.Errorf("%s: field %s is unexported, so no layer can set it", describe(path, t), f.Name)
+-			case !isName(name):
++			case false:
+ 				return nil, fmt.Errorf("%s: field %s has the yaml tag %q, and a name is lower-case letters and digits in words joined by single underscores, with no options", describe(path, t), f.Name, name)
+ 			}
+ 			if _, ok := n.field(name); ok {

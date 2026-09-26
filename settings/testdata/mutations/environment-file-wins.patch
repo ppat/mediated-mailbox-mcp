@@ -1,0 +1,23 @@
+control: No file is read unless a flag or the environment names one
+removes: the environment's file is read in place of the flag's
+packages: ./settings
+tests: TestTheFileIsReadOnlyWhenNamed/the_flag's_file_wins_over_the_environment's
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..a0c37a7 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -153,10 +153,10 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 		return loaded, err
+ 	}
+ 	switch {
+-	case fileFromFlag != "":
+-		layers, err = readFile[T](root, fileFromFlag, layers)
+ 	case fileFromEnv != "":
+ 		layers, err = readFile[T](root, fileFromEnv, layers)
++	case fileFromFlag != "":
++		layers, err = readFile[T](root, fileFromFlag, layers)
+ 	}
+ 	if err != nil {
+ 		return loaded, err

@@ -1,0 +1,21 @@
+control: Values layer per value in the order defaults, file, environment, flags
+removes: a value keeps the source of the first layer that set it
+packages: ./settings
+tests: TestEachValueRecordsTheLayerThatSetIt
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..fa010b6 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -172,7 +172,9 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 			continue
+ 		}
+ 		set(result, root, a.path, copyValue(a.value))
+-		sources[strings.Join(a.path, ".")] = a.source
++		if _, ok := sources[strings.Join(a.path, ".")]; !ok {
++			sources[strings.Join(a.path, ".")] = a.source
++		}
+ 	}
+ 	if err := checkRequired(root, result, nil, sources); err != nil {
+ 		return Loaded[T]{}, err

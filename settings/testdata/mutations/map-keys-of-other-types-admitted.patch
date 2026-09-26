@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a map whose keys are not strings is no longer refused
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_map_with_keys_that_are_not_strings
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..779b082 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -106,7 +106,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 		}
+ 		return n, nil
+ 	case reflect.Map:
+-		if t.Key().Kind() != reflect.String {
++		if false {
+ 			return nil, fmt.Errorf("%s: a map's keys must be strings", describe(path, t))
+ 		}
+ 		elem, err := declareType(t.Elem(), join(path, "<key>"), inValue)

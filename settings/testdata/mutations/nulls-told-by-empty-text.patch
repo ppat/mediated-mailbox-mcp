@@ -1,0 +1,19 @@
+control: An explicit null, an alias or a merge key is refused in every layer
+removes: a null is told by its empty text rather than its tag, so ~ and null pass and an empty quoted string is refused
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_null_document TestEveryMistakeIsRefusedAtStart/a_null_section TestEveryMistakeIsRefusedAtStart/a_null_in_a_list TestEveryMistakeIsRefusedAtStart/an_environment_variable_holding_a_null TestAFileValueThatIsNotANull
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..17627b4 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -61,7 +61,7 @@ func check(n *yaml.Node) error {
+ 	switch {
+ 	case n.Kind == yaml.AliasNode:
+ 		return fmt.Errorf("line %d: an alias, and aliases are refused", n.Line)
+-	case n.ShortTag() == "!!null":
++	case n.Kind == yaml.ScalarNode && n.Value == "":
+ 		return fmt.Errorf("line %d: an explicit null, and a value is given or left out", n.Line)
+ 	}
+ 	for i, child := range n.Content {

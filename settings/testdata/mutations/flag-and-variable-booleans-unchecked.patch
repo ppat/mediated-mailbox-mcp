@@ -1,0 +1,21 @@
+control: A boolean is true or false in every layer, wherever it sits in a value
+removes: a boolean from the environment or a flag is not checked, so it takes the other words YAML reads as booleans, such as yes and off
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_flag_holding_a_YAML_word_for_true TestEveryMistakeIsRefusedAtStart/a_flag_holding_a_YAML_word_for_false TestEveryMistakeIsRefusedAtStart/an_environment_variable_holding_a_YAML_word_for_true TestEveryMistakeIsRefusedAtStart/an_environment_variable_holding_a_YAML_word_for_false TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_a_flag TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_the_environment TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 0e4fc65..f49c6d6 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -389,9 +389,7 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+ 	if err != nil {
+ 		return reflect.Value{}, err
+ 	}
+-	if err := checkBooleans(doc, n.typ); err != nil {
+-		return reflect.Value{}, err
+-	}
++	_ = doc
+ 	return v.Elem(), nil
+ }
+ 

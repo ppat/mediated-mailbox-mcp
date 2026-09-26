@@ -1,0 +1,22 @@
+control: A required value no layer sets is refused
+removes: the required values of a keyed map's entries are not checked
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_required_value_of_a_keyed_entry_no_layer_sets
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..51200a8 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -459,10 +459,7 @@ func checkRequired(n *node, v reflect.Value, path []string, sources map[string]S
+ 	case keyedKind:
+ 		keys := v.MapKeys()
+ 		slices.SortFunc(keys, func(a, b reflect.Value) int { return strings.Compare(a.String(), b.String()) })
+-		for _, k := range keys {
+-			if err := checkRequired(n.elem, v.MapIndex(k), append(slices.Clone(path), k.String()), sources); err != nil {
+-				return err
+-			}
++		for range keys {
+ 		}
+ 	case valueKind:
+ 	}

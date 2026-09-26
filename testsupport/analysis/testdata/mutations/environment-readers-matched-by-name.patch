@@ -1,0 +1,19 @@
+control: The analyser refuses a read of the environment outside a deployable's composition root
+removes: any function named like a reader of package os is reported, whatever package declares it
+packages: ./testsupport/analysis
+tests: TestEnvironment
+scheduled-count: no
+
+diff --git a/testsupport/analysis/environment.go b/testsupport/analysis/environment.go
+index 7b9eab8..a900ba1 100644
+--- a/testsupport/analysis/environment.go
++++ b/testsupport/analysis/environment.go
+@@ -69,7 +69,7 @@ func runEnvironment(pass *analysis.Pass) (any, error) {
+ 			if !ok {
+ 				return true
+ 			}
+-			if opening, refused := environmentReaders[fn.FullName()]; refused {
++			if opening, refused := environmentReaders["os."+fn.Name()]; refused {
+ 				pass.Reportf(id.Pos(), environmentMessage, opening)
+ 			}
+ 			return true

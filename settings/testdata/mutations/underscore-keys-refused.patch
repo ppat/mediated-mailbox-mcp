@@ -1,0 +1,19 @@
+control: A map key is runs of lower-case letters and digits joined by single underscores
+removes: a map key may not hold an underscore at all, so a key such as pt_br is refused
+packages: ./settings
+tests: TestAValueFromTheEnvironmentOrAFlag/a_map_key_holds_single_underscores
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..60c616a 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -159,7 +159,7 @@ func isName(s string) bool {
+ 
+ // checkKey refuses a map key that could not be a segment of an environment name (ADR-0078).
+ func checkKey(key string) error {
+-	if !isName(key) {
++	if !isName(key) || strings.Contains(key, "_") {
+ 		return fmt.Errorf("the key %q is not runs of lower-case letters and digits joined by single underscores", key)
+ 	}
+ 	return nil

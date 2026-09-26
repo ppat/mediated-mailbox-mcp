@@ -1,0 +1,18 @@
+control: Two loads in one process share nothing with each other or with the defaults
+removes: the result starts as the defaults, so it holds their maps and a load writes into them
+packages: ./settings
+tests: TestTwoConfigurationsShareNothing
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..8a5f0d9 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -165,6 +165,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 	layers = append(layers, flags...)
+ 
+ 	result := reflect.ValueOf(&loaded.Config).Elem()
++	result.Set(reflect.ValueOf(defaults))
+ 	sources := map[string]Source{}
+ 	for _, a := range layers {
+ 		if a.entry {

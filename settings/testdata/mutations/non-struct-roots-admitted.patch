@@ -1,0 +1,20 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a root type that is not a struct is no longer refused
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_root_that_is_not_a_struct
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..2704cea 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -51,9 +51,6 @@ const (
+ 
+ // declare walks the root type. Every refusal here is a mistake in the code, not in a deployment.
+ func declare(t reflect.Type) (*node, error) {
+-	if t.Kind() != reflect.Struct {
+-		return nil, fmt.Errorf("the root configuration type %s is not a struct", t)
+-	}
+ 	root, err := declareType(t, "", false)
+ 	if err != nil {
+ 		return nil, err

@@ -1,0 +1,19 @@
+control: Every argument is a flag naming a declared value, once, with a value
+removes: a flag that names no value is skipped, as is one whose value does not decode
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_unknown_flag TestEveryMistakeIsRefusedAtStart/a_case-changed_flag TestEveryMistakeIsRefusedAtStart/a_flag_naming_a_section TestEveryMistakeIsRefusedAtStart/a_flag_of_the_wrong_type
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..95bbeaf 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -347,7 +347,7 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+ 		path := strings.Split(name, ".")
+ 		value, err := resolve(root, path, text)
+ 		if err != nil {
+-			return nil, "", fmt.Errorf("flag --%s: %w", name, err)
++			continue
+ 		}
+ 		out = append(out, assignment{path: path, value: value, source: Source{Layer: Flag, Name: "--" + name}})
+ 	}

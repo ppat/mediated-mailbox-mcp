@@ -1,0 +1,19 @@
+control: A required value no layer sets is refused
+removes: no required value is checked
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_required_value_no_layer_sets TestEveryMistakeIsRefusedAtStart/a_required_value_of_a_keyed_entry_no_layer_sets
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..c648a41 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -447,7 +447,7 @@ func checkRequired(n *node, v reflect.Value, path []string, sources map[string]S
+ 	case sectionKind:
+ 		for _, f := range n.fields {
+ 			at := append(slices.Clone(path), f.name)
+-			if f.required {
++			if f.required && false {
+ 				if _, ok := sources[strings.Join(at, ".")]; !ok {
+ 					return fmt.Errorf("%s is required, and neither the file, %s nor --%s sets it", strings.Join(at, "."), environmentName(at), strings.Join(at, "."))
+ 				}

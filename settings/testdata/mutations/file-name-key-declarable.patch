@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: the root may declare config_file, whose environment name is the file's
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/the_file's_own_name
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..f9e10f1 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -58,7 +58,7 @@ func declare(t reflect.Type) (*node, error) {
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if _, ok := root.field(strings.ToLower(fileVariable)); ok {
++	if _, ok := root.field(strings.ToLower(fileVariable)); ok && false {
+ 		return nil, fmt.Errorf("the root configuration type declares %s, whose environment name is the file's", strings.ToLower(fileVariable))
+ 	}
+ 	return root, nil

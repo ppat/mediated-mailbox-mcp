@@ -1,0 +1,19 @@
+control: A boolean is true or false in every layer, wherever it sits in a value
+removes: a boolean refuses false as well as the other words
+packages: ./settings
+tests: TestABooleanIsTrueOrFalse/false TestABooleanInsideAValueIsTrueOrFalse/true_and_false_are_read
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 0e4fc65..124d73f 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -401,7 +401,7 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+ 	switch t.Kind() {
+ 	case reflect.Bool:
+-		if n.Kind == yaml.ScalarNode && (n.ShortTag() != "!!bool" || (n.Value != "true" && n.Value != "false")) {
++		if n.Kind == yaml.ScalarNode && (n.ShortTag() != "!!bool" || n.Value != "true") {
+ 			return fmt.Errorf("line %d: %q is not a boolean, and a boolean is true or false", n.Line, n.Value)
+ 		}
+ 	case reflect.Slice:

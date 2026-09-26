@@ -1,0 +1,19 @@
+control: Every argument is a flag naming a declared value, once, with a value
+removes: an argument that is not a flag is skipped
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_argument_that_is_not_a_flag TestEveryMistakeIsRefusedAtStart/a_flag_with_one_dash
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..1c0490a 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -327,7 +327,7 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+ 	for _, arg := range args {
+ 		spec, ok := strings.CutPrefix(arg, "--")
+ 		if !ok {
+-			return nil, "", fmt.Errorf("argument %q: it is not a flag, and flags are written --path=VALUE", arg)
++			continue
+ 		}
+ 		name, text, ok := strings.Cut(spec, "=")
+ 		switch {

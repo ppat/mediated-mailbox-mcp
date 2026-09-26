@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a required value may have a default, which then counts as unset
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_required_value_with_a_default
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..f02c695 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -203,7 +203,7 @@ func collectDefaults(n *node, v reflect.Value, path []string, out *[]assignment)
+ 			fv := v.Field(f.index)
+ 			at := append(slices.Clone(path), f.name)
+ 			if f.required {
+-				if !fv.IsZero() {
++				if !fv.IsZero() && false {
+ 					return fmt.Errorf("%s is required and has a default", strings.Join(at, "."))
+ 				}
+ 				continue

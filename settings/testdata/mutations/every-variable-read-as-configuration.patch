@@ -1,0 +1,19 @@
+control: Every environment variable under the prefix names a declared value, in upper case, once
+removes: every variable is taken as under the prefix, so one that belongs to another program is refused
+packages: ./settings
+tests: TestLayersApplyPerValueInOrder
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..194e2d9 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -291,7 +291,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+ 	for _, entry := range sorted {
+ 		name, text, _ := strings.Cut(entry, "=")
+ 		upper := strings.ToUpper(name)
+-		if !strings.HasPrefix(upper, Prefix) {
++		if !strings.HasPrefix(upper, "") {
+ 			continue
+ 		}
+ 		switch {

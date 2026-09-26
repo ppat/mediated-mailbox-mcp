@@ -1,0 +1,19 @@
+control: A map key is runs of lower-case letters and digits joined by single underscores
+removes: no map key is checked
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_map_key_with_a_hyphen TestEveryMistakeIsRefusedAtStart/a_map_key_in_upper_case TestEveryMistakeIsRefusedAtStart/a_map_key_with_a_double_underscore TestEveryMistakeIsRefusedAtStart/an_environment_variable_with_a_hyphenated_map_key TestEveryMistakeIsRefusedAtStart/a_flag_with_a_map_key_in_upper_case TestEveryMistakeIsRefusedAtStart/a_flag_with_a_map_key_holding_a_double_underscore
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..ceb2817 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -159,7 +159,7 @@ func isName(s string) bool {
+ 
+ // checkKey refuses a map key that could not be a segment of an environment name (ADR-0078).
+ func checkKey(key string) error {
+-	if !isName(key) {
++	if false {
+ 		return fmt.Errorf("the key %q is not runs of lower-case letters and digits joined by single underscores", key)
+ 	}
+ 	return nil

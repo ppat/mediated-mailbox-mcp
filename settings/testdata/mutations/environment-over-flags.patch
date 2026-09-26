@@ -1,0 +1,20 @@
+control: Values layer per value in the order defaults, file, environment, flags
+removes: the environment is applied after the flags, so it overrides them
+packages: ./settings
+tests: TestLayersApplyPerValueInOrder TestEachValueRecordsTheLayerThatSetIt
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..6a7ad53 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -161,8 +161,8 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 	if err != nil {
+ 		return loaded, err
+ 	}
+-	layers = append(layers, env...)
+ 	layers = append(layers, flags...)
++	layers = append(layers, env...)
+ 
+ 	result := reflect.ValueOf(&loaded.Config).Elem()
+ 	sources := map[string]Source{}

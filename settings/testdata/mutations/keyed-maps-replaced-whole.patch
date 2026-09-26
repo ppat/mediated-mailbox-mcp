@@ -1,0 +1,57 @@
+control: Values layer per value in the order defaults, file, environment, flags
+removes: the last layer that names any key of a map sets the whole map, so the keys earlier layers set are dropped
+packages: ./settings
+tests: TestLayersApplyPerValueInOrder TestEachValueRecordsTheLayerThatSetIt
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..b0c2996 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -163,6 +163,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 	}
+ 	layers = append(layers, env...)
+ 	layers = append(layers, flags...)
++	layers = lastLayerPerMap(root, layers)
+ 
+ 	result := reflect.ValueOf(&loaded.Config).Elem()
+ 	sources := map[string]Source{}
+@@ -398,6 +399,38 @@ func describePath(path []string) string {
+ 	return strings.Join(path, ".")
+ }
+ 
++func lastLayerPerMap(root *node, layers []assignment) []assignment {
++	mapOf := func(path []string) (string, bool) {
++		n := root
++		for i, segment := range path {
++			switch n.kind {
++			case keyedKind:
++				return strings.Join(path[:i], "."), true
++			case sectionKind:
++				f, _ := n.field(segment)
++				n = f.node
++			case valueKind:
++				return "", false
++			}
++		}
++		return "", false
++	}
++	last := map[string]Layer{}
++	for _, a := range layers {
++		if m, ok := mapOf(a.path); ok {
++			last[m] = a.source.Layer
++		}
++	}
++	var out []assignment
++	for _, a := range layers {
++		if m, ok := mapOf(a.path); ok && a.source.Layer != last[m] {
++			continue
++		}
++		out = append(out, a)
++	}
++	return out
++}
++
+ // set stores value at path under v, creating each map on the way. An invalid value creates the
+ // way and stores nothing.
+ func set(v reflect.Value, n *node, path []string, value reflect.Value) {

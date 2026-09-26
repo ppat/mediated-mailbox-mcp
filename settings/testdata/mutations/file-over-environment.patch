@@ -1,0 +1,29 @@
+control: Values layer per value in the order defaults, file, environment, flags
+removes: the file is applied after the environment, so it overrides it
+packages: ./settings
+tests: TestLayersApplyPerValueInOrder TestAListFromALaterLayerReplacesTheWholeList
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..95f2c53 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -152,6 +152,8 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 	if err != nil {
+ 		return loaded, err
+ 	}
++	file := layers
++	layers = nil
+ 	switch {
+ 	case fileFromFlag != "":
+ 		layers, err = readFile[T](root, fileFromFlag, layers)
+@@ -161,7 +163,8 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 	if err != nil {
+ 		return loaded, err
+ 	}
+-	layers = append(layers, env...)
++	layers = append(append(layers[:0:0], env...), layers...)
++	layers = append(file, layers...)
+ 	layers = append(layers, flags...)
+ 
+ 	result := reflect.ValueOf(&loaded.Config).Elem()

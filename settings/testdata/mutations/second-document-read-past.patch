@@ -1,0 +1,18 @@
+control: A configuration text holds exactly one document
+removes: a second document is no longer looked for, so only the first is read
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_second_document TestEveryMistakeIsRefusedAtStart/an_empty_second_document TestEveryMistakeIsRefusedAtStart/an_environment_variable_holding_a_second_document
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..00a98b7 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -40,7 +40,6 @@ func parse(text []byte) (*yaml.Node, error) {
+ 	var next yaml.Node
+ 	switch err := dec.Decode(&next); {
+ 	case err == nil:
+-		return nil, fmt.Errorf("line %d: a second document starts, and only one is read", next.Line)
+ 	case !errors.Is(err, io.EOF):
+ 		return nil, err
+ 	}

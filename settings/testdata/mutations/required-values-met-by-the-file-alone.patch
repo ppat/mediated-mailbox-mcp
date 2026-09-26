@@ -1,0 +1,19 @@
+control: A required value no layer sets is refused
+removes: a required value counts as set only when the file sets it
+packages: ./settings
+tests: TestARequiredValueIsMetByAnyLayer/the_environment TestARequiredValueIsMetByAnyLayer/a_flag
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..a73a74b 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -448,7 +448,7 @@ func checkRequired(n *node, v reflect.Value, path []string, sources map[string]S
+ 		for _, f := range n.fields {
+ 			at := append(slices.Clone(path), f.name)
+ 			if f.required {
+-				if _, ok := sources[strings.Join(at, ".")]; !ok {
++				if source, ok := sources[strings.Join(at, ".")]; !ok || source.Layer != File {
+ 					return fmt.Errorf("%s is required, and neither the file, %s nor --%s sets it", strings.Join(at, "."), environmentName(at), strings.Join(at, "."))
+ 				}
+ 			}

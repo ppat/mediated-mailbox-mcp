@@ -1,0 +1,17 @@
+control: The database section is validated before anything else starts
+removes: a TLS mode the driver does not accept passes validation
+packages: ./backfill/internal/core/connection
+tests: TestAnUnusableValueIsRefused/an_unknown_TLS_mode TestAnUnusableValueIsRefused/an_empty_TLS_mode
+scheduled-count: no
+
+diff --git a/backfill/internal/core/connection/connection.go b/backfill/internal/core/connection/connection.go
+index c672e53..00a4268 100644
+--- a/backfill/internal/core/connection/connection.go
++++ b/backfill/internal/core/connection/connection.go
+@@ -40,5 +40,6 @@ func Validate(c Config) error {
+ 	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+ 		return nil
+ 	}
++	return nil
+ 	return errors.New("database.sslmode " + strconv.Quote(c.SSLMode) + " is not disable, allow, prefer, require, verify-ca or verify-full")
+ }

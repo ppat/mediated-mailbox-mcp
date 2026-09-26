@@ -1,0 +1,19 @@
+control: A section's revision follows its effective value, whichever layer set it
+removes: each revision is taken over the section's defaults, so a change in a later layer leaves it as it was
+packages: ./settings
+tests: TestASectionsRevisionFollowsItsEffectiveValue/the_file_changes_a_trigger_word TestASectionsRevisionFollowsItsEffectiveValue/the_environment_adds_a_language TestASectionsRevisionFollowsItsEffectiveValue/a_flag_changes_the_threshold TestASectionsRevisionFollowsItsEffectiveValue/a_flag_changes_the_server
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..282d37a 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -184,7 +184,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 	slices.SortFunc(loaded.Values, func(a, b Value) int { return strings.Compare(a.Path, b.Path) })
+ 	loaded.Revisions = map[string]string{}
+ 	for _, f := range root.fields {
+-		text, err := yaml.Marshal(result.Field(f.index).Interface())
++		text, err := yaml.Marshal(reflect.ValueOf(defaults).Field(f.index).Interface())
+ 		if err != nil {
+ 			return Loaded[T]{}, fmt.Errorf("%s: %w", f.name, err)
+ 		}

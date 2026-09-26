@@ -1,0 +1,18 @@
+control: The analyser refuses a read of the environment outside a deployable's composition root
+removes: (*exec.Cmd).Environ is not reported, so a command's inherited environment escapes
+packages: ./testsupport/analysis
+tests: TestEnvironment
+scheduled-count: no
+
+diff --git a/testsupport/analysis/environment.go b/testsupport/analysis/environment.go
+index 2ae095e..825955c 100644
+--- a/testsupport/analysis/environment.go
++++ b/testsupport/analysis/environment.go
+@@ -42,7 +42,6 @@ var environmentReaders = map[string]string{
+ 	"os.ExpandEnv":           "reads the environment with os.ExpandEnv",
+ 	"syscall.Getenv":         "reads the environment with syscall.Getenv",
+ 	"syscall.Environ":        "reads the environment with syscall.Environ",
+-	"(*os/exec.Cmd).Environ": "reads the environment with (*exec.Cmd).Environ",
+ }
+ 
+ func runEnvironment(pass *analysis.Pass) (any, error) {

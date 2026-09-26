@@ -1,0 +1,19 @@
+control: Every environment variable under the prefix names a declared value, in upper case, once
+removes: only a name starting with the prefix in upper case is under it, so a variable with the prefix in lower case is skipped
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_with_the_prefix_in_lower_case
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..f5a2df1 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -291,7 +291,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+ 	for _, entry := range sorted {
+ 		name, text, _ := strings.Cut(entry, "=")
+ 		upper := strings.ToUpper(name)
+-		if !strings.HasPrefix(upper, Prefix) {
++		if !strings.HasPrefix(name, Prefix) {
+ 			continue
+ 		}
+ 		switch {

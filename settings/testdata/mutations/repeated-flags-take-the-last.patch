@@ -1,0 +1,19 @@
+control: Every argument is a flag naming a declared value, once, with a value
+removes: a flag given twice is no longer refused, so the later one wins
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_flag_given_twice
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..3ff33c2 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -333,8 +333,6 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+ 		switch {
+ 		case !ok:
+ 			return nil, "", fmt.Errorf("flag --%s: it has no value, and flags are written --%s=VALUE", name, name)
+-		case seen[name]:
+-			return nil, "", fmt.Errorf("flag --%s: it is given twice", name)
+ 		}
+ 		seen[name] = true
+ 		if name == fileFlag {

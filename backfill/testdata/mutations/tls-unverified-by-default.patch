@@ -1,0 +1,19 @@
+control: Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
+removes: the TLS mode defaults to prefer, which does not verify the server
+packages: ./backfill
+tests: TestTheDefaults
+scheduled-count: no
+
+diff --git a/backfill/main.go b/backfill/main.go
+index ac6189f..e1117d3 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -34,7 +34,7 @@ type Configuration struct {
+ // defaults are backfill's defaults. The user is backfill's own runtime role (ADR-0075), and the TLS
+ // mode is the one that fails closed.
+ func defaults() Configuration {
+-	return Configuration{Database: coreconnection.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"}}
++	return Configuration{Database: coreconnection.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "prefer"}}
+ }
+ 
+ func main() {

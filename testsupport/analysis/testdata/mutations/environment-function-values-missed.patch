@@ -1,0 +1,31 @@
+control: The analyser refuses a read of the environment outside a deployable's composition root
+removes: only a call is reported, so a reader passed on as a function value escapes
+packages: ./testsupport/analysis
+tests: TestEnvironment
+scheduled-count: no
+
+diff --git a/testsupport/analysis/environment.go b/testsupport/analysis/environment.go
+index 7b9eab8..841a828 100644
+--- a/testsupport/analysis/environment.go
++++ b/testsupport/analysis/environment.go
+@@ -61,10 +61,19 @@ func runEnvironment(pass *analysis.Pass) (any, error) {
+ 			continue
+ 		}
+ 		ast.Inspect(file, func(n ast.Node) bool {
+-			id, ok := n.(*ast.Ident)
++			call, ok := n.(*ast.CallExpr)
+ 			if !ok {
+ 				return true
+ 			}
++			var id *ast.Ident
++			switch f := call.Fun.(type) {
++			case *ast.SelectorExpr:
++				id = f.Sel
++			case *ast.Ident:
++				id = f
++			default:
++				return true
++			}
+ 			fn, ok := pass.TypesInfo.Uses[id].(*types.Func)
+ 			if !ok {
+ 				return true

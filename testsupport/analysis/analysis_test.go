@@ -24,3 +24,14 @@ func TestGlobals(t *testing.T) {
 		m+"core/state", m+"mediate/internal/core/plan", m+"ratelimit/core/limits", m+"mediate/wiring",
 		m+"corex/lookalike", m+"tools/extra/core/nested")
 }
+
+// The cases under testdata/src stand for a deployable's composition root and the rest of its
+// package, its internal code, a shared library with its test file, the test tooling, an operator
+// command, the module's root, functions of other packages named like the readers, and a package
+// outside this module.
+func TestEnvironment(t *testing.T) {
+	const m = "github.com/ppat/mediated-mailbox-mcp"
+	analysistest.Run(t, analysistest.TestData(), analysis.Environment,
+		m, m+"/backfill", m+"/backfill/internal/run", m+"/settings", m+"/testsupport/tool",
+		m+"/provider/gmail/cmd/consent", m+"/core/names", "example.com/other")
+}

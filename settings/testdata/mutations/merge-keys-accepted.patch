@@ -1,0 +1,19 @@
+control: An explicit null, an alias or a merge key is refused in every layer
+removes: a merge key is no longer refused, so it sets the values of the mapping it names
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_merge_key_without_an_alias
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..76a9196 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -65,7 +65,7 @@ func check(n *yaml.Node) error {
+ 		return fmt.Errorf("line %d: an explicit null, and a value is given or left out", n.Line)
+ 	}
+ 	for i, child := range n.Content {
+-		if n.Kind == yaml.MappingNode && i%2 == 0 && child.ShortTag() == "!!merge" {
++		if n.Kind == yaml.MappingNode && i%2 == 0 && child.ShortTag() == "!!merge" && false {
+ 			return fmt.Errorf("line %d: a merge key, and merge keys are refused", child.Line)
+ 		}
+ 		if err := check(child); err != nil {

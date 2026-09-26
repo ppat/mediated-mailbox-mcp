@@ -1,0 +1,17 @@
+control: Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
+removes: a value is quoted without escaping its quotes and backslashes, so it can end its string and add a setting of its own
+packages: ./backfill/internal/connection
+tests: TestAValueCannotChangeAnotherSetting
+scheduled-count: no
+
+diff --git a/backfill/internal/connection/connection.go b/backfill/internal/connection/connection.go
+index 2795042..c660ab3 100644
+--- a/backfill/internal/connection/connection.go
++++ b/backfill/internal/connection/connection.go
+@@ -73,5 +73,5 @@ func readPassword(path string) (string, error) {
+ // quote writes a value of the keyword/value connection string, quoted, with a backslash or a quote
+ // escaped, so a value cannot end its quoted string and add a setting of its own.
+ func quote(value string) string {
+-	return "'" + strings.NewReplacer(`\`, `\\`, `'`, `\'`).Replace(value) + "'"
++	return "'" + value + "'"
+ }

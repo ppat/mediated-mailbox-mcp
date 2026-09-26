@@ -1,0 +1,18 @@
+control: Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
+removes: the user is left out of the connection string, so PGUSER sets it
+packages: ./backfill/internal/connection
+tests: TestTheConnectionIsTheConfigurations
+scheduled-count: no
+
+diff --git a/backfill/internal/connection/connection.go b/backfill/internal/connection/connection.go
+index 2795042..fb49c4d 100644
+--- a/backfill/internal/connection/connection.go
++++ b/backfill/internal/connection/connection.go
+@@ -39,7 +39,6 @@ func PoolConfig(c core.Config) (*pgxpool.Config, error) {
+ 		"host=" + quote(c.Host),
+ 		"port=" + quote(strconv.Itoa(c.Port)),
+ 		"dbname=" + quote(c.Name),
+-		"user=" + quote(c.User),
+ 		"sslmode=" + quote(c.SSLMode),
+ 		"sslrootcert=" + quote(c.SSLRootCert),
+ 	}

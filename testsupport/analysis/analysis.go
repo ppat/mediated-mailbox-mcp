@@ -1,10 +1,13 @@
 // Package analysis holds the project's go vet analysers, as a library. Placement carries the rules
-// ADR-0069 sets on property tests, and Globals the rule ADR-0071 sets against package-level state in
-// a pure core. The program under testsupport/cmd/vetcheck runs both through go vet, beside
-// golangci-lint.
+// ADR-0069 sets on property tests, Globals the rule ADR-0071 sets against package-level state in a
+// pure core, and Environment the rule ADR-0078 sets against reading the environment outside a
+// deployable's composition root. The program under testsupport/cmd/vetcheck runs them through go
+// vet, beside golangci-lint.
 //
 // The analysers honour no suppression comment, which is why they run under go vet rather than as
-// golangci-lint plugins.
+// golangci-lint plugins. The environment rule is scoped by path, and forbidigo could carry that
+// scope only through an exclusion naming a linter that stands in for a control, which ADR-0071
+// refuses.
 //
 // Code runs inside a property when it is a function handed to rapid to run for each generated case,
 // or anything such a function calls in the same package. rapid re-runs a failing property many times

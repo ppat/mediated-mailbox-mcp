@@ -1,0 +1,19 @@
+control: A configuration text holds exactly one document
+removes: a text holding no document is read as a document setting no value
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_file_of_comments_alone
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..b1f7d8a 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -33,7 +33,7 @@ func parse(text []byte) (*yaml.Node, error) {
+ 	var doc yaml.Node
+ 	if err := dec.Decode(&doc); err != nil {
+ 		if errors.Is(err, io.EOF) {
+-			return nil, errors.New("holds no document, and an empty document is a null")
++			return &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}, nil
+ 		}
+ 		return nil, err
+ 	}
