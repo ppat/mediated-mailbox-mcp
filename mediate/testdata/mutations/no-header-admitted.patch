@@ -1,0 +1,22 @@
+control: Every request to the client surface passes the bearer check before either root
+removes: a request carrying no Authorization header is admitted
+packages: ./mediate
+tests: TestEveryRequestPassesTheBearerCheckFirst/the_API_root_without_a_token TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_without_a_token TestEveryRequestPassesTheBearerCheckFirst/a_path_outside_both_roots,_unauthenticated
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index b3651a5..f49d8db 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -200,6 +200,10 @@ func surface(registry service.Registry, tokenFile string) http.Handler {
+ // is read on each request. A file that cannot be read or holds no token admits nothing.
+ func bearer(tokenFile string, next http.Handler) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		if r.Header.Get("Authorization") == "" {
++			next.ServeHTTP(w, r)
++			return
++		}
+ 		want, err := os.ReadFile(tokenFile) //nolint:gosec // the operator names the mounted file the token is read from
+ 		if err != nil {
+ 			slog.ErrorContext(r.Context(), "reading the bearer token failed", "error", err)

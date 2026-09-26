@@ -19,6 +19,9 @@ an image, because only test files and the tooling programs import it. Its packag
 - `property`, the generator report, failing-case store and operation sampler of
   [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md).
 - `crash`, the crash harness of [ADR-0045](../docs/adr/engineering/0045-crash-injection-testing.md).
+- `marker`, the marker text of
+  [ADR-0044](../docs/adr/engineering/0044-synthetic-fixtures-marker-text.md) that fixtures and
+  generated mail values carry.
 - `fixture`, the synthetic fixtures.
 - `postgres`, what an integration test package needs to reach its database, and the application of
   the bootstrap and the migration chain to an empty database that `pgrun` and the chain's own tests

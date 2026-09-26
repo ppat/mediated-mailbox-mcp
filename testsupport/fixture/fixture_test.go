@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 )
 
 // texts returns the text each field of m holds, a list field's elements joined. A field is read by

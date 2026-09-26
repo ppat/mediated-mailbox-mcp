@@ -1,0 +1,24 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: the API root drops an account_id given in the body, so the path's account is taken without a check for a second one
+packages: ./mediate/internal/api
+tests: TestTheRootRefusesWhatItCannotBind/an_account_in_the_body_beside_the_path's TestTheRootRefusesWhatItCannotBind/a_case-variant_account_in_the_body
+scheduled-count: no
+
+
+diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
+index cc14950..2fa4874 100644
+--- a/mediate/internal/api/api.go
++++ b/mediate/internal/api/api.go
+@@ -162,7 +162,11 @@ func (rt route) arguments(w http.ResponseWriter, r *http.Request) (json.RawMessa
+ 		if err != nil {
+ 			return nil, errors.New("the request body is not a JSON object")
+ 		}
+-		members = append(members, bodyMembers...)
++		for _, m := range bodyMembers {
++			if !strings.EqualFold(m.key, "account_id") {
++				members = append(members, m)
++			}
++		}
+ 	}
+ 	seen := map[string]bool{}
+ 	var object bytes.Buffer

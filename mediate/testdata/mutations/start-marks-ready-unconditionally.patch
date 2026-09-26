@@ -1,0 +1,22 @@
+control: The mediator reports ready only once its TLS key pair and bearer token load
+removes: the start marks the mediator ready without loading the key pair and the token
+packages: ./mediate
+tests: TestAStartThatCannotServeFailsAndNeverReportsReady
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 91cec55..172c013 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -157,9 +157,7 @@ func run(ctx context.Context, args []string) error {
+ 	errs := make(chan error, 3)
+ 	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
+ 	go func() { errs <- serveProbes(probeServer, probeListener) }()
+-	if err := markReadyWhenServable(&ready, s); err != nil {
+-		errs <- err
+-	}
++	ready.MarkReady()
+ 	slog.Info("serving", "surface", s.listen, "probes", s.probeListen)
+ 
+ 	select {

@@ -1,0 +1,22 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: a response whose handler writes only its body keeps the caching headers the handler set
+packages: ./mediate
+tests: TestNoStoreOverridesAHandlersCaching
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index d1f0451..2dceb4a 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -295,9 +295,7 @@ func (w *noStoreWriter) WriteHeader(status int) {
+ }
+ 
+ func (w *noStoreWriter) Write(b []byte) (int, error) {
+-	if !w.wroteHeader {
+-		w.WriteHeader(http.StatusOK)
+-	}
++	w.wroteHeader = true
+ 	return w.ResponseWriter.Write(b)
+ }
+ 

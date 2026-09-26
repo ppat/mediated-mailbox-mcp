@@ -1,0 +1,20 @@
+control: The client surface is served over TLS unless an ingress in front is declared to terminate it, with the key pair read from its mounted files
+removes: the client surface is served over plain HTTP whatever its settings
+packages: ./mediate
+tests: TestTheSurfaceIsServedOverTLSOnly
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index b3651a5..7c3a0d9 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -171,7 +171,7 @@ func serveSurface(srv *http.Server, ln net.Listener) error {
+ 	if srv.TLSConfig == nil {
+ 		return stopped(srv.Serve(ln))
+ 	}
+-	return stopped(srv.ServeTLS(ln, "", ""))
++	return stopped(srv.Serve(ln))
+ }
+ 
+ // serveProbes serves the probes and the metrics endpoint on ln until it is shut down.

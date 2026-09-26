@@ -1,0 +1,20 @@
+control: Both roots hand the service layer the same argument object
+removes: arguments holding a key twice are refused only when both spellings match exactly
+packages: ./mediate/internal/service ./mediate/internal/api
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_argument_beside_a_case_variant_of_it TestTheRootRefusesWhatItCannotBind/a_case_variant_of_a_path_variable_in_the_body TestTheRootRefusesWhatItCannotBind/a_case_variant_of_a_body_member
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index c7bb370..03fea8c 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -202,7 +202,7 @@ func distinctKeys(input json.RawMessage) error {
+ 			return ErrNotAnObject
+ 		}
+ 		for _, seen := range keys {
+-			if strings.EqualFold(seen, key) {
++			if seen == key {
+ 				if strings.EqualFold(key, "account_id") {
+ 					return ErrAmbiguousAccount
+ 				}

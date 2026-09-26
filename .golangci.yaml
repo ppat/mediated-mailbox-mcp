@@ -223,6 +223,7 @@ linters:
           - "pgregory.net/rapid$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
 
@@ -288,6 +289,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/prometheus/client_golang/prometheus$"
@@ -308,6 +310,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
 
         # The rate limiter, every file. Its pure rules under ratelimit/core also meet the pure-core lists. It is a
         # library, so it connects as no role of its own. db/check plans the statements of the subsections it names
@@ -354,6 +357,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/yuin/goldmark$"
           - "github.com/yuin/goldmark/"
@@ -437,6 +441,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           # banproof reads .golangci.yaml.
@@ -478,26 +483,35 @@ linters:
         # Deployable mediate, every file. A deployable imports its own code and the shared libraries, never another
         # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
         # It names each data-access subsection it may use, which db/check tests against its role's grants.
+        # The MCP root's generator is left out, because it alone imports the MCP SDK, and its own list governs it.
         mediate:
           list-mode: strict
           files:
           - "${base-path}/mediate/**.go"
+          - "!${base-path}/mediate/internal/mcp/mcp.go"
           allow:
           - "$gostd"
+          - "github.com/getkin/kin-openapi/openapi3$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
+          - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_golang/prometheus/promhttp$"
           - "pgregory.net/rapid$"
 
         # Deployable organize, every file. A deployable imports its own code and the shared libraries, never another
@@ -598,28 +612,78 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "pgregory.net/rapid$"
 
-        # The mediator's API root reaches the service layer and nothing below it (ADR-0030).
+        # The mediator's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated
+        # from the operation registry by one file, its generator, and only the generator imports the library its
+        # protocol is served with, so an operation cannot be registered on a root anywhere else (ADR-0053). The
+        # other files of a root import no standard-library package at all.
         mediate-api-root:
           list-mode: strict
           files:
           - "${base-path}/mediate/internal/api/**.go"
+          - "!${base-path}/mediate/internal/api/api.go"
           - "!$test"
           allow:
-          - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/api$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/api/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
 
-        # The mediator's MCP root reaches the service layer and nothing below it (ADR-0030).
+        # Every package of the mediator but the two roots serves no HTTP, so none can register an operation on the
+        # client surface outside the roots' generators (ADR-0053). A new package under internal falls under it
+        # without being named. It admits the standard-library packages and the pure core these packages import,
+        # and nothing under net/http. A package added here that imports anything else adds its entry with it.
+        mediate-no-http:
+          list-mode: strict
+          files:
+          - "${base-path}/mediate/internal/**.go"
+          - "!${base-path}/mediate/internal/api/**"
+          - "!${base-path}/mediate/internal/mcp/**"
+          - "!$test"
+          allow:
+          - "bytes$"
+          - "context$"
+          - "encoding/json$"
+          - "errors$"
+          - "fmt$"
+          - "regexp$"
+          - "slices$"
+          - "strconv$"
+          - "strings$"
+          - "sync/atomic$"
+          - "unicode$"
+          - "unicode/utf8$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+
+        # The API root's generator, which serves HTTP.
+        mediate-api-generator:
+          list-mode: strict
+          files:
+          - "${base-path}/mediate/internal/api/api.go"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+
+        # The mediator's MCP root reaches the service layer and nothing below it (ADR-0030), under the same rule
+        # as the API root.
         mediate-mcp-root:
           list-mode: strict
           files:
           - "${base-path}/mediate/internal/mcp/**.go"
+          - "!${base-path}/mediate/internal/mcp/mcp.go"
           - "!$test"
           allow:
-          - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp/"
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+
+        # The MCP root's generator, the one file of the mediator the MCP SDK is admitted in (ADR-0086).
+        mediate-mcp-generator:
+          list-mode: strict
+          files:
+          - "${base-path}/mediate/internal/mcp/mcp.go"
+          allow:
+          - "$gostd"
+          - "github.com/modelcontextprotocol/go-sdk/jsonrpc$"
+          - "github.com/modelcontextprotocol/go-sdk/mcp$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
 
         # Every non-test file outside test tooling. Test tooling, the provider fake, the contract suite, rapid and
@@ -637,6 +701,8 @@ linters:
           - "github.com/JohannesKaufmann/html-to-markdown/v2/"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
+          - "github.com/modelcontextprotocol/go-sdk/jsonrpc$"
+          - "github.com/modelcontextprotocol/go-sdk/mcp$"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
@@ -654,6 +720,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
           - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_golang/prometheus/promhttp$"
           # The configuration library's decoder (ADR-0078).
           - "go.yaml.in/yaml/v3$"
           # Restores the standard library under go/, which the entry above hides (see the notes at the top).
@@ -694,6 +761,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"

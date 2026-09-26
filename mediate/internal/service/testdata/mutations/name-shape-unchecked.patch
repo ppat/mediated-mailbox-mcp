@@ -1,0 +1,20 @@
+control: An operation carrying anything less than both roots need fails generation
+removes: an operation generates under any name, one no tool can carry included
+packages: ./mediate/internal/service
+tests: TestAOneSidedEntryFailsGeneration/no_name TestAOneSidedEntryFailsGeneration/a_name_no_tool_can_carry TestAOneSidedEntryFailsGeneration/a_name_starting_with_a_digit TestAOneSidedEntryFailsGeneration/a_name_too_long_for_a_tool
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 50e5496..d2d87ca 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -50,7 +50,7 @@ type Registry struct {
+ }
+ 
+ // validName is the shape of an operation's name.
+-var validName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
++var validName = regexp.MustCompile(`.*`)
+ 
+ // NewRegistry validates ops and returns the registry holding them, or every problem found. An
+ // operation with no name, no description, no handler or an input or output that is not an object

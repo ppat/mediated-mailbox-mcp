@@ -1,0 +1,20 @@
+control: The MCP root offers tools and nothing else
+removes: the server is built with no options, so the SDK's default capabilities are advertised
+packages: ./mediate/internal/mcp
+tests: TestTheRootOffersToolsOnly
+scheduled-count: no
+
+
+diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
+index 8b7ebf3..2ad48b5 100644
+--- a/mediate/internal/mcp/mcp.go
++++ b/mediate/internal/mcp/mcp.go
+@@ -22,7 +22,7 @@ func Handler(reg service.Registry, version string) http.Handler {
+ 	// changing tool list, and an agent then holds a subscription stream open against the server.
+ 	server := sdk.NewServer(
+ 		&sdk.Implementation{Name: "mediated-mailbox-mediate", Version: version},
+-		&sdk.ServerOptions{Capabilities: &sdk.ServerCapabilities{Tools: &sdk.ToolCapabilities{}}},
++		nil,
+ 	)
+ 	for _, op := range reg.Operations() {
+ 		server.AddTool(&sdk.Tool{

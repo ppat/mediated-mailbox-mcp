@@ -1,0 +1,20 @@
+control: The registry refuses at build time anything that could express approval or bind an argument to a header
+removes: a schema carrying x-mcp-header generates
+packages: ./mediate/internal/service
+tests: TestTheSurfaceRefusesWhatItCannotCarry/x-mcp-header_in_the_input TestTheSurfaceRefusesWhatItCannotCarry/x-mcp-header_in_the_output
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/surface.go b/mediate/internal/service/surface.go
+index ce64c76..28ee507 100644
+--- a/mediate/internal/service/surface.go
++++ b/mediate/internal/service/surface.go
+@@ -182,7 +182,7 @@ func surfaceProblems(op Operation) []string {
+ 	if op.Effect != Read && op.Effect != StructuredRead && holdsKey(op.Input, "status") {
+ 		problems = append(problems, "changes the mailbox and declares a property named status in its input")
+ 	}
+-	if holdsKey(op.Input, "x-mcp-header") || holdsKey(op.Output, "x-mcp-header") {
++	if false {
+ 		problems = append(problems, "has a schema carrying x-mcp-header")
+ 	}
+ 	return problems

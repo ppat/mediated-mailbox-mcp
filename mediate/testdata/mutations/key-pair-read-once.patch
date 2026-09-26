@@ -1,0 +1,23 @@
+control: The client surface is served over TLS unless an ingress in front is declared to terminate it, with the key pair read from its mounted files
+removes: the key pair is read once, when the configuration is built, so a rotated pair never serves
+packages: ./mediate
+tests: TestTheSurfaceIsServedOverTLSOnly
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index b3651a5..7d5de46 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -221,10 +221,10 @@ func tlsConfig(certFile, keyFile string, atIngress bool) *tls.Config {
+ 	if atIngress {
+ 		return nil
+ 	}
++	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
+ 	return &tls.Config{
+ 		MinVersion: tls.VersionTLS12,
+ 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+-			pair, err := tls.LoadX509KeyPair(certFile, keyFile)
+ 			if err != nil {
+ 				return nil, fmt.Errorf("loading the TLS key pair: %w", err)
+ 			}

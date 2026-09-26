@@ -1,0 +1,20 @@
+control: The mediator refuses to start while MCPGODEBUG is set
+removes: an MCPGODEBUG set to the empty string is taken as unset
+packages: ./mediate
+tests: TestMCPGODEBUGStopsTheStart
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 91cec55..bd9e0bd 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -199,7 +199,7 @@ func loadPolicy(ctx context.Context, pool *pgxpool.Pool, accounts []string, metr
+ // a stateless server among them. pgx reads the two passwords on every parse, and either would win
+ // over the mounted password file.
+ func refuseEnvironment() error {
+-	if _, set := os.LookupEnv("MCPGODEBUG"); set {
++	if os.Getenv("MCPGODEBUG") != "" {
+ 		return errors.New("MCPGODEBUG is set, and the mediator runs the MCP SDK only as it ships (ADR-0086)")
+ 	}
+ 	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {

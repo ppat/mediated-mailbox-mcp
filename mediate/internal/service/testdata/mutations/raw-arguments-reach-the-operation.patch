@@ -1,0 +1,28 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: the operation receives the arguments as sent, account_id included, so it can read an account other than the one checked
+packages: ./mediate/internal/service
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/a_served_account TestTheServiceLayerRefusesAMissingOrUnknownAccount/a_served_account_and_nothing_else
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index c7bb370..fb44cff 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -170,14 +170,14 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
+ 	if op.Path == accountsPath {
+ 		return op.Handle(ctx, "", input)
+ 	}
+-	account, rest, err := splitAccount(input)
++	account, _, err := splitAccount(input)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 	if !r.known[account] {
+ 		return nil, ErrUnknownAccount
+ 	}
+-	return op.Handle(ctx, account, rest)
++	return op.Handle(ctx, account, input)
+ }
+ 
+ // distinctKeys refuses a JSON object holding two top-level keys equal under case folding, and

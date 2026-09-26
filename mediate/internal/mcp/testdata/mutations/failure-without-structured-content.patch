@@ -1,0 +1,19 @@
+control: A failed call answers with the service layer's structured failure on both roots
+removes: an MCP error result carries the failure as text only, with no structured content
+packages: ./mediate/internal/mcp
+tests: TestAToolCallRunsTheOperation
+scheduled-count: no
+
+
+diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
+index dc9668f..79763f4 100644
+--- a/mediate/internal/mcp/mcp.go
++++ b/mediate/internal/mcp/mcp.go
+@@ -52,7 +52,6 @@ func call(reg service.Registry, name string) sdk.ToolHandler {
+ 			failure := service.Failure(err)
+ 			return &sdk.CallToolResult{
+ 				IsError:           true,
+-				StructuredContent: failure,
+ 				Content:           []sdk.Content{&sdk.TextContent{Text: string(failure)}},
+ 			}, nil
+ 		}

@@ -1,0 +1,20 @@
+control: The MCP root offers tools and nothing else
+removes: requests for resources reach the SDK, which answers them
+packages: ./mediate/internal/mcp
+tests: TestTheRootOffersToolsOnly
+scheduled-count: no
+
+
+diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
+index fc38ed8..97179ee 100644
+--- a/mediate/internal/mcp/mcp.go
++++ b/mediate/internal/mcp/mcp.go
+@@ -62,7 +62,7 @@ func call(reg service.Registry, name string) sdk.ToolHandler {
+ // resources and a log level. The SDK answers these with empty or accepting replies whatever its
+ // options, so the root refuses them (ADR-0086).
+ func refused(method string) bool {
+-	return strings.HasPrefix(method, "prompts/") || strings.HasPrefix(method, "resources/") || method == "logging/setLevel"
++	return strings.HasPrefix(method, "prompts/") || method == "logging/setLevel"
+ }
+ 
+ // refuseBeyondTools answers a refused method as a method the server does not have. It runs inside
