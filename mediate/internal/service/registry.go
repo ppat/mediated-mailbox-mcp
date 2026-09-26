@@ -216,7 +216,8 @@ func distinctKeys(input json.RawMessage) error {
 
 // splitAccount reads a JSON object's top-level account_id string and returns it with the object
 // holding every other member, in order. Keys are compared exactly, so a key differing from
-// account_id only in case is refused rather than read.
+// account_id only in case is refused rather than read. Call has already refused an object naming the
+// account twice, through distinctKeys.
 func splitAccount(input json.RawMessage) (string, json.RawMessage, error) {
 	dec := json.NewDecoder(bytes.NewReader(input))
 	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
@@ -239,7 +240,7 @@ func splitAccount(input json.RawMessage) (string, json.RawMessage, error) {
 			return "", nil, ErrMissingAccount
 		}
 		if strings.EqualFold(key, "account_id") {
-			if key != "account_id" || account != nil {
+			if key != "account_id" {
 				return "", nil, ErrAmbiguousAccount
 			}
 			account = value
