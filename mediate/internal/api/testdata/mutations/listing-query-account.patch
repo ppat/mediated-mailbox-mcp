@@ -1,0 +1,20 @@
+control: Both roots hand the service layer the same argument object
+removes: the accounts listing takes an undeclared account_id from its query string
+packages: ./mediate/internal/api
+tests: TestTheRootRefusesWhatItCannotBind/an_account_in_the_accounts_listing's_query_string TestTheRootRefusesWhatItCannotBind/a_case-variant_account_in_the_accounts_listing's_query_string
+scheduled-count: no
+
+
+diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
+index 6d8f132..2eb1c41 100644
+--- a/mediate/internal/api/api.go
++++ b/mediate/internal/api/api.go
+@@ -193,7 +193,7 @@ func (rt route) arguments(w http.ResponseWriter, r *http.Request) (json.RawMessa
+ // refused, except an account_id on a route whose path names the account, which is kept as a string
+ // for the service layer to refuse as ambiguous. A POST takes no query parameter but that one.
+ func (rt route) queryValue(key, text string) (json.RawMessage, error) {
+-	if strings.EqualFold(key, "account_id") && rt.isPathVar("account_id") {
++	if strings.EqualFold(key, "account_id") {
+ 		return json.Marshal(text)
+ 	}
+ 	t, declared := rt.types[key]
