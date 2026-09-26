@@ -26,7 +26,8 @@ worse than a list: unauditable, non-reproducible, and silently altered by retrai
 The list is a gazetteer with normalization and suffix matching. It lives in the database as rows,
 one per rule ([ADR-0016](../data/0016-schema.md)'s `policy_rules`), and every process takes it as
 an immutable snapshot ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). A file
-form exists for import and export, and it is the form shown here:
+form exists for import and export. Every change to the list is made through the UI, which imports
+and exports that file and adds and edits rules. The file form is the one shown here:
 
 ```yaml
 rules:

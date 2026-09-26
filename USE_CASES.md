@@ -503,10 +503,10 @@ declare.**
   documents.
 - The published artifacts bringing up less than the whole system.
 
-*Scope note:* supplying the declared inputs (the database, the secret material, the policy data)
-is the deploying side's work by design. This outcome binds what must be *declared*, never what
-must be *provided*. Connecting a mailbox is not a deployment input. The operator connects each
-account through the running system's interface.
+*Scope note:* supplying the declared inputs (the database and the secret material) is the
+deploying side's work by design. This outcome binds what must be *declared*, never what must be
+*provided*. Connecting a mailbox and supplying the policy are not deployment inputs. The operator
+connects each account and imports the policy through the running system's interface.
 
 ## Non-outcomes
 

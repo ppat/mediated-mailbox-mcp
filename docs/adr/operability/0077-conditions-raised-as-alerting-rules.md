@@ -78,15 +78,15 @@ paged.
   a recovered sync gap.
 - **The application notifies a person itself.** The case for it is that the page is then proven in
   this repository. Rejected because it makes the application know its platform, against
-  [ADR-0051](../engineering/0051-environment-contract.md), and widens
-  [ADR-0014](./0014-lan-only-transport.md)'s egress to a new destination with a credential of its own.
+  [ADR-0051](../engineering/0051-environment-contract.md), and gives the application a new
+  outbound destination with a credential of its own.
 
 ## Consequences
 
 - The chart carries a template for the Prometheus Operator's `PrometheusRule`, rendered only when
   its switch is on, and the Go tests run `promtool` over the rules, so `promtool` is one of the
   pinned tools.
-- The page reaching a person is proven on the deploying side, as the write-back failure is.
+- The page reaching a person is proven on the deploying side.
 - Each spending process counts the cost of the provider requests it sends. A process that exits
   between two scrapes can leave its last requests uncounted, which matters for delta sync's short
   ticks, and how its count reaches the runaway rule is decided with delta sync. More generally the
