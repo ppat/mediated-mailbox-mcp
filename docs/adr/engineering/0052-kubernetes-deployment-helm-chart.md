@@ -22,13 +22,12 @@ may assume about the user's cluster.
 - **One Helm chart stands up every deployable** ([ADR-0049](./0049-image-per-component-lockstep.md))
   and its project-owned wiring, referencing the per-deployable images at the lockstep version.
 - **The chart deploys this project's workloads and nothing else; what the system depends on
-  but does not own arrives as user-supplied inputs.** Postgres, the Secrets holding the system's
-  secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)), and the policy file
-  arrive as Helm values or pre-existing ConfigMaps and Secrets — the policy as a
-  user-supplied ConfigMap or mounted-file reference. The policy of record lives in the database
+  but does not own arrives as user-supplied inputs.** Postgres and the Secrets holding the system's
+  secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)) arrive as Helm
+  values or pre-existing Secrets. Policy is not a chart input. It lives in the database, and it is
+  imported from a file and exported to one through the UI
   ([ADR-0004](../classification/0004-sender-list-decides.md),
-  [ADR-0041](./0041-policy-as-immutable-snapshots.md)), so this input is the file the policy
-  import reads, not a second place policy is decided. Beyond core Kubernetes, neither the chart
+  [ADR-0041](./0041-policy-as-immutable-snapshots.md)). Beyond core Kubernetes, neither the chart
   nor its tests assume anything about the cluster they land on — no external-secrets, no
   cert-manager. This is ADR-0079's boundary made concrete: a chart that accepts only values and
   pre-existing objects structurally cannot know the secret machinery. The one exception is the
@@ -78,6 +77,7 @@ may assume about the user's cluster.
   install there.
 - Assumptions about other components: the release process sets the chart `version` and
   `appVersion` to the release version; the registry serves OCI chart artifacts and the signing
-  machinery covers them as it covers images; the consuming platform supplies Postgres, the
-  Secrets, and the policy data at deploy time. Accounts are connected through the UI once the
-  system runs ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).
+  machinery covers them as it covers images; the consuming platform supplies Postgres and the
+  Secrets at deploy time. Accounts are connected and policy is imported through the UI once the
+  system runs ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md),
+  [ADR-0004](../classification/0004-sender-list-decides.md)).

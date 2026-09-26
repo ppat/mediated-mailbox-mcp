@@ -401,15 +401,16 @@ redesign after agent workflows exist.
 
 **Units:** [D3](#group-d--data-flows) · [D4](#group-d--data-flows) ·
 [M3](#group-m--mutation-and-approval) · [M7](#group-m--mutation-and-approval) ·
-[R1](#group-r--packaging), then [production point 1](#production-point-1--the-read-path). **Value
-shipped:** the first value from the deployed system, an agent doing whole-mailbox analysis over
-live, current data, with the invariant proven against a live adversary (the operator deliberately
-trying to talk the real agent into a restricted body) before the point, the UI's screens that show
-the read path's work, runs, failures, rate and sync state, so the operator can watch production
-point 1 and judge it, and the guided flow in the UI through which the operator connects the
-mailbox and repairs it. **Why here:**
-connecting the agent read-only is the first end-to-end proof of the invariant against a real
-adversary. Mutation capability opens only after that proof exists.
+[M8](#group-m--mutation-and-approval) · [R1](#group-r--packaging), then
+[production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
+the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
+invariant proven against a live adversary (the operator deliberately trying to talk the real agent
+into a restricted body) before the point, the UI's screens that show the read path's work, runs,
+failures, rate and sync state, so the operator can watch production point 1 and judge it, the
+guided flow in the UI through which the operator connects the mailbox and repairs it, and the UI's
+policy management through which the operator imports the policy and keeps it current. **Why
+here:** connecting the agent read-only is the first end-to-end proof of the invariant against a
+real adversary. Mutation capability opens only after that proof exists.
 
 ### V4 — The agent acts, and calendar joins mail
 
@@ -461,7 +462,8 @@ holds, with an entry naming the point.
   [F3](#delivered-mapped-to-outcomes) · [F6](#group-f--foundation) · [D1](#group-d--data-flows) ·
   [D2](#group-d--data-flows) · [D3](#group-d--data-flows) · [D4](#group-d--data-flows) ·
   [M3](#group-m--mutation-and-approval) · [M7](#group-m--mutation-and-approval) ·
-  [R1](#group-r--packaging), the end of [V3](#v3--the-agent-arrives-read-only).
+  [M8](#group-m--mutation-and-approval) · [R1](#group-r--packaging), the end of
+  [V3](#v3--the-agent-arrives-read-only).
 - **Supplied there:**
   - PostgreSQL with the superuser bootstrap, the migration role, and the credentials of the runtime
     roles the mediator, backfill, delta sync and the UI connect as
@@ -469,7 +471,9 @@ holds, with an entry naming the point.
     [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)).
   - The client bearer token and TLS material
     ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md)).
-  - The policy data ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)).
+  - The policy data, imported through the UI once the system runs
+    ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)), so no policy is supplied
+    at deployment.
   - The key pair that seals account credentials, as mounted files, the public key to the UI and the
     private key to the deployables that call a provider
     ([ADR-0079](./docs/adr/operability/0079-secrets-arrive-as-mounted-files.md),
@@ -790,7 +794,10 @@ the read path's work at [production point 1](#production-point-1--the-read-path)
 [M7](#group-m--mutation-and-approval) sits in [V3](#v3--the-agent-arrives-read-only) too, because
 the mailbox is connected through it before production point 1, and builds on
 [M3](#group-m--mutation-and-approval)'s server and browser app and [F6](#group-f--foundation)'s
-account rows and sealing. [M3](#group-m--mutation-and-approval) reads the
+account rows and sealing. [M8](#group-m--mutation-and-approval) sits in
+[V3](#v3--the-agent-arrives-read-only) as well, because the policy is imported through it before
+production point 1, and builds on [M7](#group-m--mutation-and-approval)'s request token and
+[D2](#group-d--data-flows)'s delisting transition. [M3](#group-m--mutation-and-approval) reads the
 schema over synthetic fixtures
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), so it
 starts once [F2](#delivered-mapped-to-outcomes) and [S1](#delivered-mapped-to-outcomes)'s marker
@@ -799,8 +806,8 @@ builds the UI's remaining read screens on [M3](#group-m--mutation-and-approval)'
 browser app once [M2](#group-m--mutation-and-approval) has plans to show, and
 [M5](#group-m--mutation-and-approval) follows it, because the decisions act on the plan reviewer and
 the review queue [M6](#group-m--mutation-and-approval) shows. M4 and M5 also come after
-[R1](#group-r--packaging), which decides how a newly added policy rule changes the classifications
-already stored in the index.
+[M8](#group-m--mutation-and-approval), which decides how a newly added policy rule changes the
+classifications already stored in the index.
 
 - [ ] **M1 — Mutations, non-reorg** → [A1](./USE_CASES.md#a1--asymmetric-mutation) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
@@ -903,8 +910,9 @@ already stored in the index.
   next classification ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)).
   Confirmation is a hand-written database update until [M5](#group-m--mutation-and-approval) lands.
   How a newly added policy rule changes the classifications already stored in the index is an
-  [open decision](#open-decisions) settled at [R1](#group-r--packaging), because the policy import
-  is the first work that adds rules to a filled index. This unit and M5 follow that answer.
+  [open decision](#open-decisions) settled at [M8](#group-m--mutation-and-approval), because the
+  UI's policy management is the first work that adds rules to a filled index. This unit and M5
+  follow that answer.
   *Criteria:* each run is recorded, and the workload serves the health probe, the metrics endpoint
   and structured logs ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)).
@@ -926,16 +934,16 @@ already stored in the index.
   decision's status without its companion columns and, on confirm, its rule row
   ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). Decision outcomes are counted
   as metrics ([docs/UI.md](./docs/UI.md#182-the-uis-own-observability)).
-- [ ] **M6 — The UI's plans, analysis lenses, review queue and policy screens** →
+- [ ] **M6 — The UI's plans, analysis lenses and review queue screens** →
   [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
   The plans screen and the plan reviewer without its decision controls, over the `ops` dataset and
   the plan and sample endpoints
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
   [ADR-0022](./docs/adr/operability/0022-four-workloads.md)), home's plan row and expiry rule, the
-  analysis lenses over the `messages`, `senders`, `masking`, `gate` and `audit` datasets, the review
-  queue without its decision controls, and the policy screen with the `rules` dataset, built to
-  [docs/UI.md](./docs/UI.md) sections 8.2, 8.5 to 8.7 and 8.9 on
+  analysis lenses over the `messages`, `senders`, `masking`, `gate` and `audit` datasets, and the
+  review queue without its decision controls, built to [docs/UI.md](./docs/UI.md) sections 8.2, 8.5,
+  8.6 and 8.9 on
   [M3](#group-m--mutation-and-approval)'s server, browser app and lens model
   ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md),
   [ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md),
@@ -983,6 +991,32 @@ already stored in the index.
   import list admits no code that opens a credential. Setting up the client and connecting the real
   mailbox are proven at [production point 1](#production-point-1--the-read-path). It changes the
   UI's composition root to read the public key and reach the provider, so it finishes at image.
+- [ ] **M8 — The UI's policy management** →
+  [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
+  [V3](#v3--the-agent-arrives-read-only) · finishes at tested
+  Designing the write and search screens first, with the operator, onto the read view
+  [docs/UI.md section 8.7](./docs/UI.md#87-policy) already designs, then building them on
+  [M3](#group-m--mutation-and-approval)'s server and browser app. Policy lives in the database and
+  every change to it is made through the UI
+  ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)). The unit carries the policy
+  screen of [docs/UI.md section 8.7](./docs/UI.md#87-policy), importing the policy from a file into
+  the tables and exporting it to one, adding and editing rules, and searching the stored senders
+  and picking them as sensitive senders into the policy. Its requests change state, so each is
+  bound to the session's request token [M7](#group-m--mutation-and-approval) builds
+  ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)), and each is one
+  transaction written by the UI's own code
+  ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). The UI's role gains exactly
+  the writes on the policy rules these requests make
+  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). A removed rule
+  reaches the delisting transition [D2](#group-d--data-flows) builds. A published edit takes effect
+  at each process's next reload, which validates it through the policy snapshot validation
+  [S1](#delivered-mapped-to-outcomes) landed, and an edit that fails validation stays unapplied
+  ([ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). How policy editing
+  behaves, including the file's format, and how a newly added policy rule changes the
+  classifications already stored in the index, are [open decisions](#open-decisions) settled here.
+  *Criteria:* a policy request without its request token is refused. Importing the real policy is
+  proven at [production point 1](#production-point-1--the-read-path). It adds handlers and screens
+  inside the UI's server and browser app and touches no composition root, so it finishes at tested.
 
 ### Group X — expansion
 
@@ -1086,23 +1120,19 @@ about its cluster.
   only to the deployables that call a provider
   ([ADR-0079](./docs/adr/operability/0079-secrets-arrive-as-mounted-files.md),
   [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), memory-backed
-  scratch space for
-  the workloads that handle bodies
+  scratch space for the workloads that handle bodies
   ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), backfill's manual
-  start and delta sync's schedule
-  ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)), importing the policy from a file into
-  the tables and exporting it to one, with the policy file as the import's input, so the policy
-  data can be supplied at [production point 1](#production-point-1--the-read-path)
-  ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)), and every input supplied as
-  values or pre-existing objects
+  start and delta sync's schedule ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)), and
+  every input supplied as values or pre-existing objects
   ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). How the chart runs
   the migration step is open against this unit
-  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)). Three
-  [open decisions](#open-decisions) are settled here. One is how a newly added policy rule changes
-  the classifications already stored in the index, and the chart includes whatever that answer
-  needs. The other is which pull request closes a packaging ticket whose proof needs a release
-  published after it merges. The third is the UI's configuration key names. The chart also
-  includes whatever [D2](#group-d--data-flows)'s re-scan after a scanner version change needs.
+  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)). Two
+  [open decisions](#open-decisions) are settled here. One is which pull request closes a packaging
+  ticket whose proof needs a release published after it merges. The other is the UI's
+  configuration key names. The chart also includes whatever
+  [M8](#group-m--mutation-and-approval)'s answer on how a newly added policy rule changes the
+  classifications already stored in the index needs, and whatever [D2](#group-d--data-flows)'s
+  re-scan after a scanner version change needs.
   The bare-cluster install proof stands from here.
 - [ ] **R2 — Package the action path and calendar** → [O6](./USE_CASES.md#o6--deployable) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at packaged
@@ -1130,7 +1160,7 @@ about its cluster.
 | [C1](./USE_CASES.md#c1--metadata-always-visible) metadata visible | X2 | Mail-side visibility is built by F2, F5 and D3 (G1 units). X2 is the calendar half |
 | [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) content never released | — | The gate, the classifier and the authorizer landed with S1, which is delivered. Injection hardening on released bodies is A4's, and landed with S3, which is delivered. The calendar content-release side rides X2. The static controls, import boundaries and the lint half of unconstructability, ride F4. The release-time falsifiers are proven at D3, flagged in Group D's preamble, and the editable-list falsifier at M4, where a confirmed candidate's rule binds, flagged in Group M's preamble |
 | [C3](./USE_CASES.md#c3--content-based-secrets-caught) secrets caught | D2 · X1 | The tiers and subject masking landed with S2, which is delivered. The serve-time check landed with S3, an A4 unit, which is delivered. Scanning new mail as it arrives is built in D4, a G4 unit |
-| [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 | Candidate review rides M5 |
+| [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) list keeps pace | M4 · M8 | Candidate review rides M5 |
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | D3 | The data layer landed with F2 and the adapter with F5, both delivered |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | D1 | The agent's reads over sender aggregates and label distribution ride D3 |
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M5 | — |
@@ -1169,7 +1199,9 @@ lands in is the [value path](#the-value-path)'s.
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
 | F2 → every later unit that holds a database role | The runtime database roles, created with the schema, that each unit's component connects to the database as |
 | S1 → M3, S1 → F5 | The marker text and synthetic fixtures the UI's recorded fixtures, the provider fake and the adapter's tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
-| S1 → R1, D2 → R1 | The policy snapshot validation the import writes through, how a removed rule reaches the delisting transition, and the re-scan after a scanner version change, which the packaged read path runs |
+| S1 → M8, D1 → M8, D2 → M8 | The policy snapshot validation a reload applies to every published edit, the stored senders the search picks from, and how a removed rule reaches the delisting transition |
+| M7 → M8 | The request token every policy request is bound to ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
+| D2 → R1 | The re-scan after a scanner version change, which the packaged read path runs |
 | S1 → D1, S2 → D1 | Sender classification, the policy snapshot the policy loader builds on, and subject masking, which pass 1 applies |
 | F2 → D1, F3 → D1, F5 → D1 | The schema backfill writes through, the budget it spends from, the adapter it reads with |
 | F3 → D1, F3 → D4 | The form conditions are raised in, an alerting rule over emitted metrics ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The policy loader's reload-failure alarm and delta sync's gap alert take the same form |
@@ -1180,7 +1212,7 @@ lands in is the [value path](#the-value-path)'s.
 | F5 → M2 | The provider fake, the contract suite, and its run against the real provider, which any addition to the port for renaming and deleting labels must pass |
 | D3 → M1 | The surface the mutating operations live on |
 | M1 → M2, D3 → M2, D1 → M2 | The authorized batch mutation path apply runs through, the surface the two read-only plan tools live on, the crash harness with its operation sampler, the policy loader, the configuration library and the reading of accounts from the database, and how the last authentication outcome is recorded |
-| R1 → M4, R1 → M5 | How a newly added policy rule changes the classifications already stored in the index. The import decides it, and a confirmed candidate's rule follows it |
+| M8 → M4, M8 → M5 | How a newly added policy rule changes the classifications already stored in the index. The UI's policy management decides it, and a confirmed candidate's rule follows it |
 | D1 → M4 | The sender statistics the heuristics read, and the policy loader and the configuration library the heuristics workload uses |
 | D1 → X2, D3 → X2, D4 → X2, F5 → X2, M1 → X2 | The surface, the workloads and the Google grant calendar joins, the dry-run and authorized mutation path calendar mutations run through, the provider fake, and the convention for running the contract suite against the real provider. Calendar also follows the answers on how a running deployable learns of a new account or a replaced credential, on recording the authentication outcome and on denying a newly deny-listed domain on the next call |
 | F3 → D2, F3 → D3, F3 → D4, F3 → M1, F3 → M2, F3 → X2 | The rate budget each spends from ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), and for D3 the collector of each account's rate-state series its metrics endpoint carries ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
@@ -1196,7 +1228,7 @@ lands in is the [value path](#the-value-path)'s.
 | S1 → F2, and S1 → every later unit | The marker text and synthetic fixtures later tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the provider fake, the convention for running the suite against the real provider, the rate limiter the Fastmail backend spends through, the deployables that call a provider, how a label is renamed and deleted at the provider, and the calendar side of the port the CalDAV adapter implements. The Fastmail wiring also follows the answers on how a running deployable learns of a new account or a replaced credential and on recording the authentication outcome |
 | S2 → X1, D2 → X1, D4 → X1 | The tier boundary and the scanner version tier 3 fits into, the masking events and gate decisions its training examples come from, the re-scan that ships it, and the scanning workloads it runs in |
-| F2 → R1, D1 → R1, D3 → R1, D4 → R1, M3 → R1, M7 → R1 | The migration chain the step runs, the runtime database role the UI connects as, the read path's deployables and the UI with its account setup, whose public key the chart mounts apart from the private key |
+| F2 → R1, D1 → R1, D3 → R1, D4 → R1, M3 → R1, M7 → R1, M8 → R1 | The migration chain the step runs, the runtime database role the UI connects as, the read path's deployables and the UI with its account setup, whose public key the chart mounts apart from the private key, and its policy management, whose writes the UI's role is granted |
 | M2 → R2, M4 → R2, X2 → R2, R1 → R2 | The action path's deployables, the calendar inputs, and the chart and suites R2 adds to |
 | X4 → R3, R2 → R3 | The Fastmail backend, and the chart and suites R3 would add to |
 | R1 → R2, R1 → R3 | Which pull request closes a packaging ticket whose proof needs a release published after it merges, which R2 and R3 follow |
@@ -1222,16 +1254,17 @@ supplies, including edges another edge implies.
 | D1 | S2 · F3 · F6 |
 | D3 | S3 · D1 |
 | D2 | D1 · S3 |
+| M8 | M7 · D2 |
 | D4 | D2 · D3 |
 | M1 | D3 |
 | X2 | D4 · M1 |
 | M2 | M1 |
 | X3 | M2 · M4 · X2 |
 | X4 | M2 · X2 |
-| R1 | D4 · M7 |
-| M4 | R1 |
+| R1 | D4 · M8 |
+| M4 | M8 |
 | M6 | M3 · M2 |
-| M5 | M6 · R1 |
+| M5 | M6 · M8 |
 | R2 | M2 · M4 · X2 |
 | R3 | X4 · R2 |
 | X1 | M5 |
@@ -1253,14 +1286,16 @@ flowchart LR
     M6 --> M5
     M3 --> M7
     F6 --> M7
-    M7 --> R1
+    M7 --> M8
+    D2 --> M8
+    M8 --> R1
     S2 --> D1
     F3 --> D1
     F6 --> D1
     D1 --> D2
     S3 --> D2
-    R1 --> M4
-    R1 --> M5
+    M8 --> M4
+    M8 --> M5
     S3 --> D3
     D1 --> D3
     D2 --> D4
@@ -1319,7 +1354,7 @@ index](./docs/adr/README.md).
 | Whether the tier-3 model's weights ship in the binary or beside it in the image | X1 | [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lets a final stage copy runtime artifacts and [CLAUDE.md](./CLAUDE.md#images) says a Go deployable's image copies only its binary. No record decides which the model is, and beside the binary would need that convention to admit a second artifact |
 | The feedback verb on masking and gate events | X1 | [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) takes its confirmed examples from corrections the operator makes in the UI's masking-events view, and [docs/UI.md](./docs/UI.md#20-what-remains-open) leaves that verb to a record that does not exist yet. No unit produces a confirmed example until the verb exists, so X1 builds the verb and writes its record first. Training waits for the examples the verb then produces |
 | Live-update transport for the UI | M3 | [ADR-0058](./docs/adr/operability/0058-live-surfaces-stream-over-server-sent-events.md) proposes server-sent events from the UI's Go server, with polling as the fallback. The operator asked for the behavior on 2026-09-10 and has not ruled on the transport. In the browser only the stream client depends on it, and on the server only the stream endpoint does ([docs/UI.md](./docs/UI.md#9-live-surfaces)). So it is decided where the UI's server and its stream endpoint are built |
-| Policy editing outside the UI, including import and export to a file | R1 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database and a file form for import and export. The operator said on 2026-09-10 that such a mechanism may exist, and on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file. The first thing that needs it is supplying the policy through the chart at [production point 1](#production-point-1--the-read-path), so R1 builds the import and export and records their format, and the database role they run as, since [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) gives roles to deployables only, and the policy on the policy rules lets a writer name only its own account, never the base policy's null one |
+| How policy editing in the UI behaves, including the file format import and export use | M8 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database, with a file form for import and export, and every change to it made through the UI. The operator said on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file, and on 2026-09-26 that this is done through the UI, which also adds and updates rules, including by searching the stored senders and selecting them as sensitive senders. The first thing that needs it is supplying the policy at [production point 1](#production-point-1--the-read-path), so M8 decides how an import meets the rules already stored, the file's format, and the writes the UI's role gains ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). The row-level security policy on the policy rules lets a writer name only its own account, never the base policy's null one, so M8 also decides how the UI writes base rules |
 | How the audit of every applied and refused mutation is guaranteed | M1 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the violation to refuse, a mutation reaching the provider with no audit row. It has no injection for it until a record decides between two mechanisms, writing the audit row before the provider call, or a structural check that refuses any path without an audit row. M1 writes the first audited mutation, so it decides, and M2's apply follows the same answer |
 | Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value has not been chosen. The UI reads the same value from configuration ([docs/UI.md](./docs/UI.md)), and the value settled here is also that key's default, so the plans screens M6 builds follow this answer |
 | How an approved plan starts applying, and how a rollback is requested | M2 | [ADR-0022](./docs/adr/operability/0022-four-workloads.md) starts apply on human approval and [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) rolls back by replaying the op log, and neither says what starts either one. The UI only writes the plan's status and never calls the mediator ([docs/UI.md](./docs/UI.md)). The reorg workload's composition root depends on the answer, so it is decided where that root is built |
@@ -1333,7 +1368,7 @@ index](./docs/adr/README.md).
 | Where the consent code lives so the UI links it without the Gmail adapter | M7 | [ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md) has the UI run the consent with the PKCE, state and wrong-mailbox checks, which sit in the Gmail adapter's package today beside the code that calls the mailbox. The UI's import list refuses provider adapters, proven by its row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the developer's consent command shares the same code. The UI's Gmail connection is the first work that needs the answer, so it is decided there |
 | How a removed policy rule reaches the delisting transition | D2 | [ADR-0037](./docs/adr/redaction/0037-delisting-transition.md) sets a removed sender's messages back to pending scan, and nothing says how the removal is detected. It is decided where that transition is built |
 | How messages returned to pending scan are scanned once backfill has ended | D4 | [ADR-0037](./docs/adr/redaction/0037-delisting-transition.md) has the normal scanning machinery pick up a delisted sender's messages like any other unscanned mail, and [ADR-0007](./docs/adr/redaction/0007-composite-scan-gate.md) treats a growing pending backlog as a failure. Backfill's pass 2 scans them while it runs, and no record says how the normal machinery reaches them after pass 2 ends. Delta sync is the scanning that keeps running after backfill, so it is decided there |
-| How a newly added policy rule changes the classifications already stored in the index | R1 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) says policy edits reclassify senders, and [docs/UI.md](./docs/UI.md) shows a confirmed rule as in effect, but nothing says how a new rule changes classifications already stored. The first import happens before the index is filled, and every later import adds rules to a filled index, so the import is the first work that needs the answer and it is decided there. M4 and M5 come after R1 and follow the same answer |
+| How a newly added policy rule changes the classifications already stored in the index | M8 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) says policy edits reclassify senders, and [docs/UI.md](./docs/UI.md) shows a confirmed rule as in effect, but nothing says how a new rule changes classifications already stored. The UI's policy management adds rules to a filled index, so it is the first work that needs the answer and it is decided there. M4 and M5 come after M8 and follow the same answer |
 | Whether bounded crash-sequence runs gate pull requests or run on the schedule | D1 | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) and [TESTING.md](./TESTING.md) allow them in the gating suite if they prove fast enough. It is decided where the crash harness is first built, and M2's crash sequences follow it |
 | What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet |
 | How a reorganization renames and deletes a label at the provider | M2 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) plans creating, renaming and deleting labels, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md)'s port has `ensure_label` and `mutate` and nothing to rename or delete a label. It is decided where apply is built, together with any addition to the port, the provider fake and the contract suite |
@@ -1359,6 +1394,6 @@ index](./docs/adr/README.md).
 | How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md) has the accounts of one installation share its OAuth client and so its Cloud project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
 | Whether the rate may rise above the target so a ceiling above the declared one can be found | X4 | [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md) keeps the rate between the floor and the target, which is half the declared ceiling, so the controller can find only a lower real ceiling. [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) has the controller discover JMAP's budget from a conservative guess, which needs finding a higher one, and [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)'s own alternatives count discovery as the only way to find JMAP's. ADR-0024's token bucket and one-second window are sized from the hard cap, which the answer does not move. Gmail publishes its ceiling, so only the JMAP adapter depends on the answer, and it is decided there |
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
-| Whether a base-rule edit landing between two accounts' reads should page | R1 | The policy loader ([policyload/README.md](./policyload/README.md)) fails a reload whose accounts read different base rules, so an edit to the base policy landing mid-reload fails that one reload and raises the reload-failure alarm, which pages at once and clears on the next reload. No role writes base rules yet. The first unit that writes them, R1 with importing the policy from a file, decides whether that page is acceptable or the rule waits before paging |
+| Whether a base-rule edit landing between two accounts' reads should page | M8 | The policy loader ([policyload/README.md](./policyload/README.md)) fails a reload whose accounts read different base rules, so an edit to the base policy landing mid-reload fails that one reload and raises the reload-failure alarm, which pages at once and clears on the next reload. No role writes base rules yet. The first unit that writes them, M8 with the UI's policy management, decides whether that page is acceptable or the rule waits before paging |
 | What subject shape the scan gate's memo keys on, and how a new scan hit clears it | D2 | [ADR-0007](./docs/adr/redaction/0007-composite-scan-gate.md) memoizes gate decisions per sender and subject shape and defines neither. The predicate also reads each message's own `List-Id`, size and age, so a memo keyed on sender and subject shape alone could replay a skip onto a message of the same sender the predicate would scan, such as one without a `List-Id`. A sender's prior hits grow as pass 2 scans, so a memoized skip can also go stale. Pass 2 is the first work that evaluates the gate over stored messages, where the lookups a memo would save exist, so it is decided there |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |

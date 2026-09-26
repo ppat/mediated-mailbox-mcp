@@ -46,13 +46,14 @@ Constraints that keep it safe to exist:
   approved_by)` and `policy_candidates(status, reviewed_at, reviewed_by)`, insert on
   `policy_rules` for the one row confirming a candidate emits
   ([ADR-0004](../classification/0004-sender-list-decides.md)), and the columns OAuth client setup
-  and account setup write, and nothing else. Those columns are named where the tables holding the
-  client and the account are designed, and added to this grant then. The limit is enforced by
-  database permissions, so a UI bug cannot become a mailbox mutation. A write is made by the UI's
-  own code in one transaction, with no database-resident code
-  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The identity a decision records is
-  the value of a header the deployment declares an authenticating proxy sets, else a configured
-  operator name.
+  and account setup write, and the writes on `policy_rules` that policy management makes, which is
+  importing, adding and editing rules (ADR-0004), and nothing else. The setup columns are named
+  where the tables holding the client and the account are designed, and the policy writes where
+  policy management is built, and each is added to this grant then. The limit is enforced by
+  database permissions, so a UI bug cannot become a mailbox mutation. A write is made by the UI's own code in one transaction, with no
+  database-resident code ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The
+  identity a decision records is the value of a header the deployment declares an authenticating
+  proxy sets, else a configured operator name.
 - **It seals credentials and can never open one.** The UI runs a provider's consent exchange when
   an account is connected or re-authorized
   ([ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md)), seals the grant and

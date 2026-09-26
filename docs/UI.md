@@ -233,7 +233,7 @@ the account in the path.
 **Decisions.** Two, each with two outcomes. A plan is approved or rejected, a candidate is
 confirmed or dismissed. Four requests carry them, all by database grant (ADR-0084), which calls
 them its two decision verbs. No request exists for retrying a job, triggering a rollback, or
-editing policy.
+editing policy other than through the policy management of [section 8.7](#87-policy).
 
 **OAuth client setup and account setup.** Two separate flows over two separate stored records
 are the UI's other writes (ADR-0080, ADR-0083, ADR-0084). OAuth client setup runs once per
@@ -664,11 +664,11 @@ base policy), the candidate's domain as its suffix, the restricted class, the so
 and the operator identity as its creator. Both are one transaction written by the UI's own code,
 with no database-resident code (ADR-0060). The request carries the domain and the status the screen
 shows, pending or dismissed, so a dismissed candidate may be confirmed later. A confirmed candidate
-cannot be dismissed from the UI. Undoing a confirmation is a policy edit outside the UI. After
-either outcome the row stays in place with its new status until the operator navigates, the pending
-count in the navigation updates from the response, and focus stays where it was. A confirmed row
-shows "confirmed, not yet in effect" until the index's sender class for the domain reads restricted,
-then "in effect".
+cannot be dismissed from the UI. Undoing a confirmation is a policy edit this screen does not
+make. After either outcome the row stays in place with its new status until the operator
+navigates, the pending count in the navigation updates from the response, and focus stays where it
+was. A confirmed row shows "confirmed, not yet in effect" until the index's sender class for the
+domain reads restricted, then "in effect".
 
 ### 8.7 Policy
 
@@ -680,6 +680,12 @@ A sender matches a rule when its domain, normalized as ADR-0004 states, ends wit
 rule's suffixes at a label boundary, and a sender counts under every rule it matches. Policy is
 held as rows and snapshotted by every process (ADR-0004, ADR-0041), and this screen is the one
 exception to per-account rows stated in [section 5](#5-information-architecture-and-the-url).
+
+Every change to policy is made through the UI (ADR-0004). That is importing the policy from a
+file and exporting it to one, adding and editing rules, and searching the stored senders and
+picking them as sensitive senders into the policy. Their requests and screens are designed where
+they are built, together with the writes they add to the UI's grant (ADR-0084), and this section
+describes the read-only screen until then.
 
 ### 8.8 System
 
