@@ -1,0 +1,19 @@
+control: An operation's HTTP method and its four MCP annotations are derived from its effect class
+removes: the read-only hint is derived from the HTTP method rather than the effect, so a structured read over POST is not read-only
+packages: ./mediate/internal/service ./mediate/internal/mcp
+tests: TestEachEffectDerivesItsRow TestTheToolListIsTheRegistry
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 6d37edb..fa10542 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -229,6 +229,7 @@ func (r Registry) Operations() []Descriptor {
+ 
+ func describe(op Operation) Descriptor {
+ 	method, annotations, _ := derive(op.Effect)
++	annotations.ReadOnly = method == methodGet
+ 	return Descriptor{
+ 		Name: op.Name, Description: op.Description, Effect: op.Effect, Path: op.Path,
+ 		Method: method, Annotations: annotations, Input: op.Input, Output: op.Output,

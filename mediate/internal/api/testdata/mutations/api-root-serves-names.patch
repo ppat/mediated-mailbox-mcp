@@ -1,0 +1,21 @@
+control: Both roots serve exactly the registry's operations
+removes: the API root also serves each operation by POST at /api/ followed by its name, a route the registry does not carry
+packages: ./mediate/internal/api
+tests: TestTheRootRefusesWhatItCannotBind/an_operation's_name_as_a_path
+scheduled-count: no
+
+
+diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
+index cc14950..a525da0 100644
+--- a/mediate/internal/api/api.go
++++ b/mediate/internal/api/api.go
+@@ -47,6 +47,9 @@ func Handler(reg service.Registry) (h http.Handler, err error) {
+ 		mux.Handle(op.Method+" "+op.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+ 			route.serve(reg, w, r)
+ 		}))
++		mux.Handle("POST /api/"+op.Name, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++			route.serve(reg, w, r)
++		}))
+ 	}
+ 	return mux, nil
+ }

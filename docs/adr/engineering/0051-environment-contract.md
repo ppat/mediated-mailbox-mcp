@@ -57,6 +57,5 @@ application's business.
 - Assumptions about other components: the platform captures standard output and scrapes the
   metrics endpoint; something delivers configuration and secret files and keeps them current
   ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md),
-  [ADR-0041](./0041-policy-as-immutable-snapshots.md)); and the readiness probe's contract —
-  refuse traffic while a known-sensitive fixture is not denied — is an HTTP endpoint any
-  healthcheck can drive.
+  [ADR-0041](./0041-policy-as-immutable-snapshots.md)); and the health and readiness probes are
+  HTTP endpoints any healthcheck can drive.

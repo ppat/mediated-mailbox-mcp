@@ -1,6 +1,7 @@
 // Package fixture holds the synthetic mail fixtures tests share. Every fixture carries the marker
-// text defined in core/marker, a body marker in its body and a field marker in every metadata
-// field, so a test can search any output for leaked body text and find visible metadata by name.
+// text defined in testsupport/marker, a body marker in its body and a field marker in every
+// metadata field, so a test can search any output for leaked body text and find visible metadata
+// by name.
 //
 // No fixture holds real mail (ADR-0044). Senders sit under the reserved .example domain, and which
 // of them a test treats as restricted is the test's policy, never the fixture's.
@@ -12,7 +13,7 @@
 // rather than the message itself, its identifiers, thread, date, labels and flags.
 package fixture
 
-import "github.com/ppat/mediated-mailbox-mcp/core/marker"
+import "github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 
 // Message is one synthetic message. The fields after Body are empty on the fixtures that lack them.
 //

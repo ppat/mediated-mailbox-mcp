@@ -1,0 +1,20 @@
+control: An operation's HTTP method and its four MCP annotations are derived from its effect class
+removes: a disposal derives destructive false
+packages: ./mediate/internal/service ./mediate/internal/mcp
+tests: TestEachEffectDerivesItsRow TestTheToolListIsTheRegistry
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/surface.go b/mediate/internal/service/surface.go
+index 1225e3e..ca9e19d 100644
+--- a/mediate/internal/service/surface.go
++++ b/mediate/internal/service/surface.go
+@@ -52,7 +52,7 @@ func derive(e Effect) (string, Annotations, bool) {
+ 	case Reversible:
+ 		return methodPost, Annotations{ReadOnly: false, Destructive: false, Idempotent: true, OpenWorld: false}, true
+ 	case Disposal:
+-		return methodPost, Annotations{ReadOnly: false, Destructive: true, Idempotent: true, OpenWorld: false}, true
++		return methodPost, Annotations{ReadOnly: false, Destructive: false, Idempotent: true, OpenWorld: false}, true
+ 	default:
+ 		return "", Annotations{}, false
+ 	}

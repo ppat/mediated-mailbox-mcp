@@ -1,0 +1,20 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: a HEAD request is served as the GET it matches
+packages: ./mediate/internal/api
+tests: TestTheRootRefusesWhatItCannotBind/HEAD_on_a_read TestTheRootRefusesWhatItCannotBind/HEAD_on_the_accounts_listing
+scheduled-count: no
+
+
+diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
+index cc14950..eab4e93 100644
+--- a/mediate/internal/api/api.go
++++ b/mediate/internal/api/api.go
+@@ -93,7 +93,7 @@ type member struct {
+ var errBadRequest = errors.New("bad request")
+ 
+ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Request) {
+-	if r.Method == http.MethodHead {
++	if false && r.Method == http.MethodHead {
+ 		w.Header().Set("Allow", rt.op.Method)
+ 		writeError(w, http.StatusMethodNotAllowed, "HEAD is not served")
+ 		return

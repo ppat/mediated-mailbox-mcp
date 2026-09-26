@@ -1,0 +1,20 @@
+control: An operation's HTTP method and its four MCP annotations are derived from its effect class
+removes: a structured read derives GET
+packages: ./mediate/internal/service ./mediate/internal/api
+tests: TestEachEffectDerivesItsRow TestTheDocumentPlacesEachArgument
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/surface.go b/mediate/internal/service/surface.go
+index 1225e3e..755a58c 100644
+--- a/mediate/internal/service/surface.go
++++ b/mediate/internal/service/surface.go
+@@ -46,7 +46,7 @@ func derive(e Effect) (string, Annotations, bool) {
+ 	case Read:
+ 		return methodGet, Annotations{ReadOnly: true, Destructive: false, Idempotent: true, OpenWorld: false}, true
+ 	case StructuredRead:
+-		return methodPost, Annotations{ReadOnly: true, Destructive: false, Idempotent: true, OpenWorld: false}, true
++		return methodGet, Annotations{ReadOnly: true, Destructive: false, Idempotent: true, OpenWorld: false}, true
+ 	case Create:
+ 		return methodPost, Annotations{ReadOnly: false, Destructive: false, Idempotent: false, OpenWorld: false}, true
+ 	case Reversible:

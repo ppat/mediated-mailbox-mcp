@@ -23,8 +23,8 @@ package contract
 
 import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 )
 
 // Message is one message the mailbox holds, as the harness adds it. Metadata.ID and

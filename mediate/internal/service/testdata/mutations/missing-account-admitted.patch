@@ -1,0 +1,29 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: a call carrying no account_id string reaches the operation, with an empty account
+packages: ./mediate/internal/service
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/no_account_id TestTheServiceLayerRefusesAMissingOrUnknownAccount/a_null_account_id TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_account_id_that_is_not_a_string
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 1b1cca9..fad139e 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -139,7 +139,7 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if !r.known[account] {
++	if account != "" && !r.known[account] {
+ 		return nil, ErrUnknownAccount
+ 	}
+ 	return op.Handle(ctx, account, rest)
+@@ -190,7 +190,7 @@ func splitAccount(input json.RawMessage) (string, json.RawMessage, error) {
+ 	rest.WriteByte('}')
+ 	var id *string
+ 	if account == nil || json.Unmarshal(account, &id) != nil || id == nil {
+-		return "", nil, ErrMissingAccount
++		return "", rest.Bytes(), nil
+ 	}
+ 	return *id, rest.Bytes(), nil
+ }

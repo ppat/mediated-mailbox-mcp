@@ -1,0 +1,21 @@
+control: Both roots serve exactly the registry's operations
+removes: the MCP root registers every operation but the registry's last
+packages: ./mediate/internal/api ./mediate/internal/mcp
+tests: TestBothRootsCarryExactlyTheRegistry TestTheToolListIsTheRegistry
+scheduled-count: no
+
+
+diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
+index 8b7ebf3..59926dd 100644
+--- a/mediate/internal/mcp/mcp.go
++++ b/mediate/internal/mcp/mcp.go
+@@ -24,7 +24,8 @@ func Handler(reg service.Registry, version string) http.Handler {
+ 		&sdk.Implementation{Name: "mediated-mailbox-mediate", Version: version},
+ 		&sdk.ServerOptions{Capabilities: &sdk.ServerCapabilities{Tools: &sdk.ToolCapabilities{}}},
+ 	)
+-	for _, op := range reg.Operations() {
++	ops := reg.Operations()
++	for _, op := range ops[:max(len(ops)-1, 0)] {
+ 		server.AddTool(&sdk.Tool{
+ 			Name:         op.Name,
+ 			Description:  op.Description,

@@ -1,0 +1,21 @@
+control: The mediator loads the policy of the accounts it serves, and of none when it serves none
+removes: the policy loader is built even with no account served, which it refuses
+packages: ./mediate
+tests: TestTheMediatorLoadsPolicyForItsAccounts
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 91cec55..4e74aa3 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -179,7 +179,7 @@ func servedAccounts() []string { return nil }
+ // loadPolicy loads the policy of accounts through the shared policy loader, which reads each
+ // account's policy in a transaction of that account. With no account there is no policy to load.
+ func loadPolicy(ctx context.Context, pool *pgxpool.Pool, accounts []string, metrics *prometheus.Registry) error {
+-	if len(accounts) == 0 {
++	if false {
+ 		slog.Info("no account is served, so no policy is loaded")
+ 		return nil
+ 	}

@@ -1,0 +1,19 @@
+control: The mediator reports ready only once its TLS key pair and bearer token load
+removes: the mediator is marked ready before the key pair and token are loaded
+packages: ./mediate
+tests: TestReadyOnlyOnceTheKeysLoad/a_certificate_that_is_absent TestReadyOnlyOnceTheKeysLoad/a_key_that_does_not_match TestReadyOnlyOnceTheKeysLoad/a_token_file_that_is_absent TestReadyOnlyOnceTheKeysLoad/a_token_file_holding_no_token
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index a6f0772..c9918bb 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -188,6 +188,7 @@ func refuseSDKSwitches() error {
+ // terminates TLS, and the bearer token load, so a pod whose mounts cannot serve a client never
+ // reports ready. They are read again on each handshake and each request.
+ func markReadyWhenServable(ready *readiness.State, s settings) error {
++	ready.MarkReady()
+ 	if !s.tlsAtIngress {
+ 		if _, err := tls.LoadX509KeyPair(s.tlsCert, s.tlsKey); err != nil {
+ 			return fmt.Errorf("loading the TLS key pair: %w", err)

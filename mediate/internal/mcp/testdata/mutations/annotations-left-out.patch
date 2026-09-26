@@ -1,0 +1,19 @@
+control: An operation's HTTP method and its four MCP annotations are derived from its effect class
+removes: the MCP root registers tools with no annotations
+packages: ./mediate/internal/mcp
+tests: TestTheToolListIsTheRegistry
+scheduled-count: no
+
+
+diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
+index 526f5ce..e25e84a 100644
+--- a/mediate/internal/mcp/mcp.go
++++ b/mediate/internal/mcp/mcp.go
+@@ -29,7 +29,6 @@ func Handler(reg service.Registry, version string) http.Handler {
+ 			Description:  op.Description,
+ 			InputSchema:  op.Input,
+ 			OutputSchema: op.Output,
+-			Annotations:  annotations(op.Annotations),
+ 		}, call(reg, op.Name))
+ 	}
+ 	server.AddReceivingMiddleware(refuseBeyondTools)
