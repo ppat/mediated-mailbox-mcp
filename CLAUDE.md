@@ -76,7 +76,7 @@ had alternatives live in the records, cited by number. What tests a piece of wor
 [TESTING.md](./TESTING.md)'s, which controls exist and how each is proven is
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s.
 The UI's own layout is [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The
-data-access library and the seven narrow shared libraries each describe themselves in a README in
+data-access library and the eight narrow shared libraries each describe themselves in a README in
 their own directory.
 
 ### The Go module
@@ -102,6 +102,7 @@ carries the bare word.
 
 | Directory | Kind | Published as | Holds |
 | --- | --- | --- | --- |
+| `accountload/` | Library | `mediated-mailbox-accountload` | The loading of a deployable's accounts, the installation's OAuth clients and their opened credentials into one account snapshot, the compare-and-set write-back of a rotated credential, and delta sync's re-seal, argued in [accountload/README.md](./accountload/README.md) |
 | `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, `mail` (the canonical model, the Provider Port interface, the canonical query, the rate profile types and the hard-cap fraction), and `marker` (the marker text of [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | `credential/` | Library | `mediated-mailbox-credential` | The sealing and opening of an account's provider credential and the loading of its keys, argued in [credential/README.md](./credential/README.md) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
@@ -124,7 +125,7 @@ carries the bare word.
 A deployable's job word is a verb for what it does, following `organize`. `ui` keeps the directory
 the Glossary gives it. Shared code is the shared pure library, or a narrow, named library that
 argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
-requires. The data-access library's case is ADR-0047's, and each of the other seven argues its case
+requires. The data-access library's case is ADR-0047's, and each of the other eight argues its case
 in its README.
 
 ### Inside a component
@@ -132,7 +133,7 @@ in its README.
 | Convention | Rule |
 | --- | --- |
 | Composition root | A deployable's `main.go` at its directory root is its one hand-written composition root ([ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md)). Nothing else in the deployable is `package main` |
-| Operator commands | A command a person runs by hand, which no deployable runs, sits under its library as `cmd/<name>/` in `package main`. The Gmail consent for the test account's token is `provider/gmail/cmd/consent`, a developer's tool that ships in no image ([ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
+| Operator commands | A command a person runs by hand, which no deployable runs, sits under its library as `cmd/<name>/` in `package main`. The Gmail consent for the test account's token is `provider/gmail/cmd/consent`, a developer's tool that ships in no image ([ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). `credential/cmd/keygen` writes the key pair that credentials are sealed to, and ships as signed static binaries attached to each release ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
 | Private code | Everything else a deployable holds sits under `<deployable>/internal/`, so the compiler refuses an import from another component as well as the import rules of [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md). The one exception is an `importtarget` package holding a violation file, described under [Tests](#tests) |
 | Pure core | Pure-core code sits under a directory named `core`. That is the top-level `core/`, `<deployable>/internal/core/<concern>/`, and `<library>/core/` inside a library that holds pure rules of its own. The word means the Glossary's pure core wherever it appears, so the core import check matches every one of them by path, anchored at the repository root |
 | Shell packages | Named for what they do, for example `api`, `mcp`, `service`, `lease`, `gmail`. No package is named `util`, `common` or `helpers` |
@@ -286,7 +287,7 @@ need the repository's tools install them from `mise.toml` through
 | `chart` | `packaging/`, tool pins | `helm lint` |
 | `chainsaw` | `packaging/`, `tests/chainsaw/`, and by hand with a version | The chainsaw suite as ADR-0052 states it, against the images published for the version |
 | `deep-tests` | A schedule, by hand, and a change to the workflow itself | Deep property search and crash-sequence exploration at the scheduled case count, which a manual run may override, with a fresh seed each run, skipped with a stated reason while no property or crash test exists ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)) |
-| `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, and pushes and signs the chart ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
+| `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, pushes and signs the chart, and builds, signs and attaches the `credential/cmd/keygen` binaries to the release ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
 | `lint` | Every pull request | The repository's existing hygiene checks, `commit-messages`, commitlint over the branch commits, and `commit-taxonomy`, which derives every header Renovate and release-please can emit and lints it, requires each to be true of its file, and checks a pull request's headers against its diff ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). `commit-taxonomy` carries no path filter, `needs:` or `if:`, because a skipped job satisfies a required check |
 | `pr-title` | Every pull request, on open, edit, synchronize and reopen | commitlint over the pull request title, the string that lands on `main` for a multi-commit pull request ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). Never gated, for the same reason |
 | `pr-labels` | Every pull request, on open, edit, synchronize, reopen, label and unlabel | Sets the pull request's `component:` labels to exactly the components its diff touches, read from the [component table](#components) at the pull request's head, creating a missing label in the component color. A new component needs only its table row. A pull request from a fork cannot write labels, so its run fails |

@@ -59,8 +59,10 @@ evidence of its compromise survives outside its own reach."
   Those grants are what the UI's statements need, so the UI's role holds them from the schema's
   first grants.
 - A deployable that calls a provider reads its accounts, their sealed credentials and the
-  installation's OAuth client, and updates the credential column of an account's row when it
+  installation's OAuth client, and updates the credential column of an account's state row when it
   writes back a rotation ([ADR-0082](../operability/0082-rotation-writeback-to-the-database.md)).
+  Delta sync's role also updates the OAuth client's sealed secret, because delta sync re-seals it
+  when a key is replaced ([ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)).
 - A role whose statements touch the operation log also reads the plan columns that
   [ADR-0016](./0016-schema.md)'s policy on the log looks up, because PostgreSQL runs a policy's
   lookup with the querying role's privileges. Those columns are part of what its statements need.

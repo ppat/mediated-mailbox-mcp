@@ -1,0 +1,20 @@
+control: A failed write-back is held in memory and logged
+removes: a write-back that failed is logged at debug level, which a deployable does not emit
+packages: ./accountload
+tests: TestAFailedWriteBackIsHeldLoggedAndKeptByAReload
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/writeback.go b/accountload/writeback.go
+index e023f76..6c7eb3c 100644
+--- a/accountload/writeback.go
++++ b/accountload/writeback.go
+@@ -68,7 +68,7 @@ func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([
+ 
+ // failed logs a write-back that did not land and keeps the rotated credential held.
+ func (l *Loader) failed(account string, rotated []byte, err error) ([]byte, error) {
+-	l.log.Error("a rotated credential was not written back, so a restart before a later write-back lands loses the account's access",
++	l.log.Debug("a rotated credential was not written back, so a restart before a later write-back lands loses the account's access",
+ 		slog.String("account", account), slog.Any("error", err))
+ 	return slices.Clone(rotated), fmt.Errorf("account %s: writing back the rotated credential: %w", account, err)
+ }

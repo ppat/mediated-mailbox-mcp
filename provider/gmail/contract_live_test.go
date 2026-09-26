@@ -11,13 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime"
 	"net/http"
 	netmail "net/mail"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -56,8 +54,7 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 		RefreshToken: environment(t, "GMAIL_TEST_REFRESH_TOKEN"),
 	}
 	client := &http.Client{Timeout: 2 * time.Minute}
-	tokens := gmail.NewTokenSource(client, creds, filepath.Join(t.TempDir(), "refresh-token"),
-		slog.New(slog.NewTextHandler(os.Stderr, nil)))
+	tokens := gmail.NewTokenSource(client, creds)
 	metrics, err := gmail.NewMetrics(prometheus.NewRegistry())
 	if err != nil {
 		t.Fatalf("NewMetrics: %v", err)

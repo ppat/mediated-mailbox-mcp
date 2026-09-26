@@ -1,0 +1,23 @@
+control: A write of a sealed value by a deployable is a compare-and-set on the bytes it last knew
+removes: the re-seal compares against bytes it reads just before writing rather than the bytes it last knew, so it puts back a value the operator replaced
+packages: ./accountload
+tests: TestAStaleReSealIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/reseal.go b/accountload/reseal.go
+index 025b1e0..d79d8aa 100644
+--- a/accountload/reseal.go
++++ b/accountload/reseal.go
+@@ -43,7 +43,10 @@ func (l *Loader) Reseal(ctx context.Context) Scan {
+ 		_, resealed, changed, err := l.keys.Reseal(h.known, seal.AccountCredential(account))
+ 		if err == nil && changed {
+ 			var landed bool
+-			landed, err = l.replace(ctx, account, h.known, resealed)
++			var fresh []byte
++			if fresh, err = l.stored(ctx, account); err == nil {
++				landed, err = l.replace(ctx, account, fresh, resealed)
++			}
+ 			switch {
+ 			case err != nil:
+ 			case landed:

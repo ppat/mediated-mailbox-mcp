@@ -1,0 +1,19 @@
+control: Only the roles that call a provider read oauth_clients and their own account's state
+removes: the UI's role reads and writes every account's credential column
+packages: ./db/check
+tests: TestTheProviderCallingRolesReadOnlyTheirAccountsState TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_ui/reads_account_state
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
+index a600f2d..b5a7fde 100644
+--- a/db/migrations/00008_account_state.sql
++++ b/db/migrations/00008_account_state.sql
+@@ -87,6 +87,6 @@ CREATE TABLE oauth_clients (
+ GRANT SELECT (account_id, provider) ON accounts
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
+-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
++TO mediated_mailbox_ui, mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (provider, client_id, client_secret) ON oauth_clients
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;

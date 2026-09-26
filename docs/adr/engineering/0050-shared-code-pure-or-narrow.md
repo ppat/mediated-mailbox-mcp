@@ -30,8 +30,9 @@ included.
   the [shared test support](../../../testsupport/README.md), the
   [body sanitization library](../../../sanitize/README.md), the
   [policy loader](../../../policyload/README.md), the
-  [credential library](../../../credential/README.md), and the
-  [configuration library](../../../settings/README.md). An exception library may hold pure
+  [credential library](../../../credential/README.md), the
+  [configuration library](../../../settings/README.md), and the
+  [account loader](../../../accountload/README.md). An exception library may hold pure
   packages of its own, and those sit under the same core import check as `mediated-mailbox-core`.
 - **Purity is the first fence; the concern-cut is the second, and it is deferred.** A wholly
   pure library can still lump unrelated concerns into one dependency unit; cutting `mediated-mailbox-core`

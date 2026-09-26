@@ -88,7 +88,7 @@ moves it. Records themselves link freely and deep, into
 | 0026 | [Multi-account: one process, N account contexts, isolation by construction](./provider/0026-multi-account-contexts.md) | **Superseded** |
 | 0027 | [Calendar sensitivity keys on any participant, not organizer-only; Fastmail speaks CalDAV](./provider/0027-calendar-classification.md) | Accepted |
 | 0083 | [Each installation connects Gmail through an installed-app OAuth client of its own, set up through the UI, with `gmail.modify`](./provider/0083-gmail-through-an-installation-oauth-client.md) | Accepted |
-| 0085 | [Multi-account: one process, N account contexts, each account its own grant through the installation's OAuth client](./provider/0085-multi-account-contexts-with-an-installation-client.md) | Accepted |
+| 0085 | [Multi-account: one process, N account contexts, each account its own grant, through the installation's OAuth client where its provider uses one](./provider/0085-multi-account-contexts-with-an-installation-client.md) | Accepted |
 
 ## Data — `data/`
 
@@ -104,6 +104,7 @@ moves it. Records themselves link freely and deep, into
 | 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | Accepted |
 | 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | Accepted |
 | 0080 | [Accounts and their provider credentials are created and repaired through the UI and live in the database](./data/0080-accounts-and-credentials-live-in-the-database.md) | Accepted |
+| 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -142,7 +143,11 @@ moves it. Records themselves link freely and deep, into
 | 0077 | [Rate collapse, rate runaway, a failed reload and a cursor gap are alerting rules, shipped with the chart and tested in CI](./operability/0077-conditions-raised-as-alerting-rules.md) | Accepted |
 | 0079 | [Every secret other than an account's provider credential arrives as a mounted file](./operability/0079-secrets-arrive-as-mounted-files.md) | Accepted |
 | 0081 | [A stored credential is sealed to a public key the UI holds; only provider-calling deployables open it](./operability/0081-credentials-sealed-to-a-public-key.md) | Accepted |
-| 0082 | [A rotated credential is sealed and written back to the account's row](./operability/0082-rotation-writeback-to-the-database.md) | Accepted |
+| 0082 | [A rotated credential is sealed and written back to the account's state row](./operability/0082-rotation-writeback-to-the-database.md) | Accepted |
+| 0088 | [A credential is sealed with HPKE's X-Wing suite from Go's standard library, under a header naming its key](./operability/0088-credentials-sealed-with-hpke-x-wing.md) | Accepted |
+| 0089 | [A deployable writes a sealed value only if the stored bytes are still the ones it last knew](./operability/0089-sealed-values-written-by-compare-and-set.md) | Accepted |
+| 0090 | [A deployable takes its accounts and credentials as an account snapshot, loaded at start and reloaded on a schedule](./operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) | Accepted |
+| 0092 | [A key is replaced by delta sync re-sealing what it opens, and retires once a scan finds nothing left on it](./operability/0092-key-replacement-by-keyring-and-re-seal.md) | Accepted |
 
 ## Engineering — `engineering/`
 

@@ -1,0 +1,20 @@
+control: An OAuth client is loaded for a provider that has one, and only for it
+removes: no OAuth client is loaded
+packages: ./accountload
+tests: TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index 1736aee..ef35bbe 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -226,7 +226,7 @@ func (l *Loader) Load(ctx context.Context) error {
+ 		scan.Accounts[r.id] = r.stored != nil && (!ok || l.onOldKey(r.stored))
+ 		next.accounts = append(next.accounts, a)
+ 	}
+-	for _, c := range clients {
++	for _, c := range clients[:0] {
+ 		secret, err := l.keys.Open(c.SealedClientSecret, seal.ClientSecret(c.Provider))
+ 		scan.Clients[c.Provider] = err != nil || l.onOldKey(c.SealedClientSecret)
+ 		if err != nil {

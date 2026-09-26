@@ -14,9 +14,16 @@ no cross-account reads) schema-level facts rather than application-level habits.
 ## Decision
 
 ```sql
-CREATE TABLE accounts (
+CREATE TABLE accounts (                  -- what every listing needs, readable in full (ADR-0091)
   account_id        text PRIMARY KEY,
-  provider          text NOT NULL,
+  provider          text NOT NULL
+);
+
+CREATE TABLE account_state (             -- everything else an account carries (ADR-0091)
+  account_id        text PRIMARY KEY REFERENCES accounts,
+  credential        bytea,               -- sealed (ADR-0081, ADR-0088); opaque, its meaning the provider adapter's
+                                         -- (an OAuth refresh token for Gmail, an API token for Fastmail, ADR-0012)
+  lowered_target_rate real,              -- a lower target the operator set, NULL for none (ADR-0024)
   backfill_pass1_complete boolean NOT NULL DEFAULT false,
   backfill_pass2_complete boolean NOT NULL DEFAULT false,
   sync_cursor       text,
@@ -26,6 +33,13 @@ CREATE TABLE accounts (
 );
 -- sync_cursor_at is written by delta sync, last_auth_* by the provider adapter on every
 -- authentication attempt; an account's policy overlay is its rows in policy_rules
+
+CREATE TABLE oauth_clients (             -- an installation's OAuth client, for a provider that has one (ADR-0080, ADR-0083); statements in db/oauthclients
+  provider          text PRIMARY KEY,
+  client_id         text NOT NULL,
+  client_secret     bytea NOT NULL       -- sealed (ADR-0081, ADR-0088)
+);
+-- a provider that authenticates without an OAuth client has no row, and no account refers to one
 
 CREATE TABLE rate_state (                 -- cross-process rate coordination (ADR-0025)
   account_id       text PRIMARY KEY REFERENCES accounts,
@@ -264,12 +278,25 @@ The properties the shape enforces:
   ([ADR-0047](./0047-schema-first-data-access.md)), and row-level security stands behind both as a
   third, independent layer. The policies read the transaction-local setting `app.account`, which
   every process sets before reading, by an ordinary statement and never by database-resident code
-  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The two exceptions are stated:
-  `policy_rules` rows with a null account are the base policy every account inherits
-  ([ADR-0004](../classification/0004-sender-list-decides.md)), and `reorg_op_log` carries no
-  account column at all and is scoped through its plan, by a policy whose predicate reaches the
-  plan's account. That policy's parent lookup is evaluated once per statement rather than once per
-  row, so scoping it costs materially less than the foreign key the same writes already carry.
+  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). Four exceptions are stated.
+  - `accounts` holds only each account's identifier and provider and is read in full by the roles
+    that list accounts, while its writes stay confined
+    ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
+  - `oauth_clients` belongs to no account and carries no account column, so grants alone decide
+    who reaches it. The four roles that call a provider read it in full. The UI's role reads its
+    `provider` and `client_id`, since it runs the consent with the client and sets a client up
+    again, and never reads its `client_secret`. Only the UI's role, when a client is set up, and
+    delta sync's, when it re-seals a secret, write it
+    ([ADR-0080](./0080-accounts-and-credentials-live-in-the-database.md),
+    [ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md),
+    [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md),
+    [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)).
+  - `policy_rules` rows with a null account are the base policy every account inherits
+    ([ADR-0004](../classification/0004-sender-list-decides.md)).
+  - `reorg_op_log` carries no account column at all and is scoped through its plan, by a policy
+    whose predicate reaches the plan's account. That policy's parent lookup is evaluated once per
+    statement rather than once per row, so scoping it costs materially less than the foreign key
+    the same writes already carry.
 - **The deny state of that third layer is silent, and the application compensates.** Once a
   connection has set `app.account`, Postgres keeps the parameter known and resets it to the empty
   string between transactions rather than to unrecognised. A statement that then omits the setting

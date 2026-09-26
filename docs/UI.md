@@ -237,11 +237,11 @@ editing policy other than through the policy management of [section 8.7](#87-pol
 
 **OAuth client setup and account setup.** Two separate flows over two separate stored records
 are the UI's other writes (ADR-0080, ADR-0083, ADR-0084). OAuth client setup runs once per
-installation and sets up the client every account of that provider connects through. Account
-setup connects an account through that client, sets what the account's row holds, and
-re-authorizes an account whose credential stopped working. The UI seals the client's secret and
-each credential it receives and cannot open a stored one (ADR-0081). The screens of both are not
-yet designed ([section 20](#20-what-remains-open)).
+installation for each provider that authenticates through an OAuth client, and sets up the client
+every account of that provider connects through. Account setup connects an account through that
+client, sets what the account's rows hold, and re-authorizes an account whose credential stopped
+working. The UI seals the client's secret and each credential it receives and cannot open a stored
+one (ADR-0081). The screens of both are not yet designed ([section 20](#20-what-remains-open)).
 
 **Growth slots the shape already fits**, each arriving as a registered dataset. Calendar events
 (restriction on any participant, per ADR-0027), the second account (the scope selector earns its
@@ -1250,7 +1250,7 @@ used. What is still open, and where it is tracked:
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | the same table |
 | The configuration key names of [section 18.1](#181-the-configuration-the-ui-declares) | the same table |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
-| The screens of ADR-0084's two setups, which the mockups do not cover. OAuth client setup's guided steps, and account setup's first run with no account, connecting an account, what an account's row holds, credential health, and re-authorization | [ROADMAP.md](../ROADMAP.md), the unit that builds them |
+| The screens of ADR-0084's two setups, which the mockups do not cover. OAuth client setup's guided steps, and account setup's first run with no account, connecting an account, what an account's rows hold, credential health, and re-authorization | [ROADMAP.md](../ROADMAP.md), the unit that builds them |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 
 ## 21. The mockups

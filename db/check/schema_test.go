@@ -11,11 +11,36 @@ import (
 // accountColumn is the column that makes a table account-keyed (ADR-0016, ADR-0047).
 const accountColumn = "account_id"
 
-// predicateExceptions names the account-keyed tables a statement may reach without an account
-// predicate of its own, each with its reason (ADR-0047). A table with no account column needs no
-// entry, because the derivation never lists it. Every entry must name an account-keyed table in the
-// chain, so an entry left behind by a dropped table or column fails TestPredicateExceptions.
-var predicateExceptions = map[string]string{}
+// predicateException is the one statement that may reach an account-keyed table without an account
+// predicate of its own, named by the subsection directory holding its statement file and the name
+// its name comment gives it, with its reason.
+type predicateException struct {
+	subsection string
+	statement  string
+	reason     string
+}
+
+// predicateExceptions names, per account-keyed table, the statement exempt from the account predicate
+// on it (ADR-0047). Every other statement on the table still needs one. A table with no account
+// column needs no entry, because the derivation never lists it. Every entry must name an
+// account-keyed table in the chain, so an entry left behind by a dropped table or column fails
+// TestPredicateExceptions.
+var predicateExceptions = map[string]predicateException{
+	"accounts": {
+		subsection: "accounts",
+		statement:  "Accounts",
+		reason:     "the accounts listing, which the roles that list accounts run with no account set (ADR-0047, ADR-0091)",
+	},
+}
+
+// exemptTables returns the tables predicateExceptions names, keyed as staleExceptions reads them.
+func exemptTables() map[string]string {
+	out := map[string]string{}
+	for table, e := range predicateExceptions {
+		out[table] = e.reason
+	}
+	return out
+}
 
 // nullAccountTables names the account-keyed tables whose rows with a null account every account
 // inherits, each with its reason. A statement on one of them may state its account predicate as
@@ -163,7 +188,7 @@ func TestAccountKeyedTablesDerived(t *testing.T) {
 
 func TestPredicateExceptions(t *testing.T) {
 	s := readSchema(t, realLibrary.migrationChain(t))
-	if stale := staleExceptions(s, predicateExceptions); len(stale) > 0 {
+	if stale := staleExceptions(s, exemptTables()); len(stale) > 0 {
 		t.Errorf("predicate exceptions naming no account-keyed table: %v", stale)
 	}
 	if stale := staleExceptions(s, nullAccountTables); len(stale) > 0 {
@@ -172,8 +197,8 @@ func TestPredicateExceptions(t *testing.T) {
 }
 
 // TestStaleExceptionsReported shows the stale-entry check refusing entries, since neither real list
-// holds a stale one. predicateExceptions is empty until a statement reaches a table ADR-0047 exempts
-// outright, and nullAccountTables names policy_rules, which is account-keyed.
+// holds a stale one. predicateExceptions names accounts and nullAccountTables names policy_rules, both
+// account-keyed.
 func TestStaleExceptionsReported(t *testing.T) {
 	s := schema{
 		"keyed":   {columns: map[string]column{accountColumn: {typ: "text"}}},

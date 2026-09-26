@@ -1,5 +1,6 @@
 ---
 paths:
+  - "accountload/README.md"
   - "credential/README.md"
   - "db/README.md"
   - "policyload/README.md"

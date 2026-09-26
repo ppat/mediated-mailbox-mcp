@@ -18,8 +18,8 @@ import (
 // deployable's import list. A deployable's role is mediated_mailbox_ followed by its directory
 // (ADR-0075). A shared library connects as no role of its own, so its list has no entry here. Its
 // statements run under the role of each deployable whose list admits it, and the grant check plans
-// them under each of those roles (ADR-0066). The four deployables here are those that spend from the
-// rate budget, whose lists admit the rate limiter.
+// them under each of those roles (ADR-0066). The four deployables here are those that call a provider,
+// whose lists admit the rate limiter and the account snapshot library.
 var componentRoles = map[string]string{
 	"backfill": "mediated_mailbox_backfill",
 	"mediate":  "mediated_mailbox_mediate",

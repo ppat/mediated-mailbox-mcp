@@ -1,0 +1,24 @@
+control: An OAuth client is loaded for a provider that has one, and only for it
+removes: a provider with no row in oauth_clients is handed another provider's client
+packages: ./accountload
+tests: TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index 1736aee..2ec8fda 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -103,8 +103,10 @@ func (s *Snapshot) Account(id string) (Account, bool) {
+ // Client returns the OAuth client of the provider, and whether the provider has one that opened. A
+ // provider that authenticates without an OAuth client has none, and nothing looks for one.
+ func (s *Snapshot) Client(provider string) (Client, bool) {
+-	c, ok := s.clients[provider]
+-	return c, ok
++	for _, c := range s.clients {
++		return c, true
++	}
++	return Client{}, false
+ }
+ 
+ // held is what the loader last knew of one stored sealed value and the plaintext it holds for it.

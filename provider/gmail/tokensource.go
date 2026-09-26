@@ -2,7 +2,6 @@ package gmail
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"sync"
@@ -13,43 +12,41 @@ import (
 // never leaves with a token that expires in flight.
 const expiryMargin = time.Minute
 
-// TokenSource hands out access tokens for one account, refreshing them from the refresh token.
-//
-// When Google rotates the refresh token, the source keeps the new one in memory and uses it from
-// then on, and writes it to the write-back location (ADR-0039). The secret store syncs that
-// location, and the refreshed mounted file is what the next start reads. A write that fails is
-// logged at error level and tried again after every later refresh until it succeeds, while the
-// process goes on with the token it holds.
-type TokenSource struct {
-	client    *http.Client
-	writeBack string
-	log       *slog.Logger
-
-	mu    sync.Mutex
-	creds Credentials
-	// persisted is the refresh token the secret store holds or will receive, the mounted one until
-	// a rotated one has been written back.
-	persisted string
-	access    string
-	expiry    time.Time
+// Credentials are the installation's OAuth client and the account's refresh token, as the
+// deployable supplies them from what it opened out of the database (ADR-0080, ADR-0083). Nothing in
+// this package reads a credential from anywhere else.
+type Credentials struct {
+	ClientID     string
+	ClientSecret string
+	RefreshToken string
 }
 
-// NewTokenSource returns a source for the credentials Load read, writing a rotated refresh token
-// to the file at writeBack. Every argument is required. It first removes any new file an earlier
-// process left beside the location when it stopped part of the way through a write-back, once
-// that file is older than unfinishedAge.
-func NewTokenSource(client *http.Client, creds Credentials, writeBack string, log *slog.Logger) *TokenSource {
-	if err := removeUnfinished(writeBack, time.Now()); err != nil {
-		log.Error("a new file left beside the Gmail write-back location was not removed, so a refresh token sits outside the location",
-			slog.String("location", writeBack), slog.Any("error", err))
-	}
-	return &TokenSource{
-		client:    client,
-		writeBack: writeBack,
-		log:       log,
-		creds:     creds,
-		persisted: creds.RefreshToken,
-	}
+// TokenSource hands out access tokens for one account, refreshing them from the refresh token.
+//
+// When Google rotates the refresh token, the source holds the new one and uses it from then on.
+// It writes nothing. The deployable reads the refresh token the source holds at the end of each
+// unit of work and writes a rotated one back to the account's state row (ADR-0082, ADR-0089).
+type TokenSource struct {
+	client *http.Client
+
+	mu     sync.Mutex
+	creds  Credentials
+	access string
+	expiry time.Time
+}
+
+// NewTokenSource returns a source for the credentials the deployable supplies. Every argument is
+// required.
+func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
+	return &TokenSource{client: client, creds: creds}
+}
+
+// RefreshToken returns the refresh token the source holds, the rotated one once Google has rotated
+// it. The deployable compares it with the one it last stored to find a rotation to write back.
+func (s *TokenSource) RefreshToken() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.creds.RefreshToken
 }
 
 // AccessToken returns an access token valid for at least expiryMargin, refreshing it when needed.
@@ -85,7 +82,7 @@ func (s *TokenSource) cached(now time.Time) (string, bool) {
 }
 
 // refreshForm is the token request that refreshes the access token, sent with the refresh token
-// the process holds.
+// the source holds.
 func (s *TokenSource) refreshForm() url.Values {
 	return url.Values{
 		"client_id":     {s.creds.ClientID},
@@ -105,22 +102,12 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {
 	return nil
 }
 
-// accept takes a successful token response. It holds a rotated refresh token and then writes back
-// whatever the store does not yet hold.
+// accept takes a successful token response, holding the access token and a rotated refresh token.
 func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
 	s.access, s.expiry = resp.AccessToken, now.Add(resp.ExpiresIn)
 	if rotated(s.creds.RefreshToken, resp.RefreshToken) {
 		s.creds.RefreshToken = resp.RefreshToken
 	}
-	if s.creds.RefreshToken == s.persisted {
-		return
-	}
-	if err := WriteBack(s.writeBack, s.creds.RefreshToken); err != nil {
-		s.log.Error("the rotated Gmail refresh token was not written back, so a restart before a later write succeeds loses mailbox access",
-			slog.String("location", s.writeBack), slog.Any("error", err))
-		return
-	}
-	s.persisted = s.creds.RefreshToken
 }
 
 // rotated reports whether a refresh response rotated the refresh token. Google leaves the field

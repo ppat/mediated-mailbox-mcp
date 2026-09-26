@@ -20,4 +20,35 @@ or sealed to the wrong key would do it silently, and five copies would drift. Wr
 construction and its refusals hold in every deployable that touches a credential.
 
 Its subsections are cut so an import list can admit the sealing half without the opening half, so
-the UI links no code that opens a credential.
+the UI links no code that opens a credential. `seal` seals to the current public key. `open` holds
+the keyring of private keys and opens a value by the key its header names. `cmd/keygen` writes a
+key pair, since no standard tool writes X-Wing keys. The construction and the sealed value's bytes
+are [ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a
+key is replaced is [ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)'s.
+Every write of a sealed value by a deployable is the compare-and-set of
+[ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md).
+
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `seal/` | The public key, the sealed value's bytes and the contexts a value is bound to. It never imports `open/`, and since `open/` imports it the compiler refuses the reverse as a cycle |
+| `open/` | The private keys, the keyring, opening, the refusals and the re-seal |
+| `cmd/keygen/` | The key-generation command |
+
+The values below are part of the sealed format. They feed the key identifier, the HPKE key
+schedule or the additional data of every stored value, so changing any of them makes every value
+already stored unopenable. A change to one takes a new version byte and a re-seal of every stored
+value ([ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)).
+
+| Value | Where it is used |
+| --- | --- |
+| The domain string `mediated-mailbox credential key identifier` followed by a zero byte | Hashed with the public key into the key identifier |
+| The HPKE info string `mediated-mailbox credential` | HPKE's info parameter |
+| The purpose spellings `account credential` and `oauth client secret` | The additional data, naming what the value holds |
+| A four-byte big-endian length before the purpose and before the row | The additional data, so no two contexts encode alike |
+
+`cmd/keygen` takes two flags, both required. `-private-key-file` names the file the 32-byte seed is
+written to with mode 0600, and `-public-key-file` the file the 1216-byte public key is written to
+with mode 0644. Each file holds the raw key and nothing else, and the command refuses a path that
+already exists, so a key in use is never overwritten. It prints the new key's identifier.

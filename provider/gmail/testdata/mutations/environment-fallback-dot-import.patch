@@ -1,28 +1,28 @@
-control: Credentials are read from the mounted files
-removes: any credential file that cannot be read falls back to an environment variable, read through a dot import
+control: No credential is read from the environment
+removes: an empty refresh token falls back to an environment variable, read through a dot import
 packages: ./provider/gmail
 tests: TestNoSourceFileReadsTheEnvironment
 scheduled-count: no
 
-diff --git a/provider/gmail/credentials.go b/provider/gmail/credentials.go
-index 9872faa..a3cd958 100644
---- a/provider/gmail/credentials.go
-+++ b/provider/gmail/credentials.go
-@@ -5,6 +5,7 @@ import (
- 	"fmt"
- 	"io/fs"
- 	"os"
+diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
+index 5dddcab..6658a8b 100644
+--- a/provider/gmail/tokensource.go
++++ b/provider/gmail/tokensource.go
+@@ -2,6 +2,7 @@ package gmail
+ 
+ import (
+ 	"context"
 +	. "os"
- 	"path/filepath"
- 	"strings"
- 	"time"
-@@ -41,6 +42,9 @@ func Load(files Files) (Credentials, error) {
- 		{files.RefreshToken, &c.RefreshToken},
- 	} {
- 		value, err := readValue(f.path)
-+		if v, ok := LookupEnv("MAILBOX_CREDENTIAL"); err != nil && ok {
-+			value, err = v, nil
-+		}
- 		if err != nil {
- 			errs = append(errs, err)
- 			continue
+ 	"net/http"
+ 	"net/url"
+ 	"sync"
+@@ -38,6 +39,9 @@ type TokenSource struct {
+ // NewTokenSource returns a source for the credentials the deployable supplies. Every argument is
+ // required.
+ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
++	if v, ok := LookupEnv("MAILBOX_CREDENTIAL"); creds.RefreshToken == "" && ok {
++		creds.RefreshToken = v
++	}
+ 	return &TokenSource{client: client, creds: creds}
+ }
+ 

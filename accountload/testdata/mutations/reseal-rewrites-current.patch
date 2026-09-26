@@ -1,0 +1,24 @@
+control: Delta sync's re-seal moves a credential to the current key
+removes: every credential is sealed again and written, the ones already on the current key included
+packages: ./accountload
+tests: TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/reseal.go b/accountload/reseal.go
+index 025b1e0..3c32f2f 100644
+--- a/accountload/reseal.go
++++ b/accountload/reseal.go
+@@ -37,10 +37,8 @@ func (l *Loader) Reseal(ctx context.Context) Scan {
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+ 	for account, h := range l.accounts {
+-		if !l.onOldKey(h.known) {
+-			continue
+-		}
+-		_, resealed, changed, err := l.keys.Reseal(h.known, seal.AccountCredential(account))
++		resealed, err := l.keys.Seal(h.plaintext, seal.AccountCredential(account))
++		changed := true
+ 		if err == nil && changed {
+ 			var landed bool
+ 			landed, err = l.replace(ctx, account, h.known, resealed)

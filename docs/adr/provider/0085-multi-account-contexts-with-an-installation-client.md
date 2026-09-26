@@ -1,4 +1,4 @@
-# 0085. Multi-account is one process holding N account contexts, isolated by construction, each account its own grant through the installation's OAuth client
+# 0085. Multi-account is one process holding N account contexts, isolated by construction, each account its own grant, through the installation's OAuth client where its provider uses one
 
 **Status:** Accepted (supersedes [ADR-0026](./0026-multi-account-contexts.md)) ·
 **Pillar:** [Accounts are isolated by structure, not convention](../../../DESIGN.md#accounts-are-isolated-by-structure-not-convention) ·
@@ -10,7 +10,8 @@ The system is multi-account by architecture with a single account deployed today
 span organizations, a personal Gmail and a work mailbox with no common administrator, so nothing
 may assume a shared tenant, grant, or admin. The deployment-shape question (one pod holding all
 accounts versus one pod per account) is separate from the isolation property, which must hold under
-either. An installation connects its accounts of one provider through one OAuth client of its own
+either. Where a provider authenticates through an OAuth client, an installation connects its
+accounts of that provider through one client of its own
 ([ADR-0083](./0083-gmail-through-an-installation-oauth-client.md)), set up apart from the accounts
 ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).
 
@@ -23,7 +24,7 @@ either. An installation connects its accounts of one provider through one OAuth 
 class AccountContext:
     account_id:     str              # "personal", "work"
     provider:       ProviderKind
-    credential_ref: str              # the account's sealed grant in its row (ADR-0080)
+    credential_ref: str              # the account's sealed grant in its state row (ADR-0080, ADR-0091)
     policy_overlay: OverlayRules | None  # the account's own rows in policy_rules (ADR-0016)
     mail:           MailProvider     # own authenticated client
     calendar:       CalendarProvider | None
@@ -35,22 +36,24 @@ The rules that keep accounts from bleeding:
 
 - **`account_id` is required on every client-surface operation** (API endpoint or MCP tool).
   There is no implicit current account. Omission is an error, not a default.
-- **Every table is indexed on `account_id`**, with the two exceptions
+- **Every table is indexed on `account_id`**, with the exceptions
   [ADR-0016](../data/0016-schema.md) names (the op log, which carries no account column and is
-  reached through its plan, and the base policy rows every account inherits). All queries go
-  through a repository layer that requires the account, every statement against an account-keyed
-  table carries an account predicate
-  ([ADR-0047](../data/0047-schema-first-data-access.md)), and row-level security stands behind
-  both as a third, independent layer.
+  reached through its plan, the base policy rows every account inherits, and the OAuth clients,
+  which belong to no account). The accounts table
+  is keyed on `account_id` too, and the roles that list accounts read all of its rows
+  ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). All queries go through a
+  repository layer that requires the account, every statement against an account-keyed table
+  carries an account predicate ([ADR-0047](../data/0047-schema-first-data-access.md)), and
+  row-level security stands behind both as a third, independent layer.
 - **Per-account clients, never a shared pool.** A shared HTTP client with a mutable auth header is
   the classic way cross-account leakage happens under concurrency. Giving each context its own
   authenticated client makes the bleed unrepresentable.
 - **Policy composes as base plus overlay, and overlays only add restrictions.** A misconfigured
   overlay can over-restrict, never under-restrict.
 - **No shared grant, no domain-wide delegation, no assumed common admin.** Each account is an
-  independent grant, its own refresh token, revocable alone. The accounts of one provider in one
-  installation connect through that installation's one OAuth client, which is shared, while no
-  grant is.
+  independent grant, its own credential, revocable alone. Where the provider authenticates
+  through an OAuth client, the accounts of that provider in one installation connect through that
+  installation's one client, which is shared, while no grant is.
 
 Because only one account exists today, adding the second is scheduled as a deliberate
 architectural test. If anything above the provider port needs changing to support it, the account

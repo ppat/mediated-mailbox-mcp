@@ -13,8 +13,9 @@ import (
 	"time"
 )
 
-// Consent runs the one-time interactive consent for one account and returns its grant. An operator
-// runs it outside every deployable, since no deployable obtains a credential itself (ADR-0038). It
+// Consent runs the one-time interactive consent for one account and returns its grant. A developer
+// runs it outside every deployable for the contract suite's test account, since a deployable's
+// accounts are connected through the UI (ADR-0080, ADR-0083). It
 // prints the consent page's address to prompt, receives Google's redirect on a loopback address,
 // and exchanges the code for the grant. A login hint, when given, is the address of the account the
 // grant is meant for.

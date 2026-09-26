@@ -1,0 +1,17 @@
+control: Only the roles that call a provider read oauth_clients and their own account's state
+removes: the heuristics job's role, which calls no provider, reads every OAuth client
+packages: ./db/check
+tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_propose/reads_a_client
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
+index a600f2d..626eccf 100644
+--- a/db/migrations/00008_account_state.sql
++++ b/db/migrations/00008_account_state.sql
+@@ -89,4 +89,4 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, m
+ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (provider, client_id, client_secret) ON oauth_clients
+-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
++TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize, mediated_mailbox_propose;

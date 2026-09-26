@@ -1,0 +1,20 @@
+control: A reload keeps a held rotated credential only while the stored bytes are the ones last known
+removes: a reload keeps what it holds even when someone else replaced the stored bytes
+packages: ./accountload
+tests: TestAStoredCredentialSomeoneElseReplacedWins
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index 1736aee..ad96a18 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -253,7 +253,7 @@ func (l *Loader) adopt(account string, stored []byte) (held, bool) {
+ 	if stored == nil {
+ 		return held{}, false
+ 	}
+-	if h, ok := l.accounts[account]; ok && slices.Equal(h.known, stored) {
++	if h, ok := l.accounts[account]; ok {
+ 		return h, true
+ 	}
+ 	plaintext, err := l.keys.Open(stored, seal.AccountCredential(account))

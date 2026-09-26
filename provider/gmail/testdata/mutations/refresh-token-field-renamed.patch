@@ -1,7 +1,7 @@
-control: A rotated refresh token is held and written back
+control: A rotated refresh token is held, sent on the next refresh and handed to the deployable
 removes: the token response's refresh token is read from a field Google does not send, so no rotation is ever seen
 packages: ./provider/gmail
-tests: TestARotatedCredentialSurvivesARestart TestParseTokenResponse/refresh_that_rotates
+tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver TestParseTokenResponse/refresh_that_rotates
 scheduled-count: no
 
 diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go

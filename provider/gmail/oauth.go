@@ -62,8 +62,8 @@ type Grant struct {
 
 // ExchangeCode trades the authorization code the consent page returned for the account's grant. It
 // refuses a grant holding any scope but Scope, so the token is known to lack permanent delete
-// rather than assumed to (ADR-0011). The operator stores the refresh token in the secret store,
-// from which it reaches the deployables as a mounted file (ADR-0038).
+// rather than assumed to (ADR-0011). The refresh token it returns is sealed and stored in the
+// account's state row (ADR-0080, ADR-0081).
 func ExchangeCode(ctx context.Context, client *http.Client, clientID, clientSecret, code, verifier, redirectURI string) (Grant, error) {
 	body, err := postForm(ctx, client, exchangeForm(clientID, clientSecret, code, verifier, redirectURI))
 	if err != nil {

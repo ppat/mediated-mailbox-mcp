@@ -2,6 +2,7 @@ package check_test
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -34,7 +35,7 @@ func checkStatements(s schema, f sqlFile) []finding {
 		}
 	}
 	for _, raw := range f.stmts {
-		c := &statementCheck{file: f, raw: raw, schema: s}
+		c := &statementCheck{file: f, raw: raw, schema: s, name: statementName(f, raw)}
 		c.starSelects()
 		c.groupingCases()
 		c.query(raw.GetStmt(), nil)
@@ -44,10 +45,36 @@ func checkStatements(s schema, f sqlFile) []finding {
 	return out
 }
 
+// statementName returns the name a statement's name comment gives it, or the empty string for a
+// statement without one.
+func statementName(f sqlFile, raw *pg.RawStmt) string {
+	start := int(raw.GetStmtLocation())
+	end := len(f.src)
+	if n := int(raw.GetStmtLen()); n > 0 {
+		end = start + n
+	}
+	for line := range strings.Lines(f.src[start:end]) {
+		if rest, ok := strings.CutPrefix(strings.TrimSpace(line), "-- name: "); ok {
+			if fields := strings.Fields(rest); len(fields) > 0 {
+				return fields[0]
+			}
+		}
+	}
+	return ""
+}
+
+// exempt reports whether the statement is the one predicateExceptions names for the table.
+func (c *statementCheck) exempt(table string) bool {
+	e, ok := predicateExceptions[table]
+	return ok && c.name == e.statement && filepath.Base(filepath.Dir(c.file.path)) == e.subsection
+}
+
 type statementCheck struct {
-	file     sqlFile
-	raw      *pg.RawStmt
-	schema   schema
+	file   sqlFile
+	raw    *pg.RawStmt
+	schema schema
+	// name is the statement's name, from its name comment.
+	name     string
 	findings []finding
 	// obligations are the account-keyed table references that need an account predicate. They are
 	// resolved once the whole statement is read, because a subquery can tie its table to a table of
@@ -213,7 +240,7 @@ func (c *statementCheck) rangeVar(sc *scope, rv *pg.RangeVar) *rangeRef {
 	}
 	if r.table != nil {
 		if _, keyed := r.table.columns[accountColumn]; keyed {
-			if _, exempt := predicateExceptions[r.name]; !exempt {
+			if !c.exempt(r.name) {
 				c.obligations = append(c.obligations, r)
 			}
 		}

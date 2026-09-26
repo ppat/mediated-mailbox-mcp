@@ -25,3 +25,33 @@ sql:
       sql_package: pgx/v5
       emit_interface: true
       omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: accounts
+  gen:
+    go:
+      package: accounts
+      out: accounts
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: accountstate
+  gen:
+    go:
+      package: accountstate
+      out: accountstate
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: oauthclients
+  gen:
+    go:
+      package: oauthclients
+      out: oauthclients
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true

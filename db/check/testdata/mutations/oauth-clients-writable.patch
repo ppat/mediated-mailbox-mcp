@@ -1,0 +1,18 @@
+control: Only the roles that call a provider read oauth_clients and their own account's state
+removes: the four roles that call a provider write every client's secret with no statement that uses the grant
+packages: ./db/check
+tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_backfill/writes_a_client
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
+index a600f2d..8b95a9c 100644
+--- a/db/migrations/00008_account_state.sql
++++ b/db/migrations/00008_account_state.sql
+@@ -88,5 +88,5 @@ GRANT SELECT (account_id, provider) ON accounts
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+-GRANT SELECT (provider, client_id, client_secret) ON oauth_clients
++GRANT SELECT (provider, client_id, client_secret), UPDATE (client_secret) ON oauth_clients
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;

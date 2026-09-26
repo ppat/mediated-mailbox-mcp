@@ -20,8 +20,10 @@ on:
     - go.sum
     - mise.lock
     - mise.toml
+    - accountload/**
     - backfill/**
     - core/**
+    - credential/**
     - db/**
     - mediate/**
     - organize/**

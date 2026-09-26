@@ -23,8 +23,10 @@ extend to the artifact layer or quietly stop at the process boundary.
   project's Go code. Each image bakes only its deployable's own code plus the shared libraries it
   imports — one deployable's image cannot contain another's code, so "nothing beyond what it needs"
   reads all the way down to image contents.
-- **Everything moves in lockstep.** Images and the deployment artifact that consumes them carry
-  one version — the release's. Deployed-together always means built-together; no
+- **Everything moves in lockstep.** Images, the deployment artifact that consumes them and the
+  key-generation binaries attached to the release
+  ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)) carry one version — the
+  release's. Deployed-together always means built-together; no
   version-compatibility matrix exists to maintain.
 - **Images are minimal and hardened:** multi-stage builds producing one static binary per image
   on a minimal base, no shell — the runtime posture
@@ -33,7 +35,8 @@ extend to the artifact layer or quietly stop at the process boundary.
   than an achievement. Tests never ship: the final stage copies only runtime artifacts.
 - **Images are published signed**, extending
   [ADR-0028](../operability/0028-trust-anchor-hardening.md)'s signed-and-verified rule to every
-  deployable's artifact.
+  deployable's artifact. The key-generation binaries attached to a release are signed the same
+  way.
 
 ## Alternatives considered
 

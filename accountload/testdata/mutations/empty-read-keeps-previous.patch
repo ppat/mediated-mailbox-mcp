@@ -1,0 +1,21 @@
+control: A read the account snapshot cannot trust never replaces it
+removes: a read that lists no account keeps the previous snapshot rather than serving none
+packages: ./accountload
+tests: TestAReloadServesWhatItReadAndKeepsTheLastGoodSnapshotOnAFailedRead
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index 1736aee..e51f3f3 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -213,6 +213,9 @@ func (l *Loader) Load(ctx context.Context) error {
+ 		l.log.Error("the account snapshot was not reloaded, so the previous one stays", slog.Any("error", err))
+ 		return fmt.Errorf("%w: %w", ErrUntrustedRead, err)
+ 	}
++	if len(rows) == 0 {
++		return nil
++	}
+ 	next := &Snapshot{clients: map[string]Client{}}
+ 	known := map[string]held{}
+ 	scan := newScan()

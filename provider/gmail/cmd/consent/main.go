@@ -1,8 +1,8 @@
 // Command consent runs the one-time installed-app consent for one Gmail account and prints the
-// account's refresh token (ADR-0011). The grant it asks for is the modify scope and no other. An
-// operator runs it by hand, outside every deployable, and puts the token where the account's
-// credentials are held, the secret store for a deployable's account (ADR-0038) or the GitHub
-// Actions secret GMAIL_TEST_REFRESH_TOKEN for the contract suite's test account.
+// account's refresh token (ADR-0083). The grant it asks for is the modify scope and no other. A
+// developer runs it by hand, outside every deployable, and puts the token in the GitHub Actions
+// secret GMAIL_TEST_REFRESH_TOKEN for the contract suite's test account. A deployable's accounts are
+// connected through the UI instead (ADR-0080).
 //
 // It reads the installed-app client's identifier and secret from the files the -client-id-file and
 // -client-secret-file flags name, so neither passes through the command line or the environment.

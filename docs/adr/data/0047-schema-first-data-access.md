@@ -35,14 +35,16 @@ decisions take everything as parameters
   layers, between the signature the compiler checks and the row-level security
   [ADR-0016](./0016-schema.md) keeps behind both. The rule reaches every statement, insert and
   delete included, where an insert supplies the account as a column value rather than as a
-  predicate. Three exceptions are stated. They are exceptions to this predicate rule and not to
-  [ADR-0016](./0016-schema.md)'s keying rule, which states two of its own, because a table can be
-  keyed on the account and still be reached without a predicate of its own. Base policy rows carry
-  a null account and are inherited by every account, so the predicate there is the account or null
+  predicate. Three exceptions are stated. They are exceptions to this predicate rule, and
+  [ADR-0016](./0016-schema.md) names apart the tables excepted from its own keying and isolation
+  rule, because a table can be keyed on the account and still be reached without a predicate of
+  its own. Base policy rows carry a null account and are inherited by every account, so the
+  predicate there is the account or null
   ([ADR-0004](../classification/0004-sender-list-decides.md)). The accounts listing is
-  deliberately unscoped ([docs/UI.md](../../UI.md#17-the-read-api)). And the operation log carries
-  no account column at all, so it is reached through its plan rather than by a predicate of its
-  own. **How the rule is checked is a mechanism question and belongs to
+  deliberately unscoped ([docs/UI.md](../../UI.md#17-the-read-api),
+  [ADR-0091](./0091-accounts-listed-apart-from-their-state.md)). And the operation log carries no
+  account column at all, so it is reached through its plan rather than by a predicate of its own.
+  **How the rule is checked is a mechanism question and belongs to
   [ADR-0066](./0066-data-access-generated-from-sql.md)**, which also records why a query set
   declared as files is checkable by a build step where statements assembled at run time are not.
 - **The account-keyed table list is derived from the schema rather than maintained by hand.** Any

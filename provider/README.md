@@ -37,12 +37,16 @@ takes the address of the account the grant is meant for and refuses a grant that
 another account or holds any scope but the modify scope.
 
 The Gmail adapter also holds the handling of Google's grant, which every deployable that calls
-Google shares, the Google Calendar adapter included. That is the one-time installed-app consent,
-reading the credential from mounted files, and writing a rotated token back to the one writable
-location
-([ADR-0011](../docs/adr/provider/0011-gmail-auth-installed-app-oauth.md),
-[ADR-0038](../docs/adr/operability/0038-credentials-as-mounted-files.md),
-[ADR-0039](../docs/adr/operability/0039-rotation-writeback.md)).
+Google shares, the Google Calendar adapter included. That is the one-time installed-app consent
+and the token source. The token source is built from the installation's OAuth client and the
+account's refresh token, which the deployable opened from the database, and reads no credential
+from anywhere else. When Google rotates the refresh token, the source holds the new one and hands
+it over as its current refresh token. The source writes nothing. The deployable reads that token
+at the end of each unit of work and writes a rotated one back to the account's state row through
+`accountload/`
+([ADR-0080](../docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
+[ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md),
+[ADR-0083](../docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)).
 
 ## Series and the rules that read them
 

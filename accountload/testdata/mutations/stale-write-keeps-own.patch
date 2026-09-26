@@ -1,0 +1,24 @@
+control: A write of a sealed value by a deployable is a compare-and-set on the bytes it last knew
+removes: a write-back that found other bytes keeps its own credential rather than reading the stored one again
+packages: ./accountload
+tests: TestAStaleWriteBackIsRefusedAndTheStoredCredentialUsed
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/writeback.go b/accountload/writeback.go
+index e023f76..816cadf 100644
+--- a/accountload/writeback.go
++++ b/accountload/writeback.go
+@@ -59,11 +59,7 @@ func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([
+ 		l.hold(account, h)
+ 		return h.plaintext, nil
+ 	}
+-	stored, err := l.stored(ctx, account)
+-	if err != nil {
+-		return l.failed(account, current, err)
+-	}
+-	return l.reread(account, stored), nil
++	return h.plaintext, nil
+ }
+ 
+ // failed logs a write-back that did not land and keeps the rotated credential held.

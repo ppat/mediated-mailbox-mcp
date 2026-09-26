@@ -1,0 +1,19 @@
+control: Row-level security scopes every account-keyed table to the transaction's account
+removes: row-level security is not enabled on account_state, so its policy never applies
+packages: ./db/check
+tests: TestRowLevelSecurityScopesEveryAccountTable TestRowLevelSecurityScopesEveryAccountTable/account_state/read_by_another_account TestRowLevelSecurityScopesEveryAccountTable/account_state/update_by_another_account TestRowLevelSecurityScopesEveryAccountTable/account_state/insert_by_another_account
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
+index e1981ea..ab5f37d 100644
+--- a/db/migrations/00008_account_state.sql
++++ b/db/migrations/00008_account_state.sql
+@@ -51,7 +51,6 @@ DROP COLUMN sync_cursor_at,
+ DROP COLUMN last_auth_at,
+ DROP COLUMN last_auth_outcome;
+ 
+-ALTER TABLE account_state ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY account_state_account ON account_state
+ USING (account_id = current_setting('app.account'));
+ 
