@@ -23,8 +23,8 @@ may assume about the user's cluster.
   and its project-owned wiring, referencing the per-deployable images at the lockstep version.
 - **The chart deploys this project's workloads and nothing else; what the system depends on
   but does not own arrives as user-supplied inputs.** Postgres, the Secrets holding the system's
-  secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)), and the policy
-  configuration arrive as Helm values or pre-existing ConfigMaps and Secrets — the policy as a
+  secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)), and the policy file
+  arrive as Helm values or pre-existing ConfigMaps and Secrets — the policy as a
   user-supplied ConfigMap or mounted-file reference. The policy of record lives in the database
   ([ADR-0004](../classification/0004-sender-list-decides.md),
   [ADR-0041](./0041-policy-as-immutable-snapshots.md)), so this input is the file the policy
@@ -35,6 +35,11 @@ may assume about the user's cluster.
   alerting rules of [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md), which
   the chart renders as the Prometheus Operator's resource only when a value switched off by
   default turns them on.
+- **Each deployable's configuration is rendered as
+  [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) requires.** The chart passes
+  the configuration file through as the text the operator wrote, gives each deployable only its own
+  environment variables, sets `enableServiceLinks: false`, and restarts a deployable's pods when its
+  configuration changes.
 - **Project-owned configuration and policy hardening ship in the chart; their enforcement is the
   platform's.** The pod security contexts are core fields and comply with the hardening
   posture ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). Admission machinery and

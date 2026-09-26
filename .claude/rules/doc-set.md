@@ -13,6 +13,7 @@ paths:
   - "provider/README.md"
   - "ratelimit/README.md"
   - "sanitize/README.md"
+  - "settings/README.md"
   - "testsupport/README.md"
 ---
 

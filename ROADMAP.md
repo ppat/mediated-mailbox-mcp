@@ -326,10 +326,11 @@ perfected up front.
   proven, and every control it delivered has its mutation demonstration.
   **What it did not deliver.** The same search over persisted rows and workload logs, which rides
   [D2](#group-d--data-flows), where verdicts are first stored. Recording masking events, from the
-  first run that masks a corpus, which is [D1](#group-d--data-flows). Loading the scanner's
-  configuration, which [D1](#group-d--data-flows) decides as the first unit that runs the scanner,
-  because pass 1 masks subjects. Tuning against the real one-time-code formats, which waits for
-  [production point 1](#production-point-1--the-read-path). None of it runs in a deployable yet.
+  first run that masks a corpus, which is [D1](#group-d--data-flows). Defining the scanner's
+  section of the configuration, which [D1](#group-d--data-flows) does as the first unit that runs
+  the scanner, because pass 1 masks subjects. Tuning against the real one-time-code formats, which
+  waits for [production point 1](#production-point-1--the-read-path). None of it runs in a
+  deployable yet.
 - [x] **S3 — Body sanitization + injection hardening** →
   [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -640,16 +641,19 @@ arrives, because each delta sync tick runs the scan gate.
   [F3](#delivered-mapped-to-outcomes)'s budget. The first deployable that loads a policy snapshot from the
   tables and raises the reload-failure alarm
   ([ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)), through a shared
-  library every later deployable that loads policy uses. It is the first deployable that calls a
-  provider, so it reads its accounts and opens their credentials from the database through what
-  [F6](#group-f--foundation) builds
+  library every later deployable that loads policy uses. It builds the configuration library every
+  deployable uses, and the UI's server, which reads configuration too, waits on that library's
+  ticket ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)).
+  It is the first deployable that calls a provider, so it reads its accounts and opens their
+  credentials from the database through what [F6](#group-f--foundation) builds
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
   [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), and every later
   deployable that calls a provider does the same. It is also the first deployable that builds a rate
   limiter, so it reads a lowered rate target from the account's row
   ([ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)). Pass 1 masks subjects, so
-  it is the first unit that builds the scanner, and it decides how the scanner's configuration is
-  loaded ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)).
+  it is the first unit that builds the scanner, and it defines the scanner's section of the
+  configuration [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)
+  layers ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)).
   Checkpoint and resume are proven by the crash harness
   ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md),
   [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). *Criteria:*
@@ -677,21 +681,21 @@ arrives, because each delta sync tick runs the scan gate.
   delisting transition applies to a rule removed by any path, and how a removal reaches it is an
   [open decision](#open-decisions) settled here. Pass 2 converts each gated-in body with
   [S3](#delivered-mapped-to-outcomes)'s converter before scanning it, because the scanner reads
-  Markdown, and decides what it records for a body the converter refuses. Every improvement to the scanner's patterns bumps the scanner version, every change to
-  its vocabulary or tuning bumps the configuration's revision
-  ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)),
-  and tuning against the real mail starts at
-  [production point 1](#production-point-1--the-read-path). So this unit also builds the planned
-  operation that re-scans and re-masks the stored index after either changes
-  ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), and how that
-  operation is started and run is an open decision settled here. What proves it is its rows over a fixture corpus with pass-1
-  statistics, and the leak search over persisted rows and workload logs. *Criteria:* pass 2 records
-  its runs, progress events and per-item failures, and sets backfill's completion flag when it ends
+  Markdown, and decides what it records for a body the converter refuses. Every improvement to the
+  scanner's patterns bumps the scanner version, every change to its vocabulary or tuning changes the
+  configuration's revision ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)), and
+  tuning against the real mail starts at [production point 1](#production-point-1--the-read-path).
+  So this unit also builds the planned operation that re-scans and re-masks the stored index after
+  either changes ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), and
+  how that operation is started and run is an open decision settled here. What proves it is its rows
+  over a fixture corpus with pass-1 statistics, and the leak search over persisted rows and
+  workload logs. *Criteria:* pass 2 records its runs, progress events and per-item failures, and
+  sets backfill's completion flag when it ends
   ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0017](./docs/adr/data/0017-two-pass-backfill.md)), and scan backlog depth is emitted as a
   metric ([ADR-0007](./docs/adr/redaction/0007-composite-scan-gate.md)). The residual is trusted
-  only after its skip rates are reviewed at [production point
-  1](#production-point-1--the-read-path).
+  only after its skip rates are reviewed at
+  [production point 1](#production-point-1--the-read-path).
 - [ ] **D3 — Client surface (API + thin MCP adapter), read-only** →
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · [V3](#v3--the-agent-arrives-read-only) ·
   finishes at image
@@ -1171,17 +1175,17 @@ lands in is the [value path](#the-value-path)'s.
 | F3 → D1, F3 → D4 | The form conditions are raised in, an alerting rule over emitted metrics ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The policy loader's reload-failure alarm and delta sync's gap alert take the same form |
 | D1 → D2 | The sender statistics the gate evaluates, which cannot exist before pass 1 builds them |
 | S2 → D2, S3 → D2 | The tiers pass 2 scans with, and the converter whose Markdown they read ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)) |
-| S1 → D3, S3 → D3, F2 → D3, F5 → D3, D1 → D3 | The gate the surface serves through, the sanitization every body passes, the index it reads, the adapter it fetches with, the policy loader, and backfill as the first deployable whose authentication outcome is recorded |
+| S1 → D3, S3 → D3, F2 → D3, F5 → D3, D1 → D3 | The gate the surface serves through, the sanitization every body passes, the index it reads, the adapter it fetches with, the policy loader, the configuration library, and backfill as the first deployable whose authentication outcome is recorded |
 | D2 → D4, F5 → D4 | The gate the tick runs and the body scanning pass 2 builds, and the adapter's change cursor |
 | F5 → M2 | The provider fake, the contract suite, and its run against the real provider, which any addition to the port for renaming and deleting labels must pass |
 | D3 → M1 | The surface the mutating operations live on |
-| M1 → M2, D3 → M2, D1 → M2 | The authorized batch mutation path apply runs through, the surface the two read-only plan tools live on, the crash harness with its operation sampler, the policy loader and the reading of accounts from the database, and how the last authentication outcome is recorded |
+| M1 → M2, D3 → M2, D1 → M2 | The authorized batch mutation path apply runs through, the surface the two read-only plan tools live on, the crash harness with its operation sampler, the policy loader, the configuration library and the reading of accounts from the database, and how the last authentication outcome is recorded |
 | R1 → M4, R1 → M5 | How a newly added policy rule changes the classifications already stored in the index. The import decides it, and a confirmed candidate's rule follows it |
-| D1 → M4 | The sender statistics the heuristics read, and the policy loader the heuristics workload uses |
+| D1 → M4 | The sender statistics the heuristics read, and the policy loader and the configuration library the heuristics workload uses |
 | D1 → X2, D3 → X2, D4 → X2, F5 → X2, M1 → X2 | The surface, the workloads and the Google grant calendar joins, the dry-run and authorized mutation path calendar mutations run through, the provider fake, and the convention for running the contract suite against the real provider. Calendar also follows the answers on how a running deployable learns of a new account or a replaced credential, on recording the authentication outcome and on denying a newly deny-listed domain on the next call |
 | F3 → D2, F3 → D3, F3 → D4, F3 → M1, F3 → M2, F3 → X2 | The rate budget each spends from ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), and for D3 the collector of each account's rate-state series its metrics endpoint carries ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
 | S3 → X2 | The sanitization a released event description goes through ([ADR-0036](./docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)) |
-| D1 → D4 | The policy loader and the reading of accounts from the database that delta sync reuses |
+| D1 → D4 | The policy loader, the configuration library and the reading of accounts from the database that delta sync reuses |
 | D3 → D4 | How the last provider authentication outcome is recorded, which delta sync follows |
 | M6 → X1, M5 → X1 | The masking-events and gate views and the UI's decision path the feedback verb joins |
 | S1 → D2, S1 → M1, S1 → M2, S1 → X2 | The pure cores these units run, the classifier, the gate and the authorization matrix |
@@ -1333,10 +1337,10 @@ index](./docs/adr/README.md).
 | Whether bounded crash-sequence runs gate pull requests or run on the schedule | D1 | [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) and [TESTING.md](./TESTING.md) allow them in the gating suite if they prove fast enough. It is decided where the crash harness is first built, and M2's crash sequences follow it |
 | What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet |
 | How a reorganization renames and deletes a label at the provider | M2 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) plans creating, renaming and deleting labels, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md)'s port has `ensure_label` and `mutate` and nothing to rename or delete a label. It is decided where apply is built, together with any addition to the port, the provider fake and the contract suite |
-| The UI's configuration key names | R1 | [docs/UI.md](./docs/UI.md#181-the-configuration-the-ui-declares) lists the keys with example names and says the names are settled when the chart of [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) carries them. The UI's server built at M3, and the screens and decisions built at M6 and M5, read the keys under those example names, so they depend on the keys existing, not on their final names. The chart is the first thing that needs the final names. R1 adds the UI's deployment to the chart, so they are decided there, and the UI's server switches to the names settled there |
+| The UI's configuration key names | R1 | [docs/UI.md](./docs/UI.md#181-the-configuration-the-ui-declares) lists the keys with example names and says the names are settled when the chart of [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) carries them. The UI's server built at M3, and the screens and decisions built at M6 and M5, read the keys under those example names, so they depend on the keys existing, not on their final names. The names follow [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)'s rule, a configuration path from which the environment name and flag derive. The chart is the first thing that needs the final names. R1 adds the UI's deployment to the chart, so they are decided there, and the UI's server switches to the names settled there |
 | Whether a run's detail is shown as a panel of the `runs` dataset or on the Run screen | M3 | [docs/UI.md](./docs/UI.md#5-information-architecture-and-the-url) lists `runs` among the datasets with a row detail, but its route table and [section 8.4](./docs/UI.md#84-run) open every run on the Run screen, which is the reason `plans` and `candidates` have no row detail. The contract generator refuses a row path that both a dataset and a screen claim. It is decided where the `runs` dataset and the Run screen are built |
 | Whether a plan touching exactly a quarter of the corpus needs the second confirmation | M5 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) requires it for a plan touching more than a quarter, and [docs/UI.md](./docs/UI.md#82-plan-reviewer) for a plan touching a quarter or more. It is decided where approve, and the server's recalculation of the plan's share, are built |
-| How the stored index is re-scanned and re-masked after a scanner version change or a configuration revision | D2 | [ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md) marks rows as stale and re-scans them as a planned operation, without saying how that operation is started or run. [ADR-0005](./docs/adr/classification/0005-tiered-detection.md) makes every pattern improvement bump the scanner version and every vocabulary or tuning change bump the configuration's revision, and tuning against the real mail starts at production point 1, so the first version change comes after that point. Between production points a new version ships with no manual step, so the read path packaged at R1 must already re-scan on a version change. It is decided where scan results are first stored, R1 packages whatever the answer needs, and the learned tier, shipped behind the scanner-version flag, follows it |
+| How the stored index is re-scanned and re-masked after a scanner version change or a configuration revision | D2 | [ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md) marks rows as stale and re-scans them as a planned operation, without saying how that operation is started or run. [ADR-0005](./docs/adr/classification/0005-tiered-detection.md) makes every pattern improvement bump the scanner version and every vocabulary or tuning change alter the configuration's revision, and tuning against the real mail starts at production point 1, so the first version change comes after that point. Between production points a new version ships with no manual step, so the read path packaged at R1 must already re-scan on a version change. It is decided where scan results are first stored, R1 packages whatever the answer needs, and the learned tier, shipped behind the scanner-version flag, follows it |
 | How a reorganization or batch operation is represented in Go | M1 | [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) leaves the representation undecided. The shared validation core used by both the mediator and the reorg workload depends on it, so it is decided where that core is first built |
 | Whether the heuristics' embeddings run in Go or in a separate deployable | M4 | [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md) allows either. It is decided where the heuristics workload is built |
 | The calendar index schema | X2 | [ADR-0016](./docs/adr/data/0016-schema.md) has no calendar table, and storing calendar data needs one. It is decided, and recorded beside ADR-0016, where the tables are built, before calendar is wired into the deployables |
