@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.1.0](https://github.com/ppat/mediated-mailbox-mcp/compare/v0.0.1...v0.1.0) (2026-09-26)
+
+
+### 🛠 Improvements
+
+* accounts and their credentials live in the database, set up through the UI ([#170](https://github.com/ppat/mediated-mailbox-mcp/issues/170)) ([f8e1ecd](https://github.com/ppat/mediated-mailbox-mcp/commit/f8e1ecd35a3efc5403503084cccada17181f28b5))
+* **agents:** a mutation patch sits with the control it demonstrates ([#147](https://github.com/ppat/mediated-mailbox-mcp/issues/147)) ([74f926d](https://github.com/ppat/mediated-mailbox-mcp/commit/74f926d12447272b672d2f481da9ffbd1de981b7)), refs [#146](https://github.com/ppat/mediated-mailbox-mcp/issues/146)
+* close the coherence gaps between the document set and the tickets ([#120](https://github.com/ppat/mediated-mailbox-mcp/issues/120)) ([8da026a](https://github.com/ppat/mediated-mailbox-mcp/commit/8da026ac861cafd9da65635bebaab339c440eff0))
+* establish the ticket format, its template and its labels ([#67](https://github.com/ppat/mediated-mailbox-mcp/issues/67)) ([26f0890](https://github.com/ppat/mediated-mailbox-mcp/commit/26f0890904236558ab81ab6b50025dc9561d4e81))
+* permanent proofs for the tooling checks still pending ([#131](https://github.com/ppat/mediated-mailbox-mcp/issues/131)) ([1d3802b](https://github.com/ppat/mediated-mailbox-mcp/commit/1d3802b2fcd3a10de268dd02b74d9eb874e6fe7a)), refs [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90)
+* policy is managed through the UI in unit M8, and no document cites a deprecated record ([#175](https://github.com/ppat/mediated-mailbox-mcp/issues/175)) ([d754eaa](https://github.com/ppat/mediated-mailbox-mcp/commit/d754eaa36efa933fba09f95f57d7e95a59d933e4))
+* reconcile the document set with the merged tooling, and track tickets under one epic ([#119](https://github.com/ppat/mediated-mailbox-mcp/issues/119)) ([935c369](https://github.com/ppat/mediated-mailbox-mcp/commit/935c3692a15d684706e4053df4cbd401521cf41e))
+* record how every deployable takes its configuration ([#168](https://github.com/ppat/mediated-mailbox-mcp/issues/168)) ([3541a9f](https://github.com/ppat/mediated-mailbox-mcp/commit/3541a9f78e020491405f8536c52e7987a665ad1f))
+* record the read path's UI screens shipping before production point 1 ([#163](https://github.com/ppat/mediated-mailbox-mcp/issues/163)) ([b4181c0](https://github.com/ppat/mediated-mailbox-mcp/commit/b4181c0ab91a6701c43e53a1a6a62aafa1ac0e37))
+* the go vet analyser refuses package-level state in a pure core ([#149](https://github.com/ppat/mediated-mailbox-mcp/issues/149)) ([6f76e7f](https://github.com/ppat/mediated-mailbox-mcp/commit/6f76e7f9590ba9f96c0511a855adc3bc78d7f4b3)), refs [#148](https://github.com/ppat/mediated-mailbox-mcp/issues/148)
+* the golden-file helper ([#162](https://github.com/ppat/mediated-mailbox-mcp/issues/162)) ([8515de1](https://github.com/ppat/mediated-mailbox-mcp/commit/8515de1354a40d27d7ebb3f7394e6e40bad5bfd0))
+* the marker text and the synthetic fixtures ([#141](https://github.com/ppat/mediated-mailbox-mcp/issues/141)) ([da74ef6](https://github.com/ppat/mediated-mailbox-mcp/commit/da74ef6dc8f0b0e30507275536a6abefd7f5c16f)), refs [#122](https://github.com/ppat/mediated-mailbox-mcp/issues/122)
+* the mutation demonstration runner ([#132](https://github.com/ppat/mediated-mailbox-mcp/issues/132)) ([301bf86](https://github.com/ppat/mediated-mailbox-mcp/commit/301bf864ac0ee3e0912c5b984baf273821f4c32a)), refs [#69](https://github.com/ppat/mediated-mailbox-mcp/issues/69)
+
+
+### ✨ Features
+
+* accounts, OAuth clients and sealed credentials in the database, with credential and accountload ([#178](https://github.com/ppat/mediated-mailbox-mcp/issues/178)) ([d5cec07](https://github.com/ppat/mediated-mailbox-mcp/commit/d5cec07d092f8c1034f2b6b26f12f725220a8aab))
+* body sanitization to Markdown and the serve-time pattern check ([#152](https://github.com/ppat/mediated-mailbox-mcp/issues/152)) ([21e9d69](https://github.com/ppat/mediated-mailbox-mcp/commit/21e9d69e3bb3339e885e1346a51e2716b4fd9147)), refs [#87](https://github.com/ppat/mediated-mailbox-mcp/issues/87)
+* database leases, the Gmail cost profile, the rate metrics and the alerting rules ([#157](https://github.com/ppat/mediated-mailbox-mcp/issues/157)) ([f370fc7](https://github.com/ppat/mediated-mailbox-mcp/commit/f370fc7003682874cf49aeaa51a750c59d5b54d7))
+* installed-app OAuth, credentials as mounted files and rotation write-back's application half ([#155](https://github.com/ppat/mediated-mailbox-mcp/issues/155)) ([13d4e57](https://github.com/ppat/mediated-mailbox-mcp/commit/13d4e572a5eb946f8e0585a6714bae6892163e09)), refs [#76](https://github.com/ppat/mediated-mailbox-mcp/issues/76)
+* one runaway rule for every provider, and a rate target an account can lower ([#161](https://github.com/ppat/mediated-mailbox-mcp/issues/161)) ([4bb610a](https://github.com/ppat/mediated-mailbox-mcp/commit/4bb610ac4d22c05a47ecd290ea2730a6ed08aa5d))
+* the canonical model, the Provider Port, the provider fake and the contract suite ([#154](https://github.com/ppat/mediated-mailbox-mcp/issues/154)) ([e1d6517](https://github.com/ppat/mediated-mailbox-mcp/commit/e1d651795bec0960d2cd4bd81ddf89171e05e85a)), refs [#75](https://github.com/ppat/mediated-mailbox-mcp/issues/75)
+* the configuration library, layering defaults, one optional YAML file, environment variables and flags ([#177](https://github.com/ppat/mediated-mailbox-mcp/issues/177)) ([8351ba6](https://github.com/ppat/mediated-mailbox-mcp/commit/8351ba6883846f9900dbebce100bf554618fa035)), refs [#166](https://github.com/ppat/mediated-mailbox-mcp/issues/166)
+* the Content Scanner's first two tiers and subject masking ([#151](https://github.com/ppat/mediated-mailbox-mcp/issues/151)) ([f2d7e97](https://github.com/ppat/mediated-mailbox-mcp/commit/f2d7e976d27371d8b9b7814124db2afc01cf6841)), refs [#80](https://github.com/ppat/mediated-mailbox-mcp/issues/80)
+* the Gmail adapter, passing the contract suite ([#158](https://github.com/ppat/mediated-mailbox-mcp/issues/158)) ([54bfa1f](https://github.com/ppat/mediated-mailbox-mcp/commit/54bfa1f0860ea72563383fe68d7bcd7ae8d4efdc))
+* the Mutation Authorizer's matrix ([#150](https://github.com/ppat/mediated-mailbox-mcp/issues/150)) ([3f5ff01](https://github.com/ppat/mediated-mailbox-mcp/commit/3f5ff01481214a562de3e238de58a23948656fd3)), refs [#91](https://github.com/ppat/mediated-mailbox-mcp/issues/91)
+* the policy snapshot's validation and atomic swap ([#143](https://github.com/ppat/mediated-mailbox-mcp/issues/143)) ([816a0eb](https://github.com/ppat/mediated-mailbox-mcp/commit/816a0ebed813c2962ab8dec202bac544755b3be4)), refs [#72](https://github.com/ppat/mediated-mailbox-mcp/issues/72)
+* the rate controller's pure rules for the target, the hard cap, AIMD and the priority classes ([#156](https://github.com/ppat/mediated-mailbox-mcp/issues/156)) ([c86a4e6](https://github.com/ppat/mediated-mailbox-mcp/commit/c86a4e663d77b549801992f056405bfeb1907c99))
+* the Redaction Gate's matrix and its fetch-time deny branches ([#145](https://github.com/ppat/mediated-mailbox-mcp/issues/145)) ([c231a61](https://github.com/ppat/mediated-mailbox-mcp/commit/c231a61207917e894e49fe9ff366f1198a605f5e)), refs [#83](https://github.com/ppat/mediated-mailbox-mcp/issues/83)
+* the scan gate's composite predicate ([#167](https://github.com/ppat/mediated-mailbox-mcp/issues/167)) ([7b07f31](https://github.com/ppat/mediated-mailbox-mcp/commit/7b07f312f7b9d4f1cf041d09829dde3c6a3b3f30)), refs [#82](https://github.com/ppat/mediated-mailbox-mcp/issues/82)
+* the schema, the migration chain, the runtime roles and the transaction helper ([#153](https://github.com/ppat/mediated-mailbox-mcp/issues/153)) ([8960ce4](https://github.com/ppat/mediated-mailbox-mcp/commit/8960ce4aa4781c5c9add0071071574aeb312aa87)), refs [#70](https://github.com/ppat/mediated-mailbox-mcp/issues/70)
+* the sender classifier ([#144](https://github.com/ppat/mediated-mailbox-mcp/issues/144)) ([5115a2f](https://github.com/ppat/mediated-mailbox-mcp/commit/5115a2fc8f8ff500e4bab546dd3b53faad0ef219)), refs [#79](https://github.com/ppat/mediated-mailbox-mcp/issues/79)
+* the sensitivity types and the property-testing harness ([#142](https://github.com/ppat/mediated-mailbox-mcp/issues/142)) ([8c3eaf9](https://github.com/ppat/mediated-mailbox-mcp/commit/8c3eaf961f2be75dbb32d1aec42ec7879bdcf860)), refs [#71](https://github.com/ppat/mediated-mailbox-mcp/issues/71)
+* the shared policy loader with its reload-failure alarm, used first by backfill ([#160](https://github.com/ppat/mediated-mailbox-mcp/issues/160)) ([48a1412](https://github.com/ppat/mediated-mailbox-mcp/commit/48a141264e08875f137205a87304045fc60bfff3))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* make go.mod and go.sum tidy, and fail the build when they drift ([#134](https://github.com/ppat/mediated-mailbox-mcp/issues/134)) ([eb34bff](https://github.com/ppat/mediated-mailbox-mcp/commit/eb34bff2fe72549c4f33040b4c06cace4dd47807)), refs [#133](https://github.com/ppat/mediated-mailbox-mcp/issues/133)
+* update digest github.com/wasilibs/go-pgquery (318158a -&gt; 81f9919) ([#115](https://github.com/ppat/mediated-mailbox-mcp/issues/115)) ([a0f2943](https://github.com/ppat/mediated-mailbox-mcp/commit/a0f2943c8d9b778ff8f6b098f3efb77bc425d41d))
+
 ## 0.0.1 (2026-09-16)
 
 
