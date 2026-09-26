@@ -1,0 +1,20 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: arguments holding a key twice, exactly or in another case, the account included, reach the operation on either root
+packages: ./mediate/internal/service ./mediate/internal/api ./mediate/internal/mcp
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_argument_given_twice TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_argument_beside_a_case_variant_of_it TestTheServiceLayerRefusesAMissingOrUnknownAccount/the_accounts_listing_with_an_argument_given_twice TestTheRootRefusesWhatItCannotBind/a_case_variant_of_a_path_variable_in_the_body TestTheRootRefusesWhatItCannotBind/a_case_variant_of_a_body_member TestARepeatedArgumentIsRefused TestTheServiceLayerRefusesAMissingOrUnknownAccount/account_id_twice
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 4da7733..1fd5327 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -164,7 +164,7 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
+ 	if !found {
+ 		return nil, ErrNoOperation
+ 	}
+-	if err := distinctKeys(input); err != nil {
++	if err := error(nil); err != nil {
+ 		return nil, err
+ 	}
+ 	if op.Path == accountsPath {

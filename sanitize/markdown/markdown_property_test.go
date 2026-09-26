@@ -11,8 +11,8 @@ import (
 	"github.com/yuin/goldmark/text"
 	"pgregory.net/rapid"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/marker"
 	"github.com/ppat/mediated-mailbox-mcp/sanitize/markdown"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/property"
 )
 

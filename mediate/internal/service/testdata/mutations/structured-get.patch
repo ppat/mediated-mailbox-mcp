@@ -1,0 +1,20 @@
+control: An operation carrying anything less than both roots need fails generation
+removes: a GET taking an argument that is not a scalar generates
+packages: ./mediate/internal/service
+tests: TestTheSurfaceRefusesWhatItCannotCarry/a_GET_taking_an_object TestTheSurfaceRefusesWhatItCannotCarry/a_GET_taking_an_array TestTheSurfaceRefusesWhatItCannotCarry/a_GET_taking_an_untyped_argument
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/surface.go b/mediate/internal/service/surface.go
+index 1225e3e..d7d64fe 100644
+--- a/mediate/internal/service/surface.go
++++ b/mediate/internal/service/surface.go
+@@ -158,7 +158,7 @@ func surfaceProblems(op Operation) []string {
+ 			problems = append(problems, "has the path variable "+v+", which is not a required string argument")
+ 		}
+ 	}
+-	if op.Effect == Read {
++	if false {
+ 		for name, p := range facts.Properties {
+ 			if t, ok := p.Type.(string); !ok || !slices.Contains(scalarTypes, t) {
+ 				problems = append(problems, "is a GET whose argument "+name+" is not a scalar")

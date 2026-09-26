@@ -1,0 +1,20 @@
+control: Both roots hand the service layer the same argument object
+removes: the API root takes a path variable as its escaped text rather than its value
+packages: ./mediate/internal/api
+tests: TestBothRootsHandTheServiceTheSameObject
+scheduled-count: no
+
+
+diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
+index cc14950..c17e388 100644
+--- a/mediate/internal/api/api.go
++++ b/mediate/internal/api/api.go
+@@ -127,7 +127,7 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
+ func (rt route) arguments(w http.ResponseWriter, r *http.Request) (json.RawMessage, error) {
+ 	var members []member
+ 	for _, name := range rt.pathVars {
+-		value, err := json.Marshal(r.PathValue(name))
++		value, err := json.Marshal(url.PathEscape(r.PathValue(name)))
+ 		if err != nil {
+ 			return nil, fmt.Errorf("%w: path variable %s", errBadRequest, name)
+ 		}

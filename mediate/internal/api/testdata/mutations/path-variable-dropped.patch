@@ -1,0 +1,21 @@
+control: Both roots hand the service layer the same argument object
+removes: the API root leaves the path's variables other than the account out of the argument object
+packages: ./mediate/internal/api
+tests: TestBothRootsHandTheServiceTheSameObject
+scheduled-count: no
+
+
+diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
+index cc14950..3e50478 100644
+--- a/mediate/internal/api/api.go
++++ b/mediate/internal/api/api.go
+@@ -127,6 +127,9 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
+ func (rt route) arguments(w http.ResponseWriter, r *http.Request) (json.RawMessage, error) {
+ 	var members []member
+ 	for _, name := range rt.pathVars {
++		if name != "account_id" {
++			continue
++		}
+ 		value, err := json.Marshal(r.PathValue(name))
+ 		if err != nil {
+ 			return nil, fmt.Errorf("%w: path variable %s", errBadRequest, name)

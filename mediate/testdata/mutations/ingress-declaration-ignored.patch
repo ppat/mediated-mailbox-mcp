@@ -1,0 +1,22 @@
+control: The client surface is served over TLS unless an ingress in front is declared to terminate it, with the key pair read from its mounted files
+removes: the surface is served over TLS even when an ingress is declared to terminate it
+packages: ./mediate
+tests: TestTheSurfaceBehindADeclaredIngressIsPlain
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index b3651a5..58bad66 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -218,9 +218,7 @@ func bearer(tokenFile string, next http.Handler) http.Handler {
+ // tlsConfig returns the client surface's TLS configuration, which reads the key pair from its
+ // mounted files on each handshake, or none when an ingress in front terminates TLS.
+ func tlsConfig(certFile, keyFile string, atIngress bool) *tls.Config {
+-	if atIngress {
+-		return nil
+-	}
++
+ 	return &tls.Config{
+ 		MinVersion: tls.VersionTLS12,
+ 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

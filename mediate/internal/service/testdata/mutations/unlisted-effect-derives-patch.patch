@@ -1,0 +1,20 @@
+control: The registry refuses at build time anything that could express approval or bind an argument to a header
+removes: an effect the table has no row for derives PATCH instead of failing generation
+packages: ./mediate/internal/service
+tests: TestTheSurfaceRefusesWhatItCannotCarry/no_effect TestTheSurfaceRefusesWhatItCannotCarry/an_effect_with_no_row
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/surface.go b/mediate/internal/service/surface.go
+index 1225e3e..cf1579e 100644
+--- a/mediate/internal/service/surface.go
++++ b/mediate/internal/service/surface.go
+@@ -54,7 +54,7 @@ func derive(e Effect) (string, Annotations, bool) {
+ 	case Disposal:
+ 		return methodPost, Annotations{ReadOnly: false, Destructive: true, Idempotent: true, OpenWorld: false}, true
+ 	default:
+-		return "", Annotations{}, false
++		return "PATCH", Annotations{}, true
+ 	}
+ }
+ 

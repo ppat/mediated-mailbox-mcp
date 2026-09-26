@@ -1,0 +1,19 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: a response whose handler writes nothing carries no Cache-Control
+packages: ./mediate
+tests: TestNoStoreOverridesAHandlersCaching
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 3240486..14a3b67 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -276,7 +276,6 @@ func surface(registry service.Registry, tokenFile string) (http.Handler, error)
+ // handler's own caching headers do not survive.
+ func noStore(next http.Handler) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		w.Header().Set("Cache-Control", "no-store")
+ 		next.ServeHTTP(&noStoreWriter{ResponseWriter: w}, r)
+ 	})
+ }
