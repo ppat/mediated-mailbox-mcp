@@ -76,7 +76,7 @@ had alternatives live in the records, cited by number. What tests a piece of wor
 [TESTING.md](./TESTING.md)'s, which controls exist and how each is proven is
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s.
 The UI's own layout is [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The
-data-access library and the five narrow shared libraries each describe themselves in a README in
+data-access library and the six narrow shared libraries each describe themselves in a README in
 their own directory.
 
 ### The Go module
@@ -103,6 +103,7 @@ carries the bare word.
 | Directory | Kind | Published as | Holds |
 | --- | --- | --- | --- |
 | `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, `mail` (the canonical model, the Provider Port interface, the canonical query, the rate profile types and the hard-cap fraction), and `marker` (the marker text of [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
+| `credential/` | Library | `mediated-mailbox-credential` | The sealing and opening of an account's provider credential and the loading of its keys, argued in [credential/README.md](./credential/README.md) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
 | `policyload/` | Library | `mediated-mailbox-policyload` | The loading of the policy tables into one snapshot, and the reload-failure alarm, argued in [policyload/README.md](./policyload/README.md) |
 | `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
@@ -122,7 +123,7 @@ carries the bare word.
 A deployable's job word is a verb for what it does, following `organize`. `ui` keeps the directory
 the Glossary gives it. Shared code is the shared pure library, or a narrow, named library that
 argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
-requires. The data-access library's case is ADR-0047's, and each of the other five argues its case
+requires. The data-access library's case is ADR-0047's, and each of the other six argues its case
 in its README.
 
 ### Inside a component
@@ -130,7 +131,7 @@ in its README.
 | Convention | Rule |
 | --- | --- |
 | Composition root | A deployable's `main.go` at its directory root is its one hand-written composition root ([ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md)). Nothing else in the deployable is `package main` |
-| Operator commands | A command an operator runs by hand, which no deployable runs, sits under its library as `cmd/<name>/` in `package main`. The one-time Gmail consent is `provider/gmail/cmd/consent` ([ADR-0011](./docs/adr/provider/0011-gmail-auth-installed-app-oauth.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
+| Operator commands | A command a person runs by hand, which no deployable runs, sits under its library as `cmd/<name>/` in `package main`. The Gmail consent for the test account's token is `provider/gmail/cmd/consent`, a developer's tool that ships in no image ([ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
 | Private code | Everything else a deployable holds sits under `<deployable>/internal/`, so the compiler refuses an import from another component as well as the import rules of [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md). The one exception is an `importtarget` package holding a violation file, described under [Tests](#tests) |
 | Pure core | Pure-core code sits under a directory named `core`. That is the top-level `core/`, `<deployable>/internal/core/<concern>/`, and `<library>/core/` inside a library that holds pure rules of its own. The word means the Glossary's pure core wherever it appears, so the core import check matches every one of them by path, anchored at the repository root |
 | Shell packages | Named for what they do, for example `api`, `mcp`, `service`, `lease`, `gmail`. No package is named `util`, `common` or `helpers` |

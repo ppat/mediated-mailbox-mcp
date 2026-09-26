@@ -22,15 +22,15 @@ may assume about the user's cluster.
 - **One Helm chart stands up every deployable** ([ADR-0049](./0049-image-per-component-lockstep.md))
   and its project-owned wiring, referencing the per-deployable images at the lockstep version.
 - **The chart deploys this project's workloads and nothing else; what the system depends on
-  but does not own arrives as user-supplied inputs.** Postgres, the credential Secrets
-  ([ADR-0038](../operability/0038-credentials-as-mounted-files.md)), and the policy
+  but does not own arrives as user-supplied inputs.** Postgres, the Secrets holding the system's
+  secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)), and the policy
   configuration arrive as Helm values or pre-existing ConfigMaps and Secrets — the policy as a
   user-supplied ConfigMap or mounted-file reference. The policy of record lives in the database
   ([ADR-0004](../classification/0004-sender-list-decides.md),
   [ADR-0041](./0041-policy-as-immutable-snapshots.md)), so this input is the file the policy
   import reads, not a second place policy is decided. Beyond core Kubernetes, neither the chart
   nor its tests assume anything about the cluster they land on — no external-secrets, no
-  cert-manager. This is ADR-0038's boundary made concrete: a chart that accepts only values and
+  cert-manager. This is ADR-0079's boundary made concrete: a chart that accepts only values and
   pre-existing objects structurally cannot know the secret machinery. The one exception is the
   alerting rules of [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md), which
   the chart renders as the Prometheus Operator's resource only when a value switched off by
@@ -74,4 +74,5 @@ may assume about the user's cluster.
 - Assumptions about other components: the release process sets the chart `version` and
   `appVersion` to the release version; the registry serves OCI chart artifacts and the signing
   machinery covers them as it covers images; the consuming platform supplies Postgres, the
-  credential Secrets, and the policy data at deploy time.
+  Secrets, and the policy data at deploy time. Accounts are connected through the UI once the
+  system runs ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).

@@ -35,7 +35,8 @@ are thin protocol adapters over one shared service library.
 - **Approval stays out of the entire client-facing surface's vocabulary.** A caller with the
   bearer token can reach the API directly, so the plan-approval transition must not exist as an
   API endpoint any more than it exists as an MCP tool. The operator's interface keeps writing
-  directly to the database ([ADR-0021](../mutation/0021-approval-surface.md)), unchanged.
+  directly to the database ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)),
+  unchanged.
 
 ## Alternatives considered
 
@@ -45,7 +46,8 @@ are thin protocol adapters over one shared service library.
   token already grants) while doubling the operational surface — two Deployments, Services,
   certificates, and network policies plus an extra hop, which is negative value under the
   single-operator constraint. The single shape also fits the existing one-pod architecture
-  ([ADR-0026](../provider/0026-multi-account-contexts.md)) and is the smallest shape that ships.
+  ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)) and is the
+  smallest shape that ships.
   The single-funnel-by-construction property the split offers is achieved instead by the
   no-logic-in-frontends rule above — and if a real reason to split ever appears, the migration is
   mechanical, because the API is already the boundary.
@@ -65,7 +67,7 @@ are thin protocol adapters over one shared service library.
 - Assumptions about other components: the service library exposes the complete operation set
   (frontends add nothing); the deployment terminates TLS for both roots, at the listener or at
   an ingress in front of it, and every request reaches the bearer check before the service
-  library; [ADR-0021](../mutation/0021-approval-surface.md)'s approval path remains
-  database-direct and is the only approval path.
+  library; [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s approval path
+  remains database-direct and is the only approval path.
 - Surface parity is verifiable by violation: introducing a one-sided operation on either root
   must fail the parity check — catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

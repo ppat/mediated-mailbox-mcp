@@ -7,8 +7,8 @@
 
 ## Context
 
-The UI's decisions ([ADR-0021](../mutation/0021-approval-surface.md)) need more than one row
-written per decision. A confirmed candidate becomes a policy rule
+The UI's decisions ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)) need
+more than one row written per decision. A confirmed candidate becomes a policy rule
 ([ADR-0004](../classification/0004-sender-list-decides.md)), and the design wants the
 identity behind every decision recorded. The first UI design met that with database triggers
 running as a privileged definer, so that the UI's grant could stay at the two column sets
@@ -35,7 +35,7 @@ whole class rather than the instance.
   behind).
 - **A grant widens rather than a trigger appearing.** When a verb's effect needs a write the
   role does not hold, the role gains that write and the record naming the grant says so
-  ([ADR-0021](../mutation/0021-approval-surface.md) for the UI).
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) for the UI).
 
 ## Alternatives considered
 
@@ -56,7 +56,7 @@ whole class rather than the instance.
 
 - The UI's decisions are recorded by the columns its verbs set and the rule row its confirm
   verb inserts, all written by the UI's own code in one transaction
-  ([ADR-0021](../mutation/0021-approval-surface.md)).
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - The migration lint refuses any migration that creates a trigger, procedure, or function. Its
   violation injection is catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - Assumptions about other components: every process that reads account-scoped rows sets the

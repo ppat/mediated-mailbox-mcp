@@ -26,7 +26,8 @@ exercises, be provable exhaustively and cheaply.
   row, sends the response. Verdict types are built so they structurally cannot carry the content
   they withhold ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)'s technique,
   applied to every enforcement core).
-- **Nothing is ambient.** [ADR-0026](../provider/0026-multi-account-contexts.md) already rules
+- **Nothing is ambient.**
+  [ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md) already rules
   that nothing about an account is ambient; this record extends the same rule to every
   dependency: the account identifier and every other dependency arrives as an explicit
   parameter, so what a decision used is visible in its parameter list. The sharp illustrative

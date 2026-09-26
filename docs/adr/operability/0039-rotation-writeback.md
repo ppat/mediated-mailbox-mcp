@@ -1,8 +1,7 @@
 # 0039. Rotation write-back is delegated: a credential-holding deployable updates one writable location and holds no secret-store credential
 
-**Status:** Accepted (supersedes
-[ADR-0013](./0013-credentials-and-rotation-writeback.md), jointly with
-[ADR-0038](./0038-credentials-as-mounted-files.md)) ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0082](./0082-rotation-writeback-to-the-database.md) ·
 **Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 

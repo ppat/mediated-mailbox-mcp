@@ -78,10 +78,10 @@ chart series, and update docs/UI.md §14 from the report. ADR-0059 records the d
 
 ## What must not change without a record
 
-- The two verbs and their database grant (ADR-0021). No third verb, no "retry", no "rollback", no
-  policy editing, however small.
+- The two decision verbs, OAuth client setup and account setup, and their database grant
+  (ADR-0084). No third verb, no "retry", no "rollback", no policy editing, however small.
 - Per account, never aggregated across accounts (the operator's ruling, ADR-0056).
-- Never a body, never a snippet, never a preview (ADR-0016, ADR-0021).
+- Never a body, never a snippet, never a preview (ADR-0016, ADR-0084).
 - The lens model and the zoom ladder as the structure of every analytical view (ADR-0056).
 - The dataset endpoint behind a registry as the engine (ADR-0057).
 - The palette tokens and the categorical series (ADR-0059).
@@ -116,7 +116,7 @@ third pass none remains.
 | 2026-09-10 | two palettes, dark primary, distinguishable and easy on the eyes by industry practice | docs/UI.md §14.1; ADR-0059 |
 | 2026-09-10 | live, auto-refreshing status and progress of running batch work | docs/UI.md §8.1, §8.3, §9; ADR-0058 |
 | 2026-09-10 | inspecting a failed batch run down to its individual failures | docs/UI.md §8.4 |
-| 2026-09-10 | no authentication in the first version, an optional authenticating proxy in front | docs/UI.md §15, §18.1; ADR-0021 |
+| 2026-09-10 | no authentication in the first version, an optional authenticating proxy in front | docs/UI.md §15, §18.1; ADR-0084 |
 | 2026-09-10 | policy in the database, with import and export to a file | docs/UI.md §8.7; ADR-0004, ADR-0041, ADR-0016 |
 | 2026-09-10 | the framework requirements documented explicitly | docs/UI.md §16 |
 | 2026-09-10 | the implementer reads docs/UI.md and the records only; the design session reads ui/design/ in addition | docs/UI.md preamble; this file |
@@ -137,11 +137,11 @@ third pass none remains.
 | one message row everywhere | docs/UI.md §7 |
 | the read API is a registry-bounded dataset endpoint | docs/UI.md §17; ADR-0057 |
 | a failed run is a dataset of failures | docs/UI.md §8.4 |
-| no retry verb and no rollback verb | docs/UI.md §5, §8.4; ADR-0021 |
+| no retry verb and no rollback verb | docs/UI.md §5, §8.4; ADR-0084 |
 | fonts self-hosted and a strict content security policy | docs/UI.md §14.3, §15; ADR-0062 |
 | request tokens on the verbs | docs/UI.md §15, §17.4; ADR-0061 |
-| the identity header trusted only when declared | docs/UI.md §15, §18.1; ADR-0021 |
-| TLS with the client surface's posture | docs/UI.md §15; ADR-0021 |
+| the identity header trusted only when declared | docs/UI.md §15, §18.1; ADR-0084 |
+| TLS with the client surface's posture | docs/UI.md §15; ADR-0084 |
 | the UI's own configuration contract | docs/UI.md §18.1 |
 | the UI's own observability | docs/UI.md §18.2 |
 | the plan reviewer as the framework's proving screen | docs/UI.md §16 |

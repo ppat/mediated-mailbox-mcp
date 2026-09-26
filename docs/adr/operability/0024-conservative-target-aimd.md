@@ -33,7 +33,8 @@ live only in a default value get raised eventually. The cap is enforced at the p
 issuance ([ADR-0025](./0025-priority-classes-and-leases.md)), not only inside the controller, so a
 controller bug cannot exceed it.
 
-The target is the one value here an operator may tune. An account's configuration may lower it,
+The target is the one value here an operator may tune. An account's settings, stored with the
+account ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)), may lower it,
 to any value above the floor, for an account whose provider quota other applications share, and
 nothing may raise it above half the ceiling. A target that would be stored equal to the floor is
 refused, because a rate held at the floor is the collapse the alert pages on. A lowered target

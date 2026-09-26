@@ -48,7 +48,8 @@ a domain with none is classified restricted. Matching is on domain suffix at lab
 
 **Candidate generation** runs as a periodic job writing to a review queue the operator confirms
 through the UI. Confirmation inserts a policy rule row, written by the UI itself in the same
-transaction as the candidate's status ([ADR-0021](../mutation/0021-approval-surface.md)):
+transaction as the candidate's status
+([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)):
 
 | Heuristic | Signal | Cost |
 | --- | --- | --- |

@@ -56,9 +56,9 @@ extend to the artifact layer or quietly stop at the process boundary.
 - Adding a deployable means adding an image — one entry in the parameterized build, per the
   default-until-reality-bites heuristic; switching the cut later is a packaging change, not a
   redesign.
-- Packaging isolation is never asked to carry credential isolation: which process can read the
-  credential files stays a deployment-construct property
-  ([ADR-0038](../operability/0038-credentials-as-mounted-files.md)), whatever the images look
+- Packaging isolation is never asked to carry credential isolation: which process can open a stored
+  credential stays a property of which deployables receive the private key's file
+  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)), whatever the images look
   like.
 - Assumptions about other components: the build-and-publish machinery is parameterized per
   deployable; the deployment artifact consumes every image at the same lockstep version.

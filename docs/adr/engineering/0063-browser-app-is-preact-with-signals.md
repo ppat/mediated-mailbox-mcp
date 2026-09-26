@@ -6,7 +6,7 @@
 
 ## Context
 
-[ADR-0021](../mutation/0021-approval-surface.md) fixes the UI's shape and
+[ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) fixes the UI's shape and
 [ADR-0042](./0042-implementation-stack.md) fixes TypeScript in the browser, bundled by bun and
 shipped as static files, and left the framework open until the work that needed it approached.
 [docs/UI.md](../../UI.md#16-framework-requirements) states the twelve requirements a candidate is

@@ -25,8 +25,8 @@ in lockstep, so there is no long window in which old code runs against new schem
   integration layer gets this for free, and it is the only migration test that never lies.
 - **Migrations run as their own step, under their own database role that owns the DDL.** The
   runtime roles hold no DDL rights — the same role discipline that scopes the approval
-  surface's grants ([ADR-0021](../mutation/0021-approval-surface.md)), applied to schema
-  change.
+  surface's grants ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)),
+  applied to schema change.
 
 ## Alternatives considered
 

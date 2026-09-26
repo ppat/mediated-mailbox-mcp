@@ -26,9 +26,9 @@ paged.
   is a Prometheus alerting rule over metrics the application emits** through
   [ADR-0076](../engineering/0076-metrics-emitted-through-client-golang.md). The application
   computes no condition itself and sends no notification. Conditions other records place
-  elsewhere stay there, such as a failed write-back, which the platform's monitoring watches
-  ([ADR-0039](./0039-rotation-writeback.md)), and the body-fetch anomaly, which the UI shows from
-  recorded rows.
+  elsewhere stay there, such as a failed write-back, which is loud in the deployable's logs
+  ([ADR-0082](./0082-rotation-writeback-to-the-database.md)), and the body-fetch anomaly, which the
+  UI shows from recorded rows.
 - **The rules live in the chart's directory and ship as a `PrometheusRule` resource behind a values
   switch that is off by default.** The chart therefore still assumes only core Kubernetes, and a
   platform without the Prometheus Operator loads the same rules file its own way.

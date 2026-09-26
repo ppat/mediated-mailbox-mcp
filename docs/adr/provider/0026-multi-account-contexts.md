@@ -1,6 +1,7 @@
 # 0026. Multi-account is one process holding N account contexts — isolation by construction
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0085](./0085-multi-account-contexts-with-an-installation-client.md) ·
 **Pillar:** [Accounts are isolated by structure, not convention](../../../DESIGN.md#accounts-are-isolated-by-structure-not-convention) ·
 **Serves:** [P3](../../../USE_CASES.md#p3--multi-account)
 

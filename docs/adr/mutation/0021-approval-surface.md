@@ -1,6 +1,7 @@
 # 0021. The approval surface is a separate UI that writes the database directly — two verbs, no credentials
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0084](./0084-ui-writes-decisions-and-account-setup.md) ·
 **Pillar:** [Approval is not in any client's vocabulary](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary) ·
 **Serves:** [G3](../../../USE_CASES.md#g3--reorganization), [A3](../../../USE_CASES.md#a3--bulk-change-is-reversible), [O2](../../../USE_CASES.md#o2--observable)
 

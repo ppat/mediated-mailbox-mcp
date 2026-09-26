@@ -83,10 +83,12 @@ moves it. Records themselves link freely and deep, into
 | # | Record | Status |
 | --- | --- | --- |
 | 0010 | [One provider port: a canonical contract every adapter compiles to](./provider/0010-one-provider-port.md) | Accepted |
-| 0011 | [Gmail auth: installed-app OAuth with `gmail.modify`; delegation rejected](./provider/0011-gmail-auth-installed-app-oauth.md) | Accepted |
+| 0011 | [Gmail auth: installed-app OAuth with `gmail.modify`; delegation rejected](./provider/0011-gmail-auth-installed-app-oauth.md) | **Superseded** |
 | 0012 | [Fastmail auth: scoped API tokens per protocol category](./provider/0012-fastmail-scoped-jmap-tokens.md) | Accepted |
-| 0026 | [Multi-account: one process, N account contexts, isolation by construction](./provider/0026-multi-account-contexts.md) | Accepted |
+| 0026 | [Multi-account: one process, N account contexts, isolation by construction](./provider/0026-multi-account-contexts.md) | **Superseded** |
 | 0027 | [Calendar sensitivity keys on any participant, not organizer-only; Fastmail speaks CalDAV](./provider/0027-calendar-classification.md) | Accepted |
+| 0083 | [Each installation connects Gmail through an installed-app OAuth client of its own, set up through the UI, with `gmail.modify`](./provider/0083-gmail-through-an-installation-oauth-client.md) | Accepted |
+| 0085 | [Multi-account: one process, N account contexts, each account its own grant through the installation's OAuth client](./provider/0085-multi-account-contexts-with-an-installation-client.md) | Accepted |
 
 ## Data — `data/`
 
@@ -101,6 +103,7 @@ moves it. Records themselves link freely and deep, into
 | 0066 | [Data access is generated from hand-written SQL, and the dataset endpoint is enumerated rather than composed](./data/0066-data-access-generated-from-sql.md) | Accepted |
 | 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | Accepted |
 | 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | Accepted |
+| 0080 | [Accounts and their provider credentials are created and repaired through the UI and live in the database](./data/0080-accounts-and-credentials-live-in-the-database.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -108,9 +111,10 @@ moves it. Records themselves link freely and deep, into
 | --- | --- | --- |
 | 0019 | [Asymmetric mutation: organize everything, dispose by sensitivity, delete nothing](./mutation/0019-asymmetric-mutation.md) | Accepted |
 | 0020 | [Reorganization is plan → approve → apply → rollback, with an exact-restore op log](./mutation/0020-reorg-plan-approve-apply-rollback.md) | Accepted |
-| 0021 | [The approval surface writes the database directly: two verbs, no credentials](./mutation/0021-approval-surface.md) | Accepted |
+| 0021 | [The approval surface writes the database directly: two verbs, no credentials](./mutation/0021-approval-surface.md) | **Superseded** |
 | 0031 | [Every mutating operation is dry-runnable — a preflight that writes nothing](./mutation/0031-dry-run-on-mutating-operations.md) | Accepted |
 | 0032 | [All validation precedes the first write; saved plans validate at creation, re-validate at apply, and expire](./mutation/0032-whole-batch-validation.md) | Accepted |
+| 0084 | [The UI writes the database directly for two decisions, OAuth client setup and account setup, and seals credentials it can never open](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
 
 ## Operability — `operability/`
 
@@ -127,15 +131,18 @@ moves it. Records themselves link freely and deep, into
 | 0033 | [Timestamps on the client surface are UTC-only; non-UTC input is rejected, never converted](./operability/0033-utc-only-timestamps.md) | Accepted |
 | 0034 | [One read-only system-status operation exposes recorded per-account operational state](./operability/0034-system-status-operation.md) | Accepted |
 | 0035 | [Every required identifier is discoverable on the same surface; accounts gain a listing](./operability/0035-required-identifiers-are-discoverable.md) | Accepted |
-| 0038 | [Credentials arrive as mounted files](./operability/0038-credentials-as-mounted-files.md) | Accepted |
-| 0039 | [Rotation write-back is delegated; no deployable holds a secret-store credential](./operability/0039-rotation-writeback.md) | Accepted |
+| 0038 | [Credentials arrive as mounted files](./operability/0038-credentials-as-mounted-files.md) | **Superseded** |
+| 0039 | [Rotation write-back is delegated; no deployable holds a secret-store credential](./operability/0039-rotation-writeback.md) | **Superseded** |
 | 0056 | [The UI is organized around the operator's work](./operability/0056-ui-organized-around-the-operators-work.md) | Accepted |
 | 0057 | [Every analysis lens reads through one dataset endpoint behind a registry](./operability/0057-one-dataset-endpoint-behind-a-registry.md) | Accepted |
 | 0058 | [Live surfaces stream over server-sent events, with polling as the fallback](./operability/0058-live-surfaces-stream-over-server-sent-events.md) | **Proposed** |
 | 0059 | [The UI ships two palettes derived in OKLCH and checked for contrast](./operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md) | Accepted |
-| 0061 | [A decision request is accepted only with a token bound to the session that loaded the page](./operability/0061-ui-browser-security-posture.md) | Accepted |
+| 0061 | [A state-changing request is accepted only with a token bound to the session that loaded the page](./operability/0061-ui-browser-security-posture.md) | Accepted |
 | 0062 | [The UI serves under a content security policy allowing one origin and no inline script](./operability/0062-ui-content-security-policy.md) | Accepted |
 | 0077 | [Rate collapse, rate runaway, a failed reload and a cursor gap are alerting rules, shipped with the chart and tested in CI](./operability/0077-conditions-raised-as-alerting-rules.md) | Accepted |
+| 0079 | [Every secret other than an account's provider credential arrives as a mounted file](./operability/0079-secrets-arrive-as-mounted-files.md) | Accepted |
+| 0081 | [A stored credential is sealed to a public key the UI holds; only provider-calling deployables open it](./operability/0081-credentials-sealed-to-a-public-key.md) | Accepted |
+| 0082 | [A rotated credential is sealed and written back to the account's row](./operability/0082-rotation-writeback-to-the-database.md) | Accepted |
 
 ## Engineering — `engineering/`
 

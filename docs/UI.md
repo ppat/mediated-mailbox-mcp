@@ -10,10 +10,10 @@ directory carries its own notes.
 
 The decisions behind this design that had alternatives live as decision records, indexed at
 [docs/adr/README.md](./adr/README.md), and are cited here by number. The outcome the UI serves is
-[O4](../USE_CASES.md#o4--the-operator-can-see-and-steer). The rules that bound it are ADR-0021's,
-via the [decision-record index](./adr/README.md). The UI carries two decisions as its only writes,
-is read-mostly, and never displays a message body. Build state lives in
-[ROADMAP.md](../ROADMAP.md), never here. Vocabulary is defined in
+[O4](../USE_CASES.md#o4--the-operator-can-see-and-steer). The rules that bound it are ADR-0084's,
+via the [decision-record index](./adr/README.md). The UI carries two decisions, OAuth client setup
+and account setup as its only writes, is read-mostly, and never displays a message body. Build
+state lives in [ROADMAP.md](../ROADMAP.md), never here. Vocabulary is defined in
 [DESIGN.md's Glossary](../DESIGN.md#glossary), never here.
 
 The split with [DESIGN.md](../DESIGN.md) is one of altitude. The design document holds the system.
@@ -28,8 +28,9 @@ that the screens are the ones wanted.
 
 ## 1. What the UI is for
 
-The operator's standing duties live here. Plan review, candidate review, and masking review are the
-duties ADR-0021 names, and the operator added two more on 2026-09-10. Watching batch work as it runs
+The operator's standing duties live here. Plan review, candidate review, masking review, and
+keeping accounts connected are the duties ADR-0084 names, and the operator added two more on
+2026-09-10. Watching batch work as it runs
 (backfill, delta sync, reorg apply, the heuristics job) and inspecting a run, failed or not, down to
 its individual failures. The loop the UI is organized around is the operator's. Open it, see what
 needs a decision, see what is worth a look, decide, and leave.
@@ -40,7 +41,7 @@ aggregated across accounts. This is the operator's ruling, not a consequence of
 
 The UI has no authentication of its own in the first version. A deployment may place it behind
 an ingress that forwards to an authenticating proxy and passes the identity in a declared header,
-and the UI's own authentication may come later (ADR-0021). TLS holds
+and the UI's own authentication may come later (ADR-0084). TLS holds
 ([section 15](#15-security-of-the-ui-itself)).
 
 The UI is desktop-first. It is designed at 1440 pixels wide with a floor of about 1280, and the
@@ -54,7 +55,7 @@ to start. Any record cited in a section and not listed here is read when that se
 1. [USE_CASES.md](../USE_CASES.md), the fixed point and
    [O4](../USE_CASES.md#o4--the-operator-can-see-and-steer). Ten minutes. It says what the UI is
    judged on and what it must never do.
-2. ADR-0021, ADR-0016, ADR-0042, ADR-0047, and ADR-0051, via the [index](./adr/README.md). The
+2. ADR-0084, ADR-0016, ADR-0042, ADR-0047, and ADR-0051, via the [index](./adr/README.md). The
    UI's shape and grants, the schema it reads, the languages it is written in, how queries are
    written, the environment contract.
 3. This document, in order. Sections 3 to 7 are the model every screen instantiates. Section 8 is
@@ -74,12 +75,12 @@ to start. Any record cited in a section and not listed here is read when that se
 
 ## 3. The lens model
 
-Every view ADR-0021 names is the same shape. An account-scoped dataset, viewed at some aggregation
-level, sliced by a few dimensions, drilled to individual rows, and for two of them a decision
-attached to the row in view. That shape is a **lens**. The unit of design is the lens, not the
-page.
+Every view ADR-0084 names, the two setups aside, is the same shape. An account-scoped dataset,
+viewed at some aggregation level, sliced by a few dimensions, drilled to individual rows, and for
+two of them a decision attached to the row in view. That shape is a **lens**. The unit of design
+is the lens, not the page.
 
-| ADR-0021 view | Dataset | Natural dimensions | Row | Decision |
+| ADR-0084 view | Dataset | Natural dimensions | Row | Decision |
 | --- | --- | --- | --- | --- |
 | Corpus overview | messages, senders | sender, label, sender class, scan state, time | message | none |
 | Reorg plans | a plan's message operations | flow, sender, sensitivity, reason | one operation, before → after | approve or reject |
@@ -223,15 +224,23 @@ The op log, the accounts table, and the rate state are read by the bespoke endpo
 | System | | accounts, rate state, the system summary |
 
 **Policy is the one exception to per-account rows.** Policy is configuration, not account data
-(ADR-0004's base policy and ADR-0026's per-account overlays). `/{account}/policy` shows the base
+(ADR-0004's base policy and ADR-0085's per-account overlays). `/{account}/policy` shows the base
 rules, marked "base", and the account's overlay rules (ADR-0004). No row of another account's data
 is shown, so the per-account rule of [section 1](#1-what-the-ui-is-for) is not breached. Nothing
 else on any screen shows a row outside the account in the path.
 
 **Decisions.** Two, each with two outcomes. A plan is approved or rejected, a candidate is
-confirmed or dismissed. Four requests carry them, all by database grant (ADR-0021), which calls
-them its two write verbs. No request exists for retrying a job, triggering a rollback, or editing
-policy.
+confirmed or dismissed. Four requests carry them, all by database grant (ADR-0084), which calls
+them its two decision verbs. No request exists for retrying a job, triggering a rollback, or
+editing policy.
+
+**OAuth client setup and account setup.** Two separate flows over two separate stored records
+are the UI's other writes (ADR-0080, ADR-0083, ADR-0084). OAuth client setup runs once per
+installation and sets up the client every account of that provider connects through. Account
+setup connects an account through that client, sets what the account's row holds, and
+re-authorizes an account whose credential stopped working. The UI seals the client's secret and
+each credential it receives and cannot open a stored one (ADR-0081). The screens of both are not
+yet designed ([section 20](#20-what-remains-open)).
 
 **Growth slots the shape already fits**, each arriving as a registered dataset. Calendar events
 (restriction on any participant, per ADR-0027), the second account (the scope selector earns its
@@ -647,7 +656,7 @@ fired, ADR-0016).
 
 Above the outcomes, one sentence: "Confirming makes {domain} a restricted sender. Its bodies deny
 from the next classification and its messages become organize-only." Dismiss writes the candidate's
-status, reviewed time, and reviewer, the columns ADR-0021 grants. Confirm writes the same three and,
+status, reviewed time, and reviewer, the columns ADR-0084 grants. Confirm writes the same three and,
 in the same transaction, inserts the policy rule row the confirmation emits (ADR-0004), with rule id
 `candidate.{account}.{domain}`, the candidate's account as its account (an overlay rule, never the
 base policy), the candidate's domain as its suffix, the restricted class, the source `candidate`,
@@ -718,7 +727,7 @@ it will do in one sentence above the control ([section 8.6](#86-review-queue)). 
 only on the object's screen, never from a list row, so the sentence is always present. Every
 request carries the status the screen shows, and a mismatch is refused as a conflict. Every
 decision records who made it in the decided row's own columns, the identity coming from the
-declared header or the configured operator name (ADR-0021). The plans list and the review queue
+declared header or the configured operator name (ADR-0084). The plans list and the review queue
 show decisions from those rows. No audit row is written for a decision. The audit log holds bodies
 served or denied and mailbox mutations, and applying an approved plan is audited by the engine as
 the mutation it is.
@@ -876,12 +885,15 @@ No display face and no handwritten face. The annotation face on the mockups is n
 
 ## 15. Security of the UI itself
 
-The UI holds no provider credential and cannot reach a mailbox (ADR-0021). What remains is the
-browser, the transport, the database connection, and the two decisions.
+The UI holds no key that opens a stored credential and never reads mail (ADR-0081, ADR-0084). It
+sees a credential in plaintext only while it completes a connection or a re-authorization, seals
+it before storing it, and runs under the trust anchor's hardening for that reason (ADR-0028). What
+remains is the browser, the transport, the database connection, the two decisions, and the two
+setups.
 
-- **TLS, and the same posture as the client surface** (ADR-0021). The UI serves TLS from the
+- **TLS, and the same posture as the client surface** (ADR-0084). The UI serves TLS from the
   material its configuration declares ([section 18.1](#181-the-configuration-the-ui-declares)).
-  The "own auth" half of ADR-0021's posture is, for the first version, the operator's ruling of
+  The "own auth" half of ADR-0084's posture is, for the first version, the operator's ruling of
   no authentication of the UI's own with an optional authenticating proxy in front
   ([section 1](#1-what-the-ui-is-for)).
 - **Content security policy** (ADR-0062). `default-src 'self'`, `script-src 'self'`,
@@ -896,11 +908,12 @@ browser, the transport, the database connection, and the two decisions.
   response the UI issues the cookie `ui_session`, a random id, `HttpOnly`, `Secure`,
   `SameSite=Strict`, with browser-session lifetime. The token is an HMAC of the session id under a
   key generated at process start, or the configured `UI_TOKEN_KEY` when more than one replica runs,
-  and its lifetime is the session's. Every decision request sends it in the `X-Request-Token`
-  header, and the server checks it against the cookie, so a request forged from another origin
-  fails. The four decision requests are `POST`, carry the status the screen shows for conflict
-  detection, and are the only state-changing requests.
-- **The identity header is trusted only when the deployment declares it** (ADR-0021). With the
+  and its lifetime is the session's. Every state-changing request sends it in the
+  `X-Request-Token` header, and the server checks it against the cookie, so a request forged from
+  another origin fails. The four decision requests are `POST` and carry the status the screen shows
+  for conflict detection. They and the requests of OAuth client setup and account setup are the
+  only state-changing requests.
+- **The identity header is trusted only when the deployment declares it** (ADR-0084). With the
   identity header name configured ([section 18.1](#181-the-configuration-the-ui-declares)), the
   UI records that header's value on decisions and refuses a decision when the header is absent (403,
   `identity_missing`, [section 17.3](#173-the-error-contract)). Unset, the UI records the
@@ -910,13 +923,15 @@ browser, the transport, the database connection, and the two decisions.
   ADR-0016's third layer read, by an ordinary statement like every other process.
 - **A decision is one transaction, written by the UI's own code.** The status, the decision time,
   and the identity are written together, and a confirmation also inserts its policy rule row in
-  the same transaction (ADR-0021). No code runs inside the database to complete a decision
+  the same transaction (ADR-0084). No code runs inside the database to complete a decision
   (ADR-0060). A failure anywhere in the transaction fails the decision whole, reported with the
   database origin, and nothing is recorded. The guarantee that no path writes one row without the
   others is carried by the tests of [section 18](#18-repository-and-build-layout).
 - **Message-derived text is inert** ([section 11](#11-rendering-and-formatting-rules)).
 - **The UI never calls the mediator.** It has no route to it and no credential for it. Every read
-  is the UI's own database role against the tables ADR-0021 grants.
+  is the UI's own database role against the tables ADR-0084 grants. The only outside endpoints it
+  calls are a provider's, to check a client, complete a consent, and confirm which mailbox granted
+  it (ADR-0083).
 - The dependency tree is small, pinned, and enumerated in a roster (ADR-0063), and the browser
   bundle ships as static files inside the Go binary (ADR-0042), so the runtime has one origin and
   one process.
@@ -1166,9 +1181,10 @@ ADR-0052 carries them. Every key is read at start.
 
 | Key | Value | Required |
 | --- | --- | --- |
-| `UI_DATABASE_URL` | the Postgres connection for the UI's own role (ADR-0021) | yes |
+| `UI_DATABASE_URL` | the Postgres connection for the UI's own role (ADR-0084) | yes |
 | `UI_LISTEN` | the address and port to serve on | yes |
-| `UI_TLS_CERT`, `UI_TLS_KEY` | paths to the TLS material, mounted as files (ADR-0038's convention) | yes, unless `UI_INSECURE_HTTP` |
+| `UI_TLS_CERT`, `UI_TLS_KEY` | paths to the TLS material, mounted as files (ADR-0079's convention) | yes, unless `UI_INSECURE_HTTP` |
+| `UI_SEAL_PUBLIC_KEY_FILE` | the path of the mounted public key the UI seals credentials to (ADR-0081) | yes |
 | `UI_INSECURE_HTTP` | `true` serves plain HTTP, refused outside the dev loop | no |
 | `UI_IDENTITY_HEADER` | the header name an authenticating proxy forwards; when set, its value is recorded on decisions and a decision without it is refused | no |
 | `UI_OPERATOR_NAME` | the identity recorded on decisions when no header is declared | yes when the header is unset |
@@ -1199,8 +1215,9 @@ object in the data state. No global mutable store beyond these three. Which mech
 each is ADR-0063's decision.
 
 **What not to do.** Do not add a rendering path that interprets message-derived text. Do not add a
-decision, however small, without a record that widens ADR-0021's grant. Do not aggregate across
-accounts. Do not proxy anything through the mediator. Do not fetch a corpus into the browser to
+decision, however small, without a record that widens ADR-0084's grant. Do not give the UI the
+key that opens a stored credential. Do not aggregate across accounts. Do not proxy anything
+through the mediator. Do not fetch a corpus into the browser to
 group it there. Do not paint a fake status bar or keyboard in any layout. Do not introduce a
 color outside the token tables without re-running the palette derivation and, for a chart series,
 its validator. Do not read a header for identity unless the deployment declared it. Do not keep
@@ -1223,6 +1240,7 @@ used. What is still open, and where it is tracked:
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | the same table |
 | The configuration key names of [section 18.1](#181-the-configuration-the-ui-declares) | the same table |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
+| The screens of ADR-0084's two setups, which the mockups do not cover. OAuth client setup's guided steps, and account setup's first run with no account, connecting an account, what an account's row holds, credential health, and re-authorization | [ROADMAP.md](../ROADMAP.md), the unit that builds them |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 
 ## 21. The mockups

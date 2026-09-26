@@ -8,9 +8,9 @@
 The operator asked for visibility into running batch work as a dynamic view that refreshes as it
 runs, and for the ability to inspect a failed run. The jobs surfaces and the home's running-work
 strip therefore update without a reload. The UI's Go server reads Postgres directly
-([ADR-0021](../mutation/0021-approval-surface.md)) and serves the browser as static files
-([ADR-0042](../engineering/0042-implementation-stack.md)), so the transport is the UI's own choice
-and touches no other component.
+([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)) and serves the browser as
+static files ([ADR-0042](../engineering/0042-implementation-stack.md)), so the transport is the
+UI's own choice and touches no other component.
 
 ## Decision
 

@@ -13,8 +13,9 @@ one a violation, not an extension. An absence is enforceable only while the DDL 
 authority on stored shape — a second authority in memory, from which the schema could be
 regenerated, is where such absences quietly stop binding. Meanwhile every table keys on
 `account_id` and there is no implicit current account
-([ADR-0026](../provider/0026-multi-account-contexts.md)), and decisions take everything as
-parameters ([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
+([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)), and
+decisions take everything as parameters
+([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
 
 ## Decision
 
@@ -71,10 +72,10 @@ parameters ([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
   decisions: it inverts the schema authority (a model attribute *creates* a column, so the
   violating migration ships as a routine generated diff no reviewer is prompted about); its
   idiomatic account scoping is an ambient session — the implicit current account
-  [ADR-0026](../provider/0026-multi-account-contexts.md) forbids; lazy loading fires I/O at
-  attribute access, which lands *after* the gate has run and makes "the last hop" undefinable;
-  and its identity map or cache can return a previously materialized row without re-entering
-  the decision path, bypassing fetch-time re-evaluation
+  [ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md) forbids; lazy
+  loading fires I/O at attribute access, which lands *after* the gate has run and makes "the last
+  hop" undefinable; and its identity map or cache can return a previously materialized row without
+  re-entering the decision path, bypassing fetch-time re-evaluation
   ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). The partial-object shape is the
   fifth: one shared entity type would hand metadata paths a body field the design refuses to
   let exist.

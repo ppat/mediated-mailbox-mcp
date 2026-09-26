@@ -7,11 +7,12 @@
 ## Context
 
 [ADR-0048](./0048-forward-only-migrations.md) gives the migration step a role of its own that owns
-the schema. [ADR-0021](../mutation/0021-approval-surface.md) gives the UI a role of its own,
-read-only on most tables, whose write grant is the decision columns of reorg plans and of policy
-candidates and insert on policy rules. No runtime role may update or delete an audit row
-([ADR-0016](./0016-schema.md)). The other five deployables, the mediator, backfill, delta sync, the
-reorganization workload and the heuristics job, had no stated role. The grant check of
+the schema. [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) gives the UI a
+role of its own, read-only on most tables, whose write grant is the decision columns of reorg plans
+and of policy candidates, insert on policy rules, and the columns OAuth client setup and account
+setup write. No runtime role may update or delete an audit row ([ADR-0016](./0016-schema.md)).
+The other five deployables, the mediator, backfill, delta sync, the reorganization workload and
+the heuristics job, had no stated role. The grant check of
 [ADR-0066](./0066-data-access-generated-from-sql.md) plans every statement of a subsection under the
 role of each component whose import list admits it, and which role each component connects as is
 held in one place in `db/check`, so no component's list can admit a subsection until that mapping
@@ -51,11 +52,15 @@ evidence of its compromise survives outside its own reach."
 - A new deployable brings a new role with grants for its own statements.
 - A shared library, such as the rate limiter, runs its statements under the role of each
   deployable that uses it, so each of those roles holds the grants the library's statements need.
-- [ADR-0021](../mutation/0021-approval-surface.md) states the UI's grant. It gives the UI reads on
-  most tables, leaving which ones to what its screens read in [docs/UI.md](../../UI.md), and a
-  write grant derived from the columns its two verbs set and the row a confirmation inserts. Those
-  grants are what the UI's statements need, so the UI's role holds them from the schema's first
-  grants.
+- [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) states the UI's grant. It
+  gives the UI reads on most tables, leaving which ones to what its screens read in
+  [docs/UI.md](../../UI.md), and a write grant of exactly the columns its two decision verbs set,
+  the row a confirmation inserts, and the columns OAuth client setup and account setup write.
+  Those grants are what the UI's statements need, so the UI's role holds them from the schema's
+  first grants.
+- A deployable that calls a provider reads its accounts, their sealed credentials and the
+  installation's OAuth client, and updates the credential column of an account's row when it
+  writes back a rotation ([ADR-0082](../operability/0082-rotation-writeback-to-the-database.md)).
 - A role whose statements touch the operation log also reads the plan columns that
   [ADR-0016](./0016-schema.md)'s policy on the log looks up, because PostgreSQL runs a policy's
   lookup with the querying role's privileges. Those columns are part of what its statements need.

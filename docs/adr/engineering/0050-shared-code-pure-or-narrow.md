@@ -24,12 +24,13 @@ included.
 - **Irreducibly-impure shared needs never widen the core.** The default is thin per-component glue —
   duplicating trivial impure glue is cheaper than coupling. The exception is a separate, narrow,
   single-concern library that argues its own case. The first such exception, argued and accepted:
-  the shared data-access library ([ADR-0047](../data/0047-schema-first-data-access.md)). Five more
+  the shared data-access library ([ADR-0047](../data/0047-schema-first-data-access.md)). Six more
   are argued each on its own case, in the README of the library's own directory. They are the
   [provider library](../../../provider/README.md), the [rate limiter](../../../ratelimit/README.md),
   the [shared test support](../../../testsupport/README.md), the
-  [body sanitization library](../../../sanitize/README.md), and the
-  [policy loader](../../../policyload/README.md). An exception library may hold pure
+  [body sanitization library](../../../sanitize/README.md), the
+  [policy loader](../../../policyload/README.md), and the
+  [credential library](../../../credential/README.md). An exception library may hold pure
   packages of its own, and those sit under the same core import check as `mediated-mailbox-core`.
 - **Purity is the first fence; the concern-cut is the second, and it is deferred.** A wholly
   pure library can still lump unrelated concerns into one dependency unit; cutting `mediated-mailbox-core`
