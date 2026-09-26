@@ -263,10 +263,11 @@ perfected up front.
   shipped with the chart and tested with `promtool`. Every verification row keyed to it is proven,
   and every control it delivered has its mutation demonstration. **What it did not deliver.**
   Mounting the account-level collector on the mediator's metrics endpoint, which is
-  [D3](#group-d--data-flows)'s. Reading an account's lowered rate target from its configuration,
-  which is [D1](#group-d--data-flows)'s. How delta sync's request count reaches the runaway rule, decided at
-  [D4](#group-d--data-flows). The real ceiling for the account, which reveals itself at [production
-  point 1](#production-point-1--the-read-path). No deployable spends from the budget yet.
+  [D3](#group-d--data-flows)'s. Reading an account's lowered rate target from its state row,
+  which is [D1](#group-d--data-flows)'s. How delta sync's request count reaches the runaway rule,
+  decided at [D4](#group-d--data-flows). The real ceiling for the account, which reveals itself at
+  [production point 1](#production-point-1--the-read-path). No deployable spends from the budget
+  yet.
 - [x] **S1 — Redaction Gate + Sender Classifier + Mutation Authorizer, isolated** →
   [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -593,29 +594,54 @@ half, the scope that excludes permanent delete, because the grant is the adapter
 - [ ] **F6 — Accounts and their sealed credentials in the database** →
   [P3](./USE_CASES.md#p3--multi-account) · [V2](#v2--the-corpus-can-be-acquired) · finishes at
   tested
-  The account row gains what it holds, its provider, the rate target an operator may lower and its
-  sealed credential with the key it was sealed to, and the installation's OAuth client is stored
-  apart from the accounts, its secret sealed the same way
+  The accounts table keeps each account's identifier and provider, readable by every role that
+  lists accounts, and each account's state moves to `account_state` under the per-account
+  row-level security policy, gaining the rate target an operator may lower and the sealed credential
+  ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)), their statements in
+  `db/accounts` and `db/accountstate`. For a provider that authenticates through one, the
+  installation's OAuth client is stored in `oauth_clients`, apart from the accounts and keyed on
+  the provider, its secret sealed the same way, its statements in `db/oauthclients`. A provider
+  without one has no row, and no account refers to one
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
   [ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md),
   [ADR-0016](./docs/adr/data/0016-schema.md),
   [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)). The columns the UI's
-  setups write are named here and added to its grant
+  setups write are named here, in ADR-0016's schema, and each grant on them arrives with the
+  statement that uses it, the UI's with [M7](#group-m--mutation-and-approval)'s statements
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). The narrow
-  shared library `credential/` seals and opens a credential
+  shared library `credential/` seals and opens a credential with HPKE's X-Wing suite, in its
+  `seal` and `open` subsections, and its `keygen` command writes the key pair
   ([ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
-  [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)). The Gmail adapter takes
-  its credential from what a deployable opens from the database instead of from mounted files, and
-  a rotated credential is sealed and written back to the account's row
-  ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)). The runtime
-  roles gain the grants these reads and writes need
-  ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)). The sealing construction,
-  how keys are replaced, and how a running deployable learns of a new account or a replaced
-  credential are [open decisions](#open-decisions) settled here. What proves it is integration tests
-  against a real PostgreSQL, a credential sealed with the public key and opened only with the
-  private key, and a rotation surviving a restart over the provider fake. It adds a library,
-  migrations and adapter code and touches no composition root, so it finishes at tested. The
-  rotation write-back against the real provider is proven at
+  [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md),
+  [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)). Its openers hold a
+  keyring, and its re-seal and the scan of what is sealed to an old key are what delta sync runs
+  ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)). Every write
+  of a sealed value by a deployable is a compare-and-set on the bytes it last read or wrote
+  ([ADR-0089](./docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)). The Gmail
+  adapter takes its credential from what a deployable opens from the database instead of from
+  mounted files, and a rotated credential is sealed and written back to the account's state row
+  ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)). The adapter's
+  token source holds a rotated refresh token and writes nothing, and the rotation reaches the
+  database by the deployable pulling the source's current token at the end of each unit of work
+  and handing it to `accountload/`. The narrow
+  shared library `accountload/` builds the account snapshot, carrying an OAuth client only for a
+  provider that has one, writes a rotated credential back by compare-and-set, and carries delta
+  sync's re-seal of each account's credential and the values of its scan, and each deployable takes
+  it up where its composition root is built
+  ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
+  The re-seal of an OAuth client's secret, with its statement and delta sync's grant, and the
+  scan's series land with [D4](#group-d--data-flows).
+  The runtime roles gain the grants these reads and writes need, each with the statement that
+  uses it ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)). What proves it is
+  integration tests against a real PostgreSQL, a credential sealed with the public key and opened
+  only with the private key, a value bound to its row and purpose, a stale write refused by the
+  compare-and-set, the library's re-seal of a value to a new key, a listing that reads every
+  account and no other account's state, and a rotation surviving a restart over the provider
+  fake, an account whose provider has no OAuth client loading without one, and a test of the
+  key-generation command writing a pair the library seals and opens with
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). It adds two
+  libraries, migrations and adapter code and touches no composition root, so it finishes at
+  tested. The rotation write-back against the real provider is proven at
   [production point 1](#production-point-1--the-read-path).
 
 ### Group D — data flows
@@ -652,11 +678,24 @@ arrives, because each delta sync tick runs the scan gate.
   credentials from the database through what [F6](#group-f--foundation) builds
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
   [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), and every later
-  deployable that calls a provider does the same. It is also the first deployable that builds a rate
-  limiter, so it reads a lowered rate target from the account's row
-  ([ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)). Pass 1 masks subjects, so
-  it is the first unit that builds the scanner, and it defines the scanner's section of the
-  configuration [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)
+  deployable that calls a provider does the same. It takes its account snapshot at the start of a
+  run and refuses to start unless its public key matches one of its private keys
+  ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+  [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Its image
+  therefore copies `credential/`. A rotation reaches the database by its composition root pulling
+  each token source's current refresh token at the end of each unit of work and handing it to
+  `accountload/`, which writes a rotated one back
+  ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)), and every later
+  deployable that calls a provider does the same. The release workflow's step that builds, signs and attaches the
+  key-generation binaries to each release, deciding which platforms they are built for, lands with
+  the first unit whose deployable imports `credential/`, whichever of [D1](#group-d--data-flows)
+  and [M7](#group-m--mutation-and-approval) that is
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Running that
+  release step against a published release is proven at [R1](#group-r--packaging). It is also the
+  first deployable that builds a rate limiter, so it reads a lowered rate target from the
+  account's state row ([ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)). Pass
+  1 masks subjects, so it is the first unit that builds the scanner, and it defines the scanner's
+  section of the configuration [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)
   layers ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)).
   Checkpoint and resume are proven by the crash harness
   ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md),
@@ -736,7 +775,11 @@ arrives, because each delta sync tick runs the scan gate.
   mediator serves the health probe, the metrics
   endpoint and structured logs ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md)),
   the endpoint carrying F3's collector of each account's rate-state series
-  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)).
+  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The mediator
+  reloads its account snapshot on a schedule and refuses to start unless its public key matches one
+  of its private keys
+  ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+  [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)).
   API operations and MCP tools match one-to-one. Non-UTC input is rejected. No operation requires an identifier the read operations cannot supply. Failure
   responses let a client tell apart its own failure, the system's and the provider's. **The real
   agent is pointed at the mediator over the fixture corpus and talked into requesting a restricted
@@ -752,10 +795,23 @@ arrives, because each delta sync tick runs the scan gate.
   picks them up ([ADR-0037](./docs/adr/redaction/0037-delisting-transition.md)), and how it reaches
   them once backfill's pass 2 has ended is an [open decision](#open-decisions) settled here. Every tick spends from
   [F3](#delivered-mapped-to-outcomes)'s budget in the sync class
-  ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)). What proves it is the
-  cursor-gap injection over the fake, and the leak search over delta sync's logs. *Criteria:* every tick and every gap recovery is a recorded
-  run, the cursor's write time is recorded with it, gate decisions and masking events are recorded
-  the same way backfill records them
+  ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)). Each run takes the
+  account snapshot, re-seals a value opened with a key that is not the current one, and reports the
+  scan of what is still sealed to an old key
+  ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+  [ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)), writing
+  through the compare-and-set of
+  [ADR-0089](./docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md). The re-seal
+  of an OAuth client's secret is delta sync's alone and is built here, with its statement in a
+  subsection only delta sync's list admits, designed and named here, and the grant that statement
+  uses. The scan's series are named and registered here too, since how they reach the scrape is
+  decided here. It
+  refuses to start unless its public key matches one of its private keys
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). What proves it
+  is the cursor-gap injection over the fake, and the leak search over delta sync's logs.
+  *Criteria:* every tick and every gap recovery is a recorded run, the cursor's write time is
+  recorded with it, gate decisions and masking events are recorded the same way backfill records
+  them
   ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0016](./docs/adr/data/0016-schema.md)), the unclassified-sender volume is emitted as a
   metric ([O2](./USE_CASES.md#o2--observable)), scan backlog depth is emitted as a metric
@@ -800,9 +856,10 @@ production point 1, and builds on [M7](#group-m--mutation-and-approval)'s reques
 [D2](#group-d--data-flows)'s delisting transition. [M3](#group-m--mutation-and-approval) reads the
 schema over synthetic fixtures
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), so it
-starts once [F2](#delivered-mapped-to-outcomes) and [S1](#delivered-mapped-to-outcomes)'s marker
-text and fixtures exist and builds beside the D group. [M6](#group-m--mutation-and-approval)
-builds the UI's remaining read screens on [M3](#group-m--mutation-and-approval)'s server and
+starts once [F2](#delivered-mapped-to-outcomes), [F6](#group-f--foundation)'s accounts table and
+[S1](#delivered-mapped-to-outcomes)'s marker text and fixtures exist and builds beside the D group.
+[M6](#group-m--mutation-and-approval) builds the UI's remaining read screens on
+[M3](#group-m--mutation-and-approval)'s server and
 browser app once [M2](#group-m--mutation-and-approval) has plans to show, and
 [M5](#group-m--mutation-and-approval) follows it, because the decisions act on the plan reviewer and
 the review queue [M6](#group-m--mutation-and-approval) shows. M4 and M5 also come after
@@ -853,10 +910,14 @@ classifications already stored in the index.
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
   [ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0016](./docs/adr/data/0016-schema.md),
-  [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). Approval is a hand-written
-  database update until [M5](#group-m--mutation-and-approval) lands. The maximum plan age is open against
-  this unit. Rollback of a real plan waits for [production point
-  2](#production-point-2--the-agent-acts).
+  [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The reorg workload takes its
+  account snapshot at the start of a run and refuses to start unless its public key matches one of
+  its private keys
+  ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+  [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Approval is a
+  hand-written database update until [M5](#group-m--mutation-and-approval) lands. The maximum plan
+  age is open against this unit. Rollback of a real plan waits for
+  [production point 2](#production-point-2--the-agent-acts).
 - [ ] **M3 — The UI's reads of the read path** →
   [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
   [V3](#v3--the-agent-arrives-read-only) · finishes at image
@@ -912,7 +973,8 @@ classifications already stored in the index.
   How a newly added policy rule changes the classifications already stored in the index is an
   [open decision](#open-decisions) settled at [M8](#group-m--mutation-and-approval), because the
   UI's policy management is the first work that adds rules to a filled index. This unit and M5
-  follow that answer.
+  follow that answer. How the heuristics workload finds its accounts, since no account comes from
+  configuration, is an [open decision](#open-decisions) settled here.
   *Criteria:* each run is recorded, and the workload serves the health probe, the metrics endpoint
   and structured logs ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)).
@@ -964,16 +1026,26 @@ classifications already stored in the index.
   setup are separate flows over separate stored records
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
   [ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
-  [docs/UI.md](./docs/UI.md#20-what-remains-open)). OAuth client setup runs once per installation.
-  It links straight to each Google Cloud console page, states the exact value to enter at each
-  step, offers the commands that create the project and enable the Gmail API, and checks the pasted
+  [docs/UI.md](./docs/UI.md#20-what-remains-open)). OAuth client setup runs once per installation
+  for each provider that authenticates through an OAuth client. It links straight to each Google
+  Cloud console page, states the exact value to enter at each step, offers the commands that create
+  the project and enable the Gmail API, and checks the pasted
   identifier and secret against Google before storing them sealed
   ([ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). Account
   setup is first run with no account, connecting an account through that client with the redirected
-  address pasted back into the UI, what an account's row holds, the credential's health, and
+  address pasted back into the UI, what an account's rows hold, the credential's health, and
   re-authorizing an account whose credential stopped working, with the modify scope and the PKCE,
-  state and wrong-mailbox checks the consent command carries today. The UI seals through
-  [F6](#group-f--foundation)'s library and never holds the private key
+  state and wrong-mailbox checks the consent command carries today. Account setup writes an
+  account's two rows in one transaction
+  ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)), and the UI logs the
+  key identifier it seals to at start
+  ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)). The release
+  workflow's step that builds, signs and attaches the key-generation binaries to each release,
+  deciding which platforms they are built for, lands with the first unit whose deployable imports
+  `credential/`, whichever of [D1](#group-d--data-flows) and
+  [M7](#group-m--mutation-and-approval) that is
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). The UI seals
+  through [F6](#group-f--foundation)'s library and never holds the private key
   ([ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), and it runs
   under the trust anchor's hardening
   ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)). The request token that
@@ -981,8 +1053,10 @@ classifications already stored in the index.
   change state before production point 1
   ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)), and
   [M5](#group-m--mutation-and-approval)'s decisions reuse it. The UI's role gains exactly the
-  columns the two setups write
-  ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)). How the per-account rule
+  columns the two setups write, and a read of `oauth_clients`' `provider` and `client_id`, never
+  its `client_secret`, with the statements that use them
+  ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md),
+  [ADR-0016](./docs/adr/data/0016-schema.md)). How the per-account rule
   of [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md) holds for
   the screens that belong to no account, and where the consent code lives so the UI links it
   without the Gmail adapter, are [open decisions](#open-decisions) settled here. *Criteria:* a
@@ -1053,7 +1127,7 @@ the adapter.
   [V5](#v5--a-second-of-everything) · finishes at tested
   The real test of the account model
   ([ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md)). A
-  second account is another account row connected through the UI and another account context in
+  second account is another account's rows connected through the UI and another account context in
   the deployables that exist
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), so no
   composition root changes and the unit finishes at tested. Two fixture accounts run the
@@ -1132,7 +1206,10 @@ about its cluster.
   configuration key names. The chart also includes whatever
   [M8](#group-m--mutation-and-approval)'s answer on how a newly added policy rule changes the
   classifications already stored in the index needs, and whatever [D2](#group-d--data-flows)'s
-  re-scan after a scanner version change needs.
+  re-scan after a scanner version change needs. Against the first release that attaches the
+  key-generation binaries, the binary is downloaded, its keyless signature verified and a tampered
+  copy refused, and the pair it writes is one the library seals and opens with
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)).
   The bare-cluster install proof stands from here.
 - [ ] **R2 — Package the action path and calendar** → [O6](./USE_CASES.md#o6--deployable) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at packaged
@@ -1193,9 +1270,11 @@ lands in is the [value path](#the-value-path)'s.
 | S1 → S3, S2 → S3 | The sensitivity types and the scan state the serve-time check reads, and the pattern tier it runs ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md)) |
 | S1 → F3, F2 → F3, F5 → F3 | The property-testing setup the hard-cap test runs under ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)), the rate-state row and grants table leases are held in ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), the provider fake whose throttle schedule the controller is tested against ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)), and the Gmail adapter's count of each request's cost, which F3's observed-rate criterion reads ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
 | F2 → M3, M3 → M6, M2 → M6, M3 → M5, M6 → M5 | The schema the fixtures populate, the UI's server and browser app the later screens and the decisions live in, the plans and the maximum plan age the plans screens read, and the plan reviewer and review queue the decisions act on |
-| F2 → F6, F5 → F6 | The schema the account row extends, and the Gmail adapter whose credential comes from the database instead of mounted files |
-| F6 → D1, F6 → D3 | The account rows and the sealed credentials the first provider-calling deployables read, and the library that opens them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)) |
-| F6 → M7, M3 → M7 | The account rows and the sealing library account setup writes through, and the UI's server and browser app its screens live in |
+| F2 → F6, F5 → F6 | The schema whose accounts table F6 splits, and the Gmail adapter whose credential comes from the database instead of mounted files |
+| F6 → M3 | The accounts table every role reads in full, which the UI's account selector lists ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)) |
+| F6 → D4 | The keyring and the re-seal delta sync runs, and the scan of what is sealed to an old key ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)) |
+| F6 → D1, F6 → D3 | The accounts, their state rows and the sealed credentials the first provider-calling deployables read, the library that opens them, and `accountload/`, which builds the account snapshot from them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
+| F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, and the UI's server and browser app its screens live in |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
 | F2 → every later unit that holds a database role | The runtime database roles, created with the schema, that each unit's component connects to the database as |
 | S1 → M3, S1 → F5 | The marker text and synthetic fixtures the UI's recorded fixtures, the provider fake and the adapter's tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
@@ -1214,7 +1293,7 @@ lands in is the [value path](#the-value-path)'s.
 | M1 → M2, D3 → M2, D1 → M2 | The authorized batch mutation path apply runs through, the surface the two read-only plan tools live on, the crash harness with its operation sampler, the policy loader, the configuration library and the reading of accounts from the database, and how the last authentication outcome is recorded |
 | M8 → M4, M8 → M5 | How a newly added policy rule changes the classifications already stored in the index. The UI's policy management decides it, and a confirmed candidate's rule follows it |
 | D1 → M4 | The sender statistics the heuristics read, and the policy loader and the configuration library the heuristics workload uses |
-| D1 → X2, D3 → X2, D4 → X2, F5 → X2, M1 → X2 | The surface, the workloads and the Google grant calendar joins, the dry-run and authorized mutation path calendar mutations run through, the provider fake, and the convention for running the contract suite against the real provider. Calendar also follows the answers on how a running deployable learns of a new account or a replaced credential, on recording the authentication outcome and on denying a newly deny-listed domain on the next call |
+| D1 → X2, D3 → X2, D4 → X2, F5 → X2, M1 → X2 | The surface, the workloads and the Google grant calendar joins, the dry-run and authorized mutation path calendar mutations run through, the provider fake, and the convention for running the contract suite against the real provider. Calendar also follows how a running deployable learns of a new account or a replaced credential ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)), and the answers on recording the authentication outcome and on denying a newly deny-listed domain on the next call |
 | F3 → D2, F3 → D3, F3 → D4, F3 → M1, F3 → M2, F3 → X2 | The rate budget each spends from ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), and for D3 the collector of each account's rate-state series its metrics endpoint carries ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
 | S3 → X2 | The sanitization a released event description goes through ([ADR-0036](./docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)) |
 | D1 → D4 | The policy loader, the configuration library and the reading of accounts from the database that delta sync reuses |
@@ -1248,9 +1327,9 @@ supplies, including edges another edge implies.
 | F2 · F5 | S1 |
 | S2 | S1 |
 | S3 | S2 |
-| M3 | F2 |
 | F3 · F6 | F2 · F5 |
-| M7 | M3 · F6 |
+| M3 | F6 |
+| M7 | M3 |
 | D1 | S2 · F3 · F6 |
 | D3 | S3 · D1 |
 | D2 | D1 · S3 |
@@ -1280,12 +1359,11 @@ flowchart LR
     F5 --> F3
     F2 --> F6
     F5 --> F6
-    F2 --> M3
+    F6 --> M3
     M3 --> M6
     M2 --> M6
     M6 --> M5
     M3 --> M7
-    F6 --> M7
     M7 --> M8
     D2 --> M8
     M8 --> R1
@@ -1362,8 +1440,6 @@ index](./docs/adr/README.md).
 | Whether R3 keeps any work or is retired | X4, R3 | R3 packaged the inputs a second account and the Fastmail backend needed. Accounts and their credentials are now connected through the UI ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), which leaves it no input named anywhere. Whether X4 adds anything to the chart is known once the JMAP adapter is built, so it is decided there |
 | Which pull request closes a packaging ticket whose proof needs a release published after it merges | R1 | An R unit is proven by running the chainsaw suite against the images published for a release ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), and that release is only cut after the pull request that changes the chart has merged. [CLAUDE.md](./CLAUDE.md#repository-process) says a ticket is closed by the pull request that meets its part of the unit's acceptance. Nothing says which pull request closes a packaging ticket in that case, or who starts the chainsaw run. It is decided where the first packaging unit is built, and R2 and R3 follow it |
 | How the last provider authentication outcome is recorded | D3 | [ADR-0016](./docs/adr/data/0016-schema.md) has the provider adapter write it on every attempt, but the adapter built in F5 has no database access. The system status operation is the first thing that reads it, so it is decided in D3 once that operation exists, starting with backfill, the first deployable to authenticate. The mediator, delta sync, the reorg workload and the later calendar and Fastmail wiring follow the answer, and so do the later adapters if the answer involves the adapter |
-| Which construction seals a credential, and how a key is replaced | F6 | [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md) seals each credential to a public key the UI holds and records the key it was sealed to, and names neither the construction nor how credentials sealed to an old key reach a new one. The sealing library is the first work that needs both, so they are decided there |
-| How a running deployable learns of a new account or a replaced credential | F6 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) lets the operator connect or re-authorize an account through the UI while the deployables run, and nothing says when a running deployable picks the change up. The deployables' reading of accounts and credentials from the database is the first work that needs the answer, so it is decided there, and every provider-calling deployable follows it |
 | How the per-account rule holds for the screens that belong to no account | M7 | [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md) makes every view per account, with the account in the URL, and [docs/UI.md](./docs/UI.md) names policy as the one exception. A first run and the screen that connects an account have no account yet, and OAuth client setup belongs to the whole installation, not to any account. The setup screens are the first work that needs the answer, so it is decided in their design |
 | Where the consent code lives so the UI links it without the Gmail adapter | M7 | [ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md) has the UI run the consent with the PKCE, state and wrong-mailbox checks, which sit in the Gmail adapter's package today beside the code that calls the mailbox. The UI's import list refuses provider adapters, proven by its row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the developer's consent command shares the same code. The UI's Gmail connection is the first work that needs the answer, so it is decided there |
 | How a removed policy rule reaches the delisting transition | D2 | [ADR-0037](./docs/adr/redaction/0037-delisting-transition.md) sets a removed sender's messages back to pending scan, and nothing says how the removal is detected. It is decided where that transition is built |
@@ -1386,14 +1462,13 @@ index](./docs/adr/README.md).
 | Whether one in-memory model serves both crash-harness targets | M2, D1 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) runs sequence reduction against an in-memory model of the machinery and leaves open whether one model serves both of [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)'s targets, the reorganization apply path at M2 and backfill resume at D1, or each gets its own. Only the harness's own internals depend on the answer |
 | Whether the backfill target's generators use the same shape as the reorganization plan generator | D1 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) measured the collection-generator shape for the reorganization plan generator only, and states two options for backfill resume, using the same shape and reading the generator report, or measuring a conditional generator against it first |
 | Whether the operation sampler also runs in the gating run | D1, M2 | [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md) places it in the scheduled run and leaves the gating run open, stating what each option costs |
-| How rotations arriving at two credential-holding deployables close together are reconciled | F6 | [ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md) has the deployable that receives a rotated credential seal it and write it to the account's row. Every deployable that calls a provider holds the credential, so two of them can receive rotations close together, and which value the row keeps is decided where the write-back is built |
 | How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
-| How an unscoped account listing reads every account through the accounts table's row-level security | F6, M7, D3, M3 | [ADR-0016](./docs/adr/data/0016-schema.md) puts row-level security on every account-keyed table, and the accounts table is one, so a query sees only the account its transaction set. The client surface's account listing ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) and [docs/UI.md](./docs/UI.md)'s accounts endpoint are both unscoped and need every account's row, and [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) names the listing a deliberate exception to its account-predicate rule, which that row-level security stands behind. The deployables that call a provider also read every account from the database ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)). Whichever of F6, M7, D3 and M3 builds its listing first decides it, and the others follow |
 | How generated data-access functions are held to run through the transaction helper | D1 | [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md) runs every unit of data access in a transaction that set and verified the account, and `db/tx` does so, but a generated function accepts any database handle, a pool included. F3 writes the first statement file and calls it only inside the helper. A check that holds every later call to the helper is a `go vet` analyser the operator named `txhelper`, built with D1's first statements, so the row stays open until then, and the pending part of the unset-account row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) waits on it |
-| How delta sync's request count reaches the runaway rule when a tick ends between scrapes | D4 | [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md) counts the cost of provider requests in each spending process and sums them for the runaway rule. [ADR-0022](./docs/adr/operability/0022-four-workloads.md) runs delta sync every five minutes for seconds at a time, so a tick can end between two scrapes and leave its requests uncounted. Delta sync is built in D4, so it is decided there |
+| How delta sync's request count and its key scan reach the metrics scrape when a tick ends between scrapes | D4 | [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md) counts the cost of provider requests in each spending process and sums them for the runaway rule. [ADR-0022](./docs/adr/operability/0022-four-workloads.md) runs delta sync every five minutes for seconds at a time, so a tick can end between two scrapes and leave its requests uncounted. Delta sync is built in D4, so it is decided there. The same gap reaches the key scan of [ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md), whose retirement gate needs every series |
 | How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md) has the accounts of one installation share its OAuth client and so its Cloud project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
 | Whether the rate may rise above the target so a ceiling above the declared one can be found | X4 | [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md) keeps the rate between the floor and the target, which is half the declared ceiling, so the controller can find only a lower real ceiling. [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) has the controller discover JMAP's budget from a conservative guess, which needs finding a higher one, and [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)'s own alternatives count discovery as the only way to find JMAP's. ADR-0024's token bucket and one-second window are sized from the hard cap, which the answer does not move. Gmail publishes its ceiling, so only the JMAP adapter depends on the answer, and it is decided there |
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
+| How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which row-level security confines to one account, so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role joins ADR-0091's list of roles |
 | Whether a base-rule edit landing between two accounts' reads should page | M8 | The policy loader ([policyload/README.md](./policyload/README.md)) fails a reload whose accounts read different base rules, so an edit to the base policy landing mid-reload fails that one reload and raises the reload-failure alarm, which pages at once and clears on the next reload. No role writes base rules yet. The first unit that writes them, M8 with the UI's policy management, decides whether that page is acceptable or the rule waits before paging |
 | What subject shape the scan gate's memo keys on, and how a new scan hit clears it | D2 | [ADR-0007](./docs/adr/redaction/0007-composite-scan-gate.md) memoizes gate decisions per sender and subject shape and defines neither. The predicate also reads each message's own `List-Id`, size and age, so a memo keyed on sender and subject shape alone could replay a skip onto a message of the same sender the predicate would scan, such as one without a `List-Id`. A sender's prior hits grow as pass 2 scans, so a memoized skip can also go stale. Pass 2 is the first work that evaluates the gate over stored messages, where the lookups a memo would save exist, so it is decided there |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |

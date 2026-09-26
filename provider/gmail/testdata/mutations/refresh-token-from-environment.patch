@@ -1,26 +1,26 @@
-control: Credentials are read from the mounted files
-removes: the refresh token is read from an environment variable rather than its mounted file
+control: No credential is read from the environment
+removes: the refresh token is read from an environment variable rather than taken from the deployable
 packages: ./provider/gmail
-tests: TestLoadReadsTheMountedFiles TestLoadIgnoresTheEnvironmentWhenTheFilesArePresent TestNoSourceFileReadsTheEnvironment
+tests: TestTheSourceHoldsOnlyTheCredentialItIsGiven/a_refresh_token TestTheSourceHoldsOnlyTheCredentialItIsGiven/no_refresh_token TestNoSourceFileReadsTheEnvironment
 scheduled-count: no
 
-diff --git a/provider/gmail/credentials.go b/provider/gmail/credentials.go
-index 9872faa..b689015 100644
---- a/provider/gmail/credentials.go
-+++ b/provider/gmail/credentials.go
-@@ -38,7 +38,6 @@ func Load(files Files) (Credentials, error) {
- 	}{
- 		{files.ClientID, &c.ClientID},
- 		{files.ClientSecret, &c.ClientSecret},
--		{files.RefreshToken, &c.RefreshToken},
- 	} {
- 		value, err := readValue(f.path)
- 		if err != nil {
-@@ -47,6 +46,7 @@ func Load(files Files) (Credentials, error) {
- 		}
- 		*f.dst = value
- 	}
-+	c.RefreshToken = os.Getenv("GMAIL_REFRESH_TOKEN")
- 	if err := errors.Join(errs...); err != nil {
- 		return Credentials{}, err
- 	}
+diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
+index 5dddcab..b089db6 100644
+--- a/provider/gmail/tokensource.go
++++ b/provider/gmail/tokensource.go
+@@ -2,6 +2,7 @@ package gmail
+ 
+ import (
+ 	"context"
++	"os"
+ 	"net/http"
+ 	"net/url"
+ 	"sync"
+@@ -38,6 +39,7 @@ type TokenSource struct {
+ // NewTokenSource returns a source for the credentials the deployable supplies. Every argument is
+ // required.
+ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
++	creds.RefreshToken = os.Getenv("GMAIL_REFRESH_TOKEN")
+ 	return &TokenSource{client: client, creds: creds}
+ }
+ 

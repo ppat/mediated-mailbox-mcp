@@ -1,0 +1,22 @@
+control: The listing roles read the accounts table in full and write only their own rows
+removes: the listing policy is dropped, so a listing role reads only its own row of the accounts table and a listing with no account set raises
+packages: ./db/check
+tests: TestTheListingRolesReadEveryAccount TestTheListingRolesReadEveryAccount/mediated_mailbox_ui/lists_every_account TestTheListingRolesReadEveryAccount/mediated_mailbox_backfill/lists_every_account TestAListingNeedsNoAccountSet TestAListingNeedsNoAccountSet/mediated_mailbox_ui TestAListingNeedsNoAccountSet/mediated_mailbox_mediate TestAListingNeedsNoAccountSet/mediated_mailbox_backfill TestAListingNeedsNoAccountSet/mediated_mailbox_sync TestAListingNeedsNoAccountSet/mediated_mailbox_organize
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
+index 880297d..5216e4b 100644
+--- a/db/migrations/00008_account_state.sql
++++ b/db/migrations/00008_account_state.sql
+@@ -62,10 +62,3 @@ USING (account_id = current_setting('app.account'));
+ -- to the transaction's account, since a permissive policy for SELECT alone takes no part in an
+ -- insert, an update's new row or a delete. The UI's read of the moved state columns arrives with the
+ -- statement that needs it and never covers credential (ADR-0084).
+-CREATE POLICY accounts_listing ON accounts FOR SELECT
+-TO mediated_mailbox_ui,
+-mediated_mailbox_mediate,
+-mediated_mailbox_backfill,
+-mediated_mailbox_sync,
+-mediated_mailbox_organize
+-USING (true);

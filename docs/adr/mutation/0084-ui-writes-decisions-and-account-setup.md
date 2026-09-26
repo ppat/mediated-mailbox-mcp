@@ -32,7 +32,7 @@ decision verbs, OAuth client setup and account setup.**
 | **Jobs** | Every batch workload live, its progress, the rate budget by priority class, recent runs |
 | **A run** | One run, and a failed one down to its individual failures |
 | **OAuth client setup** | Setting up the installation's OAuth client for a provider through the guided flow, once, apart from any account |
-| **Account setup** | Connecting an account through that client, setting what the account's row holds, and re-authorizing an account whose credential stopped working |
+| **Account setup** | Connecting an account through that client, setting what the account's rows hold, and re-authorizing an account whose credential stopped working |
 
 The screens themselves, how they are organized, and what they read are the UI's design in
 [docs/UI.md](../../UI.md).
@@ -42,7 +42,8 @@ Constraints that keep it safe to exist:
 - **Writes go directly to Postgres, never through the client surface**, preserving every client's
   structural inability to approve its own plans.
 - **Separate Deployment, ServiceAccount, and database role.** It is read-only on most tables. Its
-  write grant is exactly the columns each decision verb sets, `reorg_plans(status, approved_at,
+  read of `account_state` arrives with the statement that needs it and never covers `credential`
+  ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Its write grant is exactly the columns each decision verb sets, `reorg_plans(status, approved_at,
   approved_by)` and `policy_candidates(status, reviewed_at, reviewed_by)`, insert on
   `policy_rules` for the one row confirming a candidate emits
   ([ADR-0004](../classification/0004-sender-list-decides.md)), and the columns OAuth client setup

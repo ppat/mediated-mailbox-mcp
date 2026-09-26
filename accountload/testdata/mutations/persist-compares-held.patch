@@ -1,0 +1,20 @@
+control: At the end of a unit of work a changed credential is written back and an unchanged one is not
+removes: the credential is compared with the one held rather than the one last read or written, so a failed write-back is never tried again
+packages: ./accountload
+tests: TestAFailedWriteBackIsHeldLoggedAndKeptByAReload
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/writeback.go b/accountload/writeback.go
+index e023f76..41212f3 100644
+--- a/accountload/writeback.go
++++ b/accountload/writeback.go
+@@ -41,7 +41,7 @@ func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([
+ 	if len(current) == 0 {
+ 		return nil, fmt.Errorf("account %s: the adapter holds an empty credential", account)
+ 	}
+-	if slices.Equal(current, h.baseline) {
++	if slices.Equal(current, h.plaintext) {
+ 		return h.baseline, nil
+ 	}
+ 	h.plaintext = slices.Clone(current)

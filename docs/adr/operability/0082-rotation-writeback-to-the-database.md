@@ -1,4 +1,4 @@
-# 0082. A rotated provider credential is sealed and written back to the account's row by the deployable that received it
+# 0082. A rotated provider credential is sealed and written back to the account's state row by the deployable that received it
 
 **Status:** Accepted (supersedes [ADR-0039](./0039-rotation-writeback.md)) ·
 **Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
@@ -15,15 +15,16 @@ already hold a database role.
 
 ## Decision
 
-- **The deployable that receives a rotated credential seals it and writes it to the account's row**,
-  in the same database it reads credentials from. Its role's write grant on the account's
-  credential is that one column, nothing more.
+- **The deployable that receives a rotated credential seals it and writes it to the account's
+  state row** ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)), in the same
+  database it reads credentials from. Its role's write grant on the account's credential is that
+  one column, nothing more.
 - **No other store takes part.** No deployable holds a credential for a secret store, because no
   account credential lives in one.
 - **The process keeps the new value in memory**, so a failed write loses access only if the process
   restarts before a later write succeeds. A failed write is loud in that deployable's logs.
-- How rotations arriving at two deployables close together are reconciled is open in
-  [ROADMAP.md](../../../ROADMAP.md#open-decisions).
+- Rotations arriving at two deployables close together are reconciled by the compare-and-set of
+  [ADR-0089](./0089-sealed-values-written-by-compare-and-set.md).
 
 ## Alternatives considered
 

@@ -1,19 +1,19 @@
-control: A rotated refresh token is held and written back
+control: A rotated refresh token is held, sent on the next refresh and handed to the deployable
 removes: a rotation holds the new access token as the refresh token
 packages: ./provider/gmail
-tests: TestARotatedCredentialSurvivesARestart TestAFailedWriteBackIsLoggedAndTriedAgain
+tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver
 scheduled-count: no
 
 diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
-index 9c48994..ebde6cc 100644
+index 5dddcab..59d6cc2 100644
 --- a/provider/gmail/tokensource.go
 +++ b/provider/gmail/tokensource.go
-@@ -110,7 +110,7 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {
+@@ -106,7 +106,7 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {
  func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
  	s.access, s.expiry = resp.AccessToken, now.Add(resp.ExpiresIn)
  	if rotated(s.creds.RefreshToken, resp.RefreshToken) {
 -		s.creds.RefreshToken = resp.RefreshToken
 +		s.creds.RefreshToken = resp.AccessToken
  	}
- 	if s.creds.RefreshToken == s.persisted {
- 		return
+ }
+ 

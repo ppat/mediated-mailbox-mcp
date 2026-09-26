@@ -1,0 +1,19 @@
+control: The scan has an entry for every listed account and every OAuth client, true while its value is on an old key or does not open
+removes: no OAuth client has an entry, so the scan is silent on client secrets
+packages: ./accountload
+tests: TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index 1736aee..6ea667c 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -228,7 +228,6 @@ func (l *Loader) Load(ctx context.Context) error {
+ 	}
+ 	for _, c := range clients {
+ 		secret, err := l.keys.Open(c.SealedClientSecret, seal.ClientSecret(c.Provider))
+-		scan.Clients[c.Provider] = err != nil || l.onOldKey(c.SealedClientSecret)
+ 		if err != nil {
+ 			l.log.Error("an OAuth client's secret did not open, so its provider has no client", slog.String("provider", c.Provider), slog.Any("error", err))
+ 			continue

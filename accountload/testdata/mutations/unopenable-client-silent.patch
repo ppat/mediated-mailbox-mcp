@@ -1,0 +1,20 @@
+control: A value that does not open leaves its account not connected or its provider without a client, and the refusal is logged
+removes: a client secret that does not open is logged at debug level, which a deployable does not emit
+packages: ./accountload
+tests: TestAValueCopiedToAnotherRowOrPurposeDoesNotOpen
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index ec429e0..db51bd8 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -230,7 +230,7 @@ func (l *Loader) Load(ctx context.Context) error {
+ 		secret, err := l.keys.Open(c.SealedClientSecret, seal.ClientSecret(c.Provider))
+ 		scan.Clients[c.Provider] = err != nil || l.onOldKey(c.SealedClientSecret)
+ 		if err != nil {
+-			l.log.Error("an OAuth client's secret did not open, so its provider has no client", slog.String("provider", c.Provider), slog.Any("error", err))
++			l.log.Debug("an OAuth client's secret did not open, so its provider has no client", slog.String("provider", c.Provider), slog.Any("error", err))
+ 			continue
+ 		}
+ 		next.clients[c.Provider] = Client{provider: c.Provider, id: c.ClientID, secret: secret}

@@ -1,0 +1,21 @@
+control: At the end of a unit of work a changed credential is written back and an unchanged one is not
+removes: every call writes the credential back, an unchanged one included
+packages: ./accountload
+tests: TestARotatedCredentialSurvivesARestart
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/writeback.go b/accountload/writeback.go
+index e023f76..3d7adf2 100644
+--- a/accountload/writeback.go
++++ b/accountload/writeback.go
+@@ -41,9 +41,6 @@ func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([
+ 	if len(current) == 0 {
+ 		return nil, fmt.Errorf("account %s: the adapter holds an empty credential", account)
+ 	}
+-	if slices.Equal(current, h.baseline) {
+-		return h.baseline, nil
+-	}
+ 	h.plaintext = slices.Clone(current)
+ 	l.hold(account, h)
+ 	sealed, err := l.keys.Seal(current, seal.AccountCredential(account))

@@ -1,0 +1,20 @@
+control: A unit of work keeps the account snapshot it took
+removes: a write-back changes the active snapshot's accounts in place, under a unit of work that took it
+packages: ./accountload
+tests: TestAStaleWriteBackIsRefusedAndTheStoredCredentialUsed
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/writeback.go b/accountload/writeback.go
+index 9503634..426f86f 100644
+--- a/accountload/writeback.go
++++ b/accountload/writeback.go
+@@ -112,7 +112,7 @@ func (l *Loader) hold(account string, h held) {
+ // publish stores a snapshot equal to the active one but for the account's credential.
+ func (l *Loader) publish(account string, credential []byte) {
+ 	current := l.active.Load()
+-	next := &Snapshot{accounts: slices.Clone(current.accounts), clients: current.clients}
++	next := &Snapshot{accounts: current.accounts, clients: current.clients}
+ 	for i := range next.accounts {
+ 		if next.accounts[i].id == account {
+ 			next.accounts[i].credential = credential

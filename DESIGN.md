@@ -112,7 +112,7 @@ owns.
 | Delta Sync | Keep the index current against the provider | batch workload |
 | Reorg Engine | Turn approved plans into reversible bulk mutations | batch workload |
 | Heuristics Job | Propose sensitive-sender candidates for human review | batch workload |
-| UI (Web interface) | Make the system legible to the operator, carry the approval verbs, and set up the OAuth client and the accounts | separate deployment |
+| UI (Web interface) | Make the system legible to the operator, carry the approval verbs, and set up each OAuth client a provider needs, and the accounts | separate deployment |
 | Metadata & State Store | Hold metadata, plans, and audit, never a body | Postgres instance |
 | Policy Store | Hold the sender rules as data, snapshotted on load | Postgres tables |
 
@@ -285,7 +285,11 @@ Structural scoping makes the bleed unrepresentable rather than unlikely, and bui
 the start costs little while retrofitting it later costs a redesign.
 
 Known limit, stated rather than hidden: like the port abstraction, isolation is proven only when
-the second account exists. Until then it is enforced structure awaiting its test.
+the second account exists. Until then it is enforced structure awaiting its test. One table is
+read across accounts by design, the accounts table, which holds each account's identifier and
+provider and nothing an account carries (ADR-0091, via the
+[decision-record index](./docs/adr/README.md)). The OAuth clients belong to no account, so the
+roles that call a provider read them whatever the account (ADR-0016).
 
 ### An accepted risk that is not measured is an unmeasured risk
 
@@ -372,6 +376,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Text a sender hides with CSS is released as ordinary text, and delimiter words written in look-alike letters pass the release step | ADR-0036's consequences |
 | Compromise of a process holding provider credentials defeats redaction | ADR-0028 (hardening, blast radius, evidence that survives) |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
+| Every account's identifier and provider is readable across accounts, so any listing can enumerate the accounts | ADR-0091 |
 | Un-braided concerns and contract-only knowledge are only tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
 | The corpus is assumed ≤100k messages per account | ADR-0016 records what changes beyond it, and ADR-0066 what stops being affordable |
 | Nothing in the running system can trim the audit log, because no runtime role may delete from it | ADR-0016, with the retention question open in [ROADMAP.md](./ROADMAP.md) |
@@ -501,8 +506,18 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Account context** — the per-account bundle of provider clients, credentials, policy overlay,
   and rate state. Nothing about an account is ambient. Every operation names one.
 - **Sealed credential** — an account's provider credential as the database stores it, encrypted so
-  that only the deployables that call a provider can open it (ADR-0081, via the
+  that only the deployables that call a provider can open it (ADR-0081 and its construction in
+  ADR-0088, via the [decision-record index](./docs/adr/README.md)).
+- **Sealed value** — the bytes a sealed credential or an OAuth client's sealed secret is stored
+  as, a header naming its key followed by the ciphertext (format in ADR-0088, via the
   [decision-record index](./docs/adr/README.md)).
+- **Key identifier** — the name a sealed value's header gives the public key it was sealed to,
+  derived from that key (rule in ADR-0088, via the [decision-record index](./docs/adr/README.md)).
+- **Keyring** — the set of private keys a deployable that opens credentials holds, looked up by the
+  key a sealed value names (rule in ADR-0092, via the [decision-record index](./docs/adr/README.md)).
+- **Account snapshot** — the immutable copy of its accounts, the installation's OAuth client for
+  each of their providers that has one, and their opened credentials that a deployable calling a
+  provider works from (rule in ADR-0090, via the [decision-record index](./docs/adr/README.md)).
 
 ### Data paths and mutation
 

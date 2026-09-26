@@ -92,6 +92,9 @@ func TestViolationFiles(t *testing.T) {
 		}
 	}
 	run("statements", func(f sqlFile) []finding { return checkStatements(s, f) })
+	// The accounts listing's exception names its subsection's directory, so its cases sit in one of
+	// that name.
+	run("accounts", func(f sqlFile) []finding { return checkStatements(s, f) })
 	run("migrations", checkMigration)
 	for _, check := range append(slices.Clone(statementChecks), checkDatabaseCode) {
 		if !covered[check] {
@@ -110,6 +113,7 @@ func unreadSQLFiles(t *testing.T, lib library) []string {
 	}
 	if lib.violations != "" {
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "statements"))...)
+		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "accounts"))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "migrations"))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, checkGeneration))...)
 	}

@@ -1,0 +1,20 @@
+control: At the end of a unit of work a changed credential is written back and an unchanged one is not
+removes: a changed credential is reported as written without the write running
+packages: ./accountload
+tests: TestARotatedCredentialSurvivesARestart
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/writeback.go b/accountload/writeback.go
+index e023f76..be3ab83 100644
+--- a/accountload/writeback.go
++++ b/accountload/writeback.go
+@@ -50,7 +50,7 @@ func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([
+ 	if err != nil {
+ 		return l.failed(account, current, err)
+ 	}
+-	landed, err := l.replace(ctx, account, h.known, sealed)
++	landed, err := true, error(nil)
+ 	if err != nil {
+ 		return l.failed(account, current, err)
+ 	}

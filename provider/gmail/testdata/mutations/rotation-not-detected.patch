@@ -1,14 +1,14 @@
-control: A rotated refresh token is held and written back
+control: A rotated refresh token is held, sent on the next refresh and handed to the deployable
 removes: no refresh response counts as a rotation
 packages: ./provider/gmail
-tests: TestARotatedCredentialSurvivesARestart TestAFailedWriteBackIsLoggedAndTriedAgain
+tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver
 scheduled-count: no
 
 diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
-index 9c48994..66d2d0f 100644
+index 5dddcab..5ef629d 100644
 --- a/provider/gmail/tokensource.go
 +++ b/provider/gmail/tokensource.go
-@@ -126,5 +126,5 @@ func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
+@@ -113,5 +113,5 @@ func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
  // rotated reports whether a refresh response rotated the refresh token. Google leaves the field
  // out when it did not.
  func rotated(held, returned string) bool {

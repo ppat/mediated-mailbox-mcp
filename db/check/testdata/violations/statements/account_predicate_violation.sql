@@ -135,3 +135,14 @@ SELECT rule_id FROM policy_rules WHERE account_id IS NULL OR @account_id::text =
 
 -- name: ListRestrictedRulesForAccount :many
 SELECT rule_id FROM policy_rules WHERE class = @class AND (account_id = @account_id::text OR account_id IS NULL);
+
+-- The accounts table's exception covers its listing alone, so a write to it still needs the
+-- account predicate.
+-- want account-predicate
+-- name: RenameEveryProvider :execrows
+UPDATE accounts SET provider = @provider;
+
+-- A statement named like the listing, outside the accounts subsection, is not the listing.
+-- want account-predicate
+-- name: Accounts :many
+SELECT account_id FROM accounts;

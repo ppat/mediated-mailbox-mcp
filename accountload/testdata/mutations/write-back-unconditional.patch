@@ -1,0 +1,20 @@
+control: A write of a sealed value by a deployable is a compare-and-set on the bytes it last knew
+removes: the write-back's statement no longer compares the stored bytes, so it replaces whatever the row holds
+packages: ./accountload
+tests: TestAStaleWriteBackIsRefusedAndTheStoredCredentialUsed TestAStaleReSealIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/db/accountstate/sealed.sql.go b/db/accountstate/sealed.sql.go
+index c64c6fe..b3f7df6 100644
+--- a/db/accountstate/sealed.sql.go
++++ b/db/accountstate/sealed.sql.go
+@@ -12,7 +12,7 @@ import (
+ const replaceSealed = `-- name: ReplaceSealed :execrows
+ UPDATE account_state
+ SET credential = $1
+-WHERE account_id = $2 AND credential = $3
++WHERE account_id = $2 AND $3::bytea IS NOT NULL
+ `
+ 
+ type ReplaceSealedParams struct {

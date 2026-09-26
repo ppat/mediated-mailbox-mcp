@@ -226,6 +226,40 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
 
+        # The account snapshot library, every file. It is a library, so it connects as no role of its own. db/check
+        # plans the statements of the subsections it names under the role of each deployable whose list admits it
+        # (ADR-0066, ADR-0075).
+        accountload:
+          list-mode: strict
+          files:
+          - "${base-path}/accountload/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+
+        # The credential library, every file.
+        credential:
+          list-mode: strict
+          files:
+          - "${base-path}/credential/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+
         # The data-access library, every file.
         db:
           list-mode: strict
@@ -454,6 +488,7 @@ linters:
           - "${base-path}/backfill/**.go"
           allow:
           - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/jackc/pgx/v5$"
@@ -484,6 +519,7 @@ linters:
           - "${base-path}/mediate/**.go"
           allow:
           - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
@@ -509,6 +545,7 @@ linters:
           - "${base-path}/organize/**.go"
           allow:
           - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
@@ -557,6 +594,7 @@ linters:
           - "${base-path}/sync/**.go"
           allow:
           - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
@@ -639,6 +677,8 @@ linters:
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
@@ -679,8 +719,11 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/pganalyze/pg_query_go/v6$"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload$"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
@@ -713,8 +756,10 @@ linters:
           list-mode: strict
           files:
           - "$all"
+          - "!${base-path}/accountload/**"
           - "!${base-path}/backfill/**"
           - "!${base-path}/core/**"
+          - "!${base-path}/credential/**"
           - "!${base-path}/db/**"
           - "!${base-path}/mediate/**"
           - "!${base-path}/organize/**"

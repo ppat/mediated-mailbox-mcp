@@ -1,0 +1,28 @@
+control: A failed write-back is held in memory and logged
+removes: a write-back that failed puts back the credential held before the rotation, so a reload serves the old one
+packages: ./accountload
+tests: TestAFailedWriteBackIsHeldLoggedAndKeptByAReload
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/writeback.go b/accountload/writeback.go
+index e023f76..2b18c82 100644
+--- a/accountload/writeback.go
++++ b/accountload/writeback.go
+@@ -44,14 +44,15 @@ func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([
+ 	if slices.Equal(current, h.baseline) {
+ 		return h.baseline, nil
+ 	}
++	previous := h
+ 	h.plaintext = slices.Clone(current)
+-	l.hold(account, h)
+ 	sealed, err := l.keys.Seal(current, seal.AccountCredential(account))
+ 	if err != nil {
+ 		return l.failed(account, current, err)
+ 	}
+ 	landed, err := l.replace(ctx, account, h.known, sealed)
+ 	if err != nil {
++		l.hold(account, previous)
+ 		return l.failed(account, current, err)
+ 	}
+ 	if landed {

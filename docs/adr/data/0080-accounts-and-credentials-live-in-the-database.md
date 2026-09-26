@@ -27,15 +27,16 @@ flow in the UI rather than a set of manual steps that are hard to follow.
   from configuration or from a mounted file.
 - **The credential is stored encrypted**, sealed as
   [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md) decides.
-- **The OAuth client an installation connects through is not part of any account.** It is set up
-  once, through a flow of its own apart from connecting an account, and stored apart from the
-  accounts, its secret sealed like a credential
+- **Where a provider authenticates through an OAuth client, the client an installation connects
+  through is not part of any account.** It is set up once, through a flow of its own apart from
+  connecting an account, and stored apart from the accounts, its secret sealed like a credential
   ([ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md)). Every account of
-  that provider connects through it, each with its own grant.
+  that provider connects through it, each with its own grant. A provider that authenticates
+  otherwise has no client, and nothing requires one.
 - **The UI repairs an account.** When a credential stops working, the operator re-authorizes the
   account through the UI, which replaces the stored credential.
-- **The deployables that call a provider read their accounts, the installation's OAuth client and
-  the credentials from the database.**
+- **The deployables that call a provider read their accounts, the installation's OAuth client for
+  each provider that has one, and the credentials from the database.**
   A provider rotating a credential is written back there, as
   [ADR-0082](../operability/0082-rotation-writeback-to-the-database.md) decides.
 - **No provider credential ever crosses the client boundary.** Clients authenticate to the mediator
@@ -55,9 +56,10 @@ flow in the UI rather than a set of manual steps that are hard to follow.
 
 - Account setup is state in the database rather than something declared with the deployment.
 - The database, and every backup of it, holds each account's credential in sealed form.
-- An account can be added or re-authorized while the deployables run. How a running deployable
-  learns of a new account or a replaced credential is open in
-  [ROADMAP.md](../../../ROADMAP.md#open-decisions).
-- The schema of [ADR-0016](./0016-schema.md) gains what the account row must hold.
+- An account can be added or re-authorized while the deployables run. A running deployable learns
+  of a new account or a replaced credential as
+  [ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) decides.
+- The schema of [ADR-0016](./0016-schema.md) gains what an account's rows must hold, laid out by
+  [ADR-0091](./0091-accounts-listed-apart-from-their-state.md).
 - Assumptions about other components. Row-level security on the account tables lets a transaction
   that set the account write that account's own rows, and nothing else.

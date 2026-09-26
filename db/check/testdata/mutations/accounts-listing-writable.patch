@@ -1,0 +1,20 @@
+control: The listing roles read the accounts table in full and write only their own rows
+removes: the listing policy covers every command rather than reads alone, so a listing role writes every account's row
+packages: ./db/check
+tests: TestTheListingRolesReadEveryAccount TestTheListingRolesReadEveryAccount/mediated_mailbox_ui/updates_another_account's_row TestTheListingRolesReadEveryAccount/mediated_mailbox_ui/inserts_another_account's_row
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
+index 880297d..3ec2595 100644
+--- a/db/migrations/00008_account_state.sql
++++ b/db/migrations/00008_account_state.sql
+@@ -62,7 +62,7 @@ USING (account_id = current_setting('app.account'));
+ -- to the transaction's account, since a permissive policy for SELECT alone takes no part in an
+ -- insert, an update's new row or a delete. The UI's read of the moved state columns arrives with the
+ -- statement that needs it and never covers credential (ADR-0084).
+-CREATE POLICY accounts_listing ON accounts FOR SELECT
++CREATE POLICY accounts_listing ON accounts
+ TO mediated_mailbox_ui,
+ mediated_mailbox_mediate,
+ mediated_mailbox_backfill,

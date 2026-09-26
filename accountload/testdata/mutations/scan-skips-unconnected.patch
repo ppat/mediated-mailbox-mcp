@@ -1,0 +1,22 @@
+control: The scan has an entry for every listed account and every OAuth client, true while its value is on an old key or does not open
+removes: an account with no stored credential has no entry, so the scan is silent on it
+packages: ./accountload
+tests: TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index 1736aee..b60d0fd 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -223,7 +223,9 @@ func (l *Loader) Load(ctx context.Context) error {
+ 			a.credential = h.plaintext
+ 			known[r.id] = h
+ 		}
+-		scan.Accounts[r.id] = r.stored != nil && (!ok || l.onOldKey(r.stored))
++		if r.stored != nil {
++			scan.Accounts[r.id] = !ok || l.onOldKey(r.stored)
++		}
+ 		next.accounts = append(next.accounts, a)
+ 	}
+ 	for _, c := range clients {

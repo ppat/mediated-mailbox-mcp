@@ -15,8 +15,8 @@ kind needs to read it.
 
 ## Decision
 
-- **The credential is sealed with public-key encryption**, and so is the secret of the
-  installation's OAuth client. The UI holds only the public key. It seals a credential or a client
+- **The credential is sealed with public-key encryption**, and so is the secret of an
+  installation's OAuth client, for a provider that has one. The UI holds only the public key. It seals a credential or a client
   secret when it stores one and cannot open a stored one. The deployables that call a provider hold
   the private key to open them, and the public key to seal a rotated credential before writing it
   back ([ADR-0082](./0082-rotation-writeback-to-the-database.md)).
@@ -44,9 +44,10 @@ kind needs to read it.
 - A compromised UI cannot read back a stored credential. It still sees a credential in plaintext
   while it completes a connection or a re-authorization, since it runs that exchange
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
-- Losing the private key loses every stored credential and the client's secret. The operator
-  recovers by setting up the client again and re-authorizing each account through the UI.
-- Which authenticated construction, and how keys are replaced, are open in
-  [ROADMAP.md](../../../ROADMAP.md#open-decisions).
+- Losing the private key loses every stored credential and every OAuth client's secret. The
+  operator recovers by setting up each OAuth client again and re-authorizing each account through
+  the UI.
+- The construction is [ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a key
+  is replaced is [ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)'s.
 - Assumptions about other components. The platform delivering the key files keeps the private key
   away from every deployable that does not call a provider.

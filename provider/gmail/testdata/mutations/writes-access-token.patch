@@ -1,19 +1,19 @@
-control: A rotated refresh token is held and written back
-removes: the write-back writes the access token rather than the rotated refresh token
+control: A rotated refresh token is held, sent on the next refresh and handed to the deployable
+removes: the source hands the deployable its access token rather than its refresh token
 packages: ./provider/gmail
-tests: TestARotatedCredentialSurvivesARestart TestAFailedWriteBackIsLoggedAndTriedAgain
+tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver TestARefreshThatDoesNotRotateKeepsTheToken TestAnAccessTokenIsUsedUntilItNearlyExpires TestTheSourceHoldsOnlyTheCredentialItIsGiven
 scheduled-count: no
 
 diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
-index 9c48994..5f05f7c 100644
+index 5dddcab..7ba2467 100644
 --- a/provider/gmail/tokensource.go
 +++ b/provider/gmail/tokensource.go
-@@ -115,7 +115,7 @@ func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
- 	if s.creds.RefreshToken == s.persisted {
- 		return
- 	}
--	if err := WriteBack(s.writeBack, s.creds.RefreshToken); err != nil {
-+	if err := WriteBack(s.writeBack, s.access); err != nil {
- 		s.log.Error("the rotated Gmail refresh token was not written back, so a restart before a later write succeeds loses mailbox access",
- 			slog.String("location", s.writeBack), slog.Any("error", err))
- 		return
+@@ -46,7 +46,7 @@ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
+ func (s *TokenSource) RefreshToken() string {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+-	return s.creds.RefreshToken
++	return s.access
+ }
+ 
+ // AccessToken returns an access token valid for at least expiryMargin, refreshing it when needed.
