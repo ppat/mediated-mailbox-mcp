@@ -12,14 +12,19 @@ import (
 	"strings"
 )
 
-// Operation is one operation of the client surface, carrying everything both roots need (ADR-0053).
-// Its name is its identity on both roots, the API operation's path segment and the MCP tool's name,
-// so no field exists for one root alone and a one-sided operation has nothing to be written in.
+// Operation is one operation of the client surface, carrying everything both roots need (ADR-0053,
+// ADR-0087). Its name is the MCP tool's name and the contract's operationId, and its path is the API
+// route's. Its HTTP method and its MCP annotations are derived from its effect, so no field exists
+// for one root alone and a one-sided operation has nothing to be written in.
 type Operation struct {
 	// Name identifies the operation on both roots. It is lowercase letters, digits and underscores,
-	// starting with a letter, at most 64 characters, which is a valid MCP tool name and a path segment
-	// needing no escaping.
+	// starting with a letter, at most 64 characters, which is a valid MCP tool name.
 	Name string
+	// Effect is what the operation does to the mailbox, from which its method and annotations derive.
+	Effect Effect
+	// Path is the API route's path template, under /api/accounts/{account_id}/ for every operation
+	// but the accounts listing, which is /api/accounts. Each {variable} is a required string argument.
+	Path string
 	// Description is the operation's contract-grade text, the MCP tool's description and the API
 	// operation's description in the contract document.
 	Description string
@@ -36,18 +41,19 @@ type Operation struct {
 	Handle func(ctx context.Context, account string, input json.RawMessage) (json.RawMessage, error)
 }
 
-// Descriptor is what a root is generated from, an operation without its handler. A root runs an
-// operation only through Registry.Call, so every call passes the account check.
+// Descriptor is what a root is generated from, an operation without its handler, with the method
+// and annotations its effect derives. A root runs an operation only through Registry.Call, so every
+// call passes the account check.
 type Descriptor struct {
 	Name        string
 	Description string
+	Effect      Effect
+	Path        string
+	Method      string
+	Annotations Annotations
 	Input       json.RawMessage
 	Output      json.RawMessage
 }
-
-// accountsListing is the name of the one operation that takes no account, the listing that makes
-// every account identifier discoverable (ADR-0035, ADR-0087).
-const accountsListing = "list_accounts"
 
 // ErrMissingAccount is returned for a call whose arguments carry no account_id string.
 var ErrMissingAccount = errors.New("the operation needs account_id, and the call carries none")
@@ -81,13 +87,15 @@ var validName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 // operation with no name, no description, no handler or an input or output that is not an object
 // schema could be generated onto one root and not the other, so it fails generation here.
 //
-// Every operation but the accounts listing takes the account as its required argument account_id
-// (ADR-0087). An operation whose input schema does not require it fails generation. accounts are
-// the accounts the mediator serves, which Call checks every account against. Both roots run an
+// Every operation but the accounts listing names its account in its path, so it takes account_id
+// as a required string argument (ADR-0087). The generation checks of ADR-0087 refuse an operation
+// the surface could not carry or that could express approval, as surfaceProblems states. accounts
+// are the accounts the mediator serves, which Call checks every account against. Both roots run an
 // operation only through Call, so the check is one check for both.
 func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
 	var problems []string
 	seen := map[string]bool{}
+	routes := map[string]bool{}
 	for i, op := range ops {
 		where := "operation " + strconv.Itoa(i) + " (" + strconv.Quote(op.Name) + ")"
 		if !validName.MatchString(op.Name) {
@@ -102,8 +110,17 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
 		}
 		if err := objectSchema(op.Input); err != nil {
 			problems = append(problems, where+" has an input schema that "+err.Error())
-		} else if op.Name != accountsListing && !requiresAccount(op.Input) {
-			problems = append(problems, where+" has an input schema that does not require the string account_id")
+		} else {
+			for _, problem := range surfaceProblems(op) {
+				problems = append(problems, where+" "+problem)
+			}
+		}
+		if method, _, ok := derive(op.Effect); ok {
+			route := method + " " + op.Path
+			if routes[route] {
+				problems = append(problems, where+" repeats the route "+route)
+			}
+			routes[route] = true
 		}
 		if err := objectSchema(op.Output); err != nil {
 			problems = append(problems, where+" has an output schema that "+err.Error())
@@ -138,7 +155,7 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage) 
 	if !found {
 		return nil, ErrNoOperation
 	}
-	if op.Name == accountsListing {
+	if op.Path == accountsPath {
 		return op.Handle(ctx, "", input)
 	}
 	account, rest, err := splitAccount(input)
@@ -201,21 +218,6 @@ func splitAccount(input json.RawMessage) (string, json.RawMessage, error) {
 	return *id, rest.Bytes(), nil
 }
 
-// requiresAccount reports whether an input schema declares account_id as a required string.
-func requiresAccount(schema json.RawMessage) bool {
-	var s struct {
-		Properties map[string]struct {
-			Type any `json:"type"`
-		} `json:"properties"`
-		Required []string `json:"required"`
-	}
-	if json.Unmarshal(schema, &s) != nil {
-		return false
-	}
-	p, ok := s.Properties["account_id"]
-	return ok && p.Type == "string" && slices.Contains(s.Required, "account_id")
-}
-
 // Operations returns the registry's operations without their handlers, sorted by name.
 func (r Registry) Operations() []Descriptor {
 	out := make([]Descriptor, 0, len(r.ops))
@@ -226,7 +228,11 @@ func (r Registry) Operations() []Descriptor {
 }
 
 func describe(op Operation) Descriptor {
-	return Descriptor{Name: op.Name, Description: op.Description, Input: op.Input, Output: op.Output}
+	method, annotations, _ := derive(op.Effect)
+	return Descriptor{
+		Name: op.Name, Description: op.Description, Effect: op.Effect, Path: op.Path,
+		Method: method, Annotations: annotations, Input: op.Input, Output: op.Output,
+	}
 }
 
 // Lookup returns the description of the operation named name.

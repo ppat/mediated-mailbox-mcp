@@ -29,6 +29,7 @@ func Handler(reg service.Registry, version string) http.Handler {
 			Description:  op.Description,
 			InputSchema:  op.Input,
 			OutputSchema: op.Output,
+			Annotations:  annotations(op.Annotations),
 		}, call(reg, op.Name))
 	}
 	server.AddReceivingMiddleware(refuseBeyondTools)
@@ -37,6 +38,19 @@ func Handler(reg service.Registry, version string) http.Handler {
 		JSONResponse: true,
 		Logger:       slog.Default(),
 	})
+}
+
+// annotations returns the tool annotations derived from the operation's effect, with all four hints
+// set. A nil destructive or open-world hint is left out of the listing, and a client then reads the
+// tool as destructive and open-world (ADR-0086).
+func annotations(a service.Annotations) *sdk.ToolAnnotations {
+	destructive, openWorld := a.Destructive, a.OpenWorld
+	return &sdk.ToolAnnotations{
+		ReadOnlyHint:    a.ReadOnly,
+		DestructiveHint: &destructive,
+		IdempotentHint:  a.Idempotent,
+		OpenWorldHint:   &openWorld,
+	}
 }
 
 // call returns the tool handler that runs the operation named name on the call's arguments.

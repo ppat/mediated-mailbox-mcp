@@ -20,14 +20,32 @@ import (
 // accountInput is the input schema of an operation taking only its account.
 const accountInput = `{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`
 
-// registry holds an operation that echoes its arguments and one that always fails with an error
-// whose text must never reach the client, both for the account acct-a.
+// empty is a handler returning an empty result.
+func empty(context.Context, string, json.RawMessage) (json.RawMessage, error) {
+	return json.RawMessage(`{}`), nil
+}
+
+// registry holds, for the account acct-a, an operation of each effect class. The read echoes its
+// arguments, and a reversible change always fails with an error whose text must never reach the
+// client.
 func registry(t *testing.T) service.Registry {
 	t.Helper()
+	under := "/api/accounts/{account_id}/"
+	simple := func(name string, effect service.Effect, path string) service.Operation {
+		return service.Operation{
+			Name: name, Description: "A fixture " + name + ".", Effect: effect, Path: under + path,
+			Input: json.RawMessage(accountInput), Output: json.RawMessage(`{"type":"object"}`), Handle: empty,
+		}
+	}
 	reg, err := service.NewRegistry([]string{"acct-a"},
+		simple("search_things", service.StructuredRead, "things:search"),
+		simple("create_thing", service.Create, "things"),
+		simple("trash_things", service.Disposal, "things:trash"),
 		service.Operation{
 			Name:        "echo",
 			Description: "Returns its arguments.",
+			Effect:      service.Read,
+			Path:        under + "echo",
 			Input:       json.RawMessage(accountInput),
 			Output:      json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}}}`),
 			Handle: func(_ context.Context, account string, in json.RawMessage) (json.RawMessage, error) {
@@ -37,6 +55,8 @@ func registry(t *testing.T) service.Registry {
 		service.Operation{
 			Name:        "fail",
 			Description: "Always fails.",
+			Effect:      service.Reversible,
+			Path:        under + "things:fail",
 			Input:       json.RawMessage(accountInput),
 			Output:      json.RawMessage(`{"type":"object"}`),
 			Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
@@ -129,19 +149,55 @@ type tool struct {
 	Description  string          `json:"description"`
 	InputSchema  json.RawMessage `json:"inputSchema"`
 	OutputSchema json.RawMessage `json:"outputSchema"`
+	Annotations  string          `json:"-"`
 }
 
-// The tool list is the registry's operations, each with its name, description and both schemas, and
-// nothing more, at either revision (ADR-0053).
+// UnmarshalJSON keeps the annotations' bytes as the client received them, so the test pins them
+// literally.
+func (t *tool) UnmarshalJSON(b []byte) error {
+	type plain tool
+	var raw struct {
+		plain
+		Annotations json.RawMessage `json:"annotations"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	*t = tool(raw.plain)
+	t.Annotations = string(raw.Annotations)
+	return nil
+}
+
+// The annotations each effect class derives, as the listing carries them, all four hints present
+// (ADR-0087, ADR-0086).
+const (
+	readAnnotations           = `{"destructiveHint":false,"idempotentHint":true,"openWorldHint":false,"readOnlyHint":true}`
+	createAnnotations         = `{"destructiveHint":false,"idempotentHint":false,"openWorldHint":false,"readOnlyHint":false}`
+	reversibleAnnotations     = `{"destructiveHint":false,"idempotentHint":true,"openWorldHint":false,"readOnlyHint":false}`
+	disposalAnnotations       = `{"destructiveHint":true,"idempotentHint":true,"openWorldHint":false,"readOnlyHint":false}`
+	objectOutput              = `{"type":"object"}`
+	structuredReadAnnotations = readAnnotations
+)
+
+// The tool list is the registry's operations, each with its name, description, both schemas and the
+// four annotations its effect class derives, literally and with every hint present, at either
+// revision (ADR-0053, ADR-0087, ADR-0086).
 func TestTheToolListIsTheRegistry(t *testing.T) {
 	h := mcp.Handler(registry(t), "test")
+	fixture := func(name, annotations string) tool {
+		return tool{Name: name, Description: "A fixture " + name + ".", InputSchema: json.RawMessage(accountInput), OutputSchema: json.RawMessage(objectOutput), Annotations: annotations}
+	}
 	want := []tool{
+		fixture("create_thing", createAnnotations),
 		{
 			Name: "echo", Description: "Returns its arguments.",
 			InputSchema:  json.RawMessage(accountInput),
 			OutputSchema: json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}}}`),
+			Annotations:  readAnnotations,
 		},
-		{Name: "fail", Description: "Always fails.", InputSchema: json.RawMessage(accountInput), OutputSchema: json.RawMessage(`{"type":"object"}`)},
+		{Name: "fail", Description: "Always fails.", InputSchema: json.RawMessage(accountInput), OutputSchema: json.RawMessage(objectOutput), Annotations: reversibleAnnotations},
+		fixture("search_things", structuredReadAnnotations),
+		fixture("trash_things", disposalAnnotations),
 	}
 	for _, e := range []era{legacy, modern} {
 		var got struct {

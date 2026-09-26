@@ -39,6 +39,8 @@ func counted(t *testing.T) (service.Registry, *atomic.Int64) {
 	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operation{
 		Name:        "echo",
 		Description: "Returns its arguments.",
+		Effect:      service.Read,
+		Path:        "/api/accounts/{account_id}/echo",
 		Input:       json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`),
 		Output:      json.RawMessage(`{"type":"object"}`),
 		Handle: func(_ context.Context, _ string, in json.RawMessage) (json.RawMessage, error) {
@@ -50,6 +52,16 @@ func counted(t *testing.T) (service.Registry, *atomic.Int64) {
 		t.Fatal(err)
 	}
 	return reg, &calls
+}
+
+// mustSurface returns the client surface over reg behind the token in tokenFile.
+func mustSurface(t *testing.T, reg service.Registry, tokenFile string) http.Handler {
+	t.Helper()
+	h, err := surface(reg, tokenFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h
 }
 
 // tokenFile writes token to a file standing in for the mounted token and returns its path.
@@ -69,7 +81,7 @@ type request struct {
 
 // apiCall and mcpCall reach the operation on each root.
 var (
-	apiCall = request{method: http.MethodPost, path: "/api/echo", body: `{"account_id":"acct-a"}`}
+	apiCall = request{method: http.MethodGet, path: "/api/accounts/acct-a/echo"}
 	mcpCall = request{method: http.MethodPost, path: "/mcp", body: `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","arguments":{"account_id":"acct-a"}}}`}
 )
 
@@ -118,7 +130,7 @@ func TestEveryRequestPassesTheBearerCheckFirst(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			reg, calls := counted(t)
-			if got := status(t, surface(reg, c.token), c.request); got != c.want {
+			if got := status(t, mustSurface(t, reg, c.token), c.request); got != c.want {
 				t.Errorf("status %d, want %d", got, c.want)
 			}
 			if n := calls.Load(); n != 0 {
@@ -132,7 +144,7 @@ func TestEveryRequestPassesTheBearerCheckFirst(t *testing.T) {
 // so the probes and the metrics endpoint are not on it.
 func TestTheTokenReachesBothRoots(t *testing.T) {
 	reg, calls := counted(t)
-	h := surface(reg, tokenFile(t, "s3cret\n"))
+	h := mustSurface(t, reg, tokenFile(t, "s3cret\n"))
 	got := map[string]int{
 		"api":     status(t, h, apiCall.with("Bearer s3cret")),
 		"mcp":     status(t, h, mcpCall.with("bearer s3cret")),
@@ -196,7 +208,7 @@ func TestTheSurfaceIsServedOverTLSOnly(t *testing.T) {
 	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
 	first := writeKeyPair(t, certFile, keyFile, 1)
 	reg, calls := counted(t)
-	srv := &http.Server{Handler: surface(reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig(certFile, keyFile, false), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig(certFile, keyFile, false), ReadHeaderTimeout: 5 * time.Second}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -211,7 +223,7 @@ func TestTheSurfaceIsServedOverTLSOnly(t *testing.T) {
 	addr := ln.Addr().String()
 
 	post := func(client *http.Client, scheme string) (*http.Response, error) {
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, scheme+"://"+addr+"/api/echo", strings.NewReader(`{"account_id":"acct-a"}`))
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, scheme+"://"+addr+"/api/accounts/acct-a/echo", http.NoBody)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -290,7 +302,7 @@ func TestTheProbes(t *testing.T) {
 // still behind the bearer check (ADR-0087).
 func TestTheSurfaceBehindADeclaredIngressIsPlain(t *testing.T) {
 	reg, calls := counted(t)
-	srv := &http.Server{Handler: surface(reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig("", "", true), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig("", "", true), ReadHeaderTimeout: 5 * time.Second}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -304,7 +316,7 @@ func TestTheSurfaceBehindADeclaredIngressIsPlain(t *testing.T) {
 	})
 	statuses := map[string]int{}
 	for name, token := range map[string]string{"with the token": "Bearer s3cret", "without": ""} {
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://"+ln.Addr().String()+"/api/echo", strings.NewReader(`{"account_id":"acct-a"}`))
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+ln.Addr().String()+"/api/accounts/acct-a/echo", http.NoBody)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -409,6 +421,8 @@ func TestTheMediatorServesNoAccountYet(t *testing.T) {
 	reg, err := service.NewRegistry(servedAccounts(), service.Operation{
 		Name:        "echo",
 		Description: "Returns its arguments.",
+		Effect:      service.Read,
+		Path:        "/api/accounts/{account_id}/echo",
 		Input:       json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`),
 		Output:      json.RawMessage(`{"type":"object"}`),
 		Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
@@ -419,7 +433,7 @@ func TestTheMediatorServesNoAccountYet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := surface(reg, tokenFile(t, "s3cret"))
+	h := mustSurface(t, reg, tokenFile(t, "s3cret"))
 	for _, r := range []request{apiCall.with("Bearer s3cret"), mcpCall.with("Bearer s3cret")} {
 		status(t, h, r)
 	}
@@ -504,5 +518,66 @@ func TestAStartThatCannotServeFailsAndNeverReportsReady(t *testing.T) {
 	}
 	if sawReady {
 		t.Error("the readiness probe answered ready for a start that cannot serve a client")
+	}
+}
+
+// Every response of the client surface carries Cache-Control: no-store and no ETag, whichever root
+// or refusal answered it, so no response the gate decided outlives a change in its decision
+// (ADR-0087).
+func TestEveryResponseIsUncacheable(t *testing.T) {
+	reg, _ := counted(t)
+	h := mustSurface(t, reg, tokenFile(t, "s3cret"))
+	requests := map[string]request{
+		"an API call":              apiCall.with("Bearer s3cret"),
+		"an MCP call":              mcpCall.with("Bearer s3cret"),
+		"a refused bearer token":   apiCall,
+		"a path nothing serves":    {method: http.MethodGet, path: "/api/accounts/acct-a/nothing", authorization: "Bearer s3cret"},
+		"a HEAD on an API route":   {method: http.MethodHead, path: "/api/accounts/acct-a/echo", authorization: "Bearer s3cret"},
+		"a method the route lacks": {method: http.MethodPost, path: "/api/accounts/acct-a/echo", authorization: "Bearer s3cret", body: `{}`},
+	}
+	for name, r := range requests {
+		req := httptest.NewRequestWithContext(t.Context(), r.method, r.path, strings.NewReader(r.body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		if r.authorization != "" {
+			req.Header.Set("Authorization", r.authorization)
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+			t.Errorf("%s answered %d with Cache-Control %q", name, rec.Code, got)
+		}
+		if got := rec.Header().Values("ETag"); len(got) != 0 {
+			t.Errorf("%s answered %d with ETag %q", name, rec.Code, got)
+		}
+	}
+}
+
+// The caching headers are set as the header is written, so a handler setting its own, a cacheable
+// Cache-Control or an ETag, cannot keep them.
+func TestNoStoreOverridesAHandlersCaching(t *testing.T) {
+	cases := map[string]http.HandlerFunc{
+		"a handler writing its status": func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+			w.Header().Set("ETag", `"v1"`)
+			w.WriteHeader(http.StatusOK)
+		},
+		"a handler writing only its body": func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Cache-Control", "max-age=60")
+			w.Header().Set("ETag", `"v2"`)
+			if _, err := w.Write([]byte("{}")); err != nil {
+				t.Error(err)
+			}
+		},
+	}
+	for name, handler := range cases {
+		rec := httptest.NewRecorder()
+		noStore(handler).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
+		if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+			t.Errorf("%s: Cache-Control %q", name, got)
+		}
+		if got := rec.Header().Values("ETag"); len(got) != 0 {
+			t.Errorf("%s: ETag %q", name, got)
+		}
 	}
 }

@@ -144,8 +144,12 @@ func run(ctx context.Context, args []string) error {
 	if err != nil {
 		return errors.Join(err, surfaceListener.Close())
 	}
+	surfaceHandler, err := surface(registry, s.tokenFile)
+	if err != nil {
+		return errors.Join(err, surfaceListener.Close(), probeListener.Close())
+	}
 	surfaceServer := &http.Server{
-		Handler:           surface(registry, s.tokenFile),
+		Handler:           surfaceHandler,
 		TLSConfig:         tlsConfig(s.tlsCert, s.tlsKey, s.tlsAtIngress),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
@@ -254,12 +258,61 @@ func stopped(err error) error {
 
 // surface returns the client surface, the API root and the MCP root generated from registry, behind
 // the bearer check. Anything else the surface is asked for is not found, after the bearer check.
-func surface(registry service.Registry, tokenFile string) http.Handler {
+// Every response carries Cache-Control: no-store and no ETag, so no response a gate decided outlives
+// a change in its decision (ADR-0087).
+func surface(registry service.Registry, tokenFile string) (http.Handler, error) {
+	apiRoot, err := api.Handler(registry)
+	if err != nil {
+		return nil, err
+	}
 	roots := http.NewServeMux()
-	roots.Handle("/api/", api.Handler(registry))
+	roots.Handle("/api/", apiRoot)
 	roots.Handle("/mcp", mcp.Handler(registry, version()))
-	return bearer(tokenFile, roots)
+	return noStore(bearer(tokenFile, roots)), nil
 }
+
+// noStore marks every response uncacheable and removes any ETag as its header is written.
+func noStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(&noStoreWriter{ResponseWriter: w}, r)
+	})
+}
+
+// noStoreWriter sets the caching headers when the response's header is written, so a handler
+// setting its own cannot override them.
+type noStoreWriter struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+func (w *noStoreWriter) WriteHeader(status int) {
+	if !w.wroteHeader {
+		w.wroteHeader = true
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Del("ETag")
+	}
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *noStoreWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+// Flush passes a flush through, for the MCP transport's streamed responses.
+func (w *noStoreWriter) Flush() {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	if err := http.NewResponseController(w.ResponseWriter).Flush(); err != nil {
+		slog.Warn("flushing a response failed", "error", err)
+	}
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (w *noStoreWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
 // bearer admits a request to next only when it carries the bearer token held in tokenFile. The file
 // is read on each request. A file that cannot be read or holds no token admits nothing.

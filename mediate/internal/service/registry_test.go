@@ -17,11 +17,13 @@ func handle(context.Context, string, json.RawMessage) (json.RawMessage, error) {
 	return json.RawMessage(`{}`), nil
 }
 
-// operation returns an operation named name that generates onto both roots.
+// operation returns a read named name that generates onto both roots, at a path of its own.
 func operation(name string) service.Operation {
 	return service.Operation{
 		Name:        name,
 		Description: "Returns nothing.",
+		Effect:      service.Read,
+		Path:        "/api/accounts/{account_id}/" + strings.ReplaceAll(name, "_", "-"),
 		Input:       json.RawMessage(`{"type": "object",  "properties": {"account_id": {"type": "string"}}, "required": ["account_id"]}`),
 		Output:      json.RawMessage(`{"type":"object"}`),
 		Handle:      handle,
@@ -119,17 +121,17 @@ func TestAOneSidedEntryFailsGeneration(t *testing.T) {
 			op := operation("get")
 			op.Input = json.RawMessage(`{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}`)
 			return []service.Operation{op}
-		}, "has an input schema that does not require the string account_id"},
+		}, "has the path variable account_id, which is not a required string argument"},
 		{"account_id declared but optional", func() []service.Operation {
 			op := operation("get")
 			op.Input = json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}}}`)
 			return []service.Operation{op}
-		}, "has an input schema that does not require the string account_id"},
+		}, "has the path variable account_id, which is not a required string argument"},
 		{"account_id declared as a number", func() []service.Operation {
 			op := operation("get")
 			op.Input = json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"integer"}},"required":["account_id"]}`)
 			return []service.Operation{op}
-		}, "has an input schema that does not require the string account_id"},
+		}, "has the path variable account_id, which is not a required string argument"},
 		{"no handler", func() []service.Operation {
 			op := operation("get")
 			op.Handle = nil
@@ -183,7 +185,7 @@ func TestTheServiceLayerRefusesAMissingOrUnknownAccount(t *testing.T) {
 	scopedOp := operation("get_thing")
 	scopedOp.Handle = record("get_thing")
 	listing := service.Operation{
-		Name: "list_accounts", Description: "Lists the accounts.",
+		Name: "list_accounts", Description: "Lists the accounts.", Effect: service.Read, Path: "/api/accounts",
 		Input: json.RawMessage(`{"type":"object"}`), Output: json.RawMessage(`{"type":"object"}`),
 		Handle: record("list_accounts"),
 	}
