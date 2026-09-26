@@ -97,13 +97,21 @@ func TestTheSurfaceRefusesWhatItCannotCarry(t *testing.T) {
 		{"a create on a :verb route", op("create_thing", service.Create, under+"things:make", accountOnly), "is a read or a create whose path ends in a :verb route"},
 		{"a :verb segment before the end", op("get_thing", service.Read, under+"things:label/{thing_id}", with(`,"thing_id":{"type":"string"}`, "thing_id")), "has the :verb segment things:label before the path's end"},
 		{"a segment that is not a name", op("get_thing", service.Read, under+"Things", accountOnly), "has the path segment Things"},
-		{"status on a plan's path", op("describe_reorg_plan", service.Read, under+"reorg-plans/{plan_id}", with(`,"plan_id":{"type":"string"},"status":{"type":"string"}`, "plan_id")), "is a plan operation whose input declares status"},
-		{"status in another case on a plan", op("create_reorg_plan", service.Create, under+"reorg-plans", with(`,"Status":{"type":"string"}`)), "is a plan operation whose input declares Status"},
-		{"status on an operation named for a plan", op("sample_plan", service.StructuredRead, under+"samples:search", with(`,"status":{"type":"string"}`)), "is a plan operation whose input declares status"},
-		{"a name approving", op("approve_reorg_plan", service.Reversible, under+"reorg-plans:mark", accountOnly), "has a name holding approve, which names a plan's lifecycle"},
-		{"a name applying", op("apply_labels", service.Reversible, under+"labels:set", accountOnly), "has a name holding apply, which names a plan's lifecycle"},
+		{"status on a create", op("create_reorg_plan", service.Create, under+"reorg-plans", with(`,"status":{"type":"string"}`)), "changes the mailbox and declares a property named status in its input"},
+		{"status in another case on a reversible change", op("revise_reorg", service.Reversible, under+"reorgs/{id}:revise", with(`,"id":{"type":"string"},"Status":{"type":"string"}`, "id")), "changes the mailbox and declares a property named status in its input"},
+		{"status nested in an object on a disposal", op("trash_things", service.Disposal, under+"things:trash", with(`,"changes":{"type":"object","properties":{"STATUS":{"type":"string"}}}`)), "changes the mailbox and declares a property named status in its input"},
+		{"status nested in an array's items on a change", op("label_things", service.Reversible, under+"things:label", with(`,"items":{"type":"array","items":{"type":"object","properties":{"status":{"type":"string"}}}}`)), "changes the mailbox and declares a property named status in its input"},
+		{"a name approving", op("approve_reorg_plan", service.Reversible, under+"reorg-plans:mark", accountOnly), "has the name approve_reorg_plan, which names a plan's lifecycle"},
+		{"a name applying", op("apply_labels", service.Reversible, under+"labels:set", accountOnly), "has the name apply_labels, which names a plan's lifecycle"},
+		{"a name holding approved", op("mark_approved", service.Reversible, under+"marks:set", accountOnly), "has the name mark_approved, which names a plan's lifecycle"},
+		{"a name holding approval", op("list_plan_approval", service.Read, under+"plans", accountOnly), "has the name list_plan_approval, which names a plan's lifecycle"},
+		{"a name holding roll_back", op("roll_back_plan", service.Reversible, under+"plans:revert", accountOnly), "has the name roll_back_plan, which names a plan's lifecycle"},
 		{"a :verb approving", op("mark_reorg_plan", service.Reversible, under+"reorg-plans:approve", accountOnly), "has the path segment reorg-plans:approve, which names a plan's lifecycle"},
+		{"a :verb holding approve", op("mark_reorg_plan", service.Reversible, under+"reorg-plans:approve-all", accountOnly), "has the path segment reorg-plans:approve-all, which names a plan's lifecycle"},
+		{"a segment holding approve", op("get_thing", service.Read, under+"approve-plan", accountOnly), "has the path segment approve-plan, which names a plan's lifecycle"},
 		{"a segment rolling back", op("get_thing", service.Read, under+"rollback", accountOnly), "has the path segment rollback, which names a plan's lifecycle"},
+		{"a segment holding roll-back", op("get_thing", service.Read, under+"plan-roll-back", accountOnly), "has the path segment plan-roll-back, which names a plan's lifecycle"},
+		{"a segment applying", op("get_thing", service.Read, under+"applied-labels", accountOnly), "has the path segment applied-labels, which names a plan's lifecycle"},
 		{"x-mcp-header in the input", op("get_thing", service.Read, under+"things", `{"type":"object","properties":{"account_id":{"type":"string","x-mcp-header":"Account"}},"required":["account_id"]}`), "has a schema carrying x-mcp-header"},
 		{"x-mcp-header in the output", func() service.Operation {
 			o := op("get_thing", service.Read, under+"things", accountOnly)
@@ -121,6 +129,18 @@ func TestTheSurfaceRefusesWhatItCannotCarry(t *testing.T) {
 				t.Errorf("a registry that failed generation holds %d operations", len(got))
 			}
 		})
+	}
+}
+
+// A read may take status as a filter, as listing plans by their state does, and a structured read
+// may take it in its query. Only an operation that changes the mailbox is refused one (ADR-0087).
+func TestAReadMayFilterOnStatus(t *testing.T) {
+	_, err := service.NewRegistry(nil,
+		op("list_reorg_plans", service.Read, "/api/accounts/{account_id}/reorg-plans", `{"type":"object","properties":{"account_id":{"type":"string"},"status":{"type":"string"}},"required":["account_id"]}`),
+		op("search_reorg_plans", service.StructuredRead, "/api/accounts/{account_id}/reorg-plans:search", `{"type":"object","properties":{"account_id":{"type":"string"},"query":{"type":"object","properties":{"status":{"type":"string"}}}},"required":["account_id"]}`),
+	)
+	if err != nil {
+		t.Errorf("a read filtering on status failed generation: %v", err)
 	}
 }
 

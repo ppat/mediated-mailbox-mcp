@@ -562,6 +562,7 @@ func TestNoStoreOverridesAHandlersCaching(t *testing.T) {
 			w.Header().Set("ETag", `"v1"`)
 			w.WriteHeader(http.StatusOK)
 		},
+		"a handler writing nothing": func(http.ResponseWriter, *http.Request) {},
 		"a handler writing only its body": func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Cache-Control", "max-age=60")
 			w.Header().Set("ETag", `"v2"`)

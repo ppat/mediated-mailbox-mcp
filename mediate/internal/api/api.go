@@ -190,10 +190,10 @@ func (rt route) arguments(w http.ResponseWriter, r *http.Request) (json.RawMessa
 }
 
 // queryValue decodes one query parameter as its declared type. A key the input does not declare is
-// refused, except an account_id, which is kept as a string for the service layer to refuse as
-// ambiguous. A POST takes no query parameter but that one.
+// refused, except an account_id on a route whose path names the account, which is kept as a string
+// for the service layer to refuse as ambiguous. A POST takes no query parameter but that one.
 func (rt route) queryValue(key, text string) (json.RawMessage, error) {
-	if strings.EqualFold(key, "account_id") {
+	if strings.EqualFold(key, "account_id") && rt.isPathVar("account_id") {
 		return json.Marshal(text)
 	}
 	t, declared := rt.types[key]

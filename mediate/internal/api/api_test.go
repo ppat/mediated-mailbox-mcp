@@ -118,6 +118,12 @@ func TestTheRootRefusesWhatItCannotBind(t *testing.T) {
 		{"an account in the body beside the path's", "POST", post, `{"account_id":"acct-a","message_ids":[],"label":"L"}`, 500},
 		{"a case-variant account in the body", "POST", post, `{"ACCOUNT_ID":"a/b","message_ids":[],"label":"L"}`, 500},
 		{"an account the mediator does not serve", "GET", "/api/accounts/acct-z/messages/m1", "", 500},
+		{"a declared argument in a change's query string", "POST", post + "?label=L", `{"message_ids":[]}`, 400},
+		{"a body member given twice", "POST", post, `{"message_ids":[],"label":"x","label":"y"}`, 400},
+		{"a case variant of a path variable in the body", "POST", "/api/accounts/acct-a/reorg-plans/P1/items:label", `{"label":"x","PLAN_ID":"P2"}`, 500},
+		{"a case variant of a body member", "POST", post, `{"message_ids":[],"label":"x","LABEL":"y"}`, 500},
+		{"an account in the accounts listing's query string", "GET", "/api/accounts?account_id=acct-a", "", 400},
+		{"a case-variant account in the accounts listing's query string", "GET", "/api/accounts?ACCOUNT_ID=x", "", 400},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

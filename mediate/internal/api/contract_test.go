@@ -208,6 +208,10 @@ func TestTheDocumentPlacesEachArgument(t *testing.T) {
 			Method: "POST", Path: "/api/accounts/{account_id}/messages:label", Parameters: []parameter{accountParam},
 			Body: decode(t, []byte(`{"type":"object","properties":{"dry_run":{"type":"boolean"},"label":{"type":"string"},"message_ids":{"type":"array","items":{"type":"string"}}},"required":["label","message_ids"]}`)),
 		},
+		"label_plan_items": {
+			Method: "POST", Path: "/api/accounts/{account_id}/reorg-plans/{plan_id}/items:label", Parameters: []parameter{accountParam, {"path", "plan_id", true}},
+			Body: decode(t, []byte(`{"type":"object","properties":{"label":{"type":"string"}},"required":["label"]}`)),
+		},
 		"trash_messages": {
 			Method: "POST", Path: "/api/accounts/{account_id}/messages:trash", Parameters: []parameter{accountParam},
 			Body: decode(t, []byte(`{"type":"object","properties":{"dry_run":{"type":"boolean"},"message_ids":{"type":"array","items":{"type":"string"}}},"required":["message_ids"]}`)),

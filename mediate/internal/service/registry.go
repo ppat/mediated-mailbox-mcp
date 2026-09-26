@@ -70,6 +70,14 @@ var ErrAmbiguousAccount = errors.New("the call's arguments name the account more
 // the call failed.
 func Failure(error) json.RawMessage { return json.RawMessage(`{"error":"the operation failed"}`) }
 
+// ErrRepeatedArgument is returned for a call whose arguments hold two top-level keys equal under
+// case folding, other than the account's. A reader matching keys without regard to case, or keeping
+// the last of two, would take a different argument from the one the other reader took.
+var ErrRepeatedArgument = errors.New("the call's arguments name an argument more than once")
+
+// ErrNotAnObject is returned for a call whose arguments are not one JSON object.
+var ErrNotAnObject = errors.New("the call's arguments are not a JSON object")
+
 // ErrNoOperation is returned for a call naming an operation the registry does not hold.
 var ErrNoOperation = errors.New("no such operation")
 
@@ -145,15 +153,19 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
 	return Registry{ops: sorted, known: known}, nil
 }
 
-// Call runs the operation named name on a call's JSON arguments. Every operation but the accounts
-// listing first has its account checked. The call is refused before the operation runs when its
-// arguments hold no account_id string, name the account more than once, or name an account the
-// mediator does not serve, and otherwise the operation gets the account and the rest of its
-// arguments.
+// Call runs the operation named name on a call's JSON arguments. It first refuses arguments that are
+// not one JSON object, or that hold two top-level keys equal under case folding, so each argument has
+// one value whichever way a reader matches keys. Every operation but the accounts listing then has its
+// account checked. The call is refused before the operation runs when its arguments hold no
+// account_id string, name the account more than once, or name an account the mediator does not
+// serve, and otherwise the operation gets the account and the rest of its arguments.
 func (r Registry) Call(ctx context.Context, name string, input json.RawMessage) (json.RawMessage, error) {
 	op, found := r.lookup(name)
 	if !found {
 		return nil, ErrNoOperation
+	}
+	if err := distinctKeys(input); err != nil {
+		return nil, err
 	}
 	if op.Path == accountsPath {
 		return op.Handle(ctx, "", input)
@@ -166,6 +178,40 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage) 
 		return nil, ErrUnknownAccount
 	}
 	return op.Handle(ctx, account, rest)
+}
+
+// distinctKeys refuses a JSON object holding two top-level keys equal under case folding, and
+// anything that is not one JSON object. Two keys naming the account are an ambiguous account.
+func distinctKeys(input json.RawMessage) error {
+	dec := json.NewDecoder(bytes.NewReader(input))
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+		return ErrNotAnObject
+	}
+	var keys []string
+	for dec.More() {
+		tok, err := dec.Token()
+		if err != nil {
+			return ErrNotAnObject
+		}
+		key, ok := tok.(string)
+		if !ok {
+			return ErrNotAnObject
+		}
+		var value json.RawMessage
+		if err := dec.Decode(&value); err != nil {
+			return ErrNotAnObject
+		}
+		for _, seen := range keys {
+			if strings.EqualFold(seen, key) {
+				if strings.EqualFold(key, "account_id") {
+					return ErrAmbiguousAccount
+				}
+				return ErrRepeatedArgument
+			}
+		}
+		keys = append(keys, key)
+	}
+	return nil
 }
 
 // splitAccount reads a JSON object's top-level account_id string and returns it with the object

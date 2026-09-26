@@ -71,6 +71,8 @@ func fixtureOps(rec *recorder) []service.Operation {
 			`{"type":"object","properties":{"account_id":{"type":"string"},"name":{"type":"string"},"dry_run":{"type":"boolean"}},"required":["account_id","name"]}`),
 		op("label_messages", service.Reversible, "/api/accounts/{account_id}/messages:label",
 			`{"type":"object","properties":{"account_id":{"type":"string"},"message_ids":{"type":"array","items":{"type":"string"}},"label":{"type":"string"},"dry_run":{"type":"boolean"}},"required":["account_id","message_ids","label"]}`),
+		op("label_plan_items", service.Reversible, "/api/accounts/{account_id}/reorg-plans/{plan_id}/items:label",
+			`{"type":"object","properties":{"account_id":{"type":"string"},"plan_id":{"type":"string"},"label":{"type":"string"}},"required":["account_id","plan_id","label"]}`),
 		op("trash_messages", service.Disposal, "/api/accounts/{account_id}/messages:trash",
 			`{"type":"object","properties":{"account_id":{"type":"string"},"message_ids":{"type":"array","items":{"type":"string"}},"dry_run":{"type":"boolean"}},"required":["account_id","message_ids"]}`),
 		func() service.Operation {

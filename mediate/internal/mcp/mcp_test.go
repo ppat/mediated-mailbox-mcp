@@ -350,3 +350,41 @@ func TestAToolCallRunsTheOperation(t *testing.T) {
 		}
 	}
 }
+
+// An argument object holding a key twice, exactly or in another case, is refused before the operation
+// runs, as the API root refuses it, so a handler never picks one of two values (ADR-0087).
+func TestARepeatedArgumentIsRefused(t *testing.T) {
+	var ran bool
+	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operation{
+		Name: "get_thing", Description: "A fixture get_thing.", Effect: service.Read, Path: "/api/accounts/{account_id}/things",
+		Input:  json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"},"label":{"type":"string"}},"required":["account_id"]}`),
+		Output: json.RawMessage(`{"type":"object"}`),
+		Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
+			ran = true
+			return json.RawMessage(`{}`), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := mcp.Handler(reg, "test")
+	for _, args := range []string{`{"account_id":"acct-a","label":"x","label":"y"}`, `{"account_id":"acct-a","label":"x","LABEL":"y"}`} {
+		body := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_thing","arguments":` + args + `}}`
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", bytes.NewReader([]byte(body)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		var got struct {
+			Result struct {
+				IsError bool `json:"isError"`
+			} `json:"result"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || !got.Result.IsError {
+			t.Errorf("arguments %s answered %s, want a tool error", args, rec.Body)
+		}
+		if ran {
+			t.Errorf("arguments %s reached the operation", args)
+		}
+	}
+}

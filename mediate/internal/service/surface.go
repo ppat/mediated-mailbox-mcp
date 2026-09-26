@@ -73,9 +73,25 @@ var (
 	wildcardSegment = regexp.MustCompile(`^\{([a-z][a-z0-9_]*)\}$`)
 )
 
-// lifecycleVerbs are the words that could name a plan's lifecycle transition, refused in any
-// operation name and any path segment so approval cannot be expressed (ADR-0087).
-var lifecycleVerbs = []string{"approve", "apply", "rollback"}
+// lifecycleStems begin the tokens that could name a plan's lifecycle transition, refused in any
+// operation name, path segment or :verb so approval cannot be expressed (ADR-0087).
+var lifecycleStems = []string{"approv", "appl", "rollback"}
+
+// namesLifecycle reports whether text names a plan's lifecycle, by a token between separators that
+// begins with a lifecycle stem, or by roll_back or roll-back anywhere in it.
+func namesLifecycle(text, separator string) bool {
+	if strings.Contains(text, "roll_back") || strings.Contains(text, "roll-back") {
+		return true
+	}
+	for _, token := range strings.Split(text, separator) {
+		for _, stem := range lifecycleStems {
+			if strings.HasPrefix(token, stem) {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // pathVariables returns the arguments a path template names, in order.
 func pathVariables(path string) []string {
@@ -136,17 +152,15 @@ func surfaceProblems(op Operation) []string {
 			problems = append(problems, "has the path segment "+seg+", which is neither a name, a name with a :verb nor a {variable}")
 			continue
 		}
-		if slices.Contains(lifecycleVerbs, m[1]) || slices.Contains(lifecycleVerbs, m[2]) {
+		if namesLifecycle(m[1], "-") || namesLifecycle(m[2], "-") {
 			problems = append(problems, "has the path segment "+seg+", which names a plan's lifecycle")
 		}
 		if m[2] != "" && i != len(segments)-1 {
 			problems = append(problems, "has the :verb segment "+seg+" before the path's end")
 		}
 	}
-	for _, word := range strings.Split(op.Name, "_") {
-		if slices.Contains(lifecycleVerbs, word) {
-			problems = append(problems, "has a name holding "+word+", which names a plan's lifecycle")
-		}
+	if namesLifecycle(op.Name, "_") {
+		problems = append(problems, "has the name "+op.Name+", which names a plan's lifecycle")
 	}
 	if problem := shapeProblem(op.Effect, segments[len(segments)-1]); problem != "" {
 		problems = append(problems, problem)
@@ -165,12 +179,8 @@ func surfaceProblems(op Operation) []string {
 			}
 		}
 	}
-	if planOperation(op) {
-		for name := range facts.Properties {
-			if strings.EqualFold(name, "status") {
-				problems = append(problems, "is a plan operation whose input declares "+name)
-			}
-		}
+	if op.Effect != Read && op.Effect != StructuredRead && holdsKey(op.Input, "status") {
+		problems = append(problems, "changes the mailbox and declares a property named status in its input")
 	}
 	if holdsKey(op.Input, "x-mcp-header") || holdsKey(op.Output, "x-mcp-header") {
 		problems = append(problems, "has a schema carrying x-mcp-header")
@@ -204,20 +214,6 @@ func shapeProblem(e Effect, last string) string {
 	default:
 	}
 	return ""
-}
-
-// planOperation reports whether op acts on a reorganization plan, by a name word or a path segment
-// naming one.
-func planOperation(op Operation) bool {
-	if slices.Contains(strings.Split(op.Name, "_"), "plan") || slices.Contains(strings.Split(op.Name, "_"), "plans") {
-		return true
-	}
-	for _, seg := range strings.Split(op.Path, "/") {
-		if m := literalSegment.FindStringSubmatch(seg); m != nil && strings.HasPrefix(m[1], "reorg-plan") {
-			return true
-		}
-	}
-	return false
 }
 
 // holdsKey reports whether a JSON document holds key as an object key at any depth.

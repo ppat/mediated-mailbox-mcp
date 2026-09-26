@@ -271,9 +271,12 @@ func surface(registry service.Registry, tokenFile string) (http.Handler, error) 
 	return noStore(bearer(tokenFile, roots)), nil
 }
 
-// noStore marks every response uncacheable and removes any ETag as its header is written.
+// noStore marks every response uncacheable, before its handler runs, so a response its handler
+// never writes carries the mark too, and again as its header is written, removing any ETag, so a
+// handler's own caching headers do not survive.
 func noStore(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		next.ServeHTTP(&noStoreWriter{ResponseWriter: w}, r)
 	})
 }

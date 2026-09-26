@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"maps"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -63,9 +64,10 @@ func shapes(t testing.TB, reg service.Registry) map[string]shape {
 	return out
 }
 
-// drawRoundTrip draws an operation and an argument object its schema admits. A path variable is a
-// non-empty string with no dot or slash, the account one the registry serves, and every other string
-// is arbitrary text. An optional argument is present or absent at random.
+// drawRoundTrip draws an operation and an argument object its schema admits. A path variable is any
+// non-empty text but ".", ".." and "/", which ServeMux cannot carry as one escaped segment (it
+// redirects the first two and finds no route for the third), so it may hold %, +, dots and slashes. The account is one the registry serves, and every other string is arbitrary
+// text. An optional argument is present or absent at random.
 func drawRoundTrip(shapes map[string]shape) func(*rapid.T) roundTrip {
 	names := slices.Sorted(maps.Keys(shapes))
 	return func(t *rapid.T) roundTrip {
@@ -80,7 +82,10 @@ func drawRoundTrip(shapes map[string]shape) func(*rapid.T) roundTrip {
 			case prop == "account_id":
 				args[prop] = rapid.SampledFrom(served).Draw(t, prop)
 			case slices.Contains(s.vars, prop):
-				args[prop] = rapid.StringMatching(`[\p{L}\p{N} _~-]{1,12}`).Draw(t, prop)
+				args[prop] = rapid.OneOf(
+					rapid.SampledFrom([]string{"%", "+", "%2F", "a+b", "...", "../x", "..%2F", "a.b", "50%"}),
+					rapid.StringN(1, 12, -1).Filter(func(s string) bool { return s != "." && s != ".." && s != "/" }),
+				).Draw(t, prop)
 			default:
 				args[prop] = drawValue(t, prop, s.types[prop])
 			}
@@ -101,7 +106,10 @@ func drawValue(t *rapid.T, label, typ string) any {
 	case "integer":
 		return rapid.Int64Range(-1<<53, 1<<53).Draw(t, label)
 	case "number":
-		return rapid.Float64Range(-1e12, 1e12).Draw(t, label)
+		return rapid.OneOf(
+			rapid.SampledFrom([]float64{math.Copysign(0, -1), 1e21, 5e-324, -2.5e-300, math.MaxFloat64}),
+			rapid.Float64().Filter(func(f float64) bool { return !math.IsInf(f, 0) && !math.IsNaN(f) }),
+		).Draw(t, label)
 	case "boolean":
 		return rapid.Bool().Draw(t, label)
 	case "array":
