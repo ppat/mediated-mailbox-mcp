@@ -6,14 +6,15 @@
 
 ## Context
 
-[ADR-0021](../mutation/0021-approval-surface.md) fixes what the UI is (read-mostly, two verbs, a
-separate deployment, never a body) and lists six views, but not how those views are organized or
-how the UI grows past them. The operator asked for a UI structured to take on views not yet
-described, with drill-down, zoom in and out, and aggregate views over plans and any other element
-as if analyzing a data set or a proposed change. Three directions were sketched and compared on
-one canvas, differing only in what the UI is organized around. The shared foundation under all
-three is stated in [docs/UI.md](../../UI.md). Every view is a lens over an account-scoped dataset,
-viewed on one zoom ladder.
+[ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) fixes what the UI is
+(read-mostly, two decision verbs, OAuth client setup and account setup, a separate deployment,
+never a body) and lists its views, but not how those views are organized or how the UI grows past
+them. The operator asked for a UI structured to take on views not yet described, with drill-down,
+zoom in and out, and aggregate views over plans and any other element as if analyzing a data set or
+a proposed change. Three directions were sketched and compared on one canvas, differing only in
+what the UI is organized around. The shared foundation under all three is stated in
+[docs/UI.md](../../UI.md). Every view is a lens over an account-scoped dataset, viewed on one zoom
+ladder.
 
 ## Decision
 
@@ -24,7 +25,7 @@ viewed on one zoom ladder.
 - **The plan reviewer is shaped like code review.** A rail of sections working like a diff's file
   list, the zoom ladder inside the plan (flows, then a flow by sender, then the operations), and
   an approval footer that restates in one sentence with the numbers what approving does.
-- **Every analytical view is the zoom ladder over its dataset**, with ADR-0021's views as the
+- **Every analytical view is the zoom ladder over its dataset**, with ADR-0084's views as the
   default groupings. Nothing analytical is a bespoke page.
 - **Batch work is visible and inspectable.** A live view of every workload of
   [ADR-0022](../operability/0022-four-workloads.md), and a failed run drilled as a dataset whose
@@ -33,12 +34,13 @@ viewed on one zoom ladder.
   the URL, and nothing aggregates across accounts.
 - **Message-derived text renders as text only.** Subjects, display names, addresses, labels, and
   reasons are attacker-written text. No rendering path interprets them as markup.
-- ADR-0021's constraints are unchanged. Two verbs by database grant, no provider credentials,
-  never a body. The shape adds legibility, not surface. The UI stays boring in ADR-0021's sense.
+- ADR-0084's constraints are unchanged. Two decision verbs, OAuth client setup and account setup
+  by database grant, no key that opens a stored credential, never a body. The shape adds
+  legibility, not surface. The UI stays boring in ADR-0084's sense.
 
 ## Alternatives considered
 
-- **A console organized around the data sources**, one page per ADR-0021 view. Its case was
+- **A console organized around the data sources**, one page per ADR-0084 view. Its case was
   familiar, literal, nothing clever to get wrong, the cheapest first version. Not chosen because
   drill-down is built per page and drifts, growth is linear in pages, and the plan page becomes a
   form with a table rather than a review.
@@ -68,6 +70,7 @@ case best.
 - Assumptions about other components: analysis views read through the dataset endpoint of
   [ADR-0057](./0057-one-dataset-endpoint-behind-a-registry.md). The plan's status set includes
   the rejected and refused states the reviewer displays ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)).
-  The decision verbs remain the only writes ([ADR-0021](../mutation/0021-approval-surface.md)).
+  The decision verbs, OAuth client setup and account setup remain the only writes
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - The rendering rule and the per-account rule are controls. Their violation injections are
   catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

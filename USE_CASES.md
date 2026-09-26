@@ -303,8 +303,8 @@ account's data or credentials bleeding into another.**
 - A query, credential, or client for one account returning or acting on another account's data.
 - An operation succeeding without an explicit account identifier. There is no implicit "current
   account."
-- A design assumption of shared organization, shared OAuth client, or domain-wide delegation
-  across accounts. Accounts may span organizations and must be independent grants.
+- A design assumption of shared organization, a shared grant, or domain-wide delegation across
+  accounts. Accounts may span organizations and must be independent grants.
 
 *Scope note:* the architecture is multi-account from the start though a single account is deployed
 today. The deployment choice (one pod holding N accounts vs. one pod per account) is an
@@ -440,9 +440,9 @@ a metric that exists is a configuration change.
 
 - A backfill pod killed mid-run that restarts from scratch instead of resuming cleanly from its
   checkpoint. Mid-migration pod eviction is an expected condition, not a hypothetical.
-- A refresh-token rotation that is not written back to the secret store, so a restart after
-  rotation loses mailbox access. This is the most common quiet death of a system like this, and a
-  recovery path that must be exercised deliberately.
+- A refresh-token rotation that is not written back to where the credential is stored, so a
+  restart after rotation loses mailbox access. This is the most common quiet death of a system
+  like this, and a recovery path that must be exercised deliberately.
 - A rate controller that collapses to its floor and never recovers, or a lease-accounting bug that
   lets workers collectively overrun the budget. The latter is the failure that risks a
   provider-side account restriction and must be caught, not merely shown on a dashboard.
@@ -503,9 +503,10 @@ declare.**
   documents.
 - The published artifacts bringing up less than the whole system.
 
-*Scope note:* supplying the declared inputs (the database, the credential material, the policy
-data) is the deploying side's work by design. This outcome binds what must be *declared*, never
-what must be *provided*.
+*Scope note:* supplying the declared inputs (the database, the secret material, the policy data)
+is the deploying side's work by design. This outcome binds what must be *declared*, never what
+must be *provided*. Connecting a mailbox is not a deployment input. The operator connects each
+account through the running system's interface.
 
 ## Non-outcomes
 

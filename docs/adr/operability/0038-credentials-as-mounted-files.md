@@ -1,7 +1,8 @@
 # 0038. Credentials arrive as mounted files
 
-**Status:** Accepted (supersedes [ADR-0013](./0013-credentials-and-rotation-writeback.md),
-jointly with [ADR-0039](./0039-rotation-writeback.md)) ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0079](./0079-secrets-arrive-as-mounted-files.md) (secrets other than account credentials) and
+[ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md) (account credentials) ·
 **Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
 **Serves:** [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released)
 

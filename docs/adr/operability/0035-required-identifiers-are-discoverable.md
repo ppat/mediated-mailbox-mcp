@@ -7,9 +7,10 @@
 
 Requiring an explicit account identifier on every operation is load-bearing for multi-account
 isolation ([P3](../../../USE_CASES.md#p3--multi-account); decided in
-[ADR-0026](../provider/0026-multi-account-contexts.md): "There is no implicit current account;
-omission is an error, not a default"), and it stays exactly as decided. But a required parameter
-the caller cannot derive from the surface becomes a guessed — hallucinated — value.
+[ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md): "There is no
+implicit current account. Omission is an error, not a default"), and it stays exactly as decided.
+But a required parameter the caller cannot derive from the surface becomes a guessed —
+hallucinated — value.
 
 ## Decision
 
@@ -38,7 +39,7 @@ the caller cannot derive from the surface becomes a guessed — hallucinated —
   [non-outcome](../../../USE_CASES.md#non-outcomes): one bearer token grants all accounts, so the
   listings are trivial. If per-client token scoping ever arrives alongside multi-account, the
   listings return what the token can reach.
-- Assumptions about other components: the sets the listings enumerate — configured accounts, the
+- Assumptions about other components: the sets the listings enumerate — the accounts, the
   account's labels — are enumerable by the service layer.
 - The discoverability rule is proven as an acceptance criterion riding the unit that builds the
   read surface (its home in [ROADMAP.md](../../../ROADMAP.md)), not by a standalone injection:

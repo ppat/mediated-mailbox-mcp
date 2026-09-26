@@ -30,10 +30,11 @@ synthetic fixtures, adding what a mailbox holds beside a message, its identifier
 labels and flags, and never assumes an implementation keeps the identifiers it was seeded with.
 Against a real provider it adds its messages to a test account it does not control, each marked as
 that run's, and checks and reports only those, never assuming or touching the account's other mail
-([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)). The one-time Gmail consent runs from
-`gmail/cmd/consent`, an operator's command that no deployable runs. It takes the address of the
-account the grant is meant for and refuses a grant that belongs to another account or holds any
-scope but the modify scope.
+([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)). The Gmail consent for the test account's
+token runs from `gmail/cmd/consent`, a developer's command that no deployable runs and no image
+ships ([ADR-0083](../docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). It
+takes the address of the account the grant is meant for and refuses a grant that belongs to
+another account or holds any scope but the modify scope.
 
 The Gmail adapter also holds the handling of Google's grant, which every deployable that calls
 Google shares, the Google Calendar adapter included. That is the one-time installed-app consent,

@@ -1,6 +1,7 @@
 # 0011. Gmail auth: per-account installed-app OAuth with `gmail.modify` — domain-wide delegation rejected
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0083](./0083-gmail-through-an-installation-oauth-client.md) ·
 **Pillar:** [Accounts are isolated by structure, not convention](../../../DESIGN.md#accounts-are-isolated-by-structure-not-convention) ·
 **Serves:** [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released), [A2](../../../USE_CASES.md#a2--no-destructive-action-on-sensitive-mail), [P3](../../../USE_CASES.md#p3--multi-account)
 

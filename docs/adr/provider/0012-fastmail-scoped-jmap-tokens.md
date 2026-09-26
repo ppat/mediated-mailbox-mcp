@@ -15,8 +15,9 @@ categories, which is scoping worth exploiting.
 - **JMAP API token, not the account password.** A token is scoped and revocable; the password is
   neither.
 - **Separate tokens for Mail and for Calendar**, so a calendar-path bug cannot read mail. Same
-  principle as scope minimalism on Gmail ([ADR-0011](./0011-gmail-auth-installed-app-oauth.md)):
-  capability absent from a credential is a guarantee, not a configuration.
+  principle as scope minimalism on Gmail
+  ([ADR-0083](./0083-gmail-through-an-installation-oauth-client.md)): capability absent from a
+  credential is a guarantee, not a configuration.
 - The adapter reads `.well-known/jmap` for session discovery rather than hardcoding endpoints.
 
 ## Alternatives considered
@@ -28,5 +29,5 @@ categories, which is scoping worth exploiting.
 
 ## Consequences
 
-- Fastmail credentials follow the same storage and mounting rules as all others
-  ([ADR-0038](../operability/0038-credentials-as-mounted-files.md)).
+- Fastmail credentials are stored as every account's are
+  ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).

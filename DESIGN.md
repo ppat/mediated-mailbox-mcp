@@ -44,7 +44,7 @@ owns.
 ┌──────────────▼─────────────────────┐  ┌────────▼─────────────────┐
 │ mail-mediator                      │  │ UI (Web interface)       │
 │                                    │  │  read-mostly reporting   │
-│ ┌────────────────────────────────┐ │  │  + approval surface      │
+│ ┌────────────────────────────────┐ │  │  + approvals and setup   │
 │ │ Client Surface: API + MCP roots│ │  │  separate identity and   │
 │ └──────────────┬─────────────────┘ │  │  DB role; NEVER shows    │
 │ ┌──────────────▼─────────────────┐ │  │  bodies (none exist)     │
@@ -55,8 +55,8 @@ owns.
 │ └──────────────┬─────────────────┘ │           │ client surface):
 │ ┌──────────────▼─────────────────┐ │           │ plan approve/reject,
 │ │ Sender Classifier              │ │           │ candidate confirm/
-│ └──────────────┬─────────────────┘ │           │ dismiss — ADR-0021
-│ ┌──────────────▼─────────────────┐ │           │
+│ └──────────────┬─────────────────┘ │           │ dismiss, account
+│ ┌──────────────▼─────────────────┐ │           │ setup — ADR-0084
 │ │ Provider Port     ◄ ABSTRACTION│ │           │
 │ └──┬────────┬────────┬────────┬──┘ │           │
 │  ┌─▼───┐ ┌──▼───┐ ┌──▼───┐ ┌──▼───┐│           │
@@ -93,7 +93,8 @@ owns.
 │ Persistence                                                      │
 │  • Metadata/State Store — metadata, senders, plans, audit        │
 │  • Policy Store — rules as rows, snapshotted on load             │
-│  • Secrets — secret mounted as files                             │
+│  • Accounts — sealed provider credentials                        │
+│  • Secrets — keys and passwords mounted as files                 │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -111,7 +112,7 @@ owns.
 | Delta Sync | Keep the index current against the provider | batch workload |
 | Reorg Engine | Turn approved plans into reversible bulk mutations | batch workload |
 | Heuristics Job | Propose sensitive-sender candidates for human review | batch workload |
-| UI (Web interface) | Make the system legible to the operator and carry the approval verbs | separate deployment |
+| UI (Web interface) | Make the system legible to the operator, carry the approval verbs, and set up the OAuth client and the accounts | separate deployment |
 | Metadata & State Store | Hold metadata, plans, and audit, never a body | Postgres instance |
 | Policy Store | Hold the sender rules as data, snapshotted on load | Postgres tables |
 
@@ -276,10 +277,10 @@ That deferred test is deliberate and tracked in [ROADMAP.md](./ROADMAP.md).
 The architecture is multi-account even while one account is deployed. Every operation names its
 account explicitly. There is no implicit current account. Every table, query, client, and
 credential is account-scoped by construction, and accounts may span organizations, with no shared
-OAuth client, no delegation, and no assumed common administrator.
+grant, no delegation, and no assumed common administrator.
 
 Why: cross-account bleed is the class of bug that convention cannot hold against concurrency. A
-shared client with a mutable auth header fails exactly when two accounts are active at once.
+shared HTTP client with a mutable auth header fails exactly when two accounts are active at once.
 Structural scoping makes the bleed unrepresentable rather than unlikely, and building it in from
 the start costs little while retrofitting it later costs a redesign.
 
@@ -314,10 +315,11 @@ depend on the network position of the deployment.
 ### The mediation layer is the irreducible trust anchor
 
 The mediation layer holds full mailbox credentials, in every one of its processes that calls a
-provider. If any of those processes is compromised, redaction is moot, because the attacker calls
-the provider directly. The design does not pretend otherwise. The stance is that this anchor is
-hardened, its blast radius is understood, and evidence of its compromise survives outside its own
-reach.
+provider. The UI joins them for the moment it completes a consent, because it holds the fresh grant
+in plaintext until it seals it. If any of those processes is compromised, redaction is moot,
+because the attacker calls the provider directly. The design does not pretend otherwise. The
+stance is that this anchor is hardened, its blast radius is understood, and evidence of its
+compromise survives outside its own reach.
 
 Why: some process must hold the over-privileged credential. That follows from redaction being
 enforced by code, not the token. The design accepts this as the irreducible trust anchor rather
@@ -363,7 +365,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | A single chokepoint concentrates correctness, so a gate bug is a bug everywhere | Built first and proven offline, via the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in [docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0007) |
-| The approval surface is itself a target | ADR-0021 (two verbs, scoped role, no credentials) |
+| The approval surface is itself a target | ADR-0084 (two decision verbs, OAuth client setup and account setup, scoped role, seals credentials it cannot open) |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
@@ -392,7 +394,7 @@ are pointers. Each fix and its reasoning live in the records named, never here.
 | Agent context as an exfiltration surface | moderate / medium | ADR-0036 |
 | Bulk mutation error | moderate / severe | ADR-0020 · ADR-0032 |
 | Scan backlog as silent utility loss | low / moderate | ADR-0007 |
-| UI as a write path | low / moderate | ADR-0021 |
+| UI as a write path | low / moderate | ADR-0084 |
 | Rate-controller pathology (collapse or runaway) | moderate / medium | ADR-0024 · ADR-0025 · ADR-0077 |
 | Policy reload failure leaves a published rule unapplied | low / medium | ADR-0041 |
 
@@ -409,8 +411,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **The mediator** (`mail-mediator` in this document's diagram and component table, published as
   `mediated-mailbox-mediate` from the directory `mediate/`) — the process that enforces redaction
   and serves the client surface. It holds provider credentials, as every deployable that calls a
-  provider does (ADR-0038, via the [decision-record index](./docs/adr/README.md)), and those
-  processes together are the trust anchor.
+  provider does (ADR-0080 and ADR-0081, via the [decision-record index](./docs/adr/README.md)), and
+  those processes together, with the UI while it completes a consent, are the trust anchor.
 - **Client** — any caller of the serving surface, whether the agent over MCP or any other caller
   of the API. Every client is untrusted by design. Every control assumes a client can be talked
   into, or built to attempt, anything.
@@ -420,9 +422,10 @@ top-level documents, a decision record, or a ticket from here without guessing.
   organize (Claude Code or similar).
 - **The operator** — the single human who owns the infrastructure, edits policy, and approves
   plans.
-- **The UI** (directory `ui/`) — the read-mostly reporting and approval surface. Separate
-  deployment, separate identity, no provider credentials. Carries the approval verbs no client
-  has. Its design is [docs/UI.md](./docs/UI.md).
+- **The UI** (directory `ui/`) — the read-mostly reporting and approval surface, and where the
+  installation's OAuth client is set up and accounts are connected and repaired. Separate
+  deployment, separate identity, and no key that opens a stored credential. Carries the approval
+  verbs no client has. Its design is [docs/UI.md](./docs/UI.md).
 - **The shared pure library** — the pure-core-only library every deployable may
   import. Impure shared needs live in narrow, named exception libraries instead (rule in
   ADR-0050, via the [decision-record index](./docs/adr/README.md)).
@@ -497,6 +500,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   and changes that everything above the port speaks.
 - **Account context** — the per-account bundle of provider clients, credentials, policy overlay,
   and rate state. Nothing about an account is ambient. Every operation names one.
+- **Sealed credential** — an account's provider credential as the database stores it, encrypted so
+  that only the deployables that call a provider can open it (ADR-0081, via the
+  [decision-record index](./docs/adr/README.md)).
 
 ### Data paths and mutation
 
@@ -524,7 +530,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   (via the [decision-record index](./docs/adr/README.md)).
 - **Runtime role** — a database role a running deployable connects as, holding only the grants its
   work needs, as distinct from the schema-owning role the migration step uses (roles in ADR-0048,
-  ADR-0021 and ADR-0075, via the [decision-record index](./docs/adr/README.md)).
+  ADR-0084 and ADR-0075, via the [decision-record index](./docs/adr/README.md)).
 - **The migration chain** — the ordered set of hand-written migration files that builds the
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's
   (via the [decision-record index](./docs/adr/README.md)).

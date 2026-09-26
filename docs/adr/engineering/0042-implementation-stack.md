@@ -93,7 +93,7 @@ in days, and an eventual open-source audience.
   ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md) among them) reads as the
   structure this record's conventions now realize in Go's terms.
 - Assumptions about other components: the UI's read API
-  ([ADR-0021](../mutation/0021-approval-surface.md)) exposes a generated contract for the
-  browser layer to type against; the sanctioned embedding workload, if ever taken, stays its
-  own deployable that other components know only through its contract; verdicts are the values
-  [ADR-0040](./0040-pure-core-decisions-as-values.md) makes them.
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)) exposes a generated
+  contract for the browser layer to type against; the sanctioned embedding workload, if ever
+  taken, stays its own deployable that other components know only through its contract; verdicts
+  are the values [ADR-0040](./0040-pure-core-decisions-as-values.md) makes them.

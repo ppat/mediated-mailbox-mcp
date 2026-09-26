@@ -34,8 +34,8 @@ The rules behind the matrix:
 - **Restricted means organize-only.** Label and move, nothing that removes a message from view:
   no archive, trash, or spam.
 - **Permanent delete exists nowhere.** It is absent from the client surface *and* from the granted
-  token capability ([ADR-0011](../provider/0011-gmail-auth-installed-app-oauth.md)) — the
-  guarantee is structural twice over, not a policy check.
+  token capability ([ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md)),
+  so the guarantee is structural twice over, not a policy check.
 - **Batches are all-or-nothing per authorization class.** A batch mixing normal and restricted
   messages with a disposal verb fails entirely, with a clear error, rather than applying to the
   allowed subset and leaving a surprising partial state. This is one case of the general rule —

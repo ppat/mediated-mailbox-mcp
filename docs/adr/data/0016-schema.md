@@ -128,7 +128,7 @@ CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
   status       text NOT NULL DEFAULT 'pending',  -- pending|confirmed|dismissed
   created_at   timestamptz NOT NULL DEFAULT now(),
   reviewed_at  timestamptz,
-  reviewed_by  text,                      -- human only; in the UI's write grant (ADR-0021)
+  reviewed_by  text,                      -- human only; in the UI's write grant (ADR-0084)
   PRIMARY KEY (account_id, domain)
 );
 
@@ -139,7 +139,7 @@ CREATE TABLE policy_rules (               -- the sender policy as rows (ADR-0004
   domain_suffix  text[] NOT NULL,
   source         text NOT NULL,           -- operator | candidate
   created_at     timestamptz NOT NULL DEFAULT now(),
-  created_by     text NOT NULL            -- the operator identity; in the UI's write grant (ADR-0021)
+  created_by     text NOT NULL            -- the operator identity; in the UI's write grant (ADR-0084)
 );
 CREATE INDEX ON policy_rules (account_id);
 
@@ -167,7 +167,7 @@ CREATE TABLE reorg_plans (
   refusal_reason   text,                  -- set with APPLY_REFUSED
   created_at  timestamptz NOT NULL DEFAULT now(),
   approved_at timestamptz,                -- the decision time, for REJECTED as well
-  approved_by text                        -- human only; in the UI's write grant (ADR-0021)
+  approved_by text                        -- human only; in the UI's write grant (ADR-0084)
 );
 CREATE INDEX ON reorg_plans (account_id, created_at DESC);
 
@@ -289,8 +289,8 @@ The properties the shape enforces:
   ([ADR-0022](../operability/0022-four-workloads.md)), and their free-text columns hold provider
   or scanner text and never a body, under the same comment that binds every table.
 - **The UI's decisions are recorded in the columns its verbs set and the rule row its confirm
-  verb inserts** ([ADR-0021](../mutation/0021-approval-surface.md)), so a decision is readable
-  from `reorg_plans` and `policy_candidates` without an audit row.
+  verb inserts** ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), so a
+  decision is readable from `reorg_plans` and `policy_candidates` without an audit row.
 - **Masked subjects are stored masked** — the index never holds a live code.
 - **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
   (`scan_state = 'pending'`) directly.
@@ -308,8 +308,8 @@ The properties the shape enforces:
   "search inside bodies") would pull on it. Absence is the feature.
 - **A single-tenant schema, multi-account by deploying more instances.** Rejected: the isolation
   property must hold *inside* one deployment (see the account model,
-  [ADR-0026](../provider/0026-multi-account-contexts.md)); per-instance separation is an
-  operational choice layered on top, not a substitute.
+  [ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md));
+  per-instance separation is an operational choice layered on top, not a substitute.
 - **Denormalize sender statistics into `messages`.** Rejected: the gate and heuristics read
   sender-level aggregates constantly; a `senders` table keeps those reads cheap and their updates
   batched.

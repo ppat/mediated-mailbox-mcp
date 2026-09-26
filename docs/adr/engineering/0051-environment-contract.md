@@ -11,8 +11,8 @@ The project expects to grow additional deployment mechanisms, so nothing in the 
 bind to the one that exists first. The contracts-only pillar
 already forbids components knowing each other beyond contracts; the same discipline has to hold
 one level out, between the application and whatever runs it. And
-[ADR-0038](../operability/0038-credentials-as-mounted-files.md) has already drawn the sharpest
-piece of the boundary: credentials arrive as mounted files, and how they got there is not the
+[ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md) has already drawn the sharpest
+piece of the boundary: secrets arrive as mounted files, and how they got there is not the
 application's business.
 
 ## Decision
@@ -20,7 +20,7 @@ application's business.
 - **The app does not know its platform.** Not which orchestrator runs it, not what invokes its
   batch jobs, not what network or cluster surrounds it. Everything arrives through the
   environment contract: configuration as files and/or environment variables; secret material
-  always as files ([ADR-0038](../operability/0038-credentials-as-mounted-files.md)); plain HTTP
+  always as files ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)); plain HTTP
   health and readiness probes; structured logs to standard output; Prometheus-format metrics on
   a metrics endpoint; and the standing assumption that any process can be killed at any point.
 - **An unavoidable platform assumption gets the port treatment:** a neutral contract on the
@@ -55,7 +55,7 @@ application's business.
   can run the system; further mechanisms are addable without application changes.
 - Assumptions about other components: the platform captures standard output and scrapes the
   metrics endpoint; something delivers configuration and secret files and keeps them current
-  ([ADR-0038](../operability/0038-credentials-as-mounted-files.md),
+  ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md),
   [ADR-0041](./0041-policy-as-immutable-snapshots.md)); and the readiness probe's contract —
   refuse traffic while a known-sensitive fixture is not denied — is an HTTP endpoint any
   healthcheck can drive.

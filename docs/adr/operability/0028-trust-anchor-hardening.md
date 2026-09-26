@@ -7,20 +7,22 @@
 ## Context
 
 Every deployable that calls a provider holds full mailbox credentials
-([ADR-0038](./0038-credentials-as-mounted-files.md)). If one of their pods is owned, redaction is
-irrelevant, because the attacker calls the provider directly. The design accepts this as the
-irreducible trust anchor, which converts the question from "how do we prevent it" into "how
-expensive is it, how fast is it noticed, and what evidence survives."
+([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)). If one of their pods
+is owned, redaction is irrelevant, because the attacker calls the provider directly. The design
+accepts this as the irreducible trust anchor, which converts the question from "how do we prevent
+it" into "how expensive is it, how fast is it noticed, and what evidence survives."
 
 ## Decision
 
 Layered hardening, each layer answering one of those three questions:
 
-- **Raising the cost:** credentials as mounted files that only the deployables calling a provider
-  can read ([ADR-0038](./0038-credentials-as-mounted-files.md)). Each of those deployables runs
-  hardened and minimal, with no elevated privileges, an immutable filesystem, no shell, and nothing
-  beyond what it needs. The hardening is enforced by policy, and images are signed and verified
-  before they run.
+- **Raising the cost:** credentials sealed so that only the deployables calling a provider can
+  open them ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)). Each of those deployables
+  runs hardened and minimal, with no elevated privileges, an immutable filesystem, no shell, and
+  nothing beyond what it needs. The hardening is enforced by policy, and images are signed and
+  verified before they run. The UI runs under the same hardening, because it holds a fresh grant
+  while it completes a consent
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - **Audit trail is maintained:** A record of changes is maintained in state store and significant
   events or changes are logged at a corresponding log level.
 - **Recovery documented:** a credential-rotation runbook, so revoke-and-reissue follows a written

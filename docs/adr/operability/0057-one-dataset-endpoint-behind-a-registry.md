@@ -6,9 +6,9 @@
 
 ## Context
 
-[ADR-0021](../mutation/0021-approval-surface.md) puts a thin read API under the UI, and
-[ADR-0042](../engineering/0042-implementation-stack.md) generates the browser's types from that
-API's contract. The lens model of [docs/UI.md](../../UI.md#3-the-lens-model) means every
+[ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) puts a thin read API under
+the UI, and [ADR-0042](../engineering/0042-implementation-stack.md) generates the browser's types
+from that API's contract. The lens model of [docs/UI.md](../../UI.md#3-the-lens-model) means every
 analytical view asks the same question of a different dataset. This grouping, these filters, this
 level. The read API can answer that with one endpoint per screen or with one endpoint for all of
 them. The choice decides what adding a view costs and how bounded the read surface stays.
@@ -35,7 +35,8 @@ them. The choice decides what adding a view costs and how bounded the read surfa
   it. How the rule is checked is a mechanism question and belongs to
   [ADR-0066](../data/0066-data-access-generated-from-sql.md).
 - **Bespoke endpoints exist only where a screen needs a shape the ladder does not produce.** The
-  plan reviewer's summary and label operations, the jobs surfaces, and the two verbs.
+  plan reviewer's summary and label operations, the jobs surfaces, the two verbs, OAuth client
+  setup and account setup.
 
 This is the move [ADR-0053](../engineering/0053-parity-by-construction.md) makes for the client
 surface, applied to the UI's read API.
@@ -58,8 +59,9 @@ surface, applied to the UI's read API.
   [ADR-0065](../engineering/0065-contract-built-from-registry-consumed-as-generated-types.md)'s.
 - Assumptions about other components: the datasets are the tables of
   [ADR-0016](../data/0016-schema.md). The UI's database role reads them under
-  [ADR-0021](../mutation/0021-approval-surface.md)'s grants. The account identifier is mandatory
-  on every request, as [ADR-0047](../data/0047-schema-first-data-access.md) already requires of
-  every data-access function.
+  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s grants. The account
+  identifier is mandatory on every request, as
+  [ADR-0047](../data/0047-schema-first-data-access.md) already requires of every data-access
+  function.
 - The registry's refusal of an undeclared dataset or dimension is a control. Its violation
   injection is catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

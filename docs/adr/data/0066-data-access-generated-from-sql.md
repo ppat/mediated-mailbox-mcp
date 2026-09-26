@@ -45,7 +45,7 @@ Each derives from a record that already binds, named beside it.
 | Drift is a build failure | Schema, statements and result types cannot disagree except as a failed build | [ADR-0047](./0047-schema-first-data-access.md) |
 | Schema authority | The migration set is the only authority on stored shape, and nothing derives it from code | [ADR-0047](./0047-schema-first-data-access.md), [ADR-0048](./0048-forward-only-migrations.md) |
 | Per-query result types | Each statement has its own result shape, with no type shared across statements and no field a body could occupy | [ADR-0047](./0047-schema-first-data-access.md) |
-| Role separation | Several database roles hold different grants, and a component cannot name an accessor its role has no grant for | [ADR-0021](../mutation/0021-approval-surface.md) and [ADR-0048](./0048-forward-only-migrations.md) establish that the roles differ. That a component cannot name another role's accessor is strengthened to here |
+| Role separation | Several database roles hold different grants, and a component cannot name an accessor its role has no grant for | [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) and [ADR-0048](./0048-forward-only-migrations.md) establish that the roles differ. That a component cannot name another role's accessor is strengthened to here |
 | Transaction-scoped account | Each transaction sets the account by an ordinary statement before reading, and this survives pooling and statement caching | [ADR-0016](./0016-schema.md), [ADR-0060](../engineering/0060-no-code-in-the-database.md) |
 | Batched writes | Several hundred to a thousand rows per batch without leaving the typed layer | [ADR-0025](../operability/0025-priority-classes-and-leases.md) |
 | Type coverage now | Case-insensitive text, text arrays, JSON, timestamps with zone, big serial | [ADR-0016](./0016-schema.md) |
@@ -153,7 +153,7 @@ from the generator's issue tracker rather than from having been run.
 | Case-insensitive text needs no type registration and works in every driver mode | But a text cast on a parameter compared against such a column makes the same question return no rows, with no error, and the generated Go is identical either way. Under a policy, a composite index over such a column degrades to one column plus a filter, because the comparison operator is not leakproof |
 | The account setting's deny state is silent | Once a connection has set it, PostgreSQL resets it to the empty string between transactions rather than to unrecognised, so a statement omitting it returns no rows without error on a warm connection and raises on a fresh one. The shared transaction helper reads it back and fails the transaction when it is empty. [ADR-0016](./0016-schema.md) carries the schema half |
 | A grant refusal and a policy exclusion behave oppositely | A grant the role lacks raises, naming the table and not the column, so it carries nothing the operator can act on. A policy excluding the row empties the statement, which succeeds having changed nothing |
-| The plain execute annotation discards the command tag | Every statement whose predicate a policy can empty uses the row-counting annotation instead, and zero rows affected is a failure. Today that is the four decision writes behind [ADR-0021](../mutation/0021-approval-surface.md)'s two verbs |
+| The plain execute annotation discards the command tag | Every statement whose predicate a policy can empty uses the row-counting annotation instead, and zero rows affected is a failure. Today that is the four decision writes behind [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s two decision verbs |
 | If a connection pooler is placed in front of PostgreSQL | Statement mode is unusable because it forbids transaction blocks. Transaction and session modes both preserve isolation. The driver's prepared statements require the pooler to permit them, which is preferred over disabling them, because disabling them discards the cached plans the isolation result was measured under |
 
 ## Alternatives considered
@@ -259,9 +259,9 @@ case-insensitive columns are confinable nowhere.
   this schema has thirteen of.
 - **A generator for the static statements plus a run-time builder for the dataset endpoint.** The
   case for it is that it answers the composition question directly and confines the builder to the
-  user interface, which [ADR-0021](../mutation/0021-approval-surface.md) already places outside the
-  trust anchor. Rejected because the Context shows the composition question does not arise, so it
-  buys a second way to write a statement for no gain.
+  user interface, which [ADR-0021](../mutation/0021-approval-surface.md) placed outside the trust
+  anchor when the case was made. Rejected because the Context shows the composition question does
+  not arise, so it buys a second way to write a statement for no gain.
 - **An entity-model tool.** [ADR-0047](./0047-schema-first-data-access.md) rejected this on four
   named collisions and nothing here disturbs them. What it would have offered is the scaffolding
   productivity that record concedes is real, migration generation
