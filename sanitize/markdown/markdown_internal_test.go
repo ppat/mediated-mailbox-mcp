@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 )
 
 // A conversion that fails or panics returns ErrUnconvertible and no Markdown, even when the library

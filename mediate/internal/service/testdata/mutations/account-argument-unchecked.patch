@@ -1,0 +1,20 @@
+control: An operation carrying anything less than both roots need fails generation
+removes: an operation whose input schema does not require the string account_id generates
+packages: ./mediate/internal/service
+tests: TestAOneSidedEntryFailsGeneration/an_input_schema_without_account_id TestAOneSidedEntryFailsGeneration/account_id_declared_but_optional TestAOneSidedEntryFailsGeneration/account_id_declared_as_a_number
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 50e5496..e909d1b 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -79,7 +79,7 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
+ 		}
+ 		if err := objectSchema(op.Input); err != nil {
+ 			problems = append(problems, where+" has an input schema that "+err.Error())
+-		} else if op.Name != accountsListing && !requiresAccount(op.Input) {
++		} else if false {
+ 			problems = append(problems, where+" has an input schema that does not require the string account_id")
+ 		}
+ 		if err := objectSchema(op.Output); err != nil {

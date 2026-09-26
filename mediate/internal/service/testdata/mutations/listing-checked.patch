@@ -1,0 +1,20 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: the accounts listing is put through the account check too
+packages: ./mediate/internal/service
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/the_accounts_listing_with_no_account
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 1b1cca9..6d1fc49 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -132,7 +132,7 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
+ 	if !found {
+ 		return nil, ErrNoOperation
+ 	}
+-	if op.Name == accountsListing {
++	if false {
+ 		return op.Handle(ctx, "", input)
+ 	}
+ 	account, rest, err := splitAccount(input)

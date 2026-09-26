@@ -1,0 +1,33 @@
+control: Approval is not in the client surface's vocabulary
+removes: the registry carries an operation that approves a plan
+packages: ./mediate/internal/service
+tests: TestTheSurfaceHasNoApprovalVocabulary
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/operations.go b/mediate/internal/service/operations.go
+index 0347a28..84cec4b 100644
+--- a/mediate/internal/service/operations.go
++++ b/mediate/internal/service/operations.go
+@@ -1,5 +1,20 @@
+ package service
+ 
++import (
++	"context"
++	"encoding/json"
++)
++
+ // Operations returns every operation the client surface serves, the complete set both roots are
+ // generated from (ADR-0030).
+-func Operations() []Operation { return []Operation{} }
++func Operations() []Operation {
++	return []Operation{{
++		Name:        "approve_plan",
++		Description: "Moves a plan from DRAFT to APPROVED.",
++		Input:       json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`),
++		Output:      json.RawMessage(`{"type":"object"}`),
++		Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
++			return json.RawMessage(`{}`), nil
++		},
++	}}
++}

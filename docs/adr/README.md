@@ -143,6 +143,7 @@ moves it. Records themselves link freely and deep, into
 | 0079 | [Every secret other than an account's provider credential arrives as a mounted file](./operability/0079-secrets-arrive-as-mounted-files.md) | Accepted |
 | 0081 | [A stored credential is sealed to a public key the UI holds; only provider-calling deployables open it](./operability/0081-credentials-sealed-to-a-public-key.md) | Accepted |
 | 0082 | [A rotated credential is sealed and written back to the account's row](./operability/0082-rotation-writeback-to-the-database.md) | Accepted |
+| 0087 | [Each client operation is one `POST` to a path named for it, carrying the account and every argument in one JSON object](./operability/0087-client-surface-is-one-post-per-operation.md) | Accepted |
 
 ## Engineering — `engineering/`
 
@@ -174,3 +175,4 @@ moves it. Records themselves link freely and deep, into
 | 0073 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0073-commit-header-type-sizes-release-scope-names-surface.md) | Accepted |
 | 0076 | [Metrics are emitted through Prometheus's client_golang, on a registry each process builds](./engineering/0076-metrics-emitted-through-client-golang.md) | Accepted |
 | 0078 | [Configuration layers defaults, one optional YAML file, environment variables and flags, strictly, through a small project-owned library](./engineering/0078-configuration-layers-through-an-owned-library.md) | Accepted |
+| 0086 | [The MCP root speaks the protocol through the official Go SDK, stateless and tools only](./engineering/0086-mcp-root-on-the-official-go-sdk.md) | Accepted |

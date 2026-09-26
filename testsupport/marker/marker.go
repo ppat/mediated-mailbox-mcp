@@ -1,10 +1,6 @@
 // Package marker holds the designed marker text that synthetic fixtures and generated mail values
 // carry (ADR-0044).
 //
-// It sits in the shared pure library rather than in testsupport because the mediator's readiness
-// probe builds its known-sensitive fixture from it in non-test code, and non-test code never imports
-// testsupport. The import list for non-test code enforces that.
-//
 // Body markers and field markers begin with different prefixes, and neither prefix contains the
 // other. A search of any output for BodyPrefix finds leaked body text and nothing else, although
 // the field markers in subjects and display names are visible by design. A field marker shaped like

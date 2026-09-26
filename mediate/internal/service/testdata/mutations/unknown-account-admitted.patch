@@ -1,0 +1,20 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: a call whose account_id names no served account reaches the operation
+packages: ./mediate/internal/service
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_account_the_mediator_does_not_serve TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_empty_account_id TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_account_differing_only_in_case
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 1b1cca9..5ce68e7 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -139,7 +139,7 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if !r.known[account] {
++	if false && !r.known[account] {
+ 		return nil, ErrUnknownAccount
+ 	}
+ 	return op.Handle(ctx, account, rest)

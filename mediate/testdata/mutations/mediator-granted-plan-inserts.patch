@@ -1,0 +1,17 @@
+control: Approval is not in the client surface's vocabulary
+removes: the mediator's role is granted inserting plans, an approved one included
+packages: ./mediate
+tests: TestTheMediatorCannotApproveAPlan
+scheduled-count: no
+integration: yes
+
+
+diff --git a/db/migrations/00007_mediate_policy_grants.sql b/db/migrations/00007_mediate_policy_grants.sql
+index 388c7fb..f4646f6 100644
+--- a/db/migrations/00007_mediate_policy_grants.sql
++++ b/db/migrations/00007_mediate_policy_grants.sql
+@@ -4,3 +4,4 @@
+ -- same columns backfill's does, and who created a rule and when stay out of its reach. Row-level
+ -- security still shows it only the base rules and its transaction's account's rules.
+ GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules TO mediated_mailbox_mediate;
++GRANT INSERT ON reorg_plans TO mediated_mailbox_mediate;

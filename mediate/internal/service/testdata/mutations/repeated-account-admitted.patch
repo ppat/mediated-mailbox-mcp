@@ -1,0 +1,20 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: account_id given twice is read as its last value rather than refused
+packages: ./mediate/internal/service
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/account_id_twice
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 1b1cca9..d1155ee 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -170,7 +170,7 @@ func splitAccount(input json.RawMessage) (string, json.RawMessage, error) {
+ 			return "", nil, ErrMissingAccount
+ 		}
+ 		if strings.EqualFold(key, "account_id") {
+-			if key != "account_id" || account != nil {
++			if key != "account_id" {
+ 				return "", nil, ErrAmbiguousAccount
+ 			}
+ 			account = value

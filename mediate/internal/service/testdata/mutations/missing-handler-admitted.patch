@@ -1,0 +1,21 @@
+control: An operation carrying anything less than both roots need fails generation
+removes: an operation with no handler generates
+packages: ./mediate/internal/service
+tests: TestAOneSidedEntryFailsGeneration/no_handler
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 50e5496..5b0c48d 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -85,9 +85,6 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
+ 		if err := objectSchema(op.Output); err != nil {
+ 			problems = append(problems, where+" has an output schema that "+err.Error())
+ 		}
+-		if op.Handle == nil {
+-			problems = append(problems, where+" has no handler")
+-		}
+ 	}
+ 	if len(problems) > 0 {
+ 		return Registry{}, errors.New("the operation registry does not generate: " + strings.Join(problems, "; "))

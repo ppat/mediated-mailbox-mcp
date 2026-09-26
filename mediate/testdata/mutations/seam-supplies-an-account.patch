@@ -1,0 +1,20 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: the seam supplies an account although it serves none yet, so a call naming that account reaches the operation. The patch and its test retire when the seam reads the database
+packages: ./mediate
+tests: TestTheMediatorServesNoAccountYet
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 91cec55..205c88c 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -174,7 +174,7 @@ func run(ctx context.Context, args []string) error {
+ 
+ // servedAccounts is the seam the accounts the mediator serves pass through, to the registry and to
+ // the policy loader. It returns none, so the registry refuses every call naming an account.
+-func servedAccounts() []string { return nil }
++func servedAccounts() []string { return []string{"acct-a"} }
+ 
+ // loadPolicy loads the policy of accounts through the shared policy loader, which reads each
+ // account's policy in a transaction of that account. With no account there is no policy to load.

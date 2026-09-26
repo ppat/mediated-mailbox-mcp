@@ -7,8 +7,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/marker"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/property"
 )
 
