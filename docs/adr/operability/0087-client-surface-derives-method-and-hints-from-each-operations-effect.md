@@ -22,9 +22,13 @@ its own routes ([docs/UI.md](../../UI.md#17-the-read-api)).
 
 The choice looks like a question of HTTP style. It is really a question of where the facts about an
 operation's behaviour are declared. An HTTP method and an MCP annotation state the same fact twice,
-whether the operation is safe, idempotent or destructive. Every system that declares them separately
-lets them drift. Notion's MCP server derived its annotations from the HTTP method and labelled its
-own `POST` search destructive
+whether the operation is safe, idempotent or destructive. Declared separately, the two can drift
+apart. Smithy binds the method in one trait and the safety in others, and performs no validation of
+the method against the operation
+([Smithy HTTP bindings](https://smithy.io/2.0/spec/http-bindings.html)). protomcp declares its hints
+as fields independent of the HTTP binding ([protomcp](https://github.com/akuity/protomcp)). Deriving
+the annotations from the HTTP method goes wrong as well. Notion's MCP server derived them from the
+method and labelled its own `POST` search destructive
 ([notion-mcp-server](https://github.com/makenotion/notion-mcp-server)). Servers Stainless generated
 gave every `POST` no hints, so a pure computation defaulted to destructive
 ([a generated server's tools](https://github.com/dedalus-labs/dedalus-agents-typescript/tree/main/packages/mcp-server/src/tools)).
@@ -63,8 +67,11 @@ passes the gates once each design adds the mechanism named below, so they break 
   A read whose arguments are all scalars is Read. A read that takes structured input, as search
   takes the canonical query, is Structured read. A change the operator can undo, such as labelling,
   unlabelling, moving, archiving, marking read or starring, is Reversible. Trash and spam are
-  Disposal. The protocol's schema calls a tool destructive when it may do more than add, and its
-  wording leaves reversible removals ambiguous, so this table records the reading chosen. Every
+  Disposal. The protocol's schema calls a tool destructive when it may do more than additive updates
+  ([schema.ts](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2026-07-28/schema.ts)),
+  and its blog describes a destructive tool as irreversible
+  ([Tool Annotations as Risk Vocabulary](https://blog.modelcontextprotocol.io/posts/2026-03-16-tool-annotations/)).
+  That wording leaves reversible removals ambiguous, so this table records the reading chosen. Every
   operation stays inside the one mailbox, so `openWorldHint` is false throughout.
 - **Paths are resource-shaped, under `/api/accounts/{account_id}/`.** An operation on a collection
   that is not a standard read or create takes a `:verb` route on the collection, as
@@ -82,7 +89,9 @@ passes the gates once each design adds the mechanism named below, so they break 
   ([envoy#18819](https://github.com/envoyproxy/envoy/issues/18819)), so R6 excludes it today.
   `POST` for a read that needs a body is the exception Google's resource guide makes
   ([AIP-136](https://google.aip.dev/136)), and the MCP annotations still mark it read-only.
-- **Writes are `POST`, and the surface derives no `PUT`, `PATCH` or `DELETE`.** A batch body is not
+- **Writes are `POST`, and the surface derives no `PUT`, `PATCH` or `DELETE`.** `PUT` replaces the
+  target resource's state with the representation it encloses
+  ([RFC 9110 §9.3.4](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.4)). A batch body is not
   a representation of the resource its URL names, so `PUT` does not fit it, and a label change is
   an action on messages, not a replacement of their state. `PATCH` on a plan is where a status
   change would enter, and R4 rules it out.
@@ -94,11 +103,16 @@ passes the gates once each design adds the mechanism named below, so they break 
   an ambiguous account extends to an `account_id` given in the query string or the body beside the
   path.
 - **The MCP root offers tools only.** A read is a tool, not a resource, because hosts surface
-  resources to the model mainly on a user's mention, and a client could cache a gated body through
-  one. Operations are shaped around the agent's tasks, and each is one tool and one route, named
-  verb_noun, following Anthropic's guidance
+  resources to the model mainly on a user's mention, as Claude Code reads a resource through an @
+  mention and defers listing resource templates to the first one
+  ([Claude Code MCP docs](https://code.claude.com/docs/en/mcp),
+  [changelog](https://code.claude.com/docs/en/changelog)), and a client could cache a gated body
+  through one. Operations are shaped around the agent's tasks, and each is one tool and one route,
+  named verb_noun, following Anthropic's guidance
   ([Writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents)) and
-  what curated production servers do. No operation mixes a read with a write, and Disposal
+  what curated production servers such as GitHub's do
+  ([github-mcp-server](https://github.com/github/github-mcp-server)). No operation mixes a read with
+  a write, and Disposal
   operations stay apart from the reversible ones, as Gmail's own MCP server keeps trash and spam
   apart from labelling
   ([Gmail MCP reference](https://developers.google.com/workspace/gmail/api/reference/mcp)).
@@ -106,14 +120,21 @@ passes the gates once each design adds the mechanism named below, so they break 
   [ADR-0031](../mutation/0031-dry-run-on-mutating-operations.md) requires, not a separate preview
   tool per write.
 - **Every response carries `Cache-Control: no-store` and no `ETag`, and `HEAD` is refused on every
-  route.** `ServeMux` lets a `GET` pattern match `HEAD`, which would spend rate budget and write an
+  route.** `ServeMux` lets a `GET` pattern match `HEAD`
+  ([`ServeMux`](https://pkg.go.dev/net/http#ServeMux)), which would spend rate budget and write an
   audit row with no MCP counterpart.
 - **The registry refuses, at build time, anything that could express approval.** No effect class
-  derives `PUT`, `PATCH` or `DELETE`. A plan operation's input schema may not declare `status`. An
-  operation name or path segment may not be approve, apply or rollback. The MCP root never elicits a
-  confirmation that stands for approval.
-- **The registry never emits the `x-mcp-header` keyword.** It would copy the account into a header
-  on the MCP side to mirror the path, and the body check already carries what it would add.
+  derives `PUT`, `PATCH` or `DELETE`. The input schema of an operation that changes the mailbox, a
+  Create, Reversible or Disposal, may not declare a property named `status` in any case, at any
+  depth. A read may take one as a filter. No operation name, path segment or `:verb` may hold a
+  token beginning `approv`, `appl` or `rollback`, or contain `roll_back` or `roll-back`, a name's
+  tokens being its words between underscores and a segment's its words between hyphens. The MCP
+  root never elicits a confirmation that stands for approval.
+- **The registry never emits the `x-mcp-header` keyword.** It would bind the account to an
+  `Mcp-Param` header on the MCP side to mirror the path, the 2026-07-28 revision's mechanism for
+  letting intermediaries route on a parameter
+  ([MCP tools specification](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)),
+  and the body check already carries what it would add.
 - **An operation's name is snake_case and begins with a verb**, and it is the MCP tool's name and
   the contract's `operationId`.
 - **The contract document is generated from the registry and checked in, and is not served.**
@@ -140,7 +161,7 @@ What the ordinary path of HTTP and MCP tooling does that this record forbids, an
 | An `account_id` in the query string or body beside the path | The operation acts on an account other than the one checked | The ambiguous-account refusal, extended, with a test per location |
 | A `HEAD` request on a `GET` route | Rate budget spent and an audit row written with no MCP counterpart | The refusal, with a test |
 | A cacheable response to a gated read | A released body outlives a deny-listing | `no-store` on every response, with a test |
-| A `PATCH` route, a `status` input or an approve path | Approval enters the client vocabulary | The registry's build-time refusals, each proven by a violation case |
+| A `PATCH` route, a `status` input on a write, or an approve path | Approval enters the client vocabulary | The registry's build-time refusals, each proven by a violation case |
 | The `x-mcp-header` keyword in a schema | The account's binding differs between SDK revisions | The registry refuses it at build time, proven by a violation case |
 
 | Requirement | Met by |
@@ -213,8 +234,9 @@ R7 and R9 separate none of these once each carries `no-store` and keeps structur
   away from it, as Stainless did when it kept only its code-mode tools
   ([Stainless MCP changelog](https://www.stainless.com/changelog/products/mcp)).
 - **Reads as MCP resources.** For it, the protocol's application-controlled primitive for data.
-  Against it, hosts show resources to the model mainly on a user's mention, so an agent would
-  rarely find them, and a client may cache a gated body.
+  Against it, hosts show resources to the model mainly on a user's mention
+  ([Claude Code MCP docs](https://code.claude.com/docs/en/mcp)), so an agent would rarely find
+  them, and a client may cache a gated body.
 - **A separate preview tool per write.** For it, a dry run carries a read-only hint and draws no
   confirmation. Against it, it doubles the write surface past thirty tools.
 
