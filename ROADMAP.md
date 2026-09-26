@@ -705,7 +705,10 @@ arrives, because each delta sync tick runs the scan gate.
   finishes at image
   The mediator's serving surface, one service layer under two thin roots generated from one registry
   ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md),
-  [ADR-0053](./docs/adr/engineering/0053-parity-by-construction.md)), with the read operations
+  [ADR-0053](./docs/adr/engineering/0053-parity-by-construction.md)), each operation's HTTP method,
+  path shape and MCP annotations derived from the effect it declares
+  ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)),
+  with the read operations
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) names, enumerating, counting, sorting, grouping
   and searching over the index, and the reads over sender aggregates and label distribution
   [G2](./USE_CASES.md#g2--historical-understanding) names

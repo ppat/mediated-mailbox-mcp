@@ -418,6 +418,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   into, or built to attempt, anything.
 - **The client surface** — the mediator's serving surface, the API plus its MCP adapter (shape
   and rules in ADR-0030, via the [decision-record index](./docs/adr/README.md)).
+- **Effect class** — the one declaration each operation of the client surface makes about what it
+  does to the mailbox, from which its HTTP method and its MCP annotations are derived (classes and
+  derivation in ADR-0087, via the [decision-record index](./docs/adr/README.md)).
 - **The agent** — the primary client today, the MCP-speaking assistant given the mailbox to
   organize (Claude Code or similar).
 - **The operator** — the single human who owns the infrastructure, edits policy, and approves

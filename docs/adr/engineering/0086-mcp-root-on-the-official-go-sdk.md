@@ -15,11 +15,15 @@ Much of what a protocol library offers is already settled elsewhere. The Redacti
 Mutation Authorizer sit below the service layer, so no fault in the MCP root can release a body.
 A protocol fault costs utility, never confidentiality. Parity forbids every protocol feature but
 tools, so prompts, resources, completions, logging, sampling and subscriptions are surface to
-fence, not strength. Bearer authentication and TLS sit in front of both roots. Argument
-validation, UTC timestamps ([ADR-0033](../operability/0033-utc-only-timestamps.md)) and the shape
-of a failure belong to the service layer, shared by both roots. What is left for this choice is
-who implements the protocol, how its correctness is proven, what surface the root exposes, and
-what it links into the mediator, a process that holds full-mailbox credentials.
+fence, not strength. Each tool carries the output schema and the four annotations the registry
+derives from its operation's effect class
+([ADR-0087](../operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)),
+and those are fields of a tool, not protocol features. Bearer authentication and TLS sit in front
+of both roots. Argument validation, UTC timestamps
+([ADR-0033](../operability/0033-utc-only-timestamps.md)) and the shape of a failure belong to the
+service layer, shared by both roots. What is left for this choice is who implements the protocol,
+how its correctness is proven, what surface the root exposes, and what it links into the
+mediator, a process that holds full-mailbox credentials.
 
 The choice looks like picking a library. It is really whether outside code implements the
 protocol inside the mediator at all.
@@ -29,21 +33,23 @@ protocol inside the mediator at all.
 | R1 Footprint | Modules and bytes added to a process that holds full-mailbox credentials | [ADR-0028](../operability/0028-trust-anchor-hardening.md), "nothing beyond what it needs", and ADR-0042 on a deep package tree inside the trust anchor |
 | R2 Revisions | Who absorbs each protocol revision, indefinitely | [ADR-0076](./0076-metrics-emitted-through-client-golang.md), which rejected owning a protocol indefinitely |
 | R3 Proof | A test that goes red when the root stops conforming | [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) |
-| R4 Tools only | No surface beyond the registry's tools | ADR-0030's exact parity, ADR-0053 |
+| R4 Tools only | No protocol feature beyond tools, and each tool carries only what the registry derives for it | ADR-0030's exact parity, ADR-0053 |
 | R5 Governance | The longevity of what is depended on | [ADR-0066](../data/0066-data-access-generated-from-sql.md), which broke ties on what abandonment costs |
 | R6 Revisions spoken | The agent's current revision and older clients' | ADR-0030, every client |
-| R7 Registration from data | Tools registered at run time from the registry's schemas | ADR-0053 |
+| R7 Registration from data | Tools registered at run time from the registry's input and output schemas and annotations, all as data | ADR-0053, ADR-0087 |
 | R8 Arguments untouched | Arguments reach the service layer as the client sent them | ADR-0030, no logic in a frontend |
 | R9 Stateless | No session or stream kept between requests | [ADR-0051](./0051-environment-contract.md), any process killed at any point |
 | R10 Failures intact | A failed call's structured result reaches the client | [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) |
 | R11 Mounting | An `http.Handler` behind the mediator's TLS and bearer check | ADR-0030 |
 | R12 Environment | No undeclared environment input | ADR-0051, [O6](../../../USE_CASES.md#o6--deployable) |
+| R13 Annotations | All four hints, `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, set explicitly from data on raw registration and reaching the client with the meaning the registry derived | ADR-0087 |
 
-R6 and R7 are gates. R2, R3 and R4 order the field. Footprint breaks ties, as the operator ruled,
-consistent with how ADR-0066, [ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md)
-and ADR-0076 weighed it for code in or near the same processes. Throughput, licences and payload
-logging were not graded. One operator's agent sets no throughput bar, both remaining libraries are
-permissively licensed, and neither logs payloads on the paths used.
+R6, R7 and R13 are gates, and R13 separates none of the candidates that pass the other two. R2,
+R3 and R4 order the field. Footprint breaks ties, as the operator ruled, consistent with how
+ADR-0066, [ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md) and ADR-0076 weighed
+it for code in or near the same processes. Throughput, licences and payload logging were not
+graded. One operator's agent sets no throughput bar, both remaining libraries are permissively
+licensed, and neither logs payloads on the paths used.
 
 ## Decision
 
@@ -64,7 +70,12 @@ permissively licensed, and neither logs payloads on the paths used.
 - **Raw tools only.** Tools are registered with their schemas as data and a raw handler, so the
   arguments reach the service layer untouched. The SDK's typed registration validates on its own
   ([`ToolHandlerFor`](https://github.com/modelcontextprotocol/go-sdk/blob/v1.8.0/mcp/tool.go#L32-L42))
-  and is not used.
+  and is not used. Each tool also carries its output schema as data, and annotations built from its
+  operation's effect class with all four hints set. The SDK leaves a nil `DestructiveHint` or
+  `OpenWorldHint` out of the tool it lists
+  ([`ToolAnnotations`](https://github.com/modelcontextprotocol/go-sdk/blob/v1.8.0/mcp/protocol.go#L1964-L1991)),
+  and the specification then defaults both to true, so a tool left with either unset reads as
+  destructive and open-world.
 - **A receiving middleware inside the SDK refuses the protocol surface parity forbids.** The SDK
   answers requests for prompts, resources and a log level with empty or accepting replies whatever
   its options ([its method table](https://github.com/modelcontextprotocol/go-sdk/blob/v1.8.0/mcp/server.go#L1876-L1880)).
@@ -81,7 +92,9 @@ What the SDK's ordinary path does that the design forbids, and what stops it:
 | A prompt, a resource or a log level answered | Surface on one root that the other lacks | The receiving middleware, and a test that sends each, a request with a case-variant method key and a batch, and expects every one refused |
 | Typed tool registration | Arguments validated or reshaped in the frontend | A root that uses raw handlers only, reviewed in its one generator file |
 | The SDK imported outside the root's generator | Protocol code spread into the service layer | The import lists and their violation files ([ADR-0071](./0071-static-enforcement-toolchain.md)) |
-| `MCPGODEBUG` set in the mediator's environment | SDK behaviour switched without a change here | The mediator refuses to start while it is set, even to an empty value, proven by a test with a mutation removing the refusal |
+| A tool registered with a hint pointer left nil | The client reads the tool as destructive and open-world | A test asserting the literal annotations of one tool per effect class at both revisions, with mutations dropping each pointer |
+| `MCPGODEBUG` set in the mediator's environment | SDK behaviour switched without a change here. `allowsessionsinstateless` puts sessions back into the stateless handler, and `hintomitempty` changes the annotation bytes the literal test pins, though not their meaning, since both hints it omits default to false | The mediator refuses to start while it is set, even to an empty value, proven by a test with a mutation removing the refusal |
+| The `x-mcp-header` keyword in a registry schema | The SDK binds a header to an argument, and the account's binding differs between revisions | A registry rule refuses it at generation, proven by a violation case |
 
 | Requirement | Met by |
 | --- | --- |
@@ -91,12 +104,13 @@ What the SDK's ordinary path does that the design forbids, and what stops it:
 | R4 Tools only | The capabilities option, the receiving middleware, the import fence and a literal test |
 | R5 Governance | The protocol's own organization |
 | R6 Revisions spoken | 2024-11-05 to 2026-07-28 |
-| R7 Registration from data | Tools added with schemas as data |
+| R7 Registration from data | Tools added with their input and output schemas and their annotations as data |
 | R8 Arguments untouched | Raw handlers |
 | R9 Stateless | `Stateless` plus the capabilities option |
 | R10 Failures intact | Error results carrying the service layer's structured content |
 | R11 Mounting | The streamable HTTP handler is an `http.Handler` |
 | R12 Environment | The mediator refuses to start while `MCPGODEBUG` is set |
+| R13 Annotations | `ToolAnnotations` with all four hints set, and the literal annotation test |
 
 What an implementer would otherwise pay to discover:
 
@@ -107,6 +121,10 @@ What an implementer would otherwise pay to discover:
   ([`DisableLocalhostProtection`](https://github.com/modelcontextprotocol/go-sdk/blob/v1.8.0/mcp/streamable.go),
   [the specification's guidance](https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices#local-mcp-server-compromise)).
   An ingress in front connects over the pod network and is unaffected.
+- A tool whose `DestructiveHint` or `OpenWorldHint` pointer is nil is listed without it, and a
+  client then applies the specification's default of true. At the 2026-07-28 revision a
+  `tools/list` reply also carries `ttlMs` and `cacheScope`, which a literal test of the listing
+  expects.
 
 ## Alternatives considered
 
@@ -115,14 +133,18 @@ real agent and the protocol's conformance suite. Grades run 4 (carries it native
 bounded discipline or one small package), 2 (only by convention or with a named gotcha) and 1
 (cannot).
 
-| Candidate | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Official SDK** | 2 | 4 | 2 | 3 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
-| Hand-written on the standard library | 4 | 2 | 2 | 3 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
-| mark3labs/mcp-go | 2 | 3 | 2 | 3 | 2 | 4 | 3 | 3 | 3 | 4 | 4 | 4 |
-| creachadair/jrpc2 under an owned MCP layer | 3 | 2 | 2 | 3 | 2 | 4 | 4 | 4 | 3 | 4 | 4 | 4 |
-| metoro-io/mcp-golang | 2 | 1 | 1 | 3 | 1 | 1 | 1 | 1 | 1 | 3 | 3 | 4 |
-| ThinkInAIXYZ/go-mcp | 2 | 1 | 1 | 3 | 2 | 1 | 4 | 3 | 2 | 2 | 3 | 4 |
+| Candidate | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Official SDK** | 2 | 4 | 2 | 3 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
+| Hand-written on the standard library | 4 | 2 | 2 | 3 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
+| mark3labs/mcp-go | 2 | 3 | 2 | 3 | 2 | 4 | 3 | 3 | 3 | 4 | 4 | 4 | 3 |
+| creachadair/jrpc2 under an owned MCP layer | 3 | 2 | 2 | 3 | 2 | 4 | 4 | 4 | 3 | 4 | 4 | 4 | 4 |
+| metoro-io/mcp-golang | 2 | 1 | 1 | 3 | 1 | 1 | 1 | 1 | 1 | 3 | 3 | 4 | not graded |
+| ThinkInAIXYZ/go-mcp | 2 | 1 | 1 | 3 | 2 | 1 | 4 | 3 | 2 | 2 | 3 | 4 | not graded |
+
+R13 was graded after the gates had removed the last two rows. mcp-go takes a 3 because its raw
+schema tool fails at run time when the library's own options set its annotations, so they are
+assigned as struct fields.
 
 The grid shows the following.
 
@@ -132,7 +154,7 @@ The grid shows the following.
   and statelessness and equal elsewhere. jrpc2 under an owned layer is dominated by the hand-written
   root, no better anywhere and a module worse.
 - R8 to R12 separated no one among the survivors, because the service layer and the mediator's own
-  front already carry what they ask.
+  front already carry what they ask. R13 is met by every survivor, so it separates none either.
 - The SDK and the hand-written root tie on proof. The SDK's own CI passes the whole suite on its
   reference server, while the configuration this record picks, run through the suite, failed one
   check, a prompt list answered without prompts declared, which the receiving middleware closes.
@@ -163,9 +185,10 @@ detachable, since the same suite can run against a hand-written root, while its 
   [security advisories](https://github.com/modelcontextprotocol/go-sdk/security/advisories), and
   the project owns about fifty lines. Against it, seven modules and about 1.8 MB inside the trust
   anchor, most of it code the root never calls, among them an OAuth client and an
-  assembly-accelerated JSON decoder that parses every untrusted request. Its defaults open surface parity forbids, so tools-only is
-  held by an option, a middleware, a fence and a test rather than by absence, and it changes
-  behaviour inside version 1 through
+  assembly-accelerated JSON decoder that parses every untrusted request. Its defaults open surface
+  parity forbids, so tools-only is held by an option, a middleware, a fence and a test rather than
+  by absence. A tool with an unset hint reads as destructive, which a test closes rather than the
+  type. It changes behaviour inside version 1 through
   [`MCPGODEBUG` compatibility flags](https://github.com/modelcontextprotocol/go-sdk/blob/main/docs/mcpgodebug.md)
   that expire.
 - **Hand-written on the standard library.** For it, about 275 lines, no module and about 53 KB,
@@ -191,12 +214,16 @@ detachable, since the same suite can run against a hand-written root, while its 
 - Leaving the SDK replaces the root's one generator file with a hand-written root and adds the
   conformance suite to CI. The registry, the service layer, the API root and every test above the
   wire survive.
-- What would re-argue it: footprint in the trust anchor weighed to order the field rather than
+- What would re-argue it. Footprint in the trust anchor weighed to order the field rather than
   break ties, the SDK's server package growing further or an advisory landing in a module the root
-  never calls, the receiving middleware failing to close the conformance gap, or the protocol's
+  never calls, the receiving middleware failing to close the conformance gap, the protocol's
   deprecation policy holding across its next revision so that it becomes small and stable in
-  ADR-0076's sense.
+  ADR-0076's sense, an SDK release that changes how `ToolAnnotations` is serialised, or adopting
+  `x-mcp-header` for any parameter.
 - Each SDK release is read for retired `MCPGODEBUG` flags and protocol changes before it is taken.
+  Its flag documentation schedules every flag now live, `hintomitempty` among them, for removal in
+  v1.9.0 ([`mcpgodebug.md`](https://github.com/modelcontextprotocol/go-sdk/blob/main/docs/mcpgodebug.md)).
 - Assumptions about other components. The service layer validates arguments, rejects timestamps
-  that are not UTC and shapes failures for both roots. The registry emits no schema keyword the SDK
-  reads as a header binding. The bearer check runs before the root on every request.
+  that are not UTC and shapes failures for both roots. The registry derives all four hints from the
+  effect class, and a registry rule refuses `x-mcp-header` at generation, proven by its violation
+  case. The bearer check runs before the root on every request.

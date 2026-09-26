@@ -143,7 +143,7 @@ moves it. Records themselves link freely and deep, into
 | 0079 | [Every secret other than an account's provider credential arrives as a mounted file](./operability/0079-secrets-arrive-as-mounted-files.md) | Accepted |
 | 0081 | [A stored credential is sealed to a public key the UI holds; only provider-calling deployables open it](./operability/0081-credentials-sealed-to-a-public-key.md) | Accepted |
 | 0082 | [A rotated credential is sealed and written back to the account's row](./operability/0082-rotation-writeback-to-the-database.md) | Accepted |
-| 0087 | [Each client operation is one `POST` to a path named for it, carrying the account and every argument in one JSON object](./operability/0087-client-surface-is-one-post-per-operation.md) | Accepted |
+| 0087 | [Each client operation declares its effect once, and its HTTP method, path shape and MCP annotations derive from it](./operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md) | Accepted |
 
 ## Engineering — `engineering/`
 
