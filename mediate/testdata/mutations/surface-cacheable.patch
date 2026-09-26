@@ -1,0 +1,20 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: the client surface is served without the no-store wrapper
+packages: ./mediate
+tests: TestEveryResponseIsUncacheable
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index d1f0451..3803d6d 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -268,7 +268,7 @@ func surface(registry service.Registry, tokenFile string) (http.Handler, error)
+ 	roots := http.NewServeMux()
+ 	roots.Handle("/api/", apiRoot)
+ 	roots.Handle("/mcp", mcp.Handler(registry, version()))
+-	return noStore(bearer(tokenFile, roots)), nil
++	return bearer(tokenFile, roots), nil
+ }
+ 
+ // noStore marks every response uncacheable and removes any ETag as its header is written.

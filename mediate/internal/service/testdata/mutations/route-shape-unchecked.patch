@@ -1,0 +1,20 @@
+control: An operation carrying anything less than both roots need fails generation
+removes: a path whose last segment does not take the route shape of the operation's effect generates
+packages: ./mediate/internal/service
+tests: TestTheSurfaceRefusesWhatItCannotCarry/a_structured_read_not_on_a_:search_route TestTheSurfaceRefusesWhatItCannotCarry/a_change_not_on_a_:verb_route TestTheSurfaceRefusesWhatItCannotCarry/a_change_on_the_:search_route TestTheSurfaceRefusesWhatItCannotCarry/a_read_on_a_:verb_route TestTheSurfaceRefusesWhatItCannotCarry/a_create_on_a_:verb_route
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/surface.go b/mediate/internal/service/surface.go
+index 1225e3e..123291b 100644
+--- a/mediate/internal/service/surface.go
++++ b/mediate/internal/service/surface.go
+@@ -148,7 +148,7 @@ func surfaceProblems(op Operation) []string {
+ 			problems = append(problems, "has a name holding "+word+", which names a plan's lifecycle")
+ 		}
+ 	}
+-	if problem := shapeProblem(op.Effect, segments[len(segments)-1]); problem != "" {
++	if problem := shapeProblem(op.Effect, segments[len(segments)-1]); false && problem != "" {
+ 		problems = append(problems, problem)
+ 	}
+ 

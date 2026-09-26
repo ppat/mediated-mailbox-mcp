@@ -1,0 +1,19 @@
+control: The MCP root offers tools and nothing else
+removes: requests for prompts, resources and a log level reach the SDK, which answers them
+packages: ./mediate/internal/mcp
+tests: TestTheRootOffersToolsOnly
+scheduled-count: no
+
+
+diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
+index 526f5ce..96cfbbc 100644
+--- a/mediate/internal/mcp/mcp.go
++++ b/mediate/internal/mcp/mcp.go
+@@ -32,7 +32,6 @@ func Handler(reg service.Registry, version string) http.Handler {
+ 			Annotations:  annotations(op.Annotations),
+ 		}, call(reg, op.Name))
+ 	}
+-	server.AddReceivingMiddleware(refuseBeyondTools)
+ 	return sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return server }, &sdk.StreamableHTTPOptions{
+ 		Stateless:    true,
+ 		JSONResponse: true,
