@@ -183,7 +183,9 @@ else broke ties.
   runs the analysers and the suppression check against the checked-in files violating each ban and
   each list, requiring each expected finding and no other. The script also runs the project's
   `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement
-  rules and the rules against package-level state above, against their violation files.
+  rules, the rules against package-level state above and the rule
+  [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) sets against reading the
+  environment outside a composition root, against their violation files.
 
 ### What each tool's ordinary path does that other records forbid
 
@@ -210,7 +212,7 @@ grant check tests against the grants.
 | A rule cannot be switched off quietly | The suppression check refuses every directive, ignore comment and configuration setting that can reach a linter standing in for a control, anywhere in the repository, and allows an ordinary linter's suppression only in a form naming it. Each refused directive is proven by a violation file, and each refused configuration setting by a case in the ban-proof script's own tests |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
-| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules and this record's rules against package-level state in a pure core, which run beside it |
+| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core and [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a composition root, which run beside it |
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and

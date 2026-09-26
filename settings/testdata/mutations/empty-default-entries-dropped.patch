@@ -1,0 +1,18 @@
+control: A required value no layer sets is refused
+removes: an entry of a keyed map the defaults name with nothing set in it is dropped, so its required values are never demanded
+packages: ./settings
+tests: TestAnEmptyKeyedEntryOfTheDefaultsIsKept/its_required_values_are_demanded TestAnEmptyKeyedEntryOfTheDefaultsIsKept/an_empty_map_entry_is_kept
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 25ba519..657cd02 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -220,7 +220,6 @@ func collectDefaults(n *node, v reflect.Value, path []string, out *[]assignment)
+ 				return fmt.Errorf("the default of %s: %w", strings.Join(path, "."), err)
+ 			}
+ 			at := append(slices.Clone(path), k.String())
+-			*out = append(*out, assignment{path: at, source: Source{Layer: Default}, entry: true})
+ 			if err := collectDefaults(n.elem, v.MapIndex(k), at, out); err != nil {
+ 				return err
+ 			}

@@ -1,0 +1,21 @@
+control: No file is read unless a flag or the environment names one
+removes: config.yaml in the working directory is read when no file is named
+packages: ./settings
+tests: TestTheFileIsReadOnlyWhenNamed/no_file_is_named
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..5d60c81 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -157,6 +157,10 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 		layers, err = readFile[T](root, fileFromFlag, layers)
+ 	case fileFromEnv != "":
+ 		layers, err = readFile[T](root, fileFromEnv, layers)
++	default:
++		if _, statErr := os.Stat("config.yaml"); statErr == nil {
++			layers, err = readFile[T](root, "config.yaml", layers)
++		}
+ 	}
+ 	if err != nil {
+ 		return loaded, err

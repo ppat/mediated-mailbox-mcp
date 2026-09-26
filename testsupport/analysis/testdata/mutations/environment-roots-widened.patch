@@ -1,0 +1,19 @@
+control: The analyser refuses a read of the environment outside a deployable's composition root
+removes: every file of a composition root's package is exempt, not only main.go
+packages: ./testsupport/analysis
+tests: TestEnvironment
+scheduled-count: no
+
+diff --git a/testsupport/analysis/environment.go b/testsupport/analysis/environment.go
+index 7b9eab8..d3bb650 100644
+--- a/testsupport/analysis/environment.go
++++ b/testsupport/analysis/environment.go
+@@ -57,7 +57,7 @@ func runEnvironment(pass *analysis.Pass) (any, error) {
+ 		// A file not named .go is one the go command generates, such as a test binary's main.
+ 		name := pass.Fset.File(file.Pos()).Name()
+ 		base := filepath.Base(name)
+-		if !strings.HasSuffix(base, ".go") || strings.HasSuffix(base, "_test.go") || (root && base == "main.go") {
++		if !strings.HasSuffix(base, ".go") || strings.HasSuffix(base, "_test.go") || root {
+ 			continue
+ 		}
+ 		ast.Inspect(file, func(n ast.Node) bool {

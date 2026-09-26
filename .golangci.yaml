@@ -379,6 +379,20 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "pgregory.net/rapid$"
 
+        # The configuration library, every file. The YAML decoder is the one module it adds (ADR-0078).
+        settings:
+          list-mode: strict
+          files:
+          - "${base-path}/settings/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "go.yaml.in/yaml/v3$"
+          # Restores the standard library under go/, which the entry above hides (see the notes at the top).
+          - "go/"
+
         # The shared test tooling, every file.
         testsupport:
           list-mode: strict
@@ -451,6 +465,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -635,9 +650,14 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/jmap$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
           - "github.com/prometheus/client_golang/prometheus$"
+          # The configuration library's decoder (ADR-0078).
+          - "go.yaml.in/yaml/v3$"
+          # Restores the standard library under go/, which the entry above hides (see the notes at the top).
+          - "go/"
           - "golang.org/x/net/html$"
           - "golang.org/x/net/html/atom$"
 
@@ -669,6 +689,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -702,6 +723,7 @@ linters:
           - "!${base-path}/provider/**"
           - "!${base-path}/ratelimit/**"
           - "!${base-path}/sanitize/**"
+          - "!${base-path}/settings/**"
           - "!${base-path}/sync/**"
           - "!${base-path}/testsupport/**"
           - "!${base-path}/ui/**"

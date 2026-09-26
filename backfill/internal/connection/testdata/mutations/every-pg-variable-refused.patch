@@ -1,0 +1,19 @@
+control: A deployable refuses to start while PGPASSWORD or PGSSLPASSWORD is set, an empty value included
+removes: every PG* variable refuses the start, not only the two password variables
+packages: ./backfill/internal/connection
+tests: TestOtherVariablesAreNotRefused
+scheduled-count: no
+
+diff --git a/backfill/internal/connection/connection.go b/backfill/internal/connection/connection.go
+index 2795042..eb300a5 100644
+--- a/backfill/internal/connection/connection.go
++++ b/backfill/internal/connection/connection.go
+@@ -20,7 +20,7 @@ import (
+ func RefusePasswordVariables(environ []string) error {
+ 	for _, entry := range environ {
+ 		name, _, _ := strings.Cut(entry, "=")
+-		if name == "PGPASSWORD" || name == "PGSSLPASSWORD" {
++		if strings.HasPrefix(name, "PG") {
+ 			return fmt.Errorf("the environment sets %s, and the database password comes only from the mounted password file", name)
+ 		}
+ 	}

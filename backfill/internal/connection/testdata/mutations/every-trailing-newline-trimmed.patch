@@ -1,0 +1,19 @@
+control: The database password is the mounted password file's text less one trailing newline, and an empty one refuses the start
+removes: every trailing newline is trimmed, not only one
+packages: ./backfill/internal/connection
+tests: TestThePasswordIsTheFilesText
+scheduled-count: no
+
+diff --git a/backfill/internal/connection/connection.go b/backfill/internal/connection/connection.go
+index 2795042..d630442 100644
+--- a/backfill/internal/connection/connection.go
++++ b/backfill/internal/connection/connection.go
+@@ -62,7 +62,7 @@ func readPassword(path string) (string, error) {
+ 	if trimmed, ok := strings.CutSuffix(password, "\r\n"); ok {
+ 		password = trimmed
+ 	} else {
+-		password = strings.TrimSuffix(password, "\n")
++		password = strings.TrimRight(password, "\r\n")
+ 	}
+ 	if password == "" {
+ 		return "", fmt.Errorf("the password file %s holds no password", path)

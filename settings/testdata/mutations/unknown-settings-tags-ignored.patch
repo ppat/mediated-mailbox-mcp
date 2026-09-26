@@ -1,0 +1,18 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a settings tag other than required is ignored
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/an_unknown_settings_tag
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..e9f4912 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -93,7 +93,6 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 			case "required":
+ 				required = true
+ 			default:
+-				return nil, fmt.Errorf("%s has the settings tag %q, and the only one is required", at, tag)
+ 			}
+ 			child, err := declareType(f.Type, at, inValue)
+ 			if err != nil {

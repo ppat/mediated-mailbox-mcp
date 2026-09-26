@@ -1,0 +1,19 @@
+control: Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
+removes: the database name is rendered from the user value
+packages: ./backfill/internal/connection
+tests: TestTheConnectionIsTheConfigurations
+scheduled-count: no
+
+diff --git a/backfill/internal/connection/connection.go b/backfill/internal/connection/connection.go
+index 2795042..0d9709d 100644
+--- a/backfill/internal/connection/connection.go
++++ b/backfill/internal/connection/connection.go
+@@ -38,7 +38,7 @@ func PoolConfig(c core.Config) (*pgxpool.Config, error) {
+ 	pairs := []string{
+ 		"host=" + quote(c.Host),
+ 		"port=" + quote(strconv.Itoa(c.Port)),
+-		"dbname=" + quote(c.Name),
++		"dbname=" + quote(c.User),
+ 		"user=" + quote(c.User),
+ 		"sslmode=" + quote(c.SSLMode),
+ 		"sslrootcert=" + quote(c.SSLRootCert),

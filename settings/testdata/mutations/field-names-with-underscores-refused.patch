@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a field name holding an underscore is refused, so a name such as link_words cannot be declared
+packages: ./settings
+tests: TestLayersApplyPerValueInOrder
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..c9b90f9 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -81,7 +81,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 			switch {
+ 			case !f.IsExported():
+ 				return nil, fmt.Errorf("%s: field %s is unexported, so no layer can set it", describe(path, t), f.Name)
+-			case !isName(name):
++			case !isName(name) || strings.Contains(name, "_"):
+ 				return nil, fmt.Errorf("%s: field %s has the yaml tag %q, and a name is lower-case letters and digits in words joined by single underscores, with no options", describe(path, t), f.Name, name)
+ 			}
+ 			if _, ok := n.field(name); ok {

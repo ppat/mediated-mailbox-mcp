@@ -1,0 +1,18 @@
+control: A deployable's configuration type is pinned field by field
+removes: a value is added to the database section without updating the pinned field list
+packages: ./backfill/internal/core/connection
+tests: TestTheSectionIsPinned
+scheduled-count: no
+
+diff --git a/backfill/internal/core/connection/connection.go b/backfill/internal/core/connection/connection.go
+index c672e53..45ba8a4 100644
+--- a/backfill/internal/core/connection/connection.go
++++ b/backfill/internal/core/connection/connection.go
+@@ -19,6 +19,7 @@ type Config struct {
+ 	SSLMode      string `yaml:"sslmode"`
+ 	SSLRootCert  string `yaml:"sslrootcert"`
+ 	PasswordFile string `yaml:"password_file" settings:"required"`
++	ApplicationName string `yaml:"application_name"`
+ }
+ 
+ // Validate refuses an empty host, database name, user or password file path, a port outside 1 to

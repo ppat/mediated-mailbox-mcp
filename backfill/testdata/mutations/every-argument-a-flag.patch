@@ -1,0 +1,19 @@
+control: A positional argument is an account only when it is neither a flag nor holds an equals sign
+removes: every argument is passed to the configuration library as a flag, so no account is taken
+packages: ./backfill
+tests: TestTheArgumentsSplitIntoFlagsAndAccounts
+scheduled-count: no
+
+diff --git a/backfill/main.go b/backfill/main.go
+index ac6189f..43327f5 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -99,7 +99,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ func splitArguments(args []string) (flags, accounts []string, err error) {
+ 	for _, arg := range args {
+ 		switch {
+-		case strings.HasPrefix(arg, "-"):
++		case true:
+ 			flags = append(flags, arg)
+ 		case strings.Contains(arg, "="):
+ 			return nil, nil, fmt.Errorf("argument %q: it is neither an account nor a flag, and flags are written --path=VALUE", arg)

@@ -1,0 +1,21 @@
+control: Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
+removes: an empty sslrootcert is left out of the connection string, so PGSSLROOTCERT sets it
+packages: ./backfill/internal/connection
+tests: TestTheConnectionIsTheConfigurations
+scheduled-count: no
+
+diff --git a/backfill/internal/connection/connection.go b/backfill/internal/connection/connection.go
+index 2795042..7180651 100644
+--- a/backfill/internal/connection/connection.go
++++ b/backfill/internal/connection/connection.go
+@@ -41,7 +41,9 @@ func PoolConfig(c core.Config) (*pgxpool.Config, error) {
+ 		"dbname=" + quote(c.Name),
+ 		"user=" + quote(c.User),
+ 		"sslmode=" + quote(c.SSLMode),
+-		"sslrootcert=" + quote(c.SSLRootCert),
++	}
++	if c.SSLRootCert != "" {
++		pairs = append(pairs, "sslrootcert="+quote(c.SSLRootCert))
+ 	}
+ 	config, err := pgxpool.ParseConfig(strings.Join(pairs, " "))
+ 	if err != nil {

@@ -1,0 +1,19 @@
+control: A boolean is true or false in every layer, wherever it sits in a value
+removes: a boolean inside a section of a value is not checked, so it takes the other words YAML reads as booleans
+packages: ./settings
+tests: TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list,_from_the_file
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 0e4fc65..83c6367 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -419,7 +419,7 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+ 	case reflect.Struct:
+ 		for i := 0; i+1 < len(n.Content); i += 2 {
+ 			for j := range t.NumField() {
+-				if t.Field(j).Tag.Get("yaml") == n.Content[i].Value {
++				if false {
+ 					if err := checkBooleans(n.Content[i+1], t.Field(j).Type); err != nil {
+ 						return err
+ 					}

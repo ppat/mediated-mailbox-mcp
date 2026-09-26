@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a section, or a field inside a list, may be required
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_required_section TestADeclarationThatCannotBeConfiguredIsRefused/a_required_field_inside_a_list
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..ff46774 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -99,7 +99,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 			if err != nil {
+ 				return nil, err
+ 			}
+-			if required && (inValue || child.kind != valueKind) {
++			if required && false {
+ 				return nil, fmt.Errorf("%s is required, and only a value outside a list can be", at)
+ 			}
+ 			n.fields = append(n.fields, field{name: name, index: i, required: required, node: child})

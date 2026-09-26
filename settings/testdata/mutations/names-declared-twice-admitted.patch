@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a name declared by two fields is no longer refused
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_name_declared_twice
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..4249960 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -84,7 +84,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 			case !isName(name):
+ 				return nil, fmt.Errorf("%s: field %s has the yaml tag %q, and a name is lower-case letters and digits in words joined by single underscores, with no options", describe(path, t), f.Name, name)
+ 			}
+-			if _, ok := n.field(name); ok {
++			if _, ok := n.field(name); ok && false {
+ 				return nil, fmt.Errorf("%s is declared twice", at)
+ 			}
+ 			required := false

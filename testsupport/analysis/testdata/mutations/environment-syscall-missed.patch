@@ -1,0 +1,19 @@
+control: The analyser refuses a read of the environment outside a deployable's composition root
+removes: the readers of package syscall are not reported
+packages: ./testsupport/analysis
+tests: TestEnvironment
+scheduled-count: no
+
+diff --git a/testsupport/analysis/environment.go b/testsupport/analysis/environment.go
+index 2ae095e..6d16dde 100644
+--- a/testsupport/analysis/environment.go
++++ b/testsupport/analysis/environment.go
+@@ -40,8 +40,6 @@ var environmentReaders = map[string]string{
+ 	"os.LookupEnv":           "reads the environment with os.LookupEnv",
+ 	"os.Environ":             "reads the environment with os.Environ",
+ 	"os.ExpandEnv":           "reads the environment with os.ExpandEnv",
+-	"syscall.Getenv":         "reads the environment with syscall.Getenv",
+-	"syscall.Environ":        "reads the environment with syscall.Environ",
+ 	"(*os/exec.Cmd).Environ": "reads the environment with (*exec.Cmd).Environ",
+ }
+ 

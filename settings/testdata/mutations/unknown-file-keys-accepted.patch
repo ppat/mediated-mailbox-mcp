@@ -1,0 +1,18 @@
+control: A configuration file's keys are matched exactly against the declaration
+removes: the file is decoded without KnownFields, so a key the declaration does not hold is ignored
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_unknown_key TestEveryMistakeIsRefusedAtStart/a_case-changed_key
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..7308e5a 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -20,7 +20,6 @@ func decode(text []byte, out any) (*yaml.Node, error) {
+ 		return nil, err
+ 	}
+ 	dec := yaml.NewDecoder(bytes.NewReader(text))
+-	dec.KnownFields(true)
+ 	if err := dec.Decode(out); err != nil {
+ 		return nil, err
+ 	}

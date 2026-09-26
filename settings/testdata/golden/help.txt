@@ -1,0 +1,56 @@
+Each value is set, in rising precedence, by its default, by the YAML file named by
+--config-file=PATH or MEDIATED_MAILBOX_CONFIG_FILE, by its environment variable and
+by its flag. A value other than a string is written as YAML, so a list is [a, b].
+A default that is an empty string or holds a newline is shown quoted, a newline as \n.
+
+scanner.triggers.<key>
+  environment: MEDIATED_MAILBOX_SCANNER__TRIGGERS__<KEY>
+  flag: --scanner.triggers.<key>=VALUE
+
+scanner.link_words
+  environment: MEDIATED_MAILBOX_SCANNER__LINK_WORDS
+  flag: --scanner.link_words=VALUE
+  default: [verify]
+
+scanner.threshold
+  environment: MEDIATED_MAILBOX_SCANNER__THRESHOLD
+  flag: --scanner.threshold=VALUE
+  default: 0.5
+
+server.listen
+  environment: MEDIATED_MAILBOX_SERVER__LISTEN
+  flag: --server.listen=VALUE
+  required
+
+server.timeout
+  environment: MEDIATED_MAILBOX_SERVER__TIMEOUT
+  flag: --server.timeout=VALUE
+  default: 5s
+
+server.workers
+  environment: MEDIATED_MAILBOX_SERVER__WORKERS
+  flag: --server.workers=VALUE
+  default: 2
+
+server.debug
+  environment: MEDIATED_MAILBOX_SERVER__DEBUG
+  flag: --server.debug=VALUE
+  default: false
+
+server.banner
+  environment: MEDIATED_MAILBOX_SERVER__BANNER
+  flag: --server.banner=VALUE
+  default: yes: no
+
+server.routes.<key>.target
+  environment: MEDIATED_MAILBOX_SERVER__ROUTES__<KEY>__TARGET
+  flag: --server.routes.<key>.target=VALUE
+  required
+
+server.routes.<key>.weight
+  environment: MEDIATED_MAILBOX_SERVER__ROUTES__<KEY>__WEIGHT
+  flag: --server.routes.<key>.weight=VALUE
+
+Defaults of keyed values
+  scanner.triggers.de: [Code]
+  scanner.triggers.en: [code]

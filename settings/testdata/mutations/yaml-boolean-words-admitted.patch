@@ -1,0 +1,19 @@
+control: A boolean is true or false in every layer, wherever it sits in a value
+removes: a boolean in any layer takes the other words YAML reads as booleans, such as yes and off
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_flag_holding_a_YAML_word_for_true TestEveryMistakeIsRefusedAtStart/a_flag_holding_a_YAML_word_for_false TestEveryMistakeIsRefusedAtStart/an_environment_variable_holding_a_YAML_word_for_true TestEveryMistakeIsRefusedAtStart/an_environment_variable_holding_a_YAML_word_for_false TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_a_flag TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_the_environment TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list TestEveryMistakeIsRefusedAtStart/a_YAML_word_for_true_in_the_file TestEveryMistakeIsRefusedAtStart/a_YAML_word_for_false_in_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list,_from_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list,_from_the_file
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 0e4fc65..ae675cd 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -401,7 +401,7 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+ 	switch t.Kind() {
+ 	case reflect.Bool:
+-		if n.Kind == yaml.ScalarNode && (n.ShortTag() != "!!bool" || (n.Value != "true" && n.Value != "false")) {
++		if false {
+ 			return fmt.Errorf("line %d: %q is not a boolean, and a boolean is true or false", n.Line, n.Value)
+ 		}
+ 	case reflect.Slice:

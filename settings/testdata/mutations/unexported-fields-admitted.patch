@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: an unexported field is no longer refused
+packages: ./settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/an_unexported_field
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..1eb7c07 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -79,8 +79,6 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 			name := f.Tag.Get("yaml")
+ 			at := join(path, name)
+ 			switch {
+-			case !f.IsExported():
+-				return nil, fmt.Errorf("%s: field %s is unexported, so no layer can set it", describe(path, t), f.Name)
+ 			case !isName(name):
+ 				return nil, fmt.Errorf("%s: field %s has the yaml tag %q, and a name is lower-case letters and digits in words joined by single underscores, with no options", describe(path, t), f.Name, name)
+ 			}

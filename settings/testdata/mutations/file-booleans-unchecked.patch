@@ -1,0 +1,20 @@
+control: A boolean is true or false in every layer, wherever it sits in a value
+removes: a boolean in the configuration file is not checked, so it takes the other words YAML reads as booleans, such as yes and off
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_YAML_word_for_true_in_the_file TestEveryMistakeIsRefusedAtStart/a_YAML_word_for_false_in_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list,_from_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list,_from_the_file
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 0e4fc65..3106bef 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -242,9 +242,6 @@ func readFile[T any](root *node, name string, out []assignment) ([]assignment, e
+ 	if err != nil {
+ 		return nil, fmt.Errorf("config file %s: %w", name, err)
+ 	}
+-	if err := checkBooleans(doc, reflect.TypeFor[T]()); err != nil {
+-		return nil, fmt.Errorf("config file %s: %w", name, err)
+-	}
+ 	if err := collectFile(root, doc, decoded.Elem(), nil, name, &out); err != nil {
+ 		return nil, fmt.Errorf("config file %s: %w", name, err)
+ 	}

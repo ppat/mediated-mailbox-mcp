@@ -1,0 +1,19 @@
+control: The database section is validated before anything else starts
+removes: the TLS mode allow, which the driver accepts, is refused
+packages: ./backfill/internal/core/connection
+tests: TestAUsableValueIsAccepted
+scheduled-count: no
+
+diff --git a/backfill/internal/core/connection/connection.go b/backfill/internal/core/connection/connection.go
+index c672e53..7b11ca4 100644
+--- a/backfill/internal/core/connection/connection.go
++++ b/backfill/internal/core/connection/connection.go
+@@ -37,7 +37,7 @@ func Validate(c Config) error {
+ 		return errors.New("database.port " + strconv.Itoa(c.Port) + " is outside 1 to 65535")
+ 	}
+ 	switch c.SSLMode {
+-	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
++	case "disable", "prefer", "require", "verify-ca", "verify-full":
+ 		return nil
+ 	}
+ 	return errors.New("database.sslmode " + strconv.Quote(c.SSLMode) + " is not disable, allow, prefer, require, verify-ca or verify-full")

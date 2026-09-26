@@ -1,0 +1,26 @@
+control: A section's revision follows its effective value, whichever layer set it
+removes: each revision is taken over the section's values with the layer that set each, so restating a default in the file changes it
+packages: ./settings
+tests: TestASectionsRevisionFollowsItsEffectiveValue/the_file_restates_a_default
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..1112d54 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -184,7 +184,14 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 	slices.SortFunc(loaded.Values, func(a, b Value) int { return strings.Compare(a.Path, b.Path) })
+ 	loaded.Revisions = map[string]string{}
+ 	for _, f := range root.fields {
+-		text, err := yaml.Marshal(result.Field(f.index).Interface())
++		var parts []string
++		for path, source := range sources {
++			if strings.HasPrefix(path, f.name+".") {
++				parts = append(parts, path+" "+source.String()+" "+fmt.Sprint(get(result, root, strings.Split(path, ".")).Interface()))
++			}
++		}
++		slices.Sort(parts)
++		text, err := []byte(strings.Join(parts, "\n")), error(nil)
+ 		if err != nil {
+ 			return Loaded[T]{}, fmt.Errorf("%s: %w", f.name, err)
+ 		}

@@ -183,8 +183,18 @@ in its README.
   from inside a property
   ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The globals
   analyser refuses package-level state in a pure core by the four rules
-  [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. banproof requires
-  each rule from its violation file, where a want annotation names the finding as `vetcheck`.
+  [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. The environment
+  analyser refuses every standard-library function that returns an environment variable's value by
+  a name its caller gives, or the environment as a whole, which is `os.Getenv`, `os.LookupEnv`,
+  `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` and
+  `(*exec.Cmd).Environ`. Functions that read fixed platform variables for their own purpose, such as
+  `os.UserHomeDir`, `os.TempDir` and `http.ProxyFromEnvironment`, stay allowed. The rule covers every
+  package of the module outside `testsupport`, apart from test files and a deployable's `main.go` at
+  its directory root, the composition root
+  ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It is
+  scoped by path, which a `forbidigo` rule could carry only through an exclusion ADR-0071 refuses.
+  banproof requires each rule from its violation file, where a want annotation names the finding as
+  `vetcheck`.
 - **`banproof`** is the ban-proof script of
   [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), written as a Go
   program at `testsupport/cmd/banproof` and run as `go tool banproof`. It runs the analysers with

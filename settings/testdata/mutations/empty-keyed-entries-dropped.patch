@@ -1,0 +1,18 @@
+control: A required value no layer sets is refused
+removes: an entry of a keyed map the file names with nothing set in it is dropped, so its required values are never demanded
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_required_value_of_an_empty_keyed_entry_in_the_file
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..af5be74 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -270,7 +270,6 @@ func collectFile(n *node, doc *yaml.Node, v reflect.Value, path []string, name s
+ 				return fmt.Errorf("line %d: %w", doc.Content[i].Line, err)
+ 			}
+ 			at := append(slices.Clone(path), key)
+-			*out = append(*out, assignment{path: at, source: Source{Layer: File, Name: fmt.Sprintf("%s line %d", name, doc.Content[i].Line)}, entry: true})
+ 			if err := collectFile(n.elem, doc.Content[i+1], v.MapIndex(reflect.ValueOf(key).Convert(n.typ.Key())), at, name, out); err != nil {
+ 				return err
+ 			}

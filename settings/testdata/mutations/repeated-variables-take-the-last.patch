@@ -1,0 +1,19 @@
+control: Every environment variable under the prefix names a declared value, in upper case, once
+removes: a variable set twice is no longer refused, so the later entry wins
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_set_twice
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..99b48f8 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -297,8 +297,6 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+ 		switch {
+ 		case name != upper:
+ 			return nil, "", fmt.Errorf("environment variable %s: its name is not upper case, and names under %s are", name, Prefix)
+-		case seen[name]:
+-			return nil, "", fmt.Errorf("environment variable %s: it is set twice", name)
+ 		}
+ 		seen[name] = true
+ 		rest := strings.TrimPrefix(name, Prefix)

@@ -1,0 +1,19 @@
+control: A map key is runs of lower-case letters and digits joined by single underscores
+removes: a map key may start or end with an underscore, so two key paths share one environment name
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_map_key_starting_with_an_underscore TestEveryMistakeIsRefusedAtStart/a_map_key_ending_with_an_underscore TestEveryMistakeIsRefusedAtStart/an_environment_variable_with_a_map_key_starting_with_an_underscore TestEveryMistakeIsRefusedAtStart/a_flag_with_a_map_key_ending_with_an_underscore
+scheduled-count: no
+
+diff --git a/settings/declaration.go b/settings/declaration.go
+index 43acc05..c3c3823 100644
+--- a/settings/declaration.go
++++ b/settings/declaration.go
+@@ -159,7 +159,7 @@ func isName(s string) bool {
+ 
+ // checkKey refuses a map key that could not be a segment of an environment name (ADR-0078).
+ func checkKey(key string) error {
+-	if !isName(key) {
++	if key == "" || !isKeyAlphabet(key) || strings.Contains(key, "__") {
+ 		return fmt.Errorf("the key %q is not runs of lower-case letters and digits joined by single underscores", key)
+ 	}
+ 	return nil

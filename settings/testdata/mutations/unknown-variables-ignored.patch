@@ -1,0 +1,19 @@
+control: Every environment variable under the prefix names a declared value, in upper case, once
+removes: a variable under the prefix that names no value is skipped, as is one whose value does not decode
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_unknown_environment_variable_under_the_prefix TestEveryMistakeIsRefusedAtStart/an_environment_variable_naming_a_section TestEveryMistakeIsRefusedAtStart/an_environment_variable_naming_a_part_of_a_value TestEveryMistakeIsRefusedAtStart/an_environment_variable_of_the_wrong_type
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..31483a5 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -312,7 +312,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+ 		path := strings.Split(strings.ToLower(rest), "__")
+ 		value, err := resolve(root, path, text)
+ 		if err != nil {
+-			return nil, "", fmt.Errorf("environment variable %s: %w", name, err)
++			continue
+ 		}
+ 		out = append(out, assignment{path: path, value: value, source: Source{Layer: Environment, Name: name}})
+ 	}

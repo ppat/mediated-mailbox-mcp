@@ -1,0 +1,20 @@
+control: No file is read unless a flag or the environment names one
+removes: an empty MEDIATED_MAILBOX_CONFIG_FILE is taken as naming no file, so every value falls back to the other layers
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_naming_an_empty_file
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..88d2d35 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -303,9 +303,6 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+ 		seen[name] = true
+ 		rest := strings.TrimPrefix(name, Prefix)
+ 		if rest == fileVariable {
+-			if text == "" {
+-				return nil, "", fmt.Errorf("environment variable %s: it names no file", name)
+-			}
+ 			file = text
+ 			continue
+ 		}

@@ -20,6 +20,12 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   (ADR-0040). A deployable's composition root is its `main.go`, and everything else it holds sits
   under `internal/`, apart from an `importtarget` package holding a violation file (CLAUDE.md,
   Inside a component).
+- **The environment is read only by a deployable's composition root**, which hands it to the
+  configuration library in `settings/`. The `go vet` environment analyser refuses, anywhere else
+  outside test files and `testsupport`, every standard-library function that returns an environment
+  variable's value by a name its caller gives, or the environment as a whole, such as `os.Getenv`.
+  Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, stay
+  allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
 - **Deployables never import each other**, and a component imports only the data-access subsections
   its import list names (ADR-0054, ADR-0066, ADR-0071).
 - **Test files are named by kind** (`_property_test.go`, `_crash_test.go`, `_integration_test.go`

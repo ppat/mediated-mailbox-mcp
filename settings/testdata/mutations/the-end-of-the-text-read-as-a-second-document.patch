@@ -1,0 +1,21 @@
+control: A configuration text holds exactly one document
+removes: the end of the text is taken for a second document, so every text of one document is refused
+packages: ./settings
+tests: TestLayersApplyPerValueInOrder TestAValueFromTheEnvironmentOrAFlag/a_list_is_decoded_as_YAML TestAFileValueThatIsNotANull
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..d7ed319 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -41,8 +41,8 @@ func parse(text []byte) (*yaml.Node, error) {
+ 	switch err := dec.Decode(&next); {
+ 	case err == nil:
+ 		return nil, fmt.Errorf("line %d: a second document starts, and only one is read", next.Line)
+-	case !errors.Is(err, io.EOF):
+-		return nil, err
++	case errors.Is(err, io.EOF):
++		return nil, errors.New("a second document starts, and only one is read")
+ 	}
+ 	if len(doc.Content) == 0 {
+ 		return nil, errors.New("holds no document, and an empty document is a null")

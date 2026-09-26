@@ -28,8 +28,9 @@ an image, because only test files and the tooling programs import it. Its packag
   parameters named, that an interface has exactly the methods named with exactly their
   signatures, and that exactly the named methods of an interface return a given type, with exactly
   the results named.
-- `analysis`, the `go vet` analysers, for ADR-0069's placement rules and ADR-0071's rule against
-  package-level state in a pure core.
+- `analysis`, the `go vet` analysers, for ADR-0069's placement rules, ADR-0071's rule against
+  package-level state in a pure core and ADR-0078's rule against reading the environment outside a
+  deployable's composition root.
 - `livecontract`, the guard a contract run against a real provider calls first, which skips the
   run unless `cmd/livecontract` started it, and the invocation that command runs
   ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)).

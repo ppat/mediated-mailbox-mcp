@@ -1,0 +1,22 @@
+control: A boolean is true or false in every layer, wherever it sits in a value
+removes: a boolean inside a list is not checked, so it takes the other words YAML reads as booleans
+packages: ./settings
+tests: TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_a_flag TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_the_environment TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list,_from_the_file TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list,_from_the_file
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 0e4fc65..3753d09 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -405,11 +405,6 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+ 			return fmt.Errorf("line %d: %q is not a boolean, and a boolean is true or false", n.Line, n.Value)
+ 		}
+ 	case reflect.Slice:
+-		for _, c := range n.Content {
+-			if err := checkBooleans(c, t.Elem()); err != nil {
+-				return err
+-			}
+-		}
+ 	case reflect.Map:
+ 		for i := 1; i < len(n.Content); i += 2 {
+ 			if err := checkBooleans(n.Content[i], t.Elem()); err != nil {

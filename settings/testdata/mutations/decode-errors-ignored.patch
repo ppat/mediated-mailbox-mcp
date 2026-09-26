@@ -1,0 +1,19 @@
+control: A value from the environment or a flag decodes as its field's type, and a string takes the text verbatim
+removes: a value from the environment or a flag that does not decode is taken as the zero value
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_of_the_wrong_type TestEveryMistakeIsRefusedAtStart/a_flag_of_the_wrong_type TestEveryMistakeIsRefusedAtStart/an_environment_variable_holding_a_null TestEveryMistakeIsRefusedAtStart/a_flag_holding_a_null
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 25ba519..809d5c8 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -384,7 +384,7 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+ 	}
+ 	doc, err := decode([]byte(text), v.Interface())
+ 	if err != nil {
+-		return reflect.Value{}, err
++		return reflect.New(n.typ).Elem(), nil
+ 	}
+ 	if err := checkBooleans(doc, n.typ); err != nil {
+ 		return reflect.Value{}, err

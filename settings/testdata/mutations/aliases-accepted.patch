@@ -1,0 +1,19 @@
+control: An explicit null, an alias or a merge key is refused in every layer
+removes: an alias is no longer refused, so it repeats the anchored value
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/an_alias TestEveryMistakeIsRefusedAtStart/a_flag_holding_an_alias
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..9446156 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -59,8 +59,6 @@ func parse(text []byte) (*yaml.Node, error) {
+ // the text set values that another place names.
+ func check(n *yaml.Node) error {
+ 	switch {
+-	case n.Kind == yaml.AliasNode:
+-		return fmt.Errorf("line %d: an alias, and aliases are refused", n.Line)
+ 	case n.ShortTag() == "!!null":
+ 		return fmt.Errorf("line %d: an explicit null, and a value is given or left out", n.Line)
+ 	}

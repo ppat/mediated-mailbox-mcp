@@ -1,0 +1,22 @@
+control: Two loads in one process share nothing with each other or with the defaults
+removes: a value is copied without its lists and maps, so a list in the result is the one in the defaults
+packages: ./settings
+tests: TestTwoConfigurationsShareNothing
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..1dee0be 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -480,10 +480,7 @@ func copyValue(v reflect.Value) reflect.Value {
+ 	switch {
+ 	case (k == reflect.Slice || k == reflect.Map) && v.IsNil():
+ 	case k == reflect.Slice:
+-		out.Set(reflect.MakeSlice(v.Type(), v.Len(), v.Len()))
+-		for i := range v.Len() {
+-			out.Index(i).Set(copyValue(v.Index(i)))
+-		}
++		out.Set(v)
+ 	case k == reflect.Map:
+ 		out.Set(reflect.MakeMapWithSize(v.Type(), v.Len()))
+ 		for _, key := range v.MapKeys() {

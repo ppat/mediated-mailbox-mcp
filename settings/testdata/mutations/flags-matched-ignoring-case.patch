@@ -1,0 +1,19 @@
+control: Every argument is a flag naming a declared value, once, with a value
+removes: a flag's path is lower-cased before it is resolved, so a case-changed flag sets the value it resembles
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_case-changed_flag
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..55a81e2 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -344,7 +344,7 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+ 			file = text
+ 			continue
+ 		}
+-		path := strings.Split(name, ".")
++		path := strings.Split(strings.ToLower(name), ".")
+ 		value, err := resolve(root, path, text)
+ 		if err != nil {
+ 			return nil, "", fmt.Errorf("flag --%s: %w", name, err)

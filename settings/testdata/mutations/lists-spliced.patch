@@ -1,0 +1,20 @@
+control: Values layer per value in the order defaults, file, environment, flags
+removes: a list from a later layer is appended to the earlier layer's list rather than replacing it
+packages: ./settings
+tests: TestAListFromALaterLayerReplacesTheWholeList TestLayersApplyPerValueInOrder
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 4299ed0..d836c17 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -403,6 +403,9 @@ func describePath(path []string) string {
+ func set(v reflect.Value, n *node, path []string, value reflect.Value) {
+ 	if len(path) == 0 {
+ 		if value.IsValid() {
++			if v.Kind() == reflect.Slice && !v.IsNil() {
++				value = reflect.AppendSlice(v, value)
++			}
+ 			v.Set(value)
+ 		}
+ 		return

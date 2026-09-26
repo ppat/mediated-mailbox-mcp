@@ -1,0 +1,48 @@
+control: A configuration file's keys are matched exactly against the declaration
+removes: the file's keys are lower-cased before the strict decode, so a case-changed key sets the value it resembles
+packages: ./settings
+tests: TestEveryMistakeIsRefusedAtStart/a_case-changed_key
+scheduled-count: no
+
+diff --git a/settings/decode.go b/settings/decode.go
+index b04ffc3..8a6a36a 100644
+--- a/settings/decode.go
++++ b/settings/decode.go
+@@ -5,6 +5,7 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"io"
++	"strings"
+ 
+ 	"go.yaml.in/yaml/v3"
+ )
+@@ -19,7 +20,12 @@ func decode(text []byte, out any) (*yaml.Node, error) {
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	dec := yaml.NewDecoder(bytes.NewReader(text))
++	lowerKeys(root)
++	folded, err := yaml.Marshal(root)
++	if err != nil {
++		return nil, err
++	}
++	dec := yaml.NewDecoder(bytes.NewReader(folded))
+ 	dec.KnownFields(true)
+ 	if err := dec.Decode(out); err != nil {
+ 		return nil, err
+@@ -27,6 +33,15 @@ func decode(text []byte, out any) (*yaml.Node, error) {
+ 	return root, nil
+ }
+ 
++func lowerKeys(n *yaml.Node) {
++	for i, child := range n.Content {
++		if n.Kind == yaml.MappingNode && i%2 == 0 {
++			child.Value = strings.ToLower(child.Value)
++		}
++		lowerKeys(child)
++	}
++}
++
+ // parse reads text as exactly one YAML document holding no null, alias or merge key.
+ func parse(text []byte) (*yaml.Node, error) {
+ 	dec := yaml.NewDecoder(bytes.NewReader(text))

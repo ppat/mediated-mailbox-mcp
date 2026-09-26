@@ -1,0 +1,19 @@
+control: The database section is validated before anything else starts
+removes: empty database name is accepted
+packages: ./backfill/internal/core/connection
+tests: TestAnUnusableValueIsRefused/an_empty_database_name
+scheduled-count: no
+
+diff --git a/backfill/internal/core/connection/connection.go b/backfill/internal/core/connection/connection.go
+index c672e53..be44b27 100644
+--- a/backfill/internal/core/connection/connection.go
++++ b/backfill/internal/core/connection/connection.go
+@@ -27,8 +27,6 @@ func Validate(c Config) error {
+ 	switch {
+ 	case c.Host == "":
+ 		return errors.New("database.host is empty")
+-	case c.Name == "":
+-		return errors.New("database.name is empty")
+ 	case c.User == "":
+ 		return errors.New("database.user is empty")
+ 	case c.PasswordFile == "":

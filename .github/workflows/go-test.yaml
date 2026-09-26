@@ -32,6 +32,7 @@ on:
     - provider/**
     - ratelimit/**
     - sanitize/**
+    - settings/**
     - sync/**
     - testsupport/**
     - ui/*.go

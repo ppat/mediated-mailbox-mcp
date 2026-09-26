@@ -1,0 +1,21 @@
+control: A value from the environment or a flag decodes as its field's type, and a string takes the text verbatim
+removes: a string value is decoded as YAML like any other, so its text is no longer taken verbatim
+packages: ./settings
+tests: TestAValueFromTheEnvironmentOrAFlag/a_string_takes_the_text_verbatim TestAValueFromTheEnvironmentOrAFlag/a_string_takes_a_text_that_reads_as_a_null_in_YAML TestAValueFromTheEnvironmentOrAFlag/an_empty_string_is_a_string
+scheduled-count: no
+
+diff --git a/settings/settings.go b/settings/settings.go
+index 25ba519..1dc08e5 100644
+--- a/settings/settings.go
++++ b/settings/settings.go
+@@ -378,10 +378,6 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+ 		return reflect.Value{}, fmt.Errorf("it names %s, a section rather than a value", strings.Join(path, "."))
+ 	}
+ 	v := reflect.New(n.typ)
+-	if n.typ.Kind() == reflect.String {
+-		v.Elem().SetString(text)
+-		return v.Elem(), nil
+-	}
+ 	doc, err := decode([]byte(text), v.Interface())
+ 	if err != nil {
+ 		return reflect.Value{}, err
