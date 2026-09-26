@@ -17,16 +17,18 @@ a provider's query string ([ADR-0010](../provider/0010-one-provider-port.md)). A
 client's vocabulary ([DESIGN.md](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary)).
 What is left to choose is how each operation appears on the wire. That is its HTTP method and
 path, how its arguments and its account travel, and what the MCP tool declares about its behaviour.
+This record binds the mediator's client surface only. The UI's read API is the UI's own and keeps
+its own routes ([docs/UI.md](../../UI.md#17-the-read-api)).
 
 The choice looks like a question of HTTP style. It is really a question of where the facts about an
 operation's behaviour are declared. An HTTP method and an MCP annotation state the same fact twice,
 whether the operation is safe, idempotent or destructive. Every system that declares them separately
 lets them drift. Notion's MCP server derived its annotations from the HTTP method and labelled its
 own `POST` search destructive
-([notion-mcp-server](https://github.com/makenotion/notion-mcp-server)). Stainless gave every `POST`
-no hints, so a pure computation defaulted to destructive
-([Stainless MCP docs](https://www.stainless.com/docs/mcp/)). Unannotated tools default to
-destructive and open-world under the protocol
+([notion-mcp-server](https://github.com/makenotion/notion-mcp-server)). Servers Stainless generated
+gave every `POST` no hints, so a pure computation defaulted to destructive
+([a generated server's tools](https://github.com/dedalus-labs/dedalus-agents-typescript/tree/main/packages/mcp-server/src/tools)).
+Unannotated tools default to destructive and open-world under the protocol
 ([MCP tools specification](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)).
 
 | # | Requirement | Demands | From |
@@ -39,7 +41,7 @@ destructive and open-world under the protocol
 | R6 | Deployable anywhere | The surface assumes nothing a conformant cluster's ingress may not pass | [ADR-0051](../engineering/0051-environment-contract.md), [ADR-0052](../engineering/0052-kubernetes-deployment-helm-chart.md) |
 | R7 | Gated content never cached | No response the Redaction Gate decided can outlive a change in its decision | [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) |
 | R8 | Usable by an agent | Tools shaped around tasks, few enough to choose between, each with one risk level and accurate annotations | This record |
-| R9 | Search terms stay out of URLs | Structured query input never travels in a URL, which intermediaries log ([RFC 9110 §17.9](https://www.rfc-editor.org/rfc/rfc9110.html)) | This record |
+| R9 | Search terms stay out of URLs | Structured query input never travels in a URL, which intermediaries log ([RFC 9110 §17.9](https://www.rfc-editor.org/rfc/rfc9110.html#section-17.9)) | This record |
 
 R1, R4, R5 and R6 are gates. R2, R3 and R8 order the field. R7 and R9 hold for every candidate that
 passes the gates once each design adds the mechanism named below, so they break no tie.
@@ -92,12 +94,13 @@ passes the gates once each design adds the mechanism named below, so they break 
   an ambiguous account extends to an `account_id` given in the query string or the body beside the
   path.
 - **The MCP root offers tools only.** A read is a tool, not a resource, because hosts surface
-  resources to the model only on a user's mention, and a client could cache a gated body through
-  one. Tools are named verb_noun and shaped around the agent's tasks rather than mirroring one route
-  each, following Anthropic's guidance
+  resources to the model mainly on a user's mention, and a client could cache a gated body through
+  one. Operations are shaped around the agent's tasks, and each is one tool and one route, named
+  verb_noun, following Anthropic's guidance
   ([Writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents)) and
-  what curated production servers do. No tool mixes a read with a write, and each Disposal
-  operation is its own tool, as Gmail's own MCP server keeps trash and spam apart
+  what curated production servers do. No operation mixes a read with a write, and Disposal
+  operations stay apart from the reversible ones, as Gmail's own MCP server keeps trash and spam
+  apart from labelling
   ([Gmail MCP reference](https://developers.google.com/workspace/gmail/api/reference/mcp)).
 - **Dry-run is a `dry_run` argument of each write**, as
   [ADR-0031](../mutation/0031-dry-run-on-mutating-operations.md) requires, not a separate preview
@@ -169,11 +172,17 @@ What an implementer would otherwise pay to discover:
 
 ## Alternatives considered
 
+A cell reads "holds" when the design meets the requirement by its own structure, "weakens" when it
+meets it only with added discipline or with a gap a check must close, and "fails" when it cannot
+meet it. Every cell is a judgment over the evidence the passages cite. The Gateway API cell and the
+`ServeMux` facts were read from source, and nothing on this grid was measured.
+
 | Design | R1 | R2 | R3 | R4 | R5 | R6 | R8 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Effect-derived, resource paths, `POST` for structured reads** | holds | holds | holds for scalar reads | holds | holds | holds | holds |
 | Every operation `POST /api/<name>` | holds | holds | fails | holds | holds | holds | holds |
 | As chosen, with `QUERY` for structured reads | holds | holds | holds for every read | holds | holds | fails today | holds |
+| As chosen, with `PUT` for writes | holds | holds | holds for scalar reads | weakens | holds | holds | weakens |
 | HTTP API primary, MCP generated from OpenAPI | weakens | fails | holds | weakens | holds | holds | weakens |
 | Reads as MCP resources | weakens | holds | holds | holds | holds | holds | fails |
 | A separate preview tool per write | holds | holds | holds | holds | holds | holds | weakens |
@@ -194,15 +203,17 @@ R7 and R9 separate none of these once each carries `no-store` and keeps structur
   cannot rely on it.
 - **`PUT` for writes.** For it, idempotency visible in the method. Against it, the batch body names
   no single resource to replace, and label membership alone fits a `PUT`, which would split one
-  task across per-message calls.
+  task across per-message calls. A resource open to `PUT` also invites a replacement of a plan,
+  status included, which the registry would then have to refuse by rule.
 - **HTTP API primary, MCP generated from OpenAPI.** For it, the canonical HTTP design, and
   generators exist. Against it, the generators flatten path, query and body by rules of their own
   and rename on collision ([FastMCP OpenAPI](https://gofastmcp.com/integrations/openapi)), none
-  derives useful annotations from the method, and the vendors who shipped one tool per route have
-  retired it.
+  derives useful annotations from the method, and vendors who shipped one tool per route have moved
+  away from it, as Stainless did when it kept only its code-mode tools
+  ([Stainless MCP changelog](https://www.stainless.com/changelog/products/mcp)).
 - **Reads as MCP resources.** For it, the protocol's application-controlled primitive for data.
-  Against it, hosts show resources to the model only on a user's mention, so an agent would not
-  find them, and a client may cache a gated body.
+  Against it, hosts show resources to the model mainly on a user's mention, so an agent would
+  rarely find them, and a client may cache a gated body.
 - **A separate preview tool per write.** For it, a dry run carries a read-only hint and draws no
   confirmation. Against it, it doubles the write surface past thirty tools.
 

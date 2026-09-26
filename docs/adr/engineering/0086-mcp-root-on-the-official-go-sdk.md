@@ -44,7 +44,7 @@ protocol inside the mediator at all.
 | R12 Environment | No undeclared environment input | ADR-0051, [O6](../../../USE_CASES.md#o6--deployable) |
 | R13 Annotations | All four hints, `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, set explicitly from data on raw registration and reaching the client with the meaning the registry derived | ADR-0087 |
 
-R6, R7 and R13 are gates, and R13 separates none of the candidates that pass the other two. R2,
+R6, R7 and R13 are gates, and every candidate that passes the other two passes R13 as well. R2,
 R3 and R4 order the field. Footprint breaks ties, as the operator ruled, consistent with how
 ADR-0066, [ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md) and ADR-0076 weighed
 it for code in or near the same processes. Throughput, licences and payload logging were not
@@ -125,6 +125,9 @@ What an implementer would otherwise pay to discover:
   client then applies the specification's default of true. At the 2026-07-28 revision a
   `tools/list` reply also carries `ttlMs` and `cacheScope`, which a literal test of the listing
   expects.
+- The SDK parses `MCPGODEBUG` in its package initialisation and panics on a malformed value, before
+  the mediator's own refusal runs. The mediator still does not start, but the message is the
+  SDK's.
 
 ## Alternatives considered
 
@@ -154,7 +157,8 @@ The grid shows the following.
   and statelessness and equal elsewhere. jrpc2 under an owned layer is dominated by the hand-written
   root, no better anywhere and a module worse.
 - R8 to R12 separated no one among the survivors, because the service layer and the mediator's own
-  front already carry what they ask. R13 is met by every survivor, so it separates none either.
+  front already carry what they ask. Every survivor passes R13, and mcp-go's 3 there orders it
+  below the SDK without separating the two leaders.
 - The SDK and the hand-written root tie on proof. The SDK's own CI passes the whole suite on its
   reference server, while the configuration this record picks, run through the suite, failed one
   check, a prompt list answered without prompts declared, which the receiving middleware closes.
@@ -221,8 +225,8 @@ detachable, since the same suite can run against a hand-written root, while its 
   ADR-0076's sense, an SDK release that changes how `ToolAnnotations` is serialised, or adopting
   `x-mcp-header` for any parameter.
 - Each SDK release is read for retired `MCPGODEBUG` flags and protocol changes before it is taken.
-  Its flag documentation schedules every flag now live, `hintomitempty` among them, for removal in
-  v1.9.0 ([`mcpgodebug.md`](https://github.com/modelcontextprotocol/go-sdk/blob/main/docs/mcpgodebug.md)).
+  The SDK's flag documentation gives each flag the release that removes it
+  ([`mcpgodebug.md`](https://github.com/modelcontextprotocol/go-sdk/blob/main/docs/mcpgodebug.md)).
 - Assumptions about other components. The service layer validates arguments, rejects timestamps
   that are not UTC and shapes failures for both roots. The registry derives all four hints from the
   effect class, and a registry rule refuses `x-mcp-header` at generation, proven by its violation
