@@ -368,3 +368,46 @@ checks that gate the commit vocabulary carry no condition.
   ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)),
   so the component labels are the one channel that does. Tickets carry no other GitHub label, and
   no milestone or project.
+
+### Before implementation
+
+Start with the ticket and its unit in [ROADMAP.md](./ROADMAP.md). Open the governing sources the
+ticket references, including the outcome, decision records and verification and testing obligations.
+Check the current decisions and prerequisite state against those sources and the work already
+landed. Use the [document map](#the-documents) and [decision-record index](./docs/adr/README.md) to
+find additional constraints implicated by the intended behaviour. The ticket's references are a
+starting set, not a claim of completeness.
+
+Record the constraints on the implementation briefly in session notes, with source links and the
+relevant deliberate exclusions. Link to the ticket rather than copying its inventory. State what
+the sources require of this change, not merely that they were read. Revisit the record when the
+scope changes, and surface conflicts with the governing sources before implementing a departure.
+
+### Adversarial review
+
+Give the reviewer the ticket, the authoritative sources and the diff. Have it independently identify
+the governing constraints before comparing them with the author's record and implementation.
+Resolve omissions and contradictions in the existing review and fix cycle. This preparation and
+review leave the [whole-set coherence check](#keep-the-documents-current--a-standing-duty) in force.
+
+### Pull request handoff
+
+Lead with the resulting behaviour and why the change is needed, and link the ticket it delivers.
+Organize the body around what the owner needs to assess from the final diff. Use tables for
+parallel changes and control-to-proof mappings, and a diagram when it makes a dependency or
+enforcement boundary easier to understand. Scale the detail to the change.
+
+| Item | What the owner needs |
+| --- | --- |
+| What changes | The behaviour and boundaries that change, grouped by area or exposed surface |
+| Controls and proof | Each control introduced or changed, the test or deliberate-failure evidence that proves it, and links to the relevant verification and mutation records. Distinguish proof completed from proof still owed |
+| Design changes | Decisions added, changed or superseded, with links. Distinguish implementing an existing decision from making a new one, and explain any departure from the ticket |
+| Enforcement changes | Changes to suppressions, static-analysis rules, verification fixtures, test selection or CI coverage, with diff links and rationale |
+| Owner attention | Unresolved uncertainty, accepted tradeoffs and decisions requiring the owner's judgment |
+| Left out or open | Deliberate omissions and unfinished proof, with the ticket or unit that owns the remaining work |
+| Dependencies | For stacked work, the prerequisite pull request or commit and the required merge order |
+
+These are content requirements, not fixed headings or a second summary to duplicate the body.
+Make design changes, enforcement changes and owner attention easy to find in the relevant sections.
+Say explicitly when any of those three has nothing to report, after checking the diff. Refresh the
+body after review fixes so it describes the change being presented.
