@@ -14,5 +14,5 @@ before editing it, as for every member of the document set. Hold these lines:
 - **The header line and the sections are the format.** Adding, removing or renaming one changes
   what every ticket cut afterwards carries, and CLAUDE.md's Repository process is reconciled in
   the same change.
-- **The prose rules of CLAUDE.md bind every placeholder**, and every ticket cut from the template.
+- **The global prose rules of CLAUDE.md bind every placeholder**, and every ticket cut from the template.
 - The `update-docs` skill's coherence check and mechanical checks cover this file.
