@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
+	"github.com/ppat/mediated-mailbox-mcp/db/ratestate/limiter"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 )
@@ -107,7 +107,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
 		rate float64
 	)
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
-		q := ratestate.New(t)
+		q := limiter.New(t)
 		now, err := l.lock(ctx, q, account)
 		if err != nil {
 			return err
@@ -144,18 +144,18 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
 // storeIssuance writes what issuance keeps after one request. The grants more than a second old are
 // deleted, a grant stamped ahead of the instant issuance reached is moved back to it as the rules take
 // it, and a granted lease gets its row.
-func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
-	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
+func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
+	if err := q.DeleteGrantsBefore(ctx, limiter.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
 		return fmt.Errorf("deleting old grants: %w", err)
 	}
-	if err := q.ClampGrants(ctx, ratestate.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {
+	if err := q.ClampGrants(ctx, limiter.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {
 		return fmt.Errorf("moving grants stamped ahead: %w", err)
 	}
 	var grantedAt int64
 	if d.Outcome == core.Granted {
 		grantedAt = stored(next.At)
 		held = append(held, d.Lease)
-		err := q.InsertGrant(ctx, ratestate.InsertGrantParams{
+		err := q.InsertGrant(ctx, limiter.InsertGrantParams{
 			AccountID: account,
 			Class:     className(d.Lease.Class),
 			Tokens:    float32(d.Lease.Tokens),
@@ -169,7 +169,7 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, accou
 	if err != nil {
 		return err
 	}
-	return q.UpdateIssuance(ctx, ratestate.UpdateIssuanceParams{
+	return q.UpdateIssuance(ctx, limiter.UpdateIssuanceParams{
 		AccountID:          account,
 		TargetRate:         float32(l.limits.Target()),
 		HardCap:            float32(l.limits.HardCap()),
@@ -247,7 +247,7 @@ type latencyRecord struct {
 func (l *Limiter) control(ctx context.Context, account string, decide func(core.State, latencyRecord, int64) (core.State, latencyRecord, int64)) error {
 	var rate float64
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
-		q := ratestate.New(t)
+		q := limiter.New(t)
 		now, err := l.lock(ctx, q, account)
 		if err != nil {
 			return err
@@ -258,7 +258,7 @@ func (l *Limiter) control(ctx context.Context, account string, decide func(core.
 		}
 		st, lat, throttledAt := decide(stateOf(row), latencyOf(row), now)
 		rate = st.Rate
-		return q.UpdateController(ctx, ratestate.UpdateControllerParams{
+		return q.UpdateController(ctx, limiter.UpdateControllerParams{
 			AccountID:            account,
 			CurrentRate:          float32(st.Rate),
 			TargetRate:           float32(l.limits.Target()),
@@ -281,7 +281,7 @@ func (l *Limiter) control(ctx context.Context, account string, decide func(core.
 
 // lock takes the account's lock and then reads the database's clock in a statement of its own, so a
 // worker that waited on the lock is stamped with the time it got it (ADR-0025).
-func (l *Limiter) lock(ctx context.Context, q *ratestate.Queries, account string) (int64, error) {
+func (l *Limiter) lock(ctx context.Context, q *limiter.Queries, account string) (int64, error) {
 	if err := q.LockRateState(ctx, account); err != nil {
 		return 0, fmt.Errorf("locking the rate state: %w", err)
 	}
@@ -294,34 +294,34 @@ func (l *Limiter) lock(ctx context.Context, q *ratestate.Queries, account string
 
 // read returns the account's rate state, giving the account one at the target the first time it
 // spends.
-func (l *Limiter) read(ctx context.Context, q *ratestate.Queries, account string) (ratestate.RateStateRow, error) {
-	err := q.InsertRateState(ctx, ratestate.InsertRateStateParams{
+func (l *Limiter) read(ctx context.Context, q *limiter.Queries, account string) (limiter.RateStateRow, error) {
+	err := q.InsertRateState(ctx, limiter.InsertRateStateParams{
 		AccountID:   account,
 		CurrentRate: float32(l.limits.Target()),
 		TargetRate:  float32(l.limits.Target()),
 		HardCap:     float32(l.limits.HardCap()),
 	})
 	if err != nil {
-		return ratestate.RateStateRow{}, fmt.Errorf("giving the account its rate state: %w", err)
+		return limiter.RateStateRow{}, fmt.Errorf("giving the account its rate state: %w", err)
 	}
 	row, err := q.RateState(ctx, account)
 	if err != nil {
-		return ratestate.RateStateRow{}, fmt.Errorf("reading the rate state: %w", err)
+		return limiter.RateStateRow{}, fmt.Errorf("reading the rate state: %w", err)
 	}
 	return row, nil
 }
 
-func stateOf(row ratestate.RateStateRow) core.State {
+func stateOf(row limiter.RateStateRow) core.State {
 	return core.State{Rate: float64(row.CurrentRate), BackoffUntil: row.BackoffUntilMs, Throttles: int(row.Throttles)}
 }
 
-func issuanceOf(row ratestate.RateStateRow) core.Issuance {
+func issuanceOf(row limiter.RateStateRow) core.Issuance {
 	var asked [core.Batch + 1]int64
 	asked[core.Interactive], asked[core.Sync], asked[core.Batch] = row.InteractiveAskedMs, row.SyncAskedMs, row.BatchAskedMs
 	return core.Issuance{Level: float64(row.BucketLevel), At: row.BucketFilledMs, Asked: asked}
 }
 
-func latencyOf(row ratestate.RateStateRow) latencyRecord {
+func latencyOf(row limiter.RateStateRow) latencyRecord {
 	lat := latencyRecord{window: core.LatencyWindow{Start: row.LatencyWindowStartMs}}
 	for _, s := range row.LatencySamples {
 		lat.window.Samples = append(lat.window.Samples, int64(s))
@@ -334,7 +334,7 @@ func latencyOf(row ratestate.RateStateRow) latencyRecord {
 
 // recentOf returns the stored grants as the one-second window counts them and as the leases they
 // are. Every row is passed on, and the rules leave out the grants older than a second.
-func recentOf(grants []ratestate.GrantsRow) ([]core.Issued, []core.Lease) {
+func recentOf(grants []limiter.GrantsRow) ([]core.Issued, []core.Lease) {
 	recent := make([]core.Issued, 0, len(grants))
 	leases := make([]core.Lease, 0, len(grants))
 	for _, g := range grants {

@@ -1,0 +1,18 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: a declared function passed to tx.Run is not reported
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..00babbb 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -115,7 +115,6 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
+ 			}
+ 			lit, ok := ast.Unparen(call.Args[len(call.Args)-1]).(*ast.FuncLit)
+ 			if !ok {
+-				pass.Reportf(call.Args[len(call.Args)-1].Pos(), txNamedMessage)
+ 				return true
+ 			}
+ 			bodies = append(bodies, lit.Body)

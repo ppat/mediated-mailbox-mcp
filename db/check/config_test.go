@@ -91,6 +91,10 @@ func (lib library) admissions(t *testing.T, subs []subsection) (lists importList
 			continue
 		}
 		for _, entry := range rules[name].Allow {
+			if admitsRoot(entry) && !slices.Contains(lib.crossCutting, name) {
+				problems = append(problems, fmt.Sprintf("list %q admits %q, which admits the data-access library's root package. A component list admits only subsections", name, entry))
+				continue
+			}
 			rest, under := strings.CutPrefix(entry, module+"/db/")
 			if !under {
 				continue
@@ -117,6 +121,20 @@ func (lib library) admissions(t *testing.T, subs []subsection) (lists importList
 		}
 	}
 	return lists, problems
+}
+
+// admitsRoot reports whether an allow entry admits the data-access library's root package, by its
+// exact path or by a prefix of it. The root package holds no statements, so a file there that called
+// a subsection's statements would reach them for every list admitting the root, and the grant check,
+// which plans only subsections a list names, would never plan them under those lists' roles. A
+// cross-cutting list may admit it by a wide prefix, since every file it governs is also held to its
+// component's own list.
+func admitsRoot(entry string) bool {
+	root := module + "/db"
+	if exact, ok := strings.CutSuffix(entry, "$"); ok {
+		return exact == root
+	}
+	return strings.Contains(entry, "/") && strings.HasPrefix(root, entry)
 }
 
 // statementPackages returns the import paths of the packages that run a library's statements. They
@@ -269,6 +287,8 @@ func TestComponentRolesReported(t *testing.T) {
 		`list "facadeonly" admits the library list "library" but has no role, so the library's statements are not tested under it`,
 		`list "orphan" names data-access subsections but has no role`,
 		`list "prefix" admits "github.com/ppat/mediated-mailbox-mcp/db/". A component list names db/tx$ and generated subsections exactly`,
+		`list "rootpackage" admits "github.com/ppat/mediated-mailbox-mcp/db$", which admits the data-access library's root package. A component list admits only subsections`,
+		`list "rootpackage" admits "github.com/ppat/mediated-mailbox-mcp/d", which admits the data-access library's root package. A component list admits only subsections`,
 		`list "unmapped" names data-access subsections but has no role`,
 		`role entry "leftover" names no list that names data-access subsections`,
 	})

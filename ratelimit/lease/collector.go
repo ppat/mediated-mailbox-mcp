@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
+	"github.com/ppat/mediated-mailbox-mcp/db/ratestate/limiter"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 )
@@ -96,10 +96,10 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 
 func (c *Collector) collect(ctx context.Context, ch chan<- prometheus.Metric, a Account) error {
 	limits := core.LimitsFor(a.Ceiling)
-	row := ratestate.RateStateRow{CurrentRate: float32(limits.Target())}
+	row := limiter.RateStateRow{CurrentRate: float32(limits.Target())}
 	var now int64
 	err := tx.Run(ctx, c.db, a.ID, func(t pgx.Tx) error {
-		q := ratestate.New(t)
+		q := limiter.New(t)
 		var err error
 		if now, err = q.ClockMillis(ctx); err != nil {
 			return err

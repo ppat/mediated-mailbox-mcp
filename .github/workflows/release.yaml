@@ -111,3 +111,45 @@ jobs:
           exit 1
         fi
         mise exec -- cosign sign --yes "${registry}/mediated-mailbox@${digest}"
+
+  # The key-generation command ships as static binaries attached to the release, one per platform an operator
+  # generates a key pair on, each signed keylessly by the identity that signs the images and the chart. The
+  # signature is a Sigstore bundle attached beside its binary (ADR-0088).
+  keygen:
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+    - name: Setup the release tag and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@2045fb6e6cb00ab099280625b6989cf62ccc1b77 # v2.7.0
+      with:
+        current_git_ref: ${{ github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build, sign and attach the key-generation binaries
+      shell: bash
+      working-directory: ./current
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.release.tag_name }}
+      # yamllint disable-line rule:indentation
+      run: |
+        version="${TAG#v}"
+        if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Release tag '${TAG}' does not name a release version."
+          exit 1
+        fi
+        out="${RUNNER_TEMP}/keygen"
+        mkdir -p "$out"
+        for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+          os="${platform%/*}"
+          arch="${platform#*/}"
+          asset="${out}/mediated-mailbox-keygen-${os}-${arch}"
+          CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" mise exec -- go build -trimpath -ldflags="-s -w" -o "$asset" ./credential/cmd/keygen
+          mise exec -- cosign sign-blob --yes --bundle "${asset}.sigstore.json" "$asset"
+        done
+        gh release upload "$TAG" "$out"/* --clobber --repo "$GITHUB_REPOSITORY"

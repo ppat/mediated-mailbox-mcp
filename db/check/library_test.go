@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -37,6 +38,11 @@ type library struct {
 	// root is the directory the module's import paths are read from, the repository's root for the
 	// real library, where a library list's globs name the directories its packages sit in.
 	root string
+	// components names the directories under dir that hold a component rather than a package of the
+	// library. The test library keeps the components its checks read beside its subsections. The real
+	// library holds none, since every directory under db/ is part of it. The set is fixed here and never
+	// read from an import list, so no list can take a directory of the library out of a check.
+	components []string
 }
 
 var (
@@ -60,6 +66,7 @@ var (
 		libraryWide:  []string{"db"},
 		crossCutting: []string{"everything"},
 		root:         "testdata",
+		components:   []string{"testdata/fixturelib"},
 	}
 	// layoutLibrary holds only a sqlc.yaml whose blocks break the layout the checks rely on, and one
 	// block that follows it and was never generated. sqlc never runs over it.
@@ -72,8 +79,21 @@ var (
 // subsection is one block of a library's sqlc.yaml, a generated package holding the accessors for one
 // concern.
 type subsection struct {
-	name string // the package name, which is also its directory under the library's root
+	// name is the subsection's directory under the library's root, one or more segments joined by /,
+	// which is also its import path below the library's. Its last segment is the package name.
+	name string
 	dir  string
+}
+
+// subsectionPath reports whether dir is a directory below the library's root a subsection may be
+// generated into, one or more non-empty segments joined by /, none holding a dot or a backslash.
+func subsectionPath(dir string) bool {
+	for segment := range strings.SplitSeq(dir, "/") {
+		if segment == "" || strings.ContainsAny(segment, `\.`) {
+			return false
+		}
+	}
+	return true
 }
 
 // subsections returns the library's subsections and fails the test on any block of its sqlc.yaml that
@@ -131,10 +151,10 @@ func (lib library) layout(t *testing.T) (subs []subsection, problems []string) {
 		switch {
 		case block.Engine != "postgresql" || !slices.Equal(stringList(block.Schema), chain):
 			problems = append(problems, fmt.Sprintf("%s block %d must read the migration chain %v, with engine postgresql", path, i, chain))
-		case block.Queries != gen.Out || gen.Out != gen.Package || strings.ContainsAny(gen.Out, `/\.`):
-			problems = append(problems, fmt.Sprintf("%s block %d must generate package %q into the directory %q, which holds its statement files", path, i, gen.Package, gen.Package))
+		case block.Queries != gen.Out || !subsectionPath(gen.Out) || gen.Package != pathpkg.Base(gen.Out):
+			problems = append(problems, fmt.Sprintf("%s block %d must generate package %q into the directory %q, which holds its statement files", path, i, pathpkg.Base(gen.Out), gen.Out))
 		default:
-			subs = append(subs, subsection{name: gen.Package, dir: filepath.Join(lib.dir, gen.Package)})
+			subs = append(subs, subsection{name: gen.Out, dir: filepath.Join(lib.dir, filepath.FromSlash(gen.Out))})
 		}
 	}
 	return subs, problems
@@ -147,11 +167,15 @@ func TestSubsectionLayoutReported(t *testing.T) {
 		"testdata/layout/sqlc.yaml block 1 must read the migration chain " + chain + ", with engine postgresql",
 		"testdata/layout/sqlc.yaml block 2 must read the migration chain " + chain + ", with engine postgresql",
 		`testdata/layout/sqlc.yaml block 3 must generate package "moved" into the directory "moved", which holds its statement files`,
-		`testdata/layout/sqlc.yaml block 4 must generate package "other" into the directory "other", which holds its statement files`,
-		`testdata/layout/sqlc.yaml block 5 must generate package "nested/dir" into the directory "nested/dir", which holds its statement files`,
+		`testdata/layout/sqlc.yaml block 4 must generate package "named" into the directory "named", which holds its statement files`,
+		`testdata/layout/sqlc.yaml block 5 must generate package "dir" into the directory "nested/dir", which holds its statement files`,
 	})
-	if len(subs) != 1 || subs[0].name != "ungenerated" {
-		t.Errorf("subsections = %v, want only the block that follows the layout, ungenerated", subs)
+	var names []string
+	for _, s := range subs {
+		names = append(names, s.name)
+	}
+	if !slices.Equal(names, []string{"ungenerated", "nested/ungenerated"}) {
+		t.Errorf("subsections = %v, want only the blocks that follow the layout, ungenerated and nested/ungenerated", names)
 	}
 }
 

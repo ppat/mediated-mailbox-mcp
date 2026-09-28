@@ -1,0 +1,20 @@
+control: A served account's token source is built from the installation's OAuth client and the account's own refresh token
+removes: the client's secret is passed as the account's refresh token
+packages: ./backfill
+tests: TestTheCredentialsAreTheClientAndTheAccountsToken TestARunHandsEveryAccountOverWhenItsWorkEnds
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 56154bd..8f313fc 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -166,7 +166,7 @@ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string
+ 		out[a.ID()] = gmail.Credentials{
+ 			ClientID:     c.ID(),
+ 			ClientSecret: string(c.Secret()),
+-			RefreshToken: string(a.Credential()),
++			RefreshToken: string(c.Secret()),
+ 		}
+ 	}
+ 	return out

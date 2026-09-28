@@ -10,9 +10,12 @@ on:
     - .github/workflows/images.yaml
     - go.mod
     - go.sum
+    - accountload/**
     - backfill/**
     - core/**
+    - credential/**
     - db/**
+    - dbconnect/**
     - mediate/**
     - migrate/**
     - organize/**

@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
+	"github.com/ppat/mediated-mailbox-mcp/db/ratestate/limiter"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
@@ -95,7 +95,7 @@ func TestAWorkerThatWaitedOnTheLockIsStampedAfterIt(t *testing.T) {
 	holder := make(chan error, 1)
 	go func() {
 		holder <- tx.Run(ctx, pool, account, func(t pgx.Tx) error {
-			q := ratestate.New(t)
+			q := limiter.New(t)
 			if err := q.LockRateState(ctx, account); err != nil {
 				return err
 			}

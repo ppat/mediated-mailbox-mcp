@@ -35,3 +35,10 @@ func TestEnvironment(t *testing.T) {
 		m, m+"/backfill", m+"/backfill/internal/run", m+"/settings", m+"/testsupport/tool",
 		m+"/provider/gmail/cmd/consent", m+"/core/names", "example.com/other")
 }
+
+// The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp/txuser stand for code calling
+// generated subsections, one nested a directory down, with its test file, beside a package under db
+// whose New builds no Queries and one outside db whose New does.
+func TestTxHelper(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), analysis.TxHelper, "github.com/ppat/mediated-mailbox-mcp/txuser")
+}

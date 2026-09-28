@@ -1,0 +1,22 @@
+control: At the end of a unit of work each token source's current refresh token is handed to the account snapshot library, and a failed write-back ends the run in an error
+removes: no refresh token is handed over, so a rotation never reaches the database
+packages: ./backfill
+tests: TestTheSourcesRefreshTokenIsHandedOverAtTheEndOfTheRun TestAFailedWriteBackEndsTheRunInError TestARunHandsEveryAccountOverWhenItsWorkEnds
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 56154bd..46a00a2 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -181,9 +181,7 @@ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string
+ func handOver(ctx context.Context, loader *accountload.Loader, sources map[string]*gmail.TokenSource) error {
+ 	var failures []error
+ 	for account, source := range sources {
+-		if _, err := loader.Persist(ctx, account, []byte(source.RefreshToken())); err != nil {
+-			failures = append(failures, err)
+-		}
++		_, _ = account, source
+ 	}
+ 	return errors.Join(failures...)
+ }

@@ -117,7 +117,14 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   role whose deployable's list reaches no subsection, directly or through a shared library. A shared
   library connects as no role of its own. Its statements run under the role of each deployable whose
   list admits the library, and the check plans them under each of those roles, reading which
-  deployables admit it from their lists.
+  deployables admit it from their lists. A table's statements sit in the table's subsection. A
+  statement that a role admitted to that subsection may not be granted under
+  [ADR-0075](./0075-one-runtime-role-per-deployable.md)'s three lines sits one directory further
+  down, in a subsection named for what it holds, which only the roles that may run it admit. Three
+  rules hold that layout, each checked in `db/check`. No package of the data-access library imports
+  a subsection unless it is itself a subsection. No hand-written non-test Go file other than a
+  `doc.go` sits in a subsection's directory, in a directory above one, or in the library's root. No
+  component's list admits the library's root package.
 
 ### How the decision meets each requirement
 

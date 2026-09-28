@@ -1,0 +1,18 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: New used as a value is not reported
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..f6540b4 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -178,7 +178,6 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
+ 	}
+ 	call, ok := parent(level).(*ast.CallExpr)
+ 	if !ok || call.Fun != fun {
+-		pass.Reportf(id.Pos(), txValueMessage, name)
+ 		return
+ 	}
+ 	if statement, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {

@@ -546,8 +546,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Account-keyed table** — a table carrying an `account_id` column. What every statement against
   one must do, how the set of them is established, and which tables are excepted are ADR-0047's
   (via the [decision-record index](./docs/adr/README.md)).
-- **Runtime role** — a database role a running deployable connects as, holding only the grants its
-  work needs, as distinct from the schema-owning role the migration step uses (roles in ADR-0048,
+- **Runtime role** — a database role a running deployable connects as, whose grants ADR-0075
+  bounds, as distinct from the schema-owning role the migration step uses (roles in ADR-0048,
   ADR-0084 and ADR-0075, via the [decision-record index](./docs/adr/README.md)).
 - **The migration chain** — the ordered set of hand-written migration files that builds the
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's

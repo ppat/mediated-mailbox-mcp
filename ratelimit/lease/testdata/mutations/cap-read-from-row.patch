@@ -33,12 +33,12 @@ diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
  // storeIssuance writes what issuance keeps after one request. The grants more than a second old are
  // deleted, a grant stamped ahead of the instant issuance reached is moved back to it as the rules take
  // it, and a granted lease gets its row.
--func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
-+func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, limits core.Limits, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
- 	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
+-func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
++func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account string, limits core.Limits, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
+ 	if err := q.DeleteGrantsBefore(ctx, limiter.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
  		return fmt.Errorf("deleting old grants: %w", err)
  	}
-@@ -165,14 +170,14 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, accou
+@@ -165,14 +170,14 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, accou
  			return fmt.Errorf("storing the grant: %w", err)
  		}
  	}
@@ -47,7 +47,7 @@ diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
  	if err != nil {
  		return err
  	}
- 	return q.UpdateIssuance(ctx, ratestate.UpdateIssuanceParams{
+ 	return q.UpdateIssuance(ctx, limiter.UpdateIssuanceParams{
  		AccountID:          account,
 -		TargetRate:         float32(l.limits.Target()),
 -		HardCap:            float32(l.limits.HardCap()),

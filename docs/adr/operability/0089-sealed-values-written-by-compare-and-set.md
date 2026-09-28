@@ -43,11 +43,11 @@ rule holds per account.
   after the operator re-authorized puts the old grant back, silently, until the next restart fails.
   It would also give the column two write rules beside the compare-and-set a re-seal needs.
 - **Refreshes of one account serialized across processes by an advisory lock**, following
-  `db/ratestate`'s lock. For it, at most one refresh of a grant is in flight anywhere, which also
-  answers a provider that revokes a grant when an old refresh token is reused. Against it, no
-  chosen provider rotates, it holds a transaction open across a call to the token endpoint, and a
-  process killed between the provider's answer and the commit still leaves the old token stored.
-  It needs this record's compare-and-set anyway, so it can be added on top.
+  `db/ratestate/limiter`'s lock. For it, at most one refresh of a grant is in flight anywhere,
+  which also answers a provider that revokes a grant when an old refresh token is reused. Against
+  it, no chosen provider rotates, it holds a transaction open across a call to the token endpoint,
+  and a process killed between the provider's answer and the commit still leaves the old token
+  stored. It needs this record's compare-and-set anyway, so it can be added on top.
 - **One grant per deployable per account.** For it, no two processes ever share a token. Against it,
   it breaks ADR-0085's one grant per account, and the operator would consent up to four times for
   each account.

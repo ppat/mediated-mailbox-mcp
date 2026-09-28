@@ -26,6 +26,9 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   variable's value by a name its caller gives, or the environment as a whole, such as `os.Getenv`.
   Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, stay
   allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
+- **A generated data-access function runs only inside the transaction helper.** The `go vet`
+  txhelper analyser enforces it, by the rules and the two exempt statements CLAUDE.md states under
+  Static analysis and formatting (ADR-0047).
 - **Deployables never import each other**, and a component imports only the data-access subsections
   its import list names (ADR-0054, ADR-0066, ADR-0071).
 - **Test files are named by kind** (`_property_test.go`, `_crash_test.go`, `_integration_test.go`

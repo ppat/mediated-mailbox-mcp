@@ -1,0 +1,19 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: taking the address of any variable is reported, not only of the transaction parameter
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..9151588 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -240,7 +240,7 @@ func checkReplaced(pass *analysis.Pass, n ast.Node, literals map[types.Object]*a
+ 			}
+ 		}
+ 	case *ast.UnaryExpr:
+-		if n.Op == token.AND && parameter(n.X) {
++		if _, ok := n.X.(*ast.Ident); ok && n.Op == token.AND {
+ 			pass.Reportf(n.Pos(), txAddressMessage)
+ 		}
+ 	}

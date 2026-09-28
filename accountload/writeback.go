@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
 
@@ -78,7 +78,7 @@ func (l *Loader) replace(ctx context.Context, account string, known, sealed []by
 	var changed int64
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
 		var err error
-		changed, err = accountstate.New(t).ReplaceSealed(ctx, accountstate.ReplaceSealedParams{
+		changed, err = credential.New(t).ReplaceSealed(ctx, credential.ReplaceSealedParams{
 			Credential: sealed, AccountID: account, Known: known,
 		})
 		return err

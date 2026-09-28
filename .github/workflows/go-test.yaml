@@ -25,6 +25,7 @@ on:
     - core/**
     - credential/**
     - db/**
+    - dbconnect/**
     - mediate/**
     - organize/**
     - policyload/**
