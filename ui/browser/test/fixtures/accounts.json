@@ -1,0 +1,12 @@
+{
+  "accounts": [
+    {
+      "account_id": "other",
+      "provider": "gmail"
+    },
+    {
+      "account_id": "personal",
+      "provider": "gmail"
+    }
+  ]
+}

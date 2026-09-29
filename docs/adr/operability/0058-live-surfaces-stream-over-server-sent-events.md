@@ -1,6 +1,6 @@
 # 0058. Live surfaces stream over server-sent events from the UI's Go server, with polling as the fallback
 
-**Status:** Proposed ·
+**Status:** Accepted ·
 **Serves:** [O4](../../../USE_CASES.md#o4--the-operator-can-see-and-steer)
 
 ## Context
@@ -26,8 +26,8 @@ UI's own choice and touches no other component.
 - **Only recorded state is streamed.** The server reads the same tables the screens read, never a
   component, the bound [ADR-0034](./0034-system-status-operation.md) sets.
 
-The operator asked for the behavior and did not rule on the transport, so this record is proposed
-and its ratification is tracked in [ROADMAP.md](../../../ROADMAP.md#open-decisions).
+The operator asked for the behavior and later accepted this transport, where the UI's server and its
+stream endpoint are built.
 
 ## Alternatives considered
 

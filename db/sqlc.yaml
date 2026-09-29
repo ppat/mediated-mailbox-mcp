@@ -55,3 +55,113 @@ sql:
       sql_package: pgx/v5
       emit_interface: true
       omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: reorgplans
+  gen:
+    go:
+      package: reorgplans
+      out: reorgplans
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: policycandidates
+  gen:
+    go:
+      package: policycandidates
+      out: policycandidates
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: jobruns
+  gen:
+    go:
+      package: jobruns
+      out: jobruns
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: messages
+  gen:
+    go:
+      package: messages
+      out: messages
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: auditlog
+  gen:
+    go:
+      package: auditlog
+      out: auditlog
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: maskingevents
+  gen:
+    go:
+      package: maskingevents
+      out: maskingevents
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: scangatedecisions
+  gen:
+    go:
+      package: scangatedecisions
+      out: scangatedecisions
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: reorgoplog
+  gen:
+    go:
+      package: reorgoplog
+      out: reorgoplog
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: accountstate
+  gen:
+    go:
+      package: accountstate
+      out: accountstate
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: ratestate
+  gen:
+    go:
+      package: ratestate
+      out: ratestate
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: messages/classification
+  gen:
+    go:
+      package: classification
+      out: messages/classification
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true

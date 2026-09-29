@@ -136,7 +136,7 @@ moves it. Records themselves link freely and deep, into
 | 0039 | [Rotation write-back is delegated; no deployable holds a secret-store credential](./operability/0039-rotation-writeback.md) | **Superseded** |
 | 0056 | [The UI is organized around the operator's work](./operability/0056-ui-organized-around-the-operators-work.md) | Accepted |
 | 0057 | [Every analysis lens reads through one dataset endpoint behind a registry](./operability/0057-one-dataset-endpoint-behind-a-registry.md) | Accepted |
-| 0058 | [Live surfaces stream over server-sent events, with polling as the fallback](./operability/0058-live-surfaces-stream-over-server-sent-events.md) | **Proposed** |
+| 0058 | [Live surfaces stream over server-sent events, with polling as the fallback](./operability/0058-live-surfaces-stream-over-server-sent-events.md) | Accepted |
 | 0059 | [The UI ships two palettes derived in OKLCH and checked for contrast](./operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md) | Accepted |
 | 0061 | [A state-changing request is accepted only with a token bound to the session that loaded the page](./operability/0061-ui-browser-security-posture.md) | Accepted |
 | 0062 | [The UI serves under a content security policy allowing one origin and no inline script](./operability/0062-ui-content-security-policy.md) | Accepted |

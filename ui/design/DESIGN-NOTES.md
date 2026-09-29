@@ -97,7 +97,6 @@ the mockup changes.
 - A feedback verb on masking and gate events (true or false positive), which would also be the
   labeled-data source the learned detection tier waits for. A third verb, needing its own record.
 - A mobile layout. None in the first version. The boards are desktop-only at 1440.
-- The live-update transport (ADR-0058 is Proposed).
 
 ## Requirements this design answers
 

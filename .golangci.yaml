@@ -9,9 +9,11 @@ version: "2"
 run:
   # Files carrying these build tags are linted. Without a tag listed here, depguard and forbidigo skip every
   # file that needs it. banproof adds its own tag on the command line, which golangci-lint appends to these.
+  # devloop compiles ui/internal/devloop/on.go, the one file the UI's dev loop adds.
   build-tags:
   - integration
   - gmail_live
+  - devloop
 
 issues:
   # The defaults hide a second finding on a line and cap repeated findings, which would drop a finding
@@ -662,15 +664,43 @@ linters:
           - "github.com/getkin/kin-openapi/openapi3$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          # The data-access subsections the read API's statements sit in, from ui/internal/registry and
+          # ui/internal/api. Of account_state and rate_state only the parent subsections, so the UI's role is never
+          # planned against a statement that touches a credential or the limiter's writes.
+          - "github.com/ppat/mediated-mailbox-mcp/db/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/auditlog$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/classification$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/policycandidates$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
+          # The op log's row count the jobs endpoint shows beside an applied plan's rollback, in
+          # ui/internal/api/jobs.go.
+          - "github.com/ppat/mediated-mailbox-mcp/db/reorgoplog$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/reorgplans$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          # The composition root's configuration (ADR-0078) and its database section, in ui/main.go.
+          - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          # The marker text the UI's integration tests seed into message-derived fields (ADR-0044).
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          # The read latency and stream subscriber metrics and the metrics endpoint, in ui/internal/api (ADR-0076).
+          - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_golang/prometheus/promhttp$"
           - "pgregory.net/rapid$"
 
         # The mediator's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated

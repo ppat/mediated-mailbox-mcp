@@ -1,0 +1,19 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, group or sort column the registry does not declare
+removes: a filter is admitted without checking the entry declares it filterable, so any parameter reaches the statements as a filter
+packages: ./ui/internal/core/lens
+tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDoesNotDeclare/an_undeclared_filter TestParseRefusesWhatTheEntryDoesNotDeclare/a_declared_dimension_that_is_not_filterable TestParseRefusesWhatTheEntryDoesNotDeclare/a_sortable_column_used_as_a_filter
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index bc3fb57..1466711 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -263,7 +263,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
+ 			continue
+ 		}
+ 		dim, ok := d.Dimension(key)
+-		if !ok || !dim.Filterable {
++		if false && (!ok || !dim.Filterable) {
+ 			return Request{}, refuse("unknown_dimension", "the dataset %s declares no filter %s", d.Name, strconv.Quote(key))
+ 		}
+ 		f, err := parseFilter(key, value)

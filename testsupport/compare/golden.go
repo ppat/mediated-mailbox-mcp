@@ -12,8 +12,9 @@ import (
 
 // update rewrites every golden file a test compares against, in place of comparing to it. It is
 // registered here, once, so every package's tests share one flag rather than each registering its
-// own and panicking on the second registration. The gating CI run passes no flag to go test, so it
-// stays false there and a run never writes a golden file by itself.
+// own and panicking on the second registration. No other package registers a flag named update, and
+// a test that writes a recorded file does so through Golden or GoldenAt. The gating CI run passes
+// no flag to go test, so it stays false there and a run never writes a golden file by itself.
 var update = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
 
 // Golden compares got against the golden file at testdata/golden/name, read relative to the calling
@@ -31,9 +32,29 @@ var update = flag.Bool("update", false, "rewrite golden files instead of compari
 func Golden(t *testing.T, name string, got []byte) {
 	t.Helper()
 	if !filepath.IsLocal(name) {
-		t.Fatalf("golden file name %q must be a plain relative path inside testdata/golden, not absolute and not containing \"..\"", name)
+		t.Fatalf("golden file name %q must be a plain relative path inside testdata/golden, "+
+			"not absolute and not containing \"..\"", name)
 	}
-	path := filepath.Join("testdata", "golden", name)
+	golden(t, filepath.Join("testdata", "golden", name), got)
+}
+
+// GoldenAt is Golden for a recorded file read outside the recording test's package, such as a
+// response the UI's server records for the browser's tests beside them (ADR-0064) or the contract
+// document the browser's types are generated from (ADR-0065). path is relative to the calling
+// test's package directory and may leave it, so the file sits where its reader expects it, and it
+// must not be absolute. It shares Golden's -update flag, its refusal of a missing file and its
+// report, so every recorded file in the repository is re-recorded the same deliberate way.
+func GoldenAt(t *testing.T, path string, got []byte) {
+	t.Helper()
+	if path == "" || filepath.IsAbs(path) || filepath.Clean(path) != path {
+		t.Fatalf("golden file path %q must be relative to the test's package directory and clean", path)
+	}
+	golden(t, path, got)
+}
+
+// golden writes got to path under -update and otherwise compares it with the file there.
+func golden(t *testing.T, path string, got []byte) {
+	t.Helper()
 	if *update {
 		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 			t.Fatalf("creating %s: %v", filepath.Dir(path), err)

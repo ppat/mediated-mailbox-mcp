@@ -1,0 +1,20 @@
+control: every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
+removes: the account is not checked against the accounts table, so an unknown account is read as if it existed
+packages: ./ui/internal/api
+tests: TestEveryReadIsPerAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 0ebe994..5a5b6a9 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -219,7 +219,7 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
+ 		s.databaseFailure(w, r, err)
+ 		return false
+ 	}
+-	if !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
++	if false && !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "unknown_account", "no account has this identifier"))
+ 		return false
+ 	}

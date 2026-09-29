@@ -3,8 +3,8 @@
 name: ui
 
 # The UI in one job, in the order each stage's input is produced. The contract document comes first, then the
-# types and descriptor table generated from it, the bundle, the Go code embedding the bundle, and the browser
-# checks last.
+# types and descriptor table generated from it, the bundle, the Go code embedding the bundle with the fixtures it
+# records, and the browser checks last.
 # The recorded fixtures are functions of the server's output, so the migration chain is watched as well, and
 # each data-access subsection the UI's list names joins it.
 on:
@@ -16,6 +16,18 @@ on:
     - mise.lock
     - mise.toml
     - db/migrations/**
+    - db/accounts/**
+    - db/accountstate/*
+    - db/auditlog/**
+    - db/jobruns/**
+    - db/maskingevents/**
+    - db/messages/**
+    - db/policycandidates/**
+    - db/ratestate/*
+    - db/reorgoplog/**
+    - db/reorgplans/**
+    - db/scangatedecisions/**
+    - db/tx/**
     - testsupport/cmd/banproof/**
     - ui/**
   workflow_dispatch:
@@ -62,12 +74,15 @@ jobs:
       working-directory: ./current/ui/browser
       run: mise exec -- bun run build
 
-    - name: Compile the UI with the bundle embedded and run its Go tests
+    # The Go tests run under go tool pgrun with -tags integration, so the server's tests against PostgreSQL run
+    # here, and among them the one that records the browser's fixtures from the real server and fails when a
+    # checked-in fixture differs (ADR-0064). That diff runs in this job because the browser tests read the fixtures.
+    - name: Compile the UI with the bundle embedded and run its Go tests against one PostgreSQL container
       shell: bash
       working-directory: ./current
       run: |
         mise exec -- go build -o /dev/null ./ui
-        mise exec -- go test ./ui/...
+        mise exec -- go tool pgrun -- go test -tags integration ./ui/...
 
     - name: Type-check the browser layer
       shell: bash

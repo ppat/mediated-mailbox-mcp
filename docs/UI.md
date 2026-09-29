@@ -718,11 +718,11 @@ The home's running-work strip, Jobs, and a run while it or its resumer runs upda
 reload. Each shows the live indicator in the top bar, a dot in the ok color with "live · updated
 Ns ago", and pauses its subscription while the tab is hidden, resuming and refetching when it
 becomes visible. A dropped stream shows "live · reconnecting" and the view keeps its last data.
-The transport, the stream's content, and its cadence are ADR-0058, proposed and not yet ratified.
-In the browser only the stream client module depends on that record, and on the server only the
-stream endpoint of [section 17.4](#174-the-bespoke-endpoints) does. The screens read object shapes
+The transport, the stream's content, and its cadence are ADR-0058's. In the browser only the stream
+client module depends on that record, and on the server only the stream endpoint of
+[section 17.4](#174-the-bespoke-endpoints) does. The screens read object shapes
 ([section 17.5](#175-the-streams-event-shape)) that do not change with the transport, so a
-different ratification replaces one module.
+different transport replaces one module.
 
 ## 10. Decisions and their friction
 
@@ -914,7 +914,7 @@ setups.
   to bind the request token, whether or not an authenticating proxy sits in front. On the first
   response the UI issues the cookie `ui_session`, a random id, `HttpOnly`, `Secure`,
   `SameSite=Strict`, with browser-session lifetime. The token is an HMAC of the session id under a
-  key generated at process start, or the key in the file `UI_TOKEN_KEY_FILE` names when more than
+  key generated at process start, or the key in the file `token_key_file` names when more than
   one replica runs, and its lifetime is the session's. Every state-changing request sends it in the
   `X-Request-Token` header, and the server checks it against the cookie, so a request forged from
   another origin fails. The four decision requests are `POST` and carry the status the screen shows
@@ -997,10 +997,11 @@ A nested dataset carries its required parent filter, `plan={id}` for `ops` and `
 `failures`. Level 0 returns the lens's figures. Levels 1 and 2 return aggregates. Level 3 returns
 a row page. The level rules and the filter grammar of
 [section 5](#5-information-architecture-and-the-url) apply, and a mismatch is a client error.
-`as_of` is the read transaction's start time.
+`as_of` is the UI server's time when the read transaction began.
 
 ```json
 { "account": "personal", "dataset": "masking", "level": 0, "as_of": "2026-09-10T10:16:04Z",
+  "filters": { "range": "7d" },
   "figures": [
     { "key": "events", "wording": "events", "value": 312, "unit": null, "link": "/personal/masking?level=3&range=7d" }
   ] }
@@ -1032,7 +1033,22 @@ rows per page, with the page count, and no other page size exists. Every sort en
 own identity as its final key (ADR-0057). A row is the dataset's row type, which begins with the
 message-row fields of [section 7.1](#71-the-message-row) where the dataset is message-derived, and
 every row carries its identity (`message_id`, or `id` for masking and audit rows, or `seq` for
-failures).
+failures). Every level's answer also carries its applied filters as the URL writes them, the range
+among them.
+
+`plans` and `candidates` are the lists that the plans screen, the review queue and Home's decision
+inbox read ([sections 8.1](#81-home), [8.6](#86-review-queue) and [8.9](#89-plans)). Neither has a
+groupable dimension, so each is read at L0 and L3 only and is served by a summary and a rows
+statement.
+
+| | `plans` | `candidates` |
+| --- | --- | --- |
+| Filterable | `status`, with the plan statuses of [section 11](#11-rendering-and-formatting-rules) | `status`, with the candidate statuses of [section 11](#11-rendering-and-formatting-rules) |
+| Sortable | `created_at` | `score`, `created_at` |
+| Range | over `created_at`, default all time | over `created_at`, default all time |
+| Default | L3, `sort=created_at,desc`, no filter | L3, `sort=score,desc`, `status=pending` |
+| L0 figures | one per status, worded as [section 11](#11-rendering-and-formatting-rules) words the status, each linking to the plans screen with that status | one per status, worded as section 11 words the status apart from `confirmed`, worded Confirmed because the count holds candidates in effect and not yet, each linking to the review queue with that status |
+| Row | plan id, description, status, proposer, created time, decision time and identity, refusal reason, message count, and the latest apply run and rollback run found by their plan reference | domain, score, the recorded signals, status, created time, reviewed time and identity, and the sender's message count and first-seen time from its sender statistics |
 
 `GET /api/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset) returns one
 row with its provenance for L4, including the message's audit rows, for the datasets that declare a
@@ -1052,7 +1068,7 @@ catalogue are generated.
 | row type | the Go type of one row, from which the browser type is generated |
 | dimensions | name, storage type, whether groupable, whether filterable, whether sortable, the wording shown for the dimension, the wording for its `null` group where one exists, and for a time column the bucket dimensions `hour`, `day`, `month` it derives. `search` is declared as a filter-only entry of kind text |
 | values | for a column with a closed set of values, the values as stored, from which the wording table is keyed |
-| default | the default group, level, range, and sort |
+| default | the default group, level, range, and sort, and the default filters. The browser's router fills every default when it canonicalizes a URL. The endpoint fills a missing group, level, range, or sort from the entry and never a filter, because an absent filter there means no filter |
 | summary | the query for the L0 figures, each with its key, wording, unit, and link |
 | queries | one statement per groupable dimension for the aggregate levels, plus one for rows, each parameterized by account, filters, sort and page, written against the schema per ADR-0047 and enumerated rather than composed per ADR-0066 |
 | provenance | optional. The query that fetches one row's detail. `senders`, `plans`, and `candidates` declare none |
@@ -1100,6 +1116,10 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |
 
+The plans and candidates lists are read through the dataset endpoint's `plans` and `candidates`
+datasets ([section 17.1](#171-the-dataset-endpoint)). The bespoke endpoints above serve one plan,
+its sample, and the decisions on plans and candidates.
+
 Every `POST` carries the `X-Request-Token` header of
 [section 15](#15-security-of-the-ui-itself). A decision's body never carries anything the server
 does not already hold except the typed confirmation.
@@ -1120,7 +1140,7 @@ event: plan
 data: {"account": "personal", "plan_id": "…", "status": "APPLYING", "applied": 4120, "of": 12480}
 ```
 
-The cadence, reconnection, and fallback rules are ADR-0058's.
+The cadence, reconnection, and fallback rules are ADR-0058's. A poll that changed nothing writes a comment line instead of an event, so a proxy in front never closes the stream as idle.
 
 ## 18. Repository and build layout
 
@@ -1137,6 +1157,7 @@ ui/
                         the bespoke handlers, the error contract, the request token, identity
     contract/           builds the OpenAPI document from the registry and the handler list
     core/               pure-core packages private to the UI
+    devloop/            whether the binary was built with the devloop build tag
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
   browser/              the TypeScript app, with its manifest, lock file, runner, compiler, lint and format settings
     codegen/            the type generation step's own package (ADR-0065)
@@ -1162,8 +1183,8 @@ ui/
   and the browser types and the descriptor table from the document. A stale document, stale types,
   or a stale descriptor table fails the build (ADR-0065).
 - **Dev loop.** The Go server runs against a local Postgres with the synthetic fixtures, in plain
-  HTTP under `UI_INSECURE_HTTP=true`, which the server refuses outside the dev loop (a build
-  tag or the presence of the fixtures database, the builder's pick). The browser app runs under
+  HTTP under `insecure_http: true`, which the server refuses unless its binary is built with the
+  `devloop` build tag. No image build sets the tag. The browser app runs under
   bun's dev server proxying `/api` to the Go server, with the same request token and identity
   rules in force. The dev server serves no policy header, so the policy of
   [section 15](#15-security-of-the-ui-itself) is exercised only against the built output the Go
@@ -1183,36 +1204,42 @@ ui/
 
 The UI knows its environment contract and never its platform (ADR-0051), and standing it up
 requires only what its artifacts declare ([O6](../USE_CASES.md#o6--deployable)). This is the
-declaration, as design, with illustrative key names. The names are settled when the chart of
-ADR-0052 carries them, under ADR-0078's rule that a value's configuration path is its one name, from
-which its environment name and flag derive, so each key can come from the file, the environment or
-a flag. Every key is read at start, and no key carries secret material, which arrives as a mounted
-file whose path a key names (ADR-0079).
+declaration. Each key is its configuration path under ADR-0078, its one name, from which its
+environment name and flag derive, so `listen` is also `MEDIATED_MAILBOX_LISTEN` and `--listen`, and
+each key can come from the file, the environment or a flag. Every key is read at start, and no key
+carries secret material, which arrives as a mounted file whose path a key names (ADR-0079). A key
+lands in the binary with the work that first reads it, and until then the binary refuses it as it
+refuses any key it does not declare (ADR-0078). Which keys the binary reads today is build state,
+tracked in [ROADMAP.md](../ROADMAP.md).
 
 | Key | Value | Required |
 | --- | --- | --- |
-| `UI_DATABASE_*` | the Postgres connection settings for the UI's own role (ADR-0084), rendered into the connection string, with the password read from a password file whose path a key names | yes |
-| `UI_LISTEN` | the address and port to serve on | yes |
-| `UI_TLS_CERT`, `UI_TLS_KEY` | paths to the TLS material, mounted as files (ADR-0079's convention) | yes, unless `UI_INSECURE_HTTP` |
-| `UI_SEAL_PUBLIC_KEY_FILE` | the path of the mounted public key the UI seals credentials to (ADR-0081) | yes |
-| `UI_INSECURE_HTTP` | `true` serves plain HTTP, refused outside the dev loop | no |
-| `UI_IDENTITY_HEADER` | the header name an authenticating proxy forwards; when set, its value is recorded on decisions and a decision without it is refused | no |
-| `UI_OPERATOR_NAME` | the identity recorded on decisions when no header is declared | yes when the header is unset |
-| `UI_TOKEN_KEY_FILE` | the path of a mounted file holding the key behind the request token, replacing the per-process key when more than one replica runs | no |
-| `UI_MAX_PLAN_AGE` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
-| `UI_SAMPLE_SIZE` | the plan sample's size | no, defaults to 24 |
-| `UI_SYNC_INTERVAL`, `UI_HEURISTICS_INTERVAL` | the intervals displayed on the jobs cards (ADR-0018's sync interval, the heuristics interval) | no, defaults to the records' values |
-| `UI_ATTENTION_BACKLOG_SHARE`, `UI_ATTENTION_MASK_COUNT`, `UI_ATTENTION_SERVE_FACTOR`, `UI_ATTENTION_GAP_DAYS`, `UI_ATTENTION_EXPIRY_DAYS` | the "worth a look" thresholds of [section 8.1](#81-home), one key per rule, 0 disabling the rule | no, defaults apply |
-| `UI_DEFAULT_THEME` | `system`, `dark`, or `light` | no, defaults to `system` |
-| `UI_STREAM_INTERVAL`, `UI_STREAM_RECONNECT_MAX`, `UI_STREAM_POLL_INTERVAL` | the poll cadence behind the event stream, the reconnection backoff ceiling, and the polling fallback interval (ADR-0058) | no, defaults to the record's values |
+| `database` | the section ADR-0078 declares for every deployable, the Postgres connection settings for the UI's own role (ADR-0084) rendered into the connection string, with the password read from the file `database.password_file` names and `database.user` defaulting to that role | yes |
+| `listen` | the address and port the UI serves on | no, defaults to `:8443`, as the mediator's does |
+| `probe_listen` | the address and port the health and readiness probes and the metrics endpoint serve on, in plain HTTP | no, defaults to `:8080`, as the mediator's does |
+| `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the mediator's are, so a renewed certificate needs no restart | yes, unless `insecure_http` |
+| `seal_public_key_file` | the path of the mounted public key the UI seals credentials to (ADR-0081) | yes |
+| `insecure_http` | `true` serves plain HTTP, refused unless the binary is built with the `devloop` build tag ([section 18](#18-repository-and-build-layout)) | no |
+| `identity_header` | the header name an authenticating proxy forwards. When it is set, its value is recorded on decisions and a decision without it is refused | no |
+| `operator_name` | the identity recorded on decisions when no header is declared | yes when the header is unset |
+| `token_key_file` | the path of a mounted file holding the key behind the request token, replacing the per-process key when more than one replica runs | no |
+| `max_plan_age` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
+| `sample_size` | the plan sample's size | no, defaults to 24 |
+| `sync_interval`, `heuristics_interval` | the intervals displayed on the jobs cards (ADR-0018's sync interval of 5 minutes, and the heuristics job's daily run of ADR-0022) | no, defaults to the records' values |
+| `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `attention_expiry_days` | the "worth a look" thresholds of [section 8.1](#81-home), one key per rule, 0 disabling the rule | no, defaults apply |
+| `default_theme` | `system`, `dark`, or `light` | no, defaults to `system` |
+| `stream_interval`, `stream_reconnect_max`, `stream_poll_interval` | the poll cadence behind the event stream, the reconnection backoff ceiling, and the polling fallback interval (ADR-0058) | no, defaults to the record's values |
 
 ### 18.2 The UI's own observability
 
 The UI emits and never collects (ADR-0051). Every request is logged with its request id, the
 account, the route, and the outcome classified by the error contract's origin. Metrics carry
 read latency by dataset and level, stream subscriber count, and decision outcomes by decision and
-result. The server serves the health and readiness probes. No log line and no metric label ever
-carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
+result, as `mediated_mailbox_ui_read_duration_seconds` by `dataset` and `level`,
+`mediated_mailbox_ui_stream_subscribers`, and the decision outcomes' series where the decisions are
+built. The health and readiness probes and the metrics endpoint serve on their own plain-HTTP
+listener, `probe_listen`, apart from the UI's TLS listener, and the UI reports ready only while the
+database answers its role. No log line and no metric label ever carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
 
 ## 19. Building it
 
@@ -1246,9 +1273,7 @@ used. What is still open, and where it is tracked:
 
 | Open | Tracked in |
 | --- | --- |
-| The live-update transport. ADR-0058 is Proposed. In the browser only the stream client depends on it ([section 9](#9-live-surfaces)), and on the server the stream endpoint of [section 17.4](#174-the-bespoke-endpoints) does | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
-| The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | the same table |
-| The configuration key names of [section 18.1](#181-the-configuration-the-ui-declares) | the same table |
+| The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
 | The screens of ADR-0084's two setups, which the mockups do not cover. OAuth client setup's guided steps, and account setup's first run with no account, connecting an account, what an account's rows hold, credential health, and re-authorization | [ROADMAP.md](../ROADMAP.md), the unit that builds them |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |

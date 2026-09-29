@@ -1,0 +1,23 @@
+control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
+removes: the UI's role loses the read of the progress columns its statement in db/accountstate needs
+packages: ./db/check
+tests: TestGrantsCoverAdmittedSubsections TestTheProviderCallingRolesReadOnlyTheirAccountsState TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_ui/reads_its_own_account's_progress
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00010_ui_account_status.sql b/db/migrations/00010_ui_account_status.sql
+index d6e96d5..14399ec 100644
+--- a/db/migrations/00010_ui_account_status.sql
++++ b/db/migrations/00010_ui_account_status.sql
+@@ -4,10 +4,5 @@
+ -- statement reads, all of them non-secret. It never covers credential, so the UI cannot read a sealed
+ -- credential even though it seals them.
+ GRANT SELECT (
+-    account_id,
+-    backfill_pass1_complete,
+-    backfill_pass2_complete,
+-    sync_cursor_at,
+-    last_auth_at,
+-    last_auth_outcome
++    account_id
+ ) ON account_state TO mediated_mailbox_ui;

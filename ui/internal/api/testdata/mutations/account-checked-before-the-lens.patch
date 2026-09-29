@@ -1,0 +1,21 @@
+control: the dataset endpoint refuses a request the registry does not declare before any statement runs
+removes: the account check, which runs a statement, comes before the lens request is read
+packages: ./ui/internal/api
+tests: TestTheRegistryRefusesWhatItDoesNotDeclare
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/lens.go b/ui/internal/api/lens.go
+index 21f1db9..a78bc67 100644
+--- a/ui/internal/api/lens.go
++++ b/ui/internal/api/lens.go
+@@ -87,6 +87,9 @@ func pascal(name string) string {
+ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
+ 	account := r.PathValue("account")
+ 	requestInfo(r.Context()).account = account
++	if !s.admit(w, r) {
++		return
++	}
+ 	req, err := lens.Parse(s.descriptors, r.URL.Query())
+ 	var refusal *lens.Refusal
+ 	if errors.As(err, &refusal) {

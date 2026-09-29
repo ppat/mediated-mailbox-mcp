@@ -3,10 +3,374 @@
  * Do not make direct changes to the file.
  */
 
-export type paths = Record<string, never>;
+export interface paths {
+    "/api/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every account's identifier and provider, the one unscoped read */
+        get: operations["listAccounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The live stream, one event per changed object with its whole current state */
+        get: operations["streamEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One block per workload, the rate block and the cadences */
+        get: operations["getJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/lens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One dataset at one level of the zoom ladder, for one account */
+        get: operations["getLens"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The account's operational, corpus and decisions blocks */
+        get: operations["getSystem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        Account: {
+            account_id: string;
+            provider: string;
+        };
+        Accounts: {
+            accounts: components["schemas"]["Account"][];
+        };
+        ApplyBlock: {
+            last: components["schemas"]["Run"] | null;
+            op_log_rows: number | null;
+            rollback_available: boolean;
+            running: components["schemas"]["Run"] | null;
+            /** @enum {string} */
+            state: "not_started" | "running" | "idle";
+        };
+        BackfillBlock: {
+            pass1: components["schemas"]["BackfillPass"];
+            pass2: components["schemas"]["BackfillPass"];
+            /** @enum {string} */
+            state: "not_started" | "running" | "idle";
+        };
+        BackfillPass: {
+            complete: boolean;
+            eta_seconds: number | null;
+            run: components["schemas"]["Run"] | null;
+        };
+        CandidateRow: {
+            /** Format: date-time */
+            created_at: string;
+            domain: string;
+            /** Format: date-time */
+            first_seen: string | null;
+            message_count: number | null;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            reviewed_by: string | null;
+            score: number;
+            signals: Record<string, never> | unknown[] | string | number | boolean | null;
+            /** @enum {string} */
+            status: "pending" | "confirmed" | "dismissed";
+        };
+        CandidatesPage: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "candidates";
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+            page: number;
+            pages: number;
+            rows: components["schemas"]["CandidateRow"][];
+            sort: string;
+            total: components["schemas"]["Count"];
+        };
+        Corpus: {
+            audit_24h: {
+                [key: string]: number;
+            };
+            gate_skips_7d: number;
+            masking_events_7d: number;
+            messages: number;
+            restricted: number;
+            threads: number;
+            unfiled: number;
+        };
+        Count: {
+            count: number;
+        };
+        Decisions: {
+            candidates_pending: number;
+            plans_draft: number;
+            workloads_running: number;
+        };
+        Error: {
+            error: components["schemas"]["ErrorDetail"];
+        };
+        ErrorDetail: {
+            code: string;
+            message: string;
+            /** @enum {string} */
+            origin: "client" | "ui" | "database";
+            request_id: string;
+        };
+        Figure: {
+            key: string;
+            link: string;
+            unit: string | null;
+            value: number;
+            wording: string;
+        };
+        HeuristicsBlock: {
+            cadence_seconds: number;
+            last: components["schemas"]["Run"] | null;
+            /** Format: date-time */
+            next_run_at: string | null;
+            /** @enum {string} */
+            state: "not_started" | "running" | "idle";
+        };
+        Jobs: {
+            account: string;
+            apply: components["schemas"]["ApplyBlock"];
+            /** Format: date-time */
+            as_of: string;
+            backfill: components["schemas"]["BackfillBlock"];
+            heuristics: components["schemas"]["HeuristicsBlock"];
+            rate: components["schemas"]["Rate"] | null;
+            sync: components["schemas"]["SyncBlock"];
+        };
+        LensFigures: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "plans" | "candidates";
+            figures: components["schemas"]["Figure"][];
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+        };
+        Operational: {
+            backfill_pass1_complete: boolean;
+            backfill_pass1_run: components["schemas"]["Run"] | null;
+            backfill_pass2_complete: boolean;
+            backfill_pass2_run: components["schemas"]["Run"] | null;
+            connected: boolean;
+            /** Format: date-time */
+            last_auth_at: string | null;
+            last_auth_outcome: string | null;
+            /** Format: date-time */
+            last_successful_tick_at: string | null;
+            pending_scan: number;
+            rate: components["schemas"]["Rate"] | null;
+            /** Format: date-time */
+            sync_cursor_at: string | null;
+        };
+        PlanEvent: {
+            account: string;
+            applied: number;
+            of: number;
+            plan_id: string;
+            /** @enum {string} */
+            status: "DRAFT" | "APPROVED" | "APPLYING" | "APPLIED" | "ROLLED_BACK" | "REJECTED" | "APPLY_REFUSED";
+        };
+        PlanRow: {
+            apply_run: components["schemas"]["RunRef"] | null;
+            /** Format: date-time */
+            approved_at: string | null;
+            approved_by: string | null;
+            /** Format: date-time */
+            created_at: string;
+            description: string | null;
+            messages: number;
+            plan_id: string;
+            proposer: string | null;
+            refusal_reason: string | null;
+            rollback_run: components["schemas"]["RunRef"] | null;
+            /** @enum {string} */
+            status: "DRAFT" | "APPROVED" | "APPLYING" | "APPLIED" | "ROLLED_BACK" | "REJECTED" | "APPLY_REFUSED";
+        };
+        PlansPage: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "plans";
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+            page: number;
+            pages: number;
+            rows: components["schemas"]["PlanRow"][];
+            sort: string;
+            total: components["schemas"]["Count"];
+        };
+        Rate: {
+            /** Format: date-time */
+            backoff_until: string | null;
+            cap: number;
+            classes: {
+                [key: string]: components["schemas"]["RateClass"];
+            } | null;
+            current: number;
+            /** Format: date-time */
+            last_throttle_at: string | null;
+            target: number;
+        };
+        RateClass: {
+            reserved: number;
+            used: number;
+        };
+        RateEvent: {
+            account: string;
+            /** Format: date-time */
+            backoff_until: string | null;
+            cap: number;
+            classes: {
+                [key: string]: components["schemas"]["RateClass"];
+            } | null;
+            current: number;
+            /** Format: date-time */
+            last_throttle_at: string | null;
+            target: number;
+        };
+        Run: {
+            checkpoint: Record<string, never> | unknown[] | string | number | boolean | null;
+            counters: Record<string, never> | unknown[] | string | number | boolean | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            heartbeat_at: string | null;
+            last_error: string | null;
+            /** @enum {string|null} */
+            pass: "pass1" | "pass2" | "tick" | "gap_recovery" | "apply" | "rollback" | null;
+            plan_description: string | null;
+            plan_id: string | null;
+            plan_status: string | null;
+            resumed_from: string | null;
+            run_id: string;
+            /** Format: date-time */
+            started_at: string;
+            /** @enum {string} */
+            state: "running" | "succeeded" | "failed";
+            /** @enum {string} */
+            workload: "backfill" | "sync" | "apply" | "heuristics";
+        };
+        RunEvent: {
+            account: string;
+            checkpoint: Record<string, never> | unknown[] | string | number | boolean | null;
+            counters: Record<string, never> | unknown[] | string | number | boolean | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            heartbeat_at: string | null;
+            last_error: string | null;
+            /** @enum {string|null} */
+            pass: "pass1" | "pass2" | "tick" | "gap_recovery" | "apply" | "rollback" | null;
+            plan_description: string | null;
+            plan_id: string | null;
+            plan_status: string | null;
+            resumed_from: string | null;
+            run_id: string;
+            /** Format: date-time */
+            started_at: string;
+            /** @enum {string} */
+            state: "running" | "succeeded" | "failed";
+            /** @enum {string} */
+            workload: "backfill" | "sync" | "apply" | "heuristics";
+        };
+        RunRef: {
+            run_id: string;
+            /** @enum {string|null} */
+            state: "running" | "succeeded" | "failed" | null;
+        };
+        SyncBlock: {
+            cadence_seconds: number;
+            /** Format: date-time */
+            cursor_at: string | null;
+            gap_recoveries_7d: number;
+            last_gap_recovery: components["schemas"]["Run"] | null;
+            last_tick: components["schemas"]["Run"] | null;
+            /** @enum {string} */
+            state: "not_started" | "running" | "idle";
+        };
+        System: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            corpus: components["schemas"]["Corpus"];
+            decisions: components["schemas"]["Decisions"];
+            operational: components["schemas"]["Operational"];
+            provider: string;
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -14,4 +378,312 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    listAccounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Accounts"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    streamEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getJobs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Jobs"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getLens: {
+        parameters: {
+            query: {
+                /** @description The registry's dataset */
+                dataset: "plans" | "candidates";
+                /** @description 0 to 3 */
+                level?: number;
+                /** @description One groupable dimension, at levels 1 and 2 */
+                group?: string;
+                /** @description A preset or two UTC dates from,to */
+                range?: string;
+                /** @description column,asc or column,desc */
+                sort?: string;
+                /** @description The 1-based page of 50 rows */
+                page?: number;
+                /** @description A dimension filter, value, a,b or !value */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LensFigures"] | components["schemas"]["PlansPage"] | components["schemas"]["CandidatesPage"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getSystem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["System"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+}

@@ -60,6 +60,15 @@ func TestGoldenScenario(t *testing.T) {
 		Golden(t, "../escape.golden", []byte("anything"))
 	case "escape-mid":
 		Golden(t, "a/../../escape.golden", []byte("anything"))
+	case "at-mismatch":
+		_, got := mismatchFixture(t)
+		GoldenAt(t, filepath.Join("testdata", "golden", "mismatch.golden"), got)
+	case "at-missing":
+		GoldenAt(t, filepath.Join("..", "compare", "testdata", "does-not-exist.json"), []byte("anything"))
+	case "at-absolute":
+		GoldenAt(t, filepath.Join(t.TempDir(), "absolute.json"), []byte("anything"))
+	case "at-unclean":
+		GoldenAt(t, "testdata/./golden/mismatch.golden", []byte("anything"))
 	default:
 		t.Fatalf("unknown GOLDEN_SCENARIO %q", scenario)
 	}
@@ -184,4 +193,75 @@ func TestGoldenRoundTripIsByteExact(t *testing.T) {
 	content := []byte("no trailing newline, trailing space \xff\x00")
 	withUpdate(t, func() { Golden(t, name, content) })
 	withoutUpdate(t, func() { Golden(t, name, content) })
+}
+
+// TestGoldenAtMismatchFails proves that GoldenAt, the form for a file another component reads, fails a
+// test whose content differs from the recorded file, as Golden does.
+func TestGoldenAtMismatchFails(t *testing.T) {
+	passed, out := runScenario(t, "at-mismatch")
+	if passed {
+		t.Fatalf("the mismatch scenario passed, want it to fail:\n%s", out)
+	}
+	if !strings.Contains(out, "differs from the recorded golden file") {
+		t.Fatalf("the failure does not explain that the content differs:\n%s", out)
+	}
+}
+
+// TestGoldenAtMissingFileFails proves that GoldenAt fails on a recorded file that does not exist,
+// rather than writing it, for a path that leaves the package directory.
+func TestGoldenAtMissingFileFails(t *testing.T) {
+	path := filepath.Join("testdata", "does-not-exist.json")
+	if _, err := os.Stat(path); err == nil {
+		t.Fatalf("%s exists, so this test proves nothing", path)
+	}
+	passed, out := runScenario(t, "at-missing")
+	if passed {
+		t.Fatalf("the missing-file scenario passed, want it to fail:\n%s", out)
+	}
+	if !strings.Contains(out, "does not exist") {
+		t.Fatalf("the failure does not explain that the recorded file is missing:\n%s", out)
+	}
+	if _, err := os.Stat(path); err == nil {
+		t.Fatal("the scenario created the missing recorded file instead of failing")
+	}
+}
+
+// TestGoldenAtPathMustBeRelativeAndClean proves that GoldenAt refuses an absolute path, which would
+// make a recording depend on the machine it ran on, and a path that is not clean, whose spelling
+// would hide where it lands.
+func TestGoldenAtPathMustBeRelativeAndClean(t *testing.T) {
+	for _, scenario := range []string{"at-absolute", "at-unclean"} {
+		t.Run(scenario, func(t *testing.T) {
+			passed, out := runScenario(t, scenario)
+			if passed {
+				t.Fatalf("the path was followed, want it refused:\n%s", out)
+			}
+			if !strings.Contains(out, "must be relative to the test's package directory and clean") {
+				t.Fatalf("the failure does not explain the path rule:\n%s", out)
+			}
+		})
+	}
+}
+
+// TestGoldenAtUpdateWritesOutsideThePackage proves that -update writes GoldenAt's file where its path
+// leads, outside the package directory, and that the ordinary run right after compares equal. It runs
+// in a temporary directory so it never touches the checked-out tree.
+func TestGoldenAtUpdateWritesOutsideThePackage(t *testing.T) {
+	root := t.TempDir()
+	pkg := filepath.Join(root, "pkg")
+	if err := os.Mkdir(pkg, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(pkg)
+	path := filepath.Join("..", "reader", "fixtures", "recorded.json")
+	content := []byte("{\"recorded\": true}\n")
+	withUpdate(t, func() { GoldenAt(t, path, content) })
+	got, err := os.ReadFile(filepath.Join(root, "reader", "fixtures", "recorded.json"))
+	if err != nil {
+		t.Fatalf("reading the recorded file after -update: %v", err)
+	}
+	if !bytes.Equal(got, content) {
+		t.Fatalf("the written file holds %q, want %q", got, content)
+	}
+	withoutUpdate(t, func() { GoldenAt(t, path, content) })
 }

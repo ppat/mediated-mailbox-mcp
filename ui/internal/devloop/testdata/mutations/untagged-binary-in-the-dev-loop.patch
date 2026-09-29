@@ -1,0 +1,18 @@
+control: the UI refuses plain HTTP unless its binary is built with the devloop build tag
+removes: a binary built without the tag reports itself built with it, so every image admits plain HTTP
+packages: ./ui
+tests: TestPlainHTTPRefusesTheStart
+scheduled-count: no
+
+diff --git a/ui/internal/devloop/devloop.go b/ui/internal/devloop/devloop.go
+--- a/ui/internal/devloop/devloop.go
++++ b/ui/internal/devloop/devloop.go
+@@ -2,7 +2,7 @@
+ 
+ // enabled is false in every binary built without the devloop build tag, every image among them, and
+ // only on.go's init, compiled under the tag, sets it.
+-var enabled = false
++var enabled = true
+ 
+ // Enabled reports whether the binary was built with the devloop build tag.
+ func Enabled() bool { return enabled }

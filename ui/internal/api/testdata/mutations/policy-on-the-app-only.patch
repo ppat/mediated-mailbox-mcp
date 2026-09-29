@@ -1,0 +1,23 @@
+control: every response a handler of the UI answers carries the content security policy, exact
+removes: the policy is set on the entry document and the bundle only, so the read API's answers and errors leave without it
+packages: ./ui/internal/api
+tests: TestEveryResponseCarriesThePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 0ebe994..729da62 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -126,9 +126,9 @@ func New(opts Options) (*Server, error) {
+ 	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
+ 		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+ 	}))
+-	mux.Handle("/", a)
++	mux.Handle("/", withPolicy(a))
+ 	s.served = mux.patterns
+-	s.handler = observe(opts.Logger, withPolicy(mux))
++	s.handler = observe(opts.Logger, mux)
+ 
+ 	probes := http.NewServeMux()
+ 	probes.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {

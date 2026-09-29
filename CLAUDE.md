@@ -116,7 +116,7 @@ in its README.
 | Contract runs against a real provider | Files named `*_live_test.go` beside the adapter, carrying a build tag of the provider's own, `gmail_live` for Gmail, so no other test run compiles them, while lint and the `go vet` analysers read them. They add their own marked messages and check and report only those ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)). They run only through `go tool livecontract <provider>`, from `testsupport/cmd/livecontract`, which sets the marker the live test requires. Run any other way, the build tag included, a live test skips and names the command, so no accidental or incidental test invocation reaches a real provider |
 | Violation files | Placed where the ban or import rule they prove applies, and named for it. A Go violation file ends in `_violation.go` for a rule over non-test files, or in `_violation_test.go`, `_violation_property_test.go` or another test-file suffix for a rule over test files. It carries the `banproof` build tag, so the gating lint never loads it, and holds `// want` annotations naming the finding it must produce ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)). A browser violation file ends in `_violation.ts` or `_violation.tsx`. The gating browser lint and type check skip files with that name, and nothing imports one, so the bundler never reaches it. An SQL violation file ends in `_violation.sql` under `db/check/testdata/violations/`. A few violation files need a target of their own. A deployable's `importtarget` package sits outside `internal/` only so the other deployables' lists have something to refuse, and `residual_violation.go` at the repository root proves the list over Go files outside every component |
 | Must-not-compile fixtures | Under `testdata/mustnotcompile/<case>/`, loaded by `testsupport/mustnotcompile` ([ADR-0042](./docs/adr/engineering/0042-implementation-stack.md)) |
-| Golden files | Under `testdata/golden/` in the package that owns them, written and compared by the golden-file helper in `testsupport/compare` ([ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md)) |
+| Golden files | Under `testdata/golden/` in the package that owns them, written and compared by the golden-file helper in `testsupport/compare` ([ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md)). A recorded file read outside the recording test's package sits where its reader expects it, outside `testdata/golden/`, and is written and compared by the helper's `GoldenAt`. They are the browser's fixtures under `ui/browser/test/fixtures/`, recorded by the UI's server tests ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), and the contract document under `ui/contract/`. Both forms share one `-update` flag, which `testsupport/compare` registers and no other package does |
 | Mutation demonstrations | A patch under `testdata/mutations/` in the package whose control it demonstrates, which is usually the package whose file it edits. A control can rest on another package's code, as the Redaction Gate's proof that nothing reaches it but its parameters rests on the fields of the classifier's types, and a patch breaking it there still sits with the control. There is one patch per way the mechanism is broken, each describing itself in the text before its first diff header, and `go tool mutproof` runs them from the repository root ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). The runner's package comment states the keys that text carries |
 | Browser tests | Under `ui/browser/test/`, run by `bun test` with the DOM shim preloaded ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
 
@@ -141,10 +141,10 @@ in its README.
 - **`govulncheck`** runs in CI over the module and on a schedule, because its answer changes when
   its vulnerability database does.
 - **The `go vet` analysers** live in `testsupport/analysis` with a `unitchecker` program at
-  `testsupport/cmd/vetcheck`, and run beside golangci-lint as `go vet -tags integration,gmail_live
-  -vettool="$(go tool -n vetcheck)"`, with the tags golangci-lint's configuration sets. The
-  placement analyser's two rules refuse a call to `property.Report` or `property.Check` reachable
-  from inside a property
+  `testsupport/cmd/vetcheck`, and run beside golangci-lint as `go vet -tags
+  integration,gmail_live,devloop -vettool="$(go tool -n vetcheck)"`, with the tags golangci-lint's
+  configuration sets. The placement analyser's two rules refuse a call to `property.Report` or
+  `property.Check` reachable from inside a property
   ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The globals
   analyser refuses package-level state in a pure core by the four rules
   [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. The environment
@@ -252,7 +252,7 @@ need the repository's tools install them from `mise.toml` through
 | `gmail-contract` | A weekly schedule on the main branch, and by hand on any branch | `go tool livecontract gmail`, the Gmail adapter's contract suite against the test account, with its credentials from GitHub Actions secrets ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)). Never automatically on a pull request |
 | `go-vulncheck` | Go code, and a schedule | `govulncheck` |
 | `data` | `db/`, its configuration, tool pins | sqlfluff, the generator's diffs, and the `db/check` tests |
-| `ui` | `ui/`, the migration chain, the ban-proof program, tool pins | One job, which runs in order the contract, types and descriptor drift checks of [ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md), `bun build`, the UI's Go build and tests, the type check, the formatting check, browser lint, `go tool banproof -browser`, and `bun test`. The Go tests and the browser tests share the job because the recorded fixtures are regenerated in the job that runs the Go tests they come from ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
+| `ui` | `ui/`, the migration chain, the data-access subsections the UI's list names, the ban-proof program, tool pins | One job, which runs in order the contract, types and descriptor drift checks of [ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md), `bun build`, the UI's Go build and its tests under `go tool pgrun` with `-tags integration`, which record the browser's fixtures and diff them, the type check, the formatting check, browser lint, `go tool banproof -browser`, and `bun test`. The Go tests and the browser tests share the job because the recorded fixtures are regenerated in the job that runs the Go tests they come from ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
 | `images` | Any image's directory, or a shared library an image copies | Builds every image through `ppat/homelab-ops-actions/actions/build-docker-image`, without pushing, and requires the UI's image to fail at its guard when the bundle directory holds only the placeholder |
 | `dockerfiles` | Any Dockerfile | hadolint, through the hygiene workflows' reusable job |
 | `secrets` | Every pull request | gitleaks |
@@ -293,9 +293,10 @@ checks that gate the commit vocabulary carry no condition.
   version selection and move shared dependencies inside the project's binaries.
 - **The editor runs the same tools as CI.** `.vscode/settings.json` and `.vscode/extensions.json`
   make golangci-lint the Go formatter and linter with this repository's configuration, have gopls
-  read the `integration`, `banproof` and `gmail_live` build tags so every Go file is analysed, run tests with the
-  gating run's property settings, add the oxc extension for the browser, open generated files
-  read-only, and give the workflow, chart and chainsaw files their schemas.
+  read the `integration`, `banproof`, `gmail_live` and `devloop` build tags so every Go file is
+  analysed, run tests with the gating run's property settings, add the oxc extension for the
+  browser, open generated files read-only, and give the workflow, chart and chainsaw files their
+  schemas.
 
 ## Repository process
 

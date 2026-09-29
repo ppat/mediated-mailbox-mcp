@@ -1,0 +1,19 @@
+control: the entry template and the built bundle hold no inline script and reference no other origin
+removes: the scan passes a script element without a src attribute
+packages: ./ui/internal/api
+tests: TestThePolicyScanReportsEachPlantedViolation
+scheduled-count: no
+
+diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
+index 8223e1a..84350d1 100644
+--- a/ui/internal/api/scan.go
++++ b/ui/internal/api/scan.go
+@@ -33,7 +33,7 @@ func allowedAbsolute() map[string]string {
+ func NeedsLooserPolicy(name, text string) []string {
+ 	var findings []string
+ 	for _, m := range scriptElement.FindAllStringSubmatch(text, -1) {
+-		if !srcAttribute.MatchString(m[1]) {
++		if false && !srcAttribute.MatchString(m[1]) {
+ 			findings = append(findings, "inline script")
+ 		}
+ 	}

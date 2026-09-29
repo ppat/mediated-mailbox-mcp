@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "unknown_dataset",
+    "message": "the registry declares no dataset \"messages\"",
+    "origin": "client",
+    "request_id": "recorded"
+  }
+}

@@ -1,0 +1,19 @@
+control: the entry template and the built bundle hold no inline script and reference no other origin
+removes: a stylesheet resource is taken as the UI's own unless it is scheme-relative, so one with a scheme passes
+packages: ./ui/internal/api
+tests: TestThePolicyScanReportsEachPlantedViolation
+scheduled-count: no
+
+diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
+index 8223e1a..a0baf90 100644
+--- a/ui/internal/api/scan.go
++++ b/ui/internal/api/scan.go
+@@ -52,7 +52,7 @@ func NeedsLooserPolicy(name, text string) []string {
+ 	if strings.HasSuffix(name, ".css") {
+ 		for _, m := range stylesheetURL.FindAllStringSubmatch(text, -1) {
+ 			u := m[1] + m[2]
+-			if !strings.HasPrefix(u, "/") || strings.HasPrefix(u, "//") {
++			if strings.HasPrefix(u, "//") {
+ 				if !strings.HasPrefix(u, "data:") {
+ 					findings = append(findings, "stylesheet resource off the UI's origin: "+u)
+ 				}

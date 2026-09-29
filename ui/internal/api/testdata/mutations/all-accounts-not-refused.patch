@@ -1,0 +1,20 @@
+control: every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
+removes: the value meaning every account is not refused for what it is, so it reads as an unknown account and an account named all would be read
+packages: ./ui/internal/api
+tests: TestEveryReadIsPerAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 0ebe994..59dae93 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -210,7 +210,7 @@ func (s *Server) scoped(route string, h func(http.ResponseWriter, *http.Request)
+ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
+ 	account := r.PathValue("account")
+ 	requestInfo(r.Context()).account = account
+-	if account == "all" {
++	if false && account == "all" {
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "all_accounts", "every view is one account's, and all names every account"))
+ 		return false
+ 	}

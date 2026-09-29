@@ -1,0 +1,18 @@
+control: every route registered through the recording mux's Handle is compared with the contract document
+removes: a route the contract document lacks is registered through the recording mux's Handle
+packages: ./ui/internal/contract
+tests: TestTheServerServesExactlyTheDocumentsRoutes
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 0ebe994..f02c6d6 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -126,6 +126,7 @@ func New(opts Options) (*Server, error) {
+ 	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
+ 		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+ 	}))
++	mux.Handle("GET /api/{account}/export", s.scoped("/api/{account}/export", s.getSystem))
+ 	mux.Handle("/", a)
+ 	s.served = mux.patterns
+ 	s.handler = observe(opts.Logger, withPolicy(mux))

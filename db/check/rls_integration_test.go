@@ -304,8 +304,9 @@ var providerRoles = []string{
 // TestTheProviderCallingRolesReadOnlyTheirAccountsState holds the account snapshot's grants on
 // account_state to row-level security, under the roles as the migration chain grants them. Each of the
 // four roles that call a provider reads its transaction's account's credential and no other's, and an
-// update of another account's credential changes nothing. No other role reads the table, the UI's
-// included, whose read arrives with the statement that needs it (ADR-0084, ADR-0091).
+// update of another account's credential changes nothing. The UI's role reads its transaction's
+// account's progress and last authentication, the columns its statement in db/accountstate reads,
+// and never a credential. No other role reads the table (ADR-0084, ADR-0091).
 func TestTheProviderCallingRolesReadOnlyTheirAccountsState(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -333,13 +334,32 @@ func TestTheProviderCallingRolesReadOnlyTheirAccountsState(t *testing.T) {
 			}
 		})
 	}
-	for _, role := range []string{uiRole, "mediated_mailbox_propose"} {
-		t.Run(role+"/reads account state", func(t *testing.T) {
-			if _, err := as(ctx, tx, role, accountA, "SELECT account_id FROM account_state"); !refusedByGrant(err) {
-				t.Errorf("got %v, want the grant to refuse it", err)
+	t.Run(uiRole+"/reads its own account's progress", func(t *testing.T) {
+		var accounts []string
+		err := asRole(ctx, tx, uiRole, accountA, func(sp pgx.Tx) error {
+			rows, err := sp.Query(ctx, `SELECT account_id FROM account_state
+				WHERE NOT backfill_pass1_complete AND NOT backfill_pass2_complete
+				AND sync_cursor_at IS NULL AND last_auth_at IS NULL AND last_auth_outcome IS NULL ORDER BY account_id`)
+			if err != nil {
+				return err
 			}
+			accounts, err = pgx.CollectRows(rows, pgx.RowTo[string])
+			return err
 		})
-	}
+		if err != nil || !slices.Equal(accounts, []string{accountA}) {
+			t.Errorf("read the progress of %v with error %v, want %s's alone", accounts, err, accountA)
+		}
+	})
+	t.Run(uiRole+"/reads a credential", func(t *testing.T) {
+		if _, err := as(ctx, tx, uiRole, accountA, "SELECT credential FROM account_state"); !refusedByGrant(err) {
+			t.Errorf("got %v, want the grant to refuse it", err)
+		}
+	})
+	t.Run("mediated_mailbox_propose/reads account state", func(t *testing.T) {
+		if _, err := as(ctx, tx, "mediated_mailbox_propose", accountA, "SELECT account_id FROM account_state"); !refusedByGrant(err) {
+			t.Errorf("got %v, want the grant to refuse it", err)
+		}
+	})
 }
 
 // TestOnlyTheProviderCallingRolesReadTheOAuthClients holds oauth_clients' grants, the only barrier

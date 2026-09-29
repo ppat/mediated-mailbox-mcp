@@ -1,0 +1,20 @@
+control: every response a handler of the UI answers carries the content security policy, exact
+removes: the probes and the metrics endpoint answer without the policy
+packages: ./ui/internal/api
+tests: TestEveryResponseCarriesThePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 0ebe994..0a2daf8 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -136,7 +136,7 @@ func New(opts Options) (*Server, error) {
+ 	})
+ 	probes.HandleFunc("GET /readyz", s.ready)
+ 	probes.Handle("GET /metrics", promhttp.HandlerFor(opts.Metrics, promhttp.HandlerOpts{}))
+-	s.probes = withPolicy(probes)
++	s.probes = probes
+ 	return s, nil
+ }
+ 

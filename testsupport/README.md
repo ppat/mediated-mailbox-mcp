@@ -15,7 +15,10 @@ an image, because only test files and the tooling programs import it. Its packag
   golden-file helper, `Golden`. It compares `got` against the file at `testdata/golden/name` in the
   calling test's own package directory, through the shared options, and fails a golden file that
   does not exist rather than creating one. A name that would leave `testdata/golden/` is refused.
-  Run with `-update`, it writes `got` to that file, byte for byte, instead of comparing.
+  Run with `-update`, it writes `got` to that file, byte for byte, instead of comparing. `GoldenAt`
+  is the same for a recorded file read outside the recording test's package, at a path relative to
+  that package's directory that may leave it, and refuses an absolute or unclean path. The two share
+  the one `-update` flag this package registers.
 - `property`, the generator report, failing-case store and operation sampler of
   [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md).
 - `crash`, the crash harness of [ADR-0045](../docs/adr/engineering/0045-crash-injection-testing.md).
