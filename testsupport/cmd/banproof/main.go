@@ -11,8 +11,9 @@
 // suppression directives refuses every comment that can silence such a linter's finding. It allows a
 // golangci-lint directive only when every linter the directive names is on the closed list of ordinary
 // linters and a reason follows the names (suppression.go). A check of .golangci.yaml refuses every
-// setting that can reach such a linter, allows exclusion rules naming only ordinary linters, and
-// cross-checks the list against the enabled linters and the violation files (config.go).
+// setting that can reach such a linter, allows exclusion rules naming only ordinary linters, refuses a
+// depguard list that is not strict or carries a deny key, and cross-checks the list against the
+// enabled linters and the violation files (config.go).
 //
 // Violation files carry a build constraint that is false unless the banproof tag is set, so the
 // gating lint, build and test runs never see them. banproof enables the tag. It also fails when the

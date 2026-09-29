@@ -27,10 +27,21 @@ linters:
   settings:
     exhaustive:
       default-signifies-exhaustive: false
+    depguard:
+      rules:
+        core:
+          list-mode: strict
+          files: ["**/core/**.go"]
+          allow: [strings$]
+        residual:
+          list-mode: strict
+          files: [$all]
+          allow: [$gostd]
 `
 
 // TestConfigProblems changes one setting of baseConfig per case. Each change can switch off a finding of a
-// linter standing in for a control, so each must be refused, with the problem naming the setting.
+// linter standing in for a control, or writes a depguard key ADR-0071 rules out, so each must be refused,
+// with the problem naming the setting.
 func TestConfigProblems(t *testing.T) {
 	ordinary := []string{"gosec"}
 	if problems := configProblems(mustParse(t, baseConfig), ordinary); len(problems) > 0 {
@@ -67,6 +78,12 @@ func TestConfigProblems(t *testing.T) {
 		{"ignored enum members", "default-signifies-exhaustive: false", "ignore-enum-members: Deny", `ignore-enum-members`},
 		{"ignored enum types", "default-signifies-exhaustive: false", "ignore-enum-types: verdict", `ignore-enum-types`},
 		{"package-scoped enums only", "default-signifies-exhaustive: false", "package-scope-only: true", `package-scope-only`},
+		{"lax import list", "residual:\n          list-mode: strict\n", "residual:\n          list-mode: lax\n", `rules\.residual\.list-mode must be strict`},
+		{"import list in the original mode", "list-mode: strict", "list-mode: original", `rules\.core\.list-mode must be strict`},
+		{"import list with no mode written", "          list-mode: strict\n", "", `rules\.core\.list-mode must be strict`},
+		{"import list with a deny entry", "allow: [$gostd]\n", "allow: [$gostd]\n          deny: [{pkg: os/exec, desc: no}]\n", `rules\.residual has a deny key`},
+		{"import list with an empty deny key", "allow: [strings$]\n", "allow: [strings$]\n          deny: []\n", `rules\.core has a deny key`},
+		{"import list with a deny key and no value", "allow: [strings$]\n", "allow: [strings$]\n          deny:\n", `rules\.core has a deny key`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

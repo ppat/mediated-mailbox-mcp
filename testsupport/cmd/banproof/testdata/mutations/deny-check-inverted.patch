@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a depguard list that is not strict or carries a deny key
+removes: the deny check fires on every list without a deny key and passes one with it
+packages: ./testsupport/cmd/banproof
+tests: TestConfigProblems
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/config.go b/testsupport/cmd/banproof/config.go
+index fcfe3fe..00124fc 100644
+--- a/testsupport/cmd/banproof/config.go
++++ b/testsupport/cmd/banproof/config.go
+@@ -150,7 +150,7 @@ func configProblems(c lintConfig, ordinary []string) []string {
+ 		if rules[name].ListMode != "strict" {
+ 			refuse("linters.settings.depguard.rules.%s.list-mode must be strict, or the list can admit an import its allow entries do not name", name)
+ 		}
+-		if rules[name].Deny.Kind != 0 {
++		if rules[name].Deny.Kind == 0 {
+ 			refuse("linters.settings.depguard.rules.%s has a deny key. Every depguard list names only what it allows (ADR-0071)", name)
+ 		}
+ 	}
