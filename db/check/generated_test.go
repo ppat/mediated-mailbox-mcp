@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -75,6 +76,7 @@ func TestUngeneratedSubsectionReported(t *testing.T) {
 	subs, _ := layoutLibrary.layout(t)
 	requireProblems(t, declaredModelTypes(t, subs), []string{
 		"testdata/layout/ungenerated: no generated db.go. Run sqlc generate",
+		"testdata/layout/nested/ungenerated: no generated db.go. Run sqlc generate",
 	})
 }
 
@@ -126,5 +128,144 @@ func TestNoStaleGeneratedFiles(t *testing.T) {
 func TestStaleGeneratedFilesReported(t *testing.T) {
 	requireProblems(t, staleGeneratedFiles(t, testLibrary), []string{
 		"testdata/listing/removed.sql.go is generated from a statement file that no longer exists",
+	})
+}
+
+// handWrittenFiles reports a hand-written Go file in a subsection's directory, in a directory above
+// one inside the library, or in the library's root directory, other than its doc.go. Those
+// directories hold only the files sqlc writes and a doc.go. A hand-written file there could wrap the
+// statements of a subsection below it, so a role admitted to the parent would reach statements the
+// layout keeps from it, and no other check would refuse it (ADR-0066). Test files are left out,
+// since they do not build into the package.
+func handWrittenFiles(t *testing.T, lib library, subs []subsection) []string {
+	t.Helper()
+	root, err := filepath.Abs(lib.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// held holds each subsection's directory, every directory between it and the library's root, and
+	// the root, whose package holds no statements and could wrap any subsection's.
+	held := map[string]bool{root: true}
+	for _, s := range subs {
+		dir, err := filepath.Abs(s.dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for ; dir != root && strings.HasPrefix(dir, root+string(filepath.Separator)); dir = filepath.Dir(dir) {
+			held[dir] = true
+		}
+	}
+	var out []string
+	err = walkSkippingTestdata(lib.dir, func(path string, d fs.DirEntry) error {
+		name := d.Name()
+		if d.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || name == "doc.go" {
+			return nil
+		}
+		dir, err := filepath.Abs(filepath.Dir(path))
+		if err != nil || !held[dir] {
+			return err
+		}
+		src, err := os.ReadFile(path)
+		if err != nil || bytes.HasPrefix(src, []byte(generatedHeader)) {
+			return err
+		}
+		out = append(out, fmt.Sprintf("%s is hand-written in a data-access subsection or a directory above one, which holds only generated files and its doc.go", path))
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func TestNoHandWrittenFilesInSubsections(t *testing.T) {
+	requireNoProblems(t, handWrittenFiles(t, realLibrary, realLibrary.subsections(t)))
+}
+
+// The test library holds a hand-written file beside a subsection's generated files and one in its root
+// directory, and the layout library one in the directory above a nested subsection, each beside a
+// doc.go. Each must be reported, and no doc.go.
+func TestHandWrittenFilesInSubsectionsReported(t *testing.T) {
+	requireProblems(t, handWrittenFiles(t, testLibrary, testLibrary.subsections(t)), []string{
+		"testdata/listing/wrapper.go is hand-written in a data-access subsection or a directory above one, which holds only generated files and its doc.go",
+		"testdata/wrapper.go is hand-written in a data-access subsection or a directory above one, which holds only generated files and its doc.go",
+	})
+	subs, _ := layoutLibrary.layout(t)
+	requireProblems(t, handWrittenFiles(t, layoutLibrary, subs), []string{
+		"testdata/layout/nested/wrapper.go is hand-written in a data-access subsection or a directory above one, which holds only generated files and its doc.go",
+	})
+}
+
+// subsectionImporters reports a package of the library that imports a subsection and is not itself
+// one. Such a package, whatever its files hold, could wrap the subsection's statements for every
+// component admitting it, where the grant check, which plans only the subsections a list names,
+// would never plan them (ADR-0066). The rule covers every package of the library, the transaction
+// helper and the root included. Test files and violation files are left out, since neither builds
+// into the package, and so are the library's fixed component directories, which the real library has
+// none of.
+func subsectionImporters(t *testing.T, lib library, subs []subsection) []string {
+	t.Helper()
+	paths := map[string]subsection{}
+	for _, s := range subs {
+		paths[module+"/db/"+s.name] = s
+	}
+	var out []string
+	err := walkSkippingTestdata(lib.dir, func(path string, d fs.DirEntry) error {
+		name := d.Name()
+		if d.IsDir() {
+			if slices.ContainsFunc(lib.components, func(c string) bool { return sameFile(t, c, path) }) {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, "_violation.go") {
+			return nil
+		}
+		dir := filepath.Dir(path)
+		if slices.ContainsFunc(subs, func(s subsection) bool { return sameFile(t, s.dir, dir) }) {
+			return nil
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
+		if err != nil {
+			return err
+		}
+		for _, spec := range file.Imports {
+			imported, err := strconv.Unquote(spec.Path.Value)
+			if err != nil {
+				return err
+			}
+			if _, ok := paths[imported]; ok {
+				out = append(out, fmt.Sprintf("%s imports the subsection %s and is no subsection itself, so it could wrap the subsection's statements", path, imported))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func TestOnlySubsectionsImportSubsections(t *testing.T) {
+	requireNoProblems(t, subsectionImporters(t, realLibrary, realLibrary.subsections(t)))
+}
+
+// The test library holds a helper package outside its subsections that imports one, and it must be
+// reported. The subsections' own generated files import nothing of the library and are not.
+func TestSubsectionImportersReported(t *testing.T) {
+	requireProblems(t, subsectionImporters(t, testLibrary, testLibrary.subsections(t)), []string{
+		"testdata/helper/helper.go imports the subsection github.com/ppat/mediated-mailbox-mcp/db/listing and is no subsection itself, so it could wrap the subsection's statements",
+	})
+}
+
+// A directory an import list's glob names is no exemption. Run as the real library runs, with no
+// component set, the test library's fixturelib, which the library list's glob names, is reported like
+// any other package that imports a subsection.
+func TestAListGlobExemptsNoDirectory(t *testing.T) {
+	lib := testLibrary
+	lib.components = nil
+	requireProblems(t, subsectionImporters(t, lib, lib.subsections(t)), []string{
+		"testdata/fixturelib/lease/lease.go imports the subsection github.com/ppat/mediated-mailbox-mcp/db/counting and is no subsection itself, so it could wrap the subsection's statements",
+		"testdata/helper/helper.go imports the subsection github.com/ppat/mediated-mailbox-mcp/db/listing and is no subsection itself, so it could wrap the subsection's statements",
 	})
 }

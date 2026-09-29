@@ -23,14 +23,16 @@ tripwires:
   appears in no statement file. The checks in `db/check` run over the real library and over their
   own test library.
 - **Generated code is never edited by hand.** Regenerate it, and the drift checks compare it.
+- **Where a generated function may be called** is the txhelper analyser's rule, in
+  [CLAUDE.md](../../CLAUDE.md#go) under Static analysis and formatting.
 - **A component's import list names each subsection it uses**, and the grant check tests that list
   against the component's role (ADR-0066, ADR-0071). A shared library has no role of its own, so
   its list is tested against the role of each deployable whose list admits the library, and each of
   those roles is granted what the library's statements need (ADR-0075).
-- **Each deployable connects as a runtime role of its own, holding only what its statements need**
-  (ADR-0075). Nothing automated refuses a grant beyond that, so review each migration that grants a
-  privilege against the statements it serves. A row-level security policy that looks up another
-  table needs the querying role to read the columns it looks up, as the operation log's policy
-  reads its plan's account.
+- **Each deployable connects as a runtime role of its own, whose grants stay within ADR-0075's
+  three lines.** Nothing automated refuses a grant beyond them, so review each migration that grants
+  a privilege against the three lines. A row-level security policy that looks up another table
+  needs the querying role to read the columns it looks up, as the operation log's policy reads its
+  plan's account.
 - **goose runs as a command** and is built with its exclusion tags in `migrate/Dockerfile`, never
   linked into the project's binaries or run through `go tool` (ADR-0067).

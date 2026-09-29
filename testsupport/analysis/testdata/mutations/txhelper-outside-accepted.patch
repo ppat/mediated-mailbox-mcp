@@ -1,0 +1,18 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: a New called outside every literal passed to tx.Run is accepted
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..fc6ff9b 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -196,7 +196,6 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
+ 		}
+ 	}
+ 	if innermost == nil {
+-		pass.Reportf(id.Pos(), txOutsideMessage, name)
+ 		return
+ 	}
+ 	if len(call.Args) == 1 {

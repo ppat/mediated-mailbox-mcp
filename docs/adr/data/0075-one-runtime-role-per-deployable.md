@@ -30,8 +30,13 @@ evidence of its compromise survives outside its own reach."
   `mediate`, `backfill`, `sync`, `organize`, `propose` and `ui`, beside the migration role.
 - **Each role is named `mediated_mailbox_<directory>`**, after the migration role
   `mediated_mailbox_migrate`, with the deployable's directory as the last word.
-- **Each role gets only the grants its own deployable's statements need.** What a compromised
-  deployable can do in the database is bounded by its own role's grants.
+- **Each role's grants hold three lines.** Its writes are exactly what its own deployable's
+  statements write. It holds no grant on a sealed credential or an OAuth client secret unless its
+  deployable opens them. It holds no grant on a column a record forbids its deployable to act on,
+  which today is the stored sender class for the mediator
+  ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Reads beyond those lines are
+  acceptable. What a compromised deployable can do in the database is bounded by its own role's
+  grants.
 
 ## Alternatives considered
 
@@ -39,12 +44,15 @@ evidence of its compromise survives outside its own reach."
   sharing one, since they write the same tables, and the others each keeping their own. The case
   for it is one credential fewer to provision. A compromise of delta sync would reach everything
   backfill can write, which it mostly reaches already, and the shared role would need a name of its
-  own. Not chosen, in favour of a role for each deployable holding only what that deployable's
-  statements need.
+  own. Not chosen, in favour of a role for each deployable held to the three lines.
 - **One role the UI does not share, and one every other deployable shares.** The case for it is the
   simplest provisioning, two runtime roles. Any compromised deployable could write every table the
   others can, which weakens the understood blast radius the pillar asks for, and the grant check
   would separate nothing among them. Not chosen, for the same reason.
+- **Grants of exactly what each deployable's own statements need.** For it, the tightest bound on
+  reads. Against it, it narrows how the data-access library can be organized and named, splitting a
+  table's statements into a subsection per reader, for little benefit in the risk it gates. Not
+  chosen, in favour of the three lines.
 
 ## Consequences
 
@@ -72,5 +80,5 @@ evidence of its compromise survives outside its own reach."
   for the statements its component's list admits
   ([ADR-0066](./0066-data-access-generated-from-sql.md)). The decision holds only while the
   deployment platform gives each deployable the credential of its own role.
-- That a role holds no more than its statements need has no automated check. Its disposition is in
+- That a role's grants stay within the three lines has no automated check. Its disposition is in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

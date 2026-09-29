@@ -13,7 +13,7 @@ sit in `ratelimit/core/`. The lease code that reads and writes the shared coordi
 and sits in `ratelimit/lease/`. Keeping both in one library means the rules are not split from the
 code that applies them and the lease code is not duplicated per deployable.
 
-The library connects to the database as no role of its own. Its statements in `db/ratestate` run
+The library connects to the database as no role of its own. Its statements in `db/ratestate/limiter` run
 under the role of each deployable that spends from the budget, which is why those roles hold the
 grants the statements need
 ([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md),

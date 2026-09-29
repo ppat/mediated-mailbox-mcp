@@ -1,0 +1,21 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: an assignment to the transaction parameter is not reported
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..6ba2ed5 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -226,9 +226,7 @@ func checkReplaced(pass *analysis.Pass, n ast.Node, literals map[types.Object]*a
+ 	switch n := n.(type) {
+ 	case *ast.AssignStmt:
+ 		for _, lhs := range n.Lhs {
+-			if parameter(lhs) {
+-				pass.Reportf(lhs.Pos(), txAssignMessage)
+-			}
++			_ = lhs
+ 		}
+ 	case *ast.RangeStmt:
+ 		if n.Tok != token.ASSIGN {

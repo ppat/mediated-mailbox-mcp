@@ -11,9 +11,9 @@ diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
 @@ -145,7 +145,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
  // deleted, a grant stamped ahead of the instant issuance reached is moved back to it as the rules take
  // it, and a granted lease gets its row.
- func (l *Limiter) storeIssuance(ctx context.Context, q *ratestate.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
--	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
-+	if err := q.DeleteGrantsBefore(ctx, ratestate.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now)}); err != nil {
+ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
+-	if err := q.DeleteGrantsBefore(ctx, limiter.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
++	if err := q.DeleteGrantsBefore(ctx, limiter.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now)}); err != nil {
  		return fmt.Errorf("deleting old grants: %w", err)
  	}
- 	if err := q.ClampGrants(ctx, ratestate.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {
+ 	if err := q.ClampGrants(ctx, limiter.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {

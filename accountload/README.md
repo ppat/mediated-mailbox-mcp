@@ -43,7 +43,7 @@ The library connects to the database as no role of its own. Its statements run u
 each deployable that imports it
 ([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). The listing comes from
-`db/accounts` and each account's state and credential from `db/accountstate`
+`db/accounts` and each account's credential from `db/accountstate/credential`
 ([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)).
 
 When a process reloads is its caller's. The library loads when asked and swaps only on a read it

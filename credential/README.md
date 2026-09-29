@@ -12,7 +12,8 @@ An account's provider credential is stored in the database sealed to a public ke
 credential when an account is connected or re-authorized. Backfill, the mediator, delta sync and the
 reorg workload open it with the private key, and seal a rotated one before writing it back
 ([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). This library is
-that sealing and opening, and the loading of each key from its mounted file.
+that sealing and opening, the loading of each key from its mounted file, and the configuration
+section naming those files with its validation, in `core`.
 
 The case for one library over per-deployable code is that a mistake here fails open or loses every
 mailbox. A copy that accepted an altered credential, opened one sealed to a key it should not hold,
@@ -21,10 +22,11 @@ construction and its refusals hold in every deployable that touches a credential
 
 Its subsections are cut so an import list can admit the sealing half without the opening half, so
 the UI links no code that opens a credential. `seal` seals to the current public key. `open` holds
-the keyring of private keys and opens a value by the key its header names. `cmd/keygen` writes a
-key pair, since no standard tool writes X-Wing keys. The construction and the sealed value's bytes
-are [ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a
-key is replaced is [ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)'s.
+the keyring of private keys and opens a value by the key its header names. `core` holds the
+configuration section naming the key files a deployable loads. `cmd/keygen` writes a key pair,
+since no standard tool writes X-Wing keys. The construction and the sealed value's bytes are
+[ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a key is
+replaced is [ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)'s.
 Every write of a sealed value by a deployable is the compare-and-set of
 [ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md).
 
@@ -34,6 +36,7 @@ Every write of a sealed value by a deployable is the compare-and-set of
 | --- | --- |
 | `seal/` | The public key, the sealed value's bytes and the contexts a value is bound to. It never imports `open/`, and since `open/` imports it the compiler refuses the reverse as a cycle |
 | `open/` | The private keys, the keyring, opening, the refusals and the re-seal |
+| `core/` | The credential section of a deployable's configuration, naming the mounted public key file and every private key file, and its validation ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It is this library's pure core ([ADR-0040](../docs/adr/engineering/0040-pure-core-decisions-as-values.md)) |
 | `cmd/keygen/` | The key-generation command |
 
 The values below are part of the sealed format. They feed the key identifier, the HPKE key

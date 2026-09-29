@@ -1,0 +1,21 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: a New called on an enclosing literal's transaction inside a nested literal is accepted
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..d3bd641 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -202,9 +202,7 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
+ 	if len(call.Args) == 1 {
+ 		if arg, ok := ast.Unparen(call.Args[0]).(*ast.Ident); ok {
+ 			if lit, ok := literals[pass.TypesInfo.Uses[arg]]; ok {
+-				if lit.Body != innermost {
+-					pass.Reportf(id.Pos(), txNestedMessage, name)
+-				}
++				_ = lit
+ 				return
+ 			}
+ 		}

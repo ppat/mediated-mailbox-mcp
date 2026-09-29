@@ -2,23 +2,29 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
-	coreconnection "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/connection"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
 
 // Backfill's root configuration type is pinned field by field, so a new section is a visible
-// change (ADR-0078). The database section's own type is pinned in its package.
+// change (ADR-0078). Each section's own type is pinned in its package.
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/backfill", "Configuration", "Database connection.Config")
+	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/backfill", "Configuration",
+		"Database core.Config",
+		"Credential core.Config",
+	)
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -26,7 +32,7 @@ func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 // Backfill's defaults are the port, its own runtime role and the TLS mode that fails closed, and the
 // host, the database name and the password file are required.
 func TestTheDefaults(t *testing.T) {
-	want := Configuration{Database: coreconnection.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"}}
+	want := Configuration{Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"}}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
@@ -48,30 +54,10 @@ func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 
 // The start validates the merged configuration before it configures the connection.
 func TestAnEmptyHostRefusesTheStart(t *testing.T) {
-	err := run(t.Context(), []string{"--database.host=", "--database.name=mailbox", "--database.password_file=/absent"}, nil, discard())
+	err := run(t.Context(), append([]string{"--database.host=", "--database.name=mailbox", "--database.password_file=/absent"}, absentKeys...), nil, discard())
 	want := "validating the configuration: database.host is empty"
 	if err == nil || err.Error() != want {
 		t.Errorf("run returned %v, want %q", err, want)
-	}
-}
-
-// An argument starting with a dash is a flag, any other is an account, and one holding an equals
-// sign is refused rather than taken as an account.
-func TestTheArgumentsSplitIntoFlagsAndAccounts(t *testing.T) {
-	flags, accounts, err := splitArguments([]string{"--database.port=5433", "one@example.com", "-h", "two@example.com"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff([]string{"--database.port=5433", "-h"}, flags, compare.Options); diff != "" {
-		t.Errorf("flags (-want +got):\n%s", diff)
-	}
-	if diff := cmp.Diff([]string{"one@example.com", "two@example.com"}, accounts, compare.Options); diff != "" {
-		t.Errorf("accounts (-want +got):\n%s", diff)
-	}
-	_, _, err = splitArguments([]string{"one@example.com", "database.port=5433"})
-	want := `argument "database.port=5433": it is neither an account nor a flag, and flags are written --path=VALUE`
-	if err == nil || err.Error() != want {
-		t.Errorf("splitArguments returned %v, want %q", err, want)
 	}
 }
 
@@ -89,14 +75,16 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		}
 		return a
 	}}))
-	// No account is given, so the start stops at the policy loader, after the log and before any
+	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
-	err := run(t.Context(), []string{"--database.host=db.example", "--database.password_file=" + passwordFile},
+	err := run(t.Context(), append([]string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys...),
 		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
-	if want := "the policy loader needs an account, because every read runs in an account's transaction"; err == nil || err.Error() != want {
-		t.Fatalf("run returned %v, want %q", err, want)
+	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
+		t.Fatalf("run returned %v, want the keyring's refusal", err)
 	}
 	want := []string{
+		`level=INFO msg=configuration path=credential.private_key_files source="flag --credential.private_key_files" value=[/absent/private]`,
+		`level=INFO msg=configuration path=credential.public_key_file source="flag --credential.public_key_file" value=/absent/public`,
 		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
 		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
 		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
@@ -111,5 +99,117 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	}
 	if strings.Contains(out.String(), "the-secret-itself") {
 		t.Errorf("the log holds the password:\n%s", out.String())
+	}
+}
+
+// absentKeys names key files that do not exist, for a start meant to stop before the keyring or at it.
+var absentKeys = []string{"--credential.public_key_file=/absent/public", "--credential.private_key_files=[/absent/private]"}
+
+// database names a database whose password file does not exist, so a start that gets past the keyring
+// stops at the password file, before any connection is made.
+var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}
+
+// The start validates the credential section before it reads a key file.
+func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
+	err := run(t.Context(), append(slices.Clone(database), "--credential.public_key_file=/absent/public", "--credential.private_key_files=[]"), nil, discard())
+	want := "validating the configuration: credential.private_key_files names no file"
+	if err == nil || err.Error() != want {
+		t.Errorf("run returned %v, want %q", err, want)
+	}
+}
+
+// An account is not an argument. An argument that is not a flag refuses the start, an account and a
+// flag written without its dashes alike, so no account can come from the command line (ADR-0078,
+// ADR-0080).
+func TestAnAccountArgumentRefusesTheStart(t *testing.T) {
+	for _, arg := range []string{"one@example.com", "database.port=5433"} {
+		err := run(t.Context(), append(slices.Clone(database), arg), nil, discard())
+		want := fmt.Sprintf("loading the configuration: argument %q: it is not a flag, and flags are written --path=VALUE", arg)
+		if err == nil || err.Error() != want {
+			t.Errorf("run returned %v, want %q", err, want)
+		}
+	}
+}
+
+// D1's part of VERIFICATIONS' row for a credential supplied outside the account's state row. No
+// configuration value holds an account or a credential, so a flag or an environment variable naming
+// one refuses the start rather than being read (ADR-0080).
+func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		args    []string
+		environ []string
+	}{
+		{"a flag", []string{"--accounts.personal.refresh_token=a-token"}, nil},
+		{"an environment variable", nil, []string{"MEDIATED_MAILBOX_ACCOUNTS__PERSONAL__REFRESH_TOKEN=a-token"}},
+		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, discard())
+			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
+				t.Errorf("run returned %v, want the configuration library's refusal", err)
+			}
+		})
+	}
+}
+
+// keyFiles writes a generated key pair's files into dir and returns their paths.
+func keyFiles(t *testing.T, dir, name string) (private, public string) {
+	t.Helper()
+	key, err := seal.KEM().GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed, err := key.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	private = filepath.Join(dir, name+".private")
+	public = filepath.Join(dir, name+".public")
+	if err := os.WriteFile(private, seed, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(public, key.PublicKey().Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return private, public
+}
+
+// D1's part of VERIFICATIONS' row for a public key matching none of the private keys. The start
+// loads the public key and every private key, refuses it when the public key matches none of them,
+// and goes on when it matches any one, the second of two during a key replacement included
+// (ADR-0088, ADR-0092).
+func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
+	dir := t.TempDir()
+	oldPrivate, oldPublic := keyFiles(t, dir, "old")
+	newPrivate, newPublic := keyFiles(t, dir, "new")
+	_, otherPublic := keyFiles(t, dir, "other")
+	start := func(public string, privates ...string) error {
+		args := append(slices.Clone(database), "--credential.public_key_file="+public, "--credential.private_key_files=["+strings.Join(privates, ", ")+"]")
+		return run(t.Context(), args, nil, discard())
+	}
+	pastTheKeyring := "configuring the database connection: reading the password file: "
+	for _, c := range []struct {
+		name     string
+		public   string
+		privates []string
+		refused  bool
+	}{
+		{"a public key matching no private key", otherPublic, []string{oldPrivate, newPrivate}, true},
+		{"a public key matching the only private key", oldPublic, []string{oldPrivate}, false},
+		{"a public key matching the first of two", oldPublic, []string{oldPrivate, newPrivate}, false},
+		{"a public key matching the second of two", newPublic, []string{oldPrivate, newPrivate}, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			err := start(c.public, c.privates...)
+			switch {
+			case err == nil:
+				t.Fatal("run succeeded")
+			case c.refused && !strings.HasPrefix(err.Error(), "loading the keyring: ") || c.refused && !strings.Contains(err.Error(), "matches none of the private keys"):
+				t.Errorf("run returned %v, want the keyring's refusal", err)
+			case !c.refused && !strings.HasPrefix(err.Error(), pastTheKeyring):
+				t.Errorf("run returned %v, want it to pass the keyring and stop at the password file", err)
+			}
+		})
 	}
 }

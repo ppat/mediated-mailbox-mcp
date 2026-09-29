@@ -1,4 +1,4 @@
-// Command vetcheck runs the project's go vet analysers, placement, globals and environment.
+// Command vetcheck runs the project's go vet analysers, placement, globals, environment and txhelper.
 //
 //	go vet -vettool="$(go tool -n vetcheck)" ./...
 package main
@@ -9,4 +9,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/analysis"
 )
 
-func main() { unitchecker.Main(analysis.Placement, analysis.Globals, analysis.Environment) }
+func main() {
+	unitchecker.Main(analysis.Placement, analysis.Globals, analysis.Environment, analysis.TxHelper)
+}

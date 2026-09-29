@@ -34,6 +34,13 @@ linters:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
 
+        # Admits the library's root package, by its exact path and by a prefix of it that stops before its
+        # last segment's end, and has no role.
+        rootpackage:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db$"
+          - "github.com/ppat/mediated-mailbox-mcp/d"
+
         # Names a subsection and has no role.
         unmapped:
           allow:

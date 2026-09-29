@@ -1,0 +1,19 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: the exception covers every statement of the two exempt subsections, not only the listing and the client read
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..6551daf 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -182,7 +182,7 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
+ 		return
+ 	}
+ 	if statement, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {
+-		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && sel.Sel.Name == statement {
++		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && sel.Sel.Name != "" && statement != "" {
+ 			if outer, ok := parent(level + 2).(*ast.CallExpr); ok && outer.Fun == sel {
+ 				return
+ 			}

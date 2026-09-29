@@ -1,8 +1,9 @@
 // Package analysis holds the project's go vet analysers, as a library. Placement carries the rules
 // ADR-0069 sets on property tests, Globals the rule ADR-0071 sets against package-level state in a
-// pure core, and Environment the rule ADR-0078 sets against reading the environment outside a
-// deployable's composition root. The program under testsupport/cmd/vetcheck runs them through go
-// vet, beside golangci-lint.
+// pure core, Environment the rule ADR-0078 sets against reading the environment outside a
+// deployable's composition root, and TxHelper the rule ADR-0047 sets that every generated
+// data-access function runs inside the transaction helper. The program under
+// testsupport/cmd/vetcheck runs them through go vet, beside golangci-lint.
 //
 // The analysers honour no suppression comment, which is why they run under go vet rather than as
 // golangci-lint plugins. The environment rule is scoped by path, and forbidigo could carry that

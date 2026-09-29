@@ -38,7 +38,7 @@ had alternatives live in the records, cited by number. What tests a piece of wor
 [TESTING.md](./TESTING.md)'s, which controls exist and how each is proven is
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s.
 The UI's own layout is [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The
-data-access library and the eight narrow shared libraries each describe themselves in a README in
+data-access library and the nine narrow shared libraries each describe themselves in a README in
 their own directory.
 
 ### The Go module
@@ -66,8 +66,9 @@ carries the bare word.
 | --- | --- | --- | --- |
 | `accountload/` | Library | `mediated-mailbox-accountload` | The loading of a deployable's accounts, the installation's OAuth clients and their opened credentials into one account snapshot, the compare-and-set write-back of a rotated credential, and delta sync's re-seal, argued in [accountload/README.md](./accountload/README.md) |
 | `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, and `mail` (the canonical model, the Provider Port interface, the canonical query, the rate profile types and the hard-cap fraction) |
-| `credential/` | Library | `mediated-mailbox-credential` | The sealing and opening of an account's provider credential and the loading of its keys, argued in [credential/README.md](./credential/README.md) |
+| `credential/` | Library | `mediated-mailbox-credential` | The sealing and opening of an account's provider credential, the loading of its keys, and the configuration section naming the key files with its validation, in `credential/core`, argued in [credential/README.md](./credential/README.md) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
+| `dbconnect/` | Library | `mediated-mailbox-dbconnect` | A deployable's database section of its configuration and the connection built from it, argued in [dbconnect/README.md](./dbconnect/README.md) |
 | `policyload/` | Library | `mediated-mailbox-policyload` | The loading of the policy tables into one snapshot, and the reload-failure alarm, argued in [policyload/README.md](./policyload/README.md) |
 | `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
 | `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
@@ -87,7 +88,7 @@ carries the bare word.
 A deployable's job word is a verb for what it does, following `organize`. `ui` keeps the directory
 the Glossary gives it. Shared code is the shared pure library, or a narrow, named library that
 argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
-requires. The data-access library's case is ADR-0047's, and each of the other eight argues its case
+requires. The data-access library's case is ADR-0047's, and each of the other nine argues its case
 in its README.
 
 ### Inside a component
@@ -156,8 +157,17 @@ in its README.
   its directory root, the composition root
   ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It is
   scoped by path, which a `forbidigo` rule could carry only through an exclusion ADR-0071 refuses.
-  banproof requires each rule from its violation file, where a want annotation names the finding as
-  `vetcheck`.
+  The txhelper analyser holds every call of a generated data-access subsection's `New` to a
+  function literal passed to `db/tx.Run`, built from the transaction of the innermost such literal
+  around it, and refuses an assignment to that transaction or taking its address, `WithTx`, `New`
+  used as a value and a declared function passed to `tx.Run`
+  ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)). A subsection is recognised by its
+  type, a package under `db/` whose `New` returns its own `Queries`. It covers every package, test
+  files included, and exempts the accounts listing and the read of `oauth_clients`, each written as
+  one chained call, which are not account-scoped. The one gap it leaves is a query value built
+  inside the literal that escapes it and is used after `tx.Run` returns, which its package comment
+  states. banproof requires each rule from its violation file, where a want annotation names the
+  finding as `vetcheck`.
 - **`banproof`** is the ban-proof script of
   [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), written as a Go
   program at `testsupport/cmd/banproof` and run as `go tool banproof`. It runs the analysers with
@@ -249,7 +259,7 @@ need the repository's tools install them from `mise.toml` through
 | `chart` | `packaging/`, tool pins | `helm lint` |
 | `chainsaw` | `packaging/`, `tests/chainsaw/`, and by hand with a version | The chainsaw suite as ADR-0052 states it, against the images published for the version |
 | `deep-tests` | A schedule, by hand, and a change to the workflow itself | Deep property search and crash-sequence exploration at the scheduled case count, which a manual run may override, with a fresh seed each run, skipped with a stated reason while no property or crash test exists ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)) |
-| `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, pushes and signs the chart, and builds, signs and attaches the `credential/cmd/keygen` binaries to the release ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
+| `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, pushes and signs the chart, and builds the `credential/cmd/keygen` binaries as `mediated-mailbox-keygen-<os>-<arch>` for linux and darwin on amd64 and arm64, signs each keylessly into a Sigstore bundle, and attaches each binary and its bundle to the release ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
 | `lint` | Every pull request | The repository's existing hygiene checks, `commit-messages`, commitlint over the branch commits, and `commit-taxonomy`, which derives every header Renovate and release-please can emit and lints it, requires each to be true of its file, and checks a pull request's headers against its diff ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). `commit-taxonomy` carries no path filter, `needs:` or `if:`, because a skipped job satisfies a required check |
 | `pr-title` | Every pull request, on open, edit, synchronize and reopen | commitlint over the pull request title, the string that lands on `main` for a multi-commit pull request ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). Never gated, for the same reason |
 | `pr-labels` | Every pull request, on open, edit, synchronize, reopen, label and unlabel | Sets the pull request's `component:` labels to exactly the components its diff touches, read from the [component table](#components) at the pull request's head, creating a missing label in the component color. A new component needs only its table row. A pull request from a fork cannot write labels, so its run fails |

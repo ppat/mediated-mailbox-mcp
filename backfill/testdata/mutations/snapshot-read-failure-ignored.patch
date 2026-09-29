@@ -1,0 +1,22 @@
+control: A run takes its account snapshot once at the start, and a failed read stops it
+removes: a load whose read fails is ignored, so the run goes on with no account
+packages: ./backfill
+tests: TestAFailedSnapshotReadStopsTheRun
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 56154bd..636ed67 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -116,9 +116,7 @@ type unitOfWork func(ctx context.Context, sources map[string]*gmail.TokenSource)
+ // snapshot.
+ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logger *slog.Logger, work unitOfWork) error {
+ 	loader := accountload.New(pool, keys, logger)
+-	if err := loader.Load(ctx); err != nil {
+-		return fmt.Errorf("loading the accounts: %w", err)
+-	}
++	_ = loader.Load(ctx)
+ 	snapshot := loader.Snapshot()
+ 	listed := snapshot.Accounts()
+ 	ids := make([]string, 0, len(listed))

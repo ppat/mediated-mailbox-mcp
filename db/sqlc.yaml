@@ -7,11 +7,11 @@ version: "2"
 sql:
 - engine: postgresql
   schema: migrations
-  queries: ratestate
+  queries: ratestate/limiter
   gen:
     go:
-      package: ratestate
-      out: ratestate
+      package: limiter
+      out: ratestate/limiter
       sql_package: pgx/v5
       emit_interface: true
       omit_unused_structs: true
@@ -37,11 +37,11 @@ sql:
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
-  queries: accountstate
+  queries: accountstate/credential
   gen:
     go:
-      package: accountstate
-      out: accountstate
+      package: credential
+      out: accountstate/credential
       sql_package: pgx/v5
       emit_interface: true
       omit_unused_structs: true

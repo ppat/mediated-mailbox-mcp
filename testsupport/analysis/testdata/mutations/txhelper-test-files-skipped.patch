@@ -1,0 +1,20 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: test files are not checked
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..c4c6ef7 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -131,6 +131,9 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
+ 	}
+ 	inside := func(pos token.Pos, body *ast.BlockStmt) bool { return body.Pos() <= pos && pos < body.End() }
+ 	for _, file := range pass.Files {
++		if strings.HasSuffix(pass.Fset.File(file.Pos()).Name(), "_test.go") {
++			continue
++		}
+ 		var stack []ast.Node
+ 		ast.Inspect(file, func(n ast.Node) bool {
+ 			if n == nil {

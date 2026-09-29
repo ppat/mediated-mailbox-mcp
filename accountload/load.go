@@ -19,7 +19,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
-	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
@@ -183,7 +183,7 @@ func (l *Loader) read(ctx context.Context) ([]row, []oauthclients.OAuthClientsRo
 func (l *Loader) stored(ctx context.Context, account string) ([]byte, error) {
 	var stored []byte
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
-		read, err := accountstate.New(t).Sealed(ctx, account)
+		read, err := credential.New(t).Sealed(ctx, account)
 		if err != nil {
 			return err
 		}

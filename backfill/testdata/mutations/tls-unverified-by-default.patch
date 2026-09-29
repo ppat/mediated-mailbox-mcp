@@ -5,15 +5,15 @@ tests: TestTheDefaults
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
-index ac6189f..e1117d3 100644
+index 56154bd..9dceb9a 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -34,7 +34,7 @@ type Configuration struct {
- // defaults are backfill's defaults. The user is backfill's own runtime role (ADR-0075), and the TLS
- // mode is the one that fails closed.
+@@ -45,7 +45,7 @@ type Configuration struct {
+ // mode is the one that fails closed. The key files have no default, since a default path assumes
+ // the environment.
  func defaults() Configuration {
--	return Configuration{Database: coreconnection.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"}}
-+	return Configuration{Database: coreconnection.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "prefer"}}
+-	return Configuration{Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"}}
++	return Configuration{Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "prefer"}}
  }
  
  func main() {

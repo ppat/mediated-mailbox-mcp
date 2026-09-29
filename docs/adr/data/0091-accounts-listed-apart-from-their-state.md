@@ -54,8 +54,10 @@ column grant cannot tell the two reads apart.
 - `accounts` is an exception to the rule that every row is confined to its account, for reads
   only. No listing can reach a credential, because the credential is not in a row a listing reads.
 - The two tables' statements sit in separate data-access subsections, the listing in
-  `db/accounts` and `account_state`'s in `db/accountstate`, so a role whose import list admits the
-  listing is never planned against a statement that reads or writes a credential
+  `db/accounts` and `account_state`'s under `db/accountstate`. The reads of the account's other
+  state sit in `db/accountstate` itself, and the credential's statements one directory down, in
+  `db/accountstate/credential`. So a role whose import list admits the listing or the other state
+  is never planned against a statement that reads or writes a credential
   ([ADR-0066](./0066-data-access-generated-from-sql.md)).
 - The isolation test names `accounts` as the read exception and requires every other account-keyed
   table, `account_state` among them, to stay confined.

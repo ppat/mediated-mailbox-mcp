@@ -1,0 +1,19 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: the analyser reports nothing
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..53f1ed5 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -46,7 +46,7 @@ import (
+ var TxHelper = &analysis.Analyzer{
+ 	Name: "txhelper",
+ 	Doc:  "reports a generated data-access function that can run outside the transaction helper",
+-	Run:  runTxHelper,
++	Run:  func(*analysis.Pass) (any, error) { return nil, nil },
+ }
+ 
+ const txPath = modulePath + "/db/tx"

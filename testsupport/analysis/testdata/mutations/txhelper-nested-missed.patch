@@ -1,0 +1,20 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+removes: only a package directly below db is a subsection, so a nested one is not checked
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 87bf71f..1a6bc60 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -73,7 +73,8 @@ func generatedSubsection(pkg *types.Package) bool {
+ 	if pkg == nil {
+ 		return false
+ 	}
+-	if !strings.HasPrefix(pkg.Path(), modulePath+"/db/") {
++	rest, ok := strings.CutPrefix(pkg.Path(), modulePath+"/db/")
++	if !ok || strings.Contains(rest, "/") {
+ 		return false
+ 	}
+ 	queries, ok := pkg.Scope().Lookup("Queries").(*types.TypeName)

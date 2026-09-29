@@ -5,10 +5,10 @@ tests: TestAStaleWriteBackIsRefusedAndTheStoredCredentialUsed TestAStaleReSealIs
 scheduled-count: no
 integration: yes
 
-diff --git a/db/accountstate/sealed.sql.go b/db/accountstate/sealed.sql.go
+diff --git a/db/accountstate/credential/sealed.sql.go b/db/accountstate/credential/sealed.sql.go
 index c64c6fe..b3f7df6 100644
---- a/db/accountstate/sealed.sql.go
-+++ b/db/accountstate/sealed.sql.go
+--- a/db/accountstate/credential/sealed.sql.go
++++ b/db/accountstate/credential/sealed.sql.go
 @@ -12,7 +12,7 @@ import (
  const replaceSealed = `-- name: ReplaceSealed :execrows
  UPDATE account_state
