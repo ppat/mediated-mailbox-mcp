@@ -1,0 +1,34 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: the message listing's next page starts after the last row's time alone, so a row sharing that time is skipped
+packages: ./mediate/internal/service
+tests: TestAListingPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+
+diff --git a/db/messages/metadata.sql b/db/messages/metadata.sql
+index e70a9af..c477f6f 100644
+--- a/db/messages/metadata.sql
++++ b/db/messages/metadata.sql
+@@ -21,7 +21,7 @@ WHERE
+     m.account_id = @account_id
+     AND (
+         @after_sent_at::timestamptz IS NULL
+-        OR (m.sent_at, m.message_id) < (@after_sent_at::timestamptz, @after_message_id::text)
++        OR m.sent_at < @after_sent_at::timestamptz
+     )
+ ORDER BY m.sent_at DESC, m.message_id DESC
+ LIMIT @page_size;
+diff --git a/db/messages/metadata.sql.go b/db/messages/metadata.sql.go
+index 6a11930..33eaa36 100644
+--- a/db/messages/metadata.sql.go
++++ b/db/messages/metadata.sql.go
+@@ -133,7 +133,7 @@ WHERE
+     m.account_id = $1
+     AND (
+         $2::timestamptz IS NULL
+-        OR (m.sent_at, m.message_id) < ($2::timestamptz, $3::text)
++        OR (m.sent_at < $2::timestamptz AND $3::text IS NOT NULL)
+     )
+ ORDER BY m.sent_at DESC, m.message_id DESC
+ LIMIT $4

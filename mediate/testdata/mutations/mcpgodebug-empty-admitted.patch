@@ -6,15 +6,15 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 91cec55..bd9e0bd 100644
+index 9a59611..759d742 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -199,7 +199,7 @@ func loadPolicy(ctx context.Context, pool *pgxpool.Pool, accounts []string, metr
- // a stateless server among them. pgx reads the two passwords on every parse, and either would win
+@@ -406,7 +406,7 @@ func idsOf(snapshot *accountload.Snapshot) []string {
  // over the mounted password file.
- func refuseEnvironment() error {
--	if _, set := os.LookupEnv("MCPGODEBUG"); set {
-+	if os.Getenv("MCPGODEBUG") != "" {
- 		return errors.New("MCPGODEBUG is set, and the mediator runs the MCP SDK only as it ships (ADR-0086)")
+ func refuseEnvironment(environ []string) error {
+ 	for _, entry := range environ {
+-		if name, _, _ := strings.Cut(entry, "="); name == "MCPGODEBUG" {
++		if name, value, _ := strings.Cut(entry, "="); name == "MCPGODEBUG" && value != "" {
+ 			return errors.New("MCPGODEBUG is set, and the mediator runs the MCP SDK only as it ships (ADR-0086)")
+ 		}
  	}
- 	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {

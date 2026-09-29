@@ -1,7 +1,9 @@
 package api_test
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -190,5 +192,53 @@ func TestBothRootsCarryExactlyTheRegistry(t *testing.T) {
 	got := map[string][]string{"routes": documented, "tools": tools}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("operations on each root (-want +got):\n%s", diff)
+	}
+}
+
+// An operation's refusal of an argument reaches the client with its message and a 400, the same body
+// the MCP root carries, while any other failure is a 500 that says only that the call failed, so no
+// internal detail leaks (ADR-0033, ADR-0087).
+func TestAnArgumentRefusalReachesTheClient(t *testing.T) {
+	op := func(name string, err error) service.Operation {
+		return service.Operation{
+			Name: name, Description: "Fails.", Effect: service.Read, Path: "/api/accounts/{account_id}/" + name,
+			Input:  json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`),
+			Output: json.RawMessage(`{"type":"object"}`),
+			Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) { return nil, err },
+		}
+	}
+	reg, err := service.NewRegistry([]string{"acct-a"},
+		op("refuses", service.Refuse("since must be an ISO 8601 timestamp in UTC ending in Z")),
+		op("fails", errors.New("internal detail mmfieldmarker-leak")),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := root(t, reg)
+	got := []answer{send(t, h, http.MethodGet, "/api/accounts/acct-a/refuses", ""), send(t, h, http.MethodGet, "/api/accounts/acct-a/fails", "")}
+	want := []answer{
+		{http.StatusBadRequest, `{"error":"since must be an ISO 8601 timestamp in UTC ending in Z"}`},
+		{http.StatusInternalServerError, `{"error":"the operation failed"}`},
+	}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("the answers (-want +got):\n%s", diff)
+	}
+}
+
+// The API root refuses a query parameter named in another case than the served operation's schema
+// declares, as the MCP root refuses the same argument (ADR-0087).
+func TestAServedRouteTakesOnlyTheArgumentsItDeclares(t *testing.T) {
+	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operations(service.Sources{})...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := root(t, reg)
+	for _, target := range []string{
+		"/api/accounts/acct-a/masking-events?SINCE=2026-07-21T20:00:00Z",
+		"/api/accounts/acct-a/messages?Cursor=zz",
+	} {
+		if got := send(t, h, http.MethodGet, target, ""); got.Status != http.StatusBadRequest {
+			t.Errorf("GET %s answered %d %s, want 400", target, got.Status, got.Body)
+		}
 	}
 }

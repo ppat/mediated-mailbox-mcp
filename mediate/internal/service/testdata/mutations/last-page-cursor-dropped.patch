@@ -1,0 +1,21 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: the thread listing returns no next cursor on a full page, so the rows after it are never served
+packages: ./mediate/internal/service
+tests: TestAListingPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/reads.go b/mediate/internal/service/reads.go
+index f3e6ddd..b7c905c 100644
+--- a/mediate/internal/service/reads.go
++++ b/mediate/internal/service/reads.go
+@@ -302,7 +302,7 @@ func (s Sources) listThreads(ctx context.Context, account string, input json.Raw
+ 		out = append(out, thread{ThreadID: r.ThreadID, Messages: r.Messages, LatestAt: formatUTC(r.LatestAt.Time)})
+ 	}
+ 	var next *string
+-	if len(rows) == pageSize {
++	if false && len(rows) == pageSize {
+ 		last := rows[len(rows)-1]
+ 		c := encodeCursor(position{Listing: "list_threads", Account: account, At: formatUTC(last.LatestAt.Time), Key: last.ThreadID})
+ 		next = &c

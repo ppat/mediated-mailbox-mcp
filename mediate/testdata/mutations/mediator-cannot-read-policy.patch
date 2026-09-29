@@ -1,7 +1,7 @@
 control: The mediator loads the policy of the accounts it serves, and of none when it serves none
 removes: the mediator's role is not granted the policy rules' columns
 packages: ./mediate
-tests: TestTheMediatorLoadsPolicyForItsAccounts
+tests: TestTheMediatorServesTheAccountsEachReloadLists
 scheduled-count: no
 integration: yes
 

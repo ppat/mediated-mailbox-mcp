@@ -1,0 +1,21 @@
+control: The mediator serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+removes: the policy is loaded at the first reload only, so an account a later reload lists is served under no policy of its own
+packages: ./mediate
+tests: TestTheMediatorServesTheAccountsEachReloadLists
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index ee8b9d9..f71591f 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -321,7 +321,7 @@ func (s *serving) reload(ctx context.Context) error {
+ 	next := s.loader.Snapshot()
+ 	ids := idsOf(next)
+ 	var failed error
+-	if !slices.Equal(ids, s.policyFor) || s.policies.Load() == nil {
++	if !slices.Equal(ids, ids) || s.policies.Load() == nil {
+ 		if failed = s.loadPolicy(ctx, ids); failed == nil {
+ 			s.policyFor = ids
+ 		}

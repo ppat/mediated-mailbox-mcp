@@ -1,0 +1,20 @@
+control: The mediator refuses a configuration it cannot serve with before anything is read or connected
+removes: a key pair given beside a declared ingress is accepted
+packages: ./mediate
+tests: TestAConfigurationTheMediatorCannotServeWithIsRefused
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 9a59611..9b16ace 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -110,7 +110,7 @@ func defaults() Configuration {
+ // an ingress is declared to terminate TLS, and refused when one is. The reload interval is positive.
+ func validate(c Configuration) error {
+ 	if c.TLSAtIngress {
+-		if c.TLSCert != "" || c.TLSKey != "" {
++		if false {
+ 			return errors.New("tls_at_ingress declares that the mediator serves no TLS, so it takes no tls_cert or tls_key")
+ 		}
+ 	} else {

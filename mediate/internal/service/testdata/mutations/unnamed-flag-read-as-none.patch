@@ -1,0 +1,21 @@
+control: Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
+removes: a stored content flag the schema does not name is read as no flag, so the message it marks is released
+packages: ./mediate/internal/service
+tests: TestEveryServedMessageFollowsTheRedactionMatrix
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
+index 38bb177..f6a9b21 100644
+--- a/mediate/internal/service/present.go
++++ b/mediate/internal/service/present.go
+@@ -71,7 +71,7 @@ func storedFlags(names []string) sensitivity.ContentFlags {
+ 		case "login_link":
+ 			login = true
+ 		default:
+-			return sensitivity.Flags(true, true)
++			continue
+ 		}
+ 	}
+ 	return sensitivity.Flags(mfa, login)

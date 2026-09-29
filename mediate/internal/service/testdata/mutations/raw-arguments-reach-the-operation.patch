@@ -6,10 +6,10 @@ scheduled-count: no
 
 
 diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
-index 5477349..eaa7cec 100644
+index 98ade84..1cddc9b 100644
 --- a/mediate/internal/service/registry.go
 +++ b/mediate/internal/service/registry.go
-@@ -179,14 +179,14 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
+@@ -219,14 +219,14 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
  	if op.Path == accountsPath {
  		return op.Handle(ctx, "", input)
  	}
@@ -18,7 +18,7 @@ index 5477349..eaa7cec 100644
  	if err != nil {
  		return nil, err
  	}
- 	if !r.known[account] {
+ 	if !r.serves(account) {
  		return nil, ErrUnknownAccount
  	}
 -	return op.Handle(ctx, account, rest)

@@ -1,0 +1,21 @@
+control: The policy loader reads the accounts it is set to from its next reload on
+removes: SetAccounts leaves the accounts the loader reads as they were
+packages: ./policyload
+tests: TestSetAccountsChangesWhatTheNextReloadReads
+scheduled-count: no
+integration: yes
+
+
+diff --git a/policyload/load.go b/policyload/load.go
+index a3a089f..a5662e3 100644
+--- a/policyload/load.go
++++ b/policyload/load.go
+@@ -119,7 +119,7 @@ func (l *Loader) SetAccounts(accounts []string) error {
+ 	}
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+-	l.accounts = read
++	_ = read
+ 	return nil
+ }
+ 

@@ -1,0 +1,21 @@
+control: An argument refusal reaches the client with its message on both roots, and no other failure's detail does
+removes: every failure's message reaches the client, an internal one included
+packages: ./mediate/internal/api ./mediate/internal/mcp
+tests: TestAnArgumentRefusalReachesTheClient TestAToolCallRunsTheOperation
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
+index 98ade84..d8eca72 100644
+--- a/mediate/internal/service/registry.go
++++ b/mediate/internal/service/registry.go
+@@ -73,7 +73,8 @@ var ErrAmbiguousAccount = errors.New("the call's arguments name the account more
+ // other error it says only that the call failed.
+ func Failure(err error) json.RawMessage {
+ 	var arg *ArgumentError
+-	if errors.As(err, &arg) {
++	if errors.As(err, &arg) || err != nil {
++		arg = Refuse(err.Error())
+ 		if out, err := json.Marshal(struct {
+ 			Error string `json:"error"`
+ 		}{arg.Error()}); err == nil {

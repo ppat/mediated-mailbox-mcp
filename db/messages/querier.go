@@ -9,9 +9,27 @@ import (
 )
 
 type Querier interface {
+	// Every distinct value the account's messages hold in their labels, in order. These are the values the
+	// other operations take as a label.
+	Labels(ctx context.Context, accountID string) ([]string, error)
+	// One message of the account by its identifier, with the same columns as a page. No row means the
+	// account holds no such message.
+	Message(ctx context.Context, arg MessageParams) ([]MessageRow, error)
+	// One page of the account's messages, newest first, after the position a cursor names or from the
+	// start when it names none. The columns are the metadata the client surface serves and the content
+	// flags and scan state the Redaction Gate decides from. The stored sender class is not read, because
+	// the gate classifies the sender again against the policy in force (ADR-0001, ADR-0002).
+	MessagePage(ctx context.Context, arg MessagePageParams) ([]MessagePageRow, error)
 	// How many of the account's messages wait for their content scan, the scan backlog the system status
 	// exposes (ADR-0034, docs/UI.md section 8.8).
 	ScanBacklog(ctx context.Context, accountID string) (int64, error)
+	// Every message of one of the account's threads, oldest first, with the same columns as a page. No
+	// row means the account holds no such thread.
+	ThreadMessages(ctx context.Context, arg ThreadMessagesParams) ([]ThreadMessagesRow, error)
+	// One page of the account's threads, the one with the latest message first, each with its number of
+	// messages and the time of its latest, after the position a cursor names or from the start when it
+	// names none.
+	ThreadPage(ctx context.Context, arg ThreadPageParams) ([]ThreadPageRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

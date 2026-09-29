@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"unicode"
 )
 
@@ -67,9 +68,30 @@ var ErrUnknownAccount = errors.New("the operation's account_id names no account 
 // keeping the last of two, would take a different account from the one checked.
 var ErrAmbiguousAccount = errors.New("the call's arguments name the account more than once")
 
-// Failure returns the structured content a failed call answers with on both roots. It says only that
-// the call failed.
-func Failure(error) json.RawMessage { return json.RawMessage(`{"error":"the operation failed"}`) }
+// Failure returns the structured content a failed call answers with on both roots. For an
+// ArgumentError it carries the error's message, which names what the client sent wrong, and for any
+// other error it says only that the call failed.
+func Failure(err error) json.RawMessage {
+	var arg *ArgumentError
+	if errors.As(err, &arg) {
+		if out, err := json.Marshal(struct {
+			Error string `json:"error"`
+		}{arg.Error()}); err == nil {
+			return out
+		}
+	}
+	return json.RawMessage(`{"error":"the operation failed"}`)
+}
+
+// ArgumentError is an operation's refusal of an argument the client sent, such as a timestamp that is
+// not UTC (ADR-0033). Its message reaches the client, so it names the argument and never echoes
+// stored content.
+type ArgumentError struct{ message string }
+
+// Refuse returns an ArgumentError with message.
+func Refuse(message string) *ArgumentError { return &ArgumentError{message: message} }
+
+func (e *ArgumentError) Error() string { return e.message }
 
 // ErrRepeatedArgument is returned for a call whose arguments hold two top-level keys equal under
 // case folding, other than the account's. A reader matching keys without regard to case, or keeping
@@ -94,7 +116,7 @@ var ErrNoOperation = errors.New("no such operation")
 // root serves exactly its operations. The zero value holds no operation.
 type Registry struct {
 	ops   []Operation
-	known map[string]bool
+	known *atomic.Pointer[map[string]bool]
 }
 
 // validName is the shape of an operation's name.
@@ -149,17 +171,35 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
 	if len(problems) > 0 {
 		return Registry{}, errors.New("the operation registry does not generate: " + strings.Join(problems, "; "))
 	}
-	known := map[string]bool{}
-	for _, account := range accounts {
-		known[account] = account != ""
-	}
 	sorted := slices.Clone(ops)
 	slices.SortFunc(sorted, func(a, b Operation) int { return strings.Compare(a.Name, b.Name) })
 	for i := range sorted {
 		sorted[i].Input = compact(sorted[i].Input)
 		sorted[i].Output = compact(sorted[i].Output)
 	}
-	return Registry{ops: sorted, known: known}, nil
+	r := Registry{ops: sorted, known: &atomic.Pointer[map[string]bool]{}}
+	r.Serve(accounts)
+	return r, nil
+}
+
+// Serve replaces the accounts the registry serves, as each account snapshot the mediator loads
+// replaces the one before it (ADR-0090). A call checks its account against the set in force when it
+// is made. Every copy of the registry shares the set.
+func (r Registry) Serve(accounts []string) {
+	known := map[string]bool{}
+	for _, account := range accounts {
+		known[account] = account != ""
+	}
+	r.known.Store(&known)
+}
+
+// serves reports whether the registry serves account. The zero Registry serves none.
+func (r Registry) serves(account string) bool {
+	if r.known == nil {
+		return false
+	}
+	known := r.known.Load()
+	return known != nil && (*known)[account]
 }
 
 // Call runs the operation named name on a call's JSON arguments. It first refuses arguments that are
@@ -183,7 +223,7 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage) 
 	if err != nil {
 		return nil, err
 	}
-	if !r.known[account] {
+	if !r.serves(account) {
 		return nil, ErrUnknownAccount
 	}
 	return op.Handle(ctx, account, rest)

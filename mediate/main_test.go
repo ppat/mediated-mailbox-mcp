@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -13,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
@@ -27,9 +29,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/readiness"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
 
 // counted returns a registry holding one operation, echo, and the count of calls that reached it.
@@ -340,40 +345,252 @@ func TestTheSurfaceBehindADeclaredIngressIsPlain(t *testing.T) {
 	}
 }
 
-// The settings the mediator cannot run without are required, and it takes no arguments, so no account
-// reaches it from its command line (ADR-0080). TLS settings are required unless an ingress is declared
-// to terminate TLS, and refused when one is.
-func TestTheSettingsNeedWhatTheMediatorCannotRunWithout(t *testing.T) {
+// The mediator's root configuration type is pinned field by field, so a new value is a visible
+// change (ADR-0078). Each section's own type is pinned in its package.
+func TestTheConfigurationTypeIsPinned(t *testing.T) {
+	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/mediate", "Configuration",
+		"Listen string",
+		"ProbeListen string",
+		"TLSAtIngress bool",
+		"TLSCert string",
+		"TLSKey string",
+		"TokenFile string",
+		"AccountReloadInterval time.Duration",
+		"Database core.Config",
+		"Credential core.Config",
+	)
+}
+
+func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
+
+// The mediator's defaults are its two listeners, a reload each minute, the port, its own runtime role
+// and the TLS mode that fails closed. The token file, the database host, name and password file and
+// the key files are required.
+func TestTheDefaults(t *testing.T) {
+	want := Configuration{
+		Listen: ":8443", ProbeListen: ":8080", AccountReloadInterval: time.Minute,
+		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
+	}
+	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
+		t.Errorf("defaults (-want +got):\n%s", diff)
+	}
+	err := run(t.Context(), nil, nil, discard())
+	wantErr := "loading the configuration: token_file is required, and neither the file, MEDIATED_MAILBOX_TOKEN_FILE nor --token_file sets it"
+	if err == nil || err.Error() != wantErr {
+		t.Errorf("run returned %v, want %q", err, wantErr)
+	}
+}
+
+// valid returns a configuration the mediator starts with, TLS served at the listener.
+func valid() Configuration {
+	c := defaults()
+	c.TLSCert, c.TLSKey, c.TokenFile = "/run/tls/crt", "/run/tls/key", "/run/token"
+	c.Database.Host, c.Database.Name, c.Database.PasswordFile = "db", "mailbox", "/run/password"
+	c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles = "/run/keys/public", []string{"/run/keys/private"}
+	return c
+}
+
+// The configuration the mediator cannot serve with is refused before anything is read or connected.
+// TLS files are required unless an ingress is declared to terminate TLS, and refused when one is. No
+// account reaches the mediator from its configuration (ADR-0080).
+func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 	cases := []struct {
-		args []string
-		want string
+		name   string
+		change func(*Configuration)
+		want   string
 	}{
-		{[]string{"-tls-cert", "c", "-tls-key", "k", "-token-file", "t"}, ""},
-		{[]string{}, "the mediator needs -tls-cert, -tls-key, -token-file"},
-		{[]string{"-tls-cert", "c", "-tls-key", "k"}, "the mediator needs -token-file"},
-		{[]string{"-tls-cert", "c", "-tls-key", "k", "-token-file", "t", "acct-a"}, `the mediator takes no arguments, and was given ["acct-a"]`},
-		{[]string{"-tls-at-ingress", "-token-file", "t"}, ""},
-		{[]string{"-tls-at-ingress"}, "the mediator needs -token-file"},
-		{[]string{"-tls-at-ingress", "-tls-cert", "c", "-token-file", "t"}, "-tls-at-ingress declares that the mediator serves no TLS, so it takes no -tls-cert or -tls-key"},
+		{"TLS at the listener", func(*Configuration) {}, ""},
+		{"TLS at an ingress", func(c *Configuration) { c.TLSAtIngress, c.TLSCert, c.TLSKey = true, "", "" }, ""},
+		{"no key pair", func(c *Configuration) { c.TLSCert, c.TLSKey = "", "" }, "the mediator serves TLS unless tls_at_ingress is set, so it needs tls_cert and tls_key"},
+		{"no key", func(c *Configuration) { c.TLSKey = "" }, "the mediator serves TLS unless tls_at_ingress is set, so it needs tls_key"},
+		{"a certificate beside an ingress", func(c *Configuration) { c.TLSAtIngress, c.TLSKey = true, "" }, "tls_at_ingress declares that the mediator serves no TLS, so it takes no tls_cert or tls_key"},
+		{"a blank token file path", func(c *Configuration) { c.TokenFile = " " }, "token_file is empty"},
+		{"a reload interval of zero", func(c *Configuration) { c.AccountReloadInterval = 0 }, "account_reload_interval 0s is not positive"},
+		{"a negative reload interval", func(c *Configuration) { c.AccountReloadInterval = -time.Second }, "account_reload_interval -1s is not positive"},
+		{"an empty database host", func(c *Configuration) { c.Database.Host = "" }, "database.host is empty"},
+		{"no private key", func(c *Configuration) { c.Credential.PrivateKeyFiles = nil }, "credential.private_key_files names no file"},
 	}
 	for _, c := range cases {
+		cfg := valid()
+		c.change(&cfg)
 		got := ""
-		if _, err := parse(c.args); err != nil {
+		if err := validate(cfg); err != nil {
 			got = err.Error()
 		}
 		if got != c.want {
-			t.Errorf("parse(%q) reports %q, want %q", c.args, got, c.want)
+			t.Errorf("%s: validate reports %q, want %q", c.name, got, c.want)
 		}
 	}
 }
 
+// An argument that is not a configuration flag is refused, so no account reaches the mediator from its
+// command line (ADR-0080).
+func TestAnAccountArgumentIsRefused(t *testing.T) {
+	err := run(t.Context(), []string{"acct-a"}, nil, discard())
+	if err == nil || !strings.Contains(err.Error(), "loading the configuration") {
+		t.Errorf("run returned %v, want the argument refused", err)
+	}
+}
+
+// serving names a token file and declares TLS at an ingress, so a start reaches the credential and
+// database sections.
+var servingArgs = []string{
+	"--tls_at_ingress=true",
+	"--token_file=/absent/token",
+}
+
+// absentKeys names key files that do not exist, for a start meant to stop before the keyring or at it.
+var absentKeys = []string{"--credential.public_key_file=/absent/public", "--credential.private_key_files=[/absent/private]"}
+
+// database names a database whose password file does not exist, so a start that gets past the keyring
+// stops at the password file, before any connection is made.
+var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}
+
+// args joins argument lists into one.
+func args(lists ...[]string) []string {
+	var out []string
+	for _, l := range lists {
+		out = append(out, l...)
+	}
+	return out
+}
+
+// The start logs every effective value with the layer that set it, the password file's path and
+// never its contents.
+func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
+	passwordFile := filepath.Join(t.TempDir(), "password")
+	if err := os.WriteFile(passwordFile, []byte("the-secret-itself\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&out, &slog.HandlerOptions{ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+		if a.Key == slog.TimeKey {
+			return slog.Attr{}
+		}
+		return a
+	}}))
+	// The key files do not exist, so the start stops at the keyring, after the log and before any
+	// connection is made.
+	err := run(t.Context(), args(servingArgs, []string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys),
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
+	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
+		t.Fatalf("run returned %v, want the keyring's refusal", err)
+	}
+	want := []string{
+		`level=INFO msg=configuration path=account_reload_interval source=default value=1m0s`,
+		`level=INFO msg=configuration path=credential.private_key_files source="flag --credential.private_key_files" value=[/absent/private]`,
+		`level=INFO msg=configuration path=credential.public_key_file source="flag --credential.public_key_file" value=/absent/public`,
+		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
+		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
+		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
+		`level=INFO msg=configuration path=database.port source=default value=5432`,
+		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
+		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
+		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_mediate`,
+		`level=INFO msg=configuration path=listen source=default value=:8443`,
+		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
+		`level=INFO msg=configuration path=tls_at_ingress source="flag --tls_at_ingress" value=true`,
+		`level=INFO msg=configuration path=tls_cert source=default value=""`,
+		`level=INFO msg=configuration path=tls_key source=default value=""`,
+		`level=INFO msg=configuration path=token_file source="flag --token_file" value=/absent/token`,
+	}
+	got := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("log (-want +got):\n%s", diff)
+	}
+	if strings.Contains(out.String(), "the-secret-itself") {
+		t.Errorf("the log holds the password:\n%s", out.String())
+	}
+}
+
+// No configuration value holds an account or a credential, so a flag or an environment variable naming
+// one refuses the start rather than being read (ADR-0080).
+func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		args    []string
+		environ []string
+	}{
+		{"a flag", []string{"--accounts.personal.refresh_token=a-token"}, nil},
+		{"an environment variable", nil, []string{"MEDIATED_MAILBOX_ACCOUNTS__PERSONAL__REFRESH_TOKEN=a-token"}},
+		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard())
+			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
+				t.Errorf("run returned %v, want the configuration library's refusal", err)
+			}
+		})
+	}
+}
+
+// keyFiles writes a generated key pair's files into dir and returns their paths.
+func keyFiles(t *testing.T, dir, name string) (private, public string) {
+	t.Helper()
+	key, err := seal.KEM().GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed, err := key.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	private = filepath.Join(dir, name+".private")
+	public = filepath.Join(dir, name+".public")
+	if err := os.WriteFile(private, seed, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(public, key.PublicKey().Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return private, public
+}
+
+// D3's part of VERIFICATIONS' row for a public key matching none of the private keys. The start loads
+// the public key and every private key before any connection, refuses it when the public key matches
+// none of them, and goes on when it matches any one, the second of two during a key replacement
+// included (ADR-0088, ADR-0092).
+func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
+	dir := t.TempDir()
+	oldPrivate, oldPublic := keyFiles(t, dir, "old")
+	newPrivate, newPublic := keyFiles(t, dir, "new")
+	_, otherPublic := keyFiles(t, dir, "other")
+	start := func(public string, privates ...string) error {
+		keys := []string{"--credential.public_key_file=" + public, "--credential.private_key_files=[" + strings.Join(privates, ", ") + "]"}
+		return run(t.Context(), args(servingArgs, database, keys), nil, discard())
+	}
+	pastTheKeyring := "configuring the database connection: reading the password file: "
+	for _, c := range []struct {
+		name     string
+		public   string
+		privates []string
+		refused  bool
+	}{
+		{"a public key matching no private key", otherPublic, []string{oldPrivate, newPrivate}, true},
+		{"a public key matching the only private key", oldPublic, []string{oldPrivate}, false},
+		{"a public key matching the first of two", oldPublic, []string{oldPrivate, newPrivate}, false},
+		{"a public key matching the second of two", newPublic, []string{oldPrivate, newPrivate}, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			err := start(c.public, c.privates...)
+			switch {
+			case err == nil:
+				t.Fatal("run succeeded")
+			case c.refused && (!strings.HasPrefix(err.Error(), "loading the keyring: ") || !strings.Contains(err.Error(), "matches none of the private keys")):
+				t.Errorf("run returned %v, want the keyring's refusal", err)
+			case !c.refused && !strings.HasPrefix(err.Error(), pastTheKeyring):
+				t.Errorf("run returned %v, want it to pass the keyring and stop at the password file", err)
+			}
+		})
+	}
+}
+
 // The mediator refuses to start while MCPGODEBUG is set, even to an empty value, before it reads
-// its settings or reaches the database, because the MCP SDK reads it to switch its behaviour
+// its configuration or reaches the database, because the MCP SDK reads it to switch its behaviour
 // (ADR-0086).
 func TestMCPGODEBUGStopsTheStart(t *testing.T) {
 	for _, value := range []string{"allowsessionsinstateless=1", ""} {
-		t.Setenv("MCPGODEBUG", value)
-		err := run(t.Context(), []string{"-tls-at-ingress", "-listen", "127.0.0.1:0", "-probe-listen", "127.0.0.1:0", "-token-file", "t"})
+		err := run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, discard())
 		if err == nil || !strings.Contains(err.Error(), "MCPGODEBUG is set") {
 			t.Errorf("with MCPGODEBUG=%q, run returned %v", value, err)
 		}
@@ -390,20 +607,20 @@ func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
 	token, empty := tokenFile(t, "s3cret"), tokenFile(t, "\n")
 	cases := []struct {
 		name string
-		s    settings
+		c    Configuration
 		want bool
 	}{
-		{"TLS at the listener, with the key pair and a token", settings{tlsCert: certFile, tlsKey: keyFile, tokenFile: token}, true},
-		{"TLS at an ingress, with a token", settings{tlsAtIngress: true, tokenFile: token}, true},
-		{"a certificate that is absent", settings{tlsCert: absent, tlsKey: keyFile, tokenFile: token}, false},
-		{"a key that does not match", settings{tlsCert: certFile, tlsKey: token, tokenFile: token}, false},
-		{"a token file that is absent", settings{tlsCert: certFile, tlsKey: keyFile, tokenFile: absent}, false},
-		{"a token file holding no token", settings{tlsAtIngress: true, tokenFile: empty}, false},
+		{"TLS at the listener, with the key pair and a token", Configuration{TLSCert: certFile, TLSKey: keyFile, TokenFile: token}, true},
+		{"TLS at an ingress, with a token", Configuration{TLSAtIngress: true, TokenFile: token}, true},
+		{"a certificate that is absent", Configuration{TLSCert: absent, TLSKey: keyFile, TokenFile: token}, false},
+		{"a key that does not match", Configuration{TLSCert: certFile, TLSKey: token, TokenFile: token}, false},
+		{"a token file that is absent", Configuration{TLSCert: certFile, TLSKey: keyFile, TokenFile: absent}, false},
+		{"a token file holding no token", Configuration{TLSAtIngress: true, TokenFile: empty}, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var ready readiness.State
-			err := markReadyWhenServable(&ready, c.s)
+			err := markReadyWhenServable(&ready, c.c)
 			if ready.Ready() != c.want || (err == nil) != c.want {
 				t.Errorf("ready %v with error %v, want ready %v", ready.Ready(), err, c.want)
 			}
@@ -411,60 +628,46 @@ func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
 	}
 }
 
-// The mediator's accounts come from the database (ADR-0080), and the seam they pass through supplies
-// none yet. So a call naming any account is refused before an operation runs, on both roots.
-func TestTheMediatorServesNoAccountYet(t *testing.T) {
-	if got := servedAccounts(); len(got) != 0 {
-		t.Fatalf("the mediator serves %q", got)
-	}
-	var calls atomic.Int64
-	reg, err := service.NewRegistry(servedAccounts(), service.Operation{
-		Name:        "echo",
-		Description: "Returns its arguments.",
-		Effect:      service.Read,
-		Path:        "/api/accounts/{account_id}/echo",
-		Input:       json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`),
-		Output:      json.RawMessage(`{"type":"object"}`),
-		Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
-			calls.Add(1)
-			return json.RawMessage(`{}`), nil
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	h := mustSurface(t, reg, tokenFile(t, "s3cret"))
-	for _, r := range []request{apiCall.with("Bearer s3cret"), mcpCall.with("Bearer s3cret")} {
-		status(t, h, r)
-	}
-	if n := calls.Load(); n != 0 {
-		t.Errorf("an operation ran %d times for an account the mediator does not serve", n)
-	}
-}
-
-// unsetenv removes names from the environment for the rest of the test and restores them after it.
-func unsetenv(t *testing.T, names ...string) {
-	t.Helper()
-	for _, name := range names {
-		t.Setenv(name, "")
-		if err := os.Unsetenv(name); err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
 // The mediator refuses to start while PGPASSWORD or PGSSLPASSWORD is set, even to an empty value,
-// because pgx reads either on every parse and it would win over the mounted password file (ADR-0078).
+// before it reads its configuration, because pgx reads either on every parse and it would win over the
+// mounted password file (ADR-0078).
 func TestAPasswordInTheEnvironmentStopsTheStart(t *testing.T) {
 	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {
 		for _, value := range []string{"s3cret", ""} {
-			unsetenv(t, "MCPGODEBUG", "PGPASSWORD", "PGSSLPASSWORD")
-			t.Setenv(name, value)
-			err := run(t.Context(), []string{"-tls-at-ingress", "-listen", "127.0.0.1:0", "-probe-listen", "127.0.0.1:0", "-token-file", "t"})
-			if err == nil || !strings.Contains(err.Error(), name+" is set") {
+			err := run(t.Context(), nil, []string{name + "=" + value}, discard())
+			if err == nil || !strings.Contains(err.Error(), "the environment sets "+name) {
 				t.Errorf("with %s=%q, run returned %v", name, value, err)
 			}
 		}
+	}
+}
+
+// The refusal of a password variable comes before the start uses the configuration it read, so a
+// start whose environment sets one logs no value and connects nowhere. The configuration file named
+// here does not exist, so a refusal moved anywhere after the read's error is checked reports the
+// missing file's error instead of the refusal.
+func TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
+	dir := t.TempDir()
+	private, public := keyFiles(t, dir, "key")
+	password := filepath.Join(dir, "password")
+	if err := os.WriteFile(password, []byte("s3cret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&out, nil))
+	full := args(servingArgs, []string{
+		"--config-file=" + filepath.Join(dir, "absent.yaml"),
+		"--database.host=127.0.0.1", "--database.port=1", "--database.name=mailbox",
+		"--database.password_file=" + password, "--database.sslmode=disable",
+		"--credential.public_key_file=" + public, "--credential.private_key_files=[" + private + "]",
+	})
+	err := run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, logger)
+	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
+	if err == nil || err.Error() != want {
+		t.Errorf("run returned %v, want %q", err, want)
+	}
+	if out.Len() != 0 {
+		t.Errorf("the start logged before refusing the password variable:\n%s", out.String())
 	}
 }
 
@@ -485,13 +688,14 @@ func freeAddress(t *testing.T) string {
 // A start whose bearer token file holds no token fails, and the readiness probe never answers ready
 // while it runs (ADR-0051). The probe is polled for as long as the start runs.
 func TestAStartThatCannotServeFailsAndNeverReportsReady(t *testing.T) {
-	unsetenv(t, "MCPGODEBUG", "PGPASSWORD", "PGSSLPASSWORD")
 	probe := freeAddress(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
+	reg, _ := counted(t)
+	c := Configuration{TLSAtIngress: true, Listen: "127.0.0.1:0", ProbeListen: probe, TokenFile: tokenFile(t, "\n"), AccountReloadInterval: time.Hour}
 	done := make(chan error, 1)
 	go func() {
-		done <- run(ctx, []string{"-tls-at-ingress", "-listen", "127.0.0.1:0", "-probe-listen", probe, "-token-file", tokenFile(t, "\n")})
+		done <- serve(ctx, c, &serving{registry: reg, logger: discard()}, prometheus.NewRegistry(), discard())
 	}()
 	client := &http.Client{Timeout: 200 * time.Millisecond}
 	sawReady := false
@@ -500,7 +704,7 @@ func TestAStartThatCannotServeFailsAndNeverReportsReady(t *testing.T) {
 		case err := <-done:
 			running = false
 			if err == nil || !strings.Contains(err.Error(), "holds no token") {
-				t.Errorf("run returned %v, want the blank token refused", err)
+				t.Errorf("serve returned %v, want the blank token refused", err)
 			}
 		default:
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+probe+"/readyz", nil)

@@ -1,0 +1,23 @@
+control: The mediator's metrics endpoint carries F3's rate-state series for each account it serves through the Gmail adapter
+removes: the rate-state collector is built and never registered on the metrics endpoint
+packages: ./mediate
+tests: TestTheMetricsEndpointCarriesEachServedAccountsRateState
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 9a59611..0613cd3 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -290,9 +290,7 @@ type serving struct {
+ func newServing(pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Registry, logger *slog.Logger) (*serving, error) {
+ 	s := &serving{loader: accountload.New(pool, keys, logger), pool: pool, metrics: metrics, logger: logger}
+ 	s.snapshot.Store(&accountload.Snapshot{})
+-	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
+-		return nil, err
+-	}
++	_ = lease.NewCollector(pool, s.rateAccounts)
+ 	return s, nil
+ }
+ 

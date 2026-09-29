@@ -1,0 +1,22 @@
+control: The mediator's metrics endpoint carries F3's rate-state series for each account it serves through the Gmail adapter
+removes: an account of a provider the mediator has no rate profile for is reported with the Gmail ceiling
+packages: ./mediate
+tests: TestTheMetricsEndpointCarriesEachServedAccountsRateState
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 9a59611..e1b0135 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -383,9 +383,6 @@ func (s *serving) policy(account string) policy.Composed {
+ func (s *serving) rateAccounts(context.Context) ([]lease.Account, error) {
+ 	var out []lease.Account
+ 	for _, a := range s.snapshot.Load().Accounts() {
+-		if a.Provider() != gmailProvider {
+-			continue
+-		}
+ 		out = append(out, lease.Account{ID: a.ID(), Ceiling: gmail.Profile{}.BudgetPerSecond()})
+ 	}
+ 	return out, nil

@@ -79,34 +79,59 @@ func (s Snapshot) For(account string) policy.Composed {
 }
 
 // Loader holds the active snapshot and replaces it on each reload that succeeds. Which accounts it
-// reads is fixed when it is built, and when it reloads is its caller's.
+// reads is set when it is built and replaced by SetAccounts, and when it reloads is its caller's.
 type Loader struct {
-	db       tx.Beginner
-	accounts []string
-	metrics  *metrics
+	db      tx.Beginner
+	metrics *metrics
 
-	// mu makes reloads take turns, so each swaps against the snapshot the one before it left.
-	mu     sync.Mutex
-	active atomic.Pointer[Snapshot]
+	// mu makes reloads take turns, so each swaps against the snapshot the one before it left, and
+	// keeps a change of accounts from landing partway through a reload.
+	mu       sync.Mutex
+	accounts []string
+	active   atomic.Pointer[Snapshot]
 }
 
 // New returns a Loader that reads the base rules and the rules of each of accounts from db, and
 // registers the reload-failure series on reg. Until its first reload succeeds, its snapshot is no
 // policy, which restricts every sender.
 func New(db tx.Beginner, accounts []string, reg prometheus.Registerer) (*Loader, error) {
+	read, err := readable(accounts)
+	if err != nil {
+		return nil, err
+	}
+	m, err := newMetrics(reg)
+	if err != nil {
+		return nil, err
+	}
+	l := &Loader{db: db, accounts: read, metrics: m}
+	l.active.Store(&Snapshot{})
+	return l, nil
+}
+
+// SetAccounts replaces the accounts the loader reads, from its next reload on, as a process whose
+// accounts change between its account snapshots does (ADR-0090). The active snapshot keeps the
+// accounts it was read for until then, so an account added here gets the policy that restricts
+// every sender until a reload reads its rules.
+func (l *Loader) SetAccounts(accounts []string) error {
+	read, err := readable(accounts)
+	if err != nil {
+		return err
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.accounts = read
+	return nil
+}
+
+// readable returns accounts sorted and without repeats, or an error for no account or an empty name.
+func readable(accounts []string) ([]string, error) {
 	if len(accounts) == 0 {
 		return nil, errors.New("the policy loader needs an account, because every read runs in an account's transaction")
 	}
 	if slices.Contains(accounts, "") {
 		return nil, errors.New("an account the policy loader reads has an empty name")
 	}
-	m, err := newMetrics(reg)
-	if err != nil {
-		return nil, err
-	}
-	l := &Loader{db: db, accounts: slices.Compact(slices.Sorted(slices.Values(accounts))), metrics: m}
-	l.active.Store(&Snapshot{})
-	return l, nil
+	return slices.Compact(slices.Sorted(slices.Values(accounts))), nil
 }
 
 // Snapshot returns the active snapshot. A caller keeps the one it took for a whole unit of work, so

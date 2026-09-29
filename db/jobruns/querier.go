@@ -6,9 +6,13 @@ package jobruns
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	// When the account's latest delta sync tick that succeeded finished, null when none has (ADR-0034).
+	LastSucceededTick(ctx context.Context, accountID string) (pgtype.Timestamptz, error)
 	// The latest run of one workload and pass whose state is one of the given states. The jobs cards read
 	// the last finished run beside a running one, and the system screen the last successful sync tick
 	// (docs/UI.md sections 8.3 and 8.8). A null pass matches a workload that records none.

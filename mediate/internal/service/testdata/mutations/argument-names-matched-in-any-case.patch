@@ -1,0 +1,20 @@
+control: A served operation takes only the arguments its input schema declares, in exactly that case, and never as null
+removes: a key naming no declared argument reaches the decoder, which matches it to one in another case
+packages: ./mediate/internal/service ./mediate/internal/mcp
+tests: TestAServedOperationTakesOnlyTheArgumentsItDeclares TestAServedToolTakesOnlyTheArgumentsItDeclares
+scheduled-count: no
+
+
+diff --git a/mediate/internal/service/reads.go b/mediate/internal/service/reads.go
+index 61daa31..f7461a2 100644
+--- a/mediate/internal/service/reads.go
++++ b/mediate/internal/service/reads.go
+@@ -168,7 +168,7 @@ func arguments(input json.RawMessage, v any, names ...string) error {
+ 		return Refuse("the arguments do not match the operation's input schema")
+ 	}
+ 	for key, value := range raw {
+-		if !slices.Contains(names, key) {
++		if false && !slices.Contains(names, key) {
+ 			return Refuse("the arguments name one the operation does not take")
+ 		}
+ 		if string(bytes.TrimSpace(value)) == "null" {
