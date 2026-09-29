@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a package the build of ./... reaches that ./... does not list
+removes: the standard library is not exempt, so an import of it is reported
+packages: ./testsupport/cmd/banproof
+tests: TestUnlintedFindings
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/unlinted.go b/testsupport/cmd/banproof/unlinted.go
+index c6f8538..d0b90b0 100644
+--- a/testsupport/cmd/banproof/unlinted.go
++++ b/testsupport/cmd/banproof/unlinted.go
+@@ -183,7 +183,7 @@ func unlintedFindings(gomod, modulePath, modcache string, listed, pkgs []listedP
+ 		if p.Error != nil {
+ 			return nil, fmt.Errorf("go list could not load %s: %s", p.ImportPath, p.Error.Err)
+ 		}
+-		if p.Standard || lists[p.ImportPath] {
++		if lists[p.ImportPath] {
+ 			continue
+ 		}
+ 		ours := p.ImportPath == modulePath || strings.HasPrefix(p.ImportPath, modulePath+"/")

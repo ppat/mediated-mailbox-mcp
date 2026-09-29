@@ -35,6 +35,10 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   with its build tag, which a crash-sequence file replaying against PostgreSQL also carries) and
   `testdata/` is per package (CLAUDE.md, Tests). Integration tests against PostgreSQL run only
   through `go tool pgrun`.
+- **Code that ships reaches only packages `./...` lists**, beside the standard library and other
+  modules' packages in the module cache. No lint reads any other package, and banproof's unlinted
+  check refuses an import of one from anything but a test file (ADR-0071, CLAUDE.md, Static
+  analysis and formatting).
 - **A finding of a linter standing in for a control is never suppressed**, at the line, by its own
   ignore comment, or in configuration. An ordinary linter's false positive is suppressed only as
   `//nolint:<linter> // <reason>` (ADR-0071, CLAUDE.md, Static analysis and formatting).

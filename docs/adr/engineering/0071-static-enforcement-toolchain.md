@@ -155,6 +155,43 @@ else broke ties.
   [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, run by the same
   program. It honours no suppression comment and matches a pure-core package by its path, as the
   import list does.
+- **Every package the build of `./...` reaches is one `./...` lists, and the ban-proof script checks
+  it.** The aggregator, the `go vet` analysers and the grant check of
+  [ADR-0066](../data/0066-data-access-generated-from-sql.md) read only the packages `./...` lists,
+  while a file importing a package by path builds it into a deployable whether or not `./...` lists
+  it. The import lists cannot refuse such an import, because a deployable's list admits the
+  deployable's own directory by prefix and no list has a `deny` key. So the non-test build graph of
+  `./...`, which `go list -deps` reports, holds only three kinds of package. They are the standard
+  library, the packages `./...` of this module lists, and packages of other modules the module cache
+  holds. Any other package is refused at each import of it from a package `./...` lists, and at
+  `go.mod` when only packages from the module cache import it. That covers a package under
+  `testdata`, one in a directory whose name starts with `_` or a dot or that the `ignore` directive
+  of `go.mod` names, one reached through a symbolic link, a nested module however the build reaches
+  it, a module a `go.work` adds, and a module a `replace` points at a local directory, with no rule
+  per kind. A test file may import such a package, because tests are outside the graph.
+  - **It runs in each configuration code ships in, with no build tag.** The graph depends on the
+    configuration, as a file built only without cgo, only on another operating system, or only
+    without a tag shows. The images build with `CGO_ENABLED=0` for Linux and no tag, and the release
+    builds the key-generation command with `CGO_ENABLED=0` for Linux and macOS on amd64 and arm64
+    and no tag. The script holds that list of configurations as a copy of what the Dockerfiles and
+    the release workflow build, and nothing checks the copy against them. A configuration added
+    there is added to the script by hand. When the script proves the violation files it runs the
+    check once more with their tag, in the first configuration, and reports the findings of every
+    run.
+  - **A module a `replace` points at a directory is refused wherever the directory sits.** `go list`
+    names each package's module and its replacement, so a directory under the module cache does not
+    pass for a download.
+  - **It judges packages, not files.** A file a build constraint keeps out of the lint's
+    configuration, in a package `./...` lists, is not read by the lint whatever it imports, and this
+    check does not change that.
+  - **It reads the build graph afresh on every run.** `go list` rereads `go.mod` and `go.work`, so no
+    cached result outlives a change to them.
+  - **It refuses every dependency under vendoring.** A vendored package's directory sits in the
+    repository, and `./...` does not list it, so no lint reads it either.
+  - **It runs `go list` in the environment of whoever runs it.** `GOWORK` and `GOFLAGS` shape the
+    build graph, `GOMODCACHE` decides where the module cache sits, and `GOEXPERIMENT`, `GOAMD64` and
+    `GOARM64` shape the implicit build tags. Continuous integration and the Dockerfiles set none of
+    them.
 - **A finding of a linter standing in for a control cannot be switched off anywhere.** Those linters
   are `depguard`, `errcheck`, `exhaustive` and `forbidigo`. A violation file proves a ban fires in
   that file, and says nothing about another line where the finding was switched off, so every proof
@@ -176,17 +213,18 @@ else broke ties.
   reports ill-formed or insufficient directives, so a well-formed directive naming a linter and
   carrying an explanation silences a ban while `nolintlint` at its strictest settings reports
   nothing. The aggregator offers no option to stop honouring the directives.
-- **Four checks are written here, because no tool offers them.** The rules against package-level
-  state in a pure core above. The suppression check above, written to follow the aggregator's own
-  reading of a directive so it refuses exactly what the aggregator would honour, and refusing the
-  spellings the aggregator ignores today as well, so a later release honouring them cannot admit
-  one silently. A package that must not compile, loaded
-  with `golang.org/x/tools/go/packages` through one helper in the shared test support, which
-  requires the exact type error rather than the presence of one. And the ban-proof script, which
-  runs the analysers and the suppression check against the checked-in files violating each ban and
-  each list, requiring each expected finding and no other. The script also runs the project's
-  `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement
-  rules, the rules against package-level state above, the rule
+- **Five checks are written here, because no tool offers them.** The rules against package-level
+  state in a pure core above. The check above that the build of `./...` reaches only packages
+  `./...` lists. The suppression check above, written to follow the aggregator's own reading of a
+  directive so it refuses exactly what the aggregator would honour, and refusing the spellings the
+  aggregator ignores today as well, so a later release honouring them cannot admit one silently. A
+  package that must not compile, loaded with `golang.org/x/tools/go/packages` through one helper in
+  the shared test support, which requires the exact type error rather than the presence of one. And
+  the ban-proof script, which runs the analysers, the suppression check and the build-graph check
+  against the checked-in files violating each ban and each list, requiring each expected finding and
+  no other. The script also runs the project's `go vet` analysers, for
+  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, the rules against
+  package-level state above, the rule
   [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) sets against reading the
   environment outside a composition root and the rule
   [ADR-0047](../data/0047-schema-first-data-access.md) sets that every generated data-access
@@ -286,6 +324,22 @@ of the same function as well.
   project's, and other core packages that the same rule governs. Every path therefore runs through
   something checked. It stops being enough the moment the allow list admits a package that fails
   the conditions or a project package the rule does not itself govern, and nothing detects that.
+- **A package `./...` does not list is built in when a file imports it, and no check reads it.** A
+  package at `propose/internal/testdata/w` called the sealed credential's statements inside the
+  transaction helper, and `propose/internal/leak` imported it. The build, the aggregator, the
+  `go vet` analysers and the grant check all passed with propose's list unchanged, so a role
+  [ADR-0075](../data/0075-one-runtime-role-per-deployable.md) bars from the credential reached its
+  statements. The same held, measured, for these:
+  - a package at `propose/internal/_u`, one at `propose/internal/.d`, and one under
+    `ui/browser/node_modules`, which `go.mod` ignores;
+  - a symbolic link at `propose/internal/link` to a `testdata` directory;
+  - a nested module at `propose/internal/sub`, reached through a local `replace`, through a
+    `go.work` using it, or published under this module's path and fetched from a proxy;
+  - a module with another path at `tools/other`, reached through a `go.work` alone;
+  - a module replaced by a directory outside the repository.
+
+  A pure core's list admits `core/` by prefix in the same way, so the soundness above also rests on
+  the build-graph check.
 
 ## Alternatives considered
 
@@ -469,10 +523,25 @@ can overwrite, so `reassign` would run beside it over the whole repository, and 
 pure core overwriting its own error value. The operator chose on 2026-09-23 the rules in the
 project's own `go vet` analysers, which need no carve-out and refuse that write too.
 
+**How to refuse a package `./...` does not list.** Three mechanisms were weighed.
+
+- **An import list** cannot carry it. Allow entries are prefixes, and the packages to refuse sit
+  under the prefixes the lists admit.
+- **A `go vet` analyser** reads each import as written and matches the path against the ways a
+  package escapes `./...`. Those are a `testdata` element, a leading `_` or dot, the `ignore`
+  entries, a nested `go.mod`, a local `replace` and a `go.work`. It was built and mutation-tested.
+  Each review of it then found another way the build reached an unlisted package, a symbolic link
+  and a nested module published under this module's path among them. An analyser sees one package's files, so it can
+  only enumerate those ways, and the list is complete only until the next one is found.
+- **The build-graph check in the ban-proof script** was chosen, because it states the rule itself.
+  It compares what the build reaches with what `./...` lists, so it needs no list of ways. Measured
+  against every case above, it refused each one and passed the tree as it stands, in about two
+  seconds across the four configurations. It needs no dependency beyond the go command.
+
 ## Consequences
 
 - **What leaving these choices would cost.** A configuration file, in every case. The rules
-  themselves are stated in the records that require them and survive any change of tool. The four
+  themselves are stated in the records that require them and survive any change of tool. The five
   checks written here are each small enough to rewrite in an afternoon.
 - **What would re-argue this decision.** The aggregator's central argument is that it rebuilds
   analysers their own maintainers have not released against a current toolchain. If those projects

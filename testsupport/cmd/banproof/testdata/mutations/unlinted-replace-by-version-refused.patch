@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a package the build of ./... reaches that ./... does not list
+removes: a module replaced by another version is taken for one replaced by a directory, so it is reported
+packages: ./testsupport/cmd/banproof
+tests: TestUnlintedFindings
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/unlinted.go b/testsupport/cmd/banproof/unlinted.go
+index c6f8538..cafa1e8 100644
+--- a/testsupport/cmd/banproof/unlinted.go
++++ b/testsupport/cmd/banproof/unlinted.go
+@@ -187,7 +187,7 @@ func unlintedFindings(gomod, modulePath, modcache string, listed, pkgs []listedP
+ 			continue
+ 		}
+ 		ours := p.ImportPath == modulePath || strings.HasPrefix(p.ImportPath, modulePath+"/")
+-		replacedByDirectory := p.Module != nil && p.Module.Replace != nil && p.Module.Replace.Version == ""
++		replacedByDirectory := p.Module != nil && p.Module.Replace != nil
+ 		if !ours && !replacedByDirectory && strings.HasPrefix(p.Dir, modcache+string(filepath.Separator)) {
+ 			continue
+ 		}

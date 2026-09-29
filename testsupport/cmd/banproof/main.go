@@ -22,7 +22,8 @@
 // suffix for a rule over test files, such as _violation_test.go or _violation_property_test.go.
 //
 // It also runs go vet with the project's analysers under testsupport/analysis, whose findings want
-// annotations name as vetcheck, the program that runs them.
+// annotations name as vetcheck, the program that runs them, and the check that every package the
+// build of ./... reaches is one ./... lists, whose findings they name as unlinted (unlinted.go).
 //
 // With -browser it proves the browser layer's bans instead, the same way, with oxlint, ast-grep and a
 // search for their suppression directives (browser.go). The browser half needs bun and the browser
@@ -152,6 +153,11 @@ func run(tag string) error {
 		return err
 	}
 	found = append(found, vetFindings...)
+	unlintedFindings, err := unlinted(root, tag)
+	if err != nil {
+		return err
+	}
+	found = append(found, unlintedFindings...)
 
 	unmet, unexpected := match(expected, found)
 	for _, w := range unmet {
