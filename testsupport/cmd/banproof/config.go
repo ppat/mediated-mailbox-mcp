@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 
 	"go.yaml.in/yaml/v3"
@@ -13,8 +14,9 @@ import (
 const configName = ".golangci.yaml"
 
 // lintConfig holds the settings of .golangci.yaml that can switch off a finding of a linter standing in
-// for a control. Key names are read exactly as written. golangci-lint reads keys in any letter case, but
-// golangci-lint config verify, which banproof runs first, refuses a key its schema does not name.
+// for a control, and the depguard keys ADR-0071 rules out. Key names are read exactly as written.
+// golangci-lint reads keys in any letter case, but golangci-lint config verify, which banproof runs
+// first, refuses a key its schema does not name.
 type lintConfig struct {
 	Run struct {
 		Tests          *bool `yaml:"tests"`
@@ -52,6 +54,13 @@ type lintConfig struct {
 				IgnoreEnumTypes            string `yaml:"ignore-enum-types"`
 				PackageScopeOnly           bool   `yaml:"package-scope-only"`
 			} `yaml:"exhaustive"`
+			Depguard struct {
+				Rules map[string]struct {
+					ListMode string `yaml:"list-mode"`
+					// A node rather than a list, so a deny key written with no entries, or with no value, is seen.
+					Deny yaml.Node `yaml:"deny"`
+				} `yaml:"rules"`
+			} `yaml:"depguard"`
 		} `yaml:"settings"`
 	} `yaml:"linters"`
 }
@@ -66,7 +75,7 @@ func parseConfig(src []byte) (lintConfig, error) {
 
 // configProblems refuses every setting that can switch off a finding of a linter standing in for a
 // control, where that finding fires or across a path or the whole tree. Exclusion rules may name only
-// ordinary linters.
+// ordinary linters. Every depguard list must be strict and carry no deny key.
 //
 // The list is of golangci-lint's settings as they stand, so a release adding a setting that reaches every
 // linter at once is caught only by review.
@@ -133,6 +142,17 @@ func configProblems(c lintConfig, ordinary []string) []string {
 	}
 	if x.PackageScopeOnly {
 		refuse("linters.settings.exhaustive.package-scope-only skips enums declared inside functions")
+	}
+	// depguard's default list mode, original, admits every import when a list's allow entries are
+	// empty, and lax admits every import no deny entry names.
+	rules := c.Linters.Settings.Depguard.Rules
+	for _, name := range slices.Sorted(maps.Keys(rules)) {
+		if rules[name].ListMode != "strict" {
+			refuse("linters.settings.depguard.rules.%s.list-mode must be strict, or the list can admit an import its allow entries do not name", name)
+		}
+		if rules[name].Deny.Kind != 0 {
+			refuse("linters.settings.depguard.rules.%s has a deny key. Every depguard list names only what it allows (ADR-0071)", name)
+		}
 	}
 	return out
 }

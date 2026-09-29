@@ -72,8 +72,11 @@ else broke ties.
   `check-type-assertions: true`. Both default to `false`, so an error discarded as `_ = f()` is not
   reported by an otherwise ordinary configuration.
 - **Import boundaries are checked by `depguard` with `list-mode: strict`, as `allow` lists with no
-  `deny` list anywhere.** `depguard` makes a file that two lists match satisfy both, and does not
-  check a file that no list matches. The lists are these, and
+  `deny` list anywhere.** The ban-proof script refuses a list whose `list-mode` is anything but
+  `strict`, including one with no `list-mode` written, which `depguard` reads in its `original` mode
+  and which then admits every import when the list has no `allow` entries. It refuses a `deny` key
+  on any list, with entries or without. `depguard` makes a file that two lists match satisfy both,
+  and does not check a file that no list matches. The lists are these, and
   [CLAUDE.md](../../../CLAUDE.md#components) names the directories they match.
   - **Non-test files of every pure-core package, in any component.** A pure core may import other
     pure-core packages and a named set of outside packages, and nothing else. An outside package
@@ -195,7 +198,7 @@ else broke ties.
 | --- | --- | --- |
 | `default-signifies-exhaustive: true`, which treats a default branch as proof the switch is complete | [ADR-0042](./0042-implementation-stack.md) requires a deny-defaulting default branch on every verdict switch, so under that setting the check goes silent on precisely the code this project is required to write, while continuing to report on code that does not matter | The setting is written out as `false`. The fixture behind the catalogue's exhaustiveness row carries the mandated default branch, so the row cannot pass with the setting wrong |
 | `check-blank` and `check-type-assertions`, which both default to `false` | Discarding an error explicitly is the ordinary way an unchecked error enters code, and it is the case the check skips unless asked | Both settings written out as on, with a checked-in file discarding an error that the ban-proof script requires to be reported |
-| A `deny` list of packages a pure core may not import | The list is a guess about the future. Something added to the standard library later is admitted, and nothing says so | `list-mode: strict`, `allow` lists only, and no `deny` key written anywhere in the configuration |
+| A `deny` list of packages a pure core may not import | The list is a guess about the future. Something added to the standard library later is admitted, and nothing says so | `list-mode: strict`, `allow` lists only, and no `deny` key written anywhere in the configuration. The ban-proof script refuses a list in any other mode and any `deny` key, each proven by a case in its own tests |
 | `//nolint`, a linter's own ignore comment, or a configuration exclusion silencing a finding | A rule standing in for a control stops being a control wherever somebody found it inconvenient | The suppression check, written here because no analyser carries it. Each refused directive and ignore comment is proven by a checked-in violation file the ban-proof script requires the check to report, and each refused configuration setting by a case in the ban-proof script's own tests |
 
 ### Anything deliberately left open
@@ -379,11 +382,12 @@ cannot run standalone on current Go releases, so the marginal cost is a configur
 
 The case against it, which is the part worth not softening. Its allow-list behaviour lives in
 `list-mode: strict`, which is not its default, so the denylist shape stays one configuration key
-away and a later editor can reach it without the rule changing visibly. Its upstream has been quiet
-since March 2025. Under the aggregator its findings are suppressible at the line, which is the whole
-reason this record refuses the suppression comment wherever it could reach a control and writes a
-check to enforce that. And its rules are file globs repeated per rule rather than named components,
-so a boundary that grows into a graph of many components repeats itself in configuration where a
+away and a later editor can reach it without the rule changing visibly, which is why the ban-proof
+script refuses a list in any other mode and any `deny` key. Its upstream has been quiet since March
+2025. Under the aggregator its findings are suppressible at the line, which is the whole reason
+this record refuses the suppression comment wherever it could reach a control and writes a check to
+enforce that. And its rules are file globs repeated per rule rather than named components, so a
+boundary that grows into a graph of many components repeats itself in configuration where a
 purpose-built tool would not.
 
 **`go-arch-lint`.** The strongest rival on shape. Allow-list expression is its only mode, so the

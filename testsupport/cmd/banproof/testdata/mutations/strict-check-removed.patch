@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a depguard list that is not strict or carries a deny key
+removes: the list-mode check never fires, so a lax list, an original one and one with no mode written pass
+packages: ./testsupport/cmd/banproof
+tests: TestConfigProblems TestConfigProblems/lax_import_list TestConfigProblems/import_list_in_the_original_mode TestConfigProblems/import_list_with_no_mode_written
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/config.go b/testsupport/cmd/banproof/config.go
+index fcfe3fe..3909fde 100644
+--- a/testsupport/cmd/banproof/config.go
++++ b/testsupport/cmd/banproof/config.go
+@@ -147,7 +147,7 @@ func configProblems(c lintConfig, ordinary []string) []string {
+ 	// empty, and lax admits every import no deny entry names.
+ 	rules := c.Linters.Settings.Depguard.Rules
+ 	for _, name := range slices.Sorted(maps.Keys(rules)) {
+-		if rules[name].ListMode != "strict" {
++		if rules[name].ListMode != "strict" && false {
+ 			refuse("linters.settings.depguard.rules.%s.list-mode must be strict, or the list can admit an import its allow entries do not name", name)
+ 		}
+ 		if rules[name].Deny.Kind != 0 {
