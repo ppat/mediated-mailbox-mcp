@@ -1,0 +1,19 @@
+control: GoldenAt refuses a path that is absolute or not clean
+removes: only an unclean path is refused, so an absolute path is followed wherever the machine puts it
+packages: ./testsupport/compare
+tests: TestGoldenAtPathMustBeRelativeAndClean TestGoldenAtPathMustBeRelativeAndClean/at-absolute
+scheduled-count: no
+
+diff --git a/testsupport/compare/golden.go b/testsupport/compare/golden.go
+index 55201ef..452bd02 100644
+--- a/testsupport/compare/golden.go
++++ b/testsupport/compare/golden.go
+@@ -46,7 +46,7 @@ func Golden(t *testing.T, name string, got []byte) {
+ // report, so every recorded file in the repository is re-recorded the same deliberate way.
+ func GoldenAt(t *testing.T, path string, got []byte) {
+ 	t.Helper()
+-	if path == "" || filepath.IsAbs(path) || filepath.Clean(path) != path {
++	if path == "" || filepath.Clean(path) != path {
+ 		t.Fatalf("golden file path %q must be relative to the test's package directory and clean", path)
+ 	}
+ 	golden(t, path, got)

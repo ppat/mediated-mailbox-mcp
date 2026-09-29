@@ -5,16 +5,17 @@ tests: TestGoldenNameMustStayInsideGoldenDir TestGoldenNameMustStayInsideGoldenD
 scheduled-count: no
 
 diff --git a/testsupport/compare/golden.go b/testsupport/compare/golden.go
-index d75e823..dea48ad 100644
+index 55201ef..1b9431a 100644
 --- a/testsupport/compare/golden.go
 +++ b/testsupport/compare/golden.go
-@@ -30,9 +30,6 @@ var update = flag.Bool("update", false, "rewrite golden files instead of compari
+@@ -31,10 +31,6 @@ var update = flag.Bool("update", false, "rewrite golden files instead of compari
  // file's history unnoticed.
  func Golden(t *testing.T, name string, got []byte) {
  	t.Helper()
 -	if !filepath.IsLocal(name) {
--		t.Fatalf("golden file name %q must be a plain relative path inside testdata/golden, not absolute and not containing \"..\"", name)
+-		t.Fatalf("golden file name %q must be a plain relative path inside testdata/golden, "+
+-			"not absolute and not containing \"..\"", name)
 -	}
- 	path := filepath.Join("testdata", "golden", name)
- 	if *update {
- 		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+ 	golden(t, filepath.Join("testdata", "golden", name), got)
+ }
+ 

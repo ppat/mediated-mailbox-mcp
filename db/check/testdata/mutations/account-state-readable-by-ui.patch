@@ -1,7 +1,7 @@
-control: Only the roles that call a provider read oauth_clients and their own account's state
+control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
 removes: the UI's role reads and writes every account's credential column
 packages: ./db/check
-tests: TestTheProviderCallingRolesReadOnlyTheirAccountsState TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_ui/reads_account_state
+tests: TestTheProviderCallingRolesReadOnlyTheirAccountsState TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_ui/reads_a_credential
 scheduled-count: no
 integration: yes
 

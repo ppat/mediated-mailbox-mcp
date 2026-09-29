@@ -1,0 +1,19 @@
+control: no route is claimed by both the registry and a bespoke handler, or by two bespoke handlers
+removes: a bespoke handler is checked against the accounts listing's path rather than the registry's
+packages: ./ui/internal/contract
+tests: TestAPathClaimedByBothSourcesIsRefused
+scheduled-count: no
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index c08ba95..40e30cd 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -58,7 +58,7 @@ func Bespoke() []Route {
+ func CheckPaths(bespoke []Route) error {
+ 	seen := map[string]string{}
+ 	for _, route := range bespoke {
+-		if route.Pattern == registry.LensPath {
++		if route.Pattern == "/api/accounts" && registry.LensPath != "" {
+ 			return fmt.Errorf("the path %s is claimed by both the registry and the bespoke handler %s", route.Pattern, route.Operation)
+ 		}
+ 		if prior, ok := seen[route.Pattern]; ok {

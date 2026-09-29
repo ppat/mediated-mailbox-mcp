@@ -1,0 +1,102 @@
+{
+  "account": "personal",
+  "provider": "gmail",
+  "as_of": "2026-09-10T10:16:04Z",
+  "operational": {
+    "connected": true,
+    "backfill_pass1_complete": true,
+    "backfill_pass1_run": {
+      "run_id": "r-0901",
+      "workload": "backfill",
+      "pass": "pass1",
+      "state": "succeeded",
+      "plan_id": null,
+      "plan_description": null,
+      "plan_status": null,
+      "resumed_from": null,
+      "started_at": "2026-09-01T10:16:04Z",
+      "finished_at": "2026-09-02T10:16:04Z",
+      "heartbeat_at": "2026-09-02T10:16:04Z",
+      "checkpoint": {
+        "of": 3368,
+        "page": 3368
+      },
+      "counters": {
+        "pages": 3368,
+        "messages": 84212
+      },
+      "last_error": null
+    },
+    "backfill_pass2_complete": false,
+    "backfill_pass2_run": {
+      "run_id": "r-0913",
+      "workload": "backfill",
+      "pass": "pass2",
+      "state": "running",
+      "plan_id": null,
+      "plan_description": null,
+      "plan_status": null,
+      "resumed_from": null,
+      "started_at": "2026-09-10T09:36:04Z",
+      "finished_at": null,
+      "heartbeat_at": "2026-09-10T10:15:04Z",
+      "checkpoint": {
+        "of": 3368,
+        "page": 3065
+      },
+      "counters": {
+        "pages": 3065,
+        "decided": 76610,
+        "pending": 7602,
+        "scanned": 70100,
+        "skipped": 6510
+      },
+      "last_error": null
+    },
+    "pending_scan": 1,
+    "sync_cursor_at": "2026-09-10T10:12:04Z",
+    "last_successful_tick_at": "2026-09-10T10:15:04Z",
+    "rate": {
+      "current": 3.1,
+      "target": 5,
+      "cap": 8,
+      "backoff_until": null,
+      "last_throttle_at": "2026-09-10T08:16:04Z",
+      "classes": {
+        "sync": {
+          "used": 0.8,
+          "reserved": 1.0
+        },
+        "batch": {
+          "used": 1.9,
+          "reserved": 2.5
+        },
+        "interactive": {
+          "used": 0.4,
+          "reserved": 1.5
+        }
+      }
+    },
+    "last_auth_at": "2026-09-10T04:16:04Z",
+    "last_auth_outcome": "ok"
+  },
+  "corpus": {
+    "messages": 3,
+    "threads": 2,
+    "unfiled": 1,
+    "restricted": 1,
+    "audit_24h": {
+      "DENY_BODY": 1,
+      "DENY_MUTATE": 0,
+      "MUTATE": 0,
+      "READ_BODY": 1
+    },
+    "masking_events_7d": 1,
+    "gate_skips_7d": 1
+  },
+  "decisions": {
+    "plans_draft": 1,
+    "candidates_pending": 1,
+    "workloads_running": 2
+  }
+}

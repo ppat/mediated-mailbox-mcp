@@ -1,0 +1,19 @@
+control: no route is claimed by both the registry and a bespoke handler, or by two bespoke handlers
+removes: two bespoke handlers claiming one path are admitted
+packages: ./ui/internal/contract
+tests: TestAPathClaimedByBothSourcesIsRefused
+scheduled-count: no
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index c08ba95..58e5ada 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -61,7 +61,7 @@ func CheckPaths(bespoke []Route) error {
+ 		if route.Pattern == registry.LensPath {
+ 			return fmt.Errorf("the path %s is claimed by both the registry and the bespoke handler %s", route.Pattern, route.Operation)
+ 		}
+-		if prior, ok := seen[route.Pattern]; ok {
++		if prior, ok := seen[route.Pattern]; ok && false {
+ 			return fmt.Errorf("the path %s is claimed by two bespoke handlers, %s and %s", route.Pattern, prior, route.Operation)
+ 		}
+ 		seen[route.Pattern] = route.Operation

@@ -1,0 +1,19 @@
+control: the entry template and the built bundle hold no inline script and reference no other origin
+removes: the scan passes an inline event handler attribute
+packages: ./ui/internal/api
+tests: TestThePolicyScanReportsEachPlantedViolation
+scheduled-count: no
+
+diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
+index 8223e1a..786f92c 100644
+--- a/ui/internal/api/scan.go
++++ b/ui/internal/api/scan.go
+@@ -37,7 +37,7 @@ func NeedsLooserPolicy(name, text string) []string {
+ 			findings = append(findings, "inline script")
+ 		}
+ 	}
+-	if eventHandler.MatchString(text) {
++	if false && eventHandler.MatchString(text) {
+ 		findings = append(findings, "inline event handler")
+ 	}
+ 	if strings.Contains(strings.ToLower(text), "javascript:") {

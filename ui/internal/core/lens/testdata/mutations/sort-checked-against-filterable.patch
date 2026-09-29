@@ -1,0 +1,19 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, group or sort column the registry does not declare
+removes: a sort column is checked against the filterable dimensions instead of the sortable ones
+packages: ./ui/internal/core/lens
+tests: TestParseAdmitsWhatTheEntryDeclares TestParseAdmitsWhatTheEntryDeclares/level_2_with_a_group_and_a_filter,_a_sort_and_a_page
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index bc3fb57..3efe386 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -288,7 +288,7 @@ func parseSort(d Descriptor, v string) (Sort, error) {
+ 		return Sort{}, refuse("invalid_sort", "sort %s is not column,asc or column,desc", strconv.Quote(v))
+ 	}
+ 	dim, found := d.Dimension(column)
+-	if !found || !dim.Sortable {
++	if !found || !dim.Filterable {
+ 		return Sort{}, refuse("unknown_sort", "the dataset %s declares no sortable column %s", d.Name, strconv.Quote(column))
+ 	}
+ 	return Sort{Column: column, Descending: direction == "desc"}, nil

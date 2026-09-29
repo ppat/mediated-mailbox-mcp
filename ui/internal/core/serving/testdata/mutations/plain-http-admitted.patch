@@ -1,0 +1,18 @@
+control: the UI refuses plain HTTP unless its binary is built with the devloop build tag
+removes: plain HTTP is admitted in every binary
+packages: ./ui/internal/core/serving
+tests: TestPlainHTTPIsRefusedOutsideTheDevLoop
+scheduled-count: no
+
+diff --git a/ui/internal/core/serving/serving.go b/ui/internal/core/serving/serving.go
+--- a/ui/internal/core/serving/serving.go
++++ b/ui/internal/core/serving/serving.go
+@@ -28,7 +28,7 @@
+ 		return refusal("listen is empty")
+ 	case strings.TrimSpace(c.ProbeListen) == "":
+ 		return refusal("probe_listen is empty")
+-	case c.InsecureHTTP && !devLoop:
++	case false && c.InsecureHTTP && !devLoop:
+ 		return refusal("insecure_http is true, and a binary built without the devloop build tag serves TLS only")
+ 	case !c.InsecureHTTP && (c.TLSCert == "" || c.TLSKey == ""):
+ 		return refusal("tls_cert and tls_key are both required unless insecure_http is true")

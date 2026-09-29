@@ -1,4 +1,4 @@
-control: Only the roles that call a provider read oauth_clients and their own account's state
+control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
 removes: the four roles that call a provider write every client's secret with no statement that uses the grant
 packages: ./db/check
 tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_backfill/writes_a_client

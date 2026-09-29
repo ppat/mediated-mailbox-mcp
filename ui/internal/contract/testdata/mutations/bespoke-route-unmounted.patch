@@ -1,0 +1,20 @@
+control: every route registered through the recording mux's Handle is compared with the contract document
+removes: a bespoke handler the document describes is left unmounted
+packages: ./ui/internal/contract
+tests: TestTheServerServesExactlyTheDocumentsRoutes
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 0ebe994..1089975 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -109,6 +109,9 @@ func New(opts Options) (*Server, error) {
+ 			return nil, fmt.Errorf("the route %s has no handler for %s", route.Pattern, route.Operation)
+ 		}
+ 		delete(handlers, route.Operation)
++		if route.Operation == "getJobs" {
++			continue
++		}
+ 		switch {
+ 		case route.Pattern == registry.LensPath:
+ 			// The dataset endpoint admits its account itself, after the pure core has read the request,

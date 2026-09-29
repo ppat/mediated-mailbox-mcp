@@ -1,0 +1,40 @@
+control: every route registered through the recording mux's Handle is compared with the contract document
+removes: the recording mux embeds its ServeMux again, so its promoted Handle registers a route unrecorded
+packages: ./ui/internal/api
+tests: TestTheRecordingMuxEmbedsNothing
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index f4fa0e5..b8296e9 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -66,17 +66,17 @@ type Server struct {
+ // front of the mux in api.New or the composition root, are left to review. The mux sits in an
+ // unexported field and is embedded nowhere, so no promoted method registers a route unrecorded.
+ type recordingMux struct {
+-	mux      *http.ServeMux
++	*http.ServeMux
+ 	patterns []string
+ }
+ 
+ func (m *recordingMux) Handle(pattern string, h http.Handler) {
+ 	m.patterns = append(m.patterns, pattern)
+-	m.mux.Handle(pattern, h)
++	m.ServeMux.Handle(pattern, h)
+ }
+ 
+ func (m *recordingMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+-	m.mux.ServeHTTP(w, r)
++	m.ServeMux.ServeHTTP(w, r)
+ }
+ 
+ // New builds the server. It refuses a bespoke route without a handler and a handler without a route,
+@@ -104,7 +104,7 @@ func New(opts Options) (*Server, error) {
+ 		"getJobs":      s.getJobs,
+ 		"streamEvents": s.streamEvents,
+ 	}
+-	mux := &recordingMux{mux: http.NewServeMux()}
++	mux := &recordingMux{ServeMux: http.NewServeMux()}
+ 	for _, route := range apiRoutes() {
+ 		h, ok := handlers[route.Operation]
+ 		if !ok {

@@ -1,0 +1,18 @@
+control: the UI's configuration type is pinned field by field
+removes: a value is added to the UI's root configuration type without updating the pinned field list
+packages: ./ui
+tests: TestTheConfigurationTypeIsPinned TestTheEffectiveConfigurationIsLogged
+scheduled-count: no
+
+diff --git a/ui/main.go b/ui/main.go
+index e3984b3..cad1d6f 100644
+--- a/ui/main.go
++++ b/ui/main.go
+@@ -53,6 +53,7 @@ type Configuration struct {
+ 	SyncInterval       time.Duration        `yaml:"sync_interval"`
+ 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
+ 	StreamInterval     time.Duration        `yaml:"stream_interval"`
++	SealPublicKeyFile  string               `yaml:"seal_public_key_file"`
+ }
+ 
+ // defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is

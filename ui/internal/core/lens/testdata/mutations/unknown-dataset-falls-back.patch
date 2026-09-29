@@ -1,0 +1,20 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, group or sort column the registry does not declare
+removes: an undeclared dataset falls back to the registry's first entry instead of being refused
+packages: ./ui/internal/core/lens
+tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDoesNotDeclare/an_undeclared_dataset
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index bc3fb57..80b9adc 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -183,6 +183,9 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
+ 		return Request{}, refuse("missing_dataset", "the request names no dataset")
+ 	}
+ 	i := slices.IndexFunc(catalogue, func(d Descriptor) bool { return d.Name == name })
++	if i < 0 {
++		i = 0
++	}
+ 	if i < 0 {
+ 		return Request{}, refuse("unknown_dataset", "the registry declares no dataset %s", strconv.Quote(name))
+ 	}

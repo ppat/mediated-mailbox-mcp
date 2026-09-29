@@ -1,0 +1,62 @@
+{
+  "account": "personal",
+  "dataset": "plans",
+  "level": 3,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {
+    "range": "all"
+  },
+  "sort": "created_at,desc",
+  "page": 1,
+  "pages": 1,
+  "total": {
+    "count": 3
+  },
+  "rows": [
+    {
+      "plan_id": "7f3a9c00-0000-4000-8000-000000000002",
+      "description": "mmfieldmarker-applyingplan",
+      "status": "APPLYING",
+      "proposer": "agent",
+      "created_at": "2026-09-10T07:16:04Z",
+      "approved_at": "2026-09-10T07:16:04Z",
+      "approved_by": "operator",
+      "refusal_reason": null,
+      "messages": 2,
+      "apply_run": {
+        "run_id": "r-0915",
+        "state": "running"
+      },
+      "rollback_run": null
+    },
+    {
+      "plan_id": "7f3a9c00-0000-4000-8000-000000000001",
+      "description": "\u003cscript\u003emmfieldmarker-plandescription\u003c/script\u003e\nSecond line",
+      "status": "DRAFT",
+      "proposer": "agent",
+      "created_at": "2026-09-09T06:16:04Z",
+      "approved_at": null,
+      "approved_by": null,
+      "refusal_reason": null,
+      "messages": 0,
+      "apply_run": null,
+      "rollback_run": null
+    },
+    {
+      "plan_id": "7f3a9c00-0000-4000-8000-000000000003",
+      "description": "Archive old newsletters",
+      "status": "APPLIED",
+      "proposer": "agent",
+      "created_at": "2026-08-31T10:16:04Z",
+      "approved_at": "2026-08-31T10:16:04Z",
+      "approved_by": "operator",
+      "refusal_reason": null,
+      "messages": 2,
+      "apply_run": {
+        "run_id": "r-0910",
+        "state": "succeeded"
+      },
+      "rollback_run": null
+    }
+  ]
+}

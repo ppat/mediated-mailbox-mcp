@@ -5,13 +5,13 @@ tests: TestGoldenMismatchFails TestGoldenMissingFileFails
 scheduled-count: no
 
 diff --git a/testsupport/compare/golden.go b/testsupport/compare/golden.go
-index d75e823..37bb62e 100644
+index 55201ef..3221e55 100644
 --- a/testsupport/compare/golden.go
 +++ b/testsupport/compare/golden.go
-@@ -14,7 +14,7 @@ import (
- // registered here, once, so every package's tests share one flag rather than each registering its
- // own and panicking on the second registration. The gating CI run passes no flag to go test, so it
- // stays false there and a run never writes a golden file by itself.
+@@ -15,7 +15,7 @@ import (
+ // own and panicking on the second registration. No other package registers a flag named update, and
+ // a test that writes a recorded file does so through Golden or GoldenAt. The gating CI run passes
+ // no flag to go test, so it stays false there and a run never writes a golden file by itself.
 -var update = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
 +var update = flag.Bool("update", true, "rewrite golden files instead of comparing against them")
  

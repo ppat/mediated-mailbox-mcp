@@ -1,0 +1,20 @@
+control: every response a handler of the UI answers carries the content security policy, exact
+removes: the policy allows connections to any origin, so a leaked subject could reach one
+packages: ./ui/internal/api
+tests: TestEveryResponseCarriesThePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/policy.go b/ui/internal/api/policy.go
+index cca0248..08e8702 100644
+--- a/ui/internal/api/policy.go
++++ b/ui/internal/api/policy.go
+@@ -7,7 +7,7 @@ import "net/http"
+ // configuration can loosen it. The policy allows the entry document's token because a meta tag is not
+ // a script (ADR-0061).
+ const Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
+-	"font-src 'self'; connect-src 'self'; frame-ancestors 'none'"
++	"font-src 'self'; connect-src *; frame-ancestors 'none'"
+ 
+ // withPolicy sets the policy before next writes anything, so no response leaves without it.
+ func withPolicy(next http.Handler) http.Handler {

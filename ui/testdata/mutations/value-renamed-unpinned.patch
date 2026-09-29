@@ -1,0 +1,19 @@
+control: the UI's configuration type is pinned field by field
+removes: a value's configuration path is renamed, so the file, the environment and the flags name another key than the one declared
+packages: ./ui
+tests: TestTheEffectiveConfigurationIsLogged
+scheduled-count: no
+
+diff --git a/ui/main.go b/ui/main.go
+index e3984b3..1f8b4c6 100644
+--- a/ui/main.go
++++ b/ui/main.go
+@@ -52,7 +52,7 @@ type Configuration struct {
+ 	InsecureHTTP       bool                 `yaml:"insecure_http"`
+ 	SyncInterval       time.Duration        `yaml:"sync_interval"`
+ 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
+-	StreamInterval     time.Duration        `yaml:"stream_interval"`
++	StreamInterval     time.Duration        `yaml:"poll_interval"`
+ }
+ 
+ // defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is

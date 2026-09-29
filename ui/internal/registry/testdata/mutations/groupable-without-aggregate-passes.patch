@@ -1,0 +1,18 @@
+control: the statement-set check refuses a dataset or groupable dimension without the statements it requires
+removes: a groupable dimension with no aggregate statement is not reported
+packages: ./ui/internal/registry
+tests: TestTheStatementSetCheckReportsEachMismatch
+scheduled-count: no
+
+diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
+--- a/ui/internal/registry/registry.go
++++ b/ui/internal/registry/registry.go
+@@ -109,7 +109,7 @@
+ 			problems = append(problems, fmt.Sprintf("%s: no rows statement", d.Name))
+ 		}
+ 		for _, dim := range d.Dimensions {
+-			if dim.Groupable && d.Aggregates[dim.Name] == nil {
++			if false && dim.Groupable && d.Aggregates[dim.Name] == nil {
+ 				problems = append(problems, fmt.Sprintf("%s: the groupable dimension %s has no aggregate statement", d.Name, dim.Name))
+ 			}
+ 		}

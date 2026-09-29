@@ -1,14 +1,14 @@
-control: Golden fails a test whose golden file does not exist, rather than creating it
-removes: a missing golden file is written from got and the run returns, instead of failing
+control: Golden and GoldenAt fail a test whose recorded file does not exist, rather than creating it
+removes: a missing recorded file is written from got and the run returns, instead of failing
 packages: ./testsupport/compare
-tests: TestGoldenMissingFileFails
+tests: TestGoldenMissingFileFails TestGoldenAtMissingFileFails
 scheduled-count: no
 
 diff --git a/testsupport/compare/golden.go b/testsupport/compare/golden.go
-index d75e823..d4cac56 100644
+index 55201ef..303724f 100644
 --- a/testsupport/compare/golden.go
 +++ b/testsupport/compare/golden.go
-@@ -45,7 +45,13 @@ func Golden(t *testing.T, name string, got []byte) {
+@@ -66,7 +66,13 @@ func golden(t *testing.T, path string, got []byte) {
  	}
  	want, err := os.ReadFile(path)
  	if errors.Is(err, os.ErrNotExist) {
