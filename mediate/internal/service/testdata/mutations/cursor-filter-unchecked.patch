@@ -1,0 +1,21 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: a cursor a listing with another filter returned is taken
+packages: ./mediate/internal/service
+tests: TestAListingPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/cursor.go b/mediate/internal/service/cursor.go
+index a063bce..36b4bde 100644
+--- a/mediate/internal/service/cursor.go
++++ b/mediate/internal/service/cursor.go
+@@ -44,7 +44,7 @@ func decodeCursor(cursor, listing, account, filter string) (position, bool, erro
+ 	if err := json.Unmarshal(text, &p); err != nil || p.At == "" {
+ 		return position{}, false, Refuse("cursor is not a cursor this listing returned")
+ 	}
+-	if p.Listing != listing || p.Account != account || p.Filter != filter {
++	if p.Listing != listing || p.Account != account {
+ 		return position{}, false, Refuse("cursor was returned for another account, listing or filter")
+ 	}
+ 	return p, true, nil

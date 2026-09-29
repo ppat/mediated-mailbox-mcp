@@ -304,3 +304,44 @@ func TestAReloadItsCallerCancelledRaisesNoAlarm(t *testing.T) {
 		t.Errorf("%s after a reload past its deadline = %v, want 1", reloadFailedName, got)
 	}
 }
+
+// The accounts a loader reads change with SetAccounts from its next reload on, as a process's accounts
+// change between its account snapshots (ADR-0090). Until that reload the active snapshot keeps the
+// accounts it was read for, so an account just added restricts every sender, and after it an account
+// no longer set does. An empty set and an empty name are refused, as New refuses them.
+func TestSetAccountsChangesWhatTheNextReloadReads(t *testing.T) {
+	conn := superuser(t)
+	accounts := newAccounts(t, conn, 3)
+	seed(t, conn, accounts)
+	l, _ := newLoader(t, &faulty{pool: backfill(t)}, accounts[:1])
+	if err := l.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	restricts := view{RestrictsAll: true, Rules: map[string][]string{}}
+
+	if err := l.SetAccounts([]string{accounts[2], accounts[1], accounts[2]}); err != nil {
+		t.Fatal(err)
+	}
+	before := seeded(accounts[:1])
+	before[accounts[1]], before[accounts[2]] = restricts, restricts
+	if diff := cmp.Diff(before, observe(l.Snapshot(), accounts...), compare.Options); diff != "" {
+		t.Errorf("before the next reload (-want +got):\n%s", diff)
+	}
+	if err := l.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	after := seeded(accounts[1:])
+	after[accounts[0]] = restricts
+	if diff := cmp.Diff(after, observe(l.Snapshot(), accounts...), compare.Options); diff != "" {
+		t.Errorf("after the next reload (-want +got):\n%s", diff)
+	}
+
+	for _, set := range [][]string{nil, {}, {accounts[0], ""}} {
+		if err := l.SetAccounts(set); err == nil {
+			t.Errorf("SetAccounts(%q) was accepted", set)
+		}
+	}
+	if diff := cmp.Diff(after, observe(l.Snapshot(), accounts...), compare.Options); diff != "" {
+		t.Errorf("after refused sets (-want +got):\n%s", diff)
+	}
+}

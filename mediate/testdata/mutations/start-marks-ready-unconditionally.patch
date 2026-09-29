@@ -6,17 +6,17 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 91cec55..172c013 100644
+index 9a59611..f4258e1 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -157,9 +157,7 @@ func run(ctx context.Context, args []string) error {
- 	errs := make(chan error, 3)
+@@ -241,9 +241,7 @@ func serve(ctx context.Context, c Configuration, served *serving, metrics *prome
  	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
  	go func() { errs <- serveProbes(probeServer, probeListener) }()
--	if err := markReadyWhenServable(&ready, s); err != nil {
+ 	go served.reloadEvery(reloading, c.AccountReloadInterval)
+-	if err := markReadyWhenServable(&ready, c); err != nil {
 -		errs <- err
 -	}
 +	ready.MarkReady()
- 	slog.Info("serving", "surface", s.listen, "probes", s.probeListen)
+ 	logger.Info("serving", "surface", c.Listen, "probes", c.ProbeListen)
  
  	select {

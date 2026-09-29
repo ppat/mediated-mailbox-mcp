@@ -1,0 +1,21 @@
+control: A timestamp the client surface takes with any offset but Z is refused, never converted
+removes: a timestamp with any offset is accepted and converted
+packages: ./mediate/internal/service
+tests: TestANonUTCTimestampIsRefused
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/timestamps.go b/mediate/internal/service/timestamps.go
+index 05b5bb1..ae16c3e 100644
+--- a/mediate/internal/service/timestamps.go
++++ b/mediate/internal/service/timestamps.go
+@@ -19,7 +19,7 @@ func formatUTC(t time.Time) string { return t.UTC().Format(utcLayout) }
+ // timestamp carrying any other offset, +00:00 included, is refused with an ArgumentError, and so is
+ // text that is not a timestamp.
+ func parseUTC(name, text string) (time.Time, error) {
+-	if !strings.HasSuffix(text, "Z") {
++	if false && !strings.HasSuffix(text, "Z") {
+ 		return time.Time{}, Refuse(name + " must be an ISO 8601 timestamp in UTC ending in Z, and other offsets are refused rather than converted")
+ 	}
+ 	t, err := time.Parse(time.RFC3339Nano, text)

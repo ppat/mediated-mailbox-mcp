@@ -106,8 +106,13 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
 	out, err := reg.Call(r.Context(), rt.op.Name, input)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "operation failed", "operation", rt.op.Name, "error", err)
+		status := http.StatusInternalServerError
+		var refused *service.ArgumentError
+		if errors.As(err, &refused) {
+			status = http.StatusBadRequest
+		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(status)
 		if _, err := w.Write(service.Failure(err)); err != nil { //nolint:gosec // a JSON body sent as application/json, never rendered as HTML
 			slog.WarnContext(r.Context(), "writing an error response failed", "error", err)
 		}

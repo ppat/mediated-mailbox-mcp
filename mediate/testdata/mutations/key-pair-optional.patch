@@ -1,20 +1,20 @@
-control: The client surface is served over TLS unless an ingress in front is declared to terminate it, with the key pair read from its mounted files
+control: The mediator refuses a configuration it cannot serve with before anything is read or connected
 removes: the mediator starts with no key pair and no ingress declared
 packages: ./mediate
-tests: TestTheSettingsNeedWhatTheMediatorCannotRunWithout
+tests: TestAConfigurationTheMediatorCannotServeWithIsRefused
 scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index b3651a5..1cb7643 100644
+index 9a59611..0565c9a 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -89,7 +89,7 @@ func parse(args []string) (settings, error) {
- 			return settings{}, errors.New("-tls-at-ingress declares that the mediator serves no TLS, so it takes no -tls-cert or -tls-key")
+@@ -121,7 +121,7 @@ func validate(c Configuration) error {
+ 		if c.TLSKey == "" {
+ 			missing = append(missing, "tls_key")
  		}
- 	} else {
--		required = append([]struct{ name, value string }{{"tls-cert", s.tlsCert}, {"tls-key", s.tlsKey}}, required...)
-+		required = append([]struct{ name, value string }{}, required...)
+-		if len(missing) > 0 {
++		if false && len(missing) > 0 {
+ 			return fmt.Errorf("the mediator serves TLS unless tls_at_ingress is set, so it needs %s", strings.Join(missing, " and "))
+ 		}
  	}
- 	var missing []string
- 	for _, f := range required {

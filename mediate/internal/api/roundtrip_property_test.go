@@ -177,9 +177,23 @@ func queryText(typ string, v any) string {
 
 // The object reaching Registry.Call is the same from both roots, for every operation, although the
 // API root carries the account and a read's arguments in the path and the query string (ADR-0087,
-// ADR-0030). The operation receives the drawn object's account and the rest of its arguments.
+// ADR-0030). The operation receives the drawn object's account and the rest of its arguments. The
+// fixture operations cover every effect class, and the served operations are checked the same way.
 func TestBothRootsHandTheServiceTheSameObject(t *testing.T) {
 	reg, rec := fixtures(t)
+	sameObject(t, reg, rec)
+}
+
+// The served operations, each answering with what it received, hand the service the same object from
+// both roots too, so an operation added to the surface is covered without a fixture of its own.
+func TestBothRootsHandEveryServedOperationTheSameObject(t *testing.T) {
+	reg, rec := servedEchoes(t)
+	sameObject(t, reg, rec)
+}
+
+// sameObject runs the round-trip property over reg's operations.
+func sameObject(t *testing.T, reg service.Registry, rec *recorder) {
+	t.Helper()
 	shapes := shapes(t, reg)
 	apiRoot := root(t, reg)
 	mcpRoot := mcp.Handler(reg, "test")
@@ -243,6 +257,17 @@ func TestBothRootsHandTheServiceTheSameObjectMix(t *testing.T) {
 	minimums := map[string]float64{}
 	for name := range shapes {
 		// Any positive share is at least one case.
+		minimums[name] = math.SmallestNonzeroFloat64
+	}
+	property.Report(t, drawRoundTrip(shapes), func(c roundTrip) string { return c.Op }, minimums)
+}
+
+// The generated calls cover every served operation.
+func TestBothRootsHandEveryServedOperationTheSameObjectMix(t *testing.T) {
+	reg, _ := servedEchoes(t)
+	shapes := shapes(t, reg)
+	minimums := map[string]float64{}
+	for name := range shapes {
 		minimums[name] = math.SmallestNonzeroFloat64
 	}
 	property.Report(t, drawRoundTrip(shapes), func(c roundTrip) string { return c.Op }, minimums)

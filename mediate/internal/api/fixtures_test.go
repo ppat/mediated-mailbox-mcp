@@ -39,23 +39,11 @@ func (r *recorder) take() []call {
 // fixtureOps are one operation of each effect class, the accounts listing and a read of a
 // sub-resource, shaped as ADR-0087 shapes them. Each echoes the account and the arguments it received.
 func fixtureOps(rec *recorder) []service.Operation {
-	echo := func(name string) func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
-		return func(_ context.Context, account string, input json.RawMessage) (json.RawMessage, error) {
-			var v any
-			if err := json.Unmarshal(input, &v); err != nil {
-				return nil, err
-			}
-			rec.mu.Lock()
-			rec.calls = append(rec.calls, call{name, account, v})
-			rec.mu.Unlock()
-			return json.Marshal(map[string]any{"account": account, "input": v})
-		}
-	}
 	op := func(name string, effect service.Effect, path, input string) service.Operation {
 		return service.Operation{
 			Name: name, Description: "A fixture " + name + ".", Effect: effect, Path: path,
 			Input: json.RawMessage(input), Output: json.RawMessage(`{"type":"object","properties":{"account":{"type":"string"}}}`),
-			Handle: echo(name),
+			Handle: echo(rec, name),
 		}
 	}
 	return []service.Operation{
@@ -86,11 +74,42 @@ func fixtureOps(rec *recorder) []service.Operation {
 	}
 }
 
+// echo returns a handler that records the account and the arguments it received and answers with
+// them.
+func echo(rec *recorder, name string) func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
+	return func(_ context.Context, account string, input json.RawMessage) (json.RawMessage, error) {
+		var v any
+		if err := json.Unmarshal(input, &v); err != nil {
+			return nil, err
+		}
+		rec.mu.Lock()
+		rec.calls = append(rec.calls, call{name, account, v})
+		rec.mu.Unlock()
+		return json.Marshal(map[string]any{"account": account, "input": v})
+	}
+}
+
 // fixtures returns the fixture registry over the served accounts and the recorder of its calls.
 func fixtures(t testing.TB) (service.Registry, *recorder) {
 	t.Helper()
 	rec := &recorder{}
 	reg, err := service.NewRegistry(served, fixtureOps(rec)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reg, rec
+}
+
+// servedEchoes returns a registry of the operations the mediator serves, each answering with the
+// account and the arguments it received instead of reading the index, and the recorder of its calls.
+func servedEchoes(t testing.TB) (service.Registry, *recorder) {
+	t.Helper()
+	rec := &recorder{}
+	ops := service.Operations(service.Sources{})
+	for i := range ops {
+		ops[i].Handle = echo(rec, ops[i].Name)
+	}
+	reg, err := service.NewRegistry(served, ops...)
 	if err != nil {
 		t.Fatal(err)
 	}

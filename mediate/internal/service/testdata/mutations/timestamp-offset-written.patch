@@ -1,0 +1,21 @@
+control: Every timestamp the client surface serves is UTC with the Z suffix
+removes: a timestamp is written in UTC with the offset +00:00 in place of Z
+packages: ./mediate/internal/service
+tests: TestEveryTimestampServedIsUTC
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/timestamps.go b/mediate/internal/service/timestamps.go
+index 05b5bb1..66e355b 100644
+--- a/mediate/internal/service/timestamps.go
++++ b/mediate/internal/service/timestamps.go
+@@ -10,7 +10,7 @@ import (
+ // refused rather than converted (ADR-0033).
+ 
+ // utcLayout writes a timestamp in UTC with the Z suffix and as many fractional digits as it holds.
+-const utcLayout = "2006-01-02T15:04:05.999999999Z"
++const utcLayout = "2006-01-02T15:04:05.999999999-07:00"
+ 
+ // formatUTC writes t as the surface writes every timestamp.
+ func formatUTC(t time.Time) string { return t.UTC().Format(utcLayout) }

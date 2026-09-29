@@ -1,0 +1,21 @@
+control: Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
+removes: the gate decides every served message under no policy, so it restricts every sender instead of the ones the policy lists
+packages: ./mediate/internal/service
+tests: TestEveryServedMessageFollowsTheRedactionMatrix
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
+index 38bb177..d71b57d 100644
+--- a/mediate/internal/service/present.go
++++ b/mediate/internal/service/present.go
+@@ -96,7 +96,7 @@ func storedScanState(name string) sensitivity.ScanState {
+ // Gate's decision against the account policy p (ADR-0001, ADR-0002).
+ func present(account string, m stored, p policy.Composed, l classify.Lookups) message {
+ 	flags, scan := storedFlags(m.ContentFlags), storedScanState(m.ScanState)
+-	v := redact.Decide(p, m.FromEmail, l, flags, scan)
++	v := redact.Decide(policy.Composed{}, m.FromEmail, l, flags, scan)
+ 	class := "normal"
+ 	if v.Sender().Class().Restricted() {
+ 		class = "restricted"

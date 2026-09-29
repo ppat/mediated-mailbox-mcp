@@ -1,0 +1,21 @@
+control: The read operations read the accounts and the policy the serving state holds in force, and a clock within thirty seconds of the real one when the read is made
+removes: the read operations are given no policy, so every sender reads restricted
+packages: ./mediate
+tests: TestTheReadOperationsReadTheServingState
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index ee8b9d9..45319fc 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -257,7 +257,7 @@ func sources(pool *pgxpool.Pool, served *serving) service.Sources {
+ 	return service.Sources{
+ 		DB:       pool,
+ 		Accounts: served.accounts,
+-		Policy:   served.policy,
++		Policy:   func(string) policy.Composed { return policy.Composed{} },
+ 		Lookups:  lookups(),
+ 		Now:      time.Now,
+ 	}

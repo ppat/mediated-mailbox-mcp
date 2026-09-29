@@ -21,12 +21,21 @@ import (
 // them under each of those roles (ADR-0066). Four deployables here are those that call a provider,
 // whose lists admit the rate limiter and the account snapshot library, and the UI names the
 // subsections its read API reads.
+//
+// The mediator's code is also governed by narrower lists, and the one over every package but its two
+// protocol roots names the subsections its read operations run. The lists of the two roots and their
+// generators admit that code through the service layer, so each is keyed here to the mediator's role
+// too.
 var componentRoles = map[string]string{
-	"backfill": "mediated_mailbox_backfill",
-	"mediate":  "mediated_mailbox_mediate",
-	"organize": "mediated_mailbox_organize",
-	"sync":     "mediated_mailbox_sync",
-	"ui":       "mediated_mailbox_ui",
+	"backfill":              "mediated_mailbox_backfill",
+	"mediate":               "mediated_mailbox_mediate",
+	"mediate-api-generator": "mediated_mailbox_mediate",
+	"mediate-api-root":      "mediated_mailbox_mediate",
+	"mediate-mcp-generator": "mediated_mailbox_mediate",
+	"mediate-mcp-root":      "mediated_mailbox_mediate",
+	"organize":              "mediated_mailbox_organize",
+	"sync":                  "mediated_mailbox_sync",
+	"ui":                    "mediated_mailbox_ui",
 }
 
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no

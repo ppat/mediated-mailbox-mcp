@@ -1,0 +1,21 @@
+control: Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
+removes: a stored scan state the schema does not name is read as scanned, so the message is released
+packages: ./mediate/internal/service
+tests: TestEveryServedMessageFollowsTheRedactionMatrix
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
+index 38bb177..953e0e6 100644
+--- a/mediate/internal/service/present.go
++++ b/mediate/internal/service/present.go
+@@ -88,7 +88,7 @@ func storedScanState(name string) sensitivity.ScanState {
+ 	case "skipped_restricted":
+ 		return sensitivity.SkippedRestricted()
+ 	default:
+-		return sensitivity.Pending()
++		return sensitivity.Scanned()
+ 	}
+ }
+ 

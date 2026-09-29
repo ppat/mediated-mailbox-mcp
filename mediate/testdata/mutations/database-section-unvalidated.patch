@@ -1,0 +1,22 @@
+control: The mediator refuses a configuration it cannot serve with before anything is read or connected
+removes: the database section is never validated
+packages: ./mediate
+tests: TestAConfigurationTheMediatorCannotServeWithIsRefused
+scheduled-count: no
+
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 93c89f3..7b1cbf0 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -131,9 +131,7 @@ func validate(c Configuration) error {
+ 	if c.AccountReloadInterval <= 0 {
+ 		return fmt.Errorf("account_reload_interval %s is not positive", c.AccountReloadInterval)
+ 	}
+-	if err := dbconnectcore.Validate(c.Database); err != nil {
+-		return err
+-	}
++	_ = dbconnectcore.Validate
+ 	return credentialcore.Validate(c.Credential)
+ }
+ 

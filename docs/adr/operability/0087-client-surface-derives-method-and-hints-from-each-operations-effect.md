@@ -185,7 +185,9 @@ Left open, and settled where each is first needed:
   failure contract of [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) decides it,
   and either shape is derived the same way on both roots.
 - **Paging** takes a cursor argument and returns the next cursor, bound to the account and the
-  filter. Its exact fields are the first listing's.
+  filter. Its exact fields are the first listing's. The first listings take `cursor` and return
+  `next_cursor`, which is opaque to the client and null on the last page, and a cursor given to
+  another listing, another account or another filter is refused.
 
 What an implementer would otherwise pay to discover:
 

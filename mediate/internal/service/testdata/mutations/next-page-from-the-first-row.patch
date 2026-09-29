@@ -1,0 +1,21 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: the message listing's next cursor names the page's first row instead of its last
+packages: ./mediate/internal/service
+tests: TestAListingPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/reads.go b/mediate/internal/service/reads.go
+index f3e6ddd..e2579e2 100644
+--- a/mediate/internal/service/reads.go
++++ b/mediate/internal/service/reads.go
+@@ -236,7 +236,7 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
+ 	}
+ 	var next *string
+ 	if len(rows) == pageSize {
+-		last := rows[len(rows)-1]
++		last := rows[0]
+ 		c := encodeCursor(position{Listing: "list_messages", Account: account, At: formatUTC(last.SentAt.Time), Key: last.MessageID})
+ 		next = &c
+ 	}

@@ -208,7 +208,7 @@ linters:
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           # The punycode decoding and the public-suffix list a shell passes to the sender classifier, so its tests run
-          # against the real lookups. Neither is pure, so neither is on the list for non-test files.
+          # against the real lookups. Neither is pure, so neither is on the pure-core list for non-test files.
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/"
@@ -558,12 +558,23 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -573,6 +584,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
+          # The sender classifier's domain functions, which the composition root passes the read operations.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
 
         # Deployable organize, every file. A deployable imports its own code and the shared libraries, never another
@@ -721,7 +735,9 @@ linters:
         # Every package of the mediator but the two roots serves no HTTP, so none can register an operation on the
         # client surface outside the roots' generators (ADR-0053). A new package under internal falls under it
         # without being named. It admits the standard-library packages and the pure core these packages import,
-        # and nothing under net/http. A package added here that imports anything else adds its entry with it.
+        # pgx and its pgtype, the transaction helper, and the data-access subsections the service layer's read
+        # operations run, and nothing under net/http. A package added here that imports anything else adds its entry
+        # with it.
         mediate-no-http:
           list-mode: strict
           files:
@@ -740,9 +756,20 @@ linters:
           - "strconv$"
           - "strings$"
           - "sync/atomic$"
+          - "time$"
+          - "encoding/base64$"
           - "unicode$"
           - "unicode/utf8$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/pgtype$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          # The read operations' statements, each run through the transaction helper (ADR-0047).
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
 
         # The API root's generator, which serves HTTP.
         mediate-api-generator:
@@ -824,6 +851,9 @@ linters:
           - "go/"
           - "golang.org/x/net/html$"
           - "golang.org/x/net/html/atom$"
+          # The sender classifier's domain functions, which the mediator's composition root passes it.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
 
         # Every test file outside the shared test tooling that is not a property test or a crash sequence. rapid
         # and its test support stay out of these (ADR-0069). The shared test tooling's own tests meet its two lists

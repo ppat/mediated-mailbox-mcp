@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
@@ -50,6 +51,17 @@ func registry(t *testing.T) service.Registry {
 			Output:      json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}}}`),
 			Handle: func(_ context.Context, account string, in json.RawMessage) (json.RawMessage, error) {
 				return json.Marshal(map[string]any{"account": account, "input": in})
+			},
+		},
+		service.Operation{
+			Name:        "refuse",
+			Description: "Always refuses its argument.",
+			Effect:      service.Read,
+			Path:        under + "refusals",
+			Input:       json.RawMessage(accountInput),
+			Output:      json.RawMessage(`{"type":"object"}`),
+			Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
+				return nil, service.Refuse("since must be an ISO 8601 timestamp in UTC ending in Z")
 			},
 		},
 		service.Operation{
@@ -196,6 +208,7 @@ func TestTheToolListIsTheRegistry(t *testing.T) {
 			Annotations:  readAnnotations,
 		},
 		{Name: "fail", Description: "Always fails.", InputSchema: json.RawMessage(accountInput), OutputSchema: json.RawMessage(objectOutput), Annotations: reversibleAnnotations},
+		{Name: "refuse", Description: "Always refuses its argument.", InputSchema: json.RawMessage(accountInput), OutputSchema: json.RawMessage(objectOutput), Annotations: readAnnotations},
 		fixture("search_things", structuredReadAnnotations),
 		fixture("trash_things", disposalAnnotations),
 	}
@@ -308,7 +321,7 @@ func TestTheRootOffersToolsOnly(t *testing.T) {
 
 // A tool call runs the registry's operation on the call's arguments and returns its result, at either
 // revision. A failed operation, a missing account among them, is a tool error whose structured
-// content and text say only that it failed.
+// content and text say only that it failed, and a refused argument one that carries the refusal.
 func TestAToolCallRunsTheOperation(t *testing.T) {
 	h := mcp.Handler(registry(t), "test")
 	for _, e := range []era{legacy, modern} {
@@ -319,7 +332,7 @@ func TestAToolCallRunsTheOperation(t *testing.T) {
 				Text string `json:"text"`
 			} `json:"content"`
 		}
-		var echo, fail, noAccount result
+		var echo, fail, noAccount, refuse result
 		for _, c := range []struct {
 			tool string
 			args map[string]any
@@ -328,6 +341,7 @@ func TestAToolCallRunsTheOperation(t *testing.T) {
 			{"echo", map[string]any{"account_id": "acct-a"}, &echo},
 			{"fail", map[string]any{"account_id": "acct-a"}, &fail},
 			{"echo", map[string]any{}, &noAccount},
+			{"refuse", map[string]any{"account_id": "acct-a"}, &refuse},
 		} {
 			r := call(t, h, e, "tools/call", c.tool, map[string]any{"name": c.tool, "arguments": c.args})
 			if err := json.Unmarshal(r.Result, c.into); err != nil {
@@ -344,6 +358,11 @@ func TestAToolCallRunsTheOperation(t *testing.T) {
 			if !r.IsError || string(r.StructuredContent) != failure || len(r.Content) != 1 || r.Content[0].Text != failure {
 				t.Errorf("%s at %s returned isError %v, structured content %s and %+v", name, e.name, r.IsError, r.StructuredContent, r.Content)
 			}
+		}
+		// A refused argument is a tool error carrying the refusal's message, as the API root's body does.
+		refused := `{"error":"since must be an ISO 8601 timestamp in UTC ending in Z"}`
+		if !refuse.IsError || string(refuse.StructuredContent) != refused || len(refuse.Content) != 1 || refuse.Content[0].Text != refused {
+			t.Errorf("refuse at %s returned isError %v, structured content %s and %+v", e.name, refuse.IsError, refuse.StructuredContent, refuse.Content)
 		}
 		if r := call(t, h, e, "tools/call", "approve_plan", map[string]any{"name": "approve_plan", "arguments": map[string]any{}}); r.Error == nil {
 			t.Errorf("a call at %s to a tool the registry does not hold answered %s", e.name, r.Result)
@@ -387,4 +406,43 @@ func TestARepeatedArgumentIsRefused(t *testing.T) {
 			t.Errorf("arguments %s reached the operation", args)
 		}
 	}
+}
+
+// The MCP root refuses an argument named in another case than the served operation's schema declares,
+// or given as null, as the API root refuses it, with the refusal's message (ADR-0087).
+func TestAServedToolTakesOnlyTheArgumentsItDeclares(t *testing.T) {
+	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operations(service.Sources{DB: unreachable{}})...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := mcp.Handler(reg, "test")
+	for _, e := range []era{legacy, modern} {
+		for args, want := range map[string]string{
+			`{"account_id":"acct-a","SINCE":"2026-07-21T20:00:00Z"}`: `{"error":"the arguments name one the operation does not take"}`,
+			`{"account_id":"acct-a","since":null}`:                   `{"error":"since may not be null"}`,
+		} {
+			var params map[string]any
+			if err := json.Unmarshal([]byte(`{"name":"list_masking_events","arguments":`+args+`}`), &params); err != nil {
+				t.Fatal(err)
+			}
+			var got struct {
+				IsError           bool            `json:"isError"`
+				StructuredContent json.RawMessage `json:"structuredContent"`
+			}
+			if err := json.Unmarshal(call(t, h, e, "tools/call", "list_masking_events", params).Result, &got); err != nil {
+				t.Fatal(err)
+			}
+			if !got.IsError || string(got.StructuredContent) != want {
+				t.Errorf("%s at %s returned isError %v and %s, want %s", args, e.name, got.IsError, got.StructuredContent, want)
+			}
+		}
+	}
+}
+
+// unreachable is a database no transaction can begin on, so a call the refusal lets through fails
+// rather than reading anything.
+type unreachable struct{}
+
+func (unreachable) Begin(context.Context) (pgx.Tx, error) {
+	return nil, errors.New("the test reaches no database")
 }

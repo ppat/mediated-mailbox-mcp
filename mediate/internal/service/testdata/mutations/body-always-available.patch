@@ -1,0 +1,21 @@
+control: Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
+removes: every served message says its body is available, whatever the gate decided
+packages: ./mediate/internal/service
+tests: TestEveryServedMessageFollowsTheRedactionMatrix
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
+index 38bb177..65e500e 100644
+--- a/mediate/internal/service/present.go
++++ b/mediate/internal/service/present.go
+@@ -120,7 +120,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
+ 		HasAttachments:  m.HasAttachments,
+ 		AttachmentTypes: nonNil(m.AttachmentTypes),
+ 		Sensitivity:     shownState{SenderClass: class, ContentFlags: shownFlags, ScanState: scan.String()},
+-		BodyAvailable:   v.ReleasesBody(),
++		BodyAvailable:   true,
+ 	}
+ 	if json.Valid(m.Flags) && len(m.Flags) > 0 && m.Flags[0] == '{' {
+ 		out.Flags = m.Flags
