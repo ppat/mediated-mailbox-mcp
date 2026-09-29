@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 0ebe994..0a2daf8 100644
+index f2e0a49..658bd8f 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -136,7 +136,7 @@ func New(opts Options) (*Server, error) {
- 	})
- 	probes.HandleFunc("GET /readyz", s.ready)
+@@ -144,7 +144,7 @@ func New(opts Options) (*Server, error) {
+ 	probes.Handle("GET /readyz", http.HandlerFunc(s.ready))
  	probes.Handle("GET /metrics", promhttp.HandlerFor(opts.Metrics, promhttp.HandlerOpts{}))
+ 	s.probesMux = probes
 -	s.probes = withPolicy(probes)
 +	s.probes = probes
  	return s, nil

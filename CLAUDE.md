@@ -204,7 +204,7 @@ in its README.
 
 | Files | Tool |
 | --- | --- |
-| Statement and migration files | sqlfluff, from the root `.sqlfluff`, with the generator's parameters read as placeholders. The statement constraints are the parse-tree pass's in `db/check` ([db/README.md](./db/README.md)) |
+| Statement and migration files | sqlfluff, from the root `.sqlfluff`, with the generator's parameters read as placeholders. The placeholder templater renders a parameter with no value as its bare name, and RF02 reports that name as an unqualified column when the statement reads more than one table. A table function such as `unnest` does not count as a second table. A data-access subsection where RF02 would report a parameter this way gives its parameters values in a `.sqlfluff` of its own. Those files set parameter values only, and turn no rule off. The statement constraints are the parse-tree pass's in `db/check` ([db/README.md](./db/README.md)) |
 | Dockerfiles | hadolint |
 | Commits | gitleaks, over the commits a pull request adds |
 | Commit headers and the pull request title | commitlint, from the root `commitlint.config.js`, whose vocabulary and pairing rule are [.claude/rules/commits.md](./.claude/rules/commits.md)'s |

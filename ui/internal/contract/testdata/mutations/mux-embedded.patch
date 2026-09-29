@@ -5,17 +5,19 @@ tests: TestTheRecordingMuxEmbedsNothing
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index f4fa0e5..b8296e9 100644
+index 26ed4de..2601b4d 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -66,17 +66,17 @@ type Server struct {
- // front of the mux in api.New or the composition root, are left to review. The mux sits in an
- // unexported field and is embedded nowhere, so no promoted method registers a route unrecorded.
- type recordingMux struct {
+@@ -76,7 +76,7 @@ type recordingMux struct {
+ 	// whose line carries a //nolint:govet directive with a reason passes, because govet is an ordinary
+ 	// linter, and is left to review.
+ 	noCopy   noCopy
 -	mux      *http.ServeMux
 +	*http.ServeMux
  	patterns []string
  }
+ 
+@@ -88,11 +88,11 @@ func (*noCopy) Unlock() {}
  
  func (m *recordingMux) Handle(pattern string, h http.Handler) {
  	m.patterns = append(m.patterns, pattern)
@@ -29,7 +31,7 @@ index f4fa0e5..b8296e9 100644
  }
  
  // New builds the server. It refuses a bespoke route without a handler and a handler without a route,
-@@ -104,7 +104,7 @@ func New(opts Options) (*Server, error) {
+@@ -120,7 +120,7 @@ func New(opts Options) (*Server, error) {
  		"getJobs":      s.getJobs,
  		"streamEvents": s.streamEvents,
  	}
@@ -38,3 +40,12 @@ index f4fa0e5..b8296e9 100644
  	for _, route := range apiRoutes() {
  		h, ok := handlers[route.Operation]
  		if !ok {
+@@ -148,7 +148,7 @@ func New(opts Options) (*Server, error) {
+ 	s.uiMux = mux
+ 	s.handler = observe(opts.Logger, withPolicy(mux))
+ 
+-	probes := &recordingMux{mux: http.NewServeMux()}
++	probes := &recordingMux{ServeMux: http.NewServeMux()}
+ 	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+ 		answer(w, r, http.StatusOK, "ok")
+ 	}))
