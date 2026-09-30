@@ -1,0 +1,36 @@
+control: Message-derived text renders inert
+removes: the system screen keeps every row's value but its second as text and hands the second row's value to the raw-markup escape hatch, so inert rendering covers less of the screen
+packages: ./ui/browser/test/system.test.tsx
+tests: an authentication outcome carrying markup arrives as text, and nothing is built from it
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/system.tsx b/ui/browser/src/screens/system.tsx
+index 6909a46..1496c13 100644
+--- a/ui/browser/src/screens/system.tsx
++++ b/ui/browser/src/screens/system.tsx
+@@ -127,12 +127,20 @@ function authentication(outcome: string | null, at: string | null): Value {
+ export function Values(props: { label: string; values: readonly Value[] }) {
+   return (
+     <dl class="values" aria-label={props.label}>
+-      {props.values.map((v) => [
++      {props.values.map((v, row) => [
+         <dt key={`${v.key}-label`}>{v.label}</dt>,
+         <dd key={`${v.key}-value`}>
+-          <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
+-            {v.text}
+-          </span>
++          {row === 1 ? (
++            <span
++              class={v.mono === true ? "value mono" : "value"}
++              title={v.title}
++              dangerouslySetInnerHTML={{ __html: v.text }}
++            />
++          ) : (
++            <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
++              {v.text}
++            </span>
++          )}
+           {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
+           {v.progress === undefined ? null : (
+             <ProgressBar

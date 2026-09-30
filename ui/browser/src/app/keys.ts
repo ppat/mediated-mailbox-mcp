@@ -10,6 +10,7 @@ export const bindings: readonly Binding[] = [
     action: "close the detail panel, a menu or this map, or remove the last filter chip",
   },
   { keys: "g then h", action: "go to Home" },
+  { keys: "g then s", action: "go to System" },
   { keys: "[ / ]", action: "previous / next page" },
   { keys: "?", action: "show this map" },
 ];

@@ -6,6 +6,7 @@ import { useEffect } from "preact/hooks";
 import { LocationProvider, Route, Router, useLocation } from "preact-iso";
 import { accountsPath } from "./api.ts";
 import { DepsContext, useDeps, type Deps } from "./deps.ts";
+import { SystemScreen } from "../screens/system.tsx";
 import { Frame } from "./frame.tsx";
 import { Region } from "./region.tsx";
 import { entryAccount, readLastAccount } from "./routes.ts";
@@ -28,6 +29,7 @@ export function Routes() {
     <Router>
       <Route path="/" component={Entry} />
       <Route path="/:account" component={AccountHome} />
+      <Route path="/:account/system" component={System} />
       <Route default component={NotFound} />
     </Router>
   );
@@ -64,6 +66,14 @@ function Entry() {
 
 function AccountHome(props: { account: string }) {
   return <Frame account={props.account}>{null}</Frame>;
+}
+
+function System(props: { account: string }) {
+  return (
+    <Frame account={props.account}>
+      <SystemScreen account={props.account} />
+    </Frame>
+  );
 }
 
 function NotFound(props: { path?: string }) {

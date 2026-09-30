@@ -26,8 +26,11 @@ type FrameProps = {
 };
 
 // The primary navigation, which lists only the screens that exist. Each screen adds its entry when it
-// lands, in the order section 6 gives.
-const screens = [{ name: "Home", path: "" }] as const;
+// lands, in the order section 6 gives, with the key that follows g to go to it (section 13).
+const screens = [
+  { name: "Home", path: "", key: "h" },
+  { name: "System", path: "system", key: "s" },
+] as const;
 
 export function Frame(props: FrameProps) {
   const { storage } = useDeps();
@@ -60,7 +63,8 @@ export function Frame(props: FrameProps) {
   );
 }
 
-// useGlobalKeys follows the bindings that work on every screen, ? for the map and g then h for Home.
+// useGlobalKeys follows the bindings that work on every screen, ? for the map and g then a screen's key
+// for that screen.
 function useGlobalKeys(account: string, showMap: () => void) {
   const { route } = useLocation();
   useEffect(() => {
@@ -77,8 +81,11 @@ function useGlobalKeys(account: string, showMap: () => void) {
         clearTimeout(expiry);
         expiry = setTimeout(() => (pendingGo = false), 1_000);
         return;
-      } else if (pendingGo && event.key === "h") {
-        route(`/${encodeURIComponent(account)}`);
+      } else if (pendingGo) {
+        const screen = screens.find((s) => s.key === event.key);
+        if (screen !== undefined) {
+          route(screenPath(account, screen.path));
+        }
       }
       pendingGo = false;
     };
@@ -128,12 +135,11 @@ function AccountSelector(props: { account: string }) {
 
 function Navigation(props: { account: string }) {
   const { path } = useLocation();
-  const base = `/${encodeURIComponent(props.account)}`;
   return (
     <nav aria-label="Screens">
       <ul class="nav">
         {screens.map((s) => {
-          const target = [base, s.path].filter((part) => part !== "").join("/");
+          const target = screenPath(props.account, s.path);
           return (
             <li key={s.name}>
               <a href={target} aria-current={path === target ? "page" : undefined}>
@@ -145,6 +151,11 @@ function Navigation(props: { account: string }) {
       </ul>
     </nav>
   );
+}
+
+// screenPath is a screen's path under an account.
+function screenPath(account: string, path: string): string {
+  return [`/${encodeURIComponent(account)}`, path].filter((part) => part !== "").join("/");
 }
 
 function SettingsMenu(props: { onShowMap: () => void }) {
@@ -294,7 +305,7 @@ export function bannerText(state: State<System>): string | undefined {
 
 // ListedAccount shows its children only once the accounts endpoint lists the account, so nothing in
 // the chrome reads or follows the system of an account the UI does not serve.
-function ListedAccount(props: { account: string; children: ComponentChildren }) {
+export function ListedAccount(props: { account: string; children: ComponentChildren }) {
   const { accounts } = useDeps();
   const state = accounts.read(accountsPath()).value;
   const listed =

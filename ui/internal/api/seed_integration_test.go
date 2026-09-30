@@ -50,7 +50,8 @@ const (
 // seed writes the synthetic fixture database once per test, as the superuser, which the policies do
 // not confine. Message-derived text carries field markers, and the markup markers among them are the
 // ones every surface must show inert (ADR-0044, ADR-0064). The plan description and operation reason
-// are the client's text, and the run errors provider text, so they carry markers too.
+// are the client's text, and the run errors and the authentication outcome provider text, so they
+// carry markers too.
 func seed(t *testing.T) {
 	t.Helper()
 	ctx := t.Context()
@@ -72,7 +73,7 @@ func seed(t *testing.T) {
 		{"TRUNCATE accounts, account_state, rate_state, senders, messages, scan_gate_decisions, policy_candidates, masking_events, reorg_plans, reorg_plan_ops, reorg_op_log, job_runs, job_run_events, job_run_failures, audit_log CASCADE", nil},
 		{"INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail'), ($2, 'gmail')", []any{personal, other}},
 		{`INSERT INTO account_state (account_id, credential, backfill_pass1_complete, backfill_pass2_complete, sync_cursor, sync_cursor_at, last_auth_at, last_auth_outcome)
-			VALUES ($1, '\x00', true, false, 'cursor-1', $2, $3, 'ok')`, []any{personal, at(4 * time.Minute), at(6 * time.Hour)}},
+			VALUES ($1, '\x00', true, false, 'cursor-1', $2, $3, $4)`, []any{personal, at(4 * time.Minute), at(6 * time.Hour), marker.MarkupField("authoutcome")}},
 		{
 			`INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, last_throttle_at, backoff_until, classes)
 			VALUES ($1, 3.1, 5.0, 8.0, $2, NULL, '{"interactive": {"reserved": 1.5, "used": 0.4}, "sync": {"reserved": 1.0, "used": 0.8}, "batch": {"reserved": 2.5, "used": 1.9}}')`,

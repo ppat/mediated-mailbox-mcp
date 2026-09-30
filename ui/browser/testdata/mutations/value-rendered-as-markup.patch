@@ -1,0 +1,26 @@
+control: Message-derived text renders inert
+removes: the system screen hands each row's value to the raw-markup escape hatch instead of rendering it as text
+packages: ./ui/browser/test/system.test.tsx
+tests: an authentication outcome carrying markup arrives as text, and nothing is built from it
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/system.tsx b/ui/browser/src/screens/system.tsx
+index 6909a46..17fccc9 100644
+--- a/ui/browser/src/screens/system.tsx
++++ b/ui/browser/src/screens/system.tsx
+@@ -130,9 +130,11 @@ export function Values(props: { label: string; values: readonly Value[] }) {
+       {props.values.map((v) => [
+         <dt key={`${v.key}-label`}>{v.label}</dt>,
+         <dd key={`${v.key}-value`}>
+-          <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
+-            {v.text}
+-          </span>
++          <span
++            class={v.mono === true ? "value mono" : "value"}
++            title={v.title}
++            dangerouslySetInnerHTML={{ __html: v.text }}
++          />
+           {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
+           {v.progress === undefined ? null : (
+             <ProgressBar

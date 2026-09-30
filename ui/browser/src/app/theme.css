@@ -552,3 +552,45 @@ input:disabled {
 .error-card h2 {
   color: var(--restricted);
 }
+
+/* The system screen's rows, docs/UI.md section 8.8, a label then its value. */
+.values {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.values dt {
+  color: var(--muted);
+}
+
+.values dd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The progress bar of docs/UI.md section 7.3, an inline SVG (src/lens/progress.tsx). */
+.progress-track {
+  fill: var(--raised);
+  stroke: var(--border);
+}
+
+.progress-fill[data-state="running"] {
+  fill: var(--info);
+}
+
+.progress-fill[data-state="complete"] {
+  fill: var(--ok);
+}
+
+.progress-fill[data-state="failed"] {
+  fill: var(--restricted);
+}
