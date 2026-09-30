@@ -54,14 +54,19 @@ that stands in for a control.
 - **A surviving mutant is a defect on the spot.** Either the tests are vacuous or the
   mechanism is redundant, and each finding demands its own action. A mechanism not worth
   testing well is a candidate for removal.
-- **The obligation is event-driven per control, never a standing gate.** The table is produced
+- **The demonstration is event-driven per control, never a standing gate.** The table is produced
   when the control lands and reproduced when the control, its tests, or a generator its tests
   draw from changes, at no other time. A generator is named because one edited until its report
   passed moved a planted failure out of the gating run's reach while every test stayed green
   ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). Controls are defined in the
   design, or when an outcome (or feature) is added, and verifications are
   defined with them. A mutation demonstration proves the control and its verification work, and
-  lands at implementation time.
+  lands at implementation time. This binds the demonstration alone, proving a control's tests go
+  red with its mechanism removed. Whether a patch still applies, a narrower and different
+  question the event-driven rule never answered, is guarded on every pull request instead. An
+  unrelated later change can edit code a patch's diff context spans and leave the patch unable
+  to apply without touching the control, its tests, or a generator, so nothing about the
+  demonstration's own trigger would ever catch it.
 - **A test that proves a [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) row never retires.**
   Once it passes for the first time, it runs in CI on every change from then on, so the proof
   stays current instead of decaying into a claim about one past date. Rows proven by a drill

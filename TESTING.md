@@ -91,7 +91,10 @@ The chain from outcome to evidence, stated once.
    and so it does the wrong thing, each by a checked-in patch, the tests must go red on each, and
    the script records which ones did. The demonstration is repeated when the control, its tests or
    a generator they draw from changes
-   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
+   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). Separately,
+   whether each demonstration's patch still applies is a standing guard the `mutation-patches`
+   workflow runs on every pull request, apart from this event-driven trigger
+   ([CLAUDE.md](./CLAUDE.md#ci-workflows)).
 
 The two catalogues differ by what they prove and when they can be written. A verification row
 proves the control stops the violation it exists to stop, and it is minted at design time. A
