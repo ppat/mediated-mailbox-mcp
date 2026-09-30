@@ -11,8 +11,13 @@ import (
 )
 
 type Querier interface {
+	// A run's item failures counted per disposition, for the run summary's L0 (docs/UI.md section 8.4). A
+	// disposition with no failure has no row.
+	FailureDispositions(ctx context.Context, arg FailureDispositionsParams) ([]FailureDispositionsRow, error)
 	// When the account's latest delta sync tick that succeeded finished, null when none has (ADR-0034).
 	LastSucceededTick(ctx context.Context, accountID string) (pgtype.Timestamptz, error)
+	// The latest run whose resumed_from names a run, the run summary's resumer (docs/UI.md section 8.4).
+	LatestResumer(ctx context.Context, arg LatestResumerParams) (LatestResumerRow, error)
 	// The latest run of one workload and pass whose state is one of the given states. The jobs cards read
 	// the last finished run beside a running one, and the system screen the last successful sync tick
 	// (docs/UI.md sections 8.3 and 8.8). A null pass matches a workload that records none.
@@ -25,6 +30,34 @@ type Querier interface {
 	// backfill card estimates the time left (docs/UI.md section 8.1). With no progress event in the window,
 	// events is zero and both pages read zero.
 	ProgressSince(ctx context.Context, arg ProgressSinceParams) (ProgressSinceRow, error)
+	// The runs that recovered a run's items, each with how many it recovered, for the run summary's L0
+	// (docs/UI.md section 8.4).
+	RecoveringRuns(ctx context.Context, arg RecoveringRunsParams) ([]RecoveringRunsRow, error)
+	// One run with its plan's description and status, the run summary endpoint's run (docs/UI.md section
+	// 17.4), in the shape the jobs endpoint sends a run.
+	RunByID(ctx context.Context, arg RunByIDParams) (RunByIDRow, error)
+	// Every event of a run's timeline in the order recorded, which the run timeline draws (docs/UI.md
+	// sections 7.3 and 8.4).
+	RunEvents(ctx context.Context, arg RunEventsParams) ([]RunEventsRow, error)
+	// The runs dataset's figures under its range and filters (docs/UI.md sections 8.3 and 17.1). runs is
+	// also the count the row pages count from. The last failure is the latest failed run's finish, or its
+	// start while it has none, with its identity for the figure's link, empty with no failed run. A null
+	// range bound is no bound, a null array no filter. A run that records no pass is outside every pass
+	// inclusion and passes every pass exclusion, and a day is the UTC date its run started on.
+	RunFigures(ctx context.Context, arg RunFiguresParams) (RunFiguresRow, error)
+	// One page of the runs dataset, fifty rows, under the same filters (docs/UI.md section 8.3). Each run
+	// carries its plan's description and status, as the jobs endpoint sends a run, and its count of item
+	// failures. sort_column names one of the three sortable columns, started_at, duration or failures, in
+	// either direction, and the run's identity ends the sort. duration runs to the finish, or to as_of
+	// while the run has none.
+	RunRows(ctx context.Context, arg RunRowsParams) ([]RunRowsRow, error)
+	// Every group of the runs dataset by the UTC day each run started on, as RunsByWorkload.
+	RunsByDay(ctx context.Context, arg RunsByDayParams) ([]RunsByDayRow, error)
+	// Every group of the runs dataset by run state, as RunsByWorkload.
+	RunsByState(ctx context.Context, arg RunsByStateParams) ([]RunsByStateRow, error)
+	// Every group of the runs dataset by workload, under the same filters, ordered by count and then by
+	// the group's key, the order the bars draw (docs/UI.md section 17.1).
+	RunsByWorkload(ctx context.Context, arg RunsByWorkloadParams) ([]RunsByWorkloadRow, error)
 	// How many runs of one workload and pass started since a time, the gap recoveries of the last seven
 	// days on the delta sync card (docs/UI.md section 8.3).
 	RunsStartedSince(ctx context.Context, arg RunsStartedSinceParams) (int64, error)

@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"net/url"
@@ -10,6 +11,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
+	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
+	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
@@ -19,6 +23,25 @@ import (
 // LensPath is the dataset endpoint's route, the registry's one path in the contract (docs/UI.md
 // section 17.1). A bespoke handler claiming it is refused by the contract generator.
 const LensPath = "/api/{account}/lens"
+
+// RowPath is the row-detail endpoint's route for a dataset that declares a provenance query, one per
+// such dataset (docs/UI.md section 17.1). The registry claims it, and the contract generator refuses a
+// bespoke handler claiming it too.
+func RowPath(dataset string) string {
+	return "/api/{account}/" + dataset + "/{row}"
+}
+
+// Paths are the routes the registry claims, the dataset endpoint's and one row-detail route per dataset
+// that declares a provenance query.
+func Paths(datasets []Dataset) []string {
+	paths := []string{LensPath}
+	for _, d := range datasets {
+		if d.Detail != nil {
+			paths = append(paths, RowPath(d.Name))
+		}
+	}
+	return paths
+}
 
 // Bounds is a request's range as instants, Start inclusive and End exclusive, nil for no bound.
 type Bounds struct {
@@ -31,15 +54,24 @@ type Read struct {
 	Account string
 	Request lens.Request
 	Bounds  Bounds
+	// AsOf is when the read transaction began, which a running run's duration runs to.
+	AsOf time.Time
 }
 
-// Figure is one L0 figure (docs/UI.md section 17.1).
+// Figure is one L0 figure (docs/UI.md section 17.1), a count in Value or a time in At, the other
+// null, and both null for a time with nothing to show.
 type Figure struct {
 	Key     string  `json:"key"`
 	Wording string  `json:"wording"`
-	Value   int64   `json:"value"`
+	Value   *int64  `json:"value"`
+	At      *string `json:"at"`
 	Unit    *string `json:"unit"`
 	Link    string  `json:"link"`
+}
+
+// count is a figure that is a count.
+func count(key, wording string, n int64, link string) Figure {
+	return Figure{Key: key, Wording: wording, Value: &n, Link: link}
 }
 
 // FigureType is Figure's declaration.
@@ -47,7 +79,8 @@ func FigureType() schema.Type {
 	return schema.Obj("Figure",
 		schema.F("key", schema.Str()),
 		schema.F("wording", schema.Str()),
-		schema.F("value", schema.Int()),
+		schema.F("value", schema.Null(schema.Int())),
+		schema.F("at", schema.Null(schema.Time())),
 		schema.F("unit", schema.Null(schema.Str())),
 		schema.F("link", schema.Str()),
 	)
@@ -58,17 +91,53 @@ func FigureType() schema.Type {
 type Queries struct {
 	Plans      *reorgplans.Queries
 	Candidates *policycandidates.Queries
+	Runs       *jobruns.Queries
+	Failures   *classification.Queries
+	Audit      *auditlog.Queries
 }
 
-// Summary returns a read's L0 figures and the count of rows the read's filters match, which the row
-// pages count from.
-type Summary func(ctx context.Context, q Queries, r Read) (figures []Figure, count int64, err error)
+// Total is the count of rows a read's filters match, which the row pages count from, and for a
+// message-derived dataset how many of them are restricted and how many flagged (docs/UI.md section
+// 17.1).
+type Total struct {
+	Count      int64
+	Restricted int64
+	Flagged    int64
+}
+
+// Summary returns a read's L0 figures and its total.
+type Summary func(ctx context.Context, q Queries, r Read) (figures []Figure, total Total, err error)
 
 // RowPage returns a read's page of rows, a slice of the dataset's row type.
 type RowPage func(ctx context.Context, q Queries, r Read) (rows any, err error)
 
-// Aggregate returns a read's groups at levels 1 and 2 for one groupable dimension.
+// Aggregate returns a read's groups at levels 1 and 2 for one groupable dimension, every group,
+// ordered by count descending and then by key with null last (docs/UI.md section 17.1). The groups are
+// a []Group, or a []SensitiveGroup for a message-derived dataset.
 type Aggregate func(ctx context.Context, q Queries, r Read) (rows any, err error)
+
+// Group is one group of a dataset that is not message-derived. Key holds the grouped dimension's value
+// as stored, nil for its null group.
+type Group struct {
+	Key   map[string]any `json:"key"`
+	Count int64          `json:"count"`
+}
+
+// SensitiveGroup is one group of a message-derived dataset, with how many of its rows are restricted
+// and how many flagged.
+type SensitiveGroup struct {
+	Key        map[string]any `json:"key"`
+	Count      int64          `json:"count"`
+	Restricted int64          `json:"restricted"`
+	Flagged    int64          `json:"flagged"`
+}
+
+// Detail returns one row with its provenance, the row-detail endpoint's answer, or ErrNoRow when the
+// account holds no such row under the parent.
+type Detail func(ctx context.Context, q Queries, account string, req lens.RowRequest, asOf time.Time) (detail any, err error)
+
+// ErrNoRow is a row detail for a row the account does not hold.
+var ErrNoRow = errors.New("the account holds no such row")
 
 // Dataset is one registry entry (docs/UI.md section 17.2). The declarative half is the descriptor
 // and the row type, from which the contract is generated. The rest are the statements that serve it,
@@ -76,16 +145,23 @@ type Aggregate func(ctx context.Context, q Queries, r Read) (rows any, err error
 // statement, each pointing at a generated data-access accessor.
 type Dataset struct {
 	lens.Descriptor
-	Row        schema.Type
-	Summary    Summary
-	Rows       RowPage
-	Aggregates map[string]Aggregate
+	// MessageDerived says the dataset's rows carry a message, so its totals and groups also count the
+	// restricted and the flagged rows.
+	MessageDerived bool
+	Row            schema.Type
+	Summary        Summary
+	Rows           RowPage
+	Aggregates     map[string]Aggregate
+	// Detail is the provenance query, with DetailType its answer's declaration. A dataset declares one
+	// together with its row identity, or neither.
+	Detail     Detail
+	DetailType schema.Type
 }
 
 // Datasets is the registry, the only source of what a lens can ask for (ADR-0057). Each dataset a
 // screen reads is one entry here, and nothing else is a dataset.
 func Datasets() []Dataset {
-	return []Dataset{plans(), candidates()}
+	return []Dataset{plans(), candidates(), runs(), failures()}
 }
 
 // Descriptors returns the declarative half of every entry, which the dataset endpoint's pure core
@@ -100,8 +176,10 @@ func Descriptors(datasets []Dataset) []lens.Descriptor {
 
 // Check reports every dataset whose statements do not match what it declares, counted rather than
 // read: a summary and a rows statement for every dataset, one aggregate statement per groupable
-// dimension, and none for a dimension that is not groupable or not declared (ADR-0066). It is the
-// statement-set check, and the registry's test requires it clean.
+// dimension, none for a dimension that is not groupable or not declared, and a provenance query exactly
+// where a row identity is declared (ADR-0066). It also reports a dimension named as a common parameter
+// or as the dataset's parent filter, which a URL could not tell apart from it. It is the statement-set
+// check, and the registry's test requires it clean.
 func Check(datasets []Dataset) []string {
 	var problems []string
 	seen := map[string]bool{}
@@ -115,6 +193,17 @@ func Check(datasets []Dataset) []string {
 		}
 		if d.Rows == nil {
 			problems = append(problems, fmt.Sprintf("%s: no rows statement", d.Name))
+		}
+		if d.Identity != nil && d.Detail == nil {
+			problems = append(problems, fmt.Sprintf("%s: a row identity with no provenance query", d.Name))
+		}
+		if d.Identity == nil && d.Detail != nil {
+			problems = append(problems, fmt.Sprintf("%s: a provenance query with no row identity", d.Name))
+		}
+		for _, dim := range d.Dimensions {
+			if slices.Contains(lens.Parameters(), dim.Name) || dim.Name == d.Parent {
+				problems = append(problems, fmt.Sprintf("%s: the dimension %s is named as a parameter", d.Name, dim.Name))
+			}
 		}
 		for _, dim := range d.Dimensions {
 			if dim.Groupable && d.Aggregates[dim.Name] == nil {
@@ -168,7 +257,7 @@ func statusFigures(account, screen string, statuses, wording []string, counts ma
 	for i, s := range statuses {
 		n := counts[s]
 		total += n
-		figures = append(figures, Figure{Key: s, Wording: wording[i], Value: n, Link: link(account, screen, url.Values{"status": {s}})})
+		figures = append(figures, count(s, wording[i], n, link(account, screen, url.Values{"status": {s}})))
 	}
 	var unknown []string
 	for s := range counts {
@@ -180,7 +269,7 @@ func statusFigures(account, screen string, statuses, wording []string, counts ma
 	for _, s := range unknown {
 		// A stored status the design does not know is shown, never dropped (docs/UI.md section 7.1).
 		total += counts[s]
-		figures = append(figures, Figure{Key: s, Wording: s, Value: counts[s], Link: link(account, screen, url.Values{"status": {s}})})
+		figures = append(figures, count(s, s, counts[s], link(account, screen, url.Values{"status": {s}})))
 	}
 	return figures, total
 }

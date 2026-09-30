@@ -5,10 +5,10 @@ tests: TestTheServerServesExactlyTheDocumentsRoutes
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index f2e0a49..2a1466b 100644
+index 626acce..5d74636 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -133,6 +133,7 @@ func New(opts Options) (*Server, error) {
+@@ -153,6 +153,7 @@ func New(opts Options) (*Server, error) {
  	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
  		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
  	}))

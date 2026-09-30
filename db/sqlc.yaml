@@ -87,6 +87,16 @@ sql:
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
+  queries: jobruns/classification
+  gen:
+    go:
+      package: classification
+      out: jobruns/classification
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
   queries: messages
   gen:
     go:

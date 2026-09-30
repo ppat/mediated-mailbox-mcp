@@ -1,14 +1,14 @@
-control: the dataset endpoint refuses a dataset, dimension, filter, group or sort column the registry does not declare
+control: the dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
 removes: a group is admitted when the entry declares the dimension at all, groupable or not
 packages: ./ui/internal/core/lens
 tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDoesNotDeclare/an_undeclared_group TestParseRefusesWhatTheEntryDoesNotDeclare/an_undeclared_group_at_level_3
 scheduled-count: no
 
 diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
-index bc3fb57..3f2efdf 100644
+index 9304b2e..bd0ffe8 100644
 --- a/ui/internal/core/lens/lens.go
 +++ b/ui/internal/core/lens/lens.go
-@@ -201,7 +201,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
+@@ -217,7 +217,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
  	group, hasGroup := one(paramGroup)
  	if hasGroup {
  		dim, ok := d.Dimension(group)

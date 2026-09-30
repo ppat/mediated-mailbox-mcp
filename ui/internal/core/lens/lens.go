@@ -27,7 +27,8 @@ func Presets() []string { return []string{"24h", "7d", "30d", "90d", "all"} }
 // Dimension is one column a dataset declares.
 type Dimension struct {
 	Name string
-	// Storage is the stored type, text, number or time.
+	// Storage is the stored type, text, number or time, or date for a time column's day bucket. A
+	// filter on a number names whole numbers and a filter on a date names UTC dates, each YYYY-MM-DD.
 	Storage string
 	// Groupable, Filterable and Sortable say what a request may do with the dimension.
 	Groupable  bool
@@ -37,6 +38,8 @@ type Dimension struct {
 	// one exists.
 	Wording     string
 	NullWording string
+	// Empty says the dimension can hold a value stored empty, whose group the filter value empty names.
+	Empty bool
 	// Values is the closed set of the column's values as stored, keying the browser's wording table.
 	Values []string
 }
@@ -76,6 +79,15 @@ type Descriptor struct {
 	RangeColumn string
 	Dimensions  []Dimension
 	Default     Defaults
+	// Identity declares the row-detail endpoint's row identity for a dataset that declares a provenance
+	// query, and is nil for any other (docs/UI.md section 17.1).
+	Identity *RowIdentity
+}
+
+// RowIdentity is the identity a row-detail path carries. Storage is text or number, as a dimension's.
+type RowIdentity struct {
+	Name    string
+	Storage string
 }
 
 // Dimension returns the dimension named name.
@@ -161,6 +173,12 @@ const (
 	paramSort    = "sort"
 	paramPage    = "page"
 )
+
+// Parameters are the common parameters, which no dimension and no parent filter may be named, since a
+// URL could not tell the two apart.
+func Parameters() []string {
+	return []string{paramDataset, paramLevel, paramGroup, paramRange, paramSort, paramPage}
+}
 
 // Parse decides whether query, the request's query parameters by name, is a request one of the
 // catalogue's entries allows, and returns it. A parameter left out takes the entry's default, apart
@@ -266,7 +284,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 		if !ok || !dim.Filterable {
 			return Request{}, refuse("unknown_dimension", "the dataset %s declares no filter %s", d.Name, strconv.Quote(key))
 		}
-		f, err := parseFilter(key, value)
+		f, err := parseFilter(dim, value)
 		if err != nil {
 			return Request{}, err
 		}
@@ -294,19 +312,115 @@ func parseSort(d Descriptor, v string) (Sort, error) {
 	return Sort{Column: column, Descending: direction == "desc"}, nil
 }
 
+// None is the filter value naming a dimension's null group, where the dimension has one.
+const None = "none"
+
+// Empty is the filter value naming the group of a value stored empty, where the dimension can hold
+// one. The statements compare it as the empty string.
+const Empty = "empty"
+
 // parseFilter reads the filter grammar. dim=value is equality, dim=a,b any of, dim=!value exclusion.
-func parseFilter(dimension, value string) (Filter, error) {
+// none names a dimension's null group, and is refused on a dimension that has none. empty names the
+// group of a value stored empty, and is refused on a dimension that cannot hold one. Any other value
+// of a number or a date dimension must be one, so a value no statement could compare is refused before
+// any runs.
+func parseFilter(dim Dimension, value string) (Filter, error) {
+	f := Filter{Dimension: dim.Name}
 	if rest, ok := strings.CutPrefix(value, "!"); ok {
 		if rest == "" || strings.Contains(rest, ",") {
 			return Filter{}, refuse("invalid_filter", "the exclusion %s names one value", strconv.Quote(value))
 		}
-		return Filter{Dimension: dimension, Values: []string{rest}, Exclude: true}, nil
+		f.Values, f.Exclude = []string{rest}, true
+	} else {
+		f.Values = strings.Split(value, ",")
+		if slices.Contains(f.Values, "") {
+			return Filter{}, refuse("invalid_filter", "the filter %s holds an empty value", dim.Name)
+		}
 	}
-	values := strings.Split(value, ",")
-	if slices.Contains(values, "") {
-		return Filter{}, refuse("invalid_filter", "the filter %s holds an empty value", dimension)
+	for _, v := range f.Values {
+		if v == None {
+			if dim.NullWording == "" {
+				return Filter{}, refuse("invalid_filter", "the filter %s names none, and the dimension has no null group", dim.Name)
+			}
+			continue
+		}
+		if v == Empty {
+			if !dim.Empty {
+				return Filter{}, refuse("invalid_filter", "the filter %s names empty, and the dimension holds no value stored empty", dim.Name)
+			}
+			continue
+		}
+		if !ofStorage(dim.Storage, v) {
+			return Filter{}, refuse("invalid_filter", "the filter %s holds %s, which is not a value of its kind", dim.Name, strconv.Quote(v))
+		}
 	}
-	return Filter{Dimension: dimension, Values: values}, nil
+	return f, nil
+}
+
+// ofStorage reports whether v is a value a column of the stored type can hold. Text holds any.
+func ofStorage(storage, v string) bool {
+	switch storage {
+	case "number":
+		return isWhole(v)
+	case "date":
+		return isDate(v)
+	}
+	return true
+}
+
+// isWhole reports whether v is a whole number written in digits alone, as a stored integer prints.
+func isWhole(v string) bool {
+	n, err := strconv.ParseInt(v, 10, 32)
+	return err == nil && n >= 0 && strconv.FormatInt(n, 10) == v
+}
+
+// ofRowStorage reports whether v is a row identity of the stored type. A number identity is a big
+// serial, so it may be any whole number a 64-bit integer holds.
+func ofRowStorage(storage, v string) bool {
+	if storage != "number" {
+		return true
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	return err == nil && n >= 0 && strconv.FormatInt(n, 10) == v
+}
+
+// RowRequest is a row-detail request the entry allows.
+type RowRequest struct {
+	Dataset  string
+	Row      string
+	ParentID string
+}
+
+// ParseRow decides whether a row-detail request, the dataset's name, the row's identity from the path
+// and the query parameters by name, is one the catalogue allows. The dataset must declare a row
+// identity, the identity must be of its kind, and the query holds the parent filter of a nested
+// dataset and nothing else (docs/UI.md section 17.1).
+func ParseRow(catalogue []Descriptor, dataset, row string, query map[string][]string) (RowRequest, error) {
+	i := slices.IndexFunc(catalogue, func(d Descriptor) bool { return d.Name == dataset && d.Identity != nil })
+	if i < 0 {
+		return RowRequest{}, refuse("unknown_dataset", "the registry declares no row detail for %s", strconv.Quote(dataset))
+	}
+	d := catalogue[i]
+	if row == "" || !ofRowStorage(d.Identity.Storage, row) {
+		return RowRequest{}, refuse("invalid_row", "%s is not a %s of %s", strconv.Quote(row), d.Identity.Name, d.Name)
+	}
+	req := RowRequest{Dataset: d.Name, Row: row}
+	for name, values := range query {
+		if name != d.Parent || d.Parent == "" {
+			return RowRequest{}, refuse("unknown_parameter", "the row detail of %s takes no parameter %s", d.Name, strconv.Quote(name))
+		}
+		if len(values) != 1 {
+			return RowRequest{}, refuse("repeated_parameter", "the parameter %s is given more than once", name)
+		}
+		if values[0] == "" {
+			return RowRequest{}, refuse("invalid_filter", "the parent filter %s is empty", name)
+		}
+		req.ParentID = values[0]
+	}
+	if d.Parent != "" && req.ParentID == "" {
+		return RowRequest{}, refuse("missing_parent", "the dataset %s requires the parent filter %s", d.Name, d.Parent)
+	}
+	return req, nil
 }
 
 // parseRange reads a preset or two UTC dates, from before or on to.

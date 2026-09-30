@@ -12,6 +12,11 @@ type Querier interface {
 	// The audit rows written since a time, counted per action, for the system endpoint's corpus block
 	// (docs/UI.md section 8.1). An action with no row has no count.
 	AuditActionCounts(ctx context.Context, arg AuditActionCountsParams) ([]AuditActionCountsRow, error)
+	// How many audit rows one message has, beside the newest fifty a row detail lists.
+	MessageAuditCount(ctx context.Context, arg MessageAuditCountParams) (int64, error)
+	// The newest fifty audit rows of one message, which a row detail lists (docs/UI.md sections 7.1 and
+	// 17.1), newest first, the row's identity ending the sort.
+	MessageAuditRows(ctx context.Context, arg MessageAuditRowsParams) ([]MessageAuditRowsRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

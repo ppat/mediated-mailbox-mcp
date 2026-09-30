@@ -1,0 +1,19 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
+removes: the row detail's row is checked only for being present, so a row of the wrong kind reaches the statement
+packages: ./ui/internal/core/lens
+tests: TestParseRowRefusesWhatTheEntryDoesNotDeclare TestParseRowRefusesWhatTheEntryDoesNotDeclare/a_row_that_is_not_a_number TestParseRowRefusesWhatTheEntryDoesNotDeclare/a_row_with_a_sign
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index ce81d22..dc1d3dd 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -388,7 +388,7 @@ func ParseRow(catalogue []Descriptor, dataset, row string, query map[string][]st
+ 		return RowRequest{}, refuse("unknown_dataset", "the registry declares no row detail for %s", strconv.Quote(dataset))
+ 	}
+ 	d := catalogue[i]
+-	if row == "" || !ofRowStorage(d.Identity.Storage, row) {
++	if row == "" {
+ 		return RowRequest{}, refuse("invalid_row", "%s is not a %s of %s", strconv.Quote(row), d.Identity.Name, d.Name)
+ 	}
+ 	req := RowRequest{Dataset: d.Name, Row: row}

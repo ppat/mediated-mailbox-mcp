@@ -1,13 +1,14 @@
-control: the statement-set check refuses a dataset or groupable dimension without the statements it requires
+control: the statement-set check refuses a dataset without the statements its declarations require, and a dimension named as a parameter
 removes: an aggregate statement is accepted for any declared dimension, groupable or not
 packages: ./ui/internal/registry
 tests: TestTheStatementSetCheckReportsEachMismatch
 scheduled-count: no
 
 diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
+index 1ba4aee..abace7a 100644
 --- a/ui/internal/registry/registry.go
 +++ b/ui/internal/registry/registry.go
-@@ -119,7 +119,7 @@
+@@ -216,7 +216,7 @@ func Check(datasets []Dataset) []string {
  		}
  		slices.Sort(names)
  		for _, name := range names {

@@ -178,7 +178,9 @@ other parameter is a dimension filter named as the registry declares it.
 
 **Filter grammar.** `dim=value` is equality. `dim=a,b` is any of. `dim=!value` is exclusion. The
 unfiled group of the label dimension is `label=none` in the URL and a `null` key in the API. An
-audit row with no message falls into the `none` group of every message-derived dimension. A default
+audit row with no message falls into the `none` group of every message-derived dimension. A value
+stored empty, such as a sender's empty domain, is `sender=empty` in the URL and an empty key in the
+API, on a dimension that can hold one ([section 17.1](#171-the-dataset-endpoint)). A default
 filter the operator removed is written `dim=` with no value in the browser's URL, so the router's
 canonicalization does not put the default back. The router leaves it out of the request it sends,
 because an absent filter is no filter to the endpoint. Filling default filters only into a URL
@@ -212,8 +214,14 @@ is a dataset.
 
 The op log, the accounts table, and the rate state are read by the bespoke endpoints of
 [section 17.4](#174-the-bespoke-endpoints), never as datasets. Row detail exists for `messages`,
-`masking`, `gate`, `audit`, `ops`, `failures`, `runs`, and `rules`. `senders` has none. `plans` and
-`candidates` have none as datasets, because their row paths belong to the bespoke screens.
+`masking`, `gate`, `audit`, `ops`, `failures`, and `rules`. `senders` has none. `plans`,
+`candidates` and `runs` have none as datasets, because their row paths belong to the bespoke
+screens.
+
+A run's detail is the Run screen of [section 8.4](#84-run), and a row of the `runs` dataset opens
+it. A panel of the `runs` dataset over the Jobs table was the alternative. That panel would sit at
+`/{account}/jobs/{run-id}`, which is the Run screen's route, and the Run screen holds a ladder of
+its own over the run's failures, with its own row detail, which a 480 px panel cannot hold.
 
 **Areas**, the way the datasets and the bespoke reads group for the operator:
 
@@ -612,8 +620,9 @@ The screen has no retry request. Resumption is the workload's own behavior, and 
 
 Each is `/{account}/{dataset}` with the ladder of [section 4](#4-the-zoom-ladder), fed by the
 dataset endpoint. The L0 strip shows the lens's named figures from the registry's summary query.
-Aggregates sort by count descending, rows by time descending, 50 rows per page, and `sort=`
-overrides both within the registry's sortable columns. Corpus has two tabs in its L0 strip,
+Aggregates sort by count descending and rows by time descending, 50 per page, and `sort=`
+overrides the rows' order within the registry's sortable columns. The groups of an aggregate keep
+the bars' order ([section 17.1](#171-the-dataset-endpoint)). Corpus has two tabs in its L0 strip,
 Messages and Senders, each a route.
 
 | Lens | L0 figures | Default view | Dimensions offered | Row |
@@ -1066,7 +1075,7 @@ a row page. The level rules and the filter grammar of
 { "account": "personal", "dataset": "masking", "level": 0, "as_of": "2026-09-10T10:16:04Z",
   "filters": { "range": "7d" },
   "figures": [
-    { "key": "events", "wording": "events", "value": 312, "unit": null, "link": "/personal/masking?level=3&range=7d" }
+    { "key": "events", "wording": "events", "value": 312, "at": null, "unit": null, "link": "/personal/masking?level=3&range=7d" }
   ] }
 ```
 
@@ -1091,13 +1100,26 @@ restricted) and `flagged` (rows whose message carries a content flag), so every 
 sensitivity without a second request. Both read `messages.sender_class` and
 `messages.content_flags` at read time, the index's current values. `senders` carries neither, and
 its rows carry the sender's class. Group keys are the dimension values as stored, with `null` for
-the unfiled label group and for an audit row with no message. Row pages are offset-paginated, 50
-rows per page, with the page count, and no other page size exists. Every sort ends with the row's
-own identity as its final key (ADR-0057). A row is the dataset's row type, which begins with the
-message-row fields of [section 7.1](#71-the-message-row) where the dataset is message-derived, and
-every row carries its identity (`message_id`, or `id` for masking and audit rows, or `seq` for
-failures). Every level's answer also carries its applied filters as the URL writes them, the range
-among them.
+the unfiled label group and for an audit row with no message. A case-insensitive dimension, such as
+`sender`, groups every spelling of a value together, so its key is the value as the database lowers
+it, by the function its case-insensitive comparison uses, and a filter naming that key matches every
+spelling. Sending one stored spelling was the alternative, and which spelling names the group would
+then be the database's arbitrary pick. A value stored empty, such as an empty domain, is a group of
+its own keyed by the empty string, apart from the null group, and a filter names it `empty`, since
+`dim=` with no value is a removed default filter
+([section 5](#5-information-architecture-and-the-url)) and the endpoint refuses an empty value. A
+dimension declares whether it can hold a value stored empty, and `empty` is refused on one that
+cannot, as `none` is on one with no null group. Of the dimensions served, `sender` alone can,
+because a domain is free text taken from whatever follows an address's last `@`, and every other
+text dimension holds a closed vocabulary. The same free text can spell a domain `none` or `empty`,
+as an address at a host whose name has no dot does. Such a domain's group is keyed by that
+spelling, and no filter names it, since the word names the null or the empty group. Row pages are
+offset-paginated, 50 rows per page, with the page count, and no other page size exists. Every sort
+ends with the row's own identity as its final key (ADR-0057). A row is the dataset's row type, which
+begins with the message-row fields of [section 7.1](#71-the-message-row) where the dataset is
+message-derived, and every row carries its identity (`message_id`, or `id` for masking and audit
+rows, or `seq` for failures). Every level's answer also carries its applied filters as the URL
+writes them, the range among them.
 
 `plans` and `candidates` are the lists that the plans screen, the review queue and Home's decision
 inbox read ([sections 8.1](#81-home), [8.6](#86-review-queue) and [8.9](#89-plans)). Neither has a
@@ -1113,11 +1135,56 @@ statement.
 | L0 figures | one per status, worded as [section 11](#11-rendering-and-formatting-rules) words the status, each linking to the plans screen with that status | one per status, worded as section 11 words the status apart from `confirmed`, worded Confirmed because the count holds candidates in effect and not yet, each linking to the review queue with that status |
 | Row | plan id, description, status, proposer, created time, decision time and identity, refusal reason, message count, and the latest apply run and rollback run found by their plan reference | domain, score, the recorded signals, status, created time, reviewed time and identity, and the sender's message count and first-seen time from its sender statistics |
 
-`GET /api/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset) returns one
-row with its provenance for L4, including the message's audit rows, for the datasets that declare a
-provenance query. `senders` declares none. `plans` and `candidates` declare none, because their row
+Levels 1 and 2 answer with the request's group, its applied filters, the total of the rows those
+filters match, and the groups. The groups are ordered by count descending, then by their key with
+`null` last, which is the order the bars of [section 7.3](#73-charts) draw. For `runs` and `failures`
+the answer holds every group, and the table beside the bars pages them 50 at a time in the browser.
+Paging their groups on the server as rows page was the alternative. Their groups are few, since a
+range bounds a run's days and a run bounds its failures, and the statement check cannot prove a
+page of groups over a derived value such as a day totally ordered. Every other dataset decides where
+it is built whether its groups are sent whole or paged. `sort=` orders level 3's rows and leaves the
+groups in that order. Letting `sort=` order the groups too was the
+alternative, and it would reorder the table away from the bars beside it, which draw the same
+groups. The null group of a dimension that has one is written `none` in a filter, as the label
+dimension's is, and the group of a value stored empty is written `empty`. A filter on a `day`
+bucket names UTC dates, and a filter on a number names whole numbers, and any other value is refused
+as the client's fault before a statement runs.
+
+A figure is a count or a time. A count carries its `value` and a `null` time, and a time, such as the
+last failure below, carries its instant in `at` and a `null` value. A time with nothing to show
+carries both as `null`, and the strip shows "none". Writing a time as a count of seconds with a unit
+was the alternative, and every reader of a figure would then have to know which units hold a time.
+
+`runs` and `failures` are the jobs screen's table and the run screen's ladder
+([sections 8.3](#83-jobs) and [8.4](#84-run)). A run's failures are read under the required parent
+filter `run={id}`.
+
+| | `runs` | `failures` |
+| --- | --- | --- |
+| Filterable | `workload`, `state`, `pass` and `day`, with the vocabularies of ADR-0016 and a UTC date for `day`. A run that records no pass, the heuristics run, passes every exclusion of `pass` | `error_class`, `disposition`, `sender` and `page_number`. `sender` is the domain of the item's message, and `page_number` the page the item was processed on, each with a `none` group for an item that has none, such as a page item or a message the index no longer holds, and `sender` with an `empty` group for a message stored with an empty domain |
+| Groupable | `workload`, `state`, `day` | `error_class`, `sender`, `page_number`, `disposition` |
+| Sortable | `started_at`, `duration` (to the finish, or to `as_of` while running), `failures` | `last_at`, `attempts` |
+| Range | over `started_at`, default the last 7 days | none, bounded by the run |
+| Default | L3, `sort=started_at,desc`, `pass=!tick` | L1 grouped by `error_class`, `sort=last_at,desc` |
+| L0 figures | runs, running and failed, each linking to the jobs screen with that state, the first with none, and last failure, the finish of the latest failed run as a time, linking to that run | failures, then one per disposition in the order of [section 11](#11-rendering-and-formatting-rules) and in its wording, each linking to the run's L3 with that disposition |
+| Row | the run as the jobs endpoint sends it, with its plan's description and status, and its count of item failures | `seq`, the item's kind and identifier, the message-row fields of the item's message, `null` for a page item or a message the index no longer holds, the page, the error class, attempts, first and last error time, the disposition and the recovering run |
+
+A page item counts as neither restricted nor flagged.
+
+`GET /api/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset, and no other
+parameter) returns one row with its provenance for L4, including the message's audit rows, for the
+datasets that declare a provenance query. The registry adds one such path for each of those
+datasets. `senders` declares none. `plans`, `candidates` and `runs` declare none, because their row
 paths belong to the bespoke handlers, and the contract generator refuses a path claimed by both
-sources.
+sources. A row the account's parent does not hold is refused with the client's 404, `unknown_row`.
+`failures` declares one. Its detail is the row with the error summary as recorded, the item's
+message's sensitivity block of [section 7.1](#71-the-message-row), which is its rule ids, the time it
+was scanned and the scanner version, and the newest 50 audit rows of the message with their count.
+
+The page dimension is `page_number`, because `page=` is the common parameter that pages rows.
+Naming it `page`, as the run screen's group-by control words it, was the alternative, and a URL
+could not tell the filter from the page parameter. A dimension named as a common parameter or as its
+dataset's parent filter is refused by the statement-set check.
 
 ### 17.2 The registry entry
 
@@ -1132,9 +1199,9 @@ catalogue are generated.
 | dimensions | name, storage type, whether groupable, whether filterable, whether sortable, the wording shown for the dimension, the wording for its `null` group where one exists, and for a time column the bucket dimensions `hour`, `day`, `month` it derives. `search` is declared as a filter-only entry of kind text |
 | values | for a column with a closed set of values, the values as stored, from which the wording table is keyed |
 | default | the default group, level, range, and sort, and the default filters. The browser's router fills every default when it canonicalizes a URL. The endpoint fills a missing group, level, range, or sort from the entry and never a filter, because an absent filter there means no filter |
-| summary | the query for the L0 figures, each with its key, wording, unit, and link |
+| summary | the query for the L0 figures, each with its key, wording, count or time, unit, and link |
 | queries | one statement per groupable dimension for the aggregate levels, plus one for rows, each parameterized by account, filters, sort and page, written against the schema per ADR-0047 and enumerated rather than composed per ADR-0066 |
-| provenance | optional. The query that fetches one row's detail. `senders`, `plans`, and `candidates` declare none |
+| provenance | optional. The query that fetches one row's detail. `senders`, `plans`, `candidates` and `runs` declare none |
 
 Event datasets (`masking`, `gate`, `audit`, `failures`) join their event table to `messages` by
 account and message id for the sender, subject, class, and flags, reading the current values.
@@ -1174,7 +1241,7 @@ Every failure is one shape, and the origin mirrors
 | `POST /api/{account}/candidates/{domain}/confirm` with `{ "expected_status": "pending" }` (or `dismissed`) | 200 with the candidate and the pending count, 409 on mismatch |
 | `POST /api/{account}/candidates/{domain}/dismiss` with `{ "expected_status": "pending" }` | as confirm |
 | `GET /api/{account}/jobs` | one block per workload with its derived workload state and the card fields of [section 8.3](#83-jobs), the rate block (current, target, cap, backoff, last throttle, and reserved and used per class), and the cadences from configuration |
-| `GET /api/{account}/jobs/{run}` | the L0 fields, the resumer found by `resumed_from`, and the timeline events (kind, time, page, detail) |
+| `GET /api/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
 | `GET /api/{account}/attention` | the "worth a look" cards, each with rule id, what, number, since, the sentence, and the lens URL |
 | `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |

@@ -1,0 +1,19 @@
+control: no route is claimed by both the registry and a bespoke handler, or by two bespoke handlers
+removes: a bespoke handler is checked against the row-detail paths alone, so one claiming the dataset endpoint's path is admitted
+packages: ./ui/internal/contract
+tests: TestAPathClaimedByBothSourcesIsRefused
+scheduled-count: no
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index 8c9a893..9cea002 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -66,7 +66,7 @@ func Bespoke() []Route {
+ func CheckPaths(registryPaths []string, bespoke []Route) error {
+ 	seen := map[string]string{}
+ 	for _, route := range bespoke {
+-		if slices.Contains(registryPaths, route.Pattern) {
++		if slices.Contains(registryPaths[1:], route.Pattern) {
+ 			return fmt.Errorf("the path %s is claimed by both the registry and the bespoke handler %s", route.Pattern, route.Operation)
+ 		}
+ 		if prior, ok := seen[route.Pattern]; ok {

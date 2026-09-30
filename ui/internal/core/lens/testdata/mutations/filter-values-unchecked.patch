@@ -1,0 +1,23 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
+removes: a filter value is admitted whatever the dimension's stored type, so a word reaches a number's or a date's statement
+packages: ./ui/internal/core/lens
+tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDoesNotDeclare/a_number_filter_holding_a_word TestParseRefusesWhatTheEntryDoesNotDeclare/a_date_filter_holding_a_time
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index 9304b2e..ab9c935 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -342,12 +342,6 @@ func parseFilter(dim Dimension, value string) (Filter, error) {
+ 
+ // ofStorage reports whether v is a value a column of the stored type can hold. Text holds any.
+ func ofStorage(storage, v string) bool {
+-	switch storage {
+-	case "number":
+-		return isWhole(v)
+-	case "date":
+-		return isDate(v)
+-	}
+ 	return true
+ }
+ 

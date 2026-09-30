@@ -11,6 +11,7 @@ import {
   lensPath,
   systemPath,
   type Fetch,
+  type LensFigures,
   type PlansPage,
   type System,
   type RowsPage,
@@ -22,7 +23,7 @@ import { planStatus } from "../src/app/wording.ts";
 import { canonicalize, parse } from "../src/app/url.ts";
 import { Breadcrumb } from "../src/lens/breadcrumb.tsx";
 import { countsSoFar, Lens } from "../src/lens/lens.tsx";
-import { Strip } from "../src/lens/strip.tsx";
+import { figureText, Strip } from "../src/lens/strip.tsx";
 import { RowsTable, type Column } from "../src/lens/table.tsx";
 import { testDeps } from "./app.ts";
 import { ok, recorded, type Answer, type Recorded } from "./fixtures/fetch.ts";
@@ -499,4 +500,19 @@ test("the strip counts so far while pass 1 runs or while the system read has no 
     },
   };
   expect(countsSoFar({ status: "ok", answer: running, at: 0 })).toBe(true);
+});
+
+test("a figure is a count, a time in UTC, or none for a time with nothing to show", async () => {
+  const summary: LensFigures = JSON.parse(
+    await Bun.file(new URL("fixtures/plans-summary.json", import.meta.url)).text(),
+  );
+  const [first] = summary.figures;
+  if (first === undefined) {
+    throw new Error("the recording holds no figure");
+  }
+  expect(figureText({ ...first, value: 12480 })).toBe("12,480");
+  expect(figureText({ ...first, value: null, at: "2026-09-08T09:16:04Z" })).toBe(
+    "2026-09-08 09:16Z",
+  );
+  expect(figureText({ ...first, value: null, at: null })).toBe("none");
 });

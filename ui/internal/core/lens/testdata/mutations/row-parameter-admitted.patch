@@ -1,0 +1,19 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
+removes: the row detail admits any parameter beside the parent filter and ignores it
+packages: ./ui/internal/core/lens
+tests: TestParseRowRefusesWhatTheEntryDoesNotDeclare TestParseRowRefusesWhatTheEntryDoesNotDeclare/a_filter_beside_the_parent TestParseRowRefusesWhatTheEntryDoesNotDeclare/a_level_beside_the_parent
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index 9304b2e..1e80993 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -380,7 +380,7 @@ func ParseRow(catalogue []Descriptor, dataset, row string, query map[string][]st
+ 	req := RowRequest{Dataset: d.Name, Row: row}
+ 	for name, values := range query {
+ 		if name != d.Parent || d.Parent == "" {
+-			return RowRequest{}, refuse("unknown_parameter", "the row detail of %s takes no parameter %s", d.Name, strconv.Quote(name))
++			continue
+ 		}
+ 		if len(values) != 1 {
+ 			return RowRequest{}, refuse("repeated_parameter", "the parameter %s is given more than once", name)

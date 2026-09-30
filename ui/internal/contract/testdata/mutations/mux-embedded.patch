@@ -5,10 +5,10 @@ tests: TestTheRecordingMuxEmbedsNothing
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 26ed4de..2601b4d 100644
+index 626acce..2e9300d 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -76,7 +76,7 @@ type recordingMux struct {
+@@ -78,7 +78,7 @@ type recordingMux struct {
  	// whose line carries a //nolint:govet directive with a reason passes, because govet is an ordinary
  	// linter, and is left to review.
  	noCopy   noCopy
@@ -17,7 +17,7 @@ index 26ed4de..2601b4d 100644
  	patterns []string
  }
  
-@@ -88,11 +88,11 @@ func (*noCopy) Unlock() {}
+@@ -90,11 +90,11 @@ func (*noCopy) Unlock() {}
  
  func (m *recordingMux) Handle(pattern string, h http.Handler) {
  	m.patterns = append(m.patterns, pattern)
@@ -31,16 +31,16 @@ index 26ed4de..2601b4d 100644
  }
  
  // New builds the server. It refuses a bespoke route without a handler and a handler without a route,
-@@ -120,7 +120,7 @@ func New(opts Options) (*Server, error) {
- 		"getJobs":      s.getJobs,
- 		"streamEvents": s.streamEvents,
+@@ -128,7 +128,7 @@ func New(opts Options) (*Server, error) {
+ 			handlers[RowOperation(d.Name)] = s.rowDetail(d)
+ 		}
  	}
 -	mux := &recordingMux{mux: http.NewServeMux()}
 +	mux := &recordingMux{ServeMux: http.NewServeMux()}
- 	for _, route := range apiRoutes() {
+ 	for _, route := range apiRoutes(opts.Datasets) {
  		h, ok := handlers[route.Operation]
  		if !ok {
-@@ -148,7 +148,7 @@ func New(opts Options) (*Server, error) {
+@@ -157,7 +157,7 @@ func New(opts Options) (*Server, error) {
  	s.uiMux = mux
  	s.handler = observe(opts.Logger, withPolicy(mux))
  

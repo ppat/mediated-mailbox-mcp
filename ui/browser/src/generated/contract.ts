@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/{account}/failures/{row}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One row of failures with its provenance, for one account */
+        get: operations["getFailuresRow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/{account}/jobs": {
         parameters: {
             query?: never;
@@ -47,6 +64,23 @@ export interface paths {
         };
         /** One block per workload, the rate block and the cadences */
         get: operations["getJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/jobs/{run}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One run, its resumer, its item failures by disposition and the runs that recovered them, and its timeline */
+        get: operations["getRun"];
         put?: never;
         post?: never;
         delete?: never;
@@ -107,6 +141,13 @@ export interface components {
             running: components["schemas"]["Run"] | null;
             /** @enum {string} */
             state: "not_started" | "running" | "idle";
+        };
+        AuditEntry: {
+            action: string;
+            actor: string;
+            /** Format: date-time */
+            at: string;
+            id: number;
         };
         BackfillBlock: {
             pass1: components["schemas"]["BackfillPass"];
@@ -179,11 +220,164 @@ export interface components {
             origin: "client" | "ui" | "database";
             request_id: string;
         };
+        FailureDetail: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            audit: components["schemas"]["AuditEntry"][];
+            audit_count: number;
+            /** @enum {string} */
+            dataset: "failures";
+            error_summary: string | null;
+            row: components["schemas"]["FailureRow"];
+            rule_ids: string[] | null;
+            run: string;
+            /** Format: date-time */
+            scanned_at: string | null;
+            scanner_version: number | null;
+        };
+        FailureRow: {
+            attempts: number;
+            content_flags: string[] | null;
+            disposition: string;
+            error_class: string;
+            /** Format: date-time */
+            first_at: string;
+            from_email: string | null;
+            item_id: string;
+            item_kind: string;
+            labels: string[] | null;
+            /** Format: date-time */
+            last_at: string;
+            message_id: string | null;
+            page: number | null;
+            recovered_by: string | null;
+            scan_state: string | null;
+            sender_class: string | null;
+            /** Format: date-time */
+            sent_at: string | null;
+            seq: number;
+            subject: string | null;
+        };
+        FailuresByDisposition: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "failures";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "disposition";
+            level: number;
+            rows: components["schemas"]["FailuresByDispositionGroup"][];
+            total: components["schemas"]["SensitiveCount"];
+        };
+        FailuresByDispositionGroup: {
+            count: number;
+            flagged: number;
+            key: components["schemas"]["FailuresByDispositionKey"];
+            restricted: number;
+        };
+        FailuresByDispositionKey: {
+            disposition: string;
+        };
+        FailuresByErrorClass: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "failures";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "error_class";
+            level: number;
+            rows: components["schemas"]["FailuresByErrorClassGroup"][];
+            total: components["schemas"]["SensitiveCount"];
+        };
+        FailuresByErrorClassGroup: {
+            count: number;
+            flagged: number;
+            key: components["schemas"]["FailuresByErrorClassKey"];
+            restricted: number;
+        };
+        FailuresByErrorClassKey: {
+            error_class: string;
+        };
+        FailuresByPageNumber: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "failures";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "page_number";
+            level: number;
+            rows: components["schemas"]["FailuresByPageNumberGroup"][];
+            total: components["schemas"]["SensitiveCount"];
+        };
+        FailuresByPageNumberGroup: {
+            count: number;
+            flagged: number;
+            key: components["schemas"]["FailuresByPageNumberKey"];
+            restricted: number;
+        };
+        FailuresByPageNumberKey: {
+            page_number: number | null;
+        };
+        FailuresBySender: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "failures";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "sender";
+            level: number;
+            rows: components["schemas"]["FailuresBySenderGroup"][];
+            total: components["schemas"]["SensitiveCount"];
+        };
+        FailuresBySenderGroup: {
+            count: number;
+            flagged: number;
+            key: components["schemas"]["FailuresBySenderKey"];
+            restricted: number;
+        };
+        FailuresBySenderKey: {
+            sender: string | null;
+        };
+        FailuresPage: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "failures";
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+            page: number;
+            pages: number;
+            rows: components["schemas"]["FailureRow"][];
+            sort: string;
+            total: components["schemas"]["SensitiveCount"];
+        };
         Figure: {
+            /** Format: date-time */
+            at: string | null;
             key: string;
             link: string;
             unit: string | null;
-            value: number;
+            value: number | null;
             wording: string;
         };
         HeuristicsBlock: {
@@ -209,7 +403,7 @@ export interface components {
             /** Format: date-time */
             as_of: string;
             /** @enum {string} */
-            dataset: "plans" | "candidates";
+            dataset: "plans" | "candidates" | "runs" | "failures";
             figures: components["schemas"]["Figure"][];
             filters: {
                 [key: string]: string;
@@ -301,6 +495,10 @@ export interface components {
             last_throttle_at: string | null;
             target: number;
         };
+        RecoveringRun: {
+            recovered: number;
+            run_id: string;
+        };
         Run: {
             checkpoint: Record<string, never> | unknown[] | string | number | boolean | null;
             counters: Record<string, never> | unknown[] | string | number | boolean | null;
@@ -346,10 +544,136 @@ export interface components {
             /** @enum {string} */
             workload: "backfill" | "sync" | "apply" | "heuristics";
         };
+        RunFailureCounts: {
+            count: number;
+            dispositions: {
+                [key: string]: number;
+            };
+        };
         RunRef: {
             run_id: string;
             /** @enum {string|null} */
             state: "running" | "succeeded" | "failed" | null;
+        };
+        RunRow: {
+            checkpoint: Record<string, never> | unknown[] | string | number | boolean | null;
+            counters: Record<string, never> | unknown[] | string | number | boolean | null;
+            failures: number;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            heartbeat_at: string | null;
+            last_error: string | null;
+            /** @enum {string|null} */
+            pass: "pass1" | "pass2" | "tick" | "gap_recovery" | "apply" | "rollback" | null;
+            plan_description: string | null;
+            plan_id: string | null;
+            plan_status: string | null;
+            resumed_from: string | null;
+            run_id: string;
+            /** Format: date-time */
+            started_at: string;
+            /** @enum {string} */
+            state: "running" | "succeeded" | "failed";
+            /** @enum {string} */
+            workload: "backfill" | "sync" | "apply" | "heuristics";
+        };
+        RunSummary: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            events: components["schemas"]["TimelineEvent"][];
+            failures: components["schemas"]["RunFailureCounts"];
+            recovered_by: components["schemas"]["RecoveringRun"][];
+            resumer: components["schemas"]["Run"] | null;
+            run: components["schemas"]["Run"];
+        };
+        RunsByDay: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "runs";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "day";
+            level: number;
+            rows: components["schemas"]["RunsByDayGroup"][];
+            total: components["schemas"]["Count"];
+        };
+        RunsByDayGroup: {
+            count: number;
+            key: components["schemas"]["RunsByDayKey"];
+        };
+        RunsByDayKey: {
+            day: string;
+        };
+        RunsByState: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "runs";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "state";
+            level: number;
+            rows: components["schemas"]["RunsByStateGroup"][];
+            total: components["schemas"]["Count"];
+        };
+        RunsByStateGroup: {
+            count: number;
+            key: components["schemas"]["RunsByStateKey"];
+        };
+        RunsByStateKey: {
+            state: string;
+        };
+        RunsByWorkload: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "runs";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "workload";
+            level: number;
+            rows: components["schemas"]["RunsByWorkloadGroup"][];
+            total: components["schemas"]["Count"];
+        };
+        RunsByWorkloadGroup: {
+            count: number;
+            key: components["schemas"]["RunsByWorkloadKey"];
+        };
+        RunsByWorkloadKey: {
+            workload: string;
+        };
+        RunsPage: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "runs";
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+            page: number;
+            pages: number;
+            rows: components["schemas"]["RunRow"][];
+            sort: string;
+            total: components["schemas"]["Count"];
+        };
+        SensitiveCount: {
+            count: number;
+            flagged: number;
+            restricted: number;
         };
         SyncBlock: {
             cadence_seconds: number;
@@ -369,6 +693,13 @@ export interface components {
             decisions: components["schemas"]["Decisions"];
             operational: components["schemas"]["Operational"];
             provider: string;
+        };
+        TimelineEvent: {
+            /** Format: date-time */
+            at: string;
+            detail: string | null;
+            kind: string;
+            page: number | null;
         };
     };
     responses: never;
@@ -494,6 +825,70 @@ export interface operations {
             };
         };
     };
+    getFailuresRow: {
+        parameters: {
+            query: {
+                /** @description The parent the row belongs to */
+                run: string;
+            };
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+                /** @description The row's seq */
+                row: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FailureDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getJobs: {
         parameters: {
             query?: never;
@@ -553,11 +948,70 @@ export interface operations {
             };
         };
     };
+    getRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getLens: {
         parameters: {
             query: {
                 /** @description The registry's dataset */
-                dataset: "plans" | "candidates";
+                dataset: "plans" | "candidates" | "runs" | "failures";
                 /** @description 0 to 3 */
                 level?: number;
                 /** @description One groupable dimension, at levels 1 and 2 */
@@ -569,7 +1023,25 @@ export interface operations {
                 /** @description The 1-based page of 50 rows */
                 page?: number;
                 /** @description A dimension filter, value, a,b or !value */
+                day?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                disposition?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                error_class?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                page_number?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                pass?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                run?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                sender?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                state?: string;
+                /** @description A dimension filter, value, a,b or !value */
                 status?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                workload?: string;
             };
             header?: never;
             path: {
@@ -586,7 +1058,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LensFigures"] | components["schemas"]["PlansPage"] | components["schemas"]["CandidatesPage"];
+                    "application/json": components["schemas"]["LensFigures"] | components["schemas"]["PlansPage"] | components["schemas"]["CandidatesPage"] | components["schemas"]["RunsPage"] | components["schemas"]["RunsByWorkload"] | components["schemas"]["RunsByState"] | components["schemas"]["RunsByDay"] | components["schemas"]["FailuresPage"] | components["schemas"]["FailuresByErrorClass"] | components["schemas"]["FailuresBySender"] | components["schemas"]["FailuresByPageNumber"] | components["schemas"]["FailuresByDisposition"];
                 };
             };
             /** @description Bad Request */

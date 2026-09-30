@@ -1,0 +1,20 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
+removes: the row detail of a nested dataset is admitted without its parent filter
+packages: ./ui/internal/core/lens
+tests: TestParseRowRefusesWhatTheEntryDoesNotDeclare TestParseRowRefusesWhatTheEntryDoesNotDeclare/no_parent
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index ce81d22..4b131e9 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -404,9 +404,6 @@ func ParseRow(catalogue []Descriptor, dataset, row string, query map[string][]st
+ 		}
+ 		req.ParentID = values[0]
+ 	}
+-	if d.Parent != "" && req.ParentID == "" {
+-		return RowRequest{}, refuse("missing_parent", "the dataset %s requires the parent filter %s", d.Name, d.Parent)
+-	}
+ 	return req, nil
+ }
+ 

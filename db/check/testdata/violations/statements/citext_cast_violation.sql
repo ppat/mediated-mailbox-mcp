@@ -19,8 +19,14 @@ SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND dom
 WITH scoped AS (SELECT domain, message_count FROM fixture_senders WHERE account_id = @account_id)
 SELECT message_count FROM scoped WHERE domain = @domain::text;
 
--- The same comparison without a cast, and a cast compared against a text column, must not be
--- reported.
+-- The same comparison without a cast, a parameter cast to the case-insensitive type, and a cast compared
+-- against a text column, must not be reported.
+-- name: ListSendersInDomainsCitext :many
+SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = any(@domains::citext[]);
+
+-- name: GetSenderByDomainCitext :one
+SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = @domain::citext;
+
 -- name: GetSenderByDomainNoCast :one
 SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = @domain;
 

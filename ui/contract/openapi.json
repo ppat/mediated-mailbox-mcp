@@ -82,6 +82,31 @@
         ],
         "type": "object"
       },
+      "AuditEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "actor",
+          "action"
+        ],
+        "type": "object"
+      },
       "BackfillBlock": {
         "additionalProperties": false,
         "properties": {
@@ -378,9 +403,630 @@
         ],
         "type": "object"
       },
+      "FailureDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "audit": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEntry"
+            },
+            "type": "array"
+          },
+          "audit_count": {
+            "type": "integer"
+          },
+          "dataset": {
+            "enum": [
+              "failures"
+            ],
+            "type": "string"
+          },
+          "error_summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "row": {
+            "$ref": "#/components/schemas/FailureRow"
+          },
+          "rule_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "run": {
+            "type": "string"
+          },
+          "scanned_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scanner_version": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "as_of",
+          "run",
+          "row",
+          "error_summary",
+          "rule_ids",
+          "scanned_at",
+          "scanner_version",
+          "audit",
+          "audit_count"
+        ],
+        "type": "object"
+      },
+      "FailureRow": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "type": "integer"
+          },
+          "content_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "disposition": {
+            "type": "string"
+          },
+          "error_class": {
+            "type": "string"
+          },
+          "first_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "from_email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "item_kind": {
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "last_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "message_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "page": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recovered_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scan_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sender_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sent_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "seq",
+          "item_kind",
+          "item_id",
+          "message_id",
+          "from_email",
+          "subject",
+          "sent_at",
+          "labels",
+          "sender_class",
+          "content_flags",
+          "scan_state",
+          "page",
+          "error_class",
+          "attempts",
+          "first_at",
+          "last_at",
+          "disposition",
+          "recovered_by"
+        ],
+        "type": "object"
+      },
+      "FailuresByDisposition": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "failures"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "disposition"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FailuresByDispositionGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/SensitiveCount"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "FailuresByDispositionGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "flagged": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/FailuresByDispositionKey"
+          },
+          "restricted": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "count",
+          "restricted",
+          "flagged"
+        ],
+        "type": "object"
+      },
+      "FailuresByDispositionKey": {
+        "additionalProperties": false,
+        "properties": {
+          "disposition": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "disposition"
+        ],
+        "type": "object"
+      },
+      "FailuresByErrorClass": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "failures"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "error_class"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FailuresByErrorClassGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/SensitiveCount"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "FailuresByErrorClassGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "flagged": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/FailuresByErrorClassKey"
+          },
+          "restricted": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "count",
+          "restricted",
+          "flagged"
+        ],
+        "type": "object"
+      },
+      "FailuresByErrorClassKey": {
+        "additionalProperties": false,
+        "properties": {
+          "error_class": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error_class"
+        ],
+        "type": "object"
+      },
+      "FailuresByPageNumber": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "failures"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "page_number"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FailuresByPageNumberGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/SensitiveCount"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "FailuresByPageNumberGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "flagged": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/FailuresByPageNumberKey"
+          },
+          "restricted": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "count",
+          "restricted",
+          "flagged"
+        ],
+        "type": "object"
+      },
+      "FailuresByPageNumberKey": {
+        "additionalProperties": false,
+        "properties": {
+          "page_number": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "page_number"
+        ],
+        "type": "object"
+      },
+      "FailuresBySender": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "failures"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "sender"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FailuresBySenderGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/SensitiveCount"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "FailuresBySenderGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "flagged": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/FailuresBySenderKey"
+          },
+          "restricted": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "count",
+          "restricted",
+          "flagged"
+        ],
+        "type": "object"
+      },
+      "FailuresBySenderKey": {
+        "additionalProperties": false,
+        "properties": {
+          "sender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "sender"
+        ],
+        "type": "object"
+      },
+      "FailuresPage": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "failures"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FailureRow"
+            },
+            "type": "array"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "total": {
+            "$ref": "#/components/schemas/SensitiveCount"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "filters",
+          "sort",
+          "page",
+          "pages",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
       "Figure": {
         "additionalProperties": false,
         "properties": {
+          "at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "key": {
             "type": "string"
           },
@@ -394,7 +1040,10 @@
             ]
           },
           "value": {
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "wording": {
             "type": "string"
@@ -404,6 +1053,7 @@
           "key",
           "wording",
           "value",
+          "at",
           "unit",
           "link"
         ],
@@ -506,7 +1156,9 @@
           "dataset": {
             "enum": [
               "plans",
-              "candidates"
+              "candidates",
+              "runs",
+              "failures"
             ],
             "type": "string"
           },
@@ -923,6 +1575,22 @@
         ],
         "type": "object"
       },
+      "RecoveringRun": {
+        "additionalProperties": false,
+        "properties": {
+          "recovered": {
+            "type": "integer"
+          },
+          "run_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "recovered"
+        ],
+        "type": "object"
+      },
       "Run": {
         "additionalProperties": false,
         "properties": {
@@ -1177,6 +1845,25 @@
         ],
         "type": "object"
       },
+      "RunFailureCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "dispositions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "count",
+          "dispositions"
+        ],
+        "type": "object"
+      },
       "RunRef": {
         "additionalProperties": false,
         "properties": {
@@ -1199,6 +1886,506 @@
         "required": [
           "run_id",
           "state"
+        ],
+        "type": "object"
+      },
+      "RunRow": {
+        "additionalProperties": false,
+        "properties": {
+          "checkpoint": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "counters": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "failures": {
+            "type": "integer"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "heartbeat_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pass": {
+            "enum": [
+              "pass1",
+              "pass2",
+              "tick",
+              "gap_recovery",
+              "apply",
+              "rollback",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plan_description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plan_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plan_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resumed_from": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "workload": {
+            "enum": [
+              "backfill",
+              "sync",
+              "apply",
+              "heuristics"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "workload",
+          "pass",
+          "state",
+          "plan_id",
+          "plan_description",
+          "plan_status",
+          "resumed_from",
+          "started_at",
+          "finished_at",
+          "heartbeat_at",
+          "checkpoint",
+          "counters",
+          "last_error",
+          "failures"
+        ],
+        "type": "object"
+      },
+      "RunSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEvent"
+            },
+            "type": "array"
+          },
+          "failures": {
+            "$ref": "#/components/schemas/RunFailureCounts"
+          },
+          "recovered_by": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveringRun"
+            },
+            "type": "array"
+          },
+          "resumer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Run"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run": {
+            "$ref": "#/components/schemas/Run"
+          }
+        },
+        "required": [
+          "account",
+          "as_of",
+          "run",
+          "resumer",
+          "failures",
+          "recovered_by",
+          "events"
+        ],
+        "type": "object"
+      },
+      "RunsByDay": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "runs"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "day"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RunsByDayGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "RunsByDayGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/RunsByDayKey"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object"
+      },
+      "RunsByDayKey": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "day"
+        ],
+        "type": "object"
+      },
+      "RunsByState": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "runs"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "state"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RunsByStateGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "RunsByStateGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/RunsByStateKey"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object"
+      },
+      "RunsByStateKey": {
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "RunsByWorkload": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "runs"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "workload"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RunsByWorkloadGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "RunsByWorkloadGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/RunsByWorkloadKey"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object"
+      },
+      "RunsByWorkloadKey": {
+        "additionalProperties": false,
+        "properties": {
+          "workload": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workload"
+        ],
+        "type": "object"
+      },
+      "RunsPage": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "runs"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RunRow"
+            },
+            "type": "array"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "filters",
+          "sort",
+          "page",
+          "pages",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "SensitiveCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "flagged": {
+            "type": "integer"
+          },
+          "restricted": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "restricted",
+          "flagged"
         ],
         "type": "object"
       },
@@ -1287,6 +2474,37 @@
           "operational",
           "corpus",
           "decisions"
+        ],
+        "type": "object"
+      },
+      "TimelineEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "page": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "at",
+          "page",
+          "detail"
         ],
         "type": "object"
       }
@@ -1430,6 +2648,94 @@
         }
       }
     },
+    "/api/{account}/failures/{row}": {
+      "get": {
+        "operationId": "getFailuresRow",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The row's seq",
+            "in": "path",
+            "name": "row",
+            "required": true,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The parent the row belongs to",
+            "in": "query",
+            "name": "run",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "One row of failures with its provenance, for one account"
+      }
+    },
     "/api/{account}/jobs": {
       "get": {
         "operationId": "getJobs",
@@ -1499,6 +2805,75 @@
         "summary": "One block per workload, the rate block and the cadences"
       }
     },
+    "/api/{account}/jobs/{run}": {
+      "get": {
+        "operationId": "getRun",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunSummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "One run, its resumer, its item failures by disposition and the runs that recovered them, and its timeline"
+      }
+    },
     "/api/{account}/lens": {
       "get": {
         "operationId": "getLens",
@@ -1520,7 +2895,9 @@
             "schema": {
               "enum": [
                 "plans",
-                "candidates"
+                "candidates",
+                "runs",
+                "failures"
               ],
               "type": "string"
             }
@@ -1571,7 +2948,79 @@
           {
             "description": "A dimension filter, value, a,b or !value",
             "in": "query",
+            "name": "day",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "disposition",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "error_class",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "page_number",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "pass",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "run",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "sender",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
             "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "workload",
             "schema": {
               "type": "string"
             }
@@ -1591,6 +3040,33 @@
                     },
                     {
                       "$ref": "#/components/schemas/CandidatesPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RunsPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RunsByWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RunsByState"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RunsByDay"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailuresPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailuresByErrorClass"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailuresBySender"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailuresByPageNumber"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FailuresByDisposition"
                     }
                   ]
                 }
@@ -1722,6 +3198,175 @@
                   "pending"
                 ]
               }
+            }
+          },
+          {
+            "name": "runs",
+            "ranged": true,
+            "range_column": "started_at",
+            "dimensions": [
+              {
+                "name": "workload",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "workload",
+                "values": [
+                  "backfill",
+                  "sync",
+                  "apply",
+                  "heuristics"
+                ]
+              },
+              {
+                "name": "state",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "state",
+                "values": [
+                  "running",
+                  "succeeded",
+                  "failed"
+                ]
+              },
+              {
+                "name": "day",
+                "storage": "date",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "day"
+              },
+              {
+                "name": "pass",
+                "storage": "text",
+                "groupable": false,
+                "filterable": true,
+                "sortable": false,
+                "wording": "pass",
+                "values": [
+                  "pass1",
+                  "pass2",
+                  "tick",
+                  "gap_recovery",
+                  "apply",
+                  "rollback"
+                ]
+              },
+              {
+                "name": "started_at",
+                "storage": "time",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "started"
+              },
+              {
+                "name": "duration",
+                "storage": "number",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "duration"
+              },
+              {
+                "name": "failures",
+                "storage": "number",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "failures"
+              }
+            ],
+            "default": {
+              "level": 3,
+              "range": "7d",
+              "sort": "started_at,desc",
+              "filters": {
+                "pass": [
+                  "!tick"
+                ]
+              }
+            }
+          },
+          {
+            "name": "failures",
+            "parent": "run",
+            "ranged": false,
+            "dimensions": [
+              {
+                "name": "error_class",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "error class",
+                "values": [
+                  "throttled",
+                  "provider_error",
+                  "gone",
+                  "scanner_timeout",
+                  "validation",
+                  "authentication"
+                ]
+              },
+              {
+                "name": "sender",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "sender",
+                "null_wording": "no message",
+                "empty": true
+              },
+              {
+                "name": "page_number",
+                "storage": "number",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "page",
+                "null_wording": "no page"
+              },
+              {
+                "name": "disposition",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "disposition",
+                "values": [
+                  "recovered",
+                  "pending",
+                  "gone",
+                  "abandoned"
+                ]
+              },
+              {
+                "name": "last_at",
+                "storage": "time",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "last error"
+              },
+              {
+                "name": "attempts",
+                "storage": "number",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "attempts"
+              }
+            ],
+            "default": {
+              "group": "error_class",
+              "level": 1,
+              "sort": "last_at,desc"
             }
           }
         ]

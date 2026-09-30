@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 0ebe994..a318af8 100644
+index 626acce..98f324a 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -219,7 +219,7 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
+@@ -254,7 +254,7 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
  		s.databaseFailure(w, r, err)
  		return false
  	}

@@ -1,0 +1,20 @@
+control: every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
+removes: the run summary route is mounted without the account check
+packages: ./ui/internal/api
+tests: TestEveryReadIsPerAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index 8c9a893..b3e9582 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -48,7 +48,7 @@ func Bespoke() []Route {
+ 			Response: jobsType(),
+ 		},
+ 		{
+-			Pattern: "/api/{account}/jobs/{run}", Operation: "getRun", Scoped: true,
++			Pattern: "/api/{account}/jobs/{run}", Operation: "getRun",
+ 			Summary:  "One run, its resumer, its item failures by disposition and the runs that recovered them, and its timeline",
+ 			Response: runSummaryType(),
+ 		},

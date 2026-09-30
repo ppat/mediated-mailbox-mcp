@@ -348,25 +348,45 @@ func (c *statementCheck) expression(sc *scope, e *pg.Node) {
 	})
 }
 
-// citextComparison refuses a cast parameter on one side of a comparison whose other side is a
-// case-insensitive column, or a column whose type cannot be resolved.
+// citextComparison refuses a text cast on either side of a comparison with a case-insensitive column
+// (ADR-0066). It refuses a parameter cast to any type but citext compared against such a column, or
+// against a column whose type cannot be resolved, and it refuses such a column cast to any type but
+// citext compared against a parameter, because either cast makes the comparison case-sensitive.
 func (c *statementCheck) citextComparison(sc *scope, a *pg.A_Expr, columnSide, paramSide *pg.Node) {
 	ref := columnSide.GetColumnRef()
+	columnCast := false
+	if tc := columnSide.GetTypeCast(); tc != nil && tc.GetArg().GetColumnRef() != nil && !isCitext(tc.GetTypeName()) {
+		ref, columnCast = tc.GetArg().GetColumnRef(), true
+	}
 	if ref == nil {
 		return
 	}
-	cast := isCastParameter(paramSide)
+	textCast := func(n *pg.Node) bool {
+		t, ok := parameterCast(n)
+		return ok && !isCitext(t)
+	}
+	cast := textCast(paramSide)
 	for _, item := range paramSide.GetList().GetItems() {
-		cast = cast || isCastParameter(item)
+		cast = cast || textCast(item)
+	}
+	if columnCast {
+		cast = containsParameter(paramSide)
 	}
 	if !cast {
 		return
 	}
 	r, col, known := sc.resolve(ref)
 	switch {
+	case !known && columnCast:
+		// A column of unknown type cast to text may be case-insensitive, and the cast is visible, so the
+		// same rule as a cast parameter applies.
+		c.report(a.GetLocation(), checkCitextCast, "column %s is cast and compared with a parameter, and its type cannot be resolved, so it may be case-insensitive", col)
 	case !known:
 		c.report(a.GetLocation(), checkCitextCast, "column %s is compared with a cast parameter and its type cannot be resolved, so it may be case-insensitive", col)
-	case r.table.columns[col].typ == "citext":
+	case r.table.columns[col].typ != "citext":
+	case columnCast:
+		c.report(a.GetLocation(), checkCitextCast, "case-insensitive column %s.%s cast to another type and compared with a parameter silently changes the comparison", r.name, col)
+	default:
 		c.report(a.GetLocation(), checkCitextCast, "a cast parameter compared against case-insensitive column %s.%s silently changes the comparison", r.name, col)
 	}
 }

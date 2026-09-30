@@ -20,6 +20,10 @@ func catalogue() []lens.Descriptor {
 				{Name: "status", Filterable: true},
 				{Name: "at", Sortable: true},
 				{Name: "secret"},
+				{Name: "day", Storage: "date", Groupable: true, Filterable: true},
+				{Name: "page_number", Storage: "number", Groupable: true, Filterable: true, NullWording: "no page"},
+				{Name: "tier", Storage: "number", Filterable: true},
+				{Name: "domain", Storage: "text", Groupable: true, Filterable: true, NullWording: "no domain", Empty: true},
 			},
 			Default: lens.Defaults{Group: "rule", Level: lens.Distribution, Range: "7d", Sort: lens.Sort{Column: "at", Descending: true}},
 		},
@@ -27,6 +31,7 @@ func catalogue() []lens.Descriptor {
 			Name: "items", Parent: "run",
 			Dimensions: []lens.Dimension{{Name: "kind", Filterable: true, Groupable: true}, {Name: "seq", Sortable: true}},
 			Default:    lens.Defaults{Level: lens.Rows, Sort: lens.Sort{Column: "seq"}},
+			Identity:   &lens.RowIdentity{Name: "seq", Storage: "number"},
 		},
 	}
 }
@@ -74,6 +79,34 @@ func TestParseAdmitsWhatTheEntryDeclares(t *testing.T) {
 			want: lens.Request{
 				Dataset: "items", Level: 3, ParentID: "r-1", Sort: lens.Sort{Column: "seq"}, Page: 1,
 				Filters: []lens.Filter{{Dimension: "kind", Values: []string{"page"}}},
+			},
+		},
+		{
+			name:  "a number, a date and the null group of a dimension that has one",
+			query: query("dataset", "events", "level", "3", "page_number", "3,none", "day", "!2026-09-10", "tier", "0"),
+			want: lens.Request{
+				Dataset: "events", Level: 3, Range: lens.Range{Preset: "7d"}, Sort: lens.Sort{Column: "at", Descending: true}, Page: 1,
+				Filters: []lens.Filter{
+					{Dimension: "day", Values: []string{"2026-09-10"}, Exclude: true},
+					{Dimension: "page_number", Values: []string{"3", "none"}},
+					{Dimension: "tier", Values: []string{"0"}},
+				},
+			},
+		},
+		{
+			name:  "the group of a value stored empty and the null group of a dimension that holds both",
+			query: query("dataset", "events", "level", "3", "domain", "example.test,empty,none"),
+			want: lens.Request{
+				Dataset: "events", Level: 3, Range: lens.Range{Preset: "7d"}, Sort: lens.Sort{Column: "at", Descending: true}, Page: 1,
+				Filters: []lens.Filter{{Dimension: "domain", Values: []string{"example.test", "empty", "none"}}},
+			},
+		},
+		{
+			name:  "the group of a value stored empty excluded",
+			query: query("dataset", "events", "level", "3", "domain", "!empty"),
+			want: lens.Request{
+				Dataset: "events", Level: 3, Range: lens.Range{Preset: "7d"}, Sort: lens.Sort{Column: "at", Descending: true}, Page: 1,
+				Filters: []lens.Filter{{Dimension: "domain", Values: []string{"empty"}, Exclude: true}},
 			},
 		},
 		{
@@ -131,10 +164,75 @@ func TestParseRefusesWhatTheEntryDoesNotDeclare(t *testing.T) {
 		{"an empty any-of member", query("dataset", "events", "rule", "a,"), "invalid_filter"},
 		{"an exclusion of several values", query("dataset", "events", "rule", "!a,b"), "invalid_filter"},
 		{"an empty exclusion", query("dataset", "events", "rule", "!"), "invalid_filter"},
+		{"a number filter holding a word", query("dataset", "events", "page_number", "three"), "invalid_filter"},
+		{"a number filter holding a sign", query("dataset", "events", "page_number", "-3"), "invalid_filter"},
+		{"a number filter with a leading zero", query("dataset", "events", "page_number", "03"), "invalid_filter"},
+		{"a number filter past a stored integer", query("dataset", "events", "page_number", "2147483648"), "invalid_filter"},
+		{"a number exclusion holding a word", query("dataset", "events", "page_number", "!x"), "invalid_filter"},
+		{"none on a dimension with no null group", query("dataset", "events", "tier", "none"), "invalid_filter"},
+		{"none on a text dimension with no null group", query("dataset", "events", "status", "none"), "invalid_filter"},
+		{"none excluded on a text dimension with no null group", query("dataset", "events", "rule", "!none"), "invalid_filter"},
+		{"empty on a text dimension that holds no value stored empty", query("dataset", "events", "status", "empty"), "invalid_filter"},
+		{"empty excluded on a text dimension that holds no value stored empty", query("dataset", "events", "rule", "!empty"), "invalid_filter"},
+		{"empty on a number dimension", query("dataset", "events", "tier", "empty"), "invalid_filter"},
+		{"a date filter holding a time", query("dataset", "events", "day", "2026-09-10T00:00:00Z"), "invalid_filter"},
+		{"a date filter past the month's end", query("dataset", "events", "day", "2026-02-30"), "invalid_filter"},
+		{"a date any-of with one bad member", query("dataset", "events", "day", "2026-09-10,yesterday"), "invalid_filter"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := lens.Parse(catalogue(), c.query)
+			var refusal *lens.Refusal
+			if !errors.As(err, &refusal) {
+				t.Fatalf("the request was not refused: %v", err)
+			}
+			if refusal.Code != c.code {
+				t.Fatalf("refused as %s (%s), want %s", refusal.Code, refusal.Message, c.code)
+			}
+		})
+	}
+}
+
+// TestParseRowAdmitsTheRowAndItsParent covers the row-detail request a nested dataset allows, a row as
+// large as a big serial holds among them.
+func TestParseRowAdmitsTheRowAndItsParent(t *testing.T) {
+	for _, row := range []string{"42", "0", "9223372036854775807"} {
+		got, err := lens.ParseRow(catalogue(), "items", row, query("run", "r-1"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d := cmp.Diff(lens.RowRequest{Dataset: "items", Row: row, ParentID: "r-1"}, got); d != "" {
+			t.Fatalf("(-want +got):\n%s", d)
+		}
+	}
+}
+
+// TestParseRowRefusesWhatTheEntryDoesNotDeclare is the row-detail endpoint's refusal, each case naming
+// the error contract's code it must carry.
+func TestParseRowRefusesWhatTheEntryDoesNotDeclare(t *testing.T) {
+	cases := []struct {
+		name    string
+		dataset string
+		row     string
+		query   map[string][]string
+		code    string
+	}{
+		{"a dataset with no row detail", "events", "1", query(), "unknown_dataset"},
+		{"an undeclared dataset", "messages", "1", query("run", "r"), "unknown_dataset"},
+		{"a row that is not a number", "items", "one", query("run", "r"), "invalid_row"},
+		{"a row with a sign", "items", "-1", query("run", "r"), "invalid_row"},
+		{"an empty row", "items", "", query("run", "r"), "invalid_row"},
+		{"a row past a big serial", "items", "9223372036854775808", query("run", "r"), "invalid_row"},
+		{"a row with a leading zero", "items", "042", query("run", "r"), "invalid_row"},
+		{"no parent", "items", "1", query(), "missing_parent"},
+		{"an empty parent", "items", "1", query("run", ""), "invalid_filter"},
+		{"a repeated parent", "items", "1", query("run", "a", "run", "b"), "repeated_parameter"},
+		{"a filter beside the parent", "items", "1", query("run", "r", "kind", "page"), "unknown_parameter"},
+		{"a level beside the parent", "items", "1", query("run", "r", "level", "4"), "unknown_parameter"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := lens.ParseRow(catalogue(), c.dataset, c.row, c.query)
 			var refusal *lens.Refusal
 			if !errors.As(err, &refusal) {
 				t.Fatalf("the request was not refused: %v", err)

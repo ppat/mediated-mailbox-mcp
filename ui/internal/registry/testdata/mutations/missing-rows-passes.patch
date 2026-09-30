@@ -1,13 +1,14 @@
-control: the statement-set check refuses a dataset or groupable dimension without the statements it requires
+control: the statement-set check refuses a dataset without the statements its declarations require, and a dimension named as a parameter
 removes: a dataset with no rows statement is not reported
 packages: ./ui/internal/registry
 tests: TestTheStatementSetCheckReportsEachMismatch
 scheduled-count: no
 
 diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
+index 1ba4aee..4f06a10 100644
 --- a/ui/internal/registry/registry.go
 +++ b/ui/internal/registry/registry.go
-@@ -105,7 +105,7 @@
+@@ -191,7 +191,7 @@ func Check(datasets []Dataset) []string {
  		if d.Summary == nil {
  			problems = append(problems, fmt.Sprintf("%s: no summary statement", d.Name))
  		}
@@ -15,4 +16,4 @@ diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
 +		if false && d.Rows == nil {
  			problems = append(problems, fmt.Sprintf("%s: no rows statement", d.Name))
  		}
- 		for _, dim := range d.Dimensions {
+ 		if d.Identity != nil && d.Detail == nil {

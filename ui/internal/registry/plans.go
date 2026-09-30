@@ -87,20 +87,20 @@ func plans() Dataset {
 	}
 }
 
-func planSummary(ctx context.Context, q Queries, r Read) ([]Figure, int64, error) {
+func planSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, error) {
 	in, out := statusFilter(r.Request)
 	rows, err := q.Plans.PlanStatusCounts(ctx, reorgplans.PlanStatusCountsParams{
 		AccountID: r.Account, RangeStart: timestamptz(r.Bounds.Start), RangeEnd: timestamptz(r.Bounds.End), StatusIn: in, StatusOut: out,
 	})
 	if err != nil {
-		return nil, 0, err
+		return nil, Total{}, err
 	}
 	counts := map[string]int64{}
 	for _, row := range rows {
 		counts[row.Status] = row.Plans
 	}
 	figures, total := statusFigures(r.Account, "plans", planStatuses(), planWording(), counts)
-	return figures, total, nil
+	return figures, Total{Count: total}, nil
 }
 
 func planRows(ctx context.Context, q Queries, r Read) (any, error) {
