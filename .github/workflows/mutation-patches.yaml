@@ -1,0 +1,47 @@
+---
+# yamllint disable rule:line-length
+name: mutation-patches
+
+# git apply --check over every mutation patch under a testdata/mutations directory, excluding
+# mutproof's own fixtures under testsupport/cmd/mutproof/testdata/. Unconditional rather than
+# path-filtered, because a patch's diff context can span any file in the tree, not only the
+# package its control lives in.
+#
+# Its own workflow, run by neither go-test nor go-integration. A patch's applicability is a
+# standing guard on every pull request, apart from the mutation demonstration itself, which stays
+# event-driven per ADR-0046 and runs only by hand when a control, its tests or a generator
+# changes.
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  apply-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@2045fb6e6cb00ab099280625b6989cf62ccc1b77 # v2.7.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # First, so that the verdict below comes from a checker that has just shown it catches a patch
+    # whose context has gone stale.
+    - name: Self-test
+      shell: bash
+      working-directory: ./current
+      run: .github/scripts/mutation-patches/self-test.sh
+
+    - name: Check every mutation patch still applies
+      shell: bash
+      working-directory: ./current
+      run: .github/scripts/mutation-patches/check.sh
