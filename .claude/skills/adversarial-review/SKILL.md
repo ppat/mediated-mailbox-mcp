@@ -239,8 +239,8 @@ out a case you found the code misses. The artifact is one row per claim.
   are the rows of `docs/VERIFICATIONS.md` whose proof is review, the rules under `.claude/rules/`
   and the decision records that assign a check to review, and every list of what stays with review
   in `CLAUDE.md` and in the code's comments. Find each one the change touches and apply it.
-- **The whole-set coherence check.** Walk `.claude/skills/update-docs/references/coherence-check.md`
-  over the entire document set, not only the diff.
+- **The whole-set coherence check.** Run the `coherence-check` skill over the entire document set,
+  not only the diff.
 
 The artifact is each finding with the passage and both readings where a reading splits.
 

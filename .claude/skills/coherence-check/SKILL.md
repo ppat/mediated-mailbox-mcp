@@ -1,3 +1,8 @@
+---
+name: coherence-check
+description: Check that the whole repository is still internally consistent after a change, documents and implementation alike. No two statements a cold reader could not hold as true at once, no reference pointing at something that no longer says what it claims, no term meaning two things, and no claim whose evidence the change removed. Use it after any change or addition, to documents, code comments, or code whose behaviour a document describes, before the mechanical checks. The update-docs and adversarial-review skills both run it.
+---
+
 # The whole-set coherence check
 
 Run after authoring, before the mechanical checks. The obligation: after any change or addition,
