@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: an interface method's parameters are compared by the names they are printed with, so a parameter spelled through an alias escapes
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..4c6057c 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -114,7 +114,7 @@ func unaliasedParams(params *types.Tuple) string {
+ // through the parameters of a function that returns nothing and is not variadic, the only composite
+ // types the mux's parameters hold. Any other type is printed as it is, and cannot match them.
+ func unaliased(t types.Type) string {
+-	switch t := types.Unalias(t).(type) {
++	switch t := t.(type) {
+ 	case *types.Pointer:
+ 		return "*" + unaliased(t.Elem())
+ 	case *types.Signature:

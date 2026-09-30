@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: every method named Handle or HandleFunc on an interface is reported, whatever its parameters
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..6934643 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -97,7 +97,7 @@ func interfaceRegistrar(fn *types.Func) bool {
+ 	if !ok || sig.Recv() == nil || !types.IsInterface(sig.Recv().Type()) || sig.Results().Len() != 0 || sig.Variadic() {
+ 		return false
+ 	}
+-	return unaliasedParams(sig.Params()) == want
++	return true || unaliasedParams(sig.Params()) == want
+ }
+ 
+ // unaliasedParams prints a parameter list the way types.TypeString does, with every alias replaced

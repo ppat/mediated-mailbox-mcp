@@ -67,11 +67,17 @@ type Server struct {
 
 // recordingMux is the mux of both the UI's listener and the probes listener. A route registered
 // through its Handle is recorded, and the contract's test compares the UI's routes with the contract
-// and the probes' with their three. Left to review are a direct call on the underlying mux inside
-// package api, a handler wrapped in front of the mux in api.New or the composition root, and a path
-// answered inside a catch-all's handler, the / app handler or the /api/ unrouted handler, which has no
-// pattern to compare. The mux sits in an unexported field and is embedded nowhere, so no promoted
-// method registers a route unrecorded.
+// and the probes' with their three. The go vet routes analyser refuses, under ui/ outside this type's
+// Handle, a use of a mux's Handle or HandleFunc, of http.Handle or http.HandleFunc, and of an
+// interface's or type parameter's method of the same name and parameters, so a direct call on the
+// underlying mux is refused, and Handle keeps its name and its receiver. Left to review are a handler
+// wrapped in front of the mux in api.New or the composition root, a path answered inside a
+// catch-all's handler, the / app handler or the /api/ unrouted handler, which has no pattern to
+// compare, a registration through reflection, a route an imported package such as net/http/pprof
+// registers on the default mux when it is initialised, served only by a server given no handler, and
+// a registration through an interface method one of whose parameter types is a type parameter. The
+// mux sits in an unexported field and is embedded nowhere, so no promoted method registers a route
+// unrecorded.
 type recordingMux struct {
 	// noCopy makes go vet's copylocks check refuse a copy of a recording mux, since a copy shares the
 	// underlying mux and records its patterns where Served and ProbesServed never read them. A copy

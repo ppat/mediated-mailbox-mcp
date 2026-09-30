@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: a registration through an interface's or a type parameter's Handle or HandleFunc is not reported
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..51dbbce 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -71,7 +71,7 @@ func runRoutes(pass *analysis.Pass) (any, error) {
+ 				}
+ 				if name, refused := routeRegistrars[fn.FullName()]; refused {
+ 					pass.Reportf(id.Pos(), routesMessage, name)
+-				} else if interfaceRegistrar(fn) {
++				} else if false && interfaceRegistrar(fn) {
+ 					pass.Reportf(id.Pos(), routesMessage, "the interface method "+fn.Name())
+ 				}
+ 				return true

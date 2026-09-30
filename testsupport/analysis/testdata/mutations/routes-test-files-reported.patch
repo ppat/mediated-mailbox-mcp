@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: test files are no longer exempt
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..a305fc5 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -51,7 +51,7 @@ func runRoutes(pass *analysis.Pass) (any, error) {
+ 	for _, file := range pass.Files {
+ 		// A file not named .go is one the go command generates, such as a test binary's main.
+ 		base := filepath.Base(pass.Fset.File(file.Pos()).Name())
+-		if !strings.HasSuffix(base, ".go") || strings.HasSuffix(base, "_test.go") {
++		if !strings.HasSuffix(base, ".go") {
+ 			continue
+ 		}
+ 		for _, decl := range file.Decls {
