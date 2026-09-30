@@ -75,7 +75,7 @@ func TestEveryResponseCarriesThePolicy(t *testing.T) {
 		"/api/personal/lens?dataset=nothing", "/api/all/system", "/api/lens", "/api/personal/nothing",
 	}
 	if built(t) {
-		paths = append(paths, "/main.js")
+		paths = append(paths, "/main.js", "/main.css", "/fonts/IBMPlexSans-Regular-Latin1.woff2")
 	}
 	for _, p := range paths {
 		r := get(t, s.Handler(), p)
@@ -100,12 +100,14 @@ func built(t *testing.T) bool {
 }
 
 // TestTheEntryDocumentIsRenderedForEveryScreenRoute requires every path the browser's router owns to
-// load the entry document, and it to load the bundle's entry module from the UI's own origin.
+// load the entry document, and it to load the bundle's entry module and its stylesheet from the UI's own
+// origin.
 func TestTheEntryDocumentIsRenderedForEveryScreenRoute(t *testing.T) {
 	s, _ := server(t)
 	for _, p := range []string{"/", "/personal", "/personal/candidates?status=pending", "/personal/jobs/r-0913"} {
 		r := get(t, s.Handler(), p)
-		if r.status != http.StatusOK || !strings.Contains(string(r.body), `<script type="module" src="/main.js"></script>`) {
+		if r.status != http.StatusOK || !strings.Contains(string(r.body), `<script type="module" src="/main.js"></script>`) ||
+			!strings.Contains(string(r.body), `<link rel="stylesheet" href="/main.css">`) {
 			t.Errorf("%s answered %d without the entry document:\n%s", p, r.status, r.body)
 		}
 		if r.header.Get("Content-Type") != "text/html; charset=utf-8" {
@@ -297,17 +299,27 @@ func TestTheMetricsCarryReadsAndSubscribers(t *testing.T) {
 }
 
 // fixtures are the responses the browser's tests are given, recorded from this server over the
-// seeded database (ADR-0064). Each is compared with the checked-in file, and -update re-records it.
+// seeded database (ADR-0064). Each is compared with the checked-in file, and -update re-records it. A
+// browser test answers a path only with the recording made at that exact path, so the paths here are
+// the ones the browser's URL grammar builds.
 func fixtures() map[string]string {
 	return map[string]string{
-		"accounts.json":              "/api/accounts",
-		"system.json":                "/api/personal/system",
-		"jobs.json":                  "/api/personal/jobs",
-		"plans-summary.json":         "/api/personal/lens?dataset=plans&level=0",
-		"plans-rows.json":            "/api/personal/lens?dataset=plans&level=3",
-		"candidates-summary.json":    "/api/personal/lens?dataset=candidates&level=0&status=pending",
-		"candidates-rows.json":       "/api/personal/lens?dataset=candidates&level=3&status=pending,confirmed",
-		"error-unknown-dataset.json": "/api/personal/lens?dataset=messages",
+		"accounts.json":                   "/api/accounts",
+		"system-other.json":               "/api/other/system",
+		"system.json":                     "/api/personal/system",
+		"jobs.json":                       "/api/personal/jobs",
+		"plans-summary.json":              "/api/personal/lens?dataset=plans&level=0&range=all&sort=created_at,desc",
+		"plans-rows.json":                 "/api/personal/lens?dataset=plans&level=3&range=all&sort=created_at,desc&page=1",
+		"plans-summary-rejected.json":     "/api/personal/lens?dataset=plans&level=0&range=all&sort=created_at,desc&status=REJECTED",
+		"plans-rows-empty.json":           "/api/personal/lens?dataset=plans&level=3&range=all&sort=created_at,desc&page=1&status=REJECTED",
+		"candidates-summary-pending.json": "/api/personal/lens?dataset=candidates&level=0&range=all&sort=score,desc&status=pending",
+		"candidates-rows-pending.json":    "/api/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
+		"candidates-summary-all.json":     "/api/personal/lens?dataset=candidates&level=0&range=all&sort=score,desc",
+		"candidates-rows-all.json":        "/api/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1",
+		"error-unknown-dataset.json":      "/api/personal/lens?dataset=messages",
+		"error-unknown-account.json":      "/api/nobody/system",
+		"error-unknown-sort-summary.json": "/api/personal/lens?dataset=plans&level=0&range=all&sort=bogus,desc",
+		"error-unknown-sort-rows.json":    "/api/personal/lens?dataset=plans&level=3&range=all&sort=bogus,desc&page=1",
 	}
 }
 
@@ -344,7 +356,7 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 		if err := json.Indent(&pretty, r.body, "", "  "); err != nil {
 			t.Fatal(err)
 		}
-		if name == "error-unknown-dataset.json" {
+		if strings.HasPrefix(name, "error-") {
 			// The request id is random, so the recording holds a fixed one in its place.
 			var e map[string]map[string]any
 			if err := json.Unmarshal(r.body, &e); err != nil {

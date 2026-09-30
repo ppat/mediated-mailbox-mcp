@@ -20,12 +20,29 @@ var (
 	absolute = regexp.MustCompile(`(?i)\b(?:https?|wss?|ftp):\/\/[^\s"'<>)]+|["'(\s]\/\/[a-z0-9.-]+\.[a-z]{2,}`)
 	// stylesheetURL is a url() or an @import in a stylesheet.
 	stylesheetURL = regexp.MustCompile(`(?i)url\(\s*["']?([^"')]*)|@import\s+["']([^"']*)`)
+	// fontFace is an @font-face rule's block, and inlineURL a url() holding a data: URI. They read the
+	// minified stylesheet bun writes, and hand-written CSS can slip past them, with a comment between
+	// @font-face and its block, a closing brace inside a quoted family name, or an escape in url. The
+	// build's own test, which refuses any data: in the built stylesheet, is the stricter guard there.
+	fontFace  = regexp.MustCompile(`(?is)@font-face\s*\{[^}]*\}`)
+	inlineURL = regexp.MustCompile(`(?i)url\(\s*["']?data:`)
 )
 
 // allowedAbsolute are the absolute strings a bundle may carry because they can never become a request,
-// each certified by a person with the reason (ADR-0064). The bundle holds none yet.
+// each certified by a person with the reason (ADR-0064). Each is matched whole, so no other URL on the
+// same origin passes. The operator certified the four below on 2026-09-30.
 func allowedAbsolute() map[string]string {
-	return map[string]string{}
+	return map[string]string{
+		"http://www.w3.org/2000/svg": "Preact's renderer passes the SVG namespace to " +
+			"document.createElementNS, which names a namespace and fetches nothing",
+		"http://www.w3.org/1998/Math/MathML": "Preact's renderer passes the MathML namespace to " +
+			"document.createElementNS, which names a namespace and fetches nothing",
+		"http://www.w3.org/1999/xhtml": "Preact's renderer passes the XHTML namespace to " +
+			"document.createElementNS as the default, which names a namespace and fetches nothing",
+		"https://github.com/preactjs/preact-iso#locationprovider": "preact-iso writes it into the " +
+			"message of the error it throws when a hook runs outside its location provider, and never " +
+			"requests it",
+	}
 }
 
 // NeedsLooserPolicy returns what in one shipped file the policy would have to be loosened for, each finding named
@@ -50,6 +67,13 @@ func NeedsLooserPolicy(name, text string) []string {
 		}
 	}
 	if strings.HasSuffix(name, ".css") {
+		// The policy's img-src admits data: and its font-src does not, so a font inlined as a data: URI is
+		// blocked while an inlined image loads (docs/UI.md section 14.3).
+		for _, block := range fontFace.FindAllString(text, -1) {
+			if inlineURL.MatchString(block) {
+				findings = append(findings, "font inlined as a data: URI")
+			}
+		}
 		for _, m := range stylesheetURL.FindAllStringSubmatch(text, -1) {
 			u := m[1] + m[2]
 			if !strings.HasPrefix(u, "/") || strings.HasPrefix(u, "//") {

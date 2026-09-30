@@ -53,12 +53,16 @@ type Configuration struct {
 	SyncInterval       time.Duration        `yaml:"sync_interval"`
 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
 	StreamInterval     time.Duration        `yaml:"stream_interval"`
+	DefaultTheme       string               `yaml:"default_theme"`
+	StreamReconnectMax time.Duration        `yaml:"stream_reconnect_max"`
+	StreamPollInterval time.Duration        `yaml:"stream_poll_interval"`
 }
 
 // defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is
 // the one that fails closed, the two listen addresses are the mediator's, the intervals shown on the
 // jobs cards are ADR-0018's sync interval and ADR-0022's daily heuristics run, and the stream polls
-// every two seconds (ADR-0058).
+// every two seconds. The browser follows the OS theme, and its stream client backs off to 30 seconds
+// and polls every 5 seconds after its fallback (ADR-0058).
 func defaults() Configuration {
 	return Configuration{
 		Database:           dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full"},
@@ -67,6 +71,9 @@ func defaults() Configuration {
 		SyncInterval:       5 * time.Minute,
 		HeuristicsInterval: 24 * time.Hour,
 		StreamInterval:     2 * time.Second,
+		DefaultTheme:       "system",
+		StreamReconnectMax: 30 * time.Second,
+		StreamPollInterval: 5 * time.Second,
 	}
 }
 
@@ -106,6 +113,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err := serving.Validate(serving.Config{
 		Listen: c.Listen, ProbeListen: c.ProbeListen, TLSCert: c.TLSCert, TLSKey: c.TLSKey, InsecureHTTP: c.InsecureHTTP,
 		SyncInterval: int64(c.SyncInterval), HeuristicsInterval: int64(c.HeuristicsInterval), StreamInterval: int64(c.StreamInterval),
+		DefaultTheme: c.DefaultTheme, StreamReconnectMax: int64(c.StreamReconnectMax), StreamPollInterval: int64(c.StreamPollInterval),
 	}, devloop.Enabled()); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
@@ -131,6 +139,9 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		Clock:          time.Now,
 		Cadences:       api.Cadences{Sync: c.SyncInterval, Heuristics: c.HeuristicsInterval},
 		StreamInterval: c.StreamInterval,
+		Browser: api.Browser{
+			DefaultTheme: c.DefaultTheme, StreamReconnectMax: c.StreamReconnectMax, StreamPollInterval: c.StreamPollInterval,
+		},
 	})
 	if err != nil {
 		return err

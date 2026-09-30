@@ -5,11 +5,11 @@ tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
 diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
-index 8223e1a..a0baf90 100644
+index e15ec92..15a687c 100644
 --- a/ui/internal/api/scan.go
 +++ b/ui/internal/api/scan.go
-@@ -52,7 +52,7 @@ func NeedsLooserPolicy(name, text string) []string {
- 	if strings.HasSuffix(name, ".css") {
+@@ -76,7 +76,7 @@ func NeedsLooserPolicy(name, text string) []string {
+ 		}
  		for _, m := range stylesheetURL.FindAllStringSubmatch(text, -1) {
  			u := m[1] + m[2]
 -			if !strings.HasPrefix(u, "/") || strings.HasPrefix(u, "//") {

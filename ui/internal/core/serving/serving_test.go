@@ -10,6 +10,7 @@ func valid() serving.Config {
 	return serving.Config{
 		Listen: ":8443", ProbeListen: ":8080", TLSCert: "/tls/cert", TLSKey: "/tls/key",
 		SyncInterval: 1, HeuristicsInterval: 1, StreamInterval: 1,
+		DefaultTheme: "system", StreamReconnectMax: 1_000_000, StreamPollInterval: 1_000_000,
 	}
 }
 
@@ -44,6 +45,9 @@ func TestTheConfigurationIsValidated(t *testing.T) {
 		{"a zero sync interval", func(c *serving.Config) { c.SyncInterval = 0 }, "sync_interval is not positive"},
 		{"a negative heuristics interval", func(c *serving.Config) { c.HeuristicsInterval = -1 }, "heuristics_interval is not positive"},
 		{"a zero stream interval", func(c *serving.Config) { c.StreamInterval = 0 }, "stream_interval is not positive"},
+		{"an unknown default theme", func(c *serving.Config) { c.DefaultTheme = "dim" }, "default_theme is not system, dark or light"},
+		{"a reconnection ceiling under a millisecond", func(c *serving.Config) { c.StreamReconnectMax = 999_999 }, "stream_reconnect_max is under a millisecond"},
+		{"a polling interval under a millisecond", func(c *serving.Config) { c.StreamPollInterval = 0 }, "stream_poll_interval is under a millisecond"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

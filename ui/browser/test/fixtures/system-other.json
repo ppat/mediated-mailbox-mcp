@@ -1,0 +1,52 @@
+{
+  "account": "other",
+  "provider": "gmail",
+  "as_of": "2026-09-10T10:16:04Z",
+  "operational": {
+    "connected": false,
+    "backfill_pass1_complete": false,
+    "backfill_pass1_run": {
+      "run_id": "r-other",
+      "workload": "backfill",
+      "pass": "pass1",
+      "state": "running",
+      "plan_id": null,
+      "plan_description": null,
+      "plan_status": null,
+      "resumed_from": null,
+      "started_at": "2026-09-10T09:36:04Z",
+      "finished_at": null,
+      "heartbeat_at": "2026-09-10T10:15:04Z",
+      "checkpoint": null,
+      "counters": {},
+      "last_error": "mmfieldmarker-other"
+    },
+    "backfill_pass2_complete": false,
+    "backfill_pass2_run": null,
+    "pending_scan": 1,
+    "sync_cursor_at": null,
+    "last_successful_tick_at": null,
+    "rate": null,
+    "last_auth_at": null,
+    "last_auth_outcome": null
+  },
+  "corpus": {
+    "messages": 1,
+    "threads": 1,
+    "unfiled": 1,
+    "restricted": 0,
+    "audit_24h": {
+      "DENY_BODY": 0,
+      "DENY_MUTATE": 0,
+      "MUTATE": 0,
+      "READ_BODY": 1
+    },
+    "masking_events_7d": 0,
+    "gate_skips_7d": 0
+  },
+  "decisions": {
+    "plans_draft": 1,
+    "candidates_pending": 1,
+    "workloads_running": 1
+  }
+}

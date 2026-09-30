@@ -4,8 +4,14 @@
 // literal "development", so a dependency carrying a development build would ship it. test/build.test.ts
 // builds a probe module with these options and fails if the define is missing.
 //
+// The stylesheet src/app/main.ts imports is written beside the entry as main.css, which the entry document
+// links. Bun inlines every font a stylesheet's url() reaches as a data: URI, which the policy's
+// font-src 'self' blocks, so the font URLs stay external as /fonts/ paths and the build copies the font
+// files there (docs/UI.md section 14.3). test/build.test.ts proves the built stylesheet names only files
+// the build copied.
+//
 // Run it from ui/browser: bun scripts/build.ts
-import { mkdir, readdir, rm } from "node:fs/promises";
+import { copyFile, mkdir, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 
 export const options = {
@@ -13,12 +19,17 @@ export const options = {
   target: "browser",
   minify: true,
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
+  external: ["/fonts/*"],
 } satisfies Bun.BuildConfig;
+
+// fonts is where the vendored font files sit, and fontsOut the bundle directory the stylesheet names them in.
+export const fonts = "src/fonts";
+const fontsOut = "fonts";
 
 // The placeholder Go's embed needs on a fresh clone, kept when the directory is emptied.
 const placeholder = ".gitkeep";
 
-async function build(outdir: string): Promise<void> {
+export async function build(outdir: string): Promise<void> {
   // Files left by an earlier build would otherwise be embedded beside the new ones.
   await mkdir(outdir, { recursive: true });
   for (const name of await readdir(outdir)) {
@@ -31,10 +42,17 @@ async function build(outdir: string): Promise<void> {
     console.error(log);
   }
   if (!result.success) {
-    process.exit(1);
+    throw new Error("the bundle did not build");
   }
   for (const output of result.outputs) {
     console.log(output.path);
+  }
+  await mkdir(join(outdir, fontsOut));
+  for (const name of await readdir(fonts)) {
+    if (name.endsWith(".woff2")) {
+      await copyFile(join(fonts, name), join(outdir, fontsOut, name));
+      console.log(join(outdir, fontsOut, name));
+    }
   }
 }
 

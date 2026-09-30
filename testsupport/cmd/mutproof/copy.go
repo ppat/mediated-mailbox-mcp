@@ -151,11 +151,15 @@ func renameSources(src []byte) ([]string, error) {
 
 // testCodePaths returns the paths among paths that are test code, which a demonstration must not
 // touch, since a red from a changed test says nothing about the mechanism. Test code is a _test.go
-// file or anything under a testdata directory.
+// file, anything under a testdata directory, a browser test file, which ends in .test.ts or .test.tsx,
+// and anything under a directory named test, where a browser package keeps its tests, their preload
+// and their fixture modules.
 func testCodePaths(paths []string) []string {
 	var found []string
 	for _, path := range paths {
-		if strings.HasSuffix(path, "_test.go") || slices.Contains(strings.Split(path, "/"), "testdata") {
+		segments := strings.Split(path, "/")
+		browserTest := strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".test.tsx") || slices.Contains(segments, "test")
+		if strings.HasSuffix(path, "_test.go") || slices.Contains(segments, "testdata") || browserTest {
 			found = append(found, path)
 		}
 	}

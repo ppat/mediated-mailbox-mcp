@@ -1,0 +1,19 @@
+control: the entry template and the built bundle hold no inline script and reference no other origin
+removes: a font inlined as a data: URI inside an @font-face rule is never reported, so a stylesheet whose fonts the policy blocks passes
+packages: ./ui/internal/api
+tests: TestThePolicyScanReportsEachPlantedViolation
+scheduled-count: no
+
+diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
+index e15ec92..1126364 100644
+--- a/ui/internal/api/scan.go
++++ b/ui/internal/api/scan.go
+@@ -70,7 +70,7 @@ func NeedsLooserPolicy(name, text string) []string {
+ 		// The policy's img-src admits data: and its font-src does not, so a font inlined as a data: URI is
+ 		// blocked while an inlined image loads (docs/UI.md section 14.3).
+ 		for _, block := range fontFace.FindAllString(text, -1) {
+-			if inlineURL.MatchString(block) {
++			if false && inlineURL.MatchString(block) {
+ 				findings = append(findings, "font inlined as a data: URI")
+ 			}
+ 		}

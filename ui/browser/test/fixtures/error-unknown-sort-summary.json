@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "unknown_sort",
+    "message": "the dataset plans declares no sortable column \"bogus\"",
+    "origin": "client",
+    "request_id": "recorded"
+  }
+}

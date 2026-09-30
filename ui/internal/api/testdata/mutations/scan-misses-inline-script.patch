@@ -5,10 +5,10 @@ tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
 diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
-index 8223e1a..84350d1 100644
+index e15ec92..140d690 100644
 --- a/ui/internal/api/scan.go
 +++ b/ui/internal/api/scan.go
-@@ -33,7 +33,7 @@ func allowedAbsolute() map[string]string {
+@@ -50,7 +50,7 @@ func allowedAbsolute() map[string]string {
  func NeedsLooserPolicy(name, text string) []string {
  	var findings []string
  	for _, m := range scriptElement.FindAllStringSubmatch(text, -1) {

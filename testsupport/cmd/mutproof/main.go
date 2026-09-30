@@ -10,7 +10,8 @@
 // fixers leave byte for byte. That is usually the package whose file the patch edits, and a patch
 // breaking a control through another package's file still sits with the control. It describes
 // itself in the free text before its first diff header, which git apply ignores. The preamble holds
-// these keys, one per line, each exactly once apart from integration, which may be left out.
+// these keys, one per line, each exactly once apart from integration and runner, which may be left
+// out.
 //
 //	control: the control, as the ledger names it
 //	removes: one line saying how the patch removes or disables the mechanism
@@ -18,12 +19,13 @@
 //	tests: the tests that must go red, by the names go test reports, subtests included
 //	scheduled-count: yes when the demonstration goes red only at the scheduled case count, else no
 //	integration: yes when the tests are integration tests against PostgreSQL, else no, the default
+//	runner: bun when the tests are the browser's, run by bun test, else go, the default (bun.go)
 //	diff --git a/core/redact/redact.go b/core/redact/redact.go
 //	...
 //
 // A package entry that is not a relative path is refused, because it would reach go test as a flag.
-// A patch whose file names mark it as touching test code, a _test.go file or anything under a
-// testdata directory, is refused, because a red from a changed test says nothing about the
+// A patch whose file names mark it as touching test code, a _test.go file, a browser test file or
+// anything under a testdata or test directory, is refused, because a red from a changed test says nothing about the
 // mechanism. Whether a patch removes the control's mechanism rather than test tooling the tests
 // rely on, such as a shared comparison option, is for the review of the patch, which ADR-0046 makes
 // the checked-in artifact.
@@ -74,9 +76,14 @@
 // for a remote container daemon (testsupport/cmd/pgrun). A patch that needs integration tests and
 // leaves the key out fails at step 1, since its named tests do not build without the tag.
 //
+// A patch with runner bun names bun test files as its packages and runs them with bun test from
+// their browser package, reading the outcome from bun's JUnit report. bun.go states how its test
+// names are written and separated, and how a copy reaches the checkout's installed packages.
+//
 // SIGINT, SIGTERM and SIGHUP stop the run, stop the running tests and remove the copies. The running
 // tests are killed, or under pgrun sent SIGTERM first, so pgrun removes its container. The runner runs
-// ordinary go test packages, property tests and integration tests included. It is run by hand when a
+// ordinary go test packages, property tests and integration tests included, and the browser's bun
+// tests. It is run by hand when a
 // control lands or changes, never as a standing gate. Run it from the repository root with the
 // patches as arguments.
 //
@@ -256,7 +263,13 @@ func demonstrate(ctx context.Context, root string, environ, pgrun []string, patc
 	if tests := testCodePaths(paths); len(tests) > 0 {
 		return result{}, fmt.Errorf("the patch touches test code, so a red under it says nothing about the mechanism: %s", strings.Join(tests, ", "))
 	}
-	baseline, err := goTest(ctx, pristine, env, testCommand(p, pgrun))
+	runTests := func(dir string) (testRun, error) {
+		if p.bun {
+			return bunTest(ctx, root, dir, env, p.packages)
+		}
+		return goTest(ctx, dir, env, testCommand(p, pgrun))
+	}
+	baseline, err := runTests(pristine)
 	if err != nil {
 		return result{}, err
 	}
@@ -277,7 +290,7 @@ func demonstrate(ctx context.Context, root string, environ, pgrun []string, patc
 	if _, err := gitApply(patched, absPatch); err != nil {
 		return result{}, err
 	}
-	mutant, err := goTest(ctx, patched, env, testCommand(p, pgrun))
+	mutant, err := runTests(patched)
 	if err != nil {
 		return result{}, err
 	}

@@ -1,0 +1,17 @@
+{
+  "account": "personal",
+  "dataset": "plans",
+  "level": 3,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {
+    "range": "all",
+    "status": "REJECTED"
+  },
+  "sort": "created_at,desc",
+  "page": 1,
+  "pages": 1,
+  "total": {
+    "count": 0
+  },
+  "rows": []
+}

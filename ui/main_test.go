@@ -37,7 +37,8 @@ import (
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui", "Configuration",
 		"Database core.Config", "Listen string", "ProbeListen string", "TLSCert string", "TLSKey string",
-		"InsecureHTTP bool", "SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration")
+		"InsecureHTTP bool", "SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
+		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration")
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -53,6 +54,9 @@ func TestTheDefaults(t *testing.T) {
 		SyncInterval:       5 * time.Minute,
 		HeuristicsInterval: 24 * time.Hour,
 		StreamInterval:     2 * time.Second,
+		DefaultTheme:       "system",
+		StreamReconnectMax: 30 * time.Second,
+		StreamPollInterval: 5 * time.Second,
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
@@ -235,11 +239,14 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
 		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_ui`,
+		`level=INFO msg=configuration path=default_theme source=default value=system`,
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
 		`level=INFO msg=configuration path=insecure_http source=default value=false`,
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
 		`level=INFO msg=configuration path=probe_listen source="flag --probe_listen" value=127.0.0.1:0`,
 		`level=INFO msg=configuration path=stream_interval source=default value=2s`,
+		`level=INFO msg=configuration path=stream_poll_interval source=default value=5s`,
+		`level=INFO msg=configuration path=stream_reconnect_max source=default value=30s`,
 		`level=INFO msg=configuration path=sync_interval source=default value=5m0s`,
 		`level=INFO msg=configuration path=tls_cert source="flag --tls_cert" value=/absent/tls.crt`,
 		`level=INFO msg=configuration path=tls_key source="flag --tls_key" value=/absent/tls.key`,
