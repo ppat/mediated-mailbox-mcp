@@ -16,10 +16,15 @@ type Config struct {
 	SyncInterval       int64
 	HeuristicsInterval int64
 	StreamInterval     int64
+	// The three values the browser reads (docs/UI.md section 18.1).
+	DefaultTheme       string
+	StreamReconnectMax int64
+	StreamPollInterval int64
 }
 
 // Validate refuses an empty listen or probe_listen, plain HTTP in a binary built without the devloop
-// build tag, TLS without both its files, and an interval that is not positive. devLoop is whether
+// build tag, TLS without both its files, an interval that is not positive, and a default theme
+// other than system, dark or light. devLoop is whether
 // the binary was built with the tag. No image build sets it, so a deployed UI serves TLS only
 // (docs/UI.md section 18).
 func Validate(c Config, devLoop bool) error {
@@ -38,6 +43,12 @@ func Validate(c Config, devLoop bool) error {
 		return refusal("heuristics_interval is not positive")
 	case c.StreamInterval <= 0:
 		return refusal("stream_interval is not positive")
+	case c.DefaultTheme != "system" && c.DefaultTheme != "dark" && c.DefaultTheme != "light":
+		return refusal("default_theme is not system, dark or light")
+	case c.StreamReconnectMax < 1_000_000:
+		return refusal("stream_reconnect_max is under a millisecond")
+	case c.StreamPollInterval < 1_000_000:
+		return refusal("stream_poll_interval is under a millisecond")
 	}
 	return nil
 }

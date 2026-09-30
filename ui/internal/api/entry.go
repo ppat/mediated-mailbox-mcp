@@ -7,10 +7,15 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 )
 
 // BundleEntry is the bundle's entry module, the file bun build writes for src/app/main.ts.
 const BundleEntry = "main.js"
+
+// BundleStylesheet is the bundle's one stylesheet, which bun build writes beside the entry module from
+// the stylesheet src/app/main.ts imports.
+const BundleStylesheet = "main.css"
 
 // entryTemplate is the entry document. It is the one page a Go handler renders, on every page load, so
 // it can carry the request token when the decisions arrive (ADR-0061). It holds no inline script and
@@ -21,6 +26,10 @@ const entryTemplate = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mediated Mailbox</title>
+<meta name="mediated-mailbox.default_theme" content="{{.Browser.DefaultTheme}}">
+<meta name="mediated-mailbox.stream_reconnect_max" content="{{.ReconnectMax}}">
+<meta name="mediated-mailbox.stream_poll_interval" content="{{.PollInterval}}">
+<link rel="stylesheet" href="/{{.Stylesheet}}">
 <script type="module" src="/{{.Entry}}"></script>
 </head>
 <body></body>
@@ -30,8 +39,20 @@ const entryTemplate = `<!doctype html>
 // EntryTemplate returns the entry document's template text, which the policy's tests scan.
 func EntryTemplate() string { return entryTemplate }
 
+// Browser is the configuration the browser reads, rendered into the entry document as meta tags, one
+// per key, with durations in whole milliseconds (docs/UI.md section 18.1).
+type Browser struct {
+	DefaultTheme       string
+	StreamReconnectMax time.Duration
+	StreamPollInterval time.Duration
+}
+
 type entryData struct {
-	Entry string
+	Entry        string
+	Stylesheet   string
+	Browser      Browser
+	ReconnectMax int64
+	PollInterval int64
 }
 
 // app serves a bundle file when the path names one, and otherwise the entry document, so every
@@ -40,14 +61,15 @@ type app struct {
 	bundle   fs.FS
 	files    http.Handler
 	template *template.Template
+	browser  Browser
 }
 
-func newApp(bundle fs.FS) (*app, error) {
+func newApp(bundle fs.FS, browser Browser) (*app, error) {
 	t, err := template.New("entry").Parse(entryTemplate)
 	if err != nil {
 		return nil, err
 	}
-	return &app{bundle: bundle, files: http.FileServerFS(bundle), template: t}, nil
+	return &app{bundle: bundle, files: http.FileServerFS(bundle), template: t, browser: browser}, nil
 }
 
 func (a *app) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +84,10 @@ func (a *app) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body bytes.Buffer
-	if err := a.template.Execute(&body, entryData{Entry: BundleEntry}); err != nil {
+	if err := a.template.Execute(&body, entryData{
+		Entry: BundleEntry, Stylesheet: BundleStylesheet, Browser: a.browser,
+		ReconnectMax: a.browser.StreamReconnectMax.Milliseconds(), PollInterval: a.browser.StreamPollInterval.Milliseconds(),
+	}); err != nil {
 		requestInfo(r.Context()).err = err
 		http.Error(w, "the UI server failed", http.StatusInternalServerError)
 		return

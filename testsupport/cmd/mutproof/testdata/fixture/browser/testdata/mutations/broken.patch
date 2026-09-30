@@ -1,0 +1,16 @@
+control: The browser gate refuses flagged items
+removes: the gate's module no longer parses
+packages: ./browser/test/gate.test.ts
+tests: the gate > refuses a flagged item | allows a clean item
+scheduled-count: no
+runner: bun
+
+diff --git a/browser/gate.ts b/browser/gate.ts
+--- a/browser/gate.ts
++++ b/browser/gate.ts
+@@ -1,4 +1,4 @@
+ // The fixture's mechanism, which the tests beside it prove.
+ export function allow(flagged: boolean): boolean {
+-  return !flagged;
++  return !flagged;;;{
+ }

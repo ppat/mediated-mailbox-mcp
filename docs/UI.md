@@ -178,7 +178,11 @@ other parameter is a dimension filter named as the registry declares it.
 
 **Filter grammar.** `dim=value` is equality. `dim=a,b` is any of. `dim=!value` is exclusion. The
 unfiled group of the label dimension is `label=none` in the URL and a `null` key in the API. An
-audit row with no message falls into the `none` group of every message-derived dimension.
+audit row with no message falls into the `none` group of every message-derived dimension. A default
+filter the operator removed is written `dim=` with no value in the browser's URL, so the router's
+canonicalization does not put the default back. The router leaves it out of the request it sends,
+because an absent filter is no filter to the endpoint. Filling default filters only into a URL
+that carries no filter at all was the alternative, and it would leave a hand-written URL ambiguous.
 
 **Default range per dataset:**
 
@@ -718,6 +722,17 @@ The home's running-work strip, Jobs, and a run while it or its resumer runs upda
 reload. Each shows the live indicator in the top bar, a dot in the ok color with "live · updated
 Ns ago", and pauses its subscription while the tab is hidden, resuming and refetching when it
 becomes visible. A dropped stream shows "live · reconnecting" and the view keeps its last data.
+After the fallback to polling of ADR-0058 the indicator reads "live · polling". The view polls at
+the polling interval while the stream's reconnection backoff keeps doubling up to its ceiling, so
+the view returns to the stream when it opens. Polling until the page reloads was the alternative,
+and it would never recover the stream.
+
+The partial-index banner of [section 12](#12-empty-loading-partial-and-error-patterns) also follows
+the account's stream while it shows, and reads the system endpoint again on every backfill run event
+and on every poll of the fallback, so its figures move with the pass. It is not a live surface and
+shows no live indicator. Reading the system endpoint only on page load was the alternative, and it
+would leave a pass's progress frozen on a screen left open.
+
 The transport, the stream's content, and its cadence are ADR-0058's. In the browser only the stream
 client module depends on that record, and on the server only the stream endpoint of
 [section 17.4](#174-the-bespoke-endpoints) does. The screens read object shapes
@@ -796,8 +811,9 @@ vocabularies are ADR-0016's.
 | --- | --- |
 | Backfill pass 1 running | A partial-index banner under the chrome on every screen, saying which pass is running and how far (pages of pages, percent), with a link to Jobs. Counts on every lens carry "so far" |
 | Backfill pass 2 running | The banner names pass 2 and the pending count, and says pending messages deny their bodies until scanned. With both passes running, one banner names both |
+| The backfill state unknown | When the system endpoint's read fails for an account the accounts endpoint lists, the banner says the index's backfill state is unknown, so every count may be a count so far, and counts on every lens carry "so far" while that read is loading or failed. A banner that vanishes on a failed read was the alternative, and it would let a partial index's counts read as final. The banner shows only for a listed account, since for any other the body already says no such account is served. While no banner shows, the banner does not follow the stream, so a pass that starts later appears only when something next reads the system endpoint, at the latest on the next page load |
 | A lens with zero rows | The L0 strip with zeros and one line, "No {rows} match", with the chips still shown so the operator can remove one |
-| First load of a region | A skeleton of the region's shape (bars for a chart, lines for a table). After one second the skeleton gains the words "still loading". After ten seconds the region shows the error card with a retry link. Never a spinner over the whole page |
+| First load of a region | A skeleton of the region's shape (bars for a chart, lines for a table). After one second the skeleton gains the words "still loading". After ten seconds the region shows the error card, "No answer came in time", with a retry link, and the request stays open, so an answer that arrives later still replaces the card. Retry abandons that request and sends a new one. Abandoning the request at ten seconds was the alternative, and it would make any read slower than that impossible to show. Never a spinner over the whole page |
 | A live surface waiting for its first event | The region renders from its fetch and the indicator reads "live · connecting" |
 | A failed read | An error card in the region's place with the origin from the error contract of [section 17.3](#173-the-error-contract). "This request was refused" for the client's fault (with the message), "The UI server failed" for its own, "The database did not answer" for the database, each with the request id and a retry link. Other regions stay |
 | A decision refused | The footer or outcome area shows the refusal inline, with the origin and message, and the object reloads on a conflict. A missing declared identity reads "No identity was forwarded, so the decision was not recorded" |
@@ -889,6 +905,22 @@ token is a CSS custom property defined for both palettes, so a screen never name
 | borders | 1 px, border token |
 
 No display face and no handwritten face. The annotation face on the mockups is not product.
+
+**The font files.** The bundle carries five woff2 files, IBM Plex Sans at 400, 500 and 600 and IBM
+Plex Mono at 400 and 500, each the Latin-1 subset. They are copied from IBM's own releases of the
+typeface on the `IBM/plex` repository into `ui/browser/src/fonts/`, with the typeface's OFL licence
+and a [README](../ui/browser/src/fonts/README.md) giving each release and each file's checksum. Characters outside the subset, such as the arrow of before → after labels, fall
+back to the next face in the stack.
+
+- **Vendored rather than installed.** A font package installed as a production dependency would
+  widen the production dependency set ADR-0063 fixes at three packages. A development dependency is
+  absent from the image's production install, and IBM's own npm packages depend on a telemetry
+  package. The cost is that Renovate does not see the files, so a new release of the typeface is
+  picked up by hand. If every asset must be tracked, the files come from the `@fontsource` packages
+  as development dependencies instead, with the image's bundle stage installing them.
+- **Served as files.** The policy's `font-src 'self'` blocks a font inlined as a `data:` URI, and
+  bun's bundler inlines every font a stylesheet's `url()` reaches. So the build leaves the font URLs
+  external, as root-relative `/fonts/` paths, and copies the files into the bundle.
 
 ## 15. Security of the UI itself
 
@@ -1169,6 +1201,7 @@ ui/
       lens/             the ladder shell, chart, cohort table, rows table, row detail
       row/              the message row, the sender row, the audit row, the page row, badges
       screens/          home, plan, plans, jobs, run, candidates, policy, system
+      fonts/            the vendored font files with their licence (section 14.3)
     test/               the browser tests, the DOM shim's preload, the fixture modules
     dist/               the bundle, embedded into the Go binary, not checked in except its placeholder
   design/               the mockup sources and their notes
@@ -1211,6 +1244,12 @@ carries secret material, which arrives as a mounted file whose path a key names 
 lands in the binary with the work that first reads it, and until then the binary refuses it as it
 refuses any key it does not declare (ADR-0078). Which keys the binary reads today is build state,
 tracked in [ROADMAP.md](../ROADMAP.md).
+
+Three keys are the browser's, `default_theme`, `stream_reconnect_max` and `stream_poll_interval`. The
+Go handler renders each into the entry document on every page load as a `meta` tag named
+`mediated-mailbox.` followed by the key, with the value as its content and a duration written in
+whole milliseconds. That is the placement ADR-0061 gives the request token. The browser's composition root, `main.ts`, is their one
+reader, and a tag it cannot read takes the record's default.
 
 | Key | Value | Required |
 | --- | --- | --- |

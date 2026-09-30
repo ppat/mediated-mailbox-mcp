@@ -5,10 +5,10 @@ tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
 diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
-index 8223e1a..91e6e14 100644
+index e15ec92..8342393 100644
 --- a/ui/internal/api/scan.go
 +++ b/ui/internal/api/scan.go
-@@ -40,7 +40,7 @@ func NeedsLooserPolicy(name, text string) []string {
+@@ -57,7 +57,7 @@ func NeedsLooserPolicy(name, text string) []string {
  	if eventHandler.MatchString(text) {
  		findings = append(findings, "inline event handler")
  	}

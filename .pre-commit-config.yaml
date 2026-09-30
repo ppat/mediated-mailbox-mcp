@@ -9,6 +9,8 @@
 # - The synthetic fixtures' test data, where mail uses CRLF line endings and may carry characters the text
 #   fixers replace on purpose.
 # - Helm templates, which are Go templates rather than YAML.
+# - The vendored font licence, kept byte for byte as IBM's release archive carries it, CRLF line endings and
+#   trailing whitespace included.
 exclude: |
   (?x)^(
   ui/contract/openapi\.json|
@@ -19,7 +21,8 @@ exclude: |
   (.+/)?testdata/mutations/[^/]+\.patch|
   ui/browser/test/.*\.json|
   testsupport/fixture/testdata/.*|
-  packaging/chart/templates/.*
+  packaging/chart/templates/.*|
+  ui/browser/src/fonts/LICENSE\.txt
   )$
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks

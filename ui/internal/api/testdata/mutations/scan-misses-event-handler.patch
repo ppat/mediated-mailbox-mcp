@@ -5,10 +5,10 @@ tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
 diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
-index 8223e1a..786f92c 100644
+index e15ec92..a0a444c 100644
 --- a/ui/internal/api/scan.go
 +++ b/ui/internal/api/scan.go
-@@ -37,7 +37,7 @@ func NeedsLooserPolicy(name, text string) []string {
+@@ -54,7 +54,7 @@ func NeedsLooserPolicy(name, text string) []string {
  			findings = append(findings, "inline script")
  		}
  	}

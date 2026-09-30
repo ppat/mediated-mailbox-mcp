@@ -48,6 +48,8 @@ type Options struct {
 	Cadences Cadences
 	// StreamInterval is how often the event stream polls the recorded state (ADR-0058).
 	StreamInterval time.Duration
+	// Browser is the configuration the entry document hands the browser.
+	Browser Browser
 }
 
 // Server is the UI's server.
@@ -109,7 +111,7 @@ func New(opts Options) (*Server, error) {
 		return nil, fmt.Errorf("registering the metrics: %w", err)
 	}
 	s := &Server{opts: opts, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
-	a, err := newApp(opts.Bundle)
+	a, err := newApp(opts.Bundle, opts.Browser)
 	if err != nil {
 		return nil, err
 	}

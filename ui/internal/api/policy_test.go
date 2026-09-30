@@ -55,10 +55,20 @@ func TestTheBundleNeedsNoLooserPolicy(t *testing.T) {
 }
 
 // TestThePolicyScanReportsEachPlantedViolation runs the scan over checked-in files that each need a
-// looser policy, an inline script, an inline event handler and a script URL in an entry template, a
-// script fetching another origin by a scheme and one loading it scheme-relative, and a stylesheet
-// taking a font from another origin, and requires exactly those findings (VERIFICATIONS, the policy
-// row).
+// looser policy and requires exactly their findings (VERIFICATIONS, the policy row). They are an inline
+// script, an inline event handler and a script URL in an entry template, a script fetching another
+// origin by a scheme and one loading it scheme-relative, a stylesheet taking a font from another
+// origin, and a stylesheet inlining a font as a data: URI beside an inlined image the policy admits.
+//
+// drill.html and drill.js are also the page of the policy row's drill, which a person performs
+// (ADR-0064). They copy both files into ui/browser/dist after a build, run the UI from that checkout
+// with the devloop build tag and insecure_http, open /drill.html in a browser with its developer
+// console open, and record the console's refusal of the inline script and of the fetch verbatim, with
+// the date and the browser. The start validates the whole configuration of docs/UI.md section 18.1,
+// so the database section is given too, database.host, database.name and database.password_file,
+// though the drill's requests never reach the database. The page's title stays "Policy drill" whether
+// or not the browser blocks the fetch, since drill.example never answers, so the console's refusal is
+// the evidence.
 func TestThePolicyScanReportsEachPlantedViolation(t *testing.T) {
 	want := map[string][]string{
 		"inline_handler.html": {"inline event handler"},
@@ -70,6 +80,9 @@ func TestThePolicyScanReportsEachPlantedViolation(t *testing.T) {
 			"another origin: https://fonts.example/plex-sans.woff2",
 			"stylesheet resource off the UI's origin: https://fonts.example/plex-sans.woff2",
 		},
+		"inline_font.css": {"font inlined as a data: URI"},
+		"drill.html":      {"inline script"},
+		"drill.js":        {"another origin: https://drill.example/policy"},
 	}
 	entries, err := os.ReadDir(filepath.Join("testdata", "policy"))
 	if err != nil {
@@ -79,7 +92,7 @@ func TestThePolicyScanReportsEachPlantedViolation(t *testing.T) {
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	if !slices.Equal(names, []string{"external_font.css", "external_origin.js", "inline_handler.html", "inline_script.html", "scheme_relative.js", "script_url.html"}) {
+	if !slices.Equal(names, []string{"drill.html", "drill.js", "external_font.css", "external_origin.js", "inline_font.css", "inline_handler.html", "inline_script.html", "scheme_relative.js", "script_url.html"}) {
 		t.Fatalf("testdata/policy holds %v, and each file needs its expected findings here", names)
 	}
 	for name, findings := range want {

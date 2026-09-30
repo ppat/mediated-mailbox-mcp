@@ -5,13 +5,13 @@ tests: TestTheConfigurationTypeIsPinned TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index e3984b3..cad1d6f 100644
+index a37f8a7..56d1c42 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -53,6 +53,7 @@ type Configuration struct {
- 	SyncInterval       time.Duration        `yaml:"sync_interval"`
- 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
- 	StreamInterval     time.Duration        `yaml:"stream_interval"`
+@@ -56,6 +56,7 @@ type Configuration struct {
+ 	DefaultTheme       string               `yaml:"default_theme"`
+ 	StreamReconnectMax time.Duration        `yaml:"stream_reconnect_max"`
+ 	StreamPollInterval time.Duration        `yaml:"stream_poll_interval"`
 +	SealPublicKeyFile  string               `yaml:"seal_public_key_file"`
  }
  

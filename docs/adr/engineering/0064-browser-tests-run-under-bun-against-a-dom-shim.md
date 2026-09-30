@@ -91,7 +91,9 @@ red under both. The operator ruled on the policy row's disposition and accepted 
   certified by a person. The stylesheet references fonts on the UI's own origin only. The fourth
   assertion, that a browser blocks an inline script and an external fetch under the policy, is a
   drill in ADR-0046's sense, observed in a real browser when the UI's tests first land and again
-  after any change to the policy, its proof holding for its date. **A person performs it**, against
+  after any change to the policy, its proof holding for its date. The operator ruled on 2026-09-29
+  that the first observation is "to be deferred to test after production point 1", so the page
+  lands with the UI's tests and the drill waits for that point. **A person performs it**, against
   a checked-in page carrying an inline script and a script fetching another origin, served by the
   UI's own handler, with the browser's developer console open. No tool is taken, because every one
   considered proves the same thing and leaves no better evidence, for something run a handful of
@@ -154,8 +156,8 @@ The shapes weighed, with the chosen one in the first row:
   there. That asymmetry, the browser as a mitigation the server can test past versus the browser
   as the mechanism itself, is what separates the token row from the policy row.
 - The shim's fidelity on the text-node path is a drill, the inert-rendering test run once in a
-  real browser when the UI's tests first land. If the two ever disagree, the one test moves to
-  the browser and nothing else changes.
+  real browser when the first inert-rendering test lands. If the two ever disagree, the one test
+  moves to the browser and nothing else changes.
 - The stream client's transport cannot run under the test runner, because bun's runtime lacks
   `EventSource` (ADR-0063), so the transport is exercised in a browser at the unit that builds it
   and the handler is what the shim tests drive.

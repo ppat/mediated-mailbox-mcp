@@ -5,7 +5,7 @@ tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
 diff --git a/ui/internal/api/scan.go b/ui/internal/api/scan.go
-index 8223e1a..33ecb6a 100644
+index e15ec92..bfb62d8 100644
 --- a/ui/internal/api/scan.go
 +++ b/ui/internal/api/scan.go
 @@ -17,7 +17,7 @@ var (
@@ -16,4 +16,4 @@ index 8223e1a..33ecb6a 100644
 +	absolute = regexp.MustCompile(`(?i)\b(?:https?|wss?|ftp):\/\/[^\s"'<>)]+`)
  	// stylesheetURL is a url() or an @import in a stylesheet.
  	stylesheetURL = regexp.MustCompile(`(?i)url\(\s*["']?([^"')]*)|@import\s+["']([^"']*)`)
- )
+ 	// fontFace is an @font-face rule's block, and inlineURL a url() holding a data: URI. They read the

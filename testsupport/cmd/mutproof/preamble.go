@@ -20,13 +20,15 @@ type preamble struct {
 	scheduled bool
 	// integration is true when the tests run with the integration tag under pgrun.
 	integration bool
+	// bun is true when the tests are the browser's, run by bun test (bun.go).
+	bun bool
 }
 
 // preambleKeys are the keys a preamble must carry, each exactly once. optionalKeys may be given once,
 // and no other key may appear.
 var (
 	preambleKeys = []string{"control", "removes", "packages", "tests", "scheduled-count"}
-	optionalKeys = []string{"integration"}
+	optionalKeys = []string{"integration", "runner"}
 )
 
 // parsePatch reads the preamble of the patch at path, which must be a .patch file directly in a
@@ -83,14 +85,29 @@ func parsePatch(path string, src []byte) (preamble, error) {
 	}
 	p.control = values["control"]
 	p.removes = values["removes"]
+	switch values["runner"] {
+	case "bun":
+		p.bun = true
+	case "go", "":
+	default:
+		return p, errors.New(path + ": runner is go or bun")
+	}
 	p.packages = strings.Fields(values["packages"])
 	for _, pkg := range p.packages {
-		// Anything else reaches go test as a flag, such as -run or -short, and changes what the runs prove.
-		if pkg != "." && !strings.HasPrefix(pkg, "./") {
+		// Anything else reaches the test command as a flag, such as -run or -short, and changes what the
+		// runs prove.
+		testFile := strings.HasSuffix(pkg, ".test.ts") || strings.HasSuffix(pkg, ".test.tsx")
+		if p.bun && (!strings.HasPrefix(pkg, "./") || !testFile) {
+			return p, fmt.Errorf("%s: with runner bun, packages holds test files relative to the repository root, such as ./ui/browser/test/lens.test.tsx, and %q is not one", path, pkg)
+		}
+		if !p.bun && pkg != "." && !strings.HasPrefix(pkg, "./") {
 			return p, fmt.Errorf("%s: packages holds package paths relative to the repository root, such as ./core/redact or ./core/..., and %q is not one", path, pkg)
 		}
 	}
 	p.tests = strings.Fields(values["tests"])
+	if p.bun {
+		p.tests = bunTestNames(values["tests"])
+	}
 	switch values["scheduled-count"] {
 	case "yes":
 		p.scheduled = true
@@ -104,6 +121,9 @@ func parsePatch(path string, src []byte) (preamble, error) {
 	case "no", "":
 	default:
 		return p, errors.New(path + ": integration is yes or no")
+	}
+	if p.bun && p.integration {
+		return p, errors.New(path + ": integration applies to go test runs, and runner is bun")
 	}
 	return p, nil
 }

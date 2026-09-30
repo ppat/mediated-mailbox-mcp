@@ -1,1 +1,3 @@
 commitlint.config.js        linguist-detectable=false
+# The vendored font licence is stored byte for byte as IBM releases it, CRLF line endings included.
+ui/browser/src/fonts/LICENSE.txt -text

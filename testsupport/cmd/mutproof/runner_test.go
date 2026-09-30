@@ -314,6 +314,40 @@ func TestPatchTouchingTestCodeIsRefused(t *testing.T) {
 	}
 }
 
+// The browser's tests run under bun test (bun.go). The fixture's browser package is plain TypeScript
+// with no dependency, so bun runs it with nothing installed.
+
+func TestBunDemonstrationTurnsTheRequiredTestRed(t *testing.T) {
+	root := fixtureRoot(t)
+	res, err := demonstrateFixture(t, root, "browser", "red", fixtureEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := outcome{Red: []string{"test/gate.test.ts the gate > refuses a flagged item"}, Held: true}
+	if diff := cmp.Diff(want, outcomeOf(res), compare.Options); diff != "" {
+		t.Errorf("outcome (-want +got):\n%s", diff)
+	}
+}
+
+func TestBunPatchBreakingAModuleIsNotADemonstration(t *testing.T) {
+	root := fixtureRoot(t)
+	res, err := demonstrateFixture(t, root, "browser", "broken", fixtureEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.held() || len(res.broken) != 1 {
+		t.Errorf("got a result that held %v with broken packages %v, want the browser package broken", res.held(), res.broken)
+	}
+}
+
+func TestBunPatchTouchingATestFileIsRefused(t *testing.T) {
+	root := fixtureRoot(t)
+	_, err := demonstrateFixture(t, root, "browser", "test", fixtureEnv())
+	if err == nil || !strings.Contains(err.Error(), "the patch touches test code") || !strings.Contains(err.Error(), "browser/test/gate.test.ts") {
+		t.Fatalf("got error %v, want a refusal naming the test file", err)
+	}
+}
+
 func TestSkippedRequiredTestIsRefused(t *testing.T) {
 	root := fixtureRoot(t)
 	_, err := demonstrateFixture(t, root, "gate", "skip", fixtureEnv())

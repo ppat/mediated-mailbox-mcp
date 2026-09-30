@@ -48,6 +48,10 @@ func TestParsePatchRefusesMalformedPatches(t *testing.T) {
 		{"integration not yes or no", "p/testdata/mutations/a.patch", "integration: true\n" + validPreamble + diffHeader, "integration is yes or no"},
 		{"integration given twice", "p/testdata/mutations/a.patch", "integration: yes\nintegration: no\n" + validPreamble + diffHeader, "integration is given twice"},
 		{"scheduled-count not yes or no", "p/testdata/mutations/a.patch", strings.Replace(validPreamble, "scheduled-count: yes", "scheduled-count: true", 1) + diffHeader, "scheduled-count is yes or no"},
+		{"runner not go or bun", "p/testdata/mutations/a.patch", "runner: node\n" + validPreamble + diffHeader, "runner is go or bun"},
+		{"a package under runner bun", "p/testdata/mutations/a.patch", "runner: bun\n" + validPreamble + diffHeader, `with runner bun, packages holds test files`},
+		{"a bun flag under runner bun", "p/testdata/mutations/a.patch", "runner: bun\n" + strings.Replace(validPreamble, "./p ./q", "--update-snapshots ./b/test/a.test.ts", 1) + diffHeader, `"--update-snapshots" is not one`},
+		{"integration under runner bun", "p/testdata/mutations/a.patch", "runner: bun\nintegration: yes\n" + strings.Replace(validPreamble, "./p ./q", "./b/test/a.test.ts", 1) + diffHeader, "runner is bun"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -90,5 +94,23 @@ func TestIntegrationRunsUnderPgrunWithTheTag(t *testing.T) {
 				t.Errorf("command (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// TestParsePatchReadsABunPreamble reads the test names of a patch run by bun test, which hold spaces,
+// on the separator " | ".
+func TestParsePatchReadsABunPreamble(t *testing.T) {
+	src := "control: A control\nremoves: How\npackages: ./ui/browser/test/a.test.ts ./ui/browser/test/b.test.tsx\n" +
+		"tests: the gate > refuses a flagged item | allows a clean item\nscheduled-count: no\nrunner: bun\n\n" + diffHeader
+	p, err := parsePatch("p/testdata/mutations/a.patch", []byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !p.bun {
+		t.Fatal("runner: bun was not read")
+	}
+	want := []string{"the gate > refuses a flagged item", "allows a clean item"}
+	if diff := cmp.Diff(want, p.tests, compare.Options); diff != "" {
+		t.Errorf("tests (-want +got):\n%s", diff)
 	}
 }

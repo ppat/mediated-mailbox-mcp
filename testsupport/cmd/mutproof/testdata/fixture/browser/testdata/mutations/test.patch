@@ -1,0 +1,19 @@
+control: The browser gate refuses flagged items
+removes: the test expects the wrong answer
+packages: ./browser/test/gate.test.ts
+tests: the gate > refuses a flagged item
+scheduled-count: no
+runner: bun
+
+diff --git a/browser/test/gate.test.ts b/browser/test/gate.test.ts
+--- a/browser/test/gate.test.ts
++++ b/browser/test/gate.test.ts
+@@ -3,7 +3,7 @@ import { allow } from "../gate.ts";
+ 
+ describe("the gate", () => {
+   test("refuses a flagged item", () => {
+-    expect(allow(true)).toBe(false);
++    expect(allow(true)).toBe(true);
+   });
+ });
+ 
