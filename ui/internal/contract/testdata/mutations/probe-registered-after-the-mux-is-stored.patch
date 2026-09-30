@@ -1,0 +1,18 @@
+control: every route registered on the probes listener is one of its three probe routes
+removes: a route other than the three probes is registered on the probes listener's recording mux after New stores it
+packages: ./ui/internal/contract
+tests: TestTheProbesListenerServesOnlyTheProbes
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index f2e0a49..50cd6b7 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -145,6 +145,7 @@ func New(opts Options) (*Server, error) {
+ 	probes.Handle("GET /metrics", promhttp.HandlerFor(opts.Metrics, promhttp.HandlerOpts{}))
+ 	s.probesMux = probes
+ 	s.probes = withPolicy(probes)
++	probes.Handle("GET /export", http.HandlerFunc(s.getSystem))
+ 	return s, nil
+ }
+ 

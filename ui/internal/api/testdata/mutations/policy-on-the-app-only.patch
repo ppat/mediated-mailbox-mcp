@@ -6,18 +6,18 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 0ebe994..729da62 100644
+index f2e0a49..0eacc13 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -126,9 +126,9 @@ func New(opts Options) (*Server, error) {
+@@ -133,9 +133,9 @@ func New(opts Options) (*Server, error) {
  	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
  		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
  	}))
 -	mux.Handle("/", a)
 +	mux.Handle("/", withPolicy(a))
- 	s.served = mux.patterns
+ 	s.uiMux = mux
 -	s.handler = observe(opts.Logger, withPolicy(mux))
 +	s.handler = observe(opts.Logger, mux)
  
- 	probes := http.NewServeMux()
- 	probes.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+ 	probes := &recordingMux{mux: http.NewServeMux()}
+ 	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

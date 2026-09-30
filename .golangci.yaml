@@ -678,8 +678,10 @@ linters:
           - "github.com/getkin/kin-openapi/openapi3$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
+          # The driver, its types and its pool, each exact, as the dbconnect list names its pool.
           - "github.com/jackc/pgx/v5$"
-          - "github.com/jackc/pgx/v5/"
+          - "github.com/jackc/pgx/v5/pgtype$"
+          - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           # The data-access subsections the read API's statements sit in, from ui/internal/registry and
           # ui/internal/api. Of account_state and rate_state only the parent subsections, so the UI's role is never

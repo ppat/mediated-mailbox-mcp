@@ -46,7 +46,7 @@ LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.p
 WHERE
     r.account_id = @account_id
     AND r.workload = @workload
-    AND r.pass IS NOT DISTINCT FROM sqlc.narg(pass)::text
+    AND r.pass IS NOT DISTINCT FROM sqlc.narg('pass')::text
     AND r.state = any(@states::text[])
 ORDER BY r.started_at DESC, r.run_id ASC
 LIMIT 1;

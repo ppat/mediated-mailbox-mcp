@@ -1,7 +1,14 @@
-# RF02 refuses an unqualified reference in a statement reading more than one table. The placeholder templater
-# renders each parameter as its bare name, so every parameter of such a statement reads as an unqualified
-# column. The statements here that need it are the UI's reads of the candidate rows, joining each candidate's
-# sender statistics. RF04 stays excluded, as the root configuration excludes it, because a directory's
-# exclusions replace the root's.
-[sqlfluff]
-exclude_rules = RF02, RF04
+# This file sets parameter values and nothing else. The placeholder templater renders a parameter with no
+# value as its bare name, and RF02 then reports it as an unqualified column in a statement that reads more
+# than one table. Such statements here are the UI's reads of the candidate rows, joining each candidate's
+# sender statistics. Every parameter the statements here take is given a literal, so RF02 does not report a
+# parameter here. The rule itself stays on, as it is everywhere. A new parameter here needs a value too.
+[sqlfluff:templater:placeholder]
+account_id = 1
+descending = 1
+range_end = 1
+range_start = 1
+row_offset = 1
+sort_score = 1
+status_in = 1
+status_out = 1

@@ -1,0 +1,22 @@
+control: go vet refuses a copy of a recording mux
+removes: the recording mux drops its noCopy field, so a copy of it passes go vet and records its routes unread
+packages: ./ui/internal/api
+tests: TestTheRecordingMuxRefusesACopy
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 26ed4de..be7934e 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -71,11 +71,6 @@ type Server struct {
+ // pattern to compare. The mux sits in an unexported field and is embedded nowhere, so no promoted
+ // method registers a route unrecorded.
+ type recordingMux struct {
+-	// noCopy makes go vet's copylocks check refuse a copy of a recording mux, since a copy shares the
+-	// underlying mux and records its patterns where Served and ProbesServed never read them. A copy
+-	// whose line carries a //nolint:govet directive with a reason passes, because govet is an ordinary
+-	// linter, and is left to review.
+-	noCopy   noCopy
+ 	mux      *http.ServeMux
+ 	patterns []string
+ }

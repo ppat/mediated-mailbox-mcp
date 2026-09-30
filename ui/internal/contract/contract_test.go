@@ -320,21 +320,47 @@ func TestAPathClaimedByBothSourcesIsRefused(t *testing.T) {
 	}
 }
 
-// TestTheServerServesExactlyTheDocumentsRoutes builds the server and requires the routes it mounted
-// under /api to be exactly the operations of the checked-in document, read from the file rather than
-// from the lists the server is built from, so a route mounted any other way is caught (ADR-0057). The
-// server touches no database while it is built, so it is given none.
+// catchAlls are the two patterns the server registers beside the document's operations. /api/ refuses
+// every path under /api that no operation answers, and / serves the entry document and the bundle.
+// Each is named whole, so no other pattern passes by sharing a prefix with one.
+var catchAlls = []string{"/api/", "/"}
+
+// TestTheServerServesExactlyTheDocumentsRoutes builds the server and requires every pattern it
+// registered through the UI listener's recording mux to be an operation of the checked-in document or
+// one of the two catch-alls, and each of those to be registered. The document is read from the file
+// rather than from the lists the server is built from, so a route registered through the recording mux
+// that the document lacks is caught, under /api or outside it (ADR-0057).
 func TestTheServerServesExactlyTheDocumentsRoutes(t *testing.T) {
 	doc, err := openapi3.NewLoader().LoadFromFile(documentPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var want []string
+	want := slices.Clone(catchAlls)
 	for path, item := range doc.Paths.Map() {
 		for method := range item.Operations() {
 			want = append(want, method+" "+path)
 		}
 	}
+	if got := sorted(newServer(t).Served()); !slices.Equal(got, sorted(want)) {
+		t.Fatalf("the server registers %v, and the document's operations with the catch-alls %v are %v", got, catchAlls, sorted(want))
+	}
+}
+
+// probeRoutes are the probes listener's three routes (ADR-0051), the only ones it may serve.
+var probeRoutes = []string{"GET /healthz", "GET /metrics", "GET /readyz"}
+
+// TestTheProbesListenerServesOnlyTheProbes requires every pattern the server registered through the
+// probes listener's recording mux to be one of the three probe routes, and each of those to be
+// registered, so a route added to the probes listener is caught as a route added to the UI's is.
+func TestTheProbesListenerServesOnlyTheProbes(t *testing.T) {
+	if got := sorted(newServer(t).ProbesServed()); !slices.Equal(got, probeRoutes) {
+		t.Fatalf("the probes listener registers %v, and its routes are %v", got, probeRoutes)
+	}
+}
+
+// newServer builds the server. It touches no database while it is built, so it is given none.
+func newServer(t *testing.T) *api.Server {
+	t.Helper()
 	s, err := api.New(api.Options{
 		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(), Logger: slog.New(slog.DiscardHandler),
 		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second,
@@ -342,9 +368,7 @@ func TestTheServerServesExactlyTheDocumentsRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := sorted(s.Served()); !slices.Equal(got, sorted(want)) {
-		t.Fatalf("the server mounts %v under /api, and the document describes %v", got, sorted(want))
-	}
+	return s
 }
 
 func sorted(s []string) []string {

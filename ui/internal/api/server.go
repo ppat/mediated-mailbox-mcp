@@ -9,7 +9,6 @@ import (
 	"maps"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -58,17 +57,34 @@ type Server struct {
 	metrics     *metrics
 	handler     http.Handler
 	probes      http.Handler
-	served      []string
+	// uiMux and probesMux are kept, not their patterns, so Served and ProbesServed read every pattern
+	// registered through Handle, whenever it was registered.
+	uiMux     *recordingMux
+	probesMux *recordingMux
 }
 
-// recordingMux is the UI's mux. A route registered through its Handle is recorded and compared with
-// the contract. A direct call on the underlying mux inside package api, and a handler wrapped in
-// front of the mux in api.New or the composition root, are left to review. The mux sits in an
-// unexported field and is embedded nowhere, so no promoted method registers a route unrecorded.
+// recordingMux is the mux of both the UI's listener and the probes listener. A route registered
+// through its Handle is recorded, and the contract's test compares the UI's routes with the contract
+// and the probes' with their three. Left to review are a direct call on the underlying mux inside
+// package api, a handler wrapped in front of the mux in api.New or the composition root, and a path
+// answered inside a catch-all's handler, the / app handler or the /api/ unrouted handler, which has no
+// pattern to compare. The mux sits in an unexported field and is embedded nowhere, so no promoted
+// method registers a route unrecorded.
 type recordingMux struct {
+	// noCopy makes go vet's copylocks check refuse a copy of a recording mux, since a copy shares the
+	// underlying mux and records its patterns where Served and ProbesServed never read them. A copy
+	// whose line carries a //nolint:govet directive with a reason passes, because govet is an ordinary
+	// linter, and is left to review.
+	noCopy   noCopy
 	mux      *http.ServeMux
 	patterns []string
 }
+
+// noCopy holds no state. Its Lock and Unlock methods are what copylocks looks for.
+type noCopy struct{}
+
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
 
 func (m *recordingMux) Handle(pattern string, h http.Handler) {
 	m.patterns = append(m.patterns, pattern)
@@ -129,15 +145,16 @@ func New(opts Options) (*Server, error) {
 		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
 	}))
 	mux.Handle("/", a)
-	s.served = mux.patterns
+	s.uiMux = mux
 	s.handler = observe(opts.Logger, withPolicy(mux))
 
-	probes := http.NewServeMux()
-	probes.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+	probes := &recordingMux{mux: http.NewServeMux()}
+	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		answer(w, r, http.StatusOK, "ok")
-	})
-	probes.HandleFunc("GET /readyz", s.ready)
+	}))
+	probes.Handle("GET /readyz", http.HandlerFunc(s.ready))
 	probes.Handle("GET /metrics", promhttp.HandlerFor(opts.Metrics, promhttp.HandlerOpts{}))
+	s.probesMux = probes
 	s.probes = withPolicy(probes)
 	return s, nil
 }
@@ -149,17 +166,18 @@ func apiRoutes() []Route {
 	return append([]Route{{Pattern: registry.LensPath, Operation: "getLens", Scoped: true}}, Bespoke()...)
 }
 
-// Served are the read API's routes the server mounted, as "METHOD /path" patterns, apart from the
-// catch-all that refuses every other path under /api. The contract's test requires them to equal the
-// document's operations.
+// Served is every pattern registered through the UI listener's recording mux, in registration order.
+// The contract's test requires it to be exactly the document's operations and the two catch-alls it
+// names, /api/ and /, so any other pattern registered through Handle fails the test.
 func (s *Server) Served() []string {
-	var out []string
-	for _, p := range s.served {
-		if strings.Contains(p, "/api/") && p != "/api/" {
-			out = append(out, p)
-		}
-	}
-	return out
+	return slices.Clone(s.uiMux.patterns)
+}
+
+// ProbesServed is every pattern registered through the probes listener's recording mux. The contract's
+// test requires it to be exactly the three probe routes, so any other pattern registered there fails
+// the test.
+func (s *Server) ProbesServed() []string {
+	return slices.Clone(s.probesMux.patterns)
 }
 
 // Handler serves the UI, the entry document, the bundle and the read API.
