@@ -1,28 +1,32 @@
 control: Message-derived text renders inert
 removes: the rows table writes a cell's value into the element through the DOM's innerHTML after rendering, so the value is parsed as markup outside the framework
-packages: ./ui/browser/test/lens.test.tsx
-tests: a description carrying markup arrives as text, and nothing is built from it
+packages: ./ui/browser/test/lens.test.tsx ./ui/browser/test/run.test.tsx ./ui/browser/test/jobs.test.tsx
+tests: a description carrying markup arrives as text, and nothing is built from it | a subject carrying markup arrives as text in its message row, and nothing is built from it | markup in every field of every message row and page row arrives as text | the plans' titles carrying markup arrive as text in their cards and their row
 scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/lens/table.tsx b/ui/browser/src/lens/table.tsx
-index c7e2d4c..656e5aa 100644
+index a2b9f6b..df54f34 100644
 --- a/ui/browser/src/lens/table.tsx
 +++ b/ui/browser/src/lens/table.tsx
-@@ -104,9 +104,13 @@ export function RowsTable<Row>(props: TableProps<Row>) {
-                     key={c.key}
-                     class={c.numeric === true ? "numeric" : undefined}
-                     title={c.title?.(row)}
--                  >
--                    {c.cell(row)}
--                  </td>
-+                    ref={(el) => {
-+                      const value = c.cell(row);
-+                      if (el !== null && typeof value === "string") {
-+                        el.innerHTML = value;
-+                      }
-+                    }}
-+                  />
-                 ))}
-               </tr>
-             ))
+@@ -137,9 +137,17 @@ function Cells<Row>(props: { row: Row; columns: readonly Column<Row>[]; span?: S
+         </td>
+       )}
+       {shown.map((c) => (
+-        <td key={c.key} class={c.numeric === true ? "numeric" : undefined} title={c.title?.(row)}>
+-          {c.cell(row)}
+-        </td>
++        <td
++          key={c.key}
++          class={c.numeric === true ? "numeric" : undefined}
++          title={c.title?.(row)}
++          ref={(el) => {
++            const value = c.cell(row);
++            if (el !== null && typeof value === "string") {
++              el.innerHTML = value;
++            }
++          }}
++        />
+       ))}
+     </>
+   );

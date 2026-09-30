@@ -18,7 +18,7 @@ export function customRange(range: string | undefined): { from: string; to: stri
   return from !== undefined && to !== undefined && rest.length === 0 ? { from, to } : undefined;
 }
 
-export function RangeControl(props: { account: string; view: View }) {
+export function RangeControl(props: { account: string; view: View; screen?: string }) {
   const { route } = useLocation();
   const custom = customRange(props.view.range);
   const [from, setFrom] = useState(custom?.from ?? "");
@@ -32,7 +32,7 @@ export function RangeControl(props: { account: string; view: View }) {
         <a
           key={p.range}
           class="preset"
-          href={href(props.account, withRange(props.view, p.range))}
+          href={href(props.account, withRange(props.view, p.range), props.screen)}
           aria-current={props.view.range === p.range ? "true" : undefined}
         >
           {p.wording}
@@ -42,7 +42,7 @@ export function RangeControl(props: { account: string; view: View }) {
         class="range"
         onSubmit={(event) => {
           event.preventDefault();
-          route(href(props.account, withRange(props.view, `${from},${to}`)));
+          route(href(props.account, withRange(props.view, `${from},${to}`), props.screen));
         }}
       >
         <input

@@ -15,6 +15,14 @@ export type Figure = Schemas["Figure"];
 export type PlansPage = Schemas["PlansPage"];
 export type CandidatesPage = Schemas["CandidatesPage"];
 export type RunEvent = Schemas["RunEvent"];
+export type Jobs = Schemas["Jobs"];
+export type RunSummary = Schemas["RunSummary"];
+export type RunsPage = Schemas["RunsPage"];
+export type RunRow = Schemas["RunRow"];
+export type FailuresPage = Schemas["FailuresPage"];
+export type FailureRow = Schemas["FailureRow"];
+export type FailureDetail = Schemas["FailureDetail"];
+export type TimelineEvent = Schemas["TimelineEvent"];
 export type RateEvent = Schemas["RateEvent"];
 export type PlanEvent = Schemas["PlanEvent"];
 export type LensAnswer = operations["getLens"]["responses"][200]["content"]["application/json"];
@@ -113,6 +121,19 @@ export function eventsPath(account: string): string {
   return `/api/${encodeURIComponent(account)}/events`;
 }
 
+export function jobsPath(account: string): string {
+  return `/api/${encodeURIComponent(account)}/jobs`;
+}
+
+export function runPath(account: string, run: string): string {
+  return `/api/${encodeURIComponent(account)}/jobs/${encodeURIComponent(run)}`;
+}
+
+// failurePath is the failures dataset's row detail, one failure of a run.
+export function failurePath(account: string, run: string, seq: string): string {
+  return `/api/${encodeURIComponent(account)}/failures/${encodeURIComponent(seq)}?${new URLSearchParams({ run }).toString()}`;
+}
+
 // lensPath is the dataset endpoint with the query the URL grammar builds (src/app/url.ts).
 export function lensPath(account: string, query: string): string {
   return `/api/${encodeURIComponent(account)}/lens?${query}`;
@@ -134,6 +155,26 @@ export function readSystem(
   return get<System>(fetch, path, signal);
 }
 
+export function readJobs(fetch: Fetch, path: string, signal: AbortSignal): Promise<Result<Jobs>> {
+  return get<Jobs>(fetch, path, signal);
+}
+
+export function readRun(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<RunSummary>> {
+  return get<RunSummary>(fetch, path, signal);
+}
+
+export function readFailure(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<FailureDetail>> {
+  return get<FailureDetail>(fetch, path, signal);
+}
+
 export function readLens(
   fetch: Fetch,
   path: string,
@@ -145,6 +186,11 @@ export function readLens(
 // isFigures tells the dataset endpoint's summary answer from a page of rows or a set of groups.
 export function isFigures(answer: LensAnswer): answer is LensFigures {
   return "figures" in answer;
+}
+
+// isGroups tells a set of groups from the summary and from a page of rows.
+export function isGroups(answer: LensAnswer): answer is Groups {
+  return "group" in answer;
 }
 
 // isRowsPage tells a page of rows from the summary and from a set of groups.

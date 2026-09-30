@@ -1,0 +1,22 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: every rate event reads the jobs endpoint again, whether or not the answer shown has a rate state, so a rate event re-renders the screen
+packages: ./ui/browser/test/jobs.test.tsx
+tests: an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/jobs.tsx b/ui/browser/src/screens/jobs.tsx
+index c7dbc72..7849d53 100644
+--- a/ui/browser/src/screens/jobs.tsx
++++ b/ui/browser/src/screens/jobs.tsx
+@@ -516,9 +516,7 @@ function RateBudget(props: { account: string; jobs: Jobs; live: Stream }) {
+   const deps = useDeps();
+   const spent = jobs.rate !== null;
+   useEffect(() => {
+-    if (spent) {
+-      return undefined;
+-    }
++    void spent;
+     return effect(() => {
+       if (live.objects.rate.value !== undefined) {
+         untracked(() => void deps.jobs.refresh(jobsPath(account)));

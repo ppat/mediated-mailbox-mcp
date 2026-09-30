@@ -48,7 +48,7 @@ async function recording(file: string): Promise<System> {
 
 const marker = "<script>mmfieldmarker-authoutcome</script>";
 
-test("the screen shows each operational value, and links to no screen that does not exist yet", async () => {
+test("the screen shows each operational value, and the rows UI.md sends to Jobs link there", async () => {
   const root = await open("/personal/system");
   expect(root.querySelector("main h1")?.textContent).toBe("System");
   expect(root.querySelector("main .as-of")?.textContent).toBe("as of 2026-09-10 10:16Z");
@@ -64,7 +64,23 @@ test("the screen shows each operational value, and links to no screen that does 
     ["Last throttle", "2026-09-10 08:16Z", null],
     ["Last authentication", marker, " · 2026-09-10 04:16Z"],
   ]);
-  expect(root.querySelector('dl[aria-label="Operational state"] a')).toBeNull();
+  // The six rows section 8.8 sends to Jobs link there, and the two it sends to the corpus lens, which
+  // does not exist yet, and the account and authentication rows link nowhere.
+  const linked = [...root.querySelectorAll('dl[aria-label="Operational state"] dd')].map(
+    (dd) => dd.querySelector("a")?.getAttribute("href") ?? null,
+  );
+  expect(linked).toEqual([
+    null,
+    "/personal/jobs",
+    null,
+    "/personal/jobs",
+    "/personal/jobs",
+    null,
+    "/personal/jobs",
+    "/personal/jobs",
+    "/personal/jobs",
+    null,
+  ]);
   const bars = [...root.querySelectorAll("main svg.progress")];
   expect(bars.map((b) => b.getAttribute("aria-label"))).toEqual(["Backfill pass 2 progress"]);
   const fill = bars[0]?.querySelector(".progress-fill");
@@ -138,6 +154,7 @@ test("the navigation marks System, and g then s goes to it", async () => {
     ]);
   expect(links()).toEqual([
     ["Home", "/personal", "page"],
+    ["Jobs running", "/personal/jobs", null],
     ["System", "/personal/system", null],
   ]);
   for (const key of ["g", "s"]) {
@@ -149,6 +166,7 @@ test("the navigation marks System, and g then s goes to it", async () => {
   expect(location.pathname).toBe("/personal/system");
   expect(links()).toEqual([
     ["Home", "/personal", null],
+    ["Jobs running", "/personal/jobs", null],
     ["System", "/personal/system", "page"],
   ]);
 });
@@ -160,9 +178,10 @@ test("an authentication outcome carrying markup arrives as text, and nothing is 
   expect(auth?.textContent).toBe(marker);
   expect(auth?.childElementCount).toBe(0);
   expect(root.querySelectorAll("script").length).toBe(0);
-  // Ten labels and ten values, a value element in each, the account's and the authentication's
-  // notes, and pass 2's progress bar, an svg with its track and its fill.
-  expect(list?.querySelectorAll("*").length).toBe(10 + 10 + 10 + 2 + 3);
+  // Ten labels and ten values, a value element in each, the six links to Jobs around their values,
+  // the account's and the authentication's notes, and pass 2's progress bar, an svg with its track and
+  // its fill.
+  expect(list?.querySelectorAll("*").length).toBe(10 + 10 + 10 + 6 + 2 + 3);
 
   // The same text in every row's value and note, so rendering that stays inert for all but some rows
   // cannot pass.
@@ -181,8 +200,9 @@ test("an authentication outcome carrying markup arrives as text, and nothing is 
     expect(notes.map((n) => n.textContent)).toEqual(values.map(() => ` · ${marker}`));
     expect(notes.every((n) => n.childElementCount === 0)).toBe(true);
     expect(list2.root.querySelectorAll("script").length).toBe(0);
+    // Labels, values, value elements and notes, ten of each, the six links to Jobs and the progress bar.
     expect(list2.root.querySelector("dl")?.querySelectorAll("*").length).toBe(
-      10 + 10 + 10 + 10 + 3,
+      10 + 10 + 10 + 10 + 6 + 3,
     );
   } finally {
     list2.unmount();

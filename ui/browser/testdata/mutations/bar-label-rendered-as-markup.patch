@@ -1,0 +1,23 @@
+control: Message-derived text renders inert
+removes: the bars hand each group's label to the raw-markup escape hatch, and the group table keeps it as text
+packages: ./ui/browser/test/run.test.tsx
+tests: a group's value carrying markup arrives as text in its bar and its row
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/lens/bars.tsx b/ui/browser/src/lens/bars.tsx
+index 9370328..648a29d 100644
+--- a/ui/browser/src/lens/bars.tsx
++++ b/ui/browser/src/lens/bars.tsx
+@@ -34,10 +34,7 @@ export function Bars(props: { name: string; bars: readonly Bar[]; note?: string
+       {top.map((b) => {
+         const inner = (
+           <>
+-            <span class="bar-label">
+-              {b.label}
+-              {b.known ? null : <span class="badge">unknown</span>}
+-            </span>
++            <span class="bar-label" dangerouslySetInnerHTML={{ __html: b.label }} />
+             <BarShape n={b.count} restricted={b.restricted} longest={longest} />
+             <span class="bar-count numeric">{count(b.count)}</span>
+           </>

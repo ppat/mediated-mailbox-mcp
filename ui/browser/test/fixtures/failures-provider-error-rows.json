@@ -1,0 +1,65 @@
+{
+  "account": "personal",
+  "dataset": "failures",
+  "level": 3,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {
+    "error_class": "provider_error"
+  },
+  "sort": "last_at,desc",
+  "page": 1,
+  "pages": 1,
+  "total": {
+    "count": 2,
+    "restricted": 0,
+    "flagged": 1
+  },
+  "rows": [
+    {
+      "seq": 5,
+      "item_kind": "message",
+      "item_id": "m-news",
+      "message_id": "m-news",
+      "from_email": "mmfieldmarker-newsletteraddress@newsletter.example",
+      "subject": "\u003cscript\u003emmfieldmarker-newslettersubject\u003c/script\u003e",
+      "sent_at": "2026-09-09T04:16:04Z",
+      "labels": [
+        "INBOX"
+      ],
+      "sender_class": "normal",
+      "content_flags": [],
+      "scan_state": "scanned",
+      "page": null,
+      "error_class": "provider_error",
+      "attempts": 1,
+      "first_at": "2026-09-08T08:46:04Z",
+      "last_at": "2026-09-08T08:46:04Z",
+      "disposition": "pending",
+      "recovered_by": null
+    },
+    {
+      "seq": 2,
+      "item_kind": "message",
+      "item_id": "m-news2",
+      "message_id": "m-news2",
+      "from_email": "mmfieldmarker-newsletteraddress@newsletter.example",
+      "subject": "\u003cscript\u003emmfieldmarker-newslettersubject\u003c/script\u003e",
+      "sent_at": "2026-09-09T04:16:04Z",
+      "labels": [
+        "INBOX"
+      ],
+      "sender_class": "normal",
+      "content_flags": [
+        "mfa_code"
+      ],
+      "scan_state": "pending",
+      "page": 12,
+      "error_class": "provider_error",
+      "attempts": 1,
+      "first_at": "2026-09-08T08:16:04Z",
+      "last_at": "2026-09-08T08:16:04Z",
+      "disposition": "pending",
+      "recovered_by": null
+    }
+  ]
+}

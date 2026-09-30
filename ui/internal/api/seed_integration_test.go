@@ -48,7 +48,8 @@ const (
 )
 
 // seed writes the synthetic fixture database once per test, as the superuser, which the policies do
-// not confine. Message-derived text carries field markers, and the markup markers among them are the
+// not confine. It restarts every serial column, so identities such as an audit row's are the same
+// whichever tests ran before it and the recorded fixtures do not move. Message-derived text carries field markers, and the markup markers among them are the
 // ones every surface must show inert (ADR-0044, ADR-0064). The plan description and operation reason
 // are the client's text, and the run errors and the authentication outcome provider text, so they
 // carry markers too.
@@ -70,7 +71,7 @@ func seed(t *testing.T) {
 		sql  string
 		args []any
 	}{
-		{"TRUNCATE accounts, account_state, rate_state, senders, messages, scan_gate_decisions, policy_candidates, masking_events, reorg_plans, reorg_plan_ops, reorg_op_log, job_runs, job_run_events, job_run_failures, audit_log CASCADE", nil},
+		{"TRUNCATE accounts, account_state, rate_state, senders, messages, scan_gate_decisions, policy_candidates, masking_events, reorg_plans, reorg_plan_ops, reorg_op_log, job_runs, job_run_events, job_run_failures, audit_log RESTART IDENTITY CASCADE", nil},
 		{"INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail'), ($2, 'gmail')", []any{personal, other}},
 		{`INSERT INTO account_state (account_id, credential, backfill_pass1_complete, backfill_pass2_complete, sync_cursor, sync_cursor_at, last_auth_at, last_auth_outcome)
 			VALUES ($1, '\x00', true, false, 'cursor-1', $2, $3, $4)`, []any{personal, at(4 * time.Minute), at(6 * time.Hour), marker.MarkupField("authoutcome")}},
@@ -104,11 +105,12 @@ func seed(t *testing.T) {
 			`INSERT INTO reorg_plans (plan_id, account_id, status, description, proposer, plan, validation, created_at, approved_at, approved_by, refusal_reason) VALUES
 			($1, $4, 'DRAFT', $5, 'agent', '{}', '{"result": "passed", "findings": []}', $6, NULL, NULL, NULL),
 			($2, $4, 'APPLYING', $7, 'agent', '{}', '{"result": "passed", "findings": []}', $8, $8, 'operator', NULL),
-			($3, $4, 'APPLIED', 'Archive old newsletters', 'agent', '{}', '{"result": "passed", "findings": []}', $9, $9, 'operator', NULL),
+			($3, $4, 'APPLIED', $13, 'agent', '{}', '{"result": "passed", "findings": []}', $9, $9, 'operator', NULL),
 			($10, $11, 'DRAFT', $12, 'agent', '{}', NULL, $6, NULL, NULL, NULL)`,
 			[]any{
 				draftPlan, applyingPlan, appliedPlan, personal, marker.MarkupField("plandescription") + "\nSecond line", at(28 * time.Hour),
-				marker.Field("applyingplan"), at(3 * time.Hour), at(10 * 24 * time.Hour), otherPlan, other, marker.Field("other"),
+				marker.MarkupField("applyingplan"), at(3 * time.Hour), at(10 * 24 * time.Hour), otherPlan, other, marker.Field("other"),
+				marker.MarkupField("appliedplan"),
 			},
 		},
 		{

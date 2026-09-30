@@ -6,10 +6,10 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/screens/system.tsx b/ui/browser/src/screens/system.tsx
-index 6909a46..1496c13 100644
+index afcda5a..c5992de 100644
 --- a/ui/browser/src/screens/system.tsx
 +++ b/ui/browser/src/screens/system.tsx
-@@ -127,12 +127,20 @@ function authentication(outcome: string | null, at: string | null): Value {
+@@ -145,13 +145,21 @@ function authentication(outcome: string | null, at: string | null): Value {
  export function Values(props: { label: string; values: readonly Value[] }) {
    return (
      <dl class="values" aria-label={props.label}>
@@ -17,20 +17,21 @@ index 6909a46..1496c13 100644
 +      {props.values.map((v, row) => [
          <dt key={`${v.key}-label`}>{v.label}</dt>,
          <dd key={`${v.key}-value`}>
--          <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
--            {v.text}
--          </span>
-+          {row === 1 ? (
-+            <span
-+              class={v.mono === true ? "value mono" : "value"}
-+              title={v.title}
-+              dangerouslySetInnerHTML={{ __html: v.text }}
-+            />
-+          ) : (
-+            <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
-+              {v.text}
-+            </span>
-+          )}
+           <Linked href={v.href}>
+-            <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
+-              {v.text}
+-            </span>
++            {row === 1 ? (
++              <span
++                class={v.mono === true ? "value mono" : "value"}
++                title={v.title}
++                dangerouslySetInnerHTML={{ __html: v.text }}
++              />
++            ) : (
++              <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
++                {v.text}
++              </span>
++            )}
+           </Linked>
            {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
            {v.progress === undefined ? null : (
-             <ProgressBar

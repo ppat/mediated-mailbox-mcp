@@ -3,6 +3,8 @@
 // failed. The count of the total is text the caller writes beside it. The fill's width is an SVG
 // attribute, so no inline style is needed under the content security policy's style-src 'self'.
 
+import type { ReadonlySignal } from "@preact/signals";
+
 // ProgressState is what the fill's color says, the run state of the work the bar measures.
 export type ProgressState = "running" | "complete" | "failed";
 
@@ -26,6 +28,18 @@ export function ProgressBar(props: {
   label: string;
 }) {
   return (
+    <ProgressTrack fill={filled(props.part, props.whole)} state={props.state} label={props.label} />
+  );
+}
+
+// ProgressTrack draws the bar from its fill's width and its state, each a value or a signal. A signal
+// is bound to its attribute, so a new value redraws the fill and the component never re-runs.
+export function ProgressTrack(props: {
+  fill: number | ReadonlySignal<number>;
+  state: ProgressState | ReadonlySignal<ProgressState>;
+  label: string;
+}) {
+  return (
     <svg
       class="progress"
       role="img"
@@ -38,7 +52,7 @@ export function ProgressBar(props: {
       <rect
         class="progress-fill"
         data-state={props.state}
-        width={filled(props.part, props.whole)}
+        width={props.fill}
         height={height}
         rx={4}
       />

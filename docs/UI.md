@@ -111,7 +111,11 @@ The navigation rules that make this analysis rather than page-hopping:
 - Clicking any aggregate (a bar, a count, a group row) applies it as a filter and descends one
   level. The applied filters are a breadcrumb of chips under the top bar, in the order applied.
   The breadcrumb is a stack. Removing a chip removes it and every chip applied after it, and the
-  view returns to the level that chip was applied at.
+  view returns to the level that chip was applied at. Descending from L1 opens L2 grouped by the
+  first groupable dimension, in the registry's order, that neither the group nor an applied filter
+  names. Descending from L2, or from L1 when no such dimension is left, opens L3. A click on the
+  null group applies `none`. Asking which dimension to open before descending was the alternative,
+  and it would add a step to every click when the group-by control already changes it in one.
 - Every state is a URL. Account, dataset, filters, level, sort, and page all ride in it, so the
   back button, a bookmark, and a link pasted into a ticket reproduce a view exactly. Nothing
   about a view lives only in memory. A URL missing a parameter is canonicalized by the router,
@@ -279,7 +283,23 @@ Every screen shares one frame, top to bottom.
 The primary navigation marks the current screen. Review queue shows the count of pending
 candidates and Jobs shows a running mark when any workload is running, both read from the system
 endpoint's decisions block ([section 17.4](#174-the-bespoke-endpoints)) on every page load and
-updated from decision responses and the stream. Nothing else in the chrome carries a number.
+updated from decision responses and the stream. The stream updates them on the screens that follow
+it, the live surfaces and the partial-index banner of [section 9](#9-live-surfaces), where a run
+event whose state differs from the one last seen or shown reads the system endpoint again, since
+only a change of state can change the running mark. Holding a stream open on every screen for the
+marks alone was the alternative, and section 9 keeps the stream to those screens. Nothing else in
+the chrome carries a number.
+
+The router mounts each screen afresh for each route identity, which is the account and the object
+the path names, such as a run. Switching accounts, or following a link from one run to another,
+therefore starts the screen, its reads, its live state and everything it holds anew, for every screen
+and for any screen added later. A test over the route table requires every route to mount its screen
+this way, apart from two. The entry route holds no account and only sends the browser to one. The
+not-found route holds no state of its own, and the frame it shows follows the account its address
+names through the frame's own effects. The row a detail panel opens over a list is not part of the
+identity, since the list behind the panel stays the same screen. Keying each component by the inputs
+it reads was the alternative, and a component that missed one input would show one account's or one
+run's data under another's address.
 
 ## 7. The rows and the charts
 
@@ -301,6 +321,13 @@ ellipsis and shows its full value on hover.
 | content flags | `content_flags` | 72 px per badge | one badge per flag, `mfa` or `link`, in the flagged color | nothing |
 | scan state | `scan_state` | 96 px | muted text, the short form of [section 11](#11-rendering-and-formatting-rules), the long wording on hover | nothing |
 
+A link to a screen that does not exist yet is left out and the cell shows its value, since the UI
+links only to screens that exist. A row whose message the index no longer holds, such as a failure
+whose message was removed at the provider, has no message fields to show. Its sender cell shows the
+message identifier in mono and its subject cell "not in the index" in muted text, and the other
+message cells are empty. Leaving such a row out was the alternative, and the failure would then be
+missing from its run's list while its counts still count it.
+
 A lens adds columns after these for its own fields. Each lens declares its extra columns with
 their widths and the table's minimum width, and below that width the table scrolls horizontally
 inside its own container, never the page. Nothing is ever inserted before the scan state. The row
@@ -313,10 +340,12 @@ never hidden. The browser's counterpart to ADR-0042's rule that an unhandled var
 that an unhandled value is shown, not dropped.
 
 The row detail (L4) shows the same fields as a two-column list, then a sensitivity block (sender
-class with the rule id that assigned it, content flags with the rule ids that fired, scan state
-with the time scanned and the scanner version), then the audit rows for this message as an L3
-list, then, when reached from a plan, what the plan does to it and why. Never a body, never a
-snippet. The database has no column to show (ADR-0016).
+class, content flags, the rule ids that fired, and scan state with the time scanned and the scanner
+version), then the audit rows for this message as an L3 list, then, when reached from a plan, what
+the plan does to it and why. Never a body, never a snippet. The database has no column to show
+(ADR-0016). The rule ids are one list, because the index keeps one list of rule ids per message and
+not which rule set which axis (ADR-0016, ADR-0001). Showing the rule that set the class apart from
+the rules that set the flags was the alternative, and nothing recorded could tell them apart.
 
 ### 7.2 The sender row, the audit row, and the page row
 
@@ -326,9 +355,16 @@ Three more row types exist, each with the same rendering rules as the message ro
 | --- | --- | --- |
 | sender row | domain (mono, links to `messages?sender=` this domain), sender class badge, message count, first seen, last seen, list-id ratio as a percent, scan hits | the `senders` dataset at L3, the review queue's sender statistics |
 | audit row | time, actor (mono), action wording, then the message row's fields when the row has a message and nothing when it does not | the `audit` dataset at L3, the row detail's audit list |
-| page row | page number, cursor (mono), error class, attempts, last error time, disposition | a run's failures whose item is a page rather than a message |
+| page row | page number, error class, attempts, last error time, disposition, and the recovering run where recovered | a run's failures whose item is a page rather than a message |
 
 The dimension `sender` is the domain (`from_domain`) everywhere. The filter `from` is the address.
+
+The page row shows no cursor. The provider's page token is provider state that no table keeps for a
+failed page ([ADR-0016](./adr/data/0016-schema.md) records the page number), so a cursor cell would
+have nothing to read. On the run screen a page row sits in the same table as the message rows, its
+page number spanning the message row's fields, so the failure columns stay aligned. Listing page
+items in a table of their own was the alternative, and one run's failures would then sit in two
+tables, each with its own sort and pages.
 
 ### 7.3 Charts
 
@@ -336,9 +372,9 @@ Every chart is inline SVG drawn from the same rows its table shows.
 
 | Form | Rules |
 | --- | --- |
-| bars (L1 and L2) | horizontal, 20 px tall with 8 px gaps, filling the region's width, one bar per group, sorted by count descending, the top 20 groups then one `other` bar for the rest, which is not clickable. Direct label with the count at the bar's end, a hairline baseline in the border token, no gridlines, bar fill the neutral chart fill with the restricted share drawn as an inner segment in the restricted color. The table beside it lists every group, 50 per page. When the dimension is an array (labels, content flags, rule ids) a row counts in each of its groups, shares are over the total count, and the chart carries the note "a message with several labels counts in each" |
+| bars (L1 and L2) | horizontal, 20 px tall with 8 px gaps, filling the region's width, one bar per group, sorted by count descending, the top 20 groups then one `other` bar for the rest, which is not clickable. Direct label with the count at the bar's end, a hairline baseline in the border token, no gridlines, bar fill the neutral chart fill with the restricted share drawn as an inner segment in the restricted color, which a dataset that is not message-derived does not draw. The table beside it lists every group, 50 per page, paged in the browser under `page=`, since the endpoint answers every group at once ([section 17.1](#171-the-dataset-endpoint)). A value stored empty is drawn and listed as "empty" and links with the filter word `empty` on a dimension that declares it can hold one ([section 17.1](#171-the-dataset-endpoint)). A stored value the filter grammar of [section 5](#5-information-architecture-and-the-url) cannot name as itself is a group no filter can name, and is drawn and listed without a link, as the `other` bar is. That is a value holding a comma, which the grammar reads as any of, a value starting with `!`, which it reads as an exclusion, a value spelled `none` or `empty`, and a value stored empty on a dimension that does not declare it. When the dimension is an array (labels, content flags, rule ids) a row counts in each of its groups, shares are over the total count, and the chart carries the note "a message with several labels counts in each" |
 | flow diagram (a plan's flows) | 320 px tall. Old labels in a column on the left sorted by outflow descending, with a `none` row for flows that remove nothing, new labels in a column on the right sorted by inflow descending, one straight band per flow drawn in the left column's order with 2 px gaps, band width proportional to message count, the selected band in the action color and the rest in the neutral fill |
-| run timeline | 120 px tall. x is wall time from the run's start to its finish or to now, marks for start, backoff, retry, failure, resume, and finish drawn from the run's events; for paged runs y is the page index and the progress events trace a line; for runs without pages the marks sit on one line |
+| run timeline | 120 px tall. x is wall time from the run's start to its finish or to now, marks for start, backoff, retry, failure, resume, and finish drawn from the run's events; for paged runs y is the page index and the progress events trace a line; for runs without pages the marks sit on one line. A run is paged when any of its events records a page. Each mark kind has its own shape, so no kind is told by color alone, and each mark's hover names its kind, its time and the event's detail as recorded, which renders as text |
 | progress bar | track in raised, fill in info while running, ok when complete, restricted when failed, the count of total as text beside it |
 
 ## 8. The screens
@@ -546,7 +582,9 @@ account's pass-1 flag, and the run row supplies the numbers.
 
 The count of plans in DRAFT on the reorg apply card and the count of candidates awaiting review
 on the heuristics card come from the system endpoint's decisions block, not from the jobs
-endpoint.
+endpoint. Pass 2's decided of total counts the decided messages against the decided and the pending
+together, which is every message the pass has to decide. The progress bars are the one of
+[section 7.3](#73-charts), with the count of total written beside each.
 
 Cadence and next run time are configuration displayed, not recorded state. The cadences are
 intervals, ADR-0018's sync interval and the heuristics interval, both configuration keys of
@@ -556,7 +594,9 @@ interval.
 **Rate budget**, from the rate block. Current of target and the cap in units per second, the
 backoff wording, last throttle time. Then one bar per priority class of ADR-0025 (interactive,
 sync, batch) showing used of reserved, with the sentence that interactive keeps its reservation
-and batch absorbs any reduction first.
+and batch absorbs any reduction first. Each class's bar is the progress bar of
+[section 7.3](#73-charts) with its used of reserved written beside it, filled in info, since a
+class's spend is a rate that neither completes nor fails.
 
 **Recent runs**, the `runs` dataset, declared like a lens. Its L0 figures are runs in range,
 running, failed, and the last failure time. It is groupable by workload, state, and day, and
@@ -575,6 +615,25 @@ count in its counters.
 | state | a labeled mark, the run-state wording in [section 11](#11-rendering-and-formatting-rules) |
 | checkpoint or operations | page of pages, operations of operations, or the recovery's window and reconciled count |
 | failures | the count, linking to the run when above zero |
+
+**What refreshes live.** Each card's run, the rate budget and each row's state, duration and
+checkpoint show the latest event for their run or for the rate, bound to that object alone, so an
+event redraws that object's text and re-renders nothing else. A run event for a run that neither
+the cards nor the table's page shows, which is a run started since the page loaded, reads the jobs
+endpoint and the table's figures and page again. A run event whose state differs from the one a
+card or row shows reads the jobs endpoint again too, so a card's workload state and its fields follow
+the run. A rate event while the answer shown has no rate state reads the jobs endpoint again, so an
+account's first spend brings up the rate budget. Building the new run's card or row, or the budget,
+from its event alone was the alternative, and a card's fields come from the jobs endpoint's blocks,
+which an event does not carry. A progress bar's fill is bound to the same object as the text beside
+it, so an event redraws the fill with the text and re-renders nothing else. Pass 2's bar is drawn
+for every pass 2 run, as an empty track until its checkpoint records a page, so a pass that has just
+started shows its bar on its first page event. Every bound text follows the answer it is given, so
+an answer read again, on an event, a poll of the fallback or a reconnect, reaches the cards and the
+rows, and each row stays with its run when a new run takes the table's first place, the row cursor
+and keyboard focus with it, so Enter opens the run the operator chose. Keeping the cursor at its
+position was the alternative, and a run started meanwhile would then take the operator's place.
+Times judged against now, such as "so far" and "in backoff until", read the live clock.
 
 ### 8.4 Run
 
@@ -595,6 +654,15 @@ draw the line and carry no mark. A run with no events shows start and finish onl
 small breakdown by disposition. The group-by control offers error class, sender, page, and
 disposition.
 
+The breakdown and the failed items are on the screen together and share the view's filters. The
+breakdown reads the view at `level=`, which is 1, or 2 once a filter is applied, and the items read
+the same filters at level 3 with the view's sort and page. The disposition breakdown reads the same
+filters grouped by disposition. A click on a bar applies its value and regroups by the next
+dimension as [section 4](#4-the-zoom-ladder) describes, and stays at level 2 where section 4 would
+open level 3, since the items are already below. Opening the items as a separate level was the
+alternative, and the screen would then hide the breakdown the operator just clicked. `page=` pages
+the items there, so the group table beside the bars shows every group of the run on one page.
+
 **L3.** The failed items. Message and operation items render as message rows with these columns
 after the standard ones. Page, error class, attempts, last error time, disposition (and the
 recovering run where recovered). Page items render as page rows. The filter chip from L1 applies
@@ -605,7 +673,9 @@ here.
 provenance (run, page, attempts, first and last error time, sender class, content flags,
 disposition, and the error summary as recorded). The error summary is provider or scanner text
 and never a body. The panel ends with two links, the message in the corpus lens and its audit
-rows.
+rows. The panel is the route `/{account}/jobs/{run-id}/failures/{seq}` over the items, read through
+the `failures` row detail. Until the corpus and audit lenses exist the two links are left out, and
+the panel lists the message's newest 50 audit rows the row detail carries, with their count.
 
 | Disposition | What it means, as shown |
 | --- | --- |
@@ -615,6 +685,17 @@ rows.
 | abandoned | "{error class} on this item after {attempts} attempts. The workload gave up. Its scan state stays pending, so its body is denied until a later run reaches it." |
 
 The screen has no retry request. Resumption is the workload's own behavior, and the UI shows it.
+
+**What refreshes live.** The screen follows the account's stream whenever it is open, and shows the
+live indicator while the run or its resumer runs, so a run that resumes a finished one is seen when it
+starts. Following the stream only while one of them runs was the alternative, and the screen would
+then miss the resumer's start. Another run is another screen, as [section 6](#6-global-chrome)
+says, so following a link from one run to another, the resumer, a recovering run or a failed item's
+recovering run, starts the screen afresh for that run, its strip, its indicator and its reads. The L0
+strip's run fields and the resumer's state show the latest event for their run, bound to it, so an
+event redraws that text without re-rendering the screen or the strip. The stream carries no timeline event and no failure
+(ADR-0058), so each event for either run also reads the timeline, the failure counts, the breakdown
+and the items again, and those regions redraw with their answers.
 
 ### 8.5 The analysis lenses
 
@@ -715,14 +796,14 @@ one row per value, in this order.
 | Row | Value | Links to |
 | --- | --- | --- |
 | account | the identifier in mono and the provider, and "not connected" when the account has no state row, which ADR-0091 reads as not connected | nothing |
-| backfill pass 1 | "complete", or while the pass's latest run is running "running, page {page} of {of} ({share})" with the progress bar of [section 7.3](#73-charts), else "not complete" | Jobs, once the jobs screen exists |
+| backfill pass 1 | "complete", or while the pass's latest run is running "running, page {page} of {of} ({share})" with the progress bar of [section 7.3](#73-charts), else "not complete" | Jobs |
 | backfill pass 2 | as pass 1 | the corpus lens with `scan_state=pending`, once that lens exists |
-| sync cursor age | the age, with the UTC time on hover, or "no cursor yet" | Jobs, once the jobs screen exists |
-| last successful tick | the UTC time, or "none yet" | Jobs, once the jobs screen exists |
+| sync cursor age | the age, with the UTC time on hover, or "no cursor yet" | Jobs |
+| last successful tick | the UTC time, or "none yet" | Jobs |
 | scan backlog | "{count} messages pending scan" | the corpus lens with `scan_state=pending`, once that lens exists |
-| rate | "{current} of {target} units/s, cap {cap} units/s", or "no rate state yet" for an account that has never spent | Jobs, once the jobs screen exists |
-| backoff | the backoff wording of [section 11](#11-rendering-and-formatting-rules). A `backoff_until` already past reads "not in backoff" | Jobs, once the jobs screen exists |
-| last throttle | the UTC time, or "never" | Jobs, once the jobs screen exists |
+| rate | "{current} of {target} units/s, cap {cap} units/s", or "no rate state yet" for an account that has never spent | Jobs |
+| backoff | the backoff wording of [section 11](#11-rendering-and-formatting-rules). A `backoff_until` already past reads "not in backoff" | Jobs |
+| last throttle | the UTC time, or "never" | Jobs |
 | last authentication | the outcome as recorded, then the UTC time, or "none recorded" | nothing, because Home's row links to this screen |
 
 A row whose screen does not exist yet renders its value unlinked and gains the link when that
@@ -759,9 +840,12 @@ The L0 strip counts plans by status. A row opens the plan reviewer at its Summar
 ## 9. Live surfaces
 
 The home's running-work strip, Jobs, and a run while it or its resumer runs update without a
-reload. Each shows the live indicator in the top bar, a dot in the ok color with "live · updated
-Ns ago", and pauses its subscription while the tab is hidden, resuming and refetching when it
-becomes visible. A dropped stream shows "live · reconnecting" and the view keeps its last data.
+reload. The run screen follows the stream whenever it is open, as [section 8.4](#84-run) says.
+Each shows the live indicator in the top bar, a dot in the ok color with "live · updated Ns ago",
+and pauses its subscription while the tab is hidden, resuming and refetching when it becomes
+visible. The indicator follows the stream of the account in view, so switching accounts shows the
+new account's stream and none of the last one's. A dropped stream shows "live · reconnecting" and
+the view keeps its last data.
 After the fallback to polling of ADR-0058 the indicator reads "live · polling". The view polls at
 the polling interval while the stream's reconnection backoff keeps doubling up to its ceiling, so
 the view returns to the stream when it opens. Polling until the page reloads was the alternative,
@@ -850,10 +934,10 @@ vocabularies are ADR-0016's.
 | Situation | Pattern |
 | --- | --- |
 | Backfill pass 1 running | A partial-index banner under the chrome on every screen, saying which pass is running and how far (pages of pages, percent), with a link to Jobs. Counts on every lens carry "so far" |
-| Backfill pass 2 running | The banner names pass 2 and the pending count, and says pending messages deny their bodies until scanned. With both passes running, one banner names both |
+| Backfill pass 2 running | The banner names pass 2 and the pending count, says pending messages deny their bodies until scanned, and links to Jobs as pass 1's does. With both passes running, one banner names both |
 | The backfill state unknown | When the system endpoint's read fails for an account the accounts endpoint lists, the banner says the index's backfill state is unknown, so every count may be a count so far, and counts on every lens carry "so far" while that read is loading or failed. A banner that vanishes on a failed read was the alternative, and it would let a partial index's counts read as final. The banner shows only for a listed account, since for any other the body already says no such account is served. While no banner shows, the banner does not follow the stream, so a pass that starts later appears only when something next reads the system endpoint, at the latest on the next page load |
 | A lens with zero rows | The L0 strip with zeros and one line, "No {rows} match", with the chips still shown so the operator can remove one |
-| First load of a region | A skeleton of the region's shape (bars for a chart, lines for a table). After one second the skeleton gains the words "still loading". After ten seconds the region shows the error card, "No answer came in time", with a retry link, and the request stays open, so an answer that arrives later still replaces the card. Retry abandons that request and sends a new one. Abandoning the request at ten seconds was the alternative, and it would make any read slower than that impossible to show. Never a spinner over the whole page |
+| First load of a region | A skeleton of the region's shape (bars for a chart, lines for a table). After one second the skeleton gains the words "still loading". After ten seconds the region shows the error card, "No answer came in time", with a retry link, and the request stays open, so an answer that arrives later still replaces the card. Retry abandons that request and sends a new one. Abandoning the request at ten seconds was the alternative, and it would make any read slower than that impossible to show. A region that moves to another read while one is loading, after a filter, a group or the account changes, starts its second and its ten seconds again for the new read. Never a spinner over the whole page |
 | A live surface waiting for its first event | The region renders from its fetch and the indicator reads "live · connecting" |
 | A failed read | An error card in the region's place with the origin from the error contract of [section 17.3](#173-the-error-contract). "This request was refused" for the client's fault (with the message), "The UI server failed" for its own, "The database did not answer" for the database, each with the request id and a retry link. Other regions stay |
 | A decision refused | The footer or outcome area shows the refusal inline, with the origin and message, and the object reloads on a conflict. A missing declared identity reads "No identity was forwarded, so the decision was not recorded" |
@@ -867,7 +951,7 @@ menu and on `?`.
 
 | Key | Action |
 | --- | --- |
-| `j` / `k` | move the row cursor down / up in any table |
+| `j` / `k` | move the row cursor down / up in the table that holds it |
 | `Enter` | open the row under the cursor (descend, or open the detail at L3) |
 | `Escape` | close the detail panel, or remove the last chip (ascend) |
 | `/` | focus search |
@@ -875,6 +959,10 @@ menu and on `?`.
 | `[` / `]` | previous / next page |
 | `a` in a plan or candidate | focus the approve or confirm control (never submits) |
 | `?` | show the map |
+
+One table on a screen holds the row cursor, the table of the level in view. On the run screen it is
+the failed items, so the group table beside the bars takes no key. Letting every table answer was the
+alternative, and one key would then move two cursors and Enter open two rows.
 
 Focus is visible everywhere (the focus ring token). Nothing submits a decision from the keyboard
 without the control being focused and activated.

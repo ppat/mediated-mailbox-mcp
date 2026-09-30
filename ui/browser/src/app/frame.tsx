@@ -29,6 +29,7 @@ type FrameProps = {
 // lands, in the order section 6 gives, with the key that follows g to go to it (section 13).
 const screens = [
   { name: "Home", path: "", key: "h" },
+  { name: "Jobs", path: "jobs", key: "j" },
   { name: "System", path: "system", key: "s" },
 ] as const;
 
@@ -46,7 +47,7 @@ export function Frame(props: FrameProps) {
           <Navigation account={props.account} />
           <div class="topbar-end">
             <SettingsMenu onShowMap={openMap} />
-            {props.live}
+            <ListedAccount account={props.account}>{props.live}</ListedAccount>
           </div>
         </header>
         <AddressLine />
@@ -57,7 +58,7 @@ export function Frame(props: FrameProps) {
           <KnownAccount account={props.account}>{props.children}</KnownAccount>
         </main>
       </div>
-      {props.panel}
+      <ListedAccount account={props.account}>{props.panel}</ListedAccount>
       {showMap ? <KeyboardMap close={() => setShowMap(false)} /> : null}
     </>
   );
@@ -67,9 +68,10 @@ export function Frame(props: FrameProps) {
 // for that screen.
 function useGlobalKeys(account: string, showMap: () => void) {
   const { route } = useLocation();
+  const { timers } = useDeps();
   useEffect(() => {
     let pendingGo = false;
-    let expiry: ReturnType<typeof setTimeout> | undefined;
+    let expiry: number | undefined;
     const onKey = (event: KeyboardEvent) => {
       if (ignoresKeys(event)) {
         return;
@@ -78,8 +80,8 @@ function useGlobalKeys(account: string, showMap: () => void) {
         showMap();
       } else if (event.key === "g") {
         pendingGo = true;
-        clearTimeout(expiry);
-        expiry = setTimeout(() => (pendingGo = false), 1_000);
+        timers.clear(expiry);
+        expiry = timers.set(() => (pendingGo = false), 1_000);
         return;
       } else if (pendingGo) {
         const screen = screens.find((s) => s.key === event.key);
@@ -91,10 +93,10 @@ function useGlobalKeys(account: string, showMap: () => void) {
     };
     document.addEventListener("keydown", onKey);
     return () => {
-      clearTimeout(expiry);
+      timers.clear(expiry);
       document.removeEventListener("keydown", onKey);
     };
-  }, [account, route, showMap]);
+  }, [account, route, showMap, timers]);
 }
 
 function AccountSelector(props: { account: string }) {
@@ -140,10 +142,16 @@ function Navigation(props: { account: string }) {
       <ul class="nav">
         {screens.map((s) => {
           const target = screenPath(props.account, s.path);
+          const here = path === target || (s.path !== "" && path.startsWith(`${target}/`));
           return (
             <li key={s.name}>
-              <a href={target} aria-current={path === target ? "page" : undefined}>
+              <a href={target} aria-current={here ? "page" : undefined}>
                 {s.name}
+                {s.path === "jobs" ? (
+                  <ListedAccount account={props.account}>
+                    <RunningMark account={props.account} />
+                  </ListedAccount>
+                ) : null}
               </a>
             </li>
           );
@@ -156,6 +164,17 @@ function Navigation(props: { account: string }) {
 // screenPath is a screen's path under an account.
 function screenPath(account: string, path: string): string {
   return [`/${encodeURIComponent(account)}`, path].filter((part) => part !== "").join("/");
+}
+
+// RunningMark is the Jobs item's mark while any workload runs, read from the system endpoint's
+// decisions block (section 6). It is a labeled mark, so it is not told by color alone.
+function RunningMark(props: { account: string }) {
+  const { system } = useDeps();
+  const state = system.read(systemPath(props.account)).value;
+  if (state.status !== "ok" || state.answer.decisions.workloads_running === 0) {
+    return null;
+  }
+  return <span class="running-mark"> running</span>;
 }
 
 function SettingsMenu(props: { onShowMap: () => void }) {
@@ -289,7 +308,7 @@ function PartialIndexBanner(props: { account: string }) {
   }, [showing, account, path, system, connect]);
   return text === undefined ? null : (
     <p class="banner" role="status">
-      {text}
+      {text} <a href={screenPath(account, "jobs")}>See Jobs</a>
     </p>
   );
 }

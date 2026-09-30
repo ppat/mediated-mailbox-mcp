@@ -31,7 +31,32 @@ export function Region<T>(props: RegionProps<T>) {
   if (state.status === "error") {
     return <ErrorCard name={props.name} failure={state.failure} retry={props.retry} />;
   }
-  return <Loading key={state.attempt} name={props.name} shape={props.shape} retry={props.retry} />;
+  // Loading is keyed by the read as well as the attempt, since each path's attempts count from zero, so
+  // a region that moves to another read while one is loading starts its timers again (docs/UI.md
+  // section 12).
+  return (
+    <Loading
+      key={`${readId(props.state)}:${state.attempt}`}
+      name={props.name}
+      shape={props.shape}
+      retry={props.retry}
+    />
+  );
+}
+
+// reads number each path's state signal the first time a region shows it, so a region can tell one
+// read from another. A signal no region shows any more is forgotten with it.
+const reads = new WeakMap<object, number>();
+let nextRead = 0;
+
+function readId(state: object): number {
+  let id = reads.get(state);
+  if (id === undefined) {
+    nextRead += 1;
+    id = nextRead;
+    reads.set(state, id);
+  }
+  return id;
 }
 
 type Phase = "loading" | "slow" | "timeout";
@@ -39,16 +64,16 @@ type Phase = "loading" | "slow" | "timeout";
 // Loading waits on one attempt at the read. A retry starts a new attempt, which mounts a new Loading
 // and so restarts its timers.
 function Loading(props: { name: string; shape: Shape; retry: () => void }) {
-  const { timing } = useDeps();
+  const { timing, timers } = useDeps();
   const [phase, setPhase] = useState<Phase>("loading");
   useEffect(() => {
-    const slow = setTimeout(() => setPhase("slow"), timing.slow);
-    const timeout = setTimeout(() => setPhase("timeout"), timing.timeout);
+    const slow = timers.set(() => setPhase("slow"), timing.slow);
+    const timeout = timers.set(() => setPhase("timeout"), timing.timeout);
     return () => {
-      clearTimeout(slow);
-      clearTimeout(timeout);
+      timers.clear(slow);
+      timers.clear(timeout);
     };
-  }, [timing]);
+  }, [timing, timers]);
   if (phase === "timeout") {
     const failure: Failure = {
       origin: "ui",

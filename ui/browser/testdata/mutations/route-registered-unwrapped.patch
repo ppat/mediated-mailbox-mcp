@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: the route table registers the jobs route's component without going through screen(), so that screen is not keyed by its route identity
+packages: ./ui/browser/test/routes.test.ts
+tests: every route but the entry and not-found routes mounts its screen by its route identity
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
+index 3cbb4ae..bceb92e 100644
+--- a/ui/browser/src/app/router.tsx
++++ b/ui/browser/src/app/router.tsx
+@@ -35,7 +35,7 @@ export function Routes() {
+       <Route path="/" component={Entry} />
+       <Route path="/:account" component={AccountHomeScreen} />
+       <Route path="/:account/system" component={SystemScreenRoute} />
+-      <Route path="/:account/jobs" component={JobsScreenRoute} />
++      <Route path="/:account/jobs" component={JobsRoute} />
+       <Route path="/:account/jobs/:run" component={RunScreenRoute} />
+       <Route path="/:account/jobs/:run/failures/:seq" component={RunScreenRoute} />
+       <Route default component={NotFound} />

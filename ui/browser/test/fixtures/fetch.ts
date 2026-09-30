@@ -10,12 +10,18 @@ export type Answer = { file: string; status: number };
 
 export type Recorded = { fetch: Fetch; calls: string[]; missing: string[] };
 
-export function recorded(answers: Readonly<Record<string, Answer>>): Recorded {
+// A path's answers are one recording, or recordings of the same path taken as the recorded state moved
+// on, which answer its reads in order, the last answering every read after it.
+export function recorded(answers: Readonly<Record<string, Answer | readonly Answer[]>>): Recorded {
   const calls: string[] = [];
   const missing: string[] = [];
+  const reads = new Map<string, number>();
   const fetch: Fetch = async (path) => {
     calls.push(path);
-    const answer = answers[path];
+    const given = answers[path];
+    const n = reads.get(path) ?? 0;
+    reads.set(path, n + 1);
+    const answer = pick(given, n);
     if (answer === undefined) {
       missing.push(path);
       return new Response("", { status: 599 });
@@ -27,6 +33,14 @@ export function recorded(answers: Readonly<Record<string, Answer>>): Recorded {
     });
   };
   return { fetch, calls, missing };
+}
+
+// pick is the answer to a path's nth read.
+function pick(given: Answer | readonly Answer[] | undefined, n: number): Answer | undefined {
+  if (given === undefined || "file" in given) {
+    return given;
+  }
+  return given[Math.min(n, given.length - 1)];
 }
 
 export const ok = (file: string): Answer => ({ file, status: 200 });

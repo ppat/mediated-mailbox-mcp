@@ -7,7 +7,7 @@ import { h, render } from "preact";
 import "./theme.css";
 import { eventsPath } from "./api.ts";
 import { metaReader, readConfig } from "./config.ts";
-import { makeDeps, regionTiming } from "./deps.ts";
+import { browserTimers, makeDeps, regionTiming } from "./deps.ts";
 import { App } from "./router.tsx";
 import { applyTheme, storedTheme } from "./theme.ts";
 import { subscribe } from "./transport.ts";
@@ -30,6 +30,7 @@ const deps = makeDeps(
   now,
   storage,
   regionTiming,
+  browserTimers,
   config,
   (account, objects, refetch) => subscribe(eventsPath(account), objects, refetch, now, config),
 );

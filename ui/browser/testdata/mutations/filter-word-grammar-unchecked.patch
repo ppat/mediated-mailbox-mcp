@@ -1,0 +1,20 @@
+control: A group's filter word selects the rows the group counts
+removes: a stored value holding a comma or starting with ! is linked with its own spelling, which the grammar reads as any of or as an exclusion, so its bar and its row open other rows
+packages: ./ui/browser/test/run.test.tsx ./ui/browser/test/url.test.ts
+tests: the empty group links with the word empty, and a stored value the grammar cannot name as itself links nowhere | a group's filter word is its value only where the grammar reads the value back as itself
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/url.ts b/ui/browser/src/app/url.ts
+index 0fc244e..8f89a70 100644
+--- a/ui/browser/src/app/url.ts
++++ b/ui/browser/src/app/url.ts
+@@ -213,7 +213,7 @@ export function filterWord(value: string | null, emptyDeclared: boolean): string
+     return emptyDeclared ? "empty" : undefined;
+   }
+   const readBack =
+-    !value.includes(",") && !value.startsWith("!") && value !== "none" && value !== "empty";
++    value !== "none" && value !== "empty";
+   return readBack ? value : undefined;
+ }
+ 

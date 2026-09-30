@@ -1,0 +1,20 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: the sync class's bar is given the interactive class's measure, so it draws another class's used of reserved
+packages: ./ui/browser/test/jobs.test.tsx
+tests: an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/jobs.tsx b/ui/browser/src/screens/jobs.tsx
+index 1a7b541..4be67b8 100644
+--- a/ui/browser/src/screens/jobs.tsx
++++ b/ui/browser/src/screens/jobs.tsx
+@@ -496,7 +496,7 @@ const classMeasures: Record<
+   (rate: Pick<RateEvent, "classes">) => Measure
+ > = {
+   interactive: classMeasure("interactive"),
+-  sync: classMeasure("sync"),
++  sync: classMeasure("interactive"),
+   batch: classMeasure("batch"),
+ };
+ 

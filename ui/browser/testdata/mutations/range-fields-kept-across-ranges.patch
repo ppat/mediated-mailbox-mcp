@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: the range control is not keyed by the view's range, so its custom fields keep the last range's dates after a preset changes it
+packages: ./ui/browser/test/lens.test.tsx
+tests: the custom range's fields start again from a new range
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/lens/lens.tsx b/ui/browser/src/lens/lens.tsx
+index 4330021..b8c6c01 100644
+--- a/ui/browser/src/lens/lens.tsx
++++ b/ui/browser/src/lens/lens.tsx
+@@ -114,7 +114,7 @@ export function Lens<Row>(props: LensProps<Row>) {
+       <div class="crumbs">
+         <Breadcrumb account={account} name={props.name} view={view} screen={screen} />
+         {/* The custom range's fields start from the view's range, so another range starts them afresh. */}
+-        <RangeControl key={view.range ?? ""} account={account} view={view} screen={screen} />
++        <RangeControl account={account} view={view} screen={screen} />
+         <GroupBy account={account} view={view} screen={screen} />
+       </div>
+       {grouped ? (

@@ -15,7 +15,7 @@
   "rows": [
     {
       "plan_id": "7f3a9c00-0000-4000-8000-000000000002",
-      "description": "mmfieldmarker-applyingplan",
+      "description": "\u003cscript\u003emmfieldmarker-applyingplan\u003c/script\u003e",
       "status": "APPLYING",
       "proposer": "agent",
       "created_at": "2026-09-10T07:16:04Z",
@@ -44,7 +44,7 @@
     },
     {
       "plan_id": "7f3a9c00-0000-4000-8000-000000000003",
-      "description": "Archive old newsletters",
+      "description": "\u003cscript\u003emmfieldmarker-appliedplan\u003c/script\u003e",
       "status": "APPLIED",
       "proposer": "agent",
       "created_at": "2026-08-31T10:16:04Z",

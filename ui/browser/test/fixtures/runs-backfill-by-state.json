@@ -1,0 +1,29 @@
+{
+  "account": "personal",
+  "dataset": "runs",
+  "level": 2,
+  "as_of": "2026-09-10T10:16:04Z",
+  "group": "state",
+  "filters": {
+    "pass": "!tick",
+    "range": "7d",
+    "workload": "backfill"
+  },
+  "total": {
+    "count": 2
+  },
+  "rows": [
+    {
+      "key": {
+        "state": "failed"
+      },
+      "count": 1
+    },
+    {
+      "key": {
+        "state": "running"
+      },
+      "count": 1
+    }
+  ]
+}

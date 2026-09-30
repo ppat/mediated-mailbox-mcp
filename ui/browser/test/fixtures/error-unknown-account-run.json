@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "unknown_account",
+    "message": "no account has this identifier",
+    "origin": "client",
+    "request_id": "recorded"
+  }
+}

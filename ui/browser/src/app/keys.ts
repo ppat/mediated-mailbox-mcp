@@ -3,13 +3,14 @@
 export type Binding = { keys: string; action: string };
 
 export const bindings: readonly Binding[] = [
-  { keys: "j / k", action: "move the row cursor down / up in any table" },
+  { keys: "j / k", action: "move the row cursor down / up in the table that holds it" },
   { keys: "Enter", action: "open the row under the cursor" },
   {
     keys: "Escape",
     action: "close the detail panel, a menu or this map, or remove the last filter chip",
   },
   { keys: "g then h", action: "go to Home" },
+  { keys: "g then j", action: "go to Jobs" },
   { keys: "g then s", action: "go to System" },
   { keys: "[ / ]", action: "previous / next page" },
   { keys: "?", action: "show this map" },

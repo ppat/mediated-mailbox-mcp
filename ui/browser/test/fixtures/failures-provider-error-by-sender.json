@@ -1,0 +1,25 @@
+{
+  "account": "personal",
+  "dataset": "failures",
+  "level": 2,
+  "as_of": "2026-09-10T10:16:04Z",
+  "group": "sender",
+  "filters": {
+    "error_class": "provider_error"
+  },
+  "total": {
+    "count": 2,
+    "restricted": 0,
+    "flagged": 1
+  },
+  "rows": [
+    {
+      "key": {
+        "sender": "newsletter.example"
+      },
+      "count": 2,
+      "restricted": 0,
+      "flagged": 1
+    }
+  ]
+}

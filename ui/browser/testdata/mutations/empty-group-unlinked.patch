@@ -1,0 +1,20 @@
+control: A group's filter word selects the rows the group counts
+removes: the empty group is given no filter word, so its bar and its row lead nowhere
+packages: ./ui/browser/test/run.test.tsx
+tests: the empty group links with the word empty, and a stored value the grammar cannot name as itself links nowhere
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/url.ts b/ui/browser/src/app/url.ts
+index 0fc244e..5ee98de 100644
+--- a/ui/browser/src/app/url.ts
++++ b/ui/browser/src/app/url.ts
+@@ -210,7 +210,7 @@ export function filterWord(value: string | null, emptyDeclared: boolean): string
+     return "none";
+   }
+   if (value === "") {
+-    return emptyDeclared ? "empty" : undefined;
++    return undefined;
+   }
+   const readBack =
+     !value.includes(",") && !value.startsWith("!") && value !== "none" && value !== "empty";

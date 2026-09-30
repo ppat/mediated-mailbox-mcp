@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: a region's loading state is keyed by its attempt alone, so a region that moves to another slow read keeps the first read's timers
+packages: ./ui/browser/test/lens.test.tsx
+tests: a region that moves to another slow read starts its timers again
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/region.tsx b/ui/browser/src/app/region.tsx
+index 66df9f7..8408507 100644
+--- a/ui/browser/src/app/region.tsx
++++ b/ui/browser/src/app/region.tsx
+@@ -36,7 +36,7 @@ export function Region<T>(props: RegionProps<T>) {
+   // section 12).
+   return (
+     <Loading
+-      key={`${readId(props.state)}:${state.attempt}`}
++      key={state.attempt}
+       name={props.name}
+       shape={props.shape}
+       retry={props.retry}

@@ -6,25 +6,25 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/screens/system.tsx b/ui/browser/src/screens/system.tsx
-index 6909a46..c7afa4c 100644
+index afcda5a..8513a70 100644
 --- a/ui/browser/src/screens/system.tsx
 +++ b/ui/browser/src/screens/system.tsx
-@@ -130,9 +130,15 @@ export function Values(props: { label: string; values: readonly Value[] }) {
-       {props.values.map((v) => [
+@@ -149,9 +149,15 @@ export function Values(props: { label: string; values: readonly Value[] }) {
          <dt key={`${v.key}-label`}>{v.label}</dt>,
          <dd key={`${v.key}-value`}>
--          <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
--            {v.text}
--          </span>
-+          <span
-+            class={v.mono === true ? "value mono" : "value"}
-+            title={v.title}
-+            ref={(el) => {
-+              if (el !== null) {
-+                el.innerHTML = v.text;
-+              }
-+            }}
-+          />
+           <Linked href={v.href}>
+-            <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
+-              {v.text}
+-            </span>
++            <span
++              class={v.mono === true ? "value mono" : "value"}
++              title={v.title}
++              ref={(el) => {
++                if (el !== null) {
++                  el.innerHTML = v.text;
++                }
++              }}
++            />
+           </Linked>
            {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
            {v.progress === undefined ? null : (
-             <ProgressBar

@@ -1,44 +1,36 @@
 control: Message-derived text renders inert
 removes: the rows table keeps every column but its second as text and hands the second column's value to the raw-markup escape hatch, so inert rendering covers less of the table
-packages: ./ui/browser/test/lens.test.tsx
-tests: a description carrying markup arrives as text, and nothing is built from it
+packages: ./ui/browser/test/lens.test.tsx ./ui/browser/test/run.test.tsx ./ui/browser/test/jobs.test.tsx
+tests: a description carrying markup arrives as text, and nothing is built from it | a subject carrying markup arrives as text in its message row, and nothing is built from it | markup in every field of every message row and page row arrives as text | the plans' titles carrying markup arrive as text in their cards and their row
 scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/lens/table.tsx b/ui/browser/src/lens/table.tsx
-index c7e2d4c..97e6c8f 100644
+index a2b9f6b..c012afc 100644
 --- a/ui/browser/src/lens/table.tsx
 +++ b/ui/browser/src/lens/table.tsx
-@@ -99,15 +99,23 @@ export function RowsTable<Row>(props: TableProps<Row>) {
-                   setCursor(i);
-                 }}
-               >
--                {props.columns.map((c) => (
--                  <td
--                    key={c.key}
--                    class={c.numeric === true ? "numeric" : undefined}
--                    title={c.title?.(row)}
--                  >
--                    {c.cell(row)}
--                  </td>
--                ))}
-+                {props.columns.map((c, column) =>
-+                  column === 1 ? (
-+                    <td
-+                      key={c.key}
-+                      title={c.title?.(row)}
-+                      dangerouslySetInnerHTML={{ __html: String(c.cell(row)) }}
-+                    />
-+                  ) : (
-+                    <td
-+                      key={c.key}
-+                      class={c.numeric === true ? "numeric" : undefined}
-+                      title={c.title?.(row)}
-+                    >
-+                      {c.cell(row)}
-+                    </td>
-+                  ),
-+                )}
-               </tr>
-             ))
-           )}
+@@ -136,11 +136,19 @@ function Cells<Row>(props: { row: Row; columns: readonly Column<Row>[]; span?: S
+           {spanned}
+         </td>
+       )}
+-      {shown.map((c) => (
+-        <td key={c.key} class={c.numeric === true ? "numeric" : undefined} title={c.title?.(row)}>
+-          {c.cell(row)}
+-        </td>
+-      ))}
++      {shown.map((c, column) =>
++        column === 1 ? (
++          <td
++            key={c.key}
++            title={c.title?.(row)}
++            dangerouslySetInnerHTML={{ __html: String(c.cell(row)) }}
++          />
++        ) : (
++          <td key={c.key} class={c.numeric === true ? "numeric" : undefined} title={c.title?.(row)}>
++            {c.cell(row)}
++          </td>
++        ),
++      )}
+     </>
+   );
+ }

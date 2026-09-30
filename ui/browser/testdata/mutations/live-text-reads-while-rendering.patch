@@ -1,0 +1,22 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: live text reads its object's signal while rendering instead of through a computed signal, so every event re-renders it
+packages: ./ui/browser/test/jobs.test.tsx ./ui/browser/test/run.test.tsx
+tests: an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs | a run event redraws the strip and the indicator shows, and the screen never re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/live.tsx b/ui/browser/src/app/live.tsx
+index 23a8d6c..12e5a0f 100644
+--- a/ui/browser/src/app/live.tsx
++++ b/ui/browser/src/app/live.tsx
+@@ -128,9 +128,5 @@ export function LiveText<T>(props: {
+   clock?: Signal<number>;
+ }) {
+   const { value, fallback, text, clock } = props;
+-  const shown = useMemo(
+-    () => computed(() => text(value.value ?? fallback, clock?.value ?? 0)),
+-    [value, fallback, text, clock],
+-  );
+-  return <>{shown}</>;
++  return <>{text(value.value ?? fallback, clock?.value ?? 0)}</>;
+ }

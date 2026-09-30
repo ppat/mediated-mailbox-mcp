@@ -1,0 +1,21 @@
+control: Message-derived text renders inert
+removes: the failure's panel hands the recorded error summary to the raw-markup escape hatch
+packages: ./ui/browser/test/run.test.tsx
+tests: a failure opens as a panel with what happened, what it means, its provenance and audit rows
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/run.tsx b/ui/browser/src/screens/run.tsx
+index 1599a21..7af38d8 100644
+--- a/ui/browser/src/screens/run.tsx
++++ b/ui/browser/src/screens/run.tsx
+@@ -391,7 +391,8 @@ function FailureBody(props: { detail: FailureDetail }) {
+     <>
+       <h3>What happened</h3>
+       <p>
+-        The run recorded: <span class="recorded">{detail.error_summary ?? "no summary"}</span>
++        The run recorded:{" "}
++        <span class="recorded" dangerouslySetInnerHTML={{ __html: detail.error_summary ?? "no summary" }} />
+       </p>
+       <h3>What it means</h3>
+       <p>{meaning(row)}</p>

@@ -8,6 +8,7 @@ import { act } from "preact/test-utils";
 import { LocationProvider, Route, Router } from "preact-iso";
 import {
   accountsPath,
+  jobsPath,
   lensPath,
   systemPath,
   type Fetch,
@@ -25,9 +26,13 @@ import { Breadcrumb } from "../src/lens/breadcrumb.tsx";
 import { countsSoFar, Lens } from "../src/lens/lens.tsx";
 import { figureText, Strip } from "../src/lens/strip.tsx";
 import { RowsTable, type Column } from "../src/lens/table.tsx";
-import { testDeps } from "./app.ts";
+import { ManualTimers, testDeps } from "./app.ts";
 import { ok, recorded, type Answer, type Recorded } from "./fixtures/fetch.ts";
 import { at, mount, settle, type Mounted } from "./render.ts";
+import { signal as makeSignal, type Signal } from "@preact/signals";
+import type { State } from "../src/app/cache.ts";
+import { Region } from "../src/app/region.tsx";
+import { App } from "../src/app/router.tsx";
 
 type PlanRow = PlansPage["rows"][number];
 
@@ -174,14 +179,14 @@ test("level 3 is one page of rows under the strip", async () => {
   ]);
   const rows = [...(table?.querySelectorAll("tbody tr") ?? [])];
   expect(rows.map((r) => [...r.querySelectorAll("td")].map((td) => td.textContent))).toEqual([
-    ["7f3a9c…", "mmfieldmarker-applyingplan", "Applying", "2"],
+    ["7f3a9c…", "<script>mmfieldmarker-applyingplan</script>", "Applying", "2"],
     [
       "7f3a9c…",
       "<script>mmfieldmarker-plandescription</script>\nSecond line",
       "Awaiting approval",
       "0",
     ],
-    ["7f3a9c…", "Archive old newsletters", "Applied", "2"],
+    ["7f3a9c…", "<script>mmfieldmarker-appliedplan</script>", "Applied", "2"],
   ]);
   expect(root.querySelector(".pager")?.textContent).toBe("Page 1 of 1");
 });
@@ -338,7 +343,8 @@ function holding(recording: Recorded, held: Held[]): Fetch {
 test("a region past its timeout shows its card, a late answer replaces it, and Retry abandons the read", async () => {
   server = recorded({ [systemPath("personal")]: ok("system.json"), ...plansAnswers });
   const held: Held[] = [];
-  const deps = testDeps({ ...server, fetch: holding(server, held) });
+  const timers = new ManualTimers();
+  const deps = testDeps({ ...server, fetch: holding(server, held) }, [], undefined, timers);
   at(`/personal/plans?${plansDefault}`);
   mounted = mount(
     <DepsContext.Provider value={deps}>
@@ -354,16 +360,18 @@ test("a region past its timeout shows its card, a late answer replaces it, and R
   const root = mounted.root;
   expect(root.querySelectorAll('[aria-busy="true"]').length).toBe(2);
   expect(root.textContent).not.toContain("still loading");
-  await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+  await act(() => timers.advance(999));
+  expect(root.textContent).not.toContain("still loading");
+  await act(() => timers.advance(1));
   expect(root.textContent).toContain("still loading");
-  await act(() => new Promise((resolve) => setTimeout(resolve, 60)));
+  await act(() => timers.advance(8_999));
+  expect(root.querySelector('[role="alert"]')).toBeNull();
+  await act(() => timers.advance(1));
   expect([...root.querySelectorAll('[role="alert"] h2')].map((h) => h.textContent)).toEqual([
     "No answer came in time",
     "No answer came in time",
   ]);
-  expect(root.textContent).toContain(
-    "no answer within 0.06 seconds, and the request is still open",
-  );
+  expect(root.textContent).toContain("no answer within 10 seconds, and the request is still open");
   const [summary, rows] = held;
   if (summary === undefined || rows === undefined || held.length !== 2) {
     throw new Error(`the lens held ${held.length} reads, want its summary and its rows`);
@@ -515,4 +523,66 @@ test("a figure is a count, a time in UTC, or none for a time with nothing to sho
     "2026-09-08 09:16Z",
   );
   expect(figureText({ ...first, value: null, at: null })).toBe("none");
+});
+
+test("a region that moves to another slow read starts its timers again", async () => {
+  const timers = new ManualTimers();
+  const deps = testDeps(recorded({}), [], undefined, timers);
+  const region = (state: Signal<State<string>>) => (
+    <DepsContext.Provider value={deps}>
+      <Region name="rows" state={state} shape="table" retry={() => undefined}>
+        {(v) => v}
+      </Region>
+    </DepsContext.Provider>
+  );
+  mounted = mount(region(makeSignal<State<string>>({ status: "loading", attempt: 0 })));
+  await settle();
+  await act(() => timers.advance(1_000));
+  expect(mounted.root.textContent).toContain("still loading");
+  const root = mounted.root;
+  await act(() =>
+    render(region(makeSignal<State<string>>({ status: "loading", attempt: 0 })), root),
+  );
+  await settle();
+  expect(root.textContent).not.toContain("still loading");
+  // The new read's timers count from its start, a whole second.
+  await act(() => timers.advance(999));
+  expect(root.textContent).not.toContain("still loading");
+  await act(() => timers.advance(1));
+  expect(root.textContent).toContain("still loading");
+});
+
+test("the custom range's fields start again from a new range", async () => {
+  const custom = "level=3&range=2026-09-01,2026-09-10&sort=started_at,desc&page=1&pass=!tick";
+  server = recorded({
+    [accountsPath()]: ok("accounts.json"),
+    [systemPath("personal")]: ok("system.json"),
+    [jobsPath("personal")]: ok("jobs.json"),
+    [lensPath(
+      "personal",
+      "dataset=runs&level=0&range=2026-09-01,2026-09-10&sort=started_at,desc&pass=!tick",
+    )]: ok("runs-summary-custom.json"),
+    [lensPath("personal", `dataset=runs&${custom}`)]: ok("runs-rows-custom.json"),
+    [lensPath("personal", "dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick")]:
+      ok("runs-summary.json"),
+    [lensPath("personal", "dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick")]:
+      ok("runs-rows.json"),
+  });
+  at(`/personal/jobs?${custom}`);
+  const app = mount(<App deps={testDeps(server)} />);
+  mounted = app;
+  await settle();
+  const fields = () =>
+    [...app.root.querySelectorAll<HTMLInputElement>('.range input[type="date"]')].map(
+      (i) => i.value,
+    );
+  expect(fields()).toEqual(["2026-09-01", "2026-09-10"]);
+  await act(() =>
+    [...app.root.querySelectorAll<HTMLAnchorElement>(".range a")]
+      .find((a) => a.textContent === "7 days")
+      ?.click(),
+  );
+  await settle();
+  expect(location.search).toContain("range=7d");
+  expect(fields()).toEqual(["", ""]);
 });
