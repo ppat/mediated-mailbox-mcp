@@ -1,4 +1,4 @@
-control: At the end of a unit of work each token source's current refresh token is handed to the account snapshot library, and a failed write-back ends the run in an error
+control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
 removes: a failed write-back is dropped, so the run ends as if the rotation had landed
 packages: ./backfill
 tests: TestAFailedWriteBackEndsTheRunInError
@@ -6,14 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..1a05184 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -185,5 +185,6 @@ func handOver(ctx context.Context, loader *accountload.Loader, sources map[strin
- 			failures = append(failures, err)
- 		}
+@@ -273,8 +273,8 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
+ 	if source == nil {
+ 		return nil
  	}
--	return errors.Join(failures...)
-+	_ = failures
+-	_, err := loader.Persist(ctx, account, []byte(source.RefreshToken()))
+-	return err
++	_, _ = loader.Persist(ctx, account, []byte(source.RefreshToken()))
 +	return nil
  }
+ 
+ // firstPass returns the unit of work that runs backfill's first pass over every served account in

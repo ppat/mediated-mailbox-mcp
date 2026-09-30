@@ -12,8 +12,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
@@ -22,8 +25,10 @@ import (
 // change (ADR-0078). Each section's own type is pinned in its package.
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/backfill", "Configuration",
+		"ProbeListen string",
 		"Database core.Config",
 		"Credential core.Config",
+		"Scanner scan.Config",
 	)
 }
 
@@ -32,7 +37,11 @@ func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 // Backfill's defaults are the port, its own runtime role and the TLS mode that fails closed, and the
 // host, the database name and the password file are required.
 func TestTheDefaults(t *testing.T) {
-	want := Configuration{Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"}}
+	want := Configuration{
+		ProbeListen: ":8080",
+		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
+		Scanner:     scan.DefaultConfig(),
+	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
@@ -92,8 +101,18 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
 		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_backfill`,
+		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
+		`level=INFO msg=configuration path=scanner.window source=default value=8`,
 	}
-	got := strings.Split(strings.TrimSpace(out.String()), "\n")
+	// Of the scanner's section, whose every value is logged the same way, the window stands for the
+	// rest.
+	var got []string
+	for line := range strings.Lines(strings.TrimSpace(out.String())) {
+		line = strings.TrimSuffix(line, "\n")
+		if !strings.Contains(line, " path=scanner.") || strings.Contains(line, " path=scanner.window ") {
+			got = append(got, line)
+		}
+	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
 	}
@@ -209,6 +228,69 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 				t.Errorf("run returned %v, want the keyring's refusal", err)
 			case !c.refused && !strings.HasPrefix(err.Error(), pastTheKeyring):
 				t.Errorf("run returned %v, want it to pass the keyring and stop at the password file", err)
+			}
+		})
+	}
+}
+
+// D1's part of VERIFICATIONS' row for a configuration mistake. The scanner's section is validated by
+// the scanner itself before any key file is read, so a value outside its designed range refuses the
+// start (ADR-0078, ADR-0005).
+func TestAnInvalidScannerSectionRefusesTheStart(t *testing.T) {
+	for _, c := range []struct{ arg, want string }{
+		{"--scanner.window=0", "the window, the dense length and the dense entropy must be positive"},
+		{"--scanner.subject_threshold=0.9", "the subject threshold is above the body threshold"},
+		{"--scanner.link_words=[]", "no link word or no link parameter is configured"},
+	} {
+		t.Run(c.arg, func(t *testing.T) {
+			err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, discard())
+			if err == nil || !strings.HasPrefix(err.Error(), "validating the configuration: scanner: ") || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("run returned %v, want the scanner's refusal containing %q", err, c.want)
+			}
+		})
+	}
+}
+
+// D1's part of VERIFICATIONS' row for a section's revision. The revision a verdict records follows the
+// scanner's effective configuration, whichever layer changed it, and a change to another section
+// leaves it as it was (ADR-0078, ADR-0005).
+func TestAVerdictsRevisionFollowsTheScannerSection(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "backfill.yaml")
+	if err := os.WriteFile(file, []byte("scanner:\n  window: 9\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	revision := func(t *testing.T, args, environ []string) string {
+		t.Helper()
+		loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys, args), environ)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := buildScanner(loaded)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s.Scan("Your code is 419283").Revision()
+	}
+	base := revision(t, nil, nil)
+	if base == "" {
+		t.Fatal("the default configuration's verdict records no revision")
+	}
+	for _, c := range []struct {
+		name    string
+		args    []string
+		environ []string
+		changed bool
+	}{
+		{"a flag changing the scanner", []string{"--scanner.window=9"}, nil, true},
+		{"an environment variable changing the scanner", nil, []string{"MEDIATED_MAILBOX_SCANNER__TRIGGERS__DE=[code]"}, true},
+		{"the file changing the scanner", []string{"--config-file=" + file}, nil, true},
+		{"a flag restating the scanner's default", []string{"--scanner.window=8"}, nil, false},
+		{"a flag changing another section", []string{"--database.port=5433"}, nil, false},
+		{"a flag changing the probes", []string{"--probe_listen=:9090"}, nil, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := revision(t, c.args, c.environ); (got != base) != c.changed {
+				t.Errorf("the revision is %q against the default's %q, want it changed %v", got, base, c.changed)
 			}
 		})
 	}

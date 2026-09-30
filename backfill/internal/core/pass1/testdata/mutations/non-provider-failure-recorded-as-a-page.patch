@@ -1,0 +1,19 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a failure that is not the provider's is abandoned as the page's failure, recorded with no error class
+packages: ./backfill/internal/core/pass1 ./backfill/internal/pass1
+tests: TestOnFailure TestOnFailure/a_failure_that_is_not_the_provider's TestAFailureNotTheProvidersFailsTheRunWithNoFailedPage
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+--- a/backfill/internal/core/pass1/pass1.go
++++ b/backfill/internal/core/pass1/pass1.go
+@@ -289,8 +289,6 @@ const (
+ // run and records no failed page.
+ func OnFailure(f Attempt) Next {
+ 	switch {
+-	case f.Class == NotProvider:
+-		return FailRun
+ 	case f.Class == Validation && f.ResumedToken && !f.Restarted:
+ 		return StartOver
+ 	case f.Class == Throttled && f.Attempts < MaxAttempts:

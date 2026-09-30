@@ -5,15 +5,14 @@ tests: TestTheDefaults
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..9dceb9a 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -45,7 +45,7 @@ type Configuration struct {
- // mode is the one that fails closed. The key files have no default, since a default path assumes
- // the environment.
+@@ -71,7 +71,7 @@ type Configuration struct {
  func defaults() Configuration {
--	return Configuration{Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"}}
-+	return Configuration{Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "prefer"}}
+ 	return Configuration{
+ 		ProbeListen: ":8080",
+-		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
++		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "prefer"},
+ 		Scanner:     scan.DefaultConfig(),
+ 	}
  }
- 
- func main() {

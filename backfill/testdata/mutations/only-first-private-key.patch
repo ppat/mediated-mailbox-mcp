@@ -5,15 +5,14 @@ tests: TestThePublicKeyMustMatchAPrivateKey TestThePublicKeyMustMatchAPrivateKey
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..a839af4 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -84,7 +84,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
- 	if err := credentialcore.Validate(loaded.Config.Credential); err != nil {
+@@ -120,7 +120,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ 	if err != nil {
  		return fmt.Errorf("validating the configuration: %w", err)
  	}
--	keys, err := open.Load(loaded.Config.Credential.PublicKeyFile, loaded.Config.Credential.PrivateKeyFiles...)
-+	keys, err := open.Load(loaded.Config.Credential.PublicKeyFile, loaded.Config.Credential.PrivateKeyFiles[:1]...)
+-	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
++	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles[:1]...)
  	if err != nil {
  		return fmt.Errorf("loading the keyring: %w", err)
  	}

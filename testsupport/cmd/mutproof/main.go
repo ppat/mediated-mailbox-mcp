@@ -83,9 +83,10 @@
 // SIGINT, SIGTERM and SIGHUP stop the run, stop the running tests and remove the copies. The running
 // tests are killed, or under pgrun sent SIGTERM first, so pgrun removes its container. The runner runs
 // ordinary go test packages, property tests and integration tests included, and the browser's bun
-// tests. It is run by hand when a
-// control lands or changes, never as a standing gate. Run it from the repository root with the
-// patches as arguments.
+// tests. A crash sequence that replays against PostgreSQL is an integration test, so its patch sets
+// integration yes, and a failing case its model search finds is stored in the patched copy and
+// removed with it. It is run by hand when a control lands or changes, never as a standing gate. Run
+// it from the repository root with the patches as arguments.
 //
 //	go tool mutproof core/redact/testdata/mutations/*.patch
 package main

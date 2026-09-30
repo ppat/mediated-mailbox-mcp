@@ -5,15 +5,14 @@ tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..6323eaa 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -76,7 +76,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+@@ -107,7 +107,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
  		return fmt.Errorf("loading the configuration: %w", err)
  	}
  	for _, v := range loaded.Values {
 -		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 +		logger.Info("configuration", "path", v.Path, "value", v.Value)
  	}
- 	if err := dbconnectcore.Validate(loaded.Config.Database); err != nil {
- 		return fmt.Errorf("validating the configuration: %w", err)
+ 	c := loaded.Config
+ 	if err := dbconnectcore.Validate(c.Database); err != nil {

@@ -523,6 +523,14 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
+          # Pass 1's statements. The writes sit in the subsections only backfill's list admits, and the
+          # lowered target's read in db/accountstate (ADR-0075, ADR-0066).
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
@@ -534,10 +542,16 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/prometheus/client_golang/prometheus$"
+          # The metrics endpoint the composition root serves (ADR-0051).
+          - "github.com/prometheus/client_golang/prometheus/promhttp$"
+          # The sender classifier's domain functions, which the composition root passes pass 1.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
 
         # Deployable mediate, every file. A deployable imports its own code and the shared libraries, never another

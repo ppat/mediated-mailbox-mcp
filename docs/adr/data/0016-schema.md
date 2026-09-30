@@ -23,7 +23,8 @@ CREATE TABLE account_state (             -- everything else an account carries (
   account_id        text PRIMARY KEY REFERENCES accounts,
   credential        bytea,               -- sealed (ADR-0081, ADR-0088); opaque, its meaning the provider adapter's
                                          -- (an OAuth refresh token for Gmail, an API token for Fastmail, ADR-0012)
-  lowered_target_rate real,              -- a lower target the operator set, NULL for none (ADR-0024)
+  lowered_target_rate real,              -- a lower target the operator set, a fraction of the provider's
+                                         -- declared ceiling, NULL for none (ADR-0024)
   backfill_pass1_complete boolean NOT NULL DEFAULT false,
   backfill_pass2_complete boolean NOT NULL DEFAULT false,
   sync_cursor       text,
@@ -218,7 +219,9 @@ CREATE TABLE job_runs (                   -- every batch workload's runs (ADR-00
   started_at    timestamptz NOT NULL,
   finished_at   timestamptz,
   heartbeat_at  timestamptz,
-  checkpoint    jsonb,                    -- {page, of} or {seq, of}
+  checkpoint    jsonb,                    -- {page, of} or {seq, of}, and backfill's pass 1 records {page, token},
+                                          --   the provider's token for the next page, since its enumeration
+                                          --   reports no total
   counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages; pass2 pages, decided,
                                           --   pending, scanned, skipped; sync added, modified, removed,
                                           --   window_start, window_end, reconciled; apply ops_done,

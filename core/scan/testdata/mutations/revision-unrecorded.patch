@@ -1,0 +1,17 @@
+control: The revision a verdict records is the scanner section's, and an empty revision is refused
+removes: a verdict records no revision
+packages: ./core/scan
+tests: TestAVerdictRecordsTheRevisionItWasBuiltUnder
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -256,6 +256,6 @@ func (s Scanner) Scan(body string) Verdict {
+ 		rules:    slices.Compact(rules),
+ 		tier:     tier,
+ 		version:  Version,
+-		revision: s.revision,
++		revision: "",
+ 	}
+ }

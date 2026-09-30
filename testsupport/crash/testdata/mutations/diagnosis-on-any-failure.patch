@@ -1,0 +1,19 @@
+control: The crash harness checks persistence after every crash, and replays the reduced sequence against PostgreSQL
+removes: the cleanup diagnoses the last case drawn whenever the subtest failed, a replay's failure included, and reports the model as differing
+packages: ./testsupport/crash
+tests: TestTheReplaysFindAFaultOnlyPostgreSQLHas
+scheduled-count: no
+
+diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+--- a/testsupport/crash/crash.go
++++ b/testsupport/crash/crash.go
+@@ -156,7 +156,8 @@ func Check[S, W any](t *testing.T, target Target[S, W], cfg Config) {
+ 				drew, searched bool
+ 			)
+ 			t.Cleanup(func() {
+-				if !drew || searched {
++				if !drew || !t.Failed() {
++					_ = searched
+ 					return
+ 				}
+ 				w := target.Real(t, last.Setup)

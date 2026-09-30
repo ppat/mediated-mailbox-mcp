@@ -1,0 +1,19 @@
+control: Backfill serves the health probe and the reload-failure series on its metrics endpoint
+removes: the health probe is not served
+packages: ./backfill
+tests: TestTheProbesServeTheRunsSeries
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -163,7 +163,7 @@ func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
+ // process's registry.
+ func serveProbes(ln net.Listener, registry *prometheus.Registry, logger *slog.Logger) func() error {
+ 	mux := http.NewServeMux()
+-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
++	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+ 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+ 		if _, err := fmt.Fprintln(w, "ok"); err != nil {
+ 			logger.WarnContext(r.Context(), "writing a probe answer failed", "error", err)

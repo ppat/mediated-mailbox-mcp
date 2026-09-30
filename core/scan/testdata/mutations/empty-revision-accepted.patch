@@ -1,0 +1,18 @@
+control: The revision a verdict records is the scanner section's, and an empty revision is refused
+removes: an empty revision builds a scanner
+packages: ./core/scan
+tests: TestNewRefusesAnInvalidConfiguration TestNewRefusesAnInvalidConfiguration/an_empty_revision
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -130,7 +130,7 @@ type Scanner struct {
+ // every verdict records, or every problem found, joined.
+ func New(cfg Config, revision string) (Scanner, error) {
+ 	var problems []error
+-	if revision == "" {
++	if false && revision == "" {
+ 		problems = append(problems, errors.New("scan: the revision is empty"))
+ 	}
+ 	var triggers []string

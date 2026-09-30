@@ -1,7 +1,7 @@
 control: A served account's token source is built from the installation's OAuth client and the account's own refresh token
 removes: the client's secret is passed as the account's refresh token
 packages: ./backfill
-tests: TestTheCredentialsAreTheClientAndTheAccountsToken TestARunHandsEveryAccountOverWhenItsWorkEnds
+tests: TestTheCredentialsAreTheClientAndTheAccountsToken TestARunHandsEachAccountOverWhenItsUnitEnds
 scheduled-count: no
 integration: yes
 

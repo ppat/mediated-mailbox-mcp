@@ -1,0 +1,17 @@
+control: The crash harness checks persistence after every crash, and replays the reduced sequence against PostgreSQL
+removes: neither draw places the crash among the target's operations
+packages: ./testsupport/crash
+tests: TestBothDrawsPlaceTheCrash TestTheHarnessFindsAPlantedFault
+scheduled-count: no
+
+diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+--- a/testsupport/crash/crash.go
++++ b/testsupport/crash/crash.go
+@@ -102,7 +102,6 @@ type Config struct {
+ // report run beside it.
+ func Draws[S, W any](target Target[S, W], cfg Config) map[string]func(*rapid.T) Case[S] {
+ 	names := slices.Sorted(maps.Keys(target.Operations))
+-	names = append(names, Crash)
+ 	arg := func(t *rapid.T, name string) int {
+ 		switch {
+ 		case name == Crash && target.CrashAt != nil:

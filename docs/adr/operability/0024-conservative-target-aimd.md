@@ -36,7 +36,9 @@ controller bug cannot exceed it.
 The target is the one value here an operator may tune. An account's settings, stored with the
 account ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)), may lower it,
 to any value above the floor, for an account whose provider quota other applications share, and
-nothing may raise it above half the ceiling. A target that would be stored equal to the floor is
+nothing may raise it above half the ceiling. A lowered target is stored as a fraction of the
+ceiling the account's provider declares, the form the range is checked in, so it keeps its meaning
+when an adapter declares a different ceiling. A target that would be stored equal to the floor is
 refused, because a rate held at the floor is the collapse the alert pages on. A lowered target
 lowers the sustained rate and not the burst, since the bucket still holds one second at the hard
 cap, so a minute can spend up to sixty seconds at the target plus one second at the hard cap. The

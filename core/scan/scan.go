@@ -46,32 +46,36 @@ const (
 
 // Weights weigh tier 2's five features, each scored between 0 and 1.
 type Weights struct {
-	Entropy, Mix, Length, Proximity, Position float64
+	Entropy   float64 `yaml:"entropy"`
+	Mix       float64 `yaml:"mix"`
+	Length    float64 `yaml:"length"`
+	Proximity float64 `yaml:"proximity"`
+	Position  float64 `yaml:"position"`
 }
 
-// Config is the scanner's configuration.
+// Config is the scanner's configuration, the scanner section of a deployable's configuration
+// (ADR-0078). It carries no revision. The revision a verdict records is the configuration library's
+// revision of this section, which the composition root passes to New, so a change in any layer
+// changes it.
 type Config struct {
-	// Revision numbers the configuration, and a verdict records it, so a verdict made under an
-	// earlier configuration is scanned again.
-	Revision int
 	// Triggers are the trigger words for one-time codes, by language.
-	Triggers map[string][]string
+	Triggers map[string][]string `yaml:"triggers"`
 	// LinkWords are the words that, with a high-entropy path segment, make a URL a login link.
-	LinkWords []string
+	LinkWords []string `yaml:"link_words"`
 	// LinkParams are the query parameter names whose long, dense value makes a URL a login link.
-	LinkParams []string
+	LinkParams []string `yaml:"link_params"`
 	// Window is how many tokens may separate a trigger word from a digit run.
-	Window int
+	Window int `yaml:"window"`
 	// DenseLength and DenseEntropy make a path segment or a parameter value dense, at least that
 	// many characters and at least that many bits of Shannon entropy per character.
-	DenseLength  int
-	DenseEntropy float64
+	DenseLength  int     `yaml:"dense_length"`
+	DenseEntropy float64 `yaml:"dense_entropy"`
 	// Weights and Threshold are tier 2's. A span scoring at or above the threshold is a one-time
 	// code. SubjectThreshold replaces Threshold on a subject, and may not exceed it, because masking a
 	// subject is tuned for recall (ADR-0003).
-	Weights          Weights
-	Threshold        float64
-	SubjectThreshold float64
+	Weights          Weights `yaml:"weights"`
+	Threshold        float64 `yaml:"threshold"`
+	SubjectThreshold float64 `yaml:"subject_threshold"`
 }
 
 // DefaultConfig returns the configuration the application ships, ADR-0005's English vocabulary and
@@ -86,7 +90,6 @@ type Config struct {
 // beside it.
 func DefaultConfig() Config {
 	return Config{
-		Revision: 1,
 		Triggers: map[string][]string{
 			"en": {
 				"code", "otp", "verification", "verify", "pin", "passcode", "password", "2fa",
@@ -116,17 +119,19 @@ type Scanner struct {
 	built      bool
 	patterns   bool
 	cfg        Config
+	revision   string
 	triggers   automaton
 	linkWords  automaton
 	linkParams map[string]bool
 	url        *regexp.Regexp
 }
 
-// New validates cfg and returns a Scanner applying it, or every problem found, joined.
-func New(cfg Config) (Scanner, error) {
+// New validates cfg and returns a Scanner applying it under revision, the configuration's revision
+// every verdict records, or every problem found, joined.
+func New(cfg Config, revision string) (Scanner, error) {
 	var problems []error
-	if cfg.Revision < 1 {
-		problems = append(problems, errors.New("scan: the revision is below 1"))
+	if revision == "" {
+		problems = append(problems, errors.New("scan: the revision is empty"))
 	}
 	var triggers []string
 	for _, lang := range slices.Sorted(maps.Keys(cfg.Triggers)) {
@@ -174,6 +179,7 @@ func New(cfg Config) (Scanner, error) {
 	return Scanner{
 		built:      true,
 		cfg:        cfg,
+		revision:   revision,
 		triggers:   newAutomaton(triggers),
 		linkWords:  newAutomaton(cfg.LinkWords),
 		linkParams: params,
@@ -198,7 +204,7 @@ type Verdict struct {
 	rules    []string
 	tier     int
 	version  int
-	revision int
+	revision string
 }
 
 // Flags returns the content flags the scan found.
@@ -214,7 +220,7 @@ func (v Verdict) Tier() int { return v.tier }
 func (v Verdict) Version() int { return v.version }
 
 // Revision returns the revision of the configuration the verdict was produced under.
-func (v Verdict) Revision() int { return v.revision }
+func (v Verdict) Revision() string { return v.revision }
 
 // ScanPatterns returns the verdict of tier 1 alone on body, a message body as Markdown. It is the
 // serve-time pattern check a body released without being scanned passes, which runs the structural
@@ -250,6 +256,6 @@ func (s Scanner) Scan(body string) Verdict {
 		rules:    slices.Compact(rules),
 		tier:     tier,
 		version:  Version,
-		revision: s.cfg.Revision,
+		revision: s.revision,
 	}
 }

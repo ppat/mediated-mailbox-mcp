@@ -1,0 +1,19 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a page the provider throttles fails the run on its first attempt
+packages: ./backfill/internal/core/pass1 ./backfill/internal/pass1
+tests: TestOnFailure TestOnFailure/a_first_throttle TestOnFailure/a_throttle_before_the_last_attempt TestOnFailure/a_throttle_on_a_resumed_token TestAThrottledPageIsRetriedAndRecorded
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+--- a/backfill/internal/core/pass1/pass1.go
++++ b/backfill/internal/core/pass1/pass1.go
+@@ -293,7 +293,7 @@ func OnFailure(f Attempt) Next {
+ 		return FailRun
+ 	case f.Class == Validation && f.ResumedToken && !f.Restarted:
+ 		return StartOver
+-	case f.Class == Throttled && f.Attempts < MaxAttempts:
++	case f.Class == Throttled && f.Attempts < 1:
+ 		return Backoff
+ 	case f.Class == ProviderError && f.Attempts < MaxAttempts:
+ 		return Retry

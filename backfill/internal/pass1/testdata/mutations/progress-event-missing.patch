@@ -1,0 +1,20 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a page made durable records its checkpoint and no progress event
+packages: ./backfill/internal/pass1
+tests: TestAPassIndexesTheWholeMailbox TestAKilledRunIsResumedByTheNextRun TestAThrottledPageIsRetriedAndRecorded TestAPassStartedOverCountsNothingTwice
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postgres.go
+--- a/backfill/internal/pass1/postgres.go
++++ b/backfill/internal/pass1/postgres.go
+@@ -196,9 +196,6 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+ 		if err := q.RecordProgress(ctx, record.RecordProgressParams{Checkpoint: cp, Counters: ct, AccountID: account, RunID: runID}); err != nil {
+ 			return fmt.Errorf("recording the checkpoint: %w", err)
+ 		}
+-		if err := q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at.Checkpoint.Page)}); err != nil {
+-			return err
+-		}
+ 		c = Committed{Progress: at, Unclassified: unclassified}
+ 		return nil
+ 	})

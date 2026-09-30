@@ -7,23 +7,38 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/accountload"
+	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/core/policy"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
@@ -97,9 +112,14 @@ func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 	})
 }
 
-// reset empties the tables backfill reads. Every test of the package shares one database.
+// reset empties the tables backfill reads and writes. Every test of the package shares one database.
 func reset(t *testing.T, conn *pgx.Conn) {
 	t.Helper()
+	for _, table := range []string{
+		"masking_events", "job_run_events", "job_run_failures", "job_runs", "messages", "senders", "rate_grants", "rate_state",
+	} {
+		must(t, conn, "DELETE FROM "+table)
+	}
 	must(t, conn, "DELETE FROM account_state")
 	must(t, conn, "DELETE FROM accounts")
 	must(t, conn, "DELETE FROM oauth_clients")
@@ -202,7 +222,7 @@ func TestARunTakesItsAccountsFromTheDatabase(t *testing.T) {
 	stored := storedCredential(t, conn, "personal")
 	var log logBuffer
 
-	if err := backfill(t.Context(), backfillPool(t), ring, log.logger(), idle); err != nil {
+	if err := backfill(t.Context(), backfillPool(t), ring, log.logger(), prometheus.NewRegistry(), idle); err != nil {
 		t.Fatal(err)
 	}
 
@@ -229,7 +249,7 @@ func TestAnAccountWithoutAClientIsSkipped(t *testing.T) {
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	var log logBuffer
 
-	if err := backfill(t.Context(), backfillPool(t), ring, log.logger(), idle); err != nil {
+	if err := backfill(t.Context(), backfillPool(t), ring, log.logger(), prometheus.NewRegistry(), idle); err != nil {
 		t.Fatal(err)
 	}
 
@@ -252,7 +272,7 @@ func TestAFailedSnapshotReadStopsTheRun(t *testing.T) {
 	revoke(t, conn, "SELECT ON accounts")
 	var log logBuffer
 
-	err := backfill(t.Context(), backfillPool(t), ring, log.logger(), idle)
+	err := backfill(t.Context(), backfillPool(t), ring, log.logger(), prometheus.NewRegistry(), idle)
 
 	if !errors.Is(err, accountload.ErrUntrustedRead) {
 		t.Fatalf("backfill returned %v, want a failed snapshot read", err)
@@ -265,7 +285,7 @@ func TestAFailedSnapshotReadStopsTheRun(t *testing.T) {
 }
 
 // idle is a unit of work that does nothing.
-func idle(context.Context, map[string]*gmail.TokenSource) error { return nil }
+func idle(context.Context, served) error { return nil }
 
 // loaded returns a loader that has loaded the snapshot.
 func loaded(t *testing.T, ring *open.Keyring, log *slog.Logger) *accountload.Loader {
@@ -301,12 +321,12 @@ func TestTheCredentialsAreTheClientAndTheAccountsToken(t *testing.T) {
 }
 
 // D1's part of VERIFICATIONS' row for forcing a rotation and restarting, driven through the run. The
-// run builds each served account's token source holding the account's stored refresh token, and when
-// its unit of work ends it hands every source's current token over, a unit of work that failed
-// included, so a process started afterwards reads each rotated one (ADR-0082). Google's rotation
-// itself is out of reach without a stand-in for its endpoint (ADR-0043), so the unit of work replaces
-// each source with one holding the token it would hold after one.
-func TestARunHandsEveryAccountOverWhenItsWorkEnds(t *testing.T) {
+// run builds each served account's token source holding the account's stored refresh token, and the
+// hand-over it gives its unit of work hands the account's source's current token over, so a process
+// started afterwards reads each rotated one (ADR-0082). Google's rotation itself is out of reach
+// without a stand-in for its endpoint (ADR-0043), so the unit of work replaces each source with one
+// holding the token it would hold after one before it hands the account over.
+func TestARunHandsEachAccountOverWhenItsUnitEnds(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
@@ -316,17 +336,20 @@ func TestARunHandsEveryAccountOverWhenItsWorkEnds(t *testing.T) {
 		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
 	failed := errors.New("the unit of work failed")
 	held := map[string]string{}
-	rotate := func(_ context.Context, sources map[string]*gmail.TokenSource) error {
-		for account, source := range sources {
+	rotate := func(ctx context.Context, s served) error {
+		for account, source := range s.sources {
 			held[account] = source.RefreshToken()
-			sources[account] = gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{
+			s.sources[account] = gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{
 				ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: account + "-rotated",
 			})
+			if err := s.handOver(ctx, account); err != nil {
+				return err
+			}
 		}
 		return failed
 	}
 
-	err := backfill(t.Context(), backfillPool(t), ring, slog.New(slog.DiscardHandler), rotate)
+	err := backfill(t.Context(), backfillPool(t), ring, slog.New(slog.DiscardHandler), prometheus.NewRegistry(), rotate)
 
 	if !errors.Is(err, failed) {
 		t.Errorf("backfill returned %v, want the unit of work's failure", err)
@@ -343,11 +366,12 @@ func TestARunHandsEveryAccountOverWhenItsWorkEnds(t *testing.T) {
 	}
 }
 
-// At the end of a unit of work the composition root hands each token source's current refresh token to the loader. A rotated one
-// is written back, so a process started afterwards reads it, and an unchanged one writes nothing
-// (ADR-0082). Google's rotation itself is out of reach without a stand-in for its endpoint (ADR-0043),
-// so each source is built holding the token it would hold after one.
-func TestTheSourcesRefreshTokenIsHandedOverAtTheEndOfTheRun(t *testing.T) {
+// At the end of a unit of work the composition root hands the account's token source's current
+// refresh token to the loader. A rotated one is written back, so a process started afterwards reads
+// it, and an unchanged one writes nothing (ADR-0082). Google's rotation itself is out of reach without
+// a stand-in for its endpoint (ADR-0043), so each source is built holding the token it would hold
+// after one.
+func TestTheSourcesRefreshTokenIsHandedOver(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
@@ -360,8 +384,10 @@ func TestTheSourcesRefreshTokenIsHandedOverAtTheEndOfTheRun(t *testing.T) {
 		"unchanged": gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{ClientID: "id", ClientSecret: "secret", RefreshToken: "same-token"}),
 	}
 
-	if err := handOver(t.Context(), loader, sources); err != nil {
-		t.Fatal(err)
+	for account, source := range sources {
+		if err := handOver(t.Context(), loader, account, source); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	restarted := loaded(t, ring, slog.New(slog.DiscardHandler)).Snapshot()
@@ -375,8 +401,8 @@ func TestTheSourcesRefreshTokenIsHandedOverAtTheEndOfTheRun(t *testing.T) {
 }
 
 // D1's part of VERIFICATIONS' row for failing the write-back of a rotated credential. A write-back
-// that fails is logged by the loader, the other accounts are still handed over, and the run ends in
-// an error naming the account, so the failure is loud (ADR-0082).
+// that fails is logged by the loader and returns an error naming the account, and an unchanged one
+// still hands over, so the failure is loud (ADR-0082).
 func TestAFailedWriteBackEndsTheRunInError(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -391,10 +417,13 @@ func TestAFailedWriteBackEndsTheRunInError(t *testing.T) {
 		"work":     gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{ClientID: "id", ClientSecret: "secret", RefreshToken: "work-token"}),
 	}
 
-	err := handOver(t.Context(), loader, sources)
+	err := handOver(t.Context(), loader, "personal", sources["personal"])
 
 	if err == nil || !strings.Contains(err.Error(), "account personal: writing back the rotated credential") {
 		t.Fatalf("handOver returned %v, want the failed write-back", err)
+	}
+	if err := handOver(t.Context(), loader, "work", sources["work"]); err != nil {
+		t.Errorf("handing over an unchanged token returned %v", err)
 	}
 	var failures []record
 	for _, r := range log.records(t) {
@@ -405,5 +434,255 @@ func TestAFailedWriteBackEndsTheRunInError(t *testing.T) {
 	want := []record{{Level: "ERROR", Msg: "a rotated credential was not written back, so a restart before a later write-back lands loses the account's access", Account: "personal"}}
 	if diff := cmp.Diff(want, failures, compare.Options); diff != "" {
 		t.Errorf("error records (-want +got):\n%s", diff)
+	}
+}
+
+// firstPassDeps returns the dependencies of a pass over the account through pool, enumerating a
+// provider fake holding messages in pages of two, one of them from a sender without a domain.
+func firstPassDeps(t *testing.T, pool *pgxpool.Pool, account string) pass1.Deps {
+	t.Helper()
+	var messages []fake.Message
+	for i, from := range []string{"a@news.example", "b@news.example", "no-domain", "c@shop.example", "d@news.example"} {
+		messages = append(messages, fake.Message{Metadata: mail.MessageMetadata{
+			ID: fmt.Sprintf("m%d", i), ThreadID: fmt.Sprintf("t%d", i), From: mail.Address{Email: from},
+			Subject: marker.Field("subject"), Date: mail.UnixMilli(1_700_000_000_000 + i),
+		}})
+	}
+	f, err := fake.New(fake.Config{Account: account, PageSize: 2}, messages...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	if err != nil {
+		t.Fatal(err)
+	}
+	none, err := policy.Load(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	return pass1.Deps{
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll,
+		Policy: none.For(account), Scanner: s,
+		Lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+		RunID:   func() string { n++; return fmt.Sprintf("run%d", n) },
+		Now:     time.Now,
+	}
+}
+
+// Every page of the first pass is a unit of work. The account's token is handed over after each page,
+// so a rotation reaches the database a page after it happens rather than at the end of the run
+// (ADR-0082). The messages whose sender the classifier could not classify are counted on the
+// account's series as each page is made durable (O2).
+func TestEachPageIsAUnitOfWork(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	account(t, conn, "personal", gmailProvider, nil, false)
+	pool := backfillPool(t)
+	registry := prometheus.NewRegistry()
+	metrics, err := pass1.NewMetrics(registry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var handedOver []string
+	handOver := func(_ context.Context, account string) error {
+		handedOver = append(handedOver, account)
+		return nil
+	}
+
+	if err := passAccount(t.Context(), firstPassDeps(t, pool, "personal"), "personal", metrics, handOver, slog.New(slog.DiscardHandler)); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff([]string{"personal", "personal", "personal"}, handedOver, compare.Options); diff != "" {
+		t.Errorf("the hand-overs, one after each of the three pages (-want +got):\n%s", diff)
+	}
+	if got := counterValue(t, registry, "mediated_mailbox_backfill_unclassified_senders_total", "personal"); got != 1 {
+		t.Errorf("the unclassified senders series reads %v, want 1", got)
+	}
+}
+
+// A hand-over that fails is returned once the pass ends, and the pass still ends, since the loader
+// keeps the rotated token in memory and a later hand-over may land it (ADR-0082).
+func TestAFailedHandOverFailsThePassAtItsEnd(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	account(t, conn, "personal", gmailProvider, nil, false)
+	metrics, err := pass1.NewMetrics(prometheus.NewRegistry())
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed := errors.New("the write-back failed")
+	calls := 0
+	handOver := func(context.Context, string) error {
+		calls++
+		if calls == 1 {
+			return failed
+		}
+		return nil
+	}
+
+	err = passAccount(t.Context(), firstPassDeps(t, backfillPool(t), "personal"), "personal", metrics, handOver, slog.New(slog.DiscardHandler))
+
+	if !errors.Is(err, failed) {
+		t.Errorf("passAccount returned %v, want the failed hand-over", err)
+	}
+	var ended bool
+	if err := conn.QueryRow(t.Context(), "SELECT backfill_pass1_complete FROM account_state WHERE account_id = 'personal'").Scan(&ended); err != nil || !ended {
+		t.Errorf("the pass did not end after a failed hand-over (%v)", err)
+	}
+}
+
+// counterValue returns the value of the series name carries for account, failing when it has none.
+func counterValue(t *testing.T, registry prometheus.Gatherer, name, account string) float64 {
+	t.Helper()
+	families, err := registry.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range families {
+		if f.GetName() != name {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "account" && l.GetValue() == account {
+					if m.GetCounter() != nil {
+						return m.GetCounter().GetValue()
+					}
+					return m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+	t.Fatalf("no series %s for account %s", name, account)
+	return 0
+}
+
+// The limiter a run builds spends each account under the lower target its state row sets, and every
+// other account under the default target (ADR-0024).
+func TestTheLimiterSpendsUnderTheStoredTarget(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	account(t, conn, "lowered", gmailProvider, nil, false)
+	account(t, conn, "default", gmailProvider, nil, false)
+	must(t, conn, "UPDATE account_state SET lowered_target_rate = 0.2 WHERE account_id = 'lowered'")
+	pool := backfillPool(t)
+	limiter, err := newLimiter(t.Context(), pool, []string{"default", "lowered"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range []string{"default", "lowered"} {
+		if _, err := limiter.Acquire(t.Context(), a, ratecore.Batch, 1); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := map[string]float64{}
+	for _, a := range []string{"default", "lowered"} {
+		var target float64
+		if err := conn.QueryRow(t.Context(), "SELECT target_rate FROM rate_state WHERE account_id = $1", a).Scan(&target); err != nil {
+			t.Fatal(err)
+		}
+		got[a] = target
+	}
+	if diff := cmp.Diff(map[string]float64{"default": 50, "lowered": 20}, got, compare.Options); diff != "" {
+		t.Errorf("the targets the limiter spends under, in Gmail's units a second (-want +got):\n%s", diff)
+	}
+}
+
+// A stored target above half the ceiling refuses the limiter, naming the account, so no run spends
+// above the target an operator may only lower (ADR-0024).
+func TestAStoredTargetAboveHalfTheCeilingStopsTheRun(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	account(t, conn, "raised", gmailProvider, nil, false)
+	must(t, conn, "UPDATE account_state SET lowered_target_rate = 0.6 WHERE account_id = 'raised'")
+	_, err := newLimiter(t.Context(), backfillPool(t), []string{"raised"}, nil)
+	if !errors.Is(err, ratecore.ErrTargetOutOfRange) || !strings.Contains(err.Error(), `"raised"`) {
+		t.Errorf("newLimiter returned %v, want the target refused for the account", err)
+	}
+}
+
+// D1's part of VERIFICATIONS' rows for the reload-failure alarm. The health probe answers while
+// backfill runs, and its metrics endpoint serves the policy loader's reload-failure series of the run's
+// policy load, so the alarm reaches the platform from a running backfill (ADR-0041, ADR-0051,
+// ADR-0077).
+func TestTheProbesServeTheRunsSeries(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	ring, public := keys(t)
+	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
+	pool := backfillPool(t)
+	registry := prometheus.NewRegistry()
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := firstPass(pool, s, registry, slog.New(slog.DiscardHandler)); err != nil {
+		t.Fatal(err)
+	}
+	if err := backfill(t.Context(), pool, ring, slog.New(slog.DiscardHandler), registry, idle); err != nil {
+		t.Fatal(err)
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stop := serveProbes(ln, registry, slog.New(slog.DiscardHandler))
+	defer func() {
+		if err := stop(); err != nil {
+			t.Error(err)
+		}
+	}()
+	get := func(path string) (int, string) {
+		res, err := http.Get("http://" + ln.Addr().String() + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(res.Body)
+		if err := errors.Join(err, res.Body.Close()); err != nil {
+			t.Fatal(err)
+		}
+		return res.StatusCode, string(body)
+	}
+	if code, body := get("/healthz"); code != http.StatusOK || body != "ok\n" {
+		t.Errorf("/healthz answered %d %q, want 200 ok", code, body)
+	}
+	code, body := get("/metrics")
+	if code != http.StatusOK {
+		t.Fatalf("/metrics answered %d", code)
+	}
+	if !strings.Contains(body, "\nmediated_mailbox_policyload_reload_failed 0\n") {
+		t.Errorf("/metrics does not serve the reload-failure series:\n%s", body)
+	}
+}
+
+// A page that fails is still a unit of work, so the account's token is handed over after it too, and
+// a rotation made before the failure reaches the database (ADR-0082).
+func TestAFailedPageIsStillHandedOver(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	account(t, conn, "personal", gmailProvider, nil, false)
+	metrics, err := pass1.NewMetrics(prometheus.NewRegistry())
+	if err != nil {
+		t.Fatal(err)
+	}
+	deps := firstPassDeps(t, backfillPool(t), "personal")
+	deps.Fetch = func(context.Context, mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
+		return mail.Page[mail.MessageMetadata]{}, mail.ErrAuthentication
+	}
+	var handedOver []string
+	handOver := func(_ context.Context, account string) error {
+		handedOver = append(handedOver, account)
+		return nil
+	}
+
+	err = passAccount(t.Context(), deps, "personal", metrics, handOver, slog.New(slog.DiscardHandler))
+
+	if !errors.Is(err, mail.ErrAuthentication) {
+		t.Errorf("passAccount returned %v, want the refused credential", err)
+	}
+	if diff := cmp.Diff([]string{"personal"}, handedOver, compare.Options); diff != "" {
+		t.Errorf("the hand-overs after the failed page (-want +got):\n%s", diff)
 	}
 }

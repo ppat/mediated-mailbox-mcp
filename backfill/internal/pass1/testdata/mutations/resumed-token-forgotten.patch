@@ -1,0 +1,20 @@
+control: A page made durable twice counts nothing twice
+removes: the run never remembers the token it resumed from, so a refused resumed token fails every run
+packages: ./backfill/internal/pass1
+tests: TestAPassStartedOverCountsNothingTwice
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/pass1.go b/backfill/internal/pass1/pass1.go
+--- a/backfill/internal/pass1/pass1.go
++++ b/backfill/internal/pass1/pass1.go
+@@ -132,9 +132,6 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+ 		return &Pass{deps: deps, account: account, done: true}, nil
+ 	}
+ 	p := &Pass{deps: deps, account: account, run: deps.RunID(), at: start.From}
+-	if start.ResumedFrom != "" {
+-		p.resumed = start.From.Checkpoint.Token
+-	}
+ 	if err := deps.Store.Start(ctx, account, p.run, start); err != nil {
+ 		return nil, fmt.Errorf("recording the run: %w", err)
+ 	}

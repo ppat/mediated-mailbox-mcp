@@ -6,6 +6,8 @@ package accountstate
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -13,6 +15,9 @@ type Querier interface {
 	// endpoint's operational block and the jobs backfill card read (docs/UI.md sections 8.3 and 8.8). It
 	// reads no credential, and the role that runs it holds no grant on one (ADR-0084, ADR-0091).
 	AccountProgress(ctx context.Context, accountID string) (AccountProgressRow, error)
+	// The lower target the operator set for the account, a fraction of its provider's declared ceiling, or
+	// null for none. The rate limiter takes it for the account when a spending process builds it (ADR-0024).
+	LoweredTarget(ctx context.Context, accountID string) (pgtype.Float4, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -1,0 +1,18 @@
+control: The crash harness checks persistence after every crash, and replays the reduced sequence against PostgreSQL
+removes: no sequence drawn from a fixed seed is replayed against PostgreSQL
+packages: ./testsupport/crash
+tests: TestTheReplaysFindAFaultOnlyPostgreSQLHas
+scheduled-count: no
+
+diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+--- a/testsupport/crash/crash.go
++++ b/testsupport/crash/crash.go
+@@ -176,7 +176,7 @@ func Check[S, W any](t *testing.T, target Target[S, W], cfg Config) {
+ 			})
+ 			searched = true
+ 			gen := rapid.Custom(draw)
+-			for seed := range cfg.Replays {
++			for seed := range 0 * cfg.Replays {
+ 				c := gen.Example(seed)
+ 				w := target.Real(t, c.Setup)
+ 				failed, report := probe(t.Name(), func(tb rapid.TB) { Run(tb, target, w, c) })

@@ -1,0 +1,19 @@
+control: Backfill serves the health probe and the reload-failure series on its metrics endpoint
+removes: the policy loader registers its reload-failure series on a registry of its own, off the metrics endpoint
+packages: ./backfill
+tests: TestTheProbesServeTheRunsSeries
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -218,7 +218,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 	for _, a := range listed {
+ 		ids = append(ids, a.ID())
+ 	}
+-	policies, err := policyload.New(pool, ids, registry)
++	policies, err := policyload.New(pool, ids, prometheus.NewRegistry())
+ 	if err != nil {
+ 		return err
+ 	}

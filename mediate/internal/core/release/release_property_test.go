@@ -47,7 +47,7 @@ func body(a args) string {
 // it only where the wrapping put them, so no generated body closes the block early. The marker and every
 // ordinary word survive, so a step that releases an empty body fails.
 func TestTheReleasedBodysForm(t *testing.T) {
-	s, err := scan.New(scan.DefaultConfig())
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

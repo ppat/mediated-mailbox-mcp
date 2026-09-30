@@ -8,10 +8,10 @@ integration: yes
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -124,6 +124,9 @@
+@@ -156,6 +156,9 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
  			return nil
  		}
- 		wait = l.waitFor(st, next, req, now)
+ 		wait = waitFor(limits, st, next, req, now)
 +		if d.Outcome != core.Granted {
 +			return nil
 +		}
