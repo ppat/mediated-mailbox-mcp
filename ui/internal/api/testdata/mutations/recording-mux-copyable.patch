@@ -5,12 +5,12 @@ tests: TestTheRecordingMuxRefusesACopy
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 26ed4de..be7934e 100644
+index 94b3996..37570bd 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -71,11 +71,6 @@ type Server struct {
- // pattern to compare. The mux sits in an unexported field and is embedded nowhere, so no promoted
- // method registers a route unrecorded.
+@@ -79,11 +79,6 @@ type Server struct {
+ // mux sits in an unexported field and is embedded nowhere, so no promoted method registers a route
+ // unrecorded.
  type recordingMux struct {
 -	// noCopy makes go vet's copylocks check refuse a copy of a recording mux, since a copy shares the
 -	// underlying mux and records its patterns where Served and ProbesServed never read them. A copy
