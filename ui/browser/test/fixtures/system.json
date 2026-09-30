@@ -78,7 +78,7 @@
       }
     },
     "last_auth_at": "2026-09-10T04:16:04Z",
-    "last_auth_outcome": "ok"
+    "last_auth_outcome": "\u003cscript\u003emmfieldmarker-authoutcome\u003c/script\u003e"
   },
   "corpus": {
     "messages": 3,

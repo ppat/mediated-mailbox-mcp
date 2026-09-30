@@ -87,7 +87,10 @@ test("the navigation lists only the screens that exist and marks the current one
   const links = [...root.querySelectorAll('nav[aria-label="Screens"] a')];
   expect(
     links.map((a) => [a.textContent, a.getAttribute("href"), a.getAttribute("aria-current")]),
-  ).toEqual([["Home", "/personal", "page"]]);
+  ).toEqual([
+    ["Home", "/personal", "page"],
+    ["System", "/personal/system", null],
+  ]);
 });
 
 test("the address line shows the view's whole URL", async () => {

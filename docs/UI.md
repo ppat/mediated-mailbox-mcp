@@ -697,7 +697,38 @@ describes the read-only screen until then.
 operational block, the values ADR-0034 exposes to clients, one to one. Backfill pass 1 and pass 2
 flags with progress where a pass runs, sync cursor age and last successful tick, scan backlog
 depth, rate controller state (current of target, cap, backoff wording, last throttle), and the last
-provider authentication outcome with its time. Each links where Home's operational rows link.
+provider authentication outcome with its time. Each links where Home's operational rows link, once
+the screen it links to exists.
+
+The as-of time comes first, as in Home's System column, so a tab left open is visibly stale. Then
+one row per value, in this order.
+
+| Row | Value | Links to |
+| --- | --- | --- |
+| account | the identifier in mono and the provider, and "not connected" when the account has no state row, which ADR-0091 reads as not connected | nothing |
+| backfill pass 1 | "complete", or while the pass's latest run is running "running, page {page} of {of} ({share})" with the progress bar of [section 7.3](#73-charts), else "not complete" | Jobs, once the jobs screen exists |
+| backfill pass 2 | as pass 1 | the corpus lens with `scan_state=pending`, once that lens exists |
+| sync cursor age | the age, with the UTC time on hover, or "no cursor yet" | Jobs, once the jobs screen exists |
+| last successful tick | the UTC time, or "none yet" | Jobs, once the jobs screen exists |
+| scan backlog | "{count} messages pending scan" | the corpus lens with `scan_state=pending`, once that lens exists |
+| rate | "{current} of {target} units/s, cap {cap} units/s", or "no rate state yet" for an account that has never spent | Jobs, once the jobs screen exists |
+| backoff | the backoff wording of [section 11](#11-rendering-and-formatting-rules). A `backoff_until` already past reads "not in backoff" | Jobs, once the jobs screen exists |
+| last throttle | the UTC time, or "never" | Jobs, once the jobs screen exists |
+| last authentication | the outcome as recorded, then the UTC time, or "none recorded" | nothing, because Home's row links to this screen |
+
+A row whose screen does not exist yet renders its value unlinked and gains the link when that
+screen lands, since the UI links only to screens that exist. Linking ahead of the screen was the
+alternative, and it would send the operator to a page that says no screen is there. The scan
+backlog links where Home's pass 2 row does, the one Home row that carries the pending count. The
+authentication outcome is text the provider adapter records, so it renders inert like
+message-derived text ([section 11](#11-rendering-and-formatting-rules)).
+
+The screen is not a live surface. It reads the system endpoint through the same cached read as the
+chrome's partial-index banner, so a page load sends one request, and while the banner follows the
+stream ([section 9](#9-live-surfaces)) the screen's values move with it. Reading the endpoint a
+second time for the screen was the alternative, and it would send two requests for one answer. A
+failed or slow read shows the region patterns of
+[section 12](#12-empty-loading-partial-and-error-patterns).
 
 ### 8.9 Plans
 
