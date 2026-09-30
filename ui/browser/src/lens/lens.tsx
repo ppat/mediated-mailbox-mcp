@@ -4,7 +4,14 @@
 // of its row type.
 import { useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
-import { isFigures, lensPath, systemPath, type RowsPage, type System } from "../app/api.ts";
+import {
+  isFigures,
+  isRowsPage,
+  lensPath,
+  systemPath,
+  type RowsPage,
+  type System,
+} from "../app/api.ts";
 import type { State } from "../app/cache.ts";
 import { useDeps } from "../app/deps.ts";
 import { count } from "../app/format.ts";
@@ -87,8 +94,8 @@ export function Lens<Row>(props: LensProps<Row>) {
           retry={() => void lens.retry(rowsPath)}
         >
           {(answer) => {
-            const rows = isFigures(answer) ? undefined : props.rows(answer);
-            if (rows === undefined || isFigures(answer)) {
+            const rows = isRowsPage(answer) ? props.rows(answer) : undefined;
+            if (rows === undefined || !isRowsPage(answer)) {
               return null;
             }
             return (

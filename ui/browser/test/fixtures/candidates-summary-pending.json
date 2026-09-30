@@ -12,6 +12,7 @@
       "key": "pending",
       "wording": "Awaiting review",
       "value": 1,
+      "at": null,
       "unit": null,
       "link": "/personal/candidates?status=pending"
     },
@@ -19,6 +20,7 @@
       "key": "confirmed",
       "wording": "Confirmed",
       "value": 0,
+      "at": null,
       "unit": null,
       "link": "/personal/candidates?status=confirmed"
     },
@@ -26,6 +28,7 @@
       "key": "dismissed",
       "wording": "Dismissed",
       "value": 0,
+      "at": null,
       "unit": null,
       "link": "/personal/candidates?status=dismissed"
     }

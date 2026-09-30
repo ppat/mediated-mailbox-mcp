@@ -5,10 +5,10 @@ tests: TestTheProbesListenerServesOnlyTheProbes
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index f2e0a49..4d5c522 100644
+index 626acce..460cb19 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -142,6 +142,7 @@ func New(opts Options) (*Server, error) {
+@@ -162,6 +162,7 @@ func New(opts Options) (*Server, error) {
  		answer(w, r, http.StatusOK, "ok")
  	}))
  	probes.Handle("GET /readyz", http.HandlerFunc(s.ready))

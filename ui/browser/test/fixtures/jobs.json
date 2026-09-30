@@ -39,7 +39,7 @@
         "plan_id": null,
         "plan_description": null,
         "plan_status": null,
-        "resumed_from": null,
+        "resumed_from": "r-0912",
         "started_at": "2026-09-10T09:36:04Z",
         "finished_at": null,
         "heartbeat_at": "2026-09-10T10:15:04Z",

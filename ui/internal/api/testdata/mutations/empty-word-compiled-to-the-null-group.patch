@@ -1,0 +1,20 @@
+control: a group's filter word selects the rows the group counts
+removes: the word empty is compiled to the null group's word, so sender=empty selects the items with no message instead of the one stored with an empty domain
+packages: ./ui/internal/api
+tests: TestTheEmptyGroupsWordSelectsTheRowsItCounts
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/registry/filters.go b/ui/internal/registry/filters.go
+index 025be6d..9b7b079 100644
+--- a/ui/internal/registry/filters.go
++++ b/ui/internal/registry/filters.go
+@@ -24,7 +24,7 @@ func split(r lens.Request, dimension string) (in, out []string) {
+ 	values := make([]string, len(f.Values))
+ 	for i, v := range f.Values {
+ 		if v == lens.Empty {
+-			v = ""
++			v = lens.None
+ 		}
+ 		values[i] = v
+ 	}

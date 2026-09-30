@@ -1,0 +1,19 @@
+control: the statement-set check refuses a dataset without the statements its declarations require, and a dimension named as a parameter
+removes: a dataset declaring a provenance query with no row identity is not reported
+packages: ./ui/internal/registry
+tests: TestTheStatementSetCheckReportsEachMismatch
+scheduled-count: no
+
+diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
+index 1ba4aee..3c79419 100644
+--- a/ui/internal/registry/registry.go
++++ b/ui/internal/registry/registry.go
+@@ -197,7 +197,7 @@ func Check(datasets []Dataset) []string {
+ 		if d.Identity != nil && d.Detail == nil {
+ 			problems = append(problems, fmt.Sprintf("%s: a row identity with no provenance query", d.Name))
+ 		}
+-		if d.Identity == nil && d.Detail != nil {
++		if false && d.Identity == nil && d.Detail != nil {
+ 			problems = append(problems, fmt.Sprintf("%s: a provenance query with no row identity", d.Name))
+ 		}
+ 		for _, dim := range d.Dimensions {

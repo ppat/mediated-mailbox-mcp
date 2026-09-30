@@ -146,6 +146,27 @@ func isParameter(n *pg.Node) bool {
 	return false
 }
 
+// parameterCast returns the type a cast parameter is cast to, and false for anything else. @name::text
+// parses as @ applied to name::text, because the cast binds tighter than the prefix operator, so both
+// shapes are cast parameters.
+func parameterCast(n *pg.Node) (*pg.TypeName, bool) {
+	if c := n.GetTypeCast(); c != nil && isParameter(c.GetArg()) {
+		return c.GetTypeName(), true
+	}
+	if e := n.GetAExpr(); e != nil && isParameter(n) {
+		if c := e.GetRexpr().GetTypeCast(); c != nil {
+			return c.GetTypeName(), true
+		}
+	}
+	return nil, false
+}
+
+// isCitext reports whether a type is the case-insensitive text type or an array of it.
+func isCitext(t *pg.TypeName) bool {
+	n := names(t.GetNames())
+	return len(n) > 0 && n[len(n)-1] == "citext"
+}
+
 // isCastParameter reports whether n is a parameter under a type cast. @name::text parses as @ applied
 // to name::text, because the cast binds tighter than the prefix operator, so both shapes are cast
 // parameters.

@@ -11,6 +11,7 @@
       "key": "DRAFT",
       "wording": "Awaiting approval",
       "value": 1,
+      "at": null,
       "unit": null,
       "link": "/personal/plans?status=DRAFT"
     },
@@ -18,6 +19,7 @@
       "key": "APPROVED",
       "wording": "Approved, waiting to apply",
       "value": 0,
+      "at": null,
       "unit": null,
       "link": "/personal/plans?status=APPROVED"
     },
@@ -25,6 +27,7 @@
       "key": "APPLYING",
       "wording": "Applying",
       "value": 1,
+      "at": null,
       "unit": null,
       "link": "/personal/plans?status=APPLYING"
     },
@@ -32,6 +35,7 @@
       "key": "APPLIED",
       "wording": "Applied",
       "value": 1,
+      "at": null,
       "unit": null,
       "link": "/personal/plans?status=APPLIED"
     },
@@ -39,6 +43,7 @@
       "key": "ROLLED_BACK",
       "wording": "Rolled back",
       "value": 0,
+      "at": null,
       "unit": null,
       "link": "/personal/plans?status=ROLLED_BACK"
     },
@@ -46,6 +51,7 @@
       "key": "REJECTED",
       "wording": "Rejected",
       "value": 0,
+      "at": null,
       "unit": null,
       "link": "/personal/plans?status=REJECTED"
     },
@@ -53,6 +59,7 @@
       "key": "APPLY_REFUSED",
       "wording": "Apply refused",
       "value": 0,
+      "at": null,
       "unit": null,
       "link": "/personal/plans?status=APPLY_REFUSED"
     }

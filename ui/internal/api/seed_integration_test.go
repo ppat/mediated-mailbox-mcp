@@ -83,9 +83,17 @@ func seed(t *testing.T) {
 			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, sender_class, content_flags, scan_state) VALUES
 			($1, 'm-bank', 't-bank', $2, 'bank.example', $3, $4, $5, '{}', true, 'restricted', '{}', 'skipped_restricted'),
 			($1, 'm-news', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{}', 'scanned'),
-			($1, 'm-news2', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{}', 'pending'),
+			($1, 'm-news2', 't-news', $6, 'Newsletter.Example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'pending'),
+			($1, 'm-empty', 't-empty', 'nobody@', '', $7, $8, $9, '{}', false, 'normal', '{}', 'scanned'),
 			($10, 'm-other', 't-other', $11::text, 'other.example', $11::text, $11::text, $9, '{}', false, 'normal', '{}', 'pending')`,
 			[]any{personal, bank.FromAddress, bank.FromName, bank.Subject, at(48 * time.Hour), newsletter.FromAddress, newsletter.FromName, newsletter.Subject, at(30 * time.Hour), other, marker.Field("other")},
+		},
+		{
+			// The newsletter's first message was scanned, so its row carries the scan's time and version
+			// and the rule ids the scan recorded, which a failure's row detail shows (docs/UI.md 7.1).
+			`UPDATE messages SET rule_ids = '{content.mfa.subject_numeric_6,sender.list.newsletter}', scanned_at = $2, scanner_version = 3
+			WHERE account_id = $1 AND message_id = 'm-news'`,
+			[]any{personal, at(29 * time.Hour)},
 		},
 		{
 			`INSERT INTO senders (account_id, domain, message_count, first_seen, last_seen, sender_class) VALUES
@@ -119,7 +127,8 @@ func seed(t *testing.T) {
 		{
 			`INSERT INTO job_runs (account_id, run_id, workload, pass, state, plan_id, resumed_from, started_at, finished_at, heartbeat_at, checkpoint, counters, last_error) VALUES
 			($1, 'r-0901', 'backfill', 'pass1', 'succeeded', NULL, NULL, $2, $3, $3, '{"page": 3368, "of": 3368}', '{"pages": 3368, "messages": 84212}', NULL),
-			($1, 'r-0913', 'backfill', 'pass2', 'running', NULL, NULL, $4, NULL, $5, '{"page": 3065, "of": 3368}', '{"pages": 3065, "decided": 76610, "pending": 7602, "scanned": 70100, "skipped": 6510}', NULL),
+			($1, 'r-0912', 'backfill', 'pass2', 'failed', NULL, NULL, $16, $17, $17, '{"page": 14, "of": 3368}', '{"pages": 14, "decided": 350, "pending": 83862, "scanned": 330, "skipped": 20}', $18),
+			($1, 'r-0913', 'backfill', 'pass2', 'running', NULL, 'r-0912', $4, NULL, $5, '{"page": 3065, "of": 3368}', '{"pages": 3065, "decided": 76610, "pending": 7602, "scanned": 70100, "skipped": 6510}', NULL),
 			($1, 'r-0914', 'sync', 'tick', 'succeeded', NULL, NULL, $6, $5, $5, NULL, '{"added": 3, "modified": 1, "removed": 0}', NULL),
 			($1, 'r-0911', 'sync', 'gap_recovery', 'succeeded', NULL, NULL, $7, $7, $7, NULL, '{"window_start": "2026-09-08T00:00:00Z", "window_end": "2026-09-08T06:00:00Z", "reconciled": 41}', NULL),
 			($1, 'r-0910', 'apply', 'apply', 'succeeded', $8, NULL, $9, $9, $9, '{"seq": 2, "of": 2}', '{"ops_done": 2, "ops_total": 2, "failures": 0}', NULL),
@@ -129,13 +138,39 @@ func seed(t *testing.T) {
 			[]any{
 				personal, at(9 * 24 * time.Hour), at(8 * 24 * time.Hour), at(40 * time.Minute), at(time.Minute), at(5 * time.Minute),
 				at(2 * 24 * time.Hour), appliedPlan, at(10 * 24 * time.Hour), applyingPlan, at(3 * time.Hour), marker.MarkupField("runerror"),
-				at(20 * time.Hour), other, marker.Field("other"),
+				at(20 * time.Hour), other, marker.Field("other"), at(50 * time.Hour), at(49 * time.Hour), marker.MarkupField("runfailure"),
 			},
 		},
 		{
-			`INSERT INTO job_run_events (account_id, run_id, kind, at, page) VALUES
-			($1, 'r-0913', 'start', $2, NULL), ($1, 'r-0913', 'progress', $3, 3005), ($1, 'r-0913', 'progress', $4, 3065)`,
-			[]any{personal, at(40 * time.Minute), at(9 * time.Minute), at(time.Minute)},
+			// r-0912's failures, one per disposition and item kind, among them a message the index no
+			// longer holds and an item with no page, and r-0901's, one on a message stored with an empty
+			// domain beside a page item with none. seq is written so the rows and their identities do not
+			// move between runs.
+			`INSERT INTO job_run_failures (account_id, run_id, seq, item_kind, item_id, page, error_class, error_summary, attempts, first_at, last_at, disposition, recovered_by) VALUES
+			($1, 'r-0912', 1, 'message', 'm-bank', 12, 'scanner_timeout', $2, 2, $3, $4, 'recovered', 'r-0913'),
+			($1, 'r-0912', 2, 'message', 'm-news2', 12, 'provider_error', $5, 1, $3, $3, 'pending', NULL),
+			($1, 'r-0912', 3, 'page', '13', 13, 'throttled', NULL, 5, $3, $6, 'abandoned', NULL),
+			($1, 'r-0912', 4, 'message', 'm-gone', 14, 'gone', NULL, 1, $6, $6, 'gone', NULL),
+			($1, 'r-0912', 5, 'message', 'm-news', NULL, 'provider_error', NULL, 1, $6, $6, 'pending', NULL),
+			($1, 'r-0901', 1, 'message', 'm-empty', 7, 'provider_error', NULL, 1, $6, $6, 'pending', NULL),
+			($1, 'r-0901', 2, 'page', '8', 8, 'throttled', NULL, 1, $6, $6, 'abandoned', NULL),
+			($7, 'r-other', 1, 'message', 'm-other', 1, 'gone', $8, 1, $3, $3, 'gone', NULL)`,
+			[]any{
+				personal, marker.MarkupField("errorsummary"), at(50 * time.Hour), at(45 * time.Hour), marker.Field("providererror"),
+				at(49*time.Hour + 30*time.Minute), other, marker.Field("other"),
+			},
+		},
+		{
+			`INSERT INTO job_run_events (account_id, run_id, kind, at, page, detail) VALUES
+			($1, 'r-0913', 'start', $2, NULL, NULL), ($1, 'r-0913', 'progress', $3, 3005, NULL), ($1, 'r-0913', 'progress', $4, 3065, NULL),
+			($1, 'r-0912', 'start', $5, NULL, NULL), ($1, 'r-0912', 'progress', $6, 12, NULL), ($1, 'r-0912', 'failure', $7, 12, $8),
+			($1, 'r-0912', 'backoff', $7, 12, NULL), ($1, 'r-0912', 'retry', $9, 12, NULL), ($1, 'r-0912', 'finish', $10, 14, NULL),
+			($11, 'r-other', 'start', $2, NULL, $12)`,
+			[]any{
+				personal, at(40 * time.Minute), at(9 * time.Minute), at(time.Minute), at(50 * time.Hour), at(49*time.Hour + 50*time.Minute),
+				at(49*time.Hour + 40*time.Minute), marker.MarkupField("eventdetail"), at(49*time.Hour + 35*time.Minute), at(49 * time.Hour),
+				other, marker.Field("other"),
+			},
 		},
 		{
 			`INSERT INTO policy_candidates (account_id, domain, signals, score, status, created_at, reviewed_at, reviewed_by) VALUES

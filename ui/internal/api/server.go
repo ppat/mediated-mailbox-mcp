@@ -106,7 +106,7 @@ func (m *recordingMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // New builds the server. It refuses a bespoke route without a handler and a handler without a route,
 // so the mounted API is exactly the registry's path and Bespoke.
 func New(opts Options) (*Server, error) {
-	if err := CheckPaths(Bespoke()); err != nil {
+	if err := CheckPaths(registry.Paths(opts.Datasets), Bespoke()); err != nil {
 		return nil, err
 	}
 	if problems := registry.Check(opts.Datasets); len(problems) > 0 {
@@ -126,19 +126,26 @@ func New(opts Options) (*Server, error) {
 		"listAccounts": s.listAccounts,
 		"getSystem":    s.getSystem,
 		"getJobs":      s.getJobs,
+		"getRun":       s.getRun,
 		"streamEvents": s.streamEvents,
 	}
+	for _, d := range opts.Datasets {
+		if d.Detail != nil {
+			handlers[RowOperation(d.Name)] = s.rowDetail(d)
+		}
+	}
 	mux := &recordingMux{mux: http.NewServeMux()}
-	for _, route := range apiRoutes() {
+	for _, route := range apiRoutes(opts.Datasets) {
 		h, ok := handlers[route.Operation]
 		if !ok {
 			return nil, fmt.Errorf("the route %s has no handler for %s", route.Pattern, route.Operation)
 		}
 		delete(handlers, route.Operation)
 		switch {
-		case route.Pattern == registry.LensPath:
-			// The dataset endpoint admits its account itself, after the pure core has read the request,
-			// so a request the registry does not declare is refused before any statement runs.
+		case route.Registry:
+			// The dataset endpoint and the row-detail routes admit their account themselves, after the
+			// pure core has read the request, so a request the registry does not declare is refused
+			// before any statement runs.
 			mux.Handle("GET "+route.Pattern, named(route.Pattern, h))
 		case route.Scoped:
 			mux.Handle("GET "+route.Pattern, s.scoped(route.Pattern, h))
@@ -167,11 +174,17 @@ func New(opts Options) (*Server, error) {
 	return s, nil
 }
 
-// apiRoutes is the list New mounts the read API from, the registry's path and the bespoke handlers.
+// apiRoutes is the list New mounts the read API from, the registry's paths and the bespoke handlers.
 // What the server actually mounts is checked against the contract through Served, so a route added
 // outside this list is caught as well.
-func apiRoutes() []Route {
-	return append([]Route{{Pattern: registry.LensPath, Operation: "getLens", Scoped: true}}, Bespoke()...)
+func apiRoutes(datasets []registry.Dataset) []Route {
+	routes := []Route{{Pattern: registry.LensPath, Operation: "getLens", Scoped: true, Registry: true}}
+	for _, d := range datasets {
+		if d.Detail != nil {
+			routes = append(routes, Route{Pattern: registry.RowPath(d.Name), Operation: RowOperation(d.Name), Scoped: true, Registry: true})
+		}
+	}
+	return append(routes, Bespoke()...)
 }
 
 // Served is every pattern registered through the UI listener's recording mux, in registration order.

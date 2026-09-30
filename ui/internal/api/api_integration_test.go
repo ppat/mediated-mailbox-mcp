@@ -120,9 +120,10 @@ func TestTheEntryDocumentIsRenderedForEveryScreenRoute(t *testing.T) {
 }
 
 // TestTheRegistryRefusesWhatItDoesNotDeclare requests a dataset, a dimension filter, a sort column and
-// a group the registry does not declare, and a level outside the ladder, and requires each refused as
-// the client's fault with no statement sent to the database, the account check's included
-// (VERIFICATIONS, the registry row).
+// a group the registry does not declare, a level outside the ladder, a filter value no statement could
+// compare, and a row detail with a malformed row, without its parent or with another parameter, and
+// requires each refused as the client's fault with no statement sent to the database, the account
+// check's included (VERIFICATIONS, the registry row).
 func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 	seed(t)
 	pool, sent := countingPool(t, "mediated_mailbox_ui")
@@ -143,10 +144,25 @@ func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 		{"dataset=plans&dataset=candidates", "repeated_parameter"},
 		{"level=0", "missing_dataset"},
 		{"dataset=plans&level=0&group=nothing", "unknown_group"},
+		{"dataset=runs&level=3&day=yesterday", "invalid_filter"},
+		{"dataset=runs&level=3&sender=none", "unknown_dimension"},
+		{"dataset=runs&level=3&workload=none", "invalid_filter"},
+		{"dataset=failures&run=r-0912&level=3&page_number=twelve", "invalid_filter"},
+		{"dataset=failures&level=1&group=page_number", "missing_parent"},
 	}
+	for i := range cases {
+		cases[i].query = "lens?" + cases[i].query
+	}
+	// The row-detail route refuses what the registry does not declare the same way.
+	cases = append(cases, []struct{ query, code string }{
+		{"failures/one?run=r-0912", "invalid_row"},
+		{"failures/1", "missing_parent"},
+		{"failures/1?run=r-0912&level=3", "unknown_parameter"},
+		{"failures/1?run=r-0912&run=r-0913", "repeated_parameter"},
+	}...)
 	for _, c := range cases {
 		before := sent.sent.Load()
-		r := get(t, s.Handler(), "/api/personal/lens?"+c.query)
+		r := get(t, s.Handler(), "/api/personal/"+c.query)
 		if n := sent.sent.Load() - before; n != 0 {
 			t.Errorf("%s sent %d statements before its refusal", c.query, n)
 		}
@@ -163,14 +179,14 @@ func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 // the per-account row).
 func TestEveryReadIsPerAccount(t *testing.T) {
 	s, _ := server(t)
-	for _, p := range []string{"/api/lens?dataset=plans", "/api/system", "/api/jobs", "/api/events"} {
+	for _, p := range []string{"/api/lens?dataset=plans", "/api/system", "/api/jobs", "/api/events", "/api/jobs/r-0912", "/api/failures/1?run=r-0912"} {
 		r := get(t, s.Handler(), p)
 		if origin, code := errorOf(t, r); r.status != http.StatusNotFound || origin != "client" || code != "not_found" {
 			t.Errorf("%s answered %d %s %s, want 404", p, r.status, origin, code)
 		}
 	}
 	for account, want := range map[string]string{"all": "all_accounts", "nobody": "unknown_account"} {
-		for _, route := range []string{"lens?dataset=plans", "system", "jobs", "events"} {
+		for _, route := range []string{"lens?dataset=plans", "system", "jobs", "events", "jobs/r-0912", "failures/1?run=r-0912", "lens?dataset=runs", "lens?dataset=failures&run=r-0912"} {
 			r := get(t, s.Handler(), "/api/"+account+"/"+route)
 			if origin, code := errorOf(t, r); r.status != http.StatusBadRequest || origin != "client" || code != want {
 				t.Errorf("/api/%s/%s answered %d %s %s, want 400 %s", account, route, r.status, origin, code, want)
@@ -184,12 +200,23 @@ func TestEveryReadIsPerAccount(t *testing.T) {
 	for _, p := range []string{
 		"/api/personal/lens?dataset=plans&level=3", "/api/personal/lens?dataset=candidates&level=3",
 		"/api/personal/lens?dataset=plans&level=0", "/api/personal/system", "/api/personal/jobs",
+		"/api/personal/lens?dataset=runs&level=3&range=all", "/api/personal/lens?dataset=runs&level=1&group=workload&range=all",
+		"/api/personal/lens?dataset=failures&run=r-0912&level=3", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender",
+		"/api/personal/failures/1?run=r-0912", "/api/personal/jobs/r-0912",
+		"/api/personal/lens?dataset=failures&run=r-other&level=3", "/api/personal/lens?dataset=failures&run=r-other&level=1&group=sender",
 	} {
 		r := get(t, s.Handler(), p)
 		if r.status != http.StatusOK {
 			t.Fatalf("%s answered %d: %s", p, r.status, r.body)
 		}
-		for _, leaked := range []string{marker.Field("other"), "r-other", "other.example", otherPlan} {
+		if strings.Contains(p, "run=r-other") && !strings.Contains(string(r.body), `"count":0`) {
+			t.Errorf("%s answered rows of another account's run: %s", p, r.body)
+		}
+		leaks := []string{marker.Field("other"), "other.example", otherPlan}
+		if !strings.Contains(p, "run=r-other") {
+			leaks = append(leaks, "r-other")
+		}
+		for _, leaked := range leaks {
 			if strings.Contains(string(r.body), leaked) {
 				t.Errorf("%s returned the other account's %s", p, leaked)
 			}

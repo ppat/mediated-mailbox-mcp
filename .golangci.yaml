@@ -704,6 +704,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/auditlog$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/classification$"

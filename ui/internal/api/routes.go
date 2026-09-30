@@ -2,9 +2,9 @@ package api
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
 // Route is one bespoke handler as the contract describes it. Every read route is a GET.
@@ -14,6 +14,9 @@ type Route struct {
 	Summary   string
 	// Scoped says the path carries the account as its {account} segment.
 	Scoped bool
+	// Registry marks a route the registry claims, which admits its account after the pure core reads
+	// the request. No bespoke route sets it.
+	Registry bool
 	// Response is the JSON body of a 200 response. A stream route has none.
 	Response schema.Type
 	// Events are the event stream's data objects, one per event name, for a stream route.
@@ -45,6 +48,11 @@ func Bespoke() []Route {
 			Response: jobsType(),
 		},
 		{
+			Pattern: "/api/{account}/jobs/{run}", Operation: "getRun", Scoped: true,
+			Summary:  "One run, its resumer, its item failures by disposition and the runs that recovered them, and its timeline",
+			Response: runSummaryType(),
+		},
+		{
 			Pattern: "/api/{account}/events", Operation: "streamEvents", Scoped: true,
 			Summary: "The live stream, one event per changed object with its whole current state",
 			Events:  eventTypes(),
@@ -52,13 +60,13 @@ func Bespoke() []Route {
 	}
 }
 
-// CheckPaths refuses a bespoke route claiming the registry's path, and two bespoke routes claiming one
-// path, so no route is served by two definitions (docs/UI.md section 17.1). The contract generator
-// and the server both run it.
-func CheckPaths(bespoke []Route) error {
+// CheckPaths refuses a bespoke route claiming a path the registry claims, and two bespoke routes
+// claiming one path, so no route is served by two definitions (docs/UI.md section 17.1). The contract
+// generator and the server both run it.
+func CheckPaths(registryPaths []string, bespoke []Route) error {
 	seen := map[string]string{}
 	for _, route := range bespoke {
-		if route.Pattern == registry.LensPath {
+		if slices.Contains(registryPaths, route.Pattern) {
 			return fmt.Errorf("the path %s is claimed by both the registry and the bespoke handler %s", route.Pattern, route.Operation)
 		}
 		if prior, ok := seen[route.Pattern]; ok {
@@ -67,4 +75,9 @@ func CheckPaths(bespoke []Route) error {
 		seen[route.Pattern] = route.Operation
 	}
 	return nil
+}
+
+// RowOperation is the contract's operation for a dataset's row-detail route.
+func RowOperation(dataset string) string {
+	return "get" + pascal(dataset) + "Row"
 }

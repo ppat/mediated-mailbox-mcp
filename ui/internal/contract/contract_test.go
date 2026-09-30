@@ -39,7 +39,12 @@ func generate(datasets []registry.Dataset, bespoke []api.Route) (*openapi3.T, er
 	}}
 	g.schema(api.ErrorType())
 	g.doc.Paths.Set(registry.LensPath, &openapi3.PathItem{Get: g.lensOperation(datasets)})
-	if err := api.CheckPaths(bespoke); err != nil {
+	for _, d := range datasets {
+		if d.Detail != nil {
+			g.doc.Paths.Set(registry.RowPath(d.Name), &openapi3.PathItem{Get: g.rowOperation(d)})
+		}
+	}
+	if err := api.CheckPaths(registry.Paths(datasets), bespoke); err != nil {
 		return nil, err
 	}
 	for _, route := range bespoke {
@@ -97,6 +102,30 @@ func (g *generator) bespokeOperation(route api.Route) *openapi3.Operation {
 		ok.Content = openapi3.NewContentWithJSONSchemaRef(g.schema(route.Response))
 	}
 	op.AddResponse(http.StatusOK, ok)
+	g.errorResponses(op)
+	return op
+}
+
+// rowOperation is one dataset's row-detail route, the row's identity in the path and, for a nested
+// dataset, its parent filter as the one query parameter (docs/UI.md section 17.1).
+func (g *generator) rowOperation(d registry.Dataset) *openapi3.Operation {
+	op := openapi3.NewOperation()
+	op.OperationID = api.RowOperation(d.Name)
+	op.Summary = "One row of " + d.Name + " with its provenance, for one account"
+	row := openapi3.NewStringSchema()
+	if d.Identity.Storage == "number" {
+		row = openapi3.NewIntegerSchema().WithMin(0)
+	}
+	op.Parameters = openapi3.Parameters{
+		accountParameter(),
+		{Value: openapi3.NewPathParameter("row").WithSchema(row).WithDescription("The row's " + d.Identity.Name)},
+	}
+	if d.Parent != "" {
+		op.Parameters = append(op.Parameters, &openapi3.ParameterRef{Value: openapi3.NewQueryParameter(d.Parent).
+			WithSchema(openapi3.NewStringSchema()).WithDescription("The parent the row belongs to").WithRequired(true)})
+	}
+	op.AddResponse(http.StatusOK, openapi3.NewResponse().WithDescription("OK").
+		WithContent(openapi3.NewContentWithJSONSchemaRef(g.schema(d.DetailType))))
 	g.errorResponses(op)
 	return op
 }
@@ -166,6 +195,7 @@ type dimension struct {
 	Sortable    bool     `json:"sortable"`
 	Wording     string   `json:"wording"`
 	NullWording string   `json:"null_wording,omitempty"`
+	Empty       bool     `json:"empty,omitempty"`
 	Values      []string `json:"values,omitempty"`
 }
 
@@ -187,7 +217,7 @@ func descriptors(datasets []registry.Dataset) []descriptor {
 		for _, dim := range d.Dimensions {
 			ds.Dimensions = append(ds.Dimensions, dimension{
 				Name: dim.Name, Storage: dim.Storage, Groupable: dim.Groupable, Filterable: dim.Filterable, Sortable: dim.Sortable,
-				Wording: dim.Wording, NullWording: dim.NullWording, Values: dim.Values,
+				Wording: dim.Wording, NullWording: dim.NullWording, Empty: dim.Empty, Values: dim.Values,
 			})
 		}
 		out = append(out, ds)
@@ -306,13 +336,15 @@ func TestDocument(t *testing.T) {
 }
 
 // TestAPathClaimedByBothSourcesIsRefused hands the generator a bespoke handler claiming the registry's
-// path, and requires the refusal, so no route can be served by two definitions (docs/UI.md section
-// 17.1).
+// dataset path, and one claiming a row-detail path, and requires each refused, so no route can be
+// served by two definitions (docs/UI.md section 17.1).
 func TestAPathClaimedByBothSourcesIsRefused(t *testing.T) {
-	claimed := append(api.Bespoke(), api.Route{Pattern: registry.LensPath, Operation: "claimsTheLens", Scoped: true, Response: schema.Obj("Claim")})
-	_, err := generate(registry.Datasets(), claimed)
-	if err == nil || !strings.Contains(err.Error(), "claimed by both the registry and the bespoke handler claimsTheLens") {
-		t.Fatalf("a path both sources claim was not refused: %v", err)
+	for _, path := range []string{registry.LensPath, registry.RowPath("failures")} {
+		claimed := append(api.Bespoke(), api.Route{Pattern: path, Operation: "claimsARegistryPath", Scoped: true, Response: schema.Obj("Claim")})
+		_, err := generate(registry.Datasets(), claimed)
+		if err == nil || !strings.Contains(err.Error(), "claimed by both the registry and the bespoke handler claimsARegistryPath") {
+			t.Fatalf("%s, which both sources claim, was not refused: %v", path, err)
+		}
 	}
 	twice := append(api.Bespoke(), api.Bespoke()[0])
 	if _, err := generate(registry.Datasets(), twice); err == nil || !strings.Contains(err.Error(), "claimed by two bespoke handlers") {

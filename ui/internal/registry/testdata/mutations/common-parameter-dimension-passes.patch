@@ -1,0 +1,19 @@
+control: the statement-set check refuses a dataset without the statements its declarations require, and a dimension named as a parameter
+removes: a dimension named as a common parameter is not reported, only one named as the parent filter
+packages: ./ui/internal/registry
+tests: TestTheStatementSetCheckReportsEachMismatch
+scheduled-count: no
+
+diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
+index 1ba4aee..9d76a1f 100644
+--- a/ui/internal/registry/registry.go
++++ b/ui/internal/registry/registry.go
+@@ -201,7 +201,7 @@ func Check(datasets []Dataset) []string {
+ 			problems = append(problems, fmt.Sprintf("%s: a provenance query with no row identity", d.Name))
+ 		}
+ 		for _, dim := range d.Dimensions {
+-			if slices.Contains(lens.Parameters(), dim.Name) || dim.Name == d.Parent {
++			if dim.Name == d.Parent {
+ 				problems = append(problems, fmt.Sprintf("%s: the dimension %s is named as a parameter", d.Name, dim.Name))
+ 			}
+ 		}

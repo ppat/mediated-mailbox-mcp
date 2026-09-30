@@ -1,14 +1,15 @@
-control: the statement-set check refuses a dataset or groupable dimension without the statements it requires
+control: the statement-set check refuses a dataset without the statements its declarations require, and a dimension named as a parameter
 removes: a groupable dimension with no aggregate statement is not reported
 packages: ./ui/internal/registry
 tests: TestTheStatementSetCheckReportsEachMismatch
 scheduled-count: no
 
 diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
+index 1ba4aee..9c5d561 100644
 --- a/ui/internal/registry/registry.go
 +++ b/ui/internal/registry/registry.go
-@@ -109,7 +109,7 @@
- 			problems = append(problems, fmt.Sprintf("%s: no rows statement", d.Name))
+@@ -206,7 +206,7 @@ func Check(datasets []Dataset) []string {
+ 			}
  		}
  		for _, dim := range d.Dimensions {
 -			if dim.Groupable && d.Aggregates[dim.Name] == nil {

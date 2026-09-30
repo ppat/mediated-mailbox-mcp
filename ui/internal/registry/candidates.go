@@ -73,20 +73,20 @@ func candidates() Dataset {
 	}
 }
 
-func candidateSummary(ctx context.Context, q Queries, r Read) ([]Figure, int64, error) {
+func candidateSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, error) {
 	in, out := statusFilter(r.Request)
 	rows, err := q.Candidates.CandidateStatusCounts(ctx, policycandidates.CandidateStatusCountsParams{
 		AccountID: r.Account, RangeStart: timestamptz(r.Bounds.Start), RangeEnd: timestamptz(r.Bounds.End), StatusIn: in, StatusOut: out,
 	})
 	if err != nil {
-		return nil, 0, err
+		return nil, Total{}, err
 	}
 	counts := map[string]int64{}
 	for _, row := range rows {
 		counts[row.Status] = row.Candidates
 	}
 	figures, total := statusFigures(r.Account, "candidates", candidateStatuses(), candidateWording(), counts)
-	return figures, total, nil
+	return figures, Total{Count: total}, nil
 }
 
 func candidateRows(ctx context.Context, q Queries, r Read) (any, error) {

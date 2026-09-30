@@ -9,6 +9,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
+	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
+	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
@@ -37,17 +40,66 @@ type rowsResponse struct {
 	Sort    string            `json:"sort"`
 	Page    int               `json:"page"`
 	Pages   int64             `json:"pages"`
-	Total   total             `json:"total"`
+	Total   any               `json:"total"`
 	Rows    any               `json:"rows"`
 }
 
-// total is a page's total. Datasets that are not message-derived carry the count alone.
-type total struct {
+// groupsResponse is a level 1 or 2 answer, every group of the request's grouped dimension.
+type groupsResponse struct {
+	Account string            `json:"account"`
+	Dataset string            `json:"dataset"`
+	Level   int               `json:"level"`
+	AsOf    string            `json:"as_of"`
+	Group   string            `json:"group"`
+	Filters map[string]string `json:"filters"`
+	Total   any               `json:"total"`
+	Rows    any               `json:"rows"`
+}
+
+// countTotal is the total of a dataset that is not message-derived, the count alone, and
+// sensitiveTotal a message-derived dataset's, with how many rows are restricted and how many flagged.
+type countTotal struct {
 	Count int64 `json:"count"`
 }
 
-// LensResponse is the dataset endpoint's declaration, one figures shape and one row page per
-// dataset. Levels 1 and 2 join it with the first dataset that declares a groupable dimension.
+type sensitiveTotal struct {
+	Count      int64 `json:"count"`
+	Restricted int64 `json:"restricted"`
+	Flagged    int64 `json:"flagged"`
+}
+
+func totalOf(d registry.Dataset, t registry.Total) any {
+	if d.MessageDerived {
+		return sensitiveTotal{Count: t.Count, Restricted: t.Restricted, Flagged: t.Flagged}
+	}
+	return countTotal{Count: t.Count}
+}
+
+func totalType(d registry.Dataset) schema.Type {
+	if d.MessageDerived {
+		return schema.Obj("SensitiveCount",
+			schema.F("count", schema.Int()),
+			schema.F("restricted", schema.Int()),
+			schema.F("flagged", schema.Int()),
+		)
+	}
+	return schema.Obj("Count", schema.F("count", schema.Int()))
+}
+
+// keyType is a group key's declaration, the dimension's value as stored, null for its null group.
+func keyType(dim lens.Dimension) schema.Type {
+	t := schema.Str()
+	if dim.Storage == "number" {
+		t = schema.Int()
+	}
+	if dim.NullWording != "" {
+		t = schema.Null(t)
+	}
+	return t
+}
+
+// LensResponse is the dataset endpoint's declaration, one figures shape, one row page per dataset and
+// one groups answer per groupable dimension of each.
 func LensResponse(datasets []registry.Dataset) schema.Type {
 	names := make([]string, len(datasets))
 	for i, d := range datasets {
@@ -71,16 +123,45 @@ func LensResponse(datasets []registry.Dataset) schema.Type {
 			schema.F("sort", schema.Str()),
 			schema.F("page", schema.Int()),
 			schema.F("pages", schema.Int()),
-			schema.F("total", schema.Obj("Count", schema.F("count", schema.Int()))),
+			schema.F("total", totalType(d)),
 			schema.F("rows", schema.ArrayOf(d.Row)),
 		))
+		for _, dim := range d.Dimensions {
+			if !dim.Groupable {
+				continue
+			}
+			name := pascal(d.Name) + "By" + pascal(dim.Name)
+			group := []schema.Field{
+				schema.F("key", schema.Obj(name+"Key", schema.F(dim.Name, keyType(dim)))),
+				schema.F("count", schema.Int()),
+			}
+			if d.MessageDerived {
+				group = append(group, schema.F("restricted", schema.Int()), schema.F("flagged", schema.Int()))
+			}
+			variants = append(variants, schema.Obj(name,
+				schema.F("account", schema.Str()),
+				schema.F("dataset", schema.Str(d.Name)),
+				schema.F("level", schema.Int()),
+				schema.F("as_of", schema.Time()),
+				schema.F("group", schema.Str(dim.Name)),
+				schema.F("filters", schema.MapOf(schema.Str())),
+				schema.F("total", totalType(d)),
+				schema.F("rows", schema.ArrayOf(schema.Obj(name+"Group", group...))),
+			))
+		}
 	}
 	return schema.OneOf(variants...)
 }
 
-// pascal is a dataset name as a component name's prefix.
+// pascal is a name written in PascalCase as a component name's prefix, error_class as ErrorClass.
 func pascal(name string) string {
-	return strings.ToUpper(name[:1]) + name[1:]
+	var b strings.Builder
+	for _, part := range strings.Split(name, "_") {
+		if part != "" {
+			b.WriteString(strings.ToUpper(part[:1]) + part[1:])
+		}
+	}
+	return b.String()
 }
 
 // lens is the dataset endpoint. The pure core decides whether the registry declares the request, and
@@ -114,9 +195,13 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 	err = tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
 		// as_of is the time the read transaction began, and the range is read against it.
 		now := s.opts.Clock()
-		read := registry.Read{Account: account, Request: req, Bounds: bounds(req.Range, now)}
-		q := registry.Queries{Plans: reorgplans.New(t), Candidates: policycandidates.New(t)}
-		figures, count, err := dataset.Summary(r.Context(), q, read)
+		read := registry.Read{Account: account, Request: req, Bounds: bounds(req.Range, now), AsOf: now}
+		// The statements are built here, from the transaction that set the account (ADR-0047).
+		q := registry.Queries{
+			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
+			Runs: jobruns.New(t), Failures: classification.New(t), Audit: auditlog.New(t),
+		}
+		figures, total, err := dataset.Summary(r.Context(), q, read)
 		if err != nil {
 			return err
 		}
@@ -131,13 +216,25 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 			}
 			body = rowsResponse{
 				Account: account, Dataset: req.Dataset, Level: req.Level, AsOf: registry.Stamp(now), Filters: filters(req),
-				Sort: req.Sort.String(), Page: req.Page, Pages: registry.Pages(count), Total: total{Count: count}, Rows: rows,
+				Sort: req.Sort.String(), Page: req.Page, Pages: registry.Pages(total.Count), Total: totalOf(dataset, total), Rows: rows,
 			}
 			return nil
 		}
-		// The pure core admits levels 1 and 2 only for a groupable dimension, and no dataset declares
-		// one yet, so no request reaches here.
-		return errUnservedLevel
+		// The pure core admits levels 1 and 2 only with a groupable dimension, and the statement-set
+		// check requires an aggregate statement for every one.
+		aggregate, ok := dataset.Aggregates[req.Group]
+		if !ok {
+			return errUnservedLevel
+		}
+		groups, err := aggregate(r.Context(), q, read)
+		if err != nil {
+			return err
+		}
+		body = groupsResponse{
+			Account: account, Dataset: req.Dataset, Level: req.Level, AsOf: registry.Stamp(now), Group: req.Group,
+			Filters: filters(req), Total: totalOf(dataset, total), Rows: groups,
+		}
+		return nil
 	})
 	s.metrics.readDuration.WithLabelValues(req.Dataset, strconv.Itoa(req.Level)).Observe(time.Since(started).Seconds())
 	if errors.Is(err, errUnservedLevel) {
@@ -152,7 +249,7 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, r, body)
 }
 
-var errUnservedLevel = errors.New("the registry admitted a level no statement serves")
+var errUnservedLevel = errors.New("the registry admitted a group no statement serves")
 
 // filters are the request's applied filters as the URL writes them, the range among them.
 func filters(req lens.Request) map[string]string {
@@ -200,4 +297,49 @@ func bounds(r lens.Range, now time.Time) registry.Bounds {
 	}
 	end := to.AddDate(0, 0, 1)
 	return registry.Bounds{Start: &from, End: &end}
+}
+
+// rowDetail is the row-detail endpoint of one dataset that declares a provenance query (docs/UI.md
+// section 17.1). The pure core decides whether the registry declares the request, and a request it
+// does not is refused before any statement runs, the account check's included, which comes after it.
+func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		account := r.PathValue("account")
+		requestInfo(r.Context()).account = account
+		req, err := lens.ParseRow(s.descriptors, dataset.Name, r.PathValue("row"), r.URL.Query())
+		var refusal *lens.Refusal
+		if errors.As(err, &refusal) {
+			writeFailure(w, r, clientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
+			return
+		}
+		if err != nil {
+			requestInfo(r.Context()).err = err
+			writeFailure(w, r, uiFault())
+			return
+		}
+		if !s.admit(w, r) {
+			return
+		}
+		started := time.Now()
+		var body any
+		err = tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
+			var err error
+			q := registry.Queries{
+				Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
+				Runs: jobruns.New(t), Failures: classification.New(t), Audit: auditlog.New(t),
+			}
+			body, err = dataset.Detail(r.Context(), q, account, req, s.opts.Clock())
+			return err
+		})
+		s.metrics.readDuration.WithLabelValues(dataset.Name, "4").Observe(time.Since(started).Seconds())
+		if errors.Is(err, registry.ErrNoRow) {
+			writeFailure(w, r, clientFault(http.StatusNotFound, "unknown_row", "the account holds no such row"))
+			return
+		}
+		if err != nil {
+			s.databaseFailure(w, r, err)
+			return
+		}
+		writeJSON(w, r, body)
+	}
 }

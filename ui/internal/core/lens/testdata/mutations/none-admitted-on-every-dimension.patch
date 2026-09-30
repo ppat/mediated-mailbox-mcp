@@ -1,0 +1,20 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
+removes: none is admitted on every dimension, so a dimension with no null group takes it as a value
+packages: ./ui/internal/core/lens
+tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDoesNotDeclare/none_on_a_dimension_with_no_null_group TestParseRefusesWhatTheEntryDoesNotDeclare/none_on_a_text_dimension_with_no_null_group
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index 94c9e30..a831233 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -339,9 +339,6 @@ func parseFilter(dim Dimension, value string) (Filter, error) {
+ 	}
+ 	for _, v := range f.Values {
+ 		if v == None {
+-			if dim.NullWording == "" {
+-				return Filter{}, refuse("invalid_filter", "the filter %s names none, and the dimension has no null group", dim.Name)
+-			}
+ 			continue
+ 		}
+ 		if v == Empty {

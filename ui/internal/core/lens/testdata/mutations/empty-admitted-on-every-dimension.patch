@@ -1,0 +1,19 @@
+control: the dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
+removes: empty is admitted on every dimension, so a dimension that holds no value stored empty takes it as a value
+packages: ./ui/internal/core/lens
+tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDoesNotDeclare/empty_on_a_text_dimension_that_holds_no_value_stored_empty TestParseRefusesWhatTheEntryDoesNotDeclare/empty_excluded_on_a_text_dimension_that_holds_no_value_stored_empty TestParseRefusesWhatTheEntryDoesNotDeclare/empty_on_a_number_dimension
+scheduled-count: no
+
+diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
+index 94c9e30..6860b2a 100644
+--- a/ui/internal/core/lens/lens.go
++++ b/ui/internal/core/lens/lens.go
+@@ -345,7 +345,7 @@ func parseFilter(dim Dimension, value string) (Filter, error) {
+ 			continue
+ 		}
+ 		if v == Empty {
+-			if !dim.Empty {
++			if false {
+ 				return Filter{}, refuse("invalid_filter", "the filter %s names empty, and the dimension holds no value stored empty", dim.Name)
+ 			}
+ 			continue

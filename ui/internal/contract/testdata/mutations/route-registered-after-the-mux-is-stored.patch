@@ -5,10 +5,10 @@ tests: TestTheServerServesExactlyTheDocumentsRoutes
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index f2e0a49..efe2970 100644
+index 626acce..e776ac4 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -136,6 +136,7 @@ func New(opts Options) (*Server, error) {
+@@ -156,6 +156,7 @@ func New(opts Options) (*Server, error) {
  	mux.Handle("/", a)
  	s.uiMux = mux
  	s.handler = observe(opts.Logger, withPolicy(mux))

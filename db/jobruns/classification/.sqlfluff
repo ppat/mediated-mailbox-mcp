@@ -1,0 +1,24 @@
+# This file sets parameter values and nothing else. The placeholder templater renders a parameter with no
+# value as its bare name, and RF02 then reports it as an unqualified column in a statement that reads more
+# than one table. Every statement here reads a run's failures joined to their items' messages, so every
+# parameter the statements here take is given a literal, and RF02 does not report a parameter here. The
+# rule itself stays on, as it is everywhere. A new parameter here needs a value too.
+[sqlfluff:templater:placeholder]
+account_id = 1
+descending = 1
+disposition_in = 1
+disposition_out = 1
+error_class_in = 1
+error_class_out = 1
+page_in = 1
+page_in_none = 1
+page_out = 1
+page_out_none = 1
+row_offset = 1
+run_id = 1
+sender_in = 1
+sender_in_none = 1
+sender_out = 1
+sender_out_none = 1
+seq = 1
+sort_column = 1

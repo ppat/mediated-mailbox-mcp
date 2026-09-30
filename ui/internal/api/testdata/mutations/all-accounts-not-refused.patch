@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 0ebe994..59dae93 100644
+index 626acce..9caea66 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -210,7 +210,7 @@ func (s *Server) scoped(route string, h func(http.ResponseWriter, *http.Request)
+@@ -245,7 +245,7 @@ func (s *Server) scoped(route string, h func(http.ResponseWriter, *http.Request)
  func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
  	account := r.PathValue("account")
  	requestInfo(r.Context()).account = account

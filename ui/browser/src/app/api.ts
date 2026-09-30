@@ -18,7 +18,9 @@ export type RunEvent = Schemas["RunEvent"];
 export type RateEvent = Schemas["RateEvent"];
 export type PlanEvent = Schemas["PlanEvent"];
 export type LensAnswer = operations["getLens"]["responses"][200]["content"]["application/json"];
-export type RowsPage = Exclude<LensAnswer, LensFigures>;
+// Groups is a level 1 or 2 answer, every group of one dimension.
+export type Groups = Extract<LensAnswer, { group: string }>;
+export type RowsPage = Exclude<LensAnswer, LensFigures | Groups>;
 
 // Fetch is the one way a read reaches the server, a path in and a response out. The signal aborts a
 // request nobody waits for any more.
@@ -140,7 +142,12 @@ export function readLens(
   return get<LensAnswer>(fetch, path, signal);
 }
 
-// isFigures tells the dataset endpoint's summary answer from a page of rows.
+// isFigures tells the dataset endpoint's summary answer from a page of rows or a set of groups.
 export function isFigures(answer: LensAnswer): answer is LensFigures {
   return "figures" in answer;
+}
+
+// isRowsPage tells a page of rows from the summary and from a set of groups.
+export function isRowsPage(answer: LensAnswer): answer is RowsPage {
+  return "page" in answer;
 }

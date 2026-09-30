@@ -84,5 +84,174 @@ export const descriptors = {
         ]
       }
     }
+  },
+  "runs": {
+    "name": "runs",
+    "ranged": true,
+    "range_column": "started_at",
+    "dimensions": [
+      {
+        "name": "workload",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "workload",
+        "values": [
+          "backfill",
+          "sync",
+          "apply",
+          "heuristics"
+        ]
+      },
+      {
+        "name": "state",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "state",
+        "values": [
+          "running",
+          "succeeded",
+          "failed"
+        ]
+      },
+      {
+        "name": "day",
+        "storage": "date",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "day"
+      },
+      {
+        "name": "pass",
+        "storage": "text",
+        "groupable": false,
+        "filterable": true,
+        "sortable": false,
+        "wording": "pass",
+        "values": [
+          "pass1",
+          "pass2",
+          "tick",
+          "gap_recovery",
+          "apply",
+          "rollback"
+        ]
+      },
+      {
+        "name": "started_at",
+        "storage": "time",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "started"
+      },
+      {
+        "name": "duration",
+        "storage": "number",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "duration"
+      },
+      {
+        "name": "failures",
+        "storage": "number",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "failures"
+      }
+    ],
+    "default": {
+      "level": 3,
+      "range": "7d",
+      "sort": "started_at,desc",
+      "filters": {
+        "pass": [
+          "!tick"
+        ]
+      }
+    }
+  },
+  "failures": {
+    "name": "failures",
+    "parent": "run",
+    "ranged": false,
+    "dimensions": [
+      {
+        "name": "error_class",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "error class",
+        "values": [
+          "throttled",
+          "provider_error",
+          "gone",
+          "scanner_timeout",
+          "validation",
+          "authentication"
+        ]
+      },
+      {
+        "name": "sender",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "sender",
+        "null_wording": "no message",
+        "empty": true
+      },
+      {
+        "name": "page_number",
+        "storage": "number",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "page",
+        "null_wording": "no page"
+      },
+      {
+        "name": "disposition",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "disposition",
+        "values": [
+          "recovered",
+          "pending",
+          "gone",
+          "abandoned"
+        ]
+      },
+      {
+        "name": "last_at",
+        "storage": "time",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "last error"
+      },
+      {
+        "name": "attempts",
+        "storage": "number",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "attempts"
+      }
+    ],
+    "default": {
+      "group": "error_class",
+      "level": 1,
+      "sort": "last_at,desc"
+    }
   }
 } as const;
