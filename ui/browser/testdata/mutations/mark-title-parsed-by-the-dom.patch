@@ -1,0 +1,26 @@
+control: Message-derived text renders inert
+removes: the run timeline writes a mark's hover into its title element through the DOM's innerHTML
+packages: ./ui/browser/test/run.test.tsx
+tests: an event's detail carrying markup arrives in its mark's hover as text
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/lens/timeline.tsx b/ui/browser/src/lens/timeline.tsx
+index da39b00..90e3cbc 100644
+--- a/ui/browser/src/lens/timeline.tsx
++++ b/ui/browser/src/lens/timeline.tsx
+@@ -109,7 +109,13 @@ function Mark(props: { point: Point }) {
+   const { point } = props;
+   return (
+     <g class="timeline-mark" data-kind={point.kind}>
+-      <title>{point.title}</title>
++      <title
++        ref={(el) => {
++          if (el !== null) {
++            el.innerHTML = point.title;
++          }
++        }}
++      />
+       <Shape kind={point.kind} x={point.x} y={point.y} />
+     </g>
+   );

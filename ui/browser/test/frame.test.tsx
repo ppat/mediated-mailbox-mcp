@@ -89,8 +89,15 @@ test("the navigation lists only the screens that exist and marks the current one
     links.map((a) => [a.textContent, a.getAttribute("href"), a.getAttribute("aria-current")]),
   ).toEqual([
     ["Home", "/personal", "page"],
+    ["Jobs running", "/personal/jobs", null],
     ["System", "/personal/system", null],
   ]);
+});
+
+test("Jobs carries a labeled running mark while the decisions block counts a running workload", async () => {
+  const root = await open("/personal");
+  const mark = root.querySelector('nav[aria-label="Screens"] .running-mark');
+  expect(mark?.textContent).toBe(" running");
 });
 
 test("the address line shows the view's whole URL", async () => {
@@ -116,9 +123,11 @@ test("the theme override is set on the root element and kept in this browser", a
 
 test("the partial-index banner names backfill pass 2 and its pending count", async () => {
   const root = await open("/personal");
-  expect(root.querySelector('[role="status"].banner')?.textContent).toBe(
-    "Backfill pass 2 is running with 1 message pending scan, and a pending message denies its body until it is scanned.",
+  const banner = root.querySelector('[role="status"].banner');
+  expect(banner?.textContent).toBe(
+    "Backfill pass 2 is running with 1 message pending scan, and a pending message denies its body until it is scanned. See Jobs",
   );
+  expect(banner?.querySelector("a")?.getAttribute("href")).toBe("/personal/jobs");
 });
 
 test("the banner names pass 1 with its page and share, and both passes in one banner", async () => {

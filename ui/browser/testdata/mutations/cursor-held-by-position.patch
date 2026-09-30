@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: the row cursor holds a position, so after a re-read puts a new run above it Enter opens that run instead
+packages: ./ui/browser/test/jobs.test.tsx
+tests: the row cursor stays on the chosen run when a re-read puts a new run above it
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/lens/table.tsx b/ui/browser/src/lens/table.tsx
+index 1d7f5ae..6152bfb 100644
+--- a/ui/browser/src/lens/table.tsx
++++ b/ui/browser/src/lens/table.tsx
+@@ -56,7 +56,7 @@ export function RowsTable<Row>(props: TableProps<Row>) {
+   // row's position.
+   const [selected, setSelected] = useState<string | number | undefined>(undefined);
+   const identity = useCallback(
+-    (row: Row, i: number): string | number => (rowKey === undefined ? i : rowKey(row)),
++    (_row: Row, i: number): string | number => i,
+     [rowKey],
+   );
+   const cursor = rows.findIndex((row, i) => identity(row, i) === selected);

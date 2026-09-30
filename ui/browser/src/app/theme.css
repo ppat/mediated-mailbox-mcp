@@ -594,3 +594,195 @@ input:disabled {
 .progress-fill[data-state="failed"] {
   fill: var(--restricted);
 }
+
+/* Badges in their semantic color, text and outline alike, never filled (section 14.2). */
+.badge[data-tone="restricted"] {
+  border-color: var(--restricted);
+  color: var(--restricted);
+}
+
+.badge[data-tone="flagged"] {
+  border-color: var(--flagged);
+  color: var(--flagged);
+}
+
+.badge[data-tone="ok"] {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.badge[data-tone="info"] {
+  border-color: var(--info);
+  color: var(--info);
+}
+
+.running-mark {
+  color: var(--info);
+  font-size: 11px;
+}
+
+/* The message row's labels, four chips and the rest counted, one chip below 1360 pixels (7.1). */
+.label-chip {
+  display: inline-block;
+  max-width: 90px;
+  margin-right: var(--space-1);
+  padding: 0 var(--space-1);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.labels-narrow {
+  display: none;
+}
+
+@media (max-width: 1359px) {
+  .labels-wide {
+    display: none;
+  }
+
+  .labels-narrow {
+    display: inline;
+  }
+}
+
+/* The bars of section 7.3. Widths are SVG attributes, so the stylesheet sets only colors and layout. */
+.bars {
+  margin: 0 0 var(--space-4);
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 200px 1fr 80px;
+  align-items: center;
+  gap: var(--space-2);
+  height: 20px;
+  margin-bottom: var(--space-2);
+  color: var(--text);
+}
+
+.bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-fill {
+  fill: var(--chart-fill);
+}
+
+.bar-restricted {
+  fill: var(--restricted);
+}
+
+.bar-baseline {
+  stroke: var(--border);
+}
+
+.bar-count {
+  text-align: right;
+}
+
+.groups,
+.breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.groupby {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* The jobs screen's cards (section 8.3). */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.card {
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.card h2 {
+  margin: 0 0 var(--space-2);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.card dl,
+.provenance {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: 12px;
+}
+
+.card dt,
+.provenance dt {
+  color: var(--muted);
+}
+
+.card dd,
+.provenance dd {
+  margin: 0;
+}
+
+/* The run timeline (section 7.3). Each mark kind has its own shape, and color only follows it. */
+.timeline {
+  margin: var(--space-4) 0;
+}
+
+.timeline-axis {
+  stroke: var(--border);
+}
+
+.timeline-progress {
+  fill: none;
+  stroke: var(--info);
+  stroke-width: 2;
+}
+
+.mark-start,
+.mark-finish,
+.mark-backoff,
+.mark-retry,
+.mark-other {
+  fill: var(--surface);
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.mark-failure {
+  stroke: var(--restricted);
+  stroke-width: 2;
+}
+
+.mark-resume {
+  stroke: var(--info);
+  stroke-width: 2;
+}
+
+.legend {
+  display: flex;
+  gap: var(--space-3);
+  font-size: 12px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}

@@ -1,0 +1,50 @@
+{
+  "account": "personal",
+  "dataset": "failures",
+  "as_of": "2026-09-10T10:16:04Z",
+  "run": "r-0912",
+  "row": {
+    "seq": 5,
+    "item_kind": "message",
+    "item_id": "m-news",
+    "message_id": "m-news",
+    "from_email": "mmfieldmarker-newsletteraddress@newsletter.example",
+    "subject": "\u003cscript\u003emmfieldmarker-newslettersubject\u003c/script\u003e",
+    "sent_at": "2026-09-09T04:16:04Z",
+    "labels": [
+      "INBOX"
+    ],
+    "sender_class": "normal",
+    "content_flags": [],
+    "scan_state": "scanned",
+    "page": null,
+    "error_class": "provider_error",
+    "attempts": 1,
+    "first_at": "2026-09-08T08:46:04Z",
+    "last_at": "2026-09-08T08:46:04Z",
+    "disposition": "pending",
+    "recovered_by": null
+  },
+  "error_summary": null,
+  "rule_ids": [
+    "content.mfa.subject_numeric_6",
+    "sender.list.newsletter"
+  ],
+  "scanned_at": "2026-09-09T05:16:04Z",
+  "scanner_version": 3,
+  "audit": [
+    {
+      "id": 1,
+      "at": "2026-09-10T08:16:04Z",
+      "actor": "agent",
+      "action": "READ_BODY"
+    },
+    {
+      "id": 3,
+      "at": "2026-09-07T10:16:04Z",
+      "actor": "agent",
+      "action": "READ_BODY"
+    }
+  ],
+  "audit_count": 2
+}

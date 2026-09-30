@@ -1,0 +1,44 @@
+{
+  "account": "personal",
+  "dataset": "runs",
+  "level": 0,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {
+    "pass": "!tick",
+    "range": "7d"
+  },
+  "figures": [
+    {
+      "key": "runs",
+      "wording": "runs",
+      "value": 6,
+      "at": null,
+      "unit": null,
+      "link": "/personal/jobs"
+    },
+    {
+      "key": "running",
+      "wording": "running",
+      "value": 3,
+      "at": null,
+      "unit": null,
+      "link": "/personal/jobs?state=running"
+    },
+    {
+      "key": "failed",
+      "wording": "failed",
+      "value": 1,
+      "at": null,
+      "unit": null,
+      "link": "/personal/jobs?state=failed"
+    },
+    {
+      "key": "last_failure",
+      "wording": "last failure",
+      "value": null,
+      "at": "2026-09-08T09:16:04Z",
+      "unit": null,
+      "link": "/personal/jobs/r-0912"
+    }
+  ]
+}

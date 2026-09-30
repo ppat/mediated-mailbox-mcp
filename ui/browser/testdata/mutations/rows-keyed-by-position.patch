@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: the rows table keys its rows by position, so a new first run moves keyboard focus off the run the operator chose
+packages: ./ui/browser/test/jobs.test.tsx
+tests: keyboard focus stays on the chosen run's link when a re-read puts a new run above it
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/lens/table.tsx b/ui/browser/src/lens/table.tsx
+index 1d7f5ae..da992b1 100644
+--- a/ui/browser/src/lens/table.tsx
++++ b/ui/browser/src/lens/table.tsx
+@@ -127,7 +127,7 @@ export function RowsTable<Row>(props: TableProps<Row>) {
+           ) : (
+             rows.map((row, i) => (
+               <tr
+-                key={props.rowKey === undefined ? i : props.rowKey(row)}
++                key={i}
+                 aria-selected={i === cursor}
+                 onClick={() => {
+                   setSelected(identity(row, i));

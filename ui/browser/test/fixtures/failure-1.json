@@ -1,0 +1,39 @@
+{
+  "account": "personal",
+  "dataset": "failures",
+  "as_of": "2026-09-10T10:16:04Z",
+  "run": "r-0912",
+  "row": {
+    "seq": 1,
+    "item_kind": "message",
+    "item_id": "m-bank",
+    "message_id": "m-bank",
+    "from_email": "mmfieldmarker-bankaddress@bank.example",
+    "subject": "mmfieldmarker-banksubject",
+    "sent_at": "2026-09-08T10:16:04Z",
+    "labels": [],
+    "sender_class": "restricted",
+    "content_flags": [],
+    "scan_state": "skipped_restricted",
+    "page": 12,
+    "error_class": "scanner_timeout",
+    "attempts": 2,
+    "first_at": "2026-09-08T08:16:04Z",
+    "last_at": "2026-09-08T13:16:04Z",
+    "disposition": "recovered",
+    "recovered_by": "r-0913"
+  },
+  "error_summary": "\u003cscript\u003emmfieldmarker-errorsummary\u003c/script\u003e",
+  "rule_ids": [],
+  "scanned_at": null,
+  "scanner_version": null,
+  "audit": [
+    {
+      "id": 2,
+      "at": "2026-09-10T08:16:04Z",
+      "actor": "agent",
+      "action": "DENY_BODY"
+    }
+  ],
+  "audit_count": 1
+}

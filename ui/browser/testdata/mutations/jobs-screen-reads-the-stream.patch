@@ -1,0 +1,19 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: the jobs screen reads the stream's update time while rendering, so every event re-renders the whole screen
+packages: ./ui/browser/test/jobs.test.tsx
+tests: an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/jobs.tsx b/ui/browser/src/screens/jobs.tsx
+index 46177f0..82cfade 100644
+--- a/ui/browser/src/screens/jobs.tsx
++++ b/ui/browser/src/screens/jobs.tsx
+@@ -136,6 +136,7 @@ export function jobsRuns(jobs: Jobs): Run[] {
+ export function JobsScreen(props: { account: string; live: Stream }) {
+   const { account, live } = props;
+   const { jobs } = useDeps();
++  void live.objects.updatedAt.value;
+   const view = useCanonicalView("runs");
+   const path = jobsPath(account);
+   return (

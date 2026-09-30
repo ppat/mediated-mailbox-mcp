@@ -23,7 +23,7 @@ export function chipText(
   };
 }
 
-export function Breadcrumb(props: { account: string; name: string; view: View }) {
+export function Breadcrumb(props: { account: string; name: string; view: View; screen?: string }) {
   return (
     <nav class="breadcrumb" aria-label="Applied filters">
       <span>{props.name}</span>
@@ -33,7 +33,7 @@ export function Breadcrumb(props: { account: string; name: string; view: View })
           <a
             key={`${index}-${filter.dimension}`}
             class="chip"
-            href={href(props.account, removeChip(props.view, index))}
+            href={href(props.account, removeChip(props.view, index), props.screen)}
             aria-label={`Remove the filter ${text}${known ? "" : ", unknown"}`}
           >
             {text} {known ? null : <span class="badge">unknown</span>}

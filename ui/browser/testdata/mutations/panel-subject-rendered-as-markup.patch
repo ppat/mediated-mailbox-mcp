@@ -1,0 +1,20 @@
+control: Message-derived text renders inert
+removes: the failure's panel hands the message's subject to the raw-markup escape hatch
+packages: ./ui/browser/test/run.test.tsx
+tests: a failure's panel shows its message's rule ids, scan time and scanner version | markup in every message-derived field of a failure's panel arrives as text
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/run.tsx b/ui/browser/src/screens/run.tsx
+index f92d25d..e12c6bb 100644
+--- a/ui/browser/src/screens/run.tsx
++++ b/ui/browser/src/screens/run.tsx
+@@ -406,7 +406,7 @@ export function FailureBody(props: { detail: FailureDetail }) {
+           {row.item_kind} <span class="mono">{row.item_id}</span>
+         </dd>
+         <dt>subject</dt>
+-        <dd>{row.subject ?? "not in the index"}</dd>
++        <dd dangerouslySetInnerHTML={{ __html: row.subject ?? "not in the index" }} />
+         <dt>sender</dt>
+         <dd class="mono">{row.from_email ?? ""}</dd>
+         <dt>page</dt>

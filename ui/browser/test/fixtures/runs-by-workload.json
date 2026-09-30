@@ -1,0 +1,40 @@
+{
+  "account": "personal",
+  "dataset": "runs",
+  "level": 1,
+  "as_of": "2026-09-10T10:16:04Z",
+  "group": "workload",
+  "filters": {
+    "pass": "!tick",
+    "range": "7d"
+  },
+  "total": {
+    "count": 5
+  },
+  "rows": [
+    {
+      "key": {
+        "workload": "backfill"
+      },
+      "count": 2
+    },
+    {
+      "key": {
+        "workload": "apply"
+      },
+      "count": 1
+    },
+    {
+      "key": {
+        "workload": "heuristics"
+      },
+      "count": 1
+    },
+    {
+      "key": {
+        "workload": "sync"
+      },
+      "count": 1
+    }
+  ]
+}

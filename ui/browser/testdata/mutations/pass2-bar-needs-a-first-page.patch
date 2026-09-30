@@ -1,0 +1,32 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: pass 2's bar is drawn only when the first answer's checkpoint records a page, so a pass that has just started shows no bar on its first page event
+packages: ./ui/browser/test/jobs.test.tsx
+tests: a pass 2 that has just started shows its bar on its first page event
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/jobs.tsx b/ui/browser/src/screens/jobs.tsx
+index 1a7b541..57741e4 100644
+--- a/ui/browser/src/screens/jobs.tsx
++++ b/ui/browser/src/screens/jobs.tsx
+@@ -339,12 +339,14 @@ function Cards(props: { account: string; jobs: Jobs; live: Stream }) {
+             </Field>
+             <Field name="checkpoint">
+               <RunLine live={live} run={pass2.run} text={(r) => progressOf(r)} />
+-              <LiveProgress
+-                value={live.objects.run(pass2.run.run_id)}
+-                fallback={pass2.run}
+-                measure={runMeasure}
+-                label="Backfill pass 2 progress"
+-              />
++              {pagesOf(pass2.run) === undefined ? null : (
++                <LiveProgress
++                  value={live.objects.run(pass2.run.run_id)}
++                  fallback={pass2.run}
++                  measure={runMeasure}
++                  label="Backfill pass 2 progress"
++                />
++              )}
+             </Field>
+             <Field name="decided">
+               <RunLine

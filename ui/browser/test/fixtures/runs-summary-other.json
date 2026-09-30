@@ -1,0 +1,44 @@
+{
+  "account": "other",
+  "dataset": "runs",
+  "level": 0,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {
+    "pass": "!tick",
+    "range": "7d"
+  },
+  "figures": [
+    {
+      "key": "runs",
+      "wording": "runs",
+      "value": 1,
+      "at": null,
+      "unit": null,
+      "link": "/other/jobs"
+    },
+    {
+      "key": "running",
+      "wording": "running",
+      "value": 1,
+      "at": null,
+      "unit": null,
+      "link": "/other/jobs?state=running"
+    },
+    {
+      "key": "failed",
+      "wording": "failed",
+      "value": 0,
+      "at": null,
+      "unit": null,
+      "link": "/other/jobs?state=failed"
+    },
+    {
+      "key": "last_failure",
+      "wording": "last failure",
+      "value": null,
+      "at": null,
+      "unit": null,
+      "link": "/other/jobs?state=failed"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "unknown_run",
+    "message": "the account holds no such run",
+    "origin": "client",
+    "request_id": "recorded"
+  }
+}

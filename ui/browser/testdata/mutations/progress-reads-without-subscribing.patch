@@ -1,0 +1,20 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: a progress bar reads its object's value without subscribing to it, so an event never moves its fill
+packages: ./ui/browser/test/jobs.test.tsx
+tests: an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/live.tsx b/ui/browser/src/app/live.tsx
+index d63fe52..3b8117c 100644
+--- a/ui/browser/src/app/live.tsx
++++ b/ui/browser/src/app/live.tsx
+@@ -151,7 +151,7 @@ export function LiveProgress<T>(props: {
+ }) {
+   const { value, fallback, measure } = props;
+   const shown = useMemo(
+-    () => computed(() => measure(value.value ?? fallback)),
++    () => computed(() => measure(value.peek() ?? fallback)),
+     [value, fallback, measure],
+   );
+   const fill = useMemo(() => computed(() => filled(shown.value.part, shown.value.whole)), [shown]);

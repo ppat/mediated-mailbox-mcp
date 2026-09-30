@@ -6,11 +6,17 @@ import { createContext } from "preact";
 import { useContext } from "preact/hooks";
 import {
   readAccounts,
+  readFailure,
+  readJobs,
   readLens,
+  readRun,
   readSystem,
   type Accounts,
+  type FailureDetail,
   type Fetch,
+  type Jobs,
   type LensAnswer,
+  type RunSummary,
   type System,
 } from "./api.ts";
 import { Cache } from "./cache.ts";
@@ -24,6 +30,19 @@ export type Timing = { slow: number; timeout: number };
 
 export const regionTiming: Timing = { slow: 1_000, timeout: 10_000 };
 
+// Timers schedule the app's own delays, a region's loading phases, the live clock's tick and the
+// keyboard map's g window, as the clock is read through now. A test hands in timers it advances
+// itself, so it moves time deliberately and never races the machine's load (test/app.ts).
+export type Timers = {
+  set: (run: () => void, ms: number) => number;
+  clear: (id: number | undefined) => void;
+};
+
+export const browserTimers: Timers = {
+  set: (run, ms) => window.setTimeout(run, ms),
+  clear: (id) => window.clearTimeout(id),
+};
+
 export type Deps = {
   fetch: Fetch;
   now: () => number;
@@ -31,6 +50,7 @@ export type Deps = {
   // undefined where the browser refuses storage, and nothing is kept then.
   storage: Storage | undefined;
   timing: Timing;
+  timers: Timers;
   // config is what the entry document carries for the browser (docs/UI.md section 18.1).
   config: BrowserConfig;
   // connect opens an account's event stream into objects, calling refetch on a reconnect and on every
@@ -39,6 +59,9 @@ export type Deps = {
   accounts: Cache<Accounts>;
   system: Cache<System>;
   lens: Cache<LensAnswer>;
+  jobs: Cache<Jobs>;
+  runs: Cache<RunSummary>;
+  failures: Cache<FailureDetail>;
 };
 
 export function makeDeps(
@@ -46,6 +69,7 @@ export function makeDeps(
   now: () => number,
   storage: Storage | undefined,
   timing: Timing,
+  timers: Timers,
   config: BrowserConfig,
   connect: Deps["connect"],
 ): Deps {
@@ -54,11 +78,15 @@ export function makeDeps(
     now,
     storage,
     timing,
+    timers,
     config,
     connect,
     accounts: new Cache((path, signal) => readAccounts(fetch, path, signal), now),
     system: new Cache((path, signal) => readSystem(fetch, path, signal), now),
     lens: new Cache((path, signal) => readLens(fetch, path, signal), now),
+    jobs: new Cache((path, signal) => readJobs(fetch, path, signal), now),
+    runs: new Cache((path, signal) => readRun(fetch, path, signal), now),
+    failures: new Cache((path, signal) => readFailure(fetch, path, signal), now),
   };
 }
 

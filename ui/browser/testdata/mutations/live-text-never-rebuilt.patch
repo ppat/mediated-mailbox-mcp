@@ -1,0 +1,21 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: live text builds its computed once and never again, so another run or an answer read again never reaches it
+packages: ./ui/browser/test/jobs.test.tsx
+tests: a new tick replaces the card's run, and its next event reaches the card | a poll's re-read reaches the cards and the rows | a reconnect's re-read puts a new run first, and every row keeps its own run's cells
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/live.tsx b/ui/browser/src/app/live.tsx
+index 23a8d6c..8c6f467 100644
+--- a/ui/browser/src/app/live.tsx
++++ b/ui/browser/src/app/live.tsx
+@@ -130,7 +130,8 @@ export function LiveText<T>(props: {
+   const { value, fallback, text, clock } = props;
+   const shown = useMemo(
+     () => computed(() => text(value.value ?? fallback, clock?.value ?? 0)),
+-    [value, fallback, text, clock],
++    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the mutation under test
++    [],
+   );
+   return <>{shown}</>;
+ }

@@ -35,6 +35,62 @@ export const workloadState = {
   idle: "idle",
 } as const satisfies Record<Schemas["BackfillBlock"]["state"], string>;
 
+// The message row's vocabularies (docs/UI.md section 11). The contract carries a failure's message
+// fields as open strings, so a value outside these tables arrives and is shown marked unknown.
+export const senderClass: Readonly<Record<string, string>> = {
+  normal: "normal",
+  restricted: "restricted",
+};
+
+export const contentFlag: Readonly<Record<string, string>> = {
+  mfa_code: "mfa",
+  login_link: "link",
+};
+
+// scanState is the short form a cell shows, and scanStateLong the wording on hover and in a detail.
+export const scanState: Readonly<Record<string, string>> = {
+  scanned: "scanned",
+  skipped_restricted: "restricted",
+  skipped_gate: "gate skip",
+  pending: "pending",
+};
+
+export const scanStateLong: Readonly<Record<string, string>> = {
+  scanned: "scanned",
+  skipped_restricted: "not scanned, restricted sender",
+  skipped_gate: "released unscanned, gate skip",
+  pending: "pending content scan",
+};
+
+export const errorClass: Readonly<Record<string, string>> = {
+  throttled: "provider throttled",
+  provider_error: "provider error",
+  gone: "gone at provider",
+  scanner_timeout: "scanner timeout",
+  validation: "validation",
+  authentication: "authentication",
+};
+
+export const disposition: Readonly<Record<string, string>> = {
+  recovered: "recovered",
+  pending: "pending",
+  gone: "gone",
+  abandoned: "abandoned",
+};
+
+export const auditAction: Readonly<Record<string, string>> = {
+  READ_BODY: "body served",
+  DENY_BODY: "body denied",
+  MUTATE: "mutation applied",
+  DENY_MUTATE: "mutation refused",
+};
+
+export const itemKind: Readonly<Record<string, string>> = {
+  page: "page",
+  message: "message",
+  op: "operation",
+};
+
 // Wording is a stored value's text, with known false for a value its table does not hold.
 export type Wording = { text: string; known: boolean };
 
@@ -50,6 +106,8 @@ const vocabularies: Readonly<
 > = {
   plans: { status: planStatus },
   candidates: { status: candidateStatus },
+  runs: { state: runState },
+  failures: { error_class: errorClass, disposition },
 };
 
 // dimensionWording words a value of a dataset's dimension, or returns the value as known text when the

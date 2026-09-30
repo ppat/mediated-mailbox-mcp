@@ -6,9 +6,11 @@ import { useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
 import {
   isFigures,
+  isGroups,
   isRowsPage,
   lensPath,
   systemPath,
+  type LensFigures,
   type RowsPage,
   type System,
 } from "../app/api.ts";
@@ -20,6 +22,8 @@ import { ignoresKeys } from "../app/keys.ts";
 import { Region } from "../app/region.tsx";
 import { apiQuery, chips, href, removeChip, withPage, type View } from "../app/url.ts";
 import { Breadcrumb } from "./breadcrumb.tsx";
+import { GroupBy } from "./groupby.tsx";
+import { GroupsView } from "./groups.tsx";
 import { RangeControl } from "./range.tsx";
 import { Strip } from "./strip.tsx";
 import { RowsTable, type Column } from "./table.tsx";
@@ -28,12 +32,16 @@ type LensProps<Row> = {
   account: string;
   name: string;
   view: View;
+  // screen is the path below the account the lens's links lead to, the dataset's name when left out.
+  screen?: string;
   rowsName: string;
   columns: readonly Column<Row>[];
   // rows picks the lens's rows out of a page of the dataset's rows, or undefined when the page is not
   // the lens's dataset.
   rows: (page: RowsPage) => readonly Row[] | undefined;
   open?: (row: Row) => string;
+  // rowKey is a row's identity, which keeps each row's cells with its row as the page changes.
+  rowKey?: (row: Row) => string | number;
   // panelOpen says a row's detail is open, which takes Escape from the breadcrumb.
   panelOpen: boolean;
 };
@@ -45,32 +53,51 @@ export function countsSoFar(system: State<System>): boolean {
   return system.status !== "ok" || indexing(system.answer);
 }
 
+// SummaryStrip is the strip with its figures counted so far while backfill pass 1 runs. It reads the
+// system endpoint itself, so a new answer there redraws the strip alone and not the lens around it.
+function SummaryStrip(props: { account: string; summary: LensFigures }) {
+  const { system } = useDeps();
+  const soFar = countsSoFar(system.read(systemPath(props.account)).value);
+  return <Strip summary={props.summary} soFar={soFar} />;
+}
+
 // summaryView is the level 0 read of a view, the same filters and range with no page or group.
 export function summaryView(view: View): View {
   return { ...view, level: "0", group: undefined, page: undefined };
 }
 
-export function Lens<Row>(props: LensProps<Row>) {
-  const { lens, system } = useDeps();
+// useChipEscape makes Escape remove the last chip and ascend, when no panel, menu or dialog has taken
+// it (docs/UI.md section 13).
+export function useChipEscape(
+  account: string,
+  view: View,
+  screen: string | undefined,
+  panelOpen: boolean,
+): void {
   const { route } = useLocation();
-  const { account, view } = props;
-  const summaryPath = lensPath(account, apiQuery(summaryView(view)));
-  const rowsPath = lensPath(account, apiQuery(view));
-  const soFar = countsSoFar(system.read(systemPath(account)).value);
-
-  // Escape removes the last chip and ascends, when no panel, menu or dialog has taken it.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const applied = chips(view);
       const last = applied[applied.length - 1];
-      if (event.key !== "Escape" || props.panelOpen || ignoresKeys(event) || last === undefined) {
+      if (event.key !== "Escape" || panelOpen || ignoresKeys(event) || last === undefined) {
         return;
       }
-      route(href(account, removeChip(view, last.index)));
+      route(href(account, removeChip(view, last.index), screen));
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [account, view, props.panelOpen, route]);
+  }, [account, view, screen, panelOpen, route]);
+}
+
+export function Lens<Row>(props: LensProps<Row>) {
+  const { lens } = useDeps();
+  const { account, view } = props;
+  const { screen } = props;
+  const summaryPath = lensPath(account, apiQuery(summaryView(view)));
+  const rowsPath = lensPath(account, apiQuery(view));
+  const grouped = view.level === "1" || view.level === "2";
+
+  useChipEscape(account, view, screen, props.panelOpen);
 
   return (
     <section aria-label={props.name}>
@@ -80,12 +107,36 @@ export function Lens<Row>(props: LensProps<Row>) {
         shape="block"
         retry={() => void lens.retry(summaryPath)}
       >
-        {(answer) => (isFigures(answer) ? <Strip summary={answer} soFar={soFar} /> : null)}
+        {(answer) =>
+          isFigures(answer) ? <SummaryStrip account={account} summary={answer} /> : null
+        }
       </Region>
       <div class="crumbs">
-        <Breadcrumb account={account} name={props.name} view={view} />
-        <RangeControl account={account} view={view} />
+        <Breadcrumb account={account} name={props.name} view={view} screen={screen} />
+        {/* The custom range's fields start from the view's range, so another range starts them afresh. */}
+        <RangeControl key={view.range ?? ""} account={account} view={view} screen={screen} />
+        <GroupBy account={account} view={view} screen={screen} />
       </div>
+      {grouped ? (
+        <Region
+          name={props.rowsName}
+          state={lens.read(rowsPath)}
+          shape="chart"
+          retry={() => void lens.retry(rowsPath)}
+        >
+          {(answer) =>
+            isGroups(answer) ? (
+              <GroupsView
+                account={account}
+                view={view}
+                answer={answer}
+                name={props.name}
+                screen={screen}
+              />
+            ) : null
+          }
+        </Region>
+      ) : null}
       {view.level === "3" ? (
         <Region
           name={props.rowsName}
@@ -105,9 +156,10 @@ export function Lens<Row>(props: LensProps<Row>) {
                 columns={props.columns}
                 rows={rows}
                 open={props.open}
+                rowKey={props.rowKey}
                 page={answer.page}
                 pages={answer.pages}
-                pageHref={(page) => href(account, withPage(view, page))}
+                pageHref={(page) => href(account, withPage(view, page), screen)}
               />
             );
           }}

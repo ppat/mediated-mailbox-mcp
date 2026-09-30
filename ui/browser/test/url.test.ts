@@ -6,6 +6,7 @@ import {
   canonical,
   canonicalize,
   chips,
+  filterWord,
   href,
   parse,
   removeChip,
@@ -86,4 +87,14 @@ describe("links", () => {
   test("the account is one encoded path segment", () => {
     expect(href("a/b", canonicalize(parse("plans", "")))).toStartWith("/a%2Fb/plans?");
   });
+});
+
+test("a group's filter word is its value only where the grammar reads the value back as itself", () => {
+  expect(filterWord(null, false)).toBe("none");
+  expect(filterWord("", true)).toBe("empty");
+  expect(filterWord("", false)).toBeUndefined();
+  expect(filterWord("example.test", false)).toBe("example.test");
+  for (const value of ["a,b", "!x", "none", "empty"]) {
+    expect(filterWord(value, true)).toBeUndefined();
+  }
 });

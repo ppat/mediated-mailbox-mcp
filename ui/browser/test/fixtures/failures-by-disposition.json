@@ -1,0 +1,47 @@
+{
+  "account": "personal",
+  "dataset": "failures",
+  "level": 1,
+  "as_of": "2026-09-10T10:16:04Z",
+  "group": "disposition",
+  "filters": {},
+  "total": {
+    "count": 5,
+    "restricted": 1,
+    "flagged": 1
+  },
+  "rows": [
+    {
+      "key": {
+        "disposition": "pending"
+      },
+      "count": 2,
+      "restricted": 0,
+      "flagged": 1
+    },
+    {
+      "key": {
+        "disposition": "abandoned"
+      },
+      "count": 1,
+      "restricted": 0,
+      "flagged": 0
+    },
+    {
+      "key": {
+        "disposition": "gone"
+      },
+      "count": 1,
+      "restricted": 0,
+      "flagged": 0
+    },
+    {
+      "key": {
+        "disposition": "recovered"
+      },
+      "count": 1,
+      "restricted": 1,
+      "flagged": 0
+    }
+  ]
+}

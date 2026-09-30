@@ -1,0 +1,123 @@
+{
+  "account": "personal",
+  "dataset": "failures",
+  "level": 3,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {},
+  "sort": "last_at,desc",
+  "page": 1,
+  "pages": 1,
+  "total": {
+    "count": 5,
+    "restricted": 1,
+    "flagged": 1
+  },
+  "rows": [
+    {
+      "seq": 1,
+      "item_kind": "message",
+      "item_id": "m-bank",
+      "message_id": "m-bank",
+      "from_email": "mmfieldmarker-bankaddress@bank.example",
+      "subject": "mmfieldmarker-banksubject",
+      "sent_at": "2026-09-08T10:16:04Z",
+      "labels": [],
+      "sender_class": "restricted",
+      "content_flags": [],
+      "scan_state": "skipped_restricted",
+      "page": 12,
+      "error_class": "scanner_timeout",
+      "attempts": 2,
+      "first_at": "2026-09-08T08:16:04Z",
+      "last_at": "2026-09-08T13:16:04Z",
+      "disposition": "recovered",
+      "recovered_by": "r-0913"
+    },
+    {
+      "seq": 3,
+      "item_kind": "page",
+      "item_id": "13",
+      "message_id": null,
+      "from_email": null,
+      "subject": null,
+      "sent_at": null,
+      "labels": null,
+      "sender_class": null,
+      "content_flags": null,
+      "scan_state": null,
+      "page": 13,
+      "error_class": "throttled",
+      "attempts": 5,
+      "first_at": "2026-09-08T08:16:04Z",
+      "last_at": "2026-09-08T08:46:04Z",
+      "disposition": "abandoned",
+      "recovered_by": null
+    },
+    {
+      "seq": 4,
+      "item_kind": "message",
+      "item_id": "m-gone",
+      "message_id": null,
+      "from_email": null,
+      "subject": null,
+      "sent_at": null,
+      "labels": null,
+      "sender_class": null,
+      "content_flags": null,
+      "scan_state": null,
+      "page": 14,
+      "error_class": "gone",
+      "attempts": 1,
+      "first_at": "2026-09-08T08:46:04Z",
+      "last_at": "2026-09-08T08:46:04Z",
+      "disposition": "gone",
+      "recovered_by": null
+    },
+    {
+      "seq": 5,
+      "item_kind": "message",
+      "item_id": "m-news",
+      "message_id": "m-news",
+      "from_email": "mmfieldmarker-newsletteraddress@newsletter.example",
+      "subject": "\u003cscript\u003emmfieldmarker-newslettersubject\u003c/script\u003e",
+      "sent_at": "2026-09-09T04:16:04Z",
+      "labels": [
+        "INBOX"
+      ],
+      "sender_class": "normal",
+      "content_flags": [],
+      "scan_state": "scanned",
+      "page": null,
+      "error_class": "provider_error",
+      "attempts": 1,
+      "first_at": "2026-09-08T08:46:04Z",
+      "last_at": "2026-09-08T08:46:04Z",
+      "disposition": "pending",
+      "recovered_by": null
+    },
+    {
+      "seq": 2,
+      "item_kind": "message",
+      "item_id": "m-news2",
+      "message_id": "m-news2",
+      "from_email": "mmfieldmarker-newsletteraddress@newsletter.example",
+      "subject": "\u003cscript\u003emmfieldmarker-newslettersubject\u003c/script\u003e",
+      "sent_at": "2026-09-09T04:16:04Z",
+      "labels": [
+        "INBOX"
+      ],
+      "sender_class": "normal",
+      "content_flags": [
+        "mfa_code"
+      ],
+      "scan_state": "pending",
+      "page": 12,
+      "error_class": "provider_error",
+      "attempts": 1,
+      "first_at": "2026-09-08T08:16:04Z",
+      "last_at": "2026-09-08T08:16:04Z",
+      "disposition": "pending",
+      "recovered_by": null
+    }
+  ]
+}

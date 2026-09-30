@@ -1,0 +1,107 @@
+{
+  "account": "personal",
+  "as_of": "2026-09-10T10:16:04Z",
+  "run": {
+    "run_id": "r-0912",
+    "workload": "backfill",
+    "pass": "pass2",
+    "state": "failed",
+    "plan_id": null,
+    "plan_description": null,
+    "plan_status": null,
+    "resumed_from": null,
+    "started_at": "2026-09-08T08:16:04Z",
+    "finished_at": "2026-09-08T09:16:04Z",
+    "heartbeat_at": "2026-09-08T09:16:04Z",
+    "checkpoint": {
+      "of": 3368,
+      "page": 14
+    },
+    "counters": {
+      "pages": 14,
+      "decided": 350,
+      "pending": 83862,
+      "scanned": 330,
+      "skipped": 20
+    },
+    "last_error": "\u003cscript\u003emmfieldmarker-runfailure\u003c/script\u003e"
+  },
+  "resumer": {
+    "run_id": "r-0913",
+    "workload": "backfill",
+    "pass": "pass2",
+    "state": "running",
+    "plan_id": null,
+    "plan_description": null,
+    "plan_status": null,
+    "resumed_from": "r-0912",
+    "started_at": "2026-09-10T09:36:04Z",
+    "finished_at": null,
+    "heartbeat_at": "2026-09-10T10:15:04Z",
+    "checkpoint": {
+      "of": 3368,
+      "page": 3065
+    },
+    "counters": {
+      "pages": 3065,
+      "decided": 76610,
+      "pending": 7602,
+      "scanned": 70100,
+      "skipped": 6510
+    },
+    "last_error": null
+  },
+  "failures": {
+    "count": 5,
+    "dispositions": {
+      "abandoned": 1,
+      "gone": 1,
+      "pending": 2,
+      "recovered": 1
+    }
+  },
+  "recovered_by": [
+    {
+      "run_id": "r-0913",
+      "recovered": 1
+    }
+  ],
+  "events": [
+    {
+      "kind": "start",
+      "at": "2026-09-08T08:16:04Z",
+      "page": null,
+      "detail": null
+    },
+    {
+      "kind": "progress",
+      "at": "2026-09-08T08:26:04Z",
+      "page": 12,
+      "detail": null
+    },
+    {
+      "kind": "failure",
+      "at": "2026-09-08T08:36:04Z",
+      "page": 12,
+      "detail": "\u003cscript\u003emmfieldmarker-eventdetail\u003c/script\u003e"
+    },
+    {
+      "kind": "backoff",
+      "at": "2026-09-08T08:36:04Z",
+      "page": 12,
+      "detail": null
+    },
+    {
+      "kind": "retry",
+      "at": "2026-09-08T08:41:04Z",
+      "page": 12,
+      "detail": null
+    },
+    {
+      "kind": "finish",
+      "at": "2026-09-08T09:16:04Z",
+      "page": 14,
+      "detail": null
+    }
+  ]
+}

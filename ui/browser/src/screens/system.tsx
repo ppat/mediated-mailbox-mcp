@@ -1,9 +1,11 @@
 // The system screen of docs/UI.md section 8.8, read-only. It shows the account's identifier and
 // provider and the system endpoint's operational block, one row per value. A row links where Home's
-// operational row links once the screen it links to exists, and until then renders unlinked, so no row
-// links yet. It is not a live surface. It reads the system endpoint through the same cached
+// operational row links once the screen it links to exists, and until then renders unlinked, so the
+// rows UI.md sends to Jobs link there and the two it sends to the corpus lens do not yet. It is not a
+// live surface. It reads the system endpoint through the same cached
 // read as the chrome's partial-index banner, so a page load sends one request, and while the banner
 // follows the stream the values here move with it.
+import type { ComponentChildren } from "preact";
 import { systemPath, type Run, type System } from "../app/api.ts";
 import { useDeps } from "../app/deps.ts";
 import { ListedAccount, numberIn } from "../app/frame.tsx";
@@ -23,7 +25,15 @@ export type Value = {
   // title is the hover, the UTC time of an age or the local time of a UTC time.
   title?: string;
   progress?: { part: number; whole: number };
+  // href is the screen the value links to, where one exists.
+  href?: string;
 };
+
+// jobsHref is the jobs screen of an account, where the rows of the backfill run, delta sync and the
+// rate link (docs/UI.md section 8.8).
+function jobsHref(account: string): string {
+  return `/${encodeURIComponent(account)}/jobs`;
+}
 
 // pass is a backfill pass's value, complete, or running with its page of pages while its latest run
 // runs, else not complete.
@@ -59,6 +69,8 @@ export function backoff(until: string | null | undefined, now: number): string {
 export function systemValues(system: System, now: number): Value[] {
   const op = system.operational;
   const r = op.rate;
+  const jobs = jobsHref(system.account);
+  const toJobs = (v: Value): Value => ({ ...v, href: jobs });
   return [
     {
       key: "account",
@@ -67,46 +79,52 @@ export function systemValues(system: System, now: number): Value[] {
       mono: true,
       note: op.connected ? system.provider : `${system.provider}, not connected`,
     },
-    pass("pass1", "Backfill pass 1", op.backfill_pass1_complete, op.backfill_pass1_run),
+    toJobs(pass("pass1", "Backfill pass 1", op.backfill_pass1_complete, op.backfill_pass1_run)),
     pass("pass2", "Backfill pass 2", op.backfill_pass2_complete, op.backfill_pass2_run),
-    op.sync_cursor_at === null
-      ? { key: "cursor", label: "Sync cursor age", text: "no cursor yet" }
-      : {
-          key: "cursor",
-          label: "Sync cursor age",
-          text: age(op.sync_cursor_at, now),
-          title: utc(op.sync_cursor_at),
-        },
-    op.last_successful_tick_at === null
-      ? { key: "tick", label: "Last successful tick", text: "none yet" }
-      : {
-          key: "tick",
-          label: "Last successful tick",
-          text: utc(op.last_successful_tick_at),
-          title: local(op.last_successful_tick_at),
-        },
+    toJobs(
+      op.sync_cursor_at === null
+        ? { key: "cursor", label: "Sync cursor age", text: "no cursor yet" }
+        : {
+            key: "cursor",
+            label: "Sync cursor age",
+            text: age(op.sync_cursor_at, now),
+            title: utc(op.sync_cursor_at),
+          },
+    ),
+    toJobs(
+      op.last_successful_tick_at === null
+        ? { key: "tick", label: "Last successful tick", text: "none yet" }
+        : {
+            key: "tick",
+            label: "Last successful tick",
+            text: utc(op.last_successful_tick_at),
+            title: local(op.last_successful_tick_at),
+          },
+    ),
     {
       key: "backlog",
       label: "Scan backlog",
       text: `${count(op.pending_scan)} ${op.pending_scan === 1 ? "message" : "messages"} pending scan`,
     },
-    {
+    toJobs({
       key: "rate",
       label: "Rate",
       text:
         r === null
           ? "no rate state yet"
           : `${rate(r.current, r.target)}, cap ${r.cap.toFixed(1)} units/s`,
-    },
-    { key: "backoff", label: "Backoff", text: backoff(r?.backoff_until, now) },
-    r === null || r.last_throttle_at === null
-      ? { key: "throttle", label: "Last throttle", text: "never" }
-      : {
-          key: "throttle",
-          label: "Last throttle",
-          text: utc(r.last_throttle_at),
-          title: local(r.last_throttle_at),
-        },
+    }),
+    toJobs({ key: "backoff", label: "Backoff", text: backoff(r?.backoff_until, now) }),
+    toJobs(
+      r === null || r.last_throttle_at === null
+        ? { key: "throttle", label: "Last throttle", text: "never" }
+        : {
+            key: "throttle",
+            label: "Last throttle",
+            text: utc(r.last_throttle_at),
+            title: local(r.last_throttle_at),
+          },
+    ),
     authentication(op.last_auth_outcome, op.last_auth_at),
   ];
 }
@@ -130,9 +148,11 @@ export function Values(props: { label: string; values: readonly Value[] }) {
       {props.values.map((v) => [
         <dt key={`${v.key}-label`}>{v.label}</dt>,
         <dd key={`${v.key}-value`}>
-          <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
-            {v.text}
-          </span>
+          <Linked href={v.href}>
+            <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
+              {v.text}
+            </span>
+          </Linked>
           {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
           {v.progress === undefined ? null : (
             <ProgressBar
@@ -145,6 +165,15 @@ export function Values(props: { label: string; values: readonly Value[] }) {
         </dd>,
       ])}
     </dl>
+  );
+}
+
+// Linked wraps a value in its link where it has one.
+function Linked(props: { href: string | undefined; children: ComponentChildren }) {
+  return props.href === undefined ? (
+    <>{props.children}</>
+  ) : (
+    <a href={props.href}>{props.children}</a>
   );
 }
 

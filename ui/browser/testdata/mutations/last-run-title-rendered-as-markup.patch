@@ -1,0 +1,20 @@
+control: Message-derived text renders inert
+removes: the reorg apply card hands the last run's plan title to the raw-markup escape hatch
+packages: ./ui/browser/test/jobs.test.tsx
+tests: the plans' titles carrying markup arrive as text in their cards and their row
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/jobs.tsx b/ui/browser/src/screens/jobs.tsx
+index 5ef9b00..d12c613 100644
+--- a/ui/browser/src/screens/jobs.tsx
++++ b/ui/browser/src/screens/jobs.tsx
+@@ -416,7 +416,7 @@ function Cards(props: { account: string; jobs: Jobs; live: Stream }) {
+           <Field name="last run">none yet</Field>
+         ) : (
+           <Field name="last run">
+-            {planTitle(apply.last.plan_description)}
++            <span dangerouslySetInnerHTML={{ __html: planTitle(apply.last.plan_description) }} />
+             {`, ${word(runState, apply.last.state).text}, ${count(numberIn(apply.last.counters, "ops_done") ?? 0)} operations, ${count(numberIn(apply.last.counters, "failures") ?? 0)} failures, ${elapsed(apply.last, Date.parse(jobs.as_of))}, ${utc(apply.last.started_at)}`}
+             {apply.rollback_available
+               ? `, rollback available over ${count(apply.op_log_rows ?? 0)} logged operations`

@@ -1,0 +1,29 @@
+control: Message-derived text renders inert
+removes: the page row writes its item into the spanning cell's link through the DOM's innerHTML
+packages: ./ui/browser/test/run.test.tsx
+tests: markup in every field of every message row and page row arrives as text
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/row/failure.tsx b/ui/browser/src/row/failure.tsx
+index 27d8863..9c152e2 100644
+--- a/ui/browser/src/row/failure.tsx
++++ b/ui/browser/src/row/failure.tsx
+@@ -64,9 +64,14 @@ export function pageRow(detail: (row: FailureRow) => string): Span<FailureRow> {
+     columns: messageColumns<FailureRow>().length,
+     cell: (row) =>
+       row.item_kind === "page" ? (
+-        <a href={detail(row)}>
+-          page <span class="mono">{row.page ?? row.item_id}</span>
+-        </a>
++        <a
++          href={detail(row)}
++          ref={(el) => {
++            if (el !== null) {
++              el.innerHTML = `page <span class="mono">${row.page ?? row.item_id}</span> ${row.item_id}`;
++            }
++          }}
++        />
+       ) : undefined,
+   };
+ }

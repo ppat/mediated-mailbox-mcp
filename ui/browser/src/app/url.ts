@@ -122,13 +122,22 @@ export function canonical(dataset: DatasetName, search: string): string {
   return serialize(canonicalize(parse(dataset, search)));
 }
 
+// Parent is a nested dataset's required parent filter, which the screen's path carries rather than
+// the query string, such as the run a run screen shows.
+export type Parent = { name: string; value: string };
+
 // apiQuery is the dataset endpoint's query for a view. A removed default filter is left out, because an
-// absent filter is no filter to the endpoint.
-export function apiQuery(view: View): string {
+// absent filter is no filter to the endpoint. At levels 1 and 2 the page is left out too, because the
+// endpoint answers every group and the browser pages the group table itself (docs/UI.md section 7.3).
+export function apiQuery(view: View, parent?: Parent): string {
   const params = new URLSearchParams({ dataset: view.dataset });
+  if (parent !== undefined) {
+    params.append(parent.name, parent.value);
+  }
+  const grouped = view.level === "1" || view.level === "2";
   for (const name of common) {
     const value = view[name];
-    if (value !== undefined) {
+    if (value !== undefined && !(name === "page" && grouped)) {
       params.append(name, value);
     }
   }
@@ -183,7 +192,57 @@ export function withPage(view: View, page: number): View {
   return { ...view, page: String(page) };
 }
 
-// href is the screen path of a dataset view under an account.
-export function href(account: string, view: View): string {
-  return `/${encodeURIComponent(account)}/${view.dataset}?${serialize(view)}`;
+// href is the screen path of a dataset view under an account. screen is the path below the account,
+// the dataset's name for an analysis lens, or the screen that shows the dataset, such as jobs for the
+// runs.
+export function href(account: string, view: View, screen: string = view.dataset): string {
+  return `/${encodeURIComponent(account)}/${screen}?${serialize(view)}`;
+}
+
+// filterWord is how a filter names a group, by its stored value, none for the null group and empty
+// for a value stored empty on a dimension that declares it can hold one (docs/UI.md sections 5, 7.3
+// and 17.1). A stored value the grammar cannot read back as itself has no word, so its group links
+// nowhere. That is a value holding a comma, which the grammar reads as any of, one starting with !,
+// which it reads as an exclusion, one spelled none or empty, and a value stored empty on a dimension
+// that does not declare it.
+export function filterWord(value: string | null, emptyDeclared: boolean): string | undefined {
+  if (value === null) {
+    return "none";
+  }
+  if (value === "") {
+    return emptyDeclared ? "empty" : undefined;
+  }
+  const readBack =
+    !value.includes(",") && !value.startsWith("!") && value !== "none" && value !== "empty";
+  return readBack ? value : undefined;
+}
+
+// descend is the view a click on one group opens (docs/UI.md section 4). The group's filter word
+// becomes a filter. From level 1 the view regroups by the first groupable dimension,
+// in the registry's order, that neither the group nor a filter names, and opens level 2. From level 2,
+// or when no such dimension is left, it opens level 3, unless stay is set, which keeps level 2 for a
+// screen that shows the rows below the groups.
+export function descend(view: View, word: string, stay = false): View {
+  const group = view.group;
+  if (group === undefined) {
+    return view;
+  }
+  const filters = [
+    ...view.filters.filter((f) => f.dimension !== group),
+    { dimension: group, raw: word },
+  ];
+  const named = new Set([group, ...filters.filter((f) => f.raw !== "").map((f) => f.dimension)]);
+  const next = descriptor(view.dataset).dimensions.find((d) => d.groupable && !named.has(d.name));
+  if (view.level === "1" && next !== undefined) {
+    return { ...view, level: "2", group: next.name, page: undefined, filters };
+  }
+  if (stay) {
+    return { ...view, level: "2", group: next?.name ?? group, page: undefined, filters };
+  }
+  return { ...view, level: "3", page: "1", filters };
+}
+
+// withGroup sets the view's grouped dimension and returns its group table to the first page.
+export function withGroup(view: View, group: string): View {
+  return { ...view, group, page: undefined };
 }

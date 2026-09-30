@@ -1,0 +1,21 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: the router mounts a route's component without its route identity as the key, so another account or another run keeps the first screen
+packages: ./ui/browser/test/run.test.tsx
+tests: following the resumer to another run shows that run's strip and follows its events | following recovered by to another run shows that run's strip and follows its events | following a failed item's recovering run to another run shows that run's strip and follows its events | switching account on the run screen shows the other account's run and none of the last one's
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
+index 463e605..676d64b 100644
+--- a/ui/browser/src/app/router.tsx
++++ b/ui/browser/src/app/router.tsx
+@@ -53,7 +53,8 @@ function screen<P extends { account: string }>(
+   identity: (props: P) => string,
+ ): (props: P) => VNode {
+   const Component = component;
+-  const keyed = (props: P) => <Component key={identity(props)} {...props} />;
++  void identity;
++  const keyed = (props: P) => <Component {...props} />;
+   screens.add(keyed);
+   return keyed;
+ }

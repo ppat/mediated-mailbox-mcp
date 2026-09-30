@@ -1,0 +1,24 @@
+control: Message-derived text renders inert
+removes: the message row hands its subject to the raw-markup escape hatch inside the link to the row's detail, and keeps its other fields as text
+packages: ./ui/browser/test/run.test.tsx
+tests: a subject carrying markup arrives as text in its message row, and nothing is built from it | markup in every field of every message row and page row arrives as text
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/row/message.tsx b/ui/browser/src/row/message.tsx
+index 2c36c27..54d06e9 100644
+--- a/ui/browser/src/row/message.tsx
++++ b/ui/browser/src/row/message.tsx
+@@ -48,7 +48,11 @@ export function messageColumns<Row extends MessageFields>(
+           return <span class="muted">not in the index</span>;
+         }
+         const target = detail?.(row);
+-        return target === undefined ? row.subject : <a href={target}>{row.subject}</a>;
++        return target === undefined ? (
++          row.subject
++        ) : (
++          <a href={target} dangerouslySetInnerHTML={{ __html: row.subject ?? "" }} />
++        );
+       },
+       title: (row) => row.subject ?? "",
+     },

@@ -1,0 +1,19 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: the run screen reads the summary's state while rendering, so an event's refetch re-renders the whole screen
+packages: ./ui/browser/test/run.test.tsx
+tests: a run event redraws the strip and the indicator shows, and the screen never re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/run.tsx b/ui/browser/src/screens/run.tsx
+index 1599a21..56b5e18 100644
+--- a/ui/browser/src/screens/run.tsx
++++ b/ui/browser/src/screens/run.tsx
+@@ -118,6 +118,7 @@ export function RunScreen(props: RunProps) {
+   const { runs } = useDeps();
+   const path = runPath(account, run);
+   const summary = runs.read(path);
++  void summary.value;
+   return (
+     <div class="run">
+       <RunHead summary={summary} live={live} />

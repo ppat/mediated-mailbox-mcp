@@ -1,0 +1,22 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: a rate event reads nothing again while the answer shown has no rate state, so an account's first spend never brings up the rate budget
+packages: ./ui/browser/test/jobs.test.tsx
+tests: an account's first rate event reads the jobs endpoint again and brings up the rate budget
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/jobs.tsx b/ui/browser/src/screens/jobs.tsx
+index c7dbc72..f09e125 100644
+--- a/ui/browser/src/screens/jobs.tsx
++++ b/ui/browser/src/screens/jobs.tsx
+@@ -520,9 +520,7 @@ function RateBudget(props: { account: string; jobs: Jobs; live: Stream }) {
+       return undefined;
+     }
+     return effect(() => {
+-      if (live.objects.rate.value !== undefined) {
+-        untracked(() => void deps.jobs.refresh(jobsPath(account)));
+-      }
++      void live.objects.rate.value;
+     });
+   }, [spent, live, deps, account]);
+   if (jobs.rate === null) {

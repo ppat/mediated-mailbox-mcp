@@ -6,21 +6,21 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/screens/system.tsx b/ui/browser/src/screens/system.tsx
-index 6909a46..17fccc9 100644
+index afcda5a..f7b18a9 100644
 --- a/ui/browser/src/screens/system.tsx
 +++ b/ui/browser/src/screens/system.tsx
-@@ -130,9 +130,11 @@ export function Values(props: { label: string; values: readonly Value[] }) {
-       {props.values.map((v) => [
+@@ -149,9 +149,11 @@ export function Values(props: { label: string; values: readonly Value[] }) {
          <dt key={`${v.key}-label`}>{v.label}</dt>,
          <dd key={`${v.key}-value`}>
--          <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
--            {v.text}
--          </span>
-+          <span
-+            class={v.mono === true ? "value mono" : "value"}
-+            title={v.title}
-+            dangerouslySetInnerHTML={{ __html: v.text }}
-+          />
+           <Linked href={v.href}>
+-            <span class={v.mono === true ? "value mono" : "value"} title={v.title}>
+-              {v.text}
+-            </span>
++            <span
++              class={v.mono === true ? "value mono" : "value"}
++              title={v.title}
++              dangerouslySetInnerHTML={{ __html: v.text }}
++            />
+           </Linked>
            {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
            {v.progress === undefined ? null : (
-             <ProgressBar
