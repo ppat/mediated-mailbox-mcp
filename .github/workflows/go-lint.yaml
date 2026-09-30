@@ -75,8 +75,8 @@ jobs:
       working-directory: ./current
       run: mise exec -- golangci-lint run ./...
 
-    # The project's analysers, for ADR-0069's placement rules and ADR-0071's pure-core rule, which honour no
-    # suppression comment and so run under go vet rather than inside golangci-lint. It sets the integration,
+    # The project's analysers, which CLAUDE.md's static-analysis section lists. They honour no suppression
+    # comment and so run under go vet rather than inside golangci-lint. It sets the integration,
     # gmail_live and devloop tags, as .golangci.yaml does, so crash sequences, the contract run against Gmail and
     # the UI's dev-loop file are checked too.
     - name: Run the go vet analysers
