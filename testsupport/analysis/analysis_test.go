@@ -42,3 +42,12 @@ func TestEnvironment(t *testing.T) {
 func TestTxHelper(t *testing.T) {
 	analysistest.Run(t, analysistest.TestData(), analysis.TxHelper, "github.com/ppat/mediated-mailbox-mcp/txuser")
 }
+
+// The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for the UI's server with its
+// recording mux and a test file, another UI package declaring a type named like the recording mux, the
+// UI's composition root, a directory whose name only starts with ui, and the mediator.
+func TestRoutes(t *testing.T) {
+	const m = "github.com/ppat/mediated-mailbox-mcp"
+	analysistest.Run(t, analysistest.TestData(), analysis.Routes,
+		m+"/ui/internal/api", m+"/ui/internal/other", m+"/ui", m+"/uix/lookalike", m+"/mediate/mount")
+}

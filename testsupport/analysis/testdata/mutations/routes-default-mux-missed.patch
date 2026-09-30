@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: a registration on the default mux through http.Handle or http.HandleFunc is not reported
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..65fb72f 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -39,8 +39,6 @@ const recorderHandle = "(*" + modulePath + "/ui/internal/api.recordingMux).Handl
+ var routeRegistrars = map[string]string{
+ 	"(*net/http.ServeMux).Handle":     "(*http.ServeMux).Handle",
+ 	"(*net/http.ServeMux).HandleFunc": "(*http.ServeMux).HandleFunc",
+-	"net/http.Handle":                 "http.Handle",
+-	"net/http.HandleFunc":             "http.HandleFunc",
+ }
+ 
+ func runRoutes(pass *analysis.Pass) (any, error) {

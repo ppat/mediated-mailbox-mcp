@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: a concrete type's method named and typed like the mux's is reported, the recording mux's own Handle included
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..b9f0f71 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -94,7 +94,7 @@ var interfaceRegistrars = map[string]string{
+ func interfaceRegistrar(fn *types.Func) bool {
+ 	sig := fn.Signature()
+ 	want, ok := interfaceRegistrars[fn.Name()]
+-	if !ok || sig.Recv() == nil || !types.IsInterface(sig.Recv().Type()) || sig.Results().Len() != 0 || sig.Variadic() {
++	if !ok || sig.Recv() == nil || sig.Results().Len() != 0 || sig.Variadic() {
+ 		return false
+ 	}
+ 	return unaliasedParams(sig.Params()) == want

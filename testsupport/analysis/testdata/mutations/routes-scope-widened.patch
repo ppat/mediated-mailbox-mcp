@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: every package of the module is checked, the mediator included
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..6fdea33 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -45,7 +45,7 @@ var routeRegistrars = map[string]string{
+ 
+ func runRoutes(pass *analysis.Pass) (any, error) {
+ 	path := pass.Pkg.Path()
+-	if path != modulePath+"/ui" && !strings.HasPrefix(path, modulePath+"/ui/") {
++	if !strings.HasPrefix(path, modulePath) {
+ 		return nil, nil
+ 	}
+ 	for _, file := range pass.Files {

@@ -155,6 +155,30 @@ else broke ties.
   [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, run by the same
   program. It honours no suppression comment and matches a pure-core package by its path, as the
   import list does.
+- **The UI registers a route only through its recording mux, and the project's own `go vet`
+  analysers refuse the registrations they can see.**
+  [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md)'s route check compares
+  every route registered through the recording mux's `Handle` with the contract document, so a
+  route registered on a mux any other way is one the check never sees. The routes analyser reports,
+  in a non-test file of a package under `ui/`, every use of `(*http.ServeMux).Handle`,
+  `(*http.ServeMux).HandleFunc`, `http.Handle` and `http.HandleFunc`, and every use of a method
+  named `Handle` or `HandleFunc` with the mux's parameters on an interface or a type parameter,
+  which a mux can be held in. A parameter spelled through an alias counts as the type it stands
+  for, as it does when Go decides that a mux satisfies the interface. A call and a method value are
+  reported alike. The one exemption is the body of the recording mux's own `Handle` method, which
+  the analyser names by its full name, so renaming the method or its type turns the exemption into
+  a finding. So those functions and methods used on the mux beneath the recorder anywhere else in
+  package `api`, or on a second mux built anywhere under `ui/`, are refused. Three registrations
+  stay with review. No analyser of these calls sees the first two. One is a registration through
+  reflection. The other is a route an imported package registers on the default mux when it is
+  initialised, as `net/http/pprof` does, which the UI's import list admits with the rest of the
+  standard library, and which is served only if a server of the UI is given no handler. The third
+  is a registration through an interface method one of whose parameter types is a type parameter,
+  which only a mounting helper generic over the mux and over its handler or its pattern writes.
+  Matching a type parameter there would add a rule that nothing in the UI needs. Test files are
+  exempt, since a route a test registers is never served. The rule sits in its own analyser, run by
+  the same program, and honours no suppression comment. The mediator is outside its scope, for the
+  reason the alternatives give.
 - **Every package the build of `./...` reaches is one `./...` lists, and the ban-proof script checks
   it.** The aggregator, the `go vet` analysers and the grant check of
   [ADR-0066](../data/0066-data-access-generated-from-sql.md) read only the packages `./...` lists,
@@ -213,8 +237,9 @@ else broke ties.
   reports ill-formed or insufficient directives, so a well-formed directive naming a linter and
   carrying an explanation silences a ban while `nolintlint` at its strictest settings reports
   nothing. The aggregator offers no option to stop honouring the directives.
-- **Five checks are written here, because no tool offers them.** The rules against package-level
-  state in a pure core above. The check above that the build of `./...` reaches only packages
+- **Six checks are written here, because no tool offers them.** The rules against package-level
+  state in a pure core above. The rule above against a route the UI registers other than through its
+  recording mux. The check above that the build of `./...` reaches only packages
   `./...` lists. The suppression check above, written to follow the aggregator's own reading of a
   directive so it refuses exactly what the aggregator would honour, and refusing the spellings the
   aggregator ignores today as well, so a later release honouring them cannot admit one silently. A
@@ -224,7 +249,7 @@ else broke ties.
   against the checked-in files violating each ban and each list, requiring each expected finding and
   no other. The script also runs the project's `go vet` analysers, for
   [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, the rules against
-  package-level state above, the rule
+  package-level state and against a route registered around the UI's recording mux above, the rule
   [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) sets against reading the
   environment outside a composition root and the rule
   [ADR-0047](../data/0047-schema-first-data-access.md) sets that every generated data-access
@@ -255,7 +280,7 @@ grant check tests against the grants.
 | A rule cannot be switched off quietly | The suppression check refuses every directive, ignore comment and configuration setting that can reach a linter standing in for a control, anywhere in the repository, and allows an ordinary linter's suppression only in a form naming it. Each refused directive is proven by a violation file, and each refused configuration setting by a case in the ban-proof script's own tests |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
-| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a composition root and [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, which run beside it |
+| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core and against a route registered around the UI's recording mux, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a composition root and [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, which run beside it |
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and
@@ -538,10 +563,32 @@ project's own `go vet` analysers, which need no carve-out and refuse that write 
   against every case above, it refused each one and passed the tree as it stands, in about two
   seconds across the four configurations. It needs no dependency beyond the go command.
 
+**How to refuse a route registered around the UI's recording mux, and where.** Three mechanisms
+were weighed, over the UI and over the mediator, whose composition root mounts its two roots and its
+probe routes on muxes with nothing recording them.
+
+- **A `go vet` analyser over the UI** was chosen. Run over the whole module with its one exemption,
+  the recording mux's own `Handle`, it reported nothing under `ui/`, so it refuses no legitimate
+  registration there. It is about a hundred and thirty lines with its comments.
+- **The same analyser over the mediator** was rejected. There it reported six registrations and all
+  six are legitimate, the API root's generator registering each operation of the registry, and the
+  composition root mounting `/api/` and `/mcp` and serving its three probe routes. The import lists
+  already confine `net/http` in the mediator's code to three files, the two roots' generators and the
+  composition root, so exempting those leaves the analyser refusing only a route registered in the
+  MCP root's generator, a case no record names. The case left to review there, a route the
+  composition root adds by hand, could be refused only by a list of the patterns the composition
+  root may mount, which would copy `mediate/main.go` into the analyser and drift from it, or by
+  exempting the functions that mount them, which lets a route added inside them through. The
+  mediator's routes stay with review.
+- **Moving the recording mux into a package of its own** was rejected. The compiler would then
+  refuse a call on the mux beneath the recorder from package `api`, with no analyser. It needs a new
+  directory, and it leaves a registration on a second mux built in package `api` unrefused, which the
+  analyser refuses.
+
 ## Consequences
 
 - **What leaving these choices would cost.** A configuration file, in every case. The rules
-  themselves are stated in the records that require them and survive any change of tool. The five
+  themselves are stated in the records that require them and survive any change of tool. The six
   checks written here are each small enough to rewrite in an afternoon.
 - **What would re-argue this decision.** The aggregator's central argument is that it rebuilds
   analysers their own maintainers have not released against a current toolchain. If those projects

@@ -29,6 +29,12 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
   txhelper analyser enforces it, by the rules and the two exempt statements CLAUDE.md states under
   Static analysis and formatting (ADR-0047).
+- **The UI registers a route only through its recording mux.** In a non-test file under `ui/`, the
+  `go vet` routes analyser refuses a use of a mux's `Handle` or `HandleFunc`, of `http.Handle` or
+  `http.HandleFunc`, or of an interface's or type parameter's method of the same name and
+  parameters, outside the recording mux's own `Handle`. Registration through reflection, by an
+  imported package on the default mux, or through an interface method one of whose parameter types
+  is a type parameter is left to review (ADR-0071, CLAUDE.md, Static analysis and formatting).
 - **Deployables never import each other**, and a component imports only the data-access subsections
   its import list names (ADR-0054, ADR-0066, ADR-0071).
 - **Test files are named by kind** (`_property_test.go`, `_crash_test.go`, `_integration_test.go`

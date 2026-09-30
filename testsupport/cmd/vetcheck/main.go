@@ -1,4 +1,4 @@
-// Command vetcheck runs the project's go vet analysers, placement, globals, environment and txhelper.
+// Command vetcheck runs the project's go vet analysers, placement, globals, environment, txhelper and routes.
 //
 //	go vet -vettool="$(go tool -n vetcheck)" ./...
 package main
@@ -10,5 +10,5 @@ import (
 )
 
 func main() {
-	unitchecker.Main(analysis.Placement, analysis.Globals, analysis.Environment, analysis.TxHelper)
+	unitchecker.Main(analysis.Placement, analysis.Globals, analysis.Environment, analysis.TxHelper, analysis.Routes)
 }

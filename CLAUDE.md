@@ -167,8 +167,16 @@ file's import target described under Violation files.
   files included, and exempts the accounts listing and the read of `oauth_clients`, each written as
   one chained call, which are not account-scoped. The one gap it leaves is a query value built
   inside the literal that escapes it and is used after `tx.Run` returns, which its package comment
-  states. banproof requires each rule from its violation file, where a want annotation names the
-  finding as `vetcheck`.
+  states. The routes analyser refuses a route registered on a mux in the UI other than through its
+  recording mux, as any use of `(*http.ServeMux).Handle`, `(*http.ServeMux).HandleFunc`,
+  `http.Handle`, `http.HandleFunc`, or a method of an interface or type parameter named `Handle` or
+  `HandleFunc` with the mux's parameters, in a non-test file under `ui/` outside the recording mux's
+  own `Handle` method ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)).
+  Registration through reflection, by an imported package on the default mux, or through an
+  interface method one of whose parameter types is a type parameter is left to review. The
+  mediator is outside its scope, and what the mediator's composition root mounts is left to review.
+  banproof requires each rule from its violation file, where a want annotation names the finding as
+  `vetcheck`.
 - **`banproof`** is the ban-proof script of
   [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), written as a Go
   program at `testsupport/cmd/banproof` and run as `go tool banproof`. It runs the analysers with

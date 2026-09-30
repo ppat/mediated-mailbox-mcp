@@ -1,0 +1,19 @@
+control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
+removes: every method named Handle is exempt, whatever type or package declares it
+packages: ./testsupport/analysis
+tests: TestRoutes
+scheduled-count: no
+
+diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
+index 58aeac0..fb78736 100644
+--- a/testsupport/analysis/routes.go
++++ b/testsupport/analysis/routes.go
+@@ -56,7 +56,7 @@ func runRoutes(pass *analysis.Pass) (any, error) {
+ 		}
+ 		for _, decl := range file.Decls {
+ 			if fd, ok := decl.(*ast.FuncDecl); ok {
+-				if fn, ok := pass.TypesInfo.Defs[fd.Name].(*types.Func); ok && fn.FullName() == recorderHandle {
++				if fn, ok := pass.TypesInfo.Defs[fd.Name].(*types.Func); ok && fn.Name() == "Handle" && fd.Recv != nil {
+ 					continue
+ 				}
+ 			}
