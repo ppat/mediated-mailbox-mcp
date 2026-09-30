@@ -114,5 +114,5 @@ or taken to the operator, however good it sounds. This check exists because plau
 text is the failure mode that survives every other check.
 
 For a newly minted record, this pass is claim-by-claim and written down (see the mint
-procedure's source walk): every Decision bullet and every Consequence names its source line
-before commit. "It obviously follows" is not a source.
+procedure's source walk in the update-docs skill's `references/records.md`): every Decision bullet
+and every Consequence names its source line before commit. "It obviously follows" is not a source.
