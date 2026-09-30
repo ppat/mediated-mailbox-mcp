@@ -64,8 +64,9 @@ type listedPackage struct {
 }
 
 // unlinted runs the check in every configuration with no build tag, and once more in the first
-// configuration with tag when it is not empty, and returns the findings of every run.
-func unlinted(root, tag string) ([]finding, error) {
+// configuration with tag when it is not empty, and returns the findings of every run. Each run's
+// files are also compared with the files the gating lint reads, which lintTags selects (unread.go).
+func unlinted(root, tag string, lintTags []string) ([]finding, error) {
 	modulePath, modcache, err := moduleFacts(root)
 	if err != nil {
 		return nil, err
@@ -82,6 +83,7 @@ func unlinted(root, tag string) ([]finding, error) {
 		runs = append(runs, run{unlintedConfigurations[0], tag})
 	}
 	var found []finding
+	shipped := map[string][]string{}
 	for _, r := range runs {
 		env := append(os.Environ(), "CGO_ENABLED=0", "GOOS="+r.config.goos, "GOARCH="+r.config.goarch)
 		args := []string{"list", "-e"}
@@ -96,6 +98,7 @@ func unlinted(root, tag string) ([]finding, error) {
 		if err != nil {
 			return nil, err
 		}
+		shipped[r.tag] = append(shipped[r.tag], listedFiles(listed, pkgs)...)
 		fs, err := unlintedFindings(filepath.Join(root, "go.mod"), modulePath, modcache, listed, pkgs)
 		if err != nil {
 			return nil, fmt.Errorf("%s/%s with tags %q: %w", r.config.goos, r.config.goarch, r.tag, err)
@@ -106,7 +109,11 @@ func unlinted(root, tag string) ([]finding, error) {
 			}
 		}
 	}
-	return found, nil
+	unreadFound, err := unread(root, lintTags, shipped)
+	if err != nil {
+		return nil, err
+	}
+	return append(found, unreadFound...), nil
 }
 
 // moduleFacts returns the main module's path and the module cache's directory.
@@ -129,13 +136,14 @@ func moduleFacts(root string) (string, string, error) {
 	return mod.Module.Path, strings.TrimSpace(string(cache)), nil
 }
 
-// goList runs go list and decodes its report, one package per value.
+// goList runs go list and decodes its report, one package per value, or one import path per line
+// when it asks for no JSON.
 func goList(root string, env []string, args ...string) ([]listedPackage, error) {
 	out, err := goCommand(root, env, args...)
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Contains(args, "-deps") {
+	if !slices.ContainsFunc(args, func(a string) bool { return strings.HasPrefix(a, "-json") }) {
 		var pkgs []listedPackage
 		for line := range strings.SplitSeq(strings.TrimSpace(string(out)), "\n") {
 			if line != "" {

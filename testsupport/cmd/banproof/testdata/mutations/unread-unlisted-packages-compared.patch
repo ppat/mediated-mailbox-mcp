@@ -1,0 +1,20 @@
+control: The ban-proof script refuses a file a build that ships compiles that the gating lint does not read
+removes: the files of packages ./... does not list are compared too, so a testdata package's file is refused a second time, where no want can sit
+packages: ./testsupport/cmd/banproof
+tests: TestUnlintedRunsEveryShippedConfiguration
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/unread.go b/testsupport/cmd/banproof/unread.go
+index 7d51aa6..f3be9fa 100644
+--- a/testsupport/cmd/banproof/unread.go
++++ b/testsupport/cmd/banproof/unread.go
+@@ -33,9 +33,6 @@ func listedFiles(listed, pkgs []listedPackage) []string {
+ 	}
+ 	var out []string
+ 	for _, p := range pkgs {
+-		if !lists[p.ImportPath] {
+-			continue
+-		}
+ 		for _, name := range p.GoFiles {
+ 			out = append(out, filepath.Join(p.Dir, name))
+ 		}

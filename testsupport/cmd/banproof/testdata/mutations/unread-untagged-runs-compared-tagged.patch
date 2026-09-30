@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a file a build that ships compiles that the gating lint does not read
+removes: every run's files are compared with the lint run with the banproof tag, so a file built only without that tag, which the gating lint reads, is refused
+packages: ./testsupport/cmd/banproof
+tests: TestUnlintedRunsEveryShippedConfiguration
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/unlinted.go b/testsupport/cmd/banproof/unlinted.go
+index fdc3ff1..32fe84c 100644
+--- a/testsupport/cmd/banproof/unlinted.go
++++ b/testsupport/cmd/banproof/unlinted.go
+@@ -98,7 +98,7 @@ func unlinted(root, tag string, lintTags []string) ([]finding, error) {
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		shipped[r.tag] = append(shipped[r.tag], listedFiles(listed, pkgs)...)
++		shipped[tag] = append(shipped[tag], listedFiles(listed, pkgs)...)
+ 		fs, err := unlintedFindings(filepath.Join(root, "go.mod"), modulePath, modcache, listed, pkgs)
+ 		if err != nil {
+ 			return nil, fmt.Errorf("%s/%s with tags %q: %w", r.config.goos, r.config.goarch, r.tag, err)

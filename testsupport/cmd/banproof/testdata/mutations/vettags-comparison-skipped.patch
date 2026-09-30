@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a go vet step whose build tags differ from the lint configuration's
+removes: the comparison of the go vet step's tags with the configuration's is skipped, so any tags pass
+packages: ./testsupport/cmd/banproof
+tests: TestVetTagProblems/a_tag_the_configuration_does_not_set
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/vettags.go b/testsupport/cmd/banproof/vettags.go
+index 614b61e..02e9e22 100644
+--- a/testsupport/cmd/banproof/vettags.go
++++ b/testsupport/cmd/banproof/vettags.go
+@@ -40,7 +40,7 @@ func vetTagProblems(workflow []byte, buildTags []string) ([]string, error) {
+ 	vetTags, found := tagsFlag(runs[0])
+ 	want := slices.Sorted(slices.Values(buildTags))
+ 	got := slices.Sorted(slices.Values(vetTags))
+-	if !found || !slices.Equal(slices.Compact(got), slices.Compact(want)) {
++	if false && (!found || !slices.Equal(slices.Compact(got), slices.Compact(want))) {
+ 		return []string{fmt.Sprintf("%s: the go vet step sets the build tags %q, and %s sets %q, so a file one run reads the other may not (ADR-0071)", lintWorkflow, strings.Join(vetTags, ","), configName, strings.Join(buildTags, ","))}, nil
+ 	}
+ 	return nil, nil

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -154,8 +155,16 @@ func TestUnlintedFindingsCleanAndBroken(t *testing.T) {
 // only without the banproof tag and one built only with it, beside a module go.work adds and one
 // replaced by a directory. Each import is refused, so dropping any configuration or run loses its
 // finding.
+//
+// The lint is taken to run for linux/amd64 with cgo and the integration tag. So the files built only
+// for another operating system or architecture, or only without cgo, are refused as unread too, and
+// so are a file built only without the integration tag and one the banproof run alone builds without
+// it. A file built only with the integration tag ships in no configuration, and the file built only
+// without the banproof tag is read by the lint, which does not set that tag, so neither is refused.
 func TestUnlintedRunsEveryShippedConfiguration(t *testing.T) {
 	t.Setenv("CGO_ENABLED", "1")
+	t.Setenv("GOOS", "linux")
+	t.Setenv("GOARCH", "amd64")
 	t.Setenv("GOFLAGS", "")
 	t.Setenv("GOWORK", "")
 	root := t.TempDir()
@@ -190,12 +199,19 @@ func TestUnlintedRunsEveryShippedConfiguration(t *testing.T) {
 		write("app/"+file, constraints[file]+"package app\n\nimport _ \"example.com/fx/testdata/"+pkg+"\"\n")
 		write("testdata/"+pkg+"/x.go", "package "+pkg+"\n")
 	}
-	found, err := unlinted(root, "banproof")
+	write("app/nointegration.go", "//go:build !integration\n\npackage app\n")
+	write("app/integration.go", "//go:build integration\n\npackage app\n")
+	write("app/taggednointegration.go", "//go:build banproof && !integration\n\npackage app\n")
+	found, err := unlinted(root, "banproof", []string{"integration"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	var got []string
 	for _, f := range found {
+		if f.text == unreadMessage {
+			got = append(got, filepath.Base(f.file)+":"+strconv.Itoa(f.line)+" unread")
+			continue
+		}
 		imported, _, _ := strings.Cut(strings.TrimPrefix(f.text, "imports "), ",")
 		got = append(got, filepath.Base(f.file)+" "+imported)
 	}
@@ -210,7 +226,14 @@ func TestUnlintedRunsEveryShippedConfiguration(t *testing.T) {
 		"x_darwin_arm64.go example.com/fx/testdata/darwinarm64",
 		"x_linux_amd64.go example.com/fx/testdata/linuxamd64",
 		"x_linux_arm64.go example.com/fx/testdata/linuxarm64",
+		"nocgo.go:3 unread",
+		"nointegration.go:3 unread",
+		"taggednointegration.go:3 unread",
+		"x_darwin_amd64.go:1 unread",
+		"x_darwin_arm64.go:1 unread",
+		"x_linux_arm64.go:1 unread",
 	}
+	slices.Sort(want)
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("findings (-want +got):\n%s", diff)
 	}

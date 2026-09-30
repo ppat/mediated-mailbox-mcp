@@ -144,8 +144,8 @@ file's import target described under Violation files.
 - **The `go vet` analysers** live in `testsupport/analysis` with a `unitchecker` program at
   `testsupport/cmd/vetcheck`, and run beside golangci-lint as `go vet -tags
   integration,gmail_live,devloop -vettool="$(go tool -n vetcheck)"`, with the tags golangci-lint's
-  configuration sets. The placement analyser's two rules refuse a call to `property.Report` or
-  `property.Check` reachable from inside a property
+  configuration sets, which banproof checks. The placement analyser's two rules refuse a call to
+  `property.Report` or `property.Check` reachable from inside a property
   ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The globals
   analyser refuses package-level state in a pure core by the four rules
   [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. The environment
@@ -194,7 +194,14 @@ file's import target described under Violation files.
   listed package, with the finding named as `unlinted`. The check runs in each configuration code
   ships in, `CGO_ENABLED=0` for Linux and macOS on amd64 and arm64 with no build tag, a list the
   program copies from the Dockerfiles and the release workflow by hand. It runs once more with the
-  `banproof` tag to prove the violation files. Test files may import such a package.
+  `banproof` tag to prove the violation files. Test files may import such a package. The same
+  check refuses, at its package clause, every non-test Go file a run compiles in a package `./...`
+  lists that `go list` does not select with the build tags `.golangci.yaml` sets in the environment
+  the check runs in, which in CI is the lint job's own. A file whose constraint excludes a tag the
+  gating lint and vet runs set, one built only for another operating system or architecture, and
+  one built only without cgo are each refused, since no lint reads them. banproof also refuses the
+  `go-lint` workflow when its `go vet` step's `-tags` differ from `.golangci.yaml`'s build tags as a
+  set, and its own `go vet` run takes the configuration's tags and `banproof`.
 - **The must-not-compile check** loads each case under a package's `testdata/mustnotcompile/`
   through `testsupport/mustnotcompile` and asserts the exact type error
   ([ADR-0042](./docs/adr/engineering/0042-implementation-stack.md)). The same package's

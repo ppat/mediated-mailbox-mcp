@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a go vet step whose build tags differ from the lint configuration's
+removes: only a workflow with more than one go vet step is refused, so one with none is read as if it had one
+packages: ./testsupport/cmd/banproof
+tests: TestVetTagProblems/no_go_vet_step
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/vettags.go b/testsupport/cmd/banproof/vettags.go
+index cfbc72d..cbe519f 100644
+--- a/testsupport/cmd/banproof/vettags.go
++++ b/testsupport/cmd/banproof/vettags.go
+@@ -34,7 +34,7 @@ func vetTagProblems(workflow []byte, buildTags []string) ([]string, error) {
+ 			}
+ 		}
+ 	}
+-	if len(runs) != 1 {
++	if len(runs) > 1 {
+ 		return []string{fmt.Sprintf("%s: %d steps run go vet with -vettool, and banproof reads the gating vet run's tags from exactly one", lintWorkflow, len(runs))}, nil
+ 	}
+ 	vetTags, found := tagsFlag(runs[0])

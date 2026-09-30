@@ -1,0 +1,20 @@
+control: The ban-proof script refuses a go vet step whose build tags differ from the lint configuration's
+removes: the first -tags on the go vet line is read rather than the last, which the go command keeps, so a step whose later -tags differ passes
+packages: ./testsupport/cmd/banproof
+tests: TestVetTagProblems/tags_given_twice,_the_first_matching
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/vettags.go b/testsupport/cmd/banproof/vettags.go
+index cfbc72d..476ab9a 100644
+--- a/testsupport/cmd/banproof/vettags.go
++++ b/testsupport/cmd/banproof/vettags.go
+@@ -66,6 +66,9 @@ func tagsFlag(line string) ([]string, bool) {
+ 		default:
+ 			continue
+ 		}
++		if found {
++			continue
++		}
+ 		found = true
+ 		tags = nil
+ 		if value = strings.Trim(value, `"'`); value != "" {
