@@ -583,16 +583,16 @@ func newMemory() *memory {
 	return &memory{messages: map[string]core.Message{}, events: map[string]int{}}
 }
 
-func (m *memory) State(ctx context.Context, _ string) (bool, core.Latest, error) {
+func (m *memory) State(ctx context.Context, _ string) (bool, core.Latest[core.Progress], error) {
 	if err := ctx.Err(); err != nil {
-		return false, core.Latest{}, err
+		return false, core.Latest[core.Progress]{}, err
 	}
 	if len(m.runs) == 0 {
-		return m.ended, core.Latest{}, nil
+		return m.ended, core.Latest[core.Progress]{}, nil
 	}
 	r := m.runs[len(m.runs)-1]
 	states := map[string]core.RunState{"running": core.Running, "succeeded": core.Succeeded, "failed": core.Failed}
-	return m.ended, core.Latest{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+	return m.ended, core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
 }
 
 func (m *memory) end(id, st string) {
@@ -603,7 +603,7 @@ func (m *memory) end(id, st string) {
 	}
 }
 
-func (m *memory) Start(ctx context.Context, _, runID string, start core.Start) error {
+func (m *memory) Start(ctx context.Context, _, runID string, start core.Start[core.Progress]) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

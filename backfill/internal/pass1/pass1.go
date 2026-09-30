@@ -60,10 +60,10 @@ type Committed struct {
 // Store is where a pass keeps the index and its runs. Each method is one transaction.
 type Store interface {
 	// State returns whether the account's pass has ended and its latest recorded run of the pass.
-	State(ctx context.Context, account string) (ended bool, latest core.Latest, err error)
+	State(ctx context.Context, account string) (ended bool, latest core.Latest[core.Progress], err error)
 	// Start records the run runID as it starts from start, recording the run it resumes as failed
 	// first when start abandons it, with a start event, or a resume event naming the checkpoint page.
-	Start(ctx context.Context, account, runID string, start core.Start) error
+	Start(ctx context.Context, account, runID string, start core.Start[core.Progress]) error
 	// Commit makes one page durable. It adds each of the page's messages the index does not hold yet,
 	// records a masking event for each mask on the subject of a message it added and for no other,
 	// rebuilds the statistics of the page's senders, records recovered when earlier attempts at the

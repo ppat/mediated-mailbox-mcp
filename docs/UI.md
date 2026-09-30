@@ -65,7 +65,7 @@ to start. Any record cited in a section and not listed here is read when that se
    the palettes, the no-code-in-the-database rule, the request token, the content security policy,
    the browser framework, the browser's tests, and the contract pipeline are what they are, and
    what was rejected.
-5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0007, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
+5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0093, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
    ADR-0022, ADR-0025, ADR-0018, for the mechanisms the screens display. Read each when building
    the screen that shows it.
 6. [TESTING.md](../TESTING.md), ADR-0043, ADR-0044, and the UI's rows in
@@ -831,7 +831,7 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | scan state | scanned · skipped_restricted · skipped_gate · pending | in cells `scanned` · `restricted` · `gate skip` · `pending`; on hover and in L4 "scanned" · "not scanned, restricted sender" · "released unscanned, gate skip" · "pending content scan" |
 | sender class | normal · restricted | normal · restricted |
 | content flag | mfa_code · login_link | mfa · link |
-| gate decision and reason | SCAN · SKIP, with the reason as ADR-0007's skip branches name it | scan · skip, with the reason as recorded |
+| gate decision and reason | SCAN · SKIP, with the reason as ADR-0093's skip branches name it | scan · skip, with the reason as recorded |
 | audit action | READ_BODY · DENY_BODY · MUTATE · DENY_MUTATE | body served · body denied · mutation applied · mutation refused |
 | run state | running · succeeded · failed | running · succeeded · failed |
 | workload state (derived, not stored) | no run yet · a run in running · the last run finished | not started · running · idle |
@@ -841,7 +841,7 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | disposition | recovered · pending · gone · abandoned | recovered (with the run) · pending · gone · abandoned |
 | failure item kind | page · message · op | page · message · operation |
 
-The scan-state wording for pending is the denial envelope's own phrase (ADR-0002, ADR-0007), so
+The scan-state wording for pending is the denial envelope's own phrase (ADR-0002, ADR-0093), so
 the operator and the agent read the same words. The plan statuses are ADR-0020's and the three job
 vocabularies are ADR-0016's.
 

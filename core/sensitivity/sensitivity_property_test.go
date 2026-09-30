@@ -45,7 +45,7 @@ func build(a args) (sensitivity.Sensitivity, error) {
 	return sensitivity.New(class, sensitivity.Flags(a.MFACode, a.LoginLink), scanStates[a.Scan]())
 }
 
-// releases states ADR-0007's release rule over the drawn arguments, apart from the code. A body is
+// releases states ADR-0093's release rule over the drawn arguments, apart from the code. A body is
 // available only for a normal sender with no content flag, scanned or skipped by the scan gate.
 func releases(a args) bool {
 	return !a.Restricted && !a.MFACode && !a.LoginLink && (a.Scan == scanned || a.Scan == skippedGate)

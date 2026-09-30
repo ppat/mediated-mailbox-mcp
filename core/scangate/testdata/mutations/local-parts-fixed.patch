@@ -1,5 +1,5 @@
 control: The thresholds are the ones the caller passes
-removes: the local-part list is ADR-0007's whatever the Config says
+removes: the local-part list is ADR-0093's whatever the Config says
 packages: ./core/scangate
 tests: TestDecideReadsTheConfig/a_configured_local_part TestDecideReadsTheConfig/a_default_local_part_left_out_of_the_configuration
 scheduled-count: no

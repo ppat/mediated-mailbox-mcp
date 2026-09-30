@@ -127,7 +127,7 @@ The one narrative to read first, assembled from the decision records, resolved t
 - ADR-0002 — the fetch-time gate flow that decides allow or deny, including the serve-time
   pattern check that can still deny a never-scanned body.
 - ADR-0001 — the field-level matrix behind that decision.
-- ADR-0007 — the scan states a message can be in, including the accepted residual.
+- ADR-0093 — the scan states a message can be in, including the accepted residual.
 - ADR-0036 — the sanitization applied to whatever is released.
 
 Metadata requests need none of it. Metadata paths cannot carry a body by construction.
@@ -365,10 +365,10 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Limit | Disposition lives in |
 | --- | --- |
 | Metadata (subjects, senders, traffic patterns) is deliberately exposed | ADR-0001, via the [decision-record index](./docs/adr/README.md) |
-| A bounded residual of unscanned bodies is released by design | ADR-0007 and ADR-0002, and its measurement rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
+| A bounded residual of unscanned bodies is released by design | ADR-0093 and ADR-0002, and its measurement rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | A single chokepoint concentrates correctness, so a gate bug is a bug everywhere | Built first and proven offline, via the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in [docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046) |
-| Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0007) |
+| Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0093) |
 | The approval surface is itself a target | ADR-0084 (two decision verbs, OAuth client setup and account setup, scoped role, seals credentials it cannot open) |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
@@ -393,12 +393,12 @@ are pointers. Each fix and its reasoning live in the records named, never here.
 | Sender spoofing (the unlisted co-brand domain) | moderate / high | ADR-0004 |
 | Policy-list staleness | certain over time / medium | ADR-0004 |
 | Metadata leakage | certain, accepted / medium | ADR-0001 |
-| Scan-gate residual leakage | accepted / medium | ADR-0007 · ADR-0002 |
+| Scan-gate residual leakage | accepted / medium | ADR-0093 · ADR-0002 |
 | Compromise of a process holding provider credentials | low / catastrophic | ADR-0028 |
 | Fail-open on classifier or scanner error | low / severe | ADR-0002 · the fail-closed rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Agent context as an exfiltration surface | moderate / medium | ADR-0036 |
 | Bulk mutation error | moderate / severe | ADR-0020 · ADR-0032 |
-| Scan backlog as silent utility loss | low / moderate | ADR-0007 |
+| Scan backlog as silent utility loss | low / moderate | ADR-0093 |
 | UI as a write path | low / moderate | ADR-0084 |
 | Rate-controller pathology (collapse or runaway) | moderate / medium | ADR-0024 · ADR-0025 · ADR-0077 |
 | Policy reload failure leaves a published rule unapplied | low / medium | ADR-0041 |
@@ -476,7 +476,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   serve-time pattern check on a gate-skipped body on the way (rules in ADR-0036 and ADR-0002, via
   the [decision-record index](./docs/adr/README.md)).
 - **The residual** — the accepted, measured set of bodies released without having been scanned
-  (bounds in ADR-0007 and ADR-0002, via the
+  (bounds in ADR-0093 and ADR-0002, via the
   [decision-record index](./docs/adr/README.md)).
 
 ### Policy and classification

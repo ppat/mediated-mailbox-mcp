@@ -1,0 +1,19 @@
+control: Both parts of a body are scanned, and a flag in either flags the message
+removes: the text part is not scanned
+packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2
+tests: TestScan TestBothPartsOfABodyAreScanned TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+--- a/backfill/internal/core/pass2/pass2.go
++++ b/backfill/internal/core/pass2/pass2.go
+@@ -131,7 +131,7 @@ type Scanned struct {
+ // the content rules alone, each once, sorted. A scanner nobody built flags the body, as its verdict
+ // does.
+ func Scan(s scan.Scanner, markdown, text string) Scanned {
+-	a, b := s.Scan(markdown), s.Scan(text)
++	a, b := s.Scan(markdown), s.Scan("")
+ 	rules := append(append([]string{}, a.Rules()...), b.Rules()...)
+ 	slices.Sort(rules)
+ 	return Scanned{

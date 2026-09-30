@@ -1,0 +1,19 @@
+control: The second pass sets its completion flag when it ends
+removes: the second pass sets the first pass's completion flag in place of its own
+packages: ./backfill/internal/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -270,7 +270,7 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.
+ // Finish implements Store.
+ func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
+ 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+-		if err := completion.New(t).SetBackfillSecondComplete(ctx, account); err != nil {
++		if err := completion.New(t).SetBackfillFirstComplete(ctx, account); err != nil {
+ 			return fmt.Errorf("setting the completion flag: %w", err)
+ 		}
+ 		return pass1.SucceedRun(ctx, record.New(t), account, runID)

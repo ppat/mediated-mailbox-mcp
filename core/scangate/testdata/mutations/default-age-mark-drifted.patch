@@ -1,4 +1,4 @@
-control: The default thresholds are ADR-0007's figures
+control: The default thresholds are ADR-0093's figures
 removes: the default age mark is 2 hours rather than 24
 packages: ./core/scangate
 tests: TestDefaultConfigIsADR0007s

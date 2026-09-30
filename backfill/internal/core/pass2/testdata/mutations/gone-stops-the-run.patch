@@ -1,0 +1,19 @@
+control: A failed body fetch is retried, recorded gone or abandoned, or stops the run, by its class
+removes: a message the provider no longer has stops the run
+packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2
+tests: TestOnFailure TestAFailedBodyFetch
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+--- a/backfill/internal/core/pass2/pass2.go
++++ b/backfill/internal/core/pass2/pass2.go
+@@ -187,7 +187,7 @@ func OnFailure(f Attempt) Next {
+ 	case f.Class == pass1.ProviderError, f.Class == pass1.Validation:
+ 		return Abandon
+ 	case f.Class == pass1.Gone:
+-		return Gone
++		return Stop
+ 	default:
+ 		return Stop
+ 	}

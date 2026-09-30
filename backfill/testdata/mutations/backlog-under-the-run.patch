@@ -1,0 +1,19 @@
+control: The scan backlog depth is emitted after each step of the second pass
+removes: the backlog series is set under the run's identifier in place of the account
+packages: ./backfill
+tests: TestEachSecondPassPageIsAUnitOfWork
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -407,7 +407,7 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
+ 			handOvers = append(handOvers, hoErr)
+ 		}
+ 		if pending, bErr := deps.Store.Backlog(ctx, account); bErr == nil {
+-			metrics.Backlog(account, pending)
++			metrics.Backlog(p.Run(), pending)
+ 		} else {
+ 			logger.Warn("reading the scan backlog failed", "account", account, "error", bErr)
+ 		}

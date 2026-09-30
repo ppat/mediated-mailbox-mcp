@@ -1,0 +1,19 @@
+control: Backfill's second pass never asks for a restricted sender's body
+removes: the gate reads every sender as normal, so a restricted sender's body is scanned
+packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2
+tests: TestGate TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+--- a/backfill/internal/core/pass2/pass2.go
++++ b/backfill/internal/core/pass2/pass2.go
+@@ -106,7 +106,7 @@ func Gate(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.Uni
+ 		local = m.From[:at]
+ 	}
+ 	return scangate.Decide(c, now, scangate.Input{
+-		Class:         classify.Classify(p, m.From, l).Class(),
++		Class:         sensitivity.NormalSender(),
+ 		SubjectMasked: m.SubjectMasked,
+ 		ListID:        m.ListID,
+ 		LocalPart:     local,

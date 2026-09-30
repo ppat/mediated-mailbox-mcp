@@ -21,6 +21,22 @@ normal machinery — scan-gate evaluation, then scanning for the gated-in — pi
 other unscanned mail. Bodies remain denied until scanned, which fail-closed already guarantees.
 One state transition, plus machinery that already exists.
 
+**A removal reaches the transition by its effect, not by the edit that made it.** Every workload
+that scans compares the sender domains of the messages the index stores as restricted, or holds
+skipped as restricted, with the policy snapshot it loaded
+([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)), before it evaluates the gate.
+For every domain the snapshot now classifies normal, it sets that domain's messages stored as
+restricted or skipped as restricted to a normal sender class and to pending scan, and rebuilds the
+domain's sender statistics, in one transaction. The skip state is read as well as the stored class,
+because a rule added after a message was stored leaves its stored class normal while the scan gate
+skips it as restricted, and how a newly added rule changes the stored class is not decided here.
+Backfill's second pass runs the comparison at the start of each of its runs, which it makes until
+the pass has ended for the account, and when it marks any message the run starts over from the first
+message waiting for a scan, because the marked messages may sit before the point it resumed from
+([ADR-0017](../data/0017-two-pass-backfill.md)). A rule removed by any path therefore reaches the
+transition, whether through the UI, an import that drops it, a narrowed domain list, or a change
+made directly in the database while nothing was running.
+
 One interaction, bounded deliberately: the serve-time pattern check
 ([ADR-0002](./0002-fetch-time-re-evaluation.md)) would incidentally check an
 ex-restricted body at release, but it is deliberately narrow — login-link and code patterns,
@@ -31,15 +47,30 @@ deny-on-hit — and does not count as scan clearance. This transition is the rea
 - **No designed transition.** Its case: the resulting state is safe — over-denial, never a leak.
   Rejected: silent and permanent over-denial reads as a bug, and the agent's denial reason stops
   making sense.
+- **The writer of the removal marks the messages**, the UI's policy edit marking them in the
+  transaction that removes the rule. Its case is that the marking happens at the moment of the
+  removal. Rejected, because a rule removed by any other path never reaches the transition.
+- **A trigger on the policy table.** Its case is that it catches every path. Rejected, because
+  [ADR-0060](../engineering/0060-no-code-in-the-database.md) keeps code out of the database.
+- **A table of removed rules that each writer appends to.** Its case is an explicit record of what
+  was removed. Rejected on the same gap as the writer marking the messages, with a table added.
+- **Comparing each newly loaded policy snapshot with the one before it.** Its case is that no
+  stored state is read. Rejected, because a process that starts after the removal holds no earlier
+  snapshot, so a removal made while nothing ran is never seen.
 
 ## Consequences
 
 - Fail-closed holds through the transition: pending denies until scanned — the `PENDING` state of
-  [ADR-0007](./0007-composite-scan-gate.md), denied at fetch per
+  [ADR-0093](./0093-composite-scan-gate.md), denied at fetch per
   [ADR-0002](./0002-fetch-time-re-evaluation.md) — so the transition can never release a body
   early.
 - Assumptions about other components: the index can enumerate a sender's messages; the scan gate
   and scanner treat the marked messages as ordinary unscanned mail, with no special path; and
-  whatever applies policy-list edits can observe a removal, since the marking is triggered by it.
+  every workload that scans compares the messages stored as restricted or skipped as restricted
+  with the policy it loaded, since that comparison is how a removal is observed. Between a removal and the next such comparison, the
+  messages keep their skip state, which denies their bodies.
+- The comparison reads the index and the policy as they stand, so it is idempotent. A process
+  stopped between the marking and the scan loses nothing, and the next comparison finds nothing
+  more to mark.
 - The transition is a control; its violation injection is catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

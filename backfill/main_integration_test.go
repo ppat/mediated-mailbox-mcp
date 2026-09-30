@@ -116,7 +116,8 @@ func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 func reset(t *testing.T, conn *pgx.Conn) {
 	t.Helper()
 	for _, table := range []string{
-		"masking_events", "job_run_events", "job_run_failures", "job_runs", "messages", "senders", "rate_grants", "rate_state",
+		"masking_events", "scan_gate_decisions", "job_run_events", "job_run_failures", "job_runs", "messages", "senders",
+		"rate_grants", "rate_state",
 	} {
 		must(t, conn, "DELETE FROM "+table)
 	}

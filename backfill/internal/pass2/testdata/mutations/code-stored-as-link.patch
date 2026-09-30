@@ -1,0 +1,19 @@
+control: A scan verdict records its content flags, content rules, scanner version and configuration revision
+removes: a one-time code is stored as a login link
+packages: ./backfill/internal/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestBothPartsOfABodyAreScanned TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -236,7 +236,7 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.
+ 	case o.Scanned != nil:
+ 		flags := []string{}
+ 		if o.Scanned.Flags.MFACode() {
+-			flags = append(flags, "mfa_code")
++			flags = append(flags, "login_link")
+ 		}
+ 		if o.Scanned.Flags.LoginLink() {
+ 			flags = append(flags, "login_link")

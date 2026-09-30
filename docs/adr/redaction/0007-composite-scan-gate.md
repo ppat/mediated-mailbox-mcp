@@ -1,6 +1,6 @@
 # 0007. A composite scan gate with a measured, accepted residual — not scan-everything
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:** [ADR-0093](./0093-composite-scan-gate.md) and [ADR-0094](./0094-scan-gate-decisions-are-not-memoized.md) ·
 **Pillar:** [An accepted risk that is not measured is an unmeasured risk](../../../DESIGN.md#an-accepted-risk-that-is-not-measured-is-an-unmeasured-risk) ·
 **Serves:** [C3](../../../USE_CASES.md#c3--content-based-secrets-caught), [O2](../../../USE_CASES.md#o2--observable)
 

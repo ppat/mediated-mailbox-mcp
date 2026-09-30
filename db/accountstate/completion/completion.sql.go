@@ -21,3 +21,16 @@ func (q *Queries) SetBackfillFirstComplete(ctx context.Context, accountID string
 	_, err := q.db.Exec(ctx, setBackfillFirstComplete, accountID)
 	return err
 }
+
+const setBackfillSecondComplete = `-- name: SetBackfillSecondComplete :exec
+UPDATE account_state
+SET backfill_pass2_complete = true
+WHERE account_id = $1
+`
+
+// Records that backfill's second pass has ended for the account, in the transaction that finishes the
+// run which ended it (ADR-0017, ADR-0022).
+func (q *Queries) SetBackfillSecondComplete(ctx context.Context, accountID string) error {
+	_, err := q.db.Exec(ctx, setBackfillSecondComplete, accountID)
+	return err
+}

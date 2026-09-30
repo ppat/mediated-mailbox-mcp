@@ -51,7 +51,7 @@ Implementation constraints that keep the tiers fast:
 - **Cost-ordered evaluation** — within detection, Tier 1 before Tier 2 before Tier 3, each stage
   eliminating most of what reaches it, so the expensive tiers should be rare; the full
   predicate-to-tier chain lives with the scan gate
-  ([ADR-0007](../redaction/0007-composite-scan-gate.md)).
+  ([ADR-0093](../redaction/0093-composite-scan-gate.md)).
 - **Scanning stays linear in a body's length**, so a large body cannot stall the batch path.
 
 **The vocabulary and the tuning are configuration.** The trigger words by language, the link words

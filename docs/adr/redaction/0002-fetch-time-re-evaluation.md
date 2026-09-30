@@ -41,7 +41,7 @@ Two properties are the point:
   immediately, because classification is re-derived against current policy at fetch time.
 
 `SKIPPED_GATE` allowing is deliberate and visible in the flow rather than hidden — it is the
-accepted residual of [ADR-0007](./0007-composite-scan-gate.md).
+accepted residual of [ADR-0093](./0093-composite-scan-gate.md).
 
 The gate reads the content flags and the scan state the index stores, and never its stored sender
 class. The first branch catches a stored state no message can be in, content flags on a message the
@@ -57,7 +57,7 @@ not the scanner, and it does not sit under the scanner's out-of-band placement r
 ([ADR-0009](./0009-scanner-verdicts-carry-no-content.md)) — those reasons bind the full scanner
 (timeouts, latency, fail-open pressure), while a pure pattern check on a body already in memory
 has no external calls, no backlog, and bounded microsecond cost. Effect: the accepted residual
-of [ADR-0007](./0007-composite-scan-gate.md) shrinks precisely for the highest-value secret
+of [ADR-0093](./0093-composite-scan-gate.md) shrinks precisely for the highest-value secret
 class, at the exact moment of exposure. The pattern tier is the Content Scanner's first tier run
 alone, without its scoring tier ([ADR-0005](../classification/0005-tiered-detection.md)). A
 `SKIPPED_GATE` body with no built scanner to check it is withheld, and a scanned body is not
@@ -70,9 +70,9 @@ checked again.
   [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released) names as falsifying.
 - **Count the stored sender class toward denial as well.** The case for it is that a stored state
   nobody built, whose sender class is restricted, would be denied as a restricted sender rather than
-  under another reason. Rejected by the operator on 2026-09-23. The delisting transition
-  ([ADR-0037](./0037-delisting-transition.md)) resets the scan state only, and no record decides
-  that the stored class is rewritten, so delisted mail could stay denied after it is scanned.
+  under another reason. Rejected by the operator on 2026-09-23. The stored class is rewritten only
+  when a sender is delisted ([ADR-0037](./0037-delisting-transition.md)), not when a rule is added,
+  which no record decides yet, so it lags the policy in force and cannot decide a denial.
 - **Accept caller-supplied sensitivity context** (e.g. the sensitivity block a client received
   with the metadata). Rejected: anything a client supplies, a suborned client can forge. Inputs
   to the release decision must come only from state no client can write.

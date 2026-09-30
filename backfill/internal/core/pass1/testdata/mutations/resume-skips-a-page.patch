@@ -1,21 +1,20 @@
 control: A killed backfill run resumes from its last checkpointed page, with at most one page of rework
 removes: a resumed run counts one page more than its checkpoint, so it reports a page it never made durable
 packages: ./backfill/internal/pass1 ./backfill/internal/core/pass1
-tests: TestAKilledRunResumesFromItsCheckpoint TestBegin
+tests: TestAKilledRunResumesFromItsCheckpoint
 scheduled-count: no
 integration: yes
 
-diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
---- a/backfill/internal/core/pass1/pass1.go
-+++ b/backfill/internal/core/pass1/pass1.go
-@@ -95,7 +95,9 @@ func Begin(ended bool, latest Latest) Start {
- 	case !latest.Found || latest.State == Succeeded:
- 		return Start{}
- 	default:
--		return Start{ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: latest.Progress}
-+		from := latest.Progress
-+		from.Checkpoint.Page++
-+		return Start{ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: from}
+diff --git a/backfill/internal/pass1/pass1.go b/backfill/internal/pass1/pass1.go
+--- a/backfill/internal/pass1/pass1.go
++++ b/backfill/internal/pass1/pass1.go
+@@ -128,6 +128,9 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+ 		return nil, fmt.Errorf("reading the account's first pass: %w", err)
  	}
- }
- 
+ 	start := core.Begin(ended, latest)
++	if start.ResumedFrom != "" {
++		start.From.Checkpoint.Page++
++	}
+ 	if start.Skip {
+ 		return &Pass{deps: deps, account: account, done: true}, nil
+ 	}

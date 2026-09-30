@@ -1,0 +1,19 @@
+control: Each flagged message adds one prior hit to its sender, durably
+removes: every scanned message counts as a hit, a clean one included
+packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2
+tests: TestAdvance TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+--- a/backfill/internal/core/pass2/pass2.go
++++ b/backfill/internal/core/pass2/pass2.go
+@@ -213,7 +213,7 @@ type Page struct {
+ func (p Page) Hits() map[string]int64 {
+ 	hits := map[string]int64{}
+ 	for _, o := range p.Outcomes {
+-		if o.Scanned != nil && o.Scanned.Flags.Any() {
++		if o.Scanned != nil {
+ 			hits[o.Domain]++
+ 		}
+ 	}

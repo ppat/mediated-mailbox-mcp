@@ -51,3 +51,10 @@ ON CONFLICT (account_id, domain) DO UPDATE
         has_list_id_ratio = excluded.has_list_id_ratio,
         label_distribution = excluded.label_distribution,
         sender_class = excluded.sender_class;
+
+-- name: AddScanHits :execrows
+-- Adds the messages whose scan verdict carried a content flag to the prior hits of the account's
+-- sender at domain, which the scan gate reads (ADR-0093).
+UPDATE senders
+SET scan_hit_count = scan_hit_count + @hits
+WHERE account_id = @account_id AND domain = @domain;

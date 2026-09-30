@@ -1,0 +1,19 @@
+control: Both parts of a body are scanned, and a flag in either flags the message
+removes: the message's flags are the HTML part's alone, though both parts are scanned
+packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2
+tests: TestScan TestBothPartsOfABodyAreScanned TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+--- a/backfill/internal/core/pass2/pass2.go
++++ b/backfill/internal/core/pass2/pass2.go
+@@ -135,7 +135,7 @@ func Scan(s scan.Scanner, markdown, text string) Scanned {
+ 	rules := append(append([]string{}, a.Rules()...), b.Rules()...)
+ 	slices.Sort(rules)
+ 	return Scanned{
+-		Flags:    sensitivity.Flags(a.Flags().MFACode() || b.Flags().MFACode(), a.Flags().LoginLink() || b.Flags().LoginLink()),
++		Flags:    sensitivity.Flags(a.Flags().MFACode(), a.Flags().LoginLink()),
+ 		Rules:    slices.Compact(rules),
+ 		Version:  a.Version(),
+ 		Revision: a.Revision(),

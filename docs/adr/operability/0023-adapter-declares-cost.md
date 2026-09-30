@@ -72,7 +72,7 @@ The Gmail unit weights, because two of their consequences shape other decisions:
 | `batchModify` | 50 | 1000 ids/call — bulk reorg cheap per message |
 
 Row three is why the scan gate is a latency-and-exposure optimization, not a quota one
-([ADR-0007](../redaction/0007-composite-scan-gate.md)).
+([ADR-0093](../redaction/0093-composite-scan-gate.md)).
 
 A port call's declared cost is its worst case, known before the call, and no call may cost more
 than one second's worth at the hard cap, the largest request

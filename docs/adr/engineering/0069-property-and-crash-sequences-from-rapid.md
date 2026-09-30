@@ -65,9 +65,9 @@ a random number that chose a region changes what every later number means.
 Whether this binds depends on the size of the space being generated. The sensitivity space the
 design defines is small. [DESIGN.md](../../../DESIGN.md#glossary) makes sender class `normal` or
 `restricted` and content flags an MFA code or a login link, and
-[ADR-0007](../redaction/0007-composite-scan-gate.md) gives four scan states. That is 32
+[ADR-0093](../redaction/0093-composite-scan-gate.md) gives four scan states. That is 32
 combinations, of which exactly 2 release a body, a normal sender with no flags that is either
-scanned or skipped by the scan gate. Thirteen of the 32 can occur. ADR-0007's gate sends a
+scanned or skipped by the scan gate. Thirteen of the 32 can occur. ADR-0093's gate sends a
 restricted sender's unscanned mail to `SKIPPED_RESTRICTED`, content flags come only from a scan, and
 [ADR-0037](../redaction/0037-delisting-transition.md) returns a delisted sender's messages to
 pending scan, so a normal sender's mail is never left at `SKIPPED_RESTRICTED`. Those rules leave

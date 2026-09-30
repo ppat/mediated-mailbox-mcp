@@ -9,6 +9,9 @@ import (
 )
 
 type Querier interface {
+	// Adds the messages whose scan verdict carried a content flag to the prior hits of the account's
+	// sender at domain, which the scan gate reads (ADR-0093).
+	AddScanHits(ctx context.Context, arg AddScanHitsParams) (int64, error)
 	// Rebuilds the statistics of the account's sender at domain from the messages the index holds for
 	// it, its volume, first and last message, List-Id share, label distribution, the first twenty of its
 	// local parts and display names in sorted order, and its class (ADR-0016, ADR-0017). A sender is
