@@ -1,0 +1,16 @@
+# This file sets parameter values and nothing else. The placeholder templater renders a parameter with no
+# value as its bare name, and RF02 then reports it as an unqualified column in a statement that reads more
+# than one table. The one such statement here is the read of the messages waiting for a scan, which joins
+# each to its sender. Every parameter the statements here take is given a literal, so RF02 does not report a
+# parameter here. The rule itself stays on, as it is everywhere. A new parameter here needs a value too.
+[sqlfluff:templater:placeholder]
+account_id = 1
+after = 1
+content_flags = 1
+domain = 1
+message_id = 1
+page_size = 1
+rule_ids = 1
+scan_state = 1
+scanner_revision = 1
+scanner_version = 1

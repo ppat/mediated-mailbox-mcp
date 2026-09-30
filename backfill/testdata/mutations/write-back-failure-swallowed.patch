@@ -8,7 +8,7 @@ integration: yes
 diff --git a/backfill/main.go b/backfill/main.go
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -273,8 +273,8 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
+@@ -280,8 +280,8 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
  	if source == nil {
  		return nil
  	}
@@ -18,4 +18,4 @@ diff --git a/backfill/main.go b/backfill/main.go
 +	return nil
  }
  
- // firstPass returns the unit of work that runs backfill's first pass over every served account in
+ // firstPass returns the unit of work that runs backfill's two passes over every served account in

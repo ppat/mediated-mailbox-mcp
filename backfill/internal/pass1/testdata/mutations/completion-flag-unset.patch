@@ -8,7 +8,7 @@ integration: yes
 diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postgres.go
 --- a/backfill/internal/pass1/postgres.go
 +++ b/backfill/internal/pass1/postgres.go
-@@ -237,9 +237,7 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m cor
+@@ -213,9 +213,7 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m cor
  // Finish implements Store.
  func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
  	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
@@ -16,6 +16,6 @@ diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postg
 -			return fmt.Errorf("setting the completion flag: %w", err)
 -		}
 +		_ = completion.New
- 		q := record.New(t)
- 		if err := q.EndRun(ctx, record.EndRunParams{State: "succeeded", AccountID: account, RunID: runID}); err != nil {
- 			return fmt.Errorf("recording the run's end: %w", err)
+ 		return SucceedRun(ctx, record.New(t), account, runID)
+ 	})
+ }

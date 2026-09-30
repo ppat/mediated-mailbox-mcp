@@ -40,6 +40,6 @@ already found hard.
 
 - Day-one detection quality rests entirely on Tiers 1–2
   ([ADR-0003](../redaction/0003-subject-masking.md),
-  [ADR-0007](../redaction/0007-composite-scan-gate.md)).
+  [ADR-0093](../redaction/0093-composite-scan-gate.md)).
 - The masking-events review loop is not optional hygiene — it is the labeling pipeline this
   decision depends on.

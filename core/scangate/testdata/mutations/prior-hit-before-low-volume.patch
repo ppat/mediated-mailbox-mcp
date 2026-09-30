@@ -1,4 +1,4 @@
-control: The first rule in ADR-0007's order gives the reason
+control: The first rule in ADR-0093's order gives the reason
 removes: the prior hit rule is checked before the low-volume rule
 packages: ./core/scangate
 tests: TestDecide/low_volume_wins_over_a_prior_hit

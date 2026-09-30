@@ -8,12 +8,12 @@ integration: yes
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -95,7 +95,7 @@ func Begin(ended bool, latest Latest) Start {
+@@ -96,7 +96,7 @@ func Begin[P any](ended bool, latest Latest[P]) Start[P] {
  	case !latest.Found || latest.State == Succeeded:
- 		return Start{}
+ 		return Start[P]{}
  	default:
--		return Start{ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: latest.Progress}
-+		return Start{ResumedFrom: latest.RunID, Abandon: latest.State == Running}
+-		return Start[P]{ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: latest.Progress}
++		return Start[P]{ResumedFrom: latest.RunID, Abandon: latest.State == Running}
  	}
  }
  

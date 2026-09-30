@@ -12,6 +12,9 @@ type Querier interface {
 	// Records that backfill's first pass has ended for the account, in the transaction that finishes the
 	// run which ended it (ADR-0017, ADR-0022).
 	SetBackfillFirstComplete(ctx context.Context, accountID string) error
+	// Records that backfill's second pass has ended for the account, in the transaction that finishes the
+	// run which ended it (ADR-0017, ADR-0022).
+	SetBackfillSecondComplete(ctx context.Context, accountID string) error
 }
 
 var _ Querier = (*Queries)(nil)

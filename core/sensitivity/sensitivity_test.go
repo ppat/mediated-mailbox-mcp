@@ -41,7 +41,7 @@ func TestZeroValuesAreTheMostRestrictive(t *testing.T) {
 }
 
 // The combinations ADR-0069 counts as occurring are accepted, and the others refused, with the
-// release rule of ADR-0007 on each accepted one.
+// release rule of ADR-0093 on each accepted one.
 func TestNew(t *testing.T) {
 	normal, restricted := sensitivity.NormalSender(), sensitivity.RestrictedSender()
 	none, mfa, link, both := sensitivity.NoFlags(), sensitivity.Flags(true, false), sensitivity.Flags(false, true), sensitivity.Flags(true, true)

@@ -1,0 +1,20 @@
+control: A body the conversion refuses stays pending, never scanned, with a failed item
+removes: a body the conversion refuses is scanned as its raw HTML and recorded scanned
+packages: ./backfill/internal/pass2 ./backfill
+tests: TestABodyTheConversionRefusesStaysPending TestEachSecondPassPageIsAUnitOfWork TestNoBodyTextReachesTheIndexOrTheLogs
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/pass2.go b/backfill/internal/pass2/pass2.go
+--- a/backfill/internal/pass2/pass2.go
++++ b/backfill/internal/pass2/pass2.go
+@@ -193,6 +193,9 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*core.Scanned,
+ 	var md string
+ 	if body.HTML != "" {
+ 		converted, cerr := markdown.Convert(body.HTML)
++		if cerr != nil {
++			converted, cerr = body.HTML, nil
++		}
+ 		if cerr != nil {
+ 			now := p.deps.Now().UTC()
+ 			refused := &pass1.Item{

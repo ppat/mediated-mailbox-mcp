@@ -130,19 +130,19 @@ func TestBegin(t *testing.T) {
 	cases := []struct {
 		name   string
 		ended  bool
-		latest pass1.Latest
-		want   pass1.Start
+		latest pass1.Latest[pass1.Progress]
+		want   pass1.Start[pass1.Progress]
 	}{
-		{"a pass that ended", true, pass1.Latest{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}, pass1.Start{Skip: true}},
-		{"a pass that ended with a run left running", true, pass1.Latest{Found: true, RunID: "r1", State: pass1.Running, Progress: at}, pass1.Start{Skip: true}},
-		{"no run yet", false, pass1.Latest{}, pass1.Start{}},
-		{"a run that failed", false, pass1.Latest{Found: true, RunID: "r1", State: pass1.Failed, Progress: at}, pass1.Start{ResumedFrom: "r1", From: at}},
+		{"a pass that ended", true, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}, pass1.Start[pass1.Progress]{Skip: true}},
+		{"a pass that ended with a run left running", true, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Running, Progress: at}, pass1.Start[pass1.Progress]{Skip: true}},
+		{"no run yet", false, pass1.Latest[pass1.Progress]{}, pass1.Start[pass1.Progress]{}},
+		{"a run that failed", false, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Failed, Progress: at}, pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: at}},
 		{
 			"a run that stopped without recording its end", false,
-			pass1.Latest{Found: true, RunID: "r1", State: pass1.Running, Progress: at},
-			pass1.Start{ResumedFrom: "r1", Abandon: true, From: at},
+			pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Running, Progress: at},
+			pass1.Start[pass1.Progress]{ResumedFrom: "r1", Abandon: true, From: at},
 		},
-		{"a pass asked to run again after it succeeded", false, pass1.Latest{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}, pass1.Start{}},
+		{"a pass asked to run again after it succeeded", false, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}, pass1.Start[pass1.Progress]{}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

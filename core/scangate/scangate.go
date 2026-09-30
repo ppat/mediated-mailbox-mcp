@@ -1,10 +1,10 @@
 // Package scangate holds the Scan Gate's predicate, which decides whether a message body is worth
-// scanning (ADR-0007). It decides from pass-1 statistics and message metadata the caller passes in as
+// scanning (ADR-0093). It decides from pass-1 statistics and message metadata the caller passes in as
 // values, under thresholds the caller also passes in, and returns its decision as a value
 // (ADR-0040). Fetching the body and running the scanner's tiers follow a decision to scan and are
 // the shell's.
 //
-// The rules are ADR-0007's, applied in the order it lists them, and the first that matches gives
+// The rules are ADR-0093's, applied in the order it lists them, and the first that matches gives
 // the decision and its reason. Every decision carries its reason, scans as well as skips. A
 // restricted sender is the first rule, so no other input can turn a restricted sender's message into
 // a scan (ADR-0008). The one other skip is the high-volume rule, and a message no rule names is
@@ -24,7 +24,7 @@ import (
 )
 
 // Config holds the thresholds the rules compare against. They are tuned from the recorded skip
-// rates, so the caller passes them in (ADR-0007).
+// rates, so the caller passes them in (ADR-0093).
 type Config struct {
 	// NoReplyLocalParts are the local parts that ask for a scan on a message with no List-Id. They
 	// match whole and in any letter case.
@@ -39,7 +39,7 @@ type Config struct {
 	HighVolume int64
 }
 
-// DefaultConfig returns ADR-0007's thresholds.
+// DefaultConfig returns ADR-0093's thresholds.
 func DefaultConfig() Config {
 	return Config{
 		NoReplyLocalParts: []string{"noreply", "no-reply", "security", "accounts", "verify", "auth", "support"},
@@ -60,7 +60,7 @@ type Input struct {
 	// Class is the sender's class under the policy in force.
 	Class sensitivity.SenderClass
 	// SubjectMasked reports whether pass 1 masked the message's subject for any reason, the whole
-	// subject masked when the scanner could not decide included (ADR-0003, ADR-0007).
+	// subject masked when the scanner could not decide included (ADR-0003, ADR-0093).
 	SubjectMasked bool
 	// ListID reports whether the message carries its own List-Id header.
 	ListID bool
@@ -102,7 +102,7 @@ const (
 	Default
 )
 
-// String returns the reason as ADR-0007 names it, which is how the decision table stores it.
+// String returns the reason as ADR-0093 names it, which is how the decision table stores it.
 func (r Reason) String() string {
 	switch r {
 	case Restricted:

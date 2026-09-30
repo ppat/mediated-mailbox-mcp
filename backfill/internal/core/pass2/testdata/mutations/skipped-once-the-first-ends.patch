@@ -1,0 +1,19 @@
+control: The second pass waits for the first pass to end
+removes: the second pass is skipped once the first has ended, and runs only before it has
+packages: ./backfill/internal/core/pass2
+tests: TestBegin
+scheduled-count: no
+integration: no
+
+diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+--- a/backfill/internal/core/pass2/pass2.go
++++ b/backfill/internal/core/pass2/pass2.go
+@@ -54,7 +54,7 @@ type Progress struct {
+ // is skipped, since the gate reads the statistics the first pass builds (ADR-0017). After that it
+ // starts as the first pass's runs do.
+ func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Progress] {
+-	if !firstEnded {
++	if firstEnded {
+ 		return pass1.Start[Progress]{Skip: true}
+ 	}
+ 	return pass1.Begin(ended, latest)

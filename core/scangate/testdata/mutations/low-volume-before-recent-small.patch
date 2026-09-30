@@ -1,4 +1,4 @@
-control: The first rule in ADR-0007's order gives the reason
+control: The first rule in ADR-0093's order gives the reason
 removes: the low-volume rule is checked before the recent small rule
 packages: ./core/scangate
 tests: TestDecide/a_recent_small_message_wins_over_low_volume

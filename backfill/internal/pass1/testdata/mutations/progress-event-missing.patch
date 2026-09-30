@@ -5,16 +5,15 @@ tests: TestAPassIndexesTheWholeMailbox TestAKilledRunIsResumedByTheNextRun TestA
 scheduled-count: no
 integration: yes
 
-diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postgres.go
---- a/backfill/internal/pass1/postgres.go
-+++ b/backfill/internal/pass1/postgres.go
-@@ -196,9 +196,6 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
- 		if err := q.RecordProgress(ctx, record.RecordProgressParams{Checkpoint: cp, Counters: ct, AccountID: account, RunID: runID}); err != nil {
- 			return fmt.Errorf("recording the checkpoint: %w", err)
- 		}
--		if err := q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at.Checkpoint.Page)}); err != nil {
--			return err
--		}
- 		c = Committed{Progress: at, Unclassified: unclassified}
- 		return nil
- 	})
+diff --git a/backfill/internal/pass1/runs.go b/backfill/internal/pass1/runs.go
+--- a/backfill/internal/pass1/runs.go
++++ b/backfill/internal/pass1/runs.go
+@@ -89,7 +89,7 @@ func RecordProgress(ctx context.Context, q *record.Queries, account, runID strin
+ 	if err := q.RecordProgress(ctx, record.RecordProgressParams{Checkpoint: checkpoint, Counters: counters, AccountID: account, RunID: runID}); err != nil {
+ 		return fmt.Errorf("recording the checkpoint: %w", err)
+ 	}
+-	return q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at)})
++	return nil
+ }
+ 
+ // SucceedRun records that the run ended its pass, with a finish event.

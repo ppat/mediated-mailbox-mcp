@@ -9,6 +9,28 @@ import (
 	"context"
 )
 
+const addScanHits = `-- name: AddScanHits :execrows
+UPDATE senders
+SET scan_hit_count = scan_hit_count + $1
+WHERE account_id = $2 AND domain = $3
+`
+
+type AddScanHitsParams struct {
+	Hits      int64
+	AccountID string
+	Domain    string
+}
+
+// Adds the messages whose scan verdict carried a content flag to the prior hits of the account's
+// sender at domain, which the scan gate reads (ADR-0093).
+func (q *Queries) AddScanHits(ctx context.Context, arg AddScanHitsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, addScanHits, arg.Hits, arg.AccountID, arg.Domain)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const rebuildSender = `-- name: RebuildSender :exec
 INSERT INTO senders AS s (
     account_id,

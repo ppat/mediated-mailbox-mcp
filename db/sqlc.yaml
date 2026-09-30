@@ -225,3 +225,23 @@ sql:
       sql_package: pgx/v5
       emit_interface: true
       omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: messages/scan
+  gen:
+    go:
+      package: scan
+      out: messages/scan
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: scangatedecisions/record
+  gen:
+    go:
+      package: record
+      out: scangatedecisions/record
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true

@@ -9,7 +9,7 @@
 // these types sit under testdata/mustnotcompile, one directory per case.
 //
 // A Body can be built only from a Sensitivity that releases a body, which is a normal sender, no
-// content flag, and a scan state of scanned or skipped by the scan gate (ADR-0007). A body value
+// content flag, and a scan state of scanned or skipped by the scan gate (ADR-0093). A body value
 // carrying restricted sensitivity or a denying scan state cannot be constructed at all.
 package sensitivity
 
@@ -53,7 +53,7 @@ func (f ContentFlags) LoginLink() bool { return !f.noLoginLink }
 // Any reports whether either flag is set.
 func (f ContentFlags) Any() bool { return f.MFACode() || f.LoginLink() }
 
-// ScanState is a message's position relative to the content scanner (ADR-0007). The zero value is
+// ScanState is a message's position relative to the content scanner (ADR-0093). The zero value is
 // pending.
 type ScanState struct {
 	state scanState
@@ -110,7 +110,7 @@ var ErrFlagsWithoutScan = errors.New("sensitivity: content flags on a message th
 
 // ErrNormalSkippedRestricted is returned for a normal sender left at skipped_restricted. The scan
 // gate skips only restricted senders' mail that way, and a delisted sender's mail returns to pending
-// (ADR-0037).
+// at the next delisting comparison (ADR-0037), so until then this refusal withholds the body.
 var ErrNormalSkippedRestricted = errors.New("sensitivity: a normal sender's message cannot be skipped as restricted")
 
 // New returns the Sensitivity of a message, refusing a combination no message can be in. A caller

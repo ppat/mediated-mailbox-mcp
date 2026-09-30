@@ -1,0 +1,19 @@
+control: A removed rule returns its sender's messages to pending scan, and the pass starts over
+removes: the comparison reads only the domains stored restricted, so a message skipped as restricted under a rule added after it was stored is never found
+packages: ./backfill/internal/pass2
+tests: TestARuleAddedAndRemovedDuringThePassReachesTheTransition
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -185,7 +185,7 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
+ const restrictedDomains = `-- name: RestrictedDomains :many
+ SELECT DISTINCT m.from_domain
+ FROM messages AS m
+-WHERE m.account_id = $1 AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
++WHERE m.account_id = $1 AND (m.sender_class = 'restricted')
+ ORDER BY m.from_domain
+ `
+ 

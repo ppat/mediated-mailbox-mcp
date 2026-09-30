@@ -62,13 +62,15 @@ moves it. Records themselves link freely and deep, into
 | 0001 | [The redaction matrix: metadata survives restriction, content never does](./redaction/0001-redaction-matrix.md) | Accepted |
 | 0002 | [Body release re-evaluates at fetch time; a gate denial never contacts the provider](./redaction/0002-fetch-time-re-evaluation.md) | Accepted |
 | 0003 | [Subject masking is aggressive, runs on every message, uses only the pattern tiers](./redaction/0003-subject-masking.md) | Accepted |
-| 0007 | [A composite scan gate with a measured, accepted residual](./redaction/0007-composite-scan-gate.md) | Accepted |
+| 0007 | [A composite scan gate with a measured, accepted residual](./redaction/0007-composite-scan-gate.md) | **Superseded** |
 | 0008 | [Restricted-sender bodies are never scanned](./redaction/0008-restricted-senders-are-never-scanned.md) | Accepted |
 | 0009 | [The scanner runs out-of-band, in-memory, emitting verdicts that cannot carry content](./redaction/0009-scanner-verdicts-carry-no-content.md) | Accepted |
 | 0029 | [Released bodies are sanitized and delimited as untrusted data](./redaction/0029-released-bodies-are-sanitized.md) | **Superseded** |
 | 0036 | [Released bodies are clean Markdown — content and links, nothing else](./redaction/0036-released-bodies-are-clean-markdown.md) | Accepted |
 | 0037 | [Delisting is a designed transition: a removed sender's messages are marked pending scan](./redaction/0037-delisting-transition.md) | Accepted |
 | 0074 | [html-to-markdown v2 converts released bodies, configured through its own hooks](./redaction/0074-html-to-markdown-v2-converts-bodies.md) | Accepted |
+| 0093 | [A composite scan gate with a measured, accepted residual](./redaction/0093-composite-scan-gate.md) | Accepted |
+| 0094 | [The scan gate evaluates every message, and no gate decision is memoized](./redaction/0094-scan-gate-decisions-are-not-memoized.md) | Accepted |
 
 ## Classification — `classification/`
 

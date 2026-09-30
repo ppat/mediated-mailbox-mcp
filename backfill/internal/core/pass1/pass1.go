@@ -62,17 +62,17 @@ const (
 	Failed
 )
 
-// Latest is the account's latest recorded run of the pass.
-type Latest struct {
+// Latest is the account's latest recorded run of a pass whose progress is a P.
+type Latest[P any] struct {
 	// Found is false when no run of the pass was ever recorded.
 	Found    bool
 	RunID    string
 	State    RunState
-	Progress Progress
+	Progress P
 }
 
-// Start is how a run starts.
-type Start struct {
+// Start is how a run of a pass whose progress is a P starts.
+type Start[P any] struct {
 	// Skip is set when the pass has ended for the account, so the run does no work.
 	Skip bool
 	// ResumedFrom is the run this one resumes, empty for a fresh pass.
@@ -81,22 +81,22 @@ type Start struct {
 	// stopped without recording its end. The shell records it as failed as this run starts.
 	Abandon bool
 	// From is the progress the run starts from.
-	From Progress
+	From P
 }
 
-// Begin decides how a run of the pass starts for an account whose pass has or has not ended, from its
-// latest recorded run. A pass that ended is skipped. A run that stopped, whether it recorded its
+// Begin decides how a run of a pass starts for an account whose pass has or has not ended, from its
+// latest recorded run. Both of backfill's passes start this way. A pass that ended is skipped. A run that stopped, whether it recorded its
 // failure or not, is resumed from its checkpoint and counters. With no run, or when the latest one
 // succeeded while the pass is recorded as not ended, which is how a pass is asked to run again, a
 // fresh pass starts from the first page.
-func Begin(ended bool, latest Latest) Start {
+func Begin[P any](ended bool, latest Latest[P]) Start[P] {
 	switch {
 	case ended:
-		return Start{Skip: true}
+		return Start[P]{Skip: true}
 	case !latest.Found || latest.State == Succeeded:
-		return Start{}
+		return Start[P]{}
 	default:
-		return Start{ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: latest.Progress}
+		return Start[P]{ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: latest.Progress}
 	}
 }
 

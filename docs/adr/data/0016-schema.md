@@ -75,7 +75,7 @@ CREATE INDEX ON rate_grants (account_id, issued_at);
 -- One row per grant, written in the same transaction as the bucket's level. The issuer deletes
 -- rows more than a second old. A lost row widens issuance without the rules seeing it (ADR-0024)
 
-CREATE TABLE senders (                    -- drives the scan gate, memoization, heuristics
+CREATE TABLE senders (                    -- drives the scan gate and the heuristics
   account_id        text NOT NULL REFERENCES accounts,
   domain            citext NOT NULL,
   local_part_sample text[],
@@ -111,9 +111,10 @@ CREATE TABLE messages (
   sender_class     text NOT NULL,          -- normal | restricted
   content_flags    text[] NOT NULL DEFAULT '{}',  -- mfa_code | login_link
   rule_ids         text[] NOT NULL DEFAULT '{}',
-  scan_state       text NOT NULL DEFAULT 'pending',  -- scanned | skipped_restricted | skipped_gate | pending (ADR-0007)
+  scan_state       text NOT NULL DEFAULT 'pending',  -- scanned | skipped_restricted | skipped_gate | pending (ADR-0093)
   scanned_at       timestamptz,
   scanner_version  int,
+  scanner_revision text,                   -- the scanner configuration's revision (ADR-0009)
   PRIMARY KEY (account_id, message_id)
 );
 -- NOTE: no body, no snippet, no excerpt column. By design.
@@ -126,7 +127,7 @@ CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
 CREATE INDEX ON messages USING gin (subject gin_trgm_ops);
 
-CREATE TABLE scan_gate_decisions (        -- makes ADR-0007's residual auditable
+CREATE TABLE scan_gate_decisions (        -- makes ADR-0093's residual auditable
   account_id  text NOT NULL,
   message_id  text NOT NULL,
   decision    text NOT NULL,              -- SCAN | SKIP
@@ -221,7 +222,8 @@ CREATE TABLE job_runs (                   -- every batch workload's runs (ADR-00
   heartbeat_at  timestamptz,
   checkpoint    jsonb,                    -- {page, of} or {seq, of}, and backfill's pass 1 records {page, token},
                                           --   the provider's token for the next page, since its enumeration
-                                          --   reports no total
+                                          --   reports no total, and pass 2 {page, after}, the last message
+                                          --   identifier its pages read
   counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages; pass2 pages, decided,
                                           --   pending, scanned, skipped; sync added, modified, removed,
                                           --   window_start, window_end, reconciled; apply ops_done,
@@ -312,7 +314,7 @@ The properties the shape enforces:
   returns quietly.
 - **The stored spellings of every enumerated column are the ones the DDL comments show**, in
   lowercase snake case where a record names the state in capitals (`skipped_gate` for
-  [ADR-0007](../redaction/0007-composite-scan-gate.md)'s `SKIPPED_GATE`). Plan statuses keep
+  [ADR-0093](../redaction/0093-composite-scan-gate.md)'s `SKIPPED_GATE`). Plan statuses keep
   their capitals as [ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md) writes
   them.
 - **The batch workloads' runs, timeline events, and per-item failures are rows**

@@ -1,0 +1,19 @@
+control: Each flagged message adds one prior hit to its sender, durably
+removes: no prior hit is added to the senders' statistics
+packages: ./backfill/internal/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestASendersFirstHitReachesItsNextMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -192,7 +192,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+ 				return fmt.Errorf("message %s: %w", o.ID, err)
+ 			}
+ 		}
+-		hits := p.Hits()
++		hits := map[string]int64{}
+ 		for _, domain := range slices.Sorted(maps.Keys(hits)) {
+ 			n, err := senders.New(t).AddScanHits(ctx, senders.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
+ 			if err != nil {

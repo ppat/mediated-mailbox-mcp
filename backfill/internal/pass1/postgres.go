@@ -21,11 +21,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
 
-// The run's workload and pass, as job_runs names them (ADR-0016).
-const (
-	workload = "backfill"
-	pass     = "pass1"
-)
+// pass is the pass as job_runs names it (ADR-0016).
+const pass = "pass1"
 
 // Postgres is the Store in the index's database. Each method runs one transaction through db/tx,
 // which sets the account.
@@ -82,10 +79,10 @@ func text(s string) pgtype.Text { return pgtype.Text{String: s, Valid: s != ""} 
 func page(n int) pgtype.Int4 { return pgtype.Int4{Int32: int32(min(n, 1<<31-1)), Valid: true} } //nolint:gosec // Bounded above.
 
 // State implements Store.
-func (s *Postgres) State(ctx context.Context, account string) (bool, core.Latest, error) {
+func (s *Postgres) State(ctx context.Context, account string) (bool, core.Latest[core.Progress], error) {
 	var (
 		ended  bool
-		latest core.Latest
+		latest core.Latest[core.Progress]
 	)
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		var err error
@@ -94,58 +91,28 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, core.Latest
 			return fmt.Errorf("reading the completion flag: %w", err)
 		}
 		ended = progress.BackfillPass1Complete
-		row, err := record.New(t).LatestRun(ctx, record.LatestRunParams{AccountID: account, Workload: workload, Pass: text(pass)})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil
+		r, err := LatestRun(ctx, record.New(t), account, pass)
+		if err != nil || !r.Found {
+			return err
 		}
-		if err != nil {
-			return fmt.Errorf("reading the latest run: %w", err)
-		}
-		latest = core.Latest{Found: true, RunID: row.RunID}
-		switch row.State {
-		case "running":
-			latest.State = core.Running
-		case "succeeded":
-			latest.State = core.Succeeded
-		case "failed":
-			latest.State = core.Failed
-		default:
-			return fmt.Errorf("the run %s has the state %q", row.RunID, row.State)
-		}
-		latest.Progress, err = decode(row.Checkpoint, row.Counters)
+		latest = core.Latest[core.Progress]{Found: true, RunID: r.RunID, State: r.State}
+		latest.Progress, err = decode(r.Checkpoint, r.Counters)
 		return err
 	})
 	return ended, latest, err
 }
 
 // Start implements Store.
-func (s *Postgres) Start(ctx context.Context, account, runID string, start core.Start) error {
+func (s *Postgres) Start(ctx context.Context, account, runID string, start core.Start[core.Progress]) error {
 	cp, ct, err := encode(start.From)
 	if err != nil {
 		return err
 	}
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		q := record.New(t)
-		if start.Abandon {
-			err := q.EndRun(ctx, record.EndRunParams{
-				State: "failed", LastError: text("the run stopped before it recorded its end"), AccountID: account, RunID: start.ResumedFrom,
-			})
-			if err != nil {
-				return fmt.Errorf("recording the stopped run: %w", err)
-			}
-		}
-		err := q.StartRun(ctx, record.StartRunParams{
-			AccountID: account, RunID: runID, Workload: workload, Pass: text(pass),
-			ResumedFrom: text(start.ResumedFrom), Checkpoint: cp, Counters: ct,
+		return StartRun(ctx, record.New(t), account, Starting{
+			Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
+			Checkpoint: cp, Counters: ct, Page: start.From.Checkpoint.Page,
 		})
-		if err != nil {
-			return fmt.Errorf("recording the run: %w", err)
-		}
-		kind := "start"
-		if start.ResumedFrom != "" {
-			kind = "resume"
-		}
-		return q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: kind, Page: page(start.From.Checkpoint.Page)})
 	})
 }
 
@@ -193,10 +160,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 		if err != nil {
 			return err
 		}
-		if err := q.RecordProgress(ctx, record.RecordProgressParams{Checkpoint: cp, Counters: ct, AccountID: account, RunID: runID}); err != nil {
-			return fmt.Errorf("recording the checkpoint: %w", err)
-		}
-		if err := q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at.Checkpoint.Page)}); err != nil {
+		if err := RecordProgress(ctx, q, account, runID, cp, ct, at.Checkpoint.Page); err != nil {
 			return err
 		}
 		c = Committed{Progress: at, Unclassified: unclassified}
@@ -252,31 +216,21 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
 		if err := completion.New(t).SetBackfillFirstComplete(ctx, account); err != nil {
 			return fmt.Errorf("setting the completion flag: %w", err)
 		}
-		q := record.New(t)
-		if err := q.EndRun(ctx, record.EndRunParams{State: "succeeded", AccountID: account, RunID: runID}); err != nil {
-			return fmt.Errorf("recording the run's end: %w", err)
-		}
-		return q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: "finish"})
+		return SucceedRun(ctx, record.New(t), account, runID)
 	})
 }
 
 // Fail implements Store.
 func (s *Postgres) Fail(ctx context.Context, account, runID, cause string) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		q := record.New(t)
-		if err := q.EndRun(ctx, record.EndRunParams{State: "failed", LastError: text(cause), AccountID: account, RunID: runID}); err != nil {
-			return err
-		}
-		return q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: "failure", Detail: text(cause)})
+		return FailRun(ctx, record.New(t), account, runID, cause)
 	})
 }
 
 // Event implements Store.
 func (s *Postgres) Event(ctx context.Context, account, runID string, e Event) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return record.New(t).RecordEvent(ctx, record.RecordEventParams{
-			AccountID: account, RunID: runID, Kind: e.Kind, Page: page(e.Page), Detail: text(e.Detail),
-		})
+		return RecordEvent(ctx, record.New(t), account, runID, e)
 	})
 }
 
@@ -289,17 +243,8 @@ func (s *Postgres) Failure(ctx context.Context, account, runID string, f Failure
 
 // recordFailure records one failed page in the transaction q runs in.
 func recordFailure(ctx context.Context, q *record.Queries, account, runID string, f Failure) error {
-	return q.RecordFailure(ctx, record.RecordFailureParams{
-		AccountID:    account,
-		RunID:        runID,
-		ItemKind:     "page",
-		ItemID:       fmt.Sprint(f.Page),
-		Page:         page(f.Page),
-		ErrorClass:   f.Class,
-		ErrorSummary: text(f.Summary),
-		Attempts:     int32(min(f.Attempts, 1<<31-1)), //nolint:gosec // Bounded above.
-		FirstAt:      pgtype.Timestamptz{Time: f.First, Valid: true},
-		LastAt:       pgtype.Timestamptz{Time: f.Last, Valid: true},
-		Disposition:  f.Disposition,
+	return RecordItem(ctx, q, account, runID, Item{
+		Kind: "page", ID: fmt.Sprint(f.Page), Page: f.Page, Class: f.Class, Summary: f.Summary,
+		Attempts: f.Attempts, First: f.First, Last: f.Last, Disposition: f.Disposition,
 	})
 }

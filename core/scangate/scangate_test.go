@@ -122,7 +122,7 @@ func TestDecide(t *testing.T) {
 	}
 }
 
-// The defaults are ADR-0007's figures, with 30KB as 30,720 bytes and the age mark as 24 hours.
+// The defaults are ADR-0093's figures, with 30KB as 30,720 bytes and the age mark as 24 hours.
 func TestDefaultConfigIsADR0007s(t *testing.T) {
 	want := scangate.Config{
 		NoReplyLocalParts: []string{"noreply", "no-reply", "security", "accounts", "verify", "auth", "support"},

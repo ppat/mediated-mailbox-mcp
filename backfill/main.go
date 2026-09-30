@@ -30,8 +30,11 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
+	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
@@ -47,6 +50,10 @@ import (
 // gmailProvider is the provider an account served through the Gmail adapter names, in accounts and
 // in oauth_clients.
 const gmailProvider = "gmail"
+
+// pageSize is how many messages waiting for a scan one page of the second pass reads. Bodies are
+// fetched and scanned one at a time, so it bounds a page's rework and not its memory.
+const pageSize = 100
 
 // scannerSection is the scanner's section of the configuration, whose revision every verdict and
 // masking decision is made under (ADR-0005, ADR-0078).
@@ -277,10 +284,11 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
 	return err
 }
 
-// firstPass returns the unit of work that runs backfill's first pass over every served account in
+// firstPass returns the unit of work that runs backfill's two passes over every served account in
 // turn (ADR-0017), spending from each account's rate budget under the target its state row sets
-// (ADR-0024). Every page is one unit of work, so the account's token is handed over after each. An
-// account whose pass fails leaves the others to run, and the run ends in an error naming it.
+// (ADR-0024). The second pass runs for an account once its first has ended. Every page of either pass
+// is one unit of work, so the account's token is handed over after each. An account whose pass fails
+// leaves the others to run, and the run ends in an error naming it.
 func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Registerer, logger *slog.Logger) (unitOfWork, error) {
 	gmailMetrics, err := gmail.NewMetrics(registry)
 	if err != nil {
@@ -294,7 +302,11 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 	if err != nil {
 		return nil, err
 	}
-	store := pass1.NewPostgres(pool)
+	secondMetrics, err := pass2.NewMetrics(registry)
+	if err != nil {
+		return nil, err
+	}
+	store, secondStore := pass1.NewPostgres(pool), pass2.NewPostgres(pool)
 	lookups := classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 	return func(ctx context.Context, s served) error {
 		accounts := slices.Sorted(maps.Keys(s.sources))
@@ -313,7 +325,16 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 				Policy: s.policy.For(account), Scanner: scanner, Lookups: lookups,
 				RunID: runID, Now: time.Now,
 			}
-			if err := passAccount(ctx, deps, account, metrics, s.handOver, logger); err != nil {
+			err = passAccount(ctx, deps, account, metrics, s.handOver, logger)
+			if err == nil {
+				second := pass2.Deps{
+					Store: secondStore, Body: leasedBody(limiter, adapter, account),
+					Policy: s.policy.For(account), Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
+					PageSize: pageSize, RunID: runID, Now: time.Now,
+				}
+				err = secondPassAccount(ctx, second, account, secondMetrics, s.handOver, logger)
+			}
+			if err != nil {
 				failures = append(failures, fmt.Errorf("account %s: %w", account, err))
 			}
 			if ctx.Err() != nil {
@@ -353,6 +374,54 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
 			logger.Info("the first pass ended", "account", account, "run", p.Run(), "pages", at.Counters.Pages, "messages", at.Counters.Messages)
 			return errors.Join(handOvers...)
 		}
+	}
+}
+
+// leasedBody returns the body fetch the second pass uses, a call of port's body read under a lease in
+// the batch class (ADR-0025).
+func leasedBody(limiter *lease.Limiter, port mail.Port[context.Context], account string) pass2.Body {
+	return func(ctx context.Context, id string) (mail.MessageBody, error) {
+		return pass1.Call(ctx, limiter, port, account, mail.OpGetMessageBody, func(ctx context.Context) (mail.MessageBody, error) {
+			return port.GetMessageBody(ctx, id)
+		})
+	}
+}
+
+// secondPassAccount runs the second pass over one account a page at a time, handing the account's
+// token over and setting the account's scan backlog after each. It logs counts and identifiers, never
+// a body (ADR-0009).
+func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, metrics *pass2.Metrics, handOver func(context.Context, string) error, logger *slog.Logger) error {
+	p, err := pass2.Open(ctx, deps, account)
+	if err != nil {
+		return err
+	}
+	if p.Run() == "" {
+		logger.Info("the second pass has ended for the account, or waits for the first, so it is skipped", "account", account)
+		return nil
+	}
+	logger.Info("the second pass runs", "account", account, "run", p.Run(), "page", p.Progress().Checkpoint.Page)
+	var handOvers []error
+	for {
+		step, err := p.Next(ctx)
+		if hoErr := handOver(ctx, account); hoErr != nil {
+			handOvers = append(handOvers, hoErr)
+		}
+		if pending, bErr := deps.Store.Backlog(ctx, account); bErr == nil {
+			metrics.Backlog(account, pending)
+		} else {
+			logger.Warn("reading the scan backlog failed", "account", account, "error", bErr)
+		}
+		if err != nil {
+			logger.Error("the second pass failed", "account", account, "run", p.Run(), "error", err)
+			return errors.Join(append(handOvers, err)...)
+		}
+		at := p.Progress()
+		if step.Done {
+			logger.Info("the second pass ended", "account", account, "run", p.Run(), "pages", at.Counters.Pages,
+				"decided", at.Counters.Decided, "scanned", at.Counters.Scanned, "skipped", at.Counters.Skipped, "pending", at.Counters.Pending)
+			return errors.Join(handOvers...)
+		}
+		logger.Info("page made durable", "account", account, "run", p.Run(), "pass", 2, "page", at.Checkpoint.Page, "scanned", at.Counters.Scanned)
 	}
 }
 
