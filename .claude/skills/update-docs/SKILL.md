@@ -13,8 +13,8 @@ disagree, and two disagreeing documents are worse than none. This skill exists s
 lands in the right place, in the right shape, and leaves the whole set coherent.
 
 Work through four steps, in order: **route → author → check the whole set → verify and commit.**
-A reference file and the `coherence-check` skill carry detail this file only points at — read them
-when the step tells you to.
+The procedure files and the `coherence-check` skill carry detail this file only points at — read
+them when the step tells you to.
 
 ## Step 1 — Route: which document does this belong in?
 
@@ -60,12 +60,20 @@ The ambiguous cases, resolved the way this document set resolves them:
 
 ## Step 2 — Author, through the front door
 
-Every change type has a procedure — read
-[references/procedures.md](references/procedures.md) for the one you need (minting a record,
-recording a selection between real alternatives, superseding a record, adding or changing an
-outcome, roadmap changes, verification rows, glossary changes). Do not improvise the mechanics; the
-procedures encode details that are easy to get wrong (numbering, index updates, identifier
-linking, status vocabulary).
+Every change type has a procedure. Read the one you need before authoring.
+
+| The change | Procedure | Often also needs |
+| --- | --- | --- |
+| Minting a record, changing a record in place, superseding a record | [references/records.md](references/records.md) | state-and-proof, glossary |
+| Recording a selection between real alternatives | [references/selection.md](references/selection.md), after records | glossary |
+| Roadmap state, cutting tickets, verification rows, mutation-ledger rows, README.md and CLAUDE.md | [references/state-and-proof.md](references/state-and-proof.md) | |
+| Adding or changing an outcome or a pillar, a known limit or failure mode, a test-strategy change | [references/contract-and-design.md](references/contract-and-design.md) | records, state-and-proof, glossary |
+| Coining, changing or retiring a term | [references/glossary.md](references/glossary.md) | |
+
+Do not improvise the mechanics; the procedures encode details that are easy to get wrong
+(numbering, index updates, identifier linking, status vocabulary). Format authorities remain the
+documents themselves (each preamble, and `docs/adr/README.md` for records) — the procedures
+sequence the work; they do not replace reading the authority for the file you touch.
 
 Standards that apply to all authoring, regardless of change type — the per-file rules in
 `.claude/rules/` bind automatically, and these deserve stating here because they are where
@@ -141,5 +149,5 @@ the code.
 
 ## Reference files
 
-- [references/procedures.md](references/procedures.md) — step-by-step mechanics per change type.
-  Read the section for your change type before authoring.
+- The five procedure files under `references/`, grouped by when each is used, as the table in step
+  2 lists. Read the one for your change type, and the ones it hands off to, before authoring.
