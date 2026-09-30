@@ -8,8 +8,9 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
 
 - Cutting tickets: a ticket is cut from the template to the rules of
   [CLAUDE.md](../../../../CLAUDE.md#repository-process), and the ticket is added as a sub-issue of
-  [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118) and listed under its unit in the
-  epic's body. A unit recut here recuts its open tickets, as CLAUDE.md states.
+  [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), and its row under its unit in the
+  epic's body goes to the control session, which writes the body, as CLAUDE.md states. A unit recut
+  here recuts its open tickets, as CLAUDE.md states.
 - Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets or
   that it was delivered before any were cut, and state what it did NOT deliver. Re-date
   `**Position:**` whenever checklists are reconciled against reality.

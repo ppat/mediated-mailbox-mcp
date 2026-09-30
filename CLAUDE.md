@@ -344,12 +344,17 @@ checks that gate the commit vocabulary carry no condition.
   says what stays with the unit's other tickets. It names the one unit it serves in its header line,
   and it is a sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), which
   lists the tickets by unit and is not itself a ticket. A unit recut in ROADMAP.md recuts its open
-  tickets. Its title says what lands, in the words the pull request title
-  will use without the commit type and scope, followed by the word unit and the unit's identifier in
-  parentheses. Its links are full URLs to files on `main`. A discovery is a ticket under the unit
-  whose mechanism it concerns, whether or not the unit is delivered, and work no unit covers gets
-  its unit in ROADMAP.md first, since build state has no other home and documents change before
-  code.
+  tickets. Its title says what lands, in the words the pull request title will use without the
+  commit type and scope, followed by the word unit and the unit's identifier in parentheses. Its
+  links are full URLs to files on `main`. A discovery is a ticket under the unit whose mechanism it
+  concerns, whether or not the unit is delivered, and work no unit covers gets its unit in
+  ROADMAP.md first, since build state has no other home and documents change before code. #118's
+  body, meaning its rows and each ticket's State, is written only by the control session that
+  [.claude/loop.md](./.claude/loop.md) runs. It marks a ticket in-progress when it launches the
+  ticket's session, and built only once the ticket's pull request has merged, so no dependent ticket
+  starts before its blocker is on `main`. A session that cuts a ticket links it as a sub-issue and
+  sends the control session its row. The control session derives every State again on each
+  iteration, so a change made while none runs is caught when it next runs.
 - **A ticket is done** when its pull request has merged with CI green, the unit's acceptance in
   [ROADMAP.md](./ROADMAP.md) is met for the part keyed to what the ticket lands, and every document
   its work touched is updated in that pull request, with its GitHub labels matching its diff. The
