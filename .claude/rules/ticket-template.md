@@ -15,4 +15,4 @@ before editing it, as for every member of the document set. Hold these lines:
   what every ticket cut afterwards carries, and CLAUDE.md's Repository process is reconciled in
   the same change.
 - **The global prose rules of CLAUDE.md bind every placeholder**, and every ticket cut from the template.
-- The `update-docs` skill's coherence check and mechanical checks cover this file.
+- The `coherence-check` skill and the `update-docs` skill's mechanical checks cover this file.

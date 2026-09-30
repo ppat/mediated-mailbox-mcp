@@ -27,6 +27,10 @@ is part of that work, not a follow-up. Nothing about the system lives only in ch
 commit messages. Use the **`update-docs` skill** to do it: it routes content to the right
 document, carries the authoring procedures, and ends with a whole-set coherence check.
 
+The whole-set coherence check is its own skill, **`coherence-check`**. It keeps the entire
+repository internally consistent, documents and implementation alike, and applies to implementation
+work as much as to document changes. The `update-docs` and `adversarial-review` skills both run it.
+
 The binding conventions per document live in `.claude/rules/` and load automatically when the
 matching file is read; the format authorities are the documents' own preambles and the decision-
 record index.

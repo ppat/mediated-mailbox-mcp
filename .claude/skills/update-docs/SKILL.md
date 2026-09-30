@@ -13,7 +13,8 @@ disagree, and two disagreeing documents are worse than none. This skill exists s
 lands in the right place, in the right shape, and leaves the whole set coherent.
 
 Work through four steps, in order: **route → author → check the whole set → verify and commit.**
-Two reference files carry detail this file only points at — read them when the step tells you to.
+A reference file and the `coherence-check` skill carry detail this file only points at — read them
+when the step tells you to.
 
 ## Step 1 — Route: which document does this belong in?
 
@@ -105,11 +106,11 @@ axis table, the roadmap's unit pointers and mapping table, and which verificatio
 a superseded record invalidates link text in the index and possibly citations in three
 documents; a renamed heading breaks anchors repository-wide.
 
-Read [references/coherence-check.md](references/coherence-check.md) and walk its checklist. Its
-core question, asked of the whole set: *could both of any two statements now be read as true by
-the same cold reader, and does every cross-reference still point at what it claims to?* Do not
-skip this step because the change was small — one-line changes have broken tables of contents,
-identifier schemes, and mapping tables before.
+Run the **`coherence-check` skill** and walk its checklist. Its core question, asked of the whole
+set: *could both of any two statements now be read as true by the same cold reader, and does every
+cross-reference still point at what it claims to?* Do not skip this step because the change was
+small — one-line changes have broken tables of contents, identifier schemes, and mapping tables
+before.
 
 ## Step 4 — Verify and commit
 
@@ -142,5 +143,3 @@ the code.
 
 - [references/procedures.md](references/procedures.md) — step-by-step mechanics per change type.
   Read the section for your change type before authoring.
-- [references/coherence-check.md](references/coherence-check.md) — the whole-set consistency
-  walk. Read it at step 3, every time.
