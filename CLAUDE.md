@@ -352,6 +352,9 @@ checks that gate the commit vocabulary carry no condition.
   at its finish line also carries the unit's move to the roadmap's delivered register. A closed
   ticket means its work has merged to `main`. Released and deployed are later states, tracked apart
   in ROADMAP.md.
+- **A pull request an agent builds leaves draft** only once the **`adversarial-review` skill**'s
+  loop has found nothing that stands, its CI is green, and it merges cleanly onto current `main`.
+  The skill holds who reviews, what every review checks and how findings are ruled on.
 - **GitHub labels.** A ticket carries `unit:<ID>` for the unit it serves and one
   `component:<directory>` per component of the [component table](#components) it touches, with the
   directory spelled as that table's first column spells it without the trailing slash, so
