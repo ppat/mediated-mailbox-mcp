@@ -13,7 +13,7 @@ document that claims more than the code does, and a rebase that quietly drops a 
 
 | Role | Who | Does | Never does |
 | --- | --- | --- | --- |
-| Builder | A subagent | Builds the change, fixes findings as ruled, reports every line of `main` it removed with the reason | Squashes, marks ready, rules on a finding |
+| Builder | A subagent | Builds the change and fixes findings as ruled, following the `builder` skill, reports every line of `main` it removed with the reason | Squashes, marks ready, rules on a finding |
 | Reviewer | A different subagent | Runs part 2 and reports each finding with evidence | Edits the tree, pushes, changes GitHub state, decides a finding |
 | Adjudicator | The main session | Runs part 1, rules on every finding, squashes, marks ready | Forwards a report as the answer, or fixes a finding by guessing |
 | Operator | The person | Decides design choices, departures from a record's words, names, and merges | |

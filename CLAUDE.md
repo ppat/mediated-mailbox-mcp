@@ -357,6 +357,8 @@ checks that gate the commit vocabulary carry no condition.
   at its finish line also carries the unit's move to the roadmap's delivered register. A closed
   ticket means its work has merged to `main`. Released and deployed are later states, tracked apart
   in ROADMAP.md.
+- **A builder subagent builds a pull request through the `builder` skill,** which holds the brief
+  a builder gets, the order it works in, the proof and gates it runs, and the report it hands back.
 - **A pull request an agent builds leaves draft** only once the **`adversarial-review` skill**'s
   loop has found nothing that stands, its CI is green, and it merges cleanly onto current `main`.
   The skill holds who reviews, what every review checks and how findings are ruled on.
