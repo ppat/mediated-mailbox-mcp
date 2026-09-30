@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a file a build that ships compiles that the gating lint does not read
+removes: the lint's listing sets CGO_ENABLED=0 as the shipped runs do, so a file built only without cgo is taken as read
+packages: ./testsupport/cmd/banproof
+tests: TestUnlintedRunsEveryShippedConfiguration
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/unread.go b/testsupport/cmd/banproof/unread.go
+index 7d51aa6..ee97f04 100644
+--- a/testsupport/cmd/banproof/unread.go
++++ b/testsupport/cmd/banproof/unread.go
+@@ -58,7 +58,7 @@ func unread(root string, lintTags []string, shipped map[string][]string) ([]find
+ 		if len(tags) > 0 {
+ 			args = append(args, "-tags="+strings.Join(tags, ","))
+ 		}
+-		pkgs, err := goList(root, os.Environ(), append(args, "./...")...)
++		pkgs, err := goList(root, append(os.Environ(), "CGO_ENABLED=0"), append(args, "./...")...)
+ 		if err != nil {
+ 			return nil, err
+ 		}

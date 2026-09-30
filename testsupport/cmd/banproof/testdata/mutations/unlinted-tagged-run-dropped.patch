@@ -5,10 +5,10 @@ tests: TestUnlintedRunsEveryShippedConfiguration
 scheduled-count: no
 
 diff --git a/testsupport/cmd/banproof/unlinted.go b/testsupport/cmd/banproof/unlinted.go
-index c6f8538..affffd3 100644
+index fdc3ff1..e04ce45 100644
 --- a/testsupport/cmd/banproof/unlinted.go
 +++ b/testsupport/cmd/banproof/unlinted.go
-@@ -78,9 +78,6 @@ func unlinted(root, tag string) ([]finding, error) {
+@@ -79,9 +79,6 @@ func unlinted(root, tag string, lintTags []string) ([]finding, error) {
  	for _, c := range unlintedConfigurations {
  		runs = append(runs, run{c, ""})
  	}
@@ -16,5 +16,5 @@ index c6f8538..affffd3 100644
 -		runs = append(runs, run{unlintedConfigurations[0], tag})
 -	}
  	var found []finding
+ 	shipped := map[string][]string{}
  	for _, r := range runs {
- 		env := append(os.Environ(), "CGO_ENABLED=0", "GOOS="+r.config.goos, "GOARCH="+r.config.goarch)

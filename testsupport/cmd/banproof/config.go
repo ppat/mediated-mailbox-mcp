@@ -21,6 +21,9 @@ type lintConfig struct {
 	Run struct {
 		Tests          *bool `yaml:"tests"`
 		IssuesExitCode *int  `yaml:"issues-exit-code"`
+		// BuildTags are the tags the gating lint sets, which the check that it reads every file a
+		// build that ships compiles selects files with (unread.go).
+		BuildTags []string `yaml:"build-tags"`
 	} `yaml:"run"`
 	Issues struct {
 		MaxIssuesPerLinter *int   `yaml:"max-issues-per-linter"`

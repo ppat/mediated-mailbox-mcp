@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a file a build that ships compiles that the gating lint does not read
+removes: a finding sits on the file's first line rather than its package clause, where no want can sit after a build constraint
+packages: ./testsupport/cmd/banproof
+tests: TestUnlintedRunsEveryShippedConfiguration
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/unread.go b/testsupport/cmd/banproof/unread.go
+index 7d51aa6..0d42a79 100644
+--- a/testsupport/cmd/banproof/unread.go
++++ b/testsupport/cmd/banproof/unread.go
+@@ -93,7 +93,7 @@ func unreadFindings(shipped []string, read map[string]bool) ([]finding, error) {
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		f := finding{file: path, line: fset.PositionFor(file.Package, false).Line, tool: toolUnlinted, text: unreadMessage}
++		f := finding{file: path, line: fset.PositionFor(file.FileStart, false).Line, tool: toolUnlinted, text: unreadMessage}
+ 		if !slices.Contains(found, f) {
+ 			found = append(found, f)
+ 		}

@@ -1,0 +1,19 @@
+control: The ban-proof script refuses a file a build that ships compiles that the gating lint does not read
+removes: the lint's listing sets none of the configuration's tags, so a file built only without one is taken as read
+packages: ./testsupport/cmd/banproof
+tests: TestUnlintedRunsEveryShippedConfiguration
+scheduled-count: no
+
+diff --git a/testsupport/cmd/banproof/unread.go b/testsupport/cmd/banproof/unread.go
+index 7d51aa6..45e9faa 100644
+--- a/testsupport/cmd/banproof/unread.go
++++ b/testsupport/cmd/banproof/unread.go
+@@ -50,7 +50,7 @@ func listedFiles(listed, pkgs []listedPackage) []string {
+ func unread(root string, lintTags []string, shipped map[string][]string) ([]finding, error) {
+ 	var found []finding
+ 	for _, tag := range slices.Sorted(maps.Keys(shipped)) {
+-		tags := slices.Clone(lintTags)
++		var tags []string
+ 		if tag != "" {
+ 			tags = append(tags, tag)
+ 		}

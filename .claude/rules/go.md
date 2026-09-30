@@ -45,6 +45,11 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   modules' packages in the module cache. No lint reads any other package, and banproof's unlinted
   check refuses an import of one from anything but a test file (ADR-0071, CLAUDE.md, Static
   analysis and formatting).
+- **Every non-test Go file that builds without a tag is one the gating lint and vet read.** A file
+  whose build constraint excludes a tag `.golangci.yaml` sets, such as `//go:build !integration`, or
+  that builds only for another operating system or architecture, or only without cgo, is refused by
+  the same check. The `go vet` step's `-tags` stay equal to `.golangci.yaml`'s build tags, which
+  banproof checks (ADR-0071).
 - **A finding of a linter standing in for a control is never suppressed**, at the line, by its own
   ignore comment, or in configuration. An ordinary linter's false positive is suppressed only as
   `//nolint:<linter> // <reason>` (ADR-0071, CLAUDE.md, Static analysis and formatting).

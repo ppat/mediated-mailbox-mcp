@@ -205,9 +205,34 @@ else broke ties.
   - **A module a `replace` points at a directory is refused wherever the directory sits.** `go list`
     names each package's module and its replacement, so a directory under the module cache does not
     pass for a download.
-  - **It judges packages, not files.** A file a build constraint keeps out of the lint's
-    configuration, in a package `./...` lists, is not read by the lint whatever it imports, and this
-    check does not change that.
+  - **Every non-test Go file a run compiles is one the gating lint and `go vet` runs read.** A
+    package `./...` lists can still hold a file no lint reads. The aggregator and the analysers read
+    the files `go list` selects with the build tags `.golangci.yaml` sets, for the operating system
+    and architecture of the machine running them, with cgo as that machine has it. A file whose
+    build constraint excludes one of those tags, such as `//go:build !integration`, one built only
+    for another operating system or architecture, and one built only without cgo are each compiled
+    into an image or a release binary and read by nothing. So every non-test Go file a run above
+    compiles, in a package `./...` lists, must be one `go list` selects with the configuration's
+    tags in the environment the script runs in, which in continuous integration is the lint job's
+    own. Any other is refused at its package clause. The runs with no tag are compared with the
+    configuration's tags, and the run with the violation files' tag with the configuration's tags
+    and that tag, as the script's own lint run reads them. Assembly and other files that are not Go
+    files are outside the rule.
+  - **The gating `go vet` step sets exactly the tags the configuration sets, and the script checks
+    it.** The comparison above is with the configuration's tags, so the vet run reads the same files
+    only while its `-tags` value in the lint workflow holds the same tags. The script reads the
+    workflow with the YAML parser it already reads the configuration with, finds the one step
+    running `go vet` with `-vettool`, and refuses the workflow when that step's tags differ from the
+    configuration's as a set, naming both. Its own `go vet` run takes the configuration's tags and
+    the violation files' tag, rather than a list of its own. Deriving the step's tags from the
+    configuration inside the workflow was rejected, because it needs a YAML tool the repository does
+    not pin.
+  - **A file built only for some of the configurations, or only without cgo, is refused rather than
+    linted where it builds.** The lint runs in one configuration, and no file in the tree needs
+    another. Linting in every configuration code ships in would run the aggregator and the analysers
+    once per configuration, for files nobody has written. When one is needed, the lint also runs in
+    the configuration that builds it, and the script compares each run with what the lint read
+    there.
   - **It reads the build graph afresh on every run.** `go list` rereads `go.mod` and `go.work`, so no
     cached result outlives a change to them.
   - **It refuses every dependency under vendoring.** A vendored package's directory sits in the
@@ -240,14 +265,15 @@ else broke ties.
 - **Six checks are written here, because no tool offers them.** The rules against package-level
   state in a pure core above. The rule above against a route the UI registers other than through its
   recording mux. The check above that the build of `./...` reaches only packages
-  `./...` lists. The suppression check above, written to follow the aggregator's own reading of a
-  directive so it refuses exactly what the aggregator would honour, and refusing the spellings the
-  aggregator ignores today as well, so a later release honouring them cannot admit one silently. A
-  package that must not compile, loaded with `golang.org/x/tools/go/packages` through one helper in
-  the shared test support, which requires the exact type error rather than the presence of one. And
-  the ban-proof script, which runs the analysers, the suppression check and the build-graph check
-  against the checked-in files violating each ban and each list, requiring each expected finding and
-  no other. The script also runs the project's `go vet` analysers, for
+  `./...` lists and compiles only files the lint reads. The suppression check above, written to
+  follow the aggregator's own reading of a directive so it refuses exactly what the aggregator would
+  honour, and refusing the spellings the aggregator ignores today as well, so a later release
+  honouring them cannot admit one silently. A package that must not compile, loaded with
+  `golang.org/x/tools/go/packages` through one helper in the shared test support, which requires the
+  exact type error rather than the presence of one. And the ban-proof script, which runs the
+  analysers, the suppression check and the build-graph check against the checked-in files violating
+  each ban and each list, requiring each expected finding and no other. The script also runs the
+  project's `go vet` analysers, for
   [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, the rules against
   package-level state and against a route registered around the UI's recording mux above, the rule
   [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) sets against reading the
@@ -365,6 +391,20 @@ of the same function as well.
 
   A pure core's list admits `core/` by prefix in the same way, so the soundness above also rests on
   the build-graph check.
+- **A file whose build constraint keeps it from the lint's configuration is compiled into an image
+  and read by nothing.** In `propose`, a file carrying `//go:build !integration`, `!gmail_live`,
+  `!devloop`, `!cgo`, `!linux`, `!amd64`, `darwin`, `!integration || nothere` or a legacy
+  `// +build !integration` line, a file named for `darwin`, `arm64` or `linux` on `arm64`, and a
+  package whose only file is named for `darwin`, were each left out of the files `go list` selects
+  with the configuration's tags for Linux on amd64 with cgo, which is what the lint job reads, while
+  a build for a configuration code ships in compiled it. The script refuses each. A constraint that
+  is a plain negation of a tag was already refused before this check, by the rule that only
+  violation files may depend on the `banproof` tag, since that rule evaluates a constraint with
+  every other tag set. The file names, the positive `darwin` constraint, the disjunction, the legacy
+  line and the package are what this check adds. It passes a file carrying `!banproof`, which the
+  gating lint reads because it sets no such tag, `!integration || devloop`, which the lint's tags
+  make true, and `ignore`, `integration` or a name for `windows`, which no configuration code ships
+  in compiles.
 
 ## Alternatives considered
 
@@ -584,6 +624,20 @@ probe routes on muxes with nothing recording them.
   refuse a call on the mux beneath the recorder from package `api`, with no analyser. It needs a new
   directory, and it leaves a registration on a second mux built in package `api` unrefused, which the
   analyser refuses.
+
+**How to refuse a file a build constraint keeps from the lint.** Three mechanisms were weighed.
+
+- **Allowing a build constraint only over a list of known tags** refuses a negated tag, which the
+  rule that only violation files may depend on the `banproof` tag already does for a plain
+  negation. It is a second list beside the lint's own tags that drifts from them, and a file named
+  for an operating system or an architecture, or built only without cgo, passes it untouched.
+- **Running the lint and the analysers in every configuration code ships in** reads every such file,
+  at the cost of one more aggregator run per configuration, and still misses a file whose
+  constraint excludes a tag the lint sets. No file in the tree needs it.
+- **Comparing the files each run of the build-graph check compiles with the files the lint's tags
+  select** was chosen, because it states the rule itself and extends a check that already lists
+  the build in every configuration. It adds two `go list` runs, measured at under a second
+  together, and refused every constraint shape above that ships.
 
 ## Consequences
 

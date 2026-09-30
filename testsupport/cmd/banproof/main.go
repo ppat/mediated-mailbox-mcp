@@ -13,7 +13,8 @@
 // linters and a reason follows the names (suppression.go). A check of .golangci.yaml refuses every
 // setting that can reach such a linter, allows exclusion rules naming only ordinary linters, refuses a
 // depguard list that is not strict or carries a deny key, and cross-checks the list against the
-// enabled linters and the violation files (config.go).
+// enabled linters and the violation files (config.go). It also refuses a go vet step in the lint
+// workflow whose build tags differ from the configuration's (vettags.go).
 //
 // Violation files carry a build constraint that is false unless the banproof tag is set, so the
 // gating lint, build and test runs never see them. banproof enables the tag. It also fails when the
@@ -23,7 +24,8 @@
 //
 // It also runs go vet with the project's analysers under testsupport/analysis, whose findings want
 // annotations name as vetcheck, the program that runs them, and the check that every package the
-// build of ./... reaches is one ./... lists, whose findings they name as unlinted (unlinted.go).
+// build of ./... reaches is one ./... lists, whose findings they name as unlinted (unlinted.go). The
+// same check refuses a file those builds compile that the gating lint does not read (unread.go).
 //
 // With -browser it proves the browser layer's bans instead, the same way, with oxlint, ast-grep and a
 // search for their suppression directives (browser.go). The browser half needs bun and the browser
@@ -102,6 +104,15 @@ func run(tag string) error {
 		return err
 	}
 	problems = append(problems, configProblems(config, ordinaryLinters)...)
+	workflow, err := os.ReadFile(filepath.Join(root, lintWorkflow))
+	if err != nil {
+		return err
+	}
+	vetProblems, err := vetTagProblems(workflow, config.Run.BuildTags)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, vetProblems...)
 
 	files, err := goFiles(root)
 	if err != nil {
@@ -148,12 +159,12 @@ func run(tag string) error {
 		return err
 	}
 	found = append(found, lintFindings...)
-	vetFindings, err := vet(root, tag)
+	vetFindings, err := vet(root, tag, config.Run.BuildTags)
 	if err != nil {
 		return err
 	}
 	found = append(found, vetFindings...)
-	unlintedFindings, err := unlinted(root, tag)
+	unlintedFindings, err := unlinted(root, tag, config.Run.BuildTags)
 	if err != nil {
 		return err
 	}
@@ -242,19 +253,18 @@ func lint(root, tag string) ([]finding, error) {
 var vetFinding = regexp.MustCompile(`^(.+\.go):(\d+):\d+: (.*)$`)
 
 // vet runs go vet with the project's analysers over the module and returns their findings, each under
-// the name of the program that runs them.
-func vet(root, tag string) ([]finding, error) {
+// the name of the program that runs them. It sets the build tags .golangci.yaml sets, which the gating
+// vet step sets too (vettags.go), and tag.
+func vet(root, tag string, buildTags []string) ([]finding, error) {
 	tool, err := command(root, "go", "tool", "-n", "vetcheck")
 	if err != nil {
 		return nil, fmt.Errorf("go tool -n vetcheck failed: %w\n%s", err, tool)
 	}
-	// integration and gmail_live are set because golangci-lint's configuration sets them, so crash
-	// sequences, other integration-tagged files and the contract run against Gmail are checked by both.
-	tags := "integration,gmail_live"
+	tags := slices.Clone(buildTags)
 	if tag != "" {
-		tags += "," + tag
+		tags = append(tags, tag)
 	}
-	args := []string{"vet", "-vettool=" + strings.TrimSpace(string(tool)), "-tags=" + tags}
+	args := []string{"vet", "-vettool=" + strings.TrimSpace(string(tool)), "-tags=" + strings.Join(tags, ",")}
 	args = append(args, "./...")
 	cmd := exec.Command("go", args...)
 	cmd.Dir = root

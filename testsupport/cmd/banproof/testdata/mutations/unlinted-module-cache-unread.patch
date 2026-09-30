@@ -5,10 +5,10 @@ tests: TestUnlintedRunsEveryShippedConfiguration
 scheduled-count: no
 
 diff --git a/testsupport/cmd/banproof/unlinted.go b/testsupport/cmd/banproof/unlinted.go
-index c6f8538..1a17df2 100644
+index fdc3ff1..85b07b9 100644
 --- a/testsupport/cmd/banproof/unlinted.go
 +++ b/testsupport/cmd/banproof/unlinted.go
-@@ -126,7 +126,7 @@ func moduleFacts(root string) (string, string, error) {
+@@ -133,7 +133,7 @@ func moduleFacts(root string) (string, string, error) {
  	if err != nil {
  		return "", "", err
  	}
@@ -16,4 +16,4 @@ index c6f8538..1a17df2 100644
 +	return mod.Module.Path, strings.TrimSuffix(strings.TrimSpace(string(cache))[:0], "/"), nil
  }
  
- // goList runs go list and decodes its report, one package per value.
+ // goList runs go list and decodes its report, one package per value, or one import path per line
