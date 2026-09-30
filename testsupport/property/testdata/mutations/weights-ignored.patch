@@ -1,0 +1,26 @@
+control: The operation sampler draws each operation under a fresh set of weights from rapid's own stream
+removes: each operation is drawn with the same chance, whatever its weight
+packages: ./testsupport/property
+tests: TestTheSamplerDrawsByWeight
+scheduled-count: no
+
+diff --git a/testsupport/property/sampler.go b/testsupport/property/sampler.go
+--- a/testsupport/property/sampler.go
++++ b/testsupport/property/sampler.go
+@@ -52,12 +52,12 @@ func weighted(names []string, weights []float64) Sampler {
+ 
+ // Draw draws one name, each with the chance its weight's share of the total gives it.
+ func (s Sampler) Draw(t *rapid.T, label string) string {
+-	point := uniform(t, label) * s.total
+-	for i, w := range s.weights {
+-		if point < w {
++	point := uniform(t, label) * float64(len(s.weights))
++	for i := range s.weights {
++		if point < 1 {
+ 			return s.names[i]
+ 		}
+-		point -= w
++		point--
+ 	}
+ 	// The point was drawn at the total itself, which lies past every weight.
+ 	for i := len(s.weights) - 1; i >= 0; i-- {

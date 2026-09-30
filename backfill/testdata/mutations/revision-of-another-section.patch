@@ -1,0 +1,18 @@
+control: The revision a verdict records is the scanner section's, and an empty revision is refused
+removes: the scanner is built under the database section's revision
+packages: ./backfill
+tests: TestAVerdictsRevisionFollowsTheScannerSection
+scheduled-count: no
+
+diff --git a/backfill/main.go b/backfill/main.go
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -151,7 +151,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ // changes the revision every verdict records, and a change to another section does not (ADR-0005,
+ // ADR-0078).
+ func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
+-	s, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection])
++	s, err := scan.New(loaded.Config.Scanner, loaded.Revisions["database"])
+ 	if err != nil {
+ 		return scan.Scanner{}, fmt.Errorf("scanner: %w", err)
+ 	}

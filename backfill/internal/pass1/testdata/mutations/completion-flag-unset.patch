@@ -1,0 +1,21 @@
+control: Pass 1 sets its completion flag when it ends, and a pass that ended does no work
+removes: the run that ends the pass records its end and leaves the account's completion flag unset
+packages: ./backfill/internal/pass1
+tests: TestAKilledRunResumesFromItsCheckpoint TestAPassIndexesTheWholeMailbox TestAPassThatEndedIsSkipped
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postgres.go
+--- a/backfill/internal/pass1/postgres.go
++++ b/backfill/internal/pass1/postgres.go
+@@ -237,9 +237,7 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m cor
+ // Finish implements Store.
+ func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
+ 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+-		if err := completion.New(t).SetBackfillFirstComplete(ctx, account); err != nil {
+-			return fmt.Errorf("setting the completion flag: %w", err)
+-		}
++		_ = completion.New
+ 		q := record.New(t)
+ 		if err := q.EndRun(ctx, record.EndRunParams{State: "succeeded", AccountID: account, RunID: runID}); err != nil {
+ 			return fmt.Errorf("recording the run's end: %w", err)

@@ -1,0 +1,19 @@
+control: A page made durable twice counts nothing twice
+removes: a sender's statistics add a page's count to the count stored, so a page taken twice counts twice
+packages: ./backfill/internal/pass1
+tests: TestAPassStartedOverCountsNothingTwice
+scheduled-count: no
+integration: yes
+
+diff --git a/db/senders/statistics.sql.go b/db/senders/statistics.sql.go
+--- a/db/senders/statistics.sql.go
++++ b/db/senders/statistics.sql.go
+@@ -51,7 +51,7 @@ ON CONFLICT (account_id, domain) DO UPDATE
+     SET
+         local_part_sample = excluded.local_part_sample,
+         display_names = excluded.display_names,
+-        message_count = excluded.message_count,
++        message_count = s.message_count + excluded.message_count,
+         first_seen = excluded.first_seen,
+         last_seen = excluded.last_seen,
+         has_list_id_ratio = excluded.has_list_id_ratio,

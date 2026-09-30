@@ -19,7 +19,8 @@ type outcome struct {
 	MFACode, LoginLink bool
 	Rules              []string
 	Tier               int
-	Version, Revision  int
+	Version            int
+	Revision           string
 }
 
 func observe(v scan.Verdict) outcome {
@@ -33,9 +34,13 @@ func observe(v scan.Verdict) outcome {
 	}
 }
 
+// revision is the configuration revision the tests build scanners under, as the configuration
+// library would hand it in.
+const revision = "a-revision"
+
 func scanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig())
+	s, err := scan.New(scan.DefaultConfig(), revision)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,14 +48,14 @@ func scanner(t *testing.T) scan.Scanner {
 }
 
 func code(tier int, rules ...string) outcome {
-	return outcome{MFACode: true, Rules: rules, Tier: tier, Version: scan.Version, Revision: 1}
+	return outcome{MFACode: true, Rules: rules, Tier: tier, Version: scan.Version, Revision: revision}
 }
 
 func link(rules ...string) outcome {
-	return outcome{LoginLink: true, Rules: rules, Tier: 1, Version: scan.Version, Revision: 1}
+	return outcome{LoginLink: true, Rules: rules, Tier: 1, Version: scan.Version, Revision: revision}
 }
 
-func clean(tier int) outcome { return outcome{Tier: tier, Version: scan.Version, Revision: 1} }
+func clean(tier int) outcome { return outcome{Tier: tier, Version: scan.Version, Revision: revision} }
 
 // The paths production never exercises, tested first (ADR-0042). A scanner nobody built returns the
 // zero verdict, which carries both flags, and says so to a caller masking with it.
@@ -79,7 +84,6 @@ func TestNewRefusesAnInvalidConfiguration(t *testing.T) {
 		change func(*scan.Config)
 		want   string
 	}{
-		{"a revision below 1", func(c *scan.Config) { c.Revision = 0 }, "the revision is below 1"},
 		{"no trigger word", func(c *scan.Config) { c.Triggers = nil }, "no trigger word is configured"},
 		{"an empty trigger", func(c *scan.Config) { c.Triggers["en"] = []string{""} }, `the en trigger "" is empty`},
 		{"a trigger with surrounding space", func(c *scan.Config) { c.Triggers["en"] = []string{" code"} }, `" code" is empty or has surrounding space`},
@@ -104,7 +108,7 @@ func TestNewRefusesAnInvalidConfiguration(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			cfg := scan.DefaultConfig()
 			c.change(&cfg)
-			s, err := scan.New(cfg)
+			s, err := scan.New(cfg, revision)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("New returned %v, want an error containing %q", err, c.want)
 			}
@@ -112,6 +116,34 @@ func TestNewRefusesAnInvalidConfiguration(t *testing.T) {
 				t.Error("a refused configuration returned a scanner that decides")
 			}
 		})
+	}
+	t.Run("an empty revision", func(t *testing.T) {
+		s, err := scan.New(scan.DefaultConfig(), "")
+		if want := "the revision is empty"; err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("New returned %v, want an error containing %q", err, want)
+		}
+		if !observe(s.Scan("Your code is 419283")).LoginLink {
+			t.Error("a refused revision returned a scanner that decides")
+		}
+	})
+}
+
+// Every verdict records the revision the scanner was built under, as it was handed in, so a verdict
+// made under another configuration tells itself apart (ADR-0005, ADR-0078).
+func TestAVerdictRecordsTheRevisionItWasBuiltUnder(t *testing.T) {
+	for _, r := range []string{"0f3a", "another revision"} {
+		s, err := scan.New(scan.DefaultConfig(), r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, body := range []string{"Your code is 419283", "Nothing to see here."} {
+			if got := s.Scan(body).Revision(); got != r {
+				t.Errorf("Scan(%q).Revision() = %q, want %q", body, got, r)
+			}
+			if got := s.ScanPatterns(body).Revision(); got != r {
+				t.Errorf("ScanPatterns(%q).Revision() = %q, want %q", body, got, r)
+			}
+		}
 	}
 }
 
@@ -242,7 +274,7 @@ func TestTier2(t *testing.T) {
 func TestSubjectThreshold(t *testing.T) {
 	cfg := scan.DefaultConfig()
 	cfg.SubjectThreshold = 0.5
-	s, err := scan.New(cfg)
+	s, err := scan.New(cfg, revision)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +315,7 @@ func TestFixtures(t *testing.T) {
 // text, and every string it carries is a rule identifier (ADR-0009).
 func TestTheVerdictCarriesNoText(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/core/scan", "Verdict",
-		"flags sensitivity.ContentFlags", "rules []string", "tier int", "version int", "revision int")
+		"flags sensitivity.ContentFlags", "rules []string", "tier int", "version int", "revision string")
 	s := scanner(t)
 	for _, m := range fixture.All() {
 		for _, r := range s.Scan(m.Body).Rules() {
@@ -317,4 +349,22 @@ func TestScanningStaysLinear(t *testing.T) {
 	if ratio := perScan(32000) / perScan(4000); ratio > 16 {
 		t.Errorf("eight times the text took %.1f times as long, want under 16", ratio)
 	}
+}
+
+// The scanner's section of a deployable's configuration is pinned field by field, so a new value is
+// a visible change, and it carries no revision an operator could set (ADR-0078).
+func TestTheScannerSectionIsPinned(t *testing.T) {
+	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/core/scan", "Config",
+		"Triggers map[string][]string",
+		"LinkWords []string",
+		"LinkParams []string",
+		"Window int",
+		"DenseLength int",
+		"DenseEntropy float64",
+		"Weights Weights",
+		"Threshold float64",
+		"SubjectThreshold float64",
+	)
+	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/core/scan", "Weights",
+		"Entropy float64", "Mix float64", "Length float64", "Proximity float64", "Position float64")
 }

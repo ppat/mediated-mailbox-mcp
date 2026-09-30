@@ -1,0 +1,19 @@
+control: Pass 1 sets its completion flag when it ends, and a pass that ended does no work
+removes: a pass that ended starts a fresh run
+packages: ./backfill/internal/pass1 ./backfill/internal/core/pass1
+tests: TestAPassThatEndedIsSkipped TestBegin
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+--- a/backfill/internal/core/pass1/pass1.go
++++ b/backfill/internal/core/pass1/pass1.go
+@@ -90,8 +90,6 @@ type Start struct {
+ // fresh pass starts from the first page.
+ func Begin(ended bool, latest Latest) Start {
+ 	switch {
+-	case ended:
+-		return Start{Skip: true}
+ 	case !latest.Found || latest.State == Succeeded:
+ 		return Start{}
+ 	default:

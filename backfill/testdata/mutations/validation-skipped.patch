@@ -5,16 +5,15 @@ tests: TestAnEmptyHostRefusesTheStart
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..2ca3b16 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -78,9 +78,6 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
- 	for _, v := range loaded.Values {
+@@ -110,9 +110,6 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
  		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
  	}
--	if err := dbconnectcore.Validate(loaded.Config.Database); err != nil {
+ 	c := loaded.Config
+-	if err := dbconnectcore.Validate(c.Database); err != nil {
 -		return fmt.Errorf("validating the configuration: %w", err)
 -	}
- 	if err := credentialcore.Validate(loaded.Config.Credential); err != nil {
+ 	if err := credentialcore.Validate(c.Credential); err != nil {
  		return fmt.Errorf("validating the configuration: %w", err)
  	}

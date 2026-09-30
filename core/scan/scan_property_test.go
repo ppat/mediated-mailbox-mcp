@@ -54,7 +54,7 @@ func body(a args) string {
 // the flags match what the body holds, so a scanner that stops flagging, or flags everything, fails
 // too.
 func TestNoScannerOutputCarriesBodyText(t *testing.T) {
-	s, err := scan.New(scan.DefaultConfig())
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,21 @@
+control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
+removes: the hand-over hands over the source the run started with, so a source the unit of work replaced is never handed over
+packages: ./backfill
+tests: TestARunHandsEachAccountOverWhenItsUnitEnds
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -230,8 +230,9 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 	for account, c := range credentials(snapshot, logger) {
+ 		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
+ 	}
++	first := maps.Clone(sources)
+ 	return work(ctx, served{sources: sources, policy: policies.Snapshot(), handOver: func(ctx context.Context, account string) error {
+-		return handOver(ctx, loader, account, sources[account])
++		return handOver(ctx, loader, account, first[account])
+ 	}})
+ }
+ 

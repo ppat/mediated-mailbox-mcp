@@ -1,0 +1,19 @@
+control: The operation sampler draws each operation under a fresh set of weights from rapid's own stream
+removes: every sequence draws under the same weights, whatever rapid's stream holds
+packages: ./testsupport/property
+tests: TestTheWeightsComeFromRapidsStream
+scheduled-count: no
+
+diff --git a/testsupport/property/sampler.go b/testsupport/property/sampler.go
+--- a/testsupport/property/sampler.go
++++ b/testsupport/property/sampler.go
+@@ -28,7 +28,8 @@ func NewSampler(t *rapid.T, names []string) Sampler {
+ 	sorted := slices.Sorted(slices.Values(names))
+ 	weights := make([]float64, 0, len(sorted))
+ 	for _, name := range sorted {
+-		weights = append(weights, uniform(t, "weight of "+name))
++		_ = uniform(t, "weight of "+name)
++		weights = append(weights, 1)
+ 	}
+ 	return weighted(sorted, weights)
+ }

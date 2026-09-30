@@ -5,14 +5,13 @@ tests: TestTheConfigurationTypeIsPinned
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..4df06da 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -39,6 +39,7 @@ const gmailProvider = "gmail"
- type Configuration struct {
- 	Database   dbconnectcore.Config  `yaml:"database"`
- 	Credential credentialcore.Config `yaml:"credential"`
-+	Scanner    dbconnectcore.Config `yaml:"scanner"`
+@@ -63,6 +63,7 @@ type Configuration struct {
+ 	Database    dbconnectcore.Config  `yaml:"database"`
+ 	Credential  credentialcore.Config `yaml:"credential"`
+ 	Scanner     scan.Config           `yaml:"scanner"`
++	Extra       dbconnectcore.Config  `yaml:"extra"`
  }
  
  // defaults are backfill's defaults. The user is backfill's own runtime role (ADR-0075), and the TLS

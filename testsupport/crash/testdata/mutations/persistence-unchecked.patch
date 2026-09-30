@@ -1,0 +1,17 @@
+control: The crash harness checks persistence after every crash, and replays the reduced sequence against PostgreSQL
+removes: the harness runs recovery after a crash and never checks persistence
+packages: ./testsupport/crash
+tests: TestRunRecoversAndChecksAfterEachCrash TestTheHarnessFindsAPlantedFault
+scheduled-count: no
+
+diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+--- a/testsupport/crash/crash.go
++++ b/testsupport/crash/crash.go
+@@ -201,7 +201,6 @@ func Run[S, W any](t rapid.TB, target Target[S, W], w W, c Case[S]) {
+ 		if op.Name == Crash {
+ 			target.Crash(t, w, op.Arg)
+ 			target.Recover(t, w)
+-			target.Persistence(t, w)
+ 			if t.Failed() {
+ 				t.Fatalf("persistence failed after operation %d of %s", i+1, Describe(c))
+ 			}

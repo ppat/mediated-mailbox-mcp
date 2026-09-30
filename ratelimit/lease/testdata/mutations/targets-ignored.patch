@@ -1,0 +1,20 @@
+control: Each account spends under the lowered target its state row sets, and a target outside its range stops the run
+removes: every account spends under the default target, whatever target it was given
+packages: ./ratelimit/lease
+tests: TestALoweredTargetBoundsOnlyItsOwnAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -86,9 +86,6 @@ func NewWithTargets(db tx.Beginner, ceiling float64, targets map[string]float64,
+ 
+ // limitsFor returns the limits the account spends under.
+ func (l *Limiter) limitsFor(account string) core.Limits {
+-	if limits, ok := l.lowered[account]; ok {
+-		return limits
+-	}
+ 	return l.defaults
+ }
+ 

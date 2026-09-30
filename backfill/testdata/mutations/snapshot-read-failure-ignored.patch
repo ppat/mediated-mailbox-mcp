@@ -6,12 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..636ed67 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -116,9 +116,7 @@ type unitOfWork func(ctx context.Context, sources map[string]*gmail.TokenSource)
- // snapshot.
- func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logger *slog.Logger, work unitOfWork) error {
+@@ -209,9 +209,7 @@ type unitOfWork func(ctx context.Context, s served) error
+ // run, since a run that exits holds no previous snapshot.
+ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logger *slog.Logger, registry prometheus.Registerer, work unitOfWork) error {
  	loader := accountload.New(pool, keys, logger)
 -	if err := loader.Load(ctx); err != nil {
 -		return fmt.Errorf("loading the accounts: %w", err)

@@ -1,0 +1,19 @@
+control: A killed backfill run resumes from its last checkpointed page, with at most one page of rework
+removes: a page made durable keeps the token it was asked with, so the next page asked for is the same one
+packages: ./backfill/internal/pass1 ./backfill/internal/core/pass1
+tests: TestAKilledRunResumesFromItsCheckpoint TestAdvanceAndRestart
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+--- a/backfill/internal/core/pass1/pass1.go
++++ b/backfill/internal/core/pass1/pass1.go
+@@ -109,7 +109,7 @@ func Restart(at Progress) Progress {
+ // added added messages to the index.
+ func Advance(at Progress, next mail.PageToken, added int) Progress {
+ 	return Progress{
+-		Checkpoint: Checkpoint{Page: at.Checkpoint.Page + 1, Token: next},
++		Checkpoint: Checkpoint{Page: at.Checkpoint.Page + 1, Token: at.Checkpoint.Token},
+ 		Counters:   Counters{Pages: at.Counters.Pages + 1, Messages: at.Counters.Messages + added},
+ 	}
+ }

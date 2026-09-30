@@ -1,0 +1,19 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a run resumed after it stopped without recording its end is left recorded as running
+packages: ./backfill/internal/pass1
+tests: TestAKilledRunResumesFromItsCheckpoint TestAKilledRunIsResumedByTheNextRun
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postgres.go
+--- a/backfill/internal/pass1/postgres.go
++++ b/backfill/internal/pass1/postgres.go
+@@ -126,7 +126,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
+ 	}
+ 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+ 		q := record.New(t)
+-		if start.Abandon {
++		if false && start.Abandon {
+ 			err := q.EndRun(ctx, record.EndRunParams{
+ 				State: "failed", LastError: text("the run stopped before it recorded its end"), AccountID: account, RunID: start.ResumedFrom,
+ 			})

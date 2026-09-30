@@ -1,0 +1,18 @@
+control: The operation sampler draws each operation under a fresh set of weights from rapid's own stream
+removes: with every weight zero the first name is always drawn
+packages: ./testsupport/property
+tests: TestAllZeroWeightsWeighTheSame
+scheduled-count: no
+
+diff --git a/testsupport/property/sampler.go b/testsupport/property/sampler.go
+--- a/testsupport/property/sampler.go
++++ b/testsupport/property/sampler.go
+@@ -40,7 +40,7 @@ func weighted(names []string, weights []float64) Sampler {
+ 	for _, w := range weights {
+ 		s.total += w
+ 	}
+-	if s.total == 0 {
++	if s.total == 0 && false {
+ 		s.weights = make([]float64, len(names))
+ 		for i := range s.weights {
+ 			s.weights[i] = 1

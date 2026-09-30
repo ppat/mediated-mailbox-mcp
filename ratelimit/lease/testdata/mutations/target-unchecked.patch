@@ -1,0 +1,22 @@
+control: Each account spends under the lowered target its state row sets, and a target outside its range stops the run
+removes: a target outside its range is taken as it is given
+packages: ./ratelimit/lease
+tests: TestAnOutOfRangeTargetRefusesTheLimiter
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+--- a/ratelimit/lease/lease.go
++++ b/ratelimit/lease/lease.go
+@@ -75,10 +75,7 @@ func NewWithTargets(db tx.Beginner, ceiling float64, targets map[string]float64,
+ 	l := New(db, ceiling, metrics)
+ 	l.lowered = make(map[string]core.Limits, len(targets))
+ 	for account, target := range targets {
+-		limits, err := core.LimitsWithTarget(ceiling, target)
+-		if err != nil {
+-			return nil, fmt.Errorf("the lowered target %v of account %q: %w", target, account, err)
+-		}
++		limits, _ := core.LimitsWithTarget(ceiling, min(max(target, 0.06), 0.5))
+ 		l.lowered[account] = limits
+ 	}
+ 	return l, nil

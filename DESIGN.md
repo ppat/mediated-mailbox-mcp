@@ -595,8 +595,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   property-based or crash-sequence case and replays it on later runs, in a form that survives an
   edit to its generator (rule in ADR-0069, via the [decision-record index](./docs/adr/README.md)).
 - **Operation sampler** — the test support this project writes that draws a fresh mix of
-  operations for each sequence the crash harness generates in its scheduled run (rule in ADR-0069,
-  via the [decision-record index](./docs/adr/README.md)).
+  operations for each sequence the crash harness generates (rule in ADR-0069, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Marker text** — the searchable strings designed into synthetic fixture bodies and metadata
   fields so a leak check over any output surface, a rendering surface included, is deterministic
   (rule in ADR-0044, via the

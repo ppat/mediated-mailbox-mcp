@@ -1,0 +1,19 @@
+control: A page made durable twice counts nothing twice
+removes: a resumed page token the provider refuses fails every run rather than starting the pass over
+packages: ./backfill/internal/core/pass1 ./backfill/internal/pass1
+tests: TestOnFailure TestOnFailure/a_refused_resumed_token TestAPassStartedOverCountsNothingTwice
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+--- a/backfill/internal/core/pass1/pass1.go
++++ b/backfill/internal/core/pass1/pass1.go
+@@ -291,8 +291,6 @@ func OnFailure(f Attempt) Next {
+ 	switch {
+ 	case f.Class == NotProvider:
+ 		return FailRun
+-	case f.Class == Validation && f.ResumedToken && !f.Restarted:
+-		return StartOver
+ 	case f.Class == Throttled && f.Attempts < MaxAttempts:
+ 		return Backoff
+ 	case f.Class == ProviderError && f.Attempts < MaxAttempts:

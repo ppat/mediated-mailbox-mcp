@@ -8,12 +8,12 @@ integration: yes
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -217,7 +217,8 @@
+@@ -250,7 +250,8 @@ func (l *Limiter) Succeeded(ctx context.Context, account string, cost mail.OpCos
  func (l *Limiter) Throttled(ctx context.Context, account string, signal mail.ThrottleSignal) error {
- 	draw := l.draw()
+ 	draw, limits := l.draw(), l.limitsFor(account)
  	err := l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
--		return core.Throttled(st, l.limits, signal, now, draw), lat, now
-+		_ = draw
+-		return core.Throttled(st, limits, signal, now, draw), lat, now
++		_, _ = draw, limits
 +		return st, lat, now
  	})
  	if err == nil {

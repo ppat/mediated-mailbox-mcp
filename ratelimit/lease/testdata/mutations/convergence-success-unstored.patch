@@ -8,11 +8,11 @@ integration: yes
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -201,7 +201,6 @@
- // windows before it and then joins them (ADR-0024).
+@@ -234,7 +234,6 @@ func waitFor(limits core.Limits, st core.State, next core.Issuance, req core.Req
  func (l *Limiter) Succeeded(ctx context.Context, account string, cost mail.OpCost, latency time.Duration) error {
+ 	limits := l.limitsFor(account)
  	return l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
--		st = core.Succeeded(st, l.limits, cost)
+-		st = core.Succeeded(st, limits, cost)
  		next, median, closed := lat.window.Add(now, latency.Milliseconds())
  		lat.window = next
  		if closed {

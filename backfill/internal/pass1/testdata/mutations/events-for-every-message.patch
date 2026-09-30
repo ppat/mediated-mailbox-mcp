@@ -1,0 +1,28 @@
+control: A page made durable twice counts nothing twice
+removes: a masking event is recorded for every masked message of a page, the ones the index already held included
+packages: ./backfill/internal/pass1
+tests: TestAPassStartedOverCountsNothingTwice
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postgres.go
+--- a/backfill/internal/pass1/postgres.go
++++ b/backfill/internal/pass1/postgres.go
+@@ -160,12 +160,11 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+ 			if err != nil {
+ 				return fmt.Errorf("adding message %s: %w", m.ID, err)
+ 			}
+-			if !ok {
+-				continue
+-			}
+-			added++
+-			if m.Unclassified {
+-				unclassified++
++			if ok {
++				added++
++				if m.Unclassified {
++					unclassified++
++				}
+ 			}
+ 			for _, mask := range m.Masks {
+ 				err := events.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{

@@ -51,19 +51,45 @@ var ErrRefused = errors.New("the request can never be granted")
 // contended ask would fail to serialize.
 //
 // Every limit comes from the provider's declared budget per second, the ceiling, at the default
-// target. The target and hard cap stored in the row are written only for display and never read
-// back.
+// target or at the lower target an account was given when the Limiter was built. The target and hard
+// cap stored in the row are written only for display and never read back.
 type Limiter struct {
-	db      tx.Beginner
-	limits  core.Limits
-	metrics *Metrics
-	draw    func() float64
+	db       tx.Beginner
+	defaults core.Limits
+	lowered  map[string]core.Limits
+	metrics  *Metrics
+	draw     func() float64
 }
 
-// New returns a Limiter over db for a provider whose declared ceiling is ceiling, recording what it
-// does in metrics.
+// New returns a Limiter over db for a provider whose declared ceiling is ceiling, every account at
+// the default target, recording what it does in metrics.
 func New(db tx.Beginner, ceiling float64, metrics *Metrics) *Limiter {
-	return &Limiter{db: db, limits: core.LimitsFor(ceiling), metrics: metrics, draw: rand.Float64}
+	return &Limiter{db: db, defaults: core.LimitsFor(ceiling), metrics: metrics, draw: rand.Float64}
+}
+
+// NewWithTargets returns a Limiter as New does, with each account targets names at the lower target
+// it gives, a fraction of the ceiling (ADR-0024). A target core.LimitsWithTarget refuses, one above
+// half the ceiling or at the floor or below it, refuses the whole Limiter and names the account, so
+// no account runs at a target other than the one its state row sets.
+func NewWithTargets(db tx.Beginner, ceiling float64, targets map[string]float64, metrics *Metrics) (*Limiter, error) {
+	l := New(db, ceiling, metrics)
+	l.lowered = make(map[string]core.Limits, len(targets))
+	for account, target := range targets {
+		limits, err := core.LimitsWithTarget(ceiling, target)
+		if err != nil {
+			return nil, fmt.Errorf("the lowered target %v of account %q: %w", target, account, err)
+		}
+		l.lowered[account] = limits
+	}
+	return l, nil
+}
+
+// limitsFor returns the limits the account spends under.
+func (l *Limiter) limitsFor(account string) core.Limits {
+	if limits, ok := l.lowered[account]; ok {
+		return limits
+	}
+	return l.defaults
 }
 
 // Acquire returns a lease of at least cost tokens for class on the account, waiting until the bucket
@@ -106,6 +132,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
 		wait time.Duration
 		rate float64
 	)
+	limits := l.limitsFor(account)
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
 		q := limiter.New(t)
 		now, err := l.lock(ctx, q, account)
@@ -123,12 +150,12 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
 		st, is := stateOf(row), issuanceOf(row)
 		recent, grantLeases := recentOf(grants)
 		is.Recent = recent
-		next, decided := core.Issue(l.limits, st, is, grantLeases, req, now)
+		next, decided := core.Issue(limits, st, is, grantLeases, req, now)
 		d, rate = decided, float64(row.CurrentRate)
 		if d.Outcome == core.Refused {
 			return nil
 		}
-		wait = l.waitFor(st, next, req, now)
+		wait = waitFor(limits, st, next, req, now)
 		return l.storeIssuance(ctx, q, account, st, next, grantLeases, d, now)
 	})
 	if err != nil {
@@ -165,14 +192,15 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account
 			return fmt.Errorf("storing the grant: %w", err)
 		}
 	}
-	classes, err := classesShown(st, l.limits, held, next.At)
+	limits := l.limitsFor(account)
+	classes, err := classesShown(st, limits, held, next.At)
 	if err != nil {
 		return err
 	}
 	return q.UpdateIssuance(ctx, limiter.UpdateIssuanceParams{
 		AccountID:          account,
-		TargetRate:         float32(l.limits.Target()),
-		HardCap:            float32(l.limits.HardCap()),
+		TargetRate:         float32(limits.Target()),
+		HardCap:            float32(limits.HardCap()),
 		BucketLevel:        roundDown32(next.Level),
 		BucketFilledMs:     stored(next.At),
 		InteractiveAskedMs: stored(next.Asked[core.Interactive]),
@@ -188,9 +216,9 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account
 // or the time the bucket needs to refill to the request at the rate it refills at, and never longer
 // than half a lease period. A request held back by a reservation or the one-second window waits the
 // shortest time.
-func (l *Limiter) waitFor(st core.State, next core.Issuance, req core.Request, now int64) time.Duration {
+func waitFor(limits core.Limits, st core.State, next core.Issuance, req core.Request, now int64) time.Duration {
 	wait := shortestWait
-	switch rate := min(st.Rate, l.limits.Target()); {
+	switch rate := min(st.Rate, limits.Target()); {
 	case st.BackoffUntil > now:
 		wait = time.Duration(min(st.BackoffUntil-now, leaseMillis)) * time.Millisecond
 	case rate > 0 && req.Tokens > next.Level:
@@ -204,12 +232,13 @@ func (l *Limiter) waitFor(st core.State, next core.Issuance, req core.Request, n
 // one-minute window. When that window has closed, its median is judged against the baseline of the
 // windows before it and then joins them (ADR-0024).
 func (l *Limiter) Succeeded(ctx context.Context, account string, cost mail.OpCost, latency time.Duration) error {
+	limits := l.limitsFor(account)
 	return l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
-		st = core.Succeeded(st, l.limits, cost)
+		st = core.Succeeded(st, limits, cost)
 		next, median, closed := lat.window.Add(now, latency.Milliseconds())
 		lat.window = next
 		if closed {
-			st = core.LatencyMeasured(st, l.limits, median, core.Baseline(lat.medians))
+			st = core.LatencyMeasured(st, limits, median, core.Baseline(lat.medians))
 			lat.medians = core.RememberMedian(lat.medians, median)
 		}
 		return st, lat, 0
@@ -219,9 +248,9 @@ func (l *Limiter) Succeeded(ctx context.Context, account string, cost mail.OpCos
 // Throttled records that the provider throttled a call. The rate halves and nothing is issued until
 // the signal's retry-after, or a full-jitter backoff without one, has passed.
 func (l *Limiter) Throttled(ctx context.Context, account string, signal mail.ThrottleSignal) error {
-	draw := l.draw()
+	draw, limits := l.draw(), l.limitsFor(account)
 	err := l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
-		return core.Throttled(st, l.limits, signal, now, draw), lat, now
+		return core.Throttled(st, limits, signal, now, draw), lat, now
 	})
 	if err == nil {
 		l.metrics.observeThrottle(account, signal.Scope)
@@ -231,8 +260,9 @@ func (l *Limiter) Throttled(ctx context.Context, account string, signal mail.Thr
 
 // ServerErrored records that the provider failed a call with a server error. The rate falls to 80%.
 func (l *Limiter) ServerErrored(ctx context.Context, account string) error {
+	limits := l.limitsFor(account)
 	return l.control(ctx, account, func(st core.State, lat latencyRecord, _ int64) (core.State, latencyRecord, int64) {
-		return core.ServerErrored(st, l.limits), lat, 0
+		return core.ServerErrored(st, limits), lat, 0
 	})
 }
 
@@ -246,6 +276,7 @@ type latencyRecord struct {
 // the new state, the new latency record and the instant of a throttle, zero when there was none.
 func (l *Limiter) control(ctx context.Context, account string, decide func(core.State, latencyRecord, int64) (core.State, latencyRecord, int64)) error {
 	var rate float64
+	limits := l.limitsFor(account)
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
 		q := limiter.New(t)
 		now, err := l.lock(ctx, q, account)
@@ -261,8 +292,8 @@ func (l *Limiter) control(ctx context.Context, account string, decide func(core.
 		return q.UpdateController(ctx, limiter.UpdateControllerParams{
 			AccountID:            account,
 			CurrentRate:          float32(st.Rate),
-			TargetRate:           float32(l.limits.Target()),
-			HardCap:              float32(l.limits.HardCap()),
+			TargetRate:           float32(limits.Target()),
+			HardCap:              float32(limits.HardCap()),
 			BackoffUntilMs:       stored(st.BackoffUntil),
 			Throttles:            throttlesStored(st.Throttles),
 			ThrottledMs:          stored(throttledAt),
@@ -295,11 +326,12 @@ func (l *Limiter) lock(ctx context.Context, q *limiter.Queries, account string) 
 // read returns the account's rate state, giving the account one at the target the first time it
 // spends.
 func (l *Limiter) read(ctx context.Context, q *limiter.Queries, account string) (limiter.RateStateRow, error) {
+	limits := l.limitsFor(account)
 	err := q.InsertRateState(ctx, limiter.InsertRateStateParams{
 		AccountID:   account,
-		CurrentRate: float32(l.limits.Target()),
-		TargetRate:  float32(l.limits.Target()),
-		HardCap:     float32(l.limits.HardCap()),
+		CurrentRate: float32(limits.Target()),
+		TargetRate:  float32(limits.Target()),
+		HardCap:     float32(limits.HardCap()),
 	})
 	if err != nil {
 		return limiter.RateStateRow{}, fmt.Errorf("giving the account its rate state: %w", err)

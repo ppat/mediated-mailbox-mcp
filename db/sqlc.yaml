@@ -165,3 +165,53 @@ sql:
       sql_package: pgx/v5
       emit_interface: true
       omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: messages/ingest
+  gen:
+    go:
+      package: ingest
+      out: messages/ingest
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: maskingevents/record
+  gen:
+    go:
+      package: record
+      out: maskingevents/record
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: jobruns/record
+  gen:
+    go:
+      package: record
+      out: jobruns/record
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: accountstate/completion
+  gen:
+    go:
+      package: completion
+      out: accountstate/completion
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: senders
+  gen:
+    go:
+      package: senders
+      out: senders
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true

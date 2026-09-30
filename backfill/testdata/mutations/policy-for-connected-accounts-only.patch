@@ -6,10 +6,9 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..c20c922 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -123,7 +123,9 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+@@ -216,7 +216,9 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
  	listed := snapshot.Accounts()
  	ids := make([]string, 0, len(listed))
  	for _, a := range listed {
@@ -18,5 +17,5 @@ index 56154bd..c20c922 100644
 +			ids = append(ids, a.ID())
 +		}
  	}
- 	registry := prometheus.NewRegistry()
  	policies, err := policyload.New(pool, ids, registry)
+ 	if err != nil {

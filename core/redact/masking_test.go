@@ -37,7 +37,7 @@ func observeMask(m redact.Masked) masked {
 
 func defaultScanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig())
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

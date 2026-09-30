@@ -104,7 +104,7 @@ because every candidate that reduces at all meets it.
 | The kinds of rule ADR-0055 allows can be expressed | The kinds ADR-0055 admits, among them model-based properties, metamorphic relations, round trips, idempotence, postconditions and stateful properties | [ADR-0055](./0055-property-based-safety-invariants.md) |
 | Reports what the generator produced | States a required mix of input kinds and fails the run when the generator misses it | This record's requirement. It was graded but never used to rule a candidate out. It answers the blind spot [ADR-0055](./0055-property-based-safety-invariants.md) names |
 | Operation sequences with a crash step | Generated sequences of named operations, a crash placeable anywhere and more than once | [ADR-0045](./0045-crash-injection-testing.md) |
-| Reduction does not replay against the real database | Reduction runs against an in-memory model of the machinery, and only the reduced sequence replays against PostgreSQL | This record's requirement. Each replay against the database costs a reset |
+| Reduction does not replay against the real database | Reduction runs against an in-memory model of the machinery. Against PostgreSQL only the reduced sequence replays, beside a fixed number of sequences drawn from fixed seeds that are replayed and never reduced | This record's requirement. Each replay against the database costs a reset |
 
 ### How the requirements were weighted
 
@@ -161,8 +161,8 @@ mix of generated inputs and failing the run when it is not reached.
   the ones drawn before it. A conditional generator produced the kind of plan operation it targeted
   in 77.0 percent of cases, against 59.2 percent for the collection-generator shape, where the
   generator report required at least 25 percent. The collection-generator shape cleared that
-  minimum, so it is used there too. Whether the same holds for the backfill target's generators is
-  left open below.
+  minimum, so it is used there too. The backfill target's generators take the same shape, as the
+  last section of this decision sets out.
 - **Three pieces of test support are written and owned by this project.** The generator report
   answers a gap every Go candidate has. The failing-case store answers a gap every candidate has
   except Go fuzzing, which stores the literal input. Both builds compared in the Alternatives carry
@@ -173,7 +173,7 @@ mix of generated inputs and failing the run when it is not reached.
 | --- | --- | --- |
 | The generator report | Classifies each generated case, reports the mix, and fails the run when a stated minimum share of a kind of input is not reached | No Go library can fail a run on a missed mix. [ADR-0055](./0055-property-based-safety-invariants.md) names the resulting blind spot. A draw the constructor refuses is counted as its own kind of input, which is how the report shows most of a run being refused |
 | The failing-case store | Stores a failing case as the arguments passed to the constructor plus a description of the value's shape, and replays it | rapid's own fail file stops reproducing after a generator edit, silently, on two separate triggers set out below. The store's cases still reproduce after a generator edit, and fail loudly with an instruction when the value's shape changes |
-| The operation sampler | For the crash harness's scheduled run, draws a fresh set of operation weights for each generated sequence | rapid draws operations unevenly, by the sorted position of their names. Fixed hand-picked weights make that worse. A fresh set per sequence was the best option at the gating budget, and the only one to reach a planted failure needing four back-to-back crash and recovery cycles at all, in 8 percent of runs on the reorganization target and 12 percent on backfill, falling to none with more cycles. No generated search tried reached such a failure reliably. An example-based test written for that failure would reach it. rapid's own draw did slightly better, 98 percent against 95, on a planted failure needing four writes in a row on the backfill target |
+| The operation sampler | For the crash harness, draws a fresh set of operation weights for each generated sequence, in the gating run and the scheduled run alike | rapid draws operations unevenly, by the sorted position of their names. Fixed hand-picked weights make that worse. A fresh set per sequence was the best option at the gating budget, and the only one to reach a planted failure needing four back-to-back crash and recovery cycles at all, in 8 percent of runs on the reorganization target and 12 percent on backfill, falling to none with more cycles. No generated search tried reached such a failure reliably. An example-based test written for that failure would reach it. rapid's own draw did slightly better, 98 percent against 95, on a planted failure needing four writes in a row on the backfill target |
 
 ### What rapid's ordinary path does that other records forbid, and what stops it
 
@@ -199,8 +199,7 @@ Each numbered row is one rule a builder follows. The last column says what enfor
 One further piece of rapid's ordinary path is answered by a component rather than a rule. `t.Repeat`
 draws the next operation by position in the sorted list of operation names, so renaming an operation
 changes how often it runs. On the backfill target the crash was drawn 1.37 times as often as the
-write whose unflushed state is the actual hazard. The operation sampler answers it in the scheduled
-run.
+write whose unflushed state is the actual hazard. The operation sampler answers it, in every run.
 
 Of the fourteen rules, six are enforced by the linter, the compiler or the analyser, being rows 3,
 4, 5, 8, 9 and 13. Three are enforced by a test in the suite, rows 1, 6 and 7. Five rest on review,
@@ -225,27 +224,37 @@ never fell below 1 percent of a run. rapid's draws are not uniform at small coun
 settles near the uniform shares by 1,000. So the generator report states each kind's minimum as
 whether the kind is reached at all, not as its expected share.
 
-### Anything deliberately left open
+### What the backfill target settled
 
-**Whether the backfill target's generators use the same shape.** The collection-generator shape was
-measured for the reorganization plan generator only. For backfill resume, one option is to use the
-same shape and read the generator report, and the other is to measure a conditional generator
-against it first. The first costs nothing up front. The second costs one generator written twice,
-and matters if the interesting states in backfill are rarer than in a reorganization plan. rapid's
-collection generators draw each element without seeing the ones drawn before it, so a backfill
-generator conditioning an element on earlier ones would also change row 11 for backfill.
+Three questions were left open until the harness was first built, for backfill resume. Each is
+settled below with the option not taken.
 
-**Whether one in-memory model serves both crash-harness targets.** Reduction runs against an
-in-memory model of the machinery. One model shared by the reorganization apply path and backfill
-resume must be general enough for two machineries that checkpoint differently. A model per target
-costs writing two. Nothing outside the harness depends on which.
+**The backfill target's generators use the collection-generator shape, and the generator report is
+read.** The generated mailbox is a list built by `rapid.SliceOfN`, each message drawn without seeing
+the ones before it, and the operation sequences are drawn by `t.Repeat` and by the sampler. The
+generator report states the kinds of sequence the checks rest on, a crash inside a page, a crash
+after a page's commit, a crash between steps after a page was durable, two crashes with no page
+between them and a run failed on a throttled page, each as whether it is reached at all. At the
+gating count every kind was reached in both draws, on each seed tried. The option not taken was
+measuring a conditional generator against it first, which would have cost one generator written
+twice. It would matter if the interesting states in backfill were rarer than the report shows them,
+and the report shows each reached.
 
-**Whether the operation sampler also runs in the gating run.** It is decided for the scheduled run.
-A longer gating run does not substitute for it, and at the gating budget a planted failure the
-harness caught 28 percent of the time is, with the seed fixed as ADR-0055 requires, a 72 percent
-chance the gating run never catches it. Running it in the gating run as well costs gating time.
-Leaving it out keeps that class of failure to the scheduled run, where the longer search already
-runs.
+**Each harness target has an in-memory model of its own.** The harness is generic over the target,
+which supplies its operations, its recovery path, its two checks and a world built over either its
+model or PostgreSQL, so a model is the target's own store written in memory. The option not taken
+was one model shared by the reorganization apply path and backfill resume, which would have to be
+general enough for two machineries that checkpoint differently. Because a failure found only through
+PostgreSQL is never reduced, the harness also replays a fixed number of sequences drawn from fixed
+seeds against PostgreSQL in every run, and a reduced sequence that fails against the model and passes
+against PostgreSQL fails the run as a model that differs from the store it stands for.
+
+**The operation sampler runs in the gating run as well as the scheduled one.** Every run draws its
+sequences both ways, by `t.Repeat` and by the sampler. The cost is gating time, and against the
+backfill target's model both draws together, with their replays against PostgreSQL, took about two
+and a half seconds at the gating count. The option not taken was keeping the sampler to the
+scheduled run, which leaves the failures only the sampler reaches, such as one needing several crash
+and recovery cycles back to back, to the longer search.
 
 ### How the decision meets each requirement
 
@@ -264,8 +273,8 @@ runs.
 | Longer search on the same definitions | A scheduled run raising `RAPID_CHECKS`. rapid's `MakeFuzz` can also turn a property into a Go fuzzing target for coverage-guided search, though that path does not reduce and stores only an opaque byte string |
 | The kinds of rule ADR-0055 allows can be expressed | `rapid.Check` for single-value properties and `t.Repeat` for operation sequences |
 | Reports what the generator produced | The generator report, in its own property |
-| Operation sequences with a crash step | `t.Repeat` with the crash as one named operation, lists inside operations built with collection generators, and the operation sampler in the scheduled run |
-| Reduction does not replay against the real database | Reduction runs against the in-memory model. The in-memory model and PostgreSQL agreed on every check across 450 cases, and on the two builds with a planted fault at least one check fired in 70 of 150 cases on one and in at least 132 of 150 on the other, so the model can carry the search and the database only the final replay |
+| Operation sequences with a crash step | `t.Repeat` with the crash as one named operation, lists inside operations built with collection generators, and the operation sampler in every run |
+| Reduction does not replay against the real database | Reduction runs against the in-memory model. The in-memory model and PostgreSQL agreed on every check across 450 cases, and on the two builds with a planted fault at least one check fired in 70 of 150 cases on one and in at least 132 of 150 on the other, so the model can carry the search, and the database only the final replay and the fixed-seed replays that the section on what the backfill target settled describes |
 
 ### What the implementer would otherwise pay to discover
 
@@ -484,8 +493,7 @@ writing every generator by hand with fewer conveniences.
   the harness checks them without reaching inside. Every sensitivity-carrying type is built only
   through its constructor, as [ADR-0042](./0042-implementation-stack.md) requires, which is what
   makes the constructor the generator's only route.
-- **What resolving an open question moves.** Lowering the gating count below 200 puts the choice of
+- **What would move the settled questions.** Lowering the gating count below 200 puts the choice of
   generator shape back in question. Finding that a later real generator needs conditional generation
-  re-argues this record. Deciding that the operation sampler runs in the gating run changes how long
-  that run takes. Sharing one in-memory model between the two harness targets changes only the
-  harness's internals.
+  re-argues this record. A target whose sequences make the gating run slow puts the sampler's place
+  in the gating run back in question. A model per target changes only the harness's internals.

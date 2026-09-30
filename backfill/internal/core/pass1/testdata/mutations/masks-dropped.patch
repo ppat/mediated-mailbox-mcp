@@ -1,0 +1,19 @@
+control: Every subject is masked and every sender classified before the message reaches the index
+removes: a masked subject carries no mask, so no masking event is recorded for it
+packages: ./backfill/internal/core/pass1 ./backfill/internal/pass1
+tests: TestDecide TestDecideFailsClosed TestAKilledRunResumesFromItsCheckpoint TestAPassIndexesTheWholeMailbox
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+--- a/backfill/internal/core/pass1/pass1.go
++++ b/backfill/internal/core/pass1/pass1.go
+@@ -195,7 +195,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+ 			msg.Class = Restricted
+ 		}
+ 		for _, e := range masked.Events() {
+-			msg.Masks = append(msg.Masks, Mask{Rule: e.Rule(), Tier: e.Tier()})
++			_ = e
+ 		}
+ 		msg.SubjectMasked = len(msg.Masks) > 0
+ 		out.Messages = append(out.Messages, msg)

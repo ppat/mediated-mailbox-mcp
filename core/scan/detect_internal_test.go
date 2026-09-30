@@ -37,7 +37,7 @@ func TestAutomaton(t *testing.T) {
 
 // Tier 2's score is the mean of its five features under equal weights, and each feature moves it.
 func TestScore(t *testing.T) {
-	s, err := New(DefaultConfig())
+	s, err := New(DefaultConfig(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

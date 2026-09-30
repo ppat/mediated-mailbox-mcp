@@ -1,0 +1,21 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a page is recorded as recovered in a transaction of its own as soon as it arrives, before its commit
+packages: ./backfill/internal/pass1
+tests: TestAPageIsRecordedRecoveredOnlyOnceDurable
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/pass1.go b/backfill/internal/pass1/pass1.go
+--- a/backfill/internal/pass1/pass1.go
++++ b/backfill/internal/pass1/pass1.go
+@@ -201,6 +201,10 @@ func (p *Pass) fetch(ctx context.Context) (mail.Page[mail.MessageMetadata], *Fai
+ 				failure.Attempts++
+ 				failure.Last = p.deps.Now().UTC()
+ 				failure.Disposition = "recovered"
++				if err := p.deps.Store.Failure(ctx, p.account, p.run, *failure); err != nil {
++					return page, nil, err
++				}
++				return page, nil, nil
+ 			}
+ 			return page, failure, nil
+ 		}

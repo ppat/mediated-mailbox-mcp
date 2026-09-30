@@ -41,7 +41,7 @@ func drawSubject(t *rapid.T) subjectArgs {
 // field marker always does, and the subject keeps its length in characters, so a masker that masks
 // nothing, or masks everything, fails (ADR-0003).
 func TestMaskingRemovesEveryCode(t *testing.T) {
-	s, err := scan.New(scan.DefaultConfig())
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
