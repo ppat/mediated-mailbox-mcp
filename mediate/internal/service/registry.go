@@ -68,21 +68,6 @@ var ErrUnknownAccount = errors.New("the operation's account_id names no account 
 // keeping the last of two, would take a different account from the one checked.
 var ErrAmbiguousAccount = errors.New("the call's arguments name the account more than once")
 
-// Failure returns the structured content a failed call answers with on both roots. For an
-// ArgumentError it carries the error's message, which names what the client sent wrong, and for any
-// other error it says only that the call failed.
-func Failure(err error) json.RawMessage {
-	var arg *ArgumentError
-	if errors.As(err, &arg) {
-		if out, err := json.Marshal(struct {
-			Error string `json:"error"`
-		}{arg.Error()}); err == nil {
-			return out
-		}
-	}
-	return json.RawMessage(`{"error":"the operation failed"}`)
-}
-
 // ArgumentError is an operation's refusal of an argument the client sent, such as a timestamp that is
 // not UTC (ADR-0033). Its message reaches the client, so it names the argument and never echoes
 // stored content.

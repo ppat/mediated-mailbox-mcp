@@ -1,0 +1,23 @@
+control: A body request has the policy loaded by a load that started after it arrived, sharing a load only with the requests waiting when it started
+removes: a caller asking while a load runs is answered by that load
+packages: ./mediate/internal/reload
+tests: TestALoadRunningWhenACallerAsksDoesNotCount
+scheduled-count: no
+
+diff --git a/mediate/internal/reload/reload.go b/mediate/internal/reload/reload.go
+index fa28d06..3861423 100644
+--- a/mediate/internal/reload/reload.go
++++ b/mediate/internal/reload/reload.go
+@@ -68,9 +68,11 @@ func (c *Coalesced) run() {
+ 			c.mu.Unlock()
+ 			return
+ 		}
+-		c.next = nil
+ 		c.mu.Unlock()
+ 		r.err = c.load(c.ctx)
++		c.mu.Lock()
++		c.next = nil
++		c.mu.Unlock()
+ 		close(r.done)
+ 	}
+ }

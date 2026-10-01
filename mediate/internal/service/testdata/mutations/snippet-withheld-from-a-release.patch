@@ -1,0 +1,20 @@
+control: The snippet and attachment filenames follow the body, and a denial releases none of them
+removes: a released body is served without its snippet
+packages: ./mediate
+tests: TestAReleasedBodyIsCleanMarkdown
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index 4c0a9c5..1c65b98 100644
+--- a/mediate/internal/service/body.go
++++ b/mediate/internal/service/body.go
+@@ -203,7 +203,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 		AccountID: account, MessageID: args.MessageID, Released: true, Reason: releasedReason,
+ 		Body: &out.Body, AttachmentNames: nonNil(out.AttachmentNames),
+ 	}
+-	if meta.Snippet != "" {
++	if false && meta.Snippet != "" {
+ 		result.Snippet = &out.Snippet
+ 	}
+ 	return ok(result)

@@ -1,0 +1,20 @@
+control: A body with no HTML part, the snippet and each filename are released as fenced code blocks showing the text exactly
+removes: the snippet is released as the provider gave it, unfenced
+packages: ./mediate
+tests: TestAReleasedBodyIsCleanMarkdown
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index b89bba9..f6053d1 100644
+--- a/mediate/internal/service/body.go
++++ b/mediate/internal/service/body.go
+@@ -225,7 +225,7 @@ func (s Sources) markdown(body mail.MessageBody, meta mail.MessageMetadata) (rel
+ 		c.Body = s.Bodies.Literal(body.Text)
+ 	}
+ 	if meta.Snippet != "" {
+-		c.Snippet = s.Bodies.Literal(meta.Snippet)
++		c.Snippet = meta.Snippet
+ 	}
+ 	for _, name := range meta.AttachmentNames {
+ 		c.AttachmentNames = append(c.AttachmentNames, s.Bodies.Literal(name))

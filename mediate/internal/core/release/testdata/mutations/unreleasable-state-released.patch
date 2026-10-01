@@ -5,14 +5,14 @@ tests: TestFailClosed/a_pending_scan TestFailClosed/the_zero_scan_state TestFail
 scheduled-count: no
 
 diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
-index dc64550..8e1630d 100644
+index 8fdca71..8449214 100644
 --- a/mediate/internal/core/release/release.go
 +++ b/mediate/internal/core/release/release.go
-@@ -109,7 +109,6 @@ func Decide(markdown string, state sensitivity.ScanState, s scan.Scanner) Decisi
- 			return Decision{reason: PatternMatched}
- 		}
+@@ -132,7 +132,6 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+ 	case sensitivity.SkippedGate():
+ 		checked = append([]string{c.Body, c.Snippet}, c.AttachmentNames...)
  	default:
 -		return Decision{reason: NotReleasable}
  	}
- 	return Decision{reason: Released, body: wrap(markdown)}
- }
+ 	var rules []string
+ 	for _, text := range checked {

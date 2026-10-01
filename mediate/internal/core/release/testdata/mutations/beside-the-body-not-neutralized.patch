@@ -1,0 +1,22 @@
+control: The serve-time pattern check reads the snippet and the attachment filenames that follow a gate-skipped body, and the filenames of every message, and they are released with the delimiters' words replaced
+removes: the snippet and the filenames are released as they arrived, with the delimiters' words left in them
+packages: ./mediate/internal/core/release
+tests: TestTheCheckReadsEverythingReleased
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index 4bf31da..3249803 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -144,9 +144,9 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+ 	}
+ 	names := make([]string, 0, len(c.AttachmentNames))
+ 	for _, n := range c.AttachmentNames {
+-		names = append(names, neutralize(n))
++		names = append(names, n)
+ 	}
+-	return Decision{reason: Released, content: Content{Body: wrap(c.Body), Snippet: neutralize(c.Snippet), AttachmentNames: names}}
++	return Decision{reason: Released, content: Content{Body: wrap(c.Body), Snippet: c.Snippet, AttachmentNames: names}}
+ }
+ 
+ // wrap returns markdown between the delimiters, after the directive, with the delimiters' words

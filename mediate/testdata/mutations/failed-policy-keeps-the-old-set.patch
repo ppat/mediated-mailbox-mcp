@@ -5,21 +5,23 @@ tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/main.go b/mediate/main.go
-index ee8b9d9..d546a8f 100644
+index 60aac7a..8f24e3e 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -322,9 +322,10 @@ func (s *serving) reload(ctx context.Context) error {
- 	ids := idsOf(next)
- 	var failed error
- 	if !slices.Equal(ids, s.policyFor) || s.policies.Load() == nil {
--		if failed = s.loadPolicy(ctx, ids); failed == nil {
--			s.policyFor = ids
-+		if failed = s.loadPolicy(ctx, ids); failed != nil {
-+			return failed
- 		}
-+		s.policyFor = ids
+@@ -354,11 +354,13 @@ func (s *serving) reload(ctx context.Context) error {
  	}
+ 	next := s.loader.Snapshot()
+ 	ids := idsOf(next)
+-	failed := s.loadPolicy(ctx, ids)
++	if failed := s.loadPolicy(ctx, ids); failed != nil {
++		return failed
++	}
  	s.snapshot.Store(next)
  	s.registry.Serve(ids)
+ 	s.logger.Info("accounts served", "accounts", len(ids))
+-	return failed
++	return nil
+ }
+ 
+ // loadPolicy sets the accounts the shared policy loader reads to accounts and has it load, through

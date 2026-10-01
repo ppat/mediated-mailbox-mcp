@@ -6,12 +6,12 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..d511517 100644
+index 60aac7a..f2b7317 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -172,7 +172,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
- 	if err := validate(c); err != nil {
- 		return fmt.Errorf("validating the configuration: %w", err)
+@@ -194,7 +194,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: scanner: %w", err)
  	}
 -	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
 +	keys, err := (*open.Keyring)(nil), error(nil)

@@ -1,7 +1,7 @@
 control: Both roots hand the service layer the same argument object
 removes: the API root passes a body member given twice on to the service layer rather than refusing it
 packages: ./mediate/internal/api
-tests: TestTheRootRefusesWhatItCannotBind/a_body_member_given_twice
+tests: TestTheRootRefusesWhatItCannotBind
 scheduled-count: no
 
 

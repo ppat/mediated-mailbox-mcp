@@ -56,7 +56,7 @@ func TestTheReleasedBodysForm(t *testing.T) {
 		if a.GateSkipped {
 			state = sensitivity.SkippedGate()
 		}
-		got, ok := release.Decide(body(a), state, s).Body()
+		got, ok := release.Decide(release.Content{Body: body(a)}, state, s).Body()
 		if !ok {
 			t.Fatalf("%+v: the body was withheld", a)
 		}

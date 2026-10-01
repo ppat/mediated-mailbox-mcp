@@ -5,18 +5,18 @@ tests: TestFailClosed/the_zero_decision
 scheduled-count: no
 
 diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
-index dc64550..6e3baf7 100644
+index 4bf31da..d46e005 100644
 --- a/mediate/internal/core/release/release.go
 +++ b/mediate/internal/core/release/release.go
-@@ -86,9 +86,9 @@ func (d Decision) Reason() Reason { return d.reason }
- // and false when the body is withheld.
- func (d Decision) Body() (string, bool) {
+@@ -103,9 +103,9 @@ func (d Decision) Rules() []string { return slices.Clone(d.rules) }
+ // is withheld. The body is wrapped in the delimiters, and the snippet and filenames are not.
+ func (d Decision) Released() (Content, bool) {
  	switch d.reason {
 -	case Released:
 +	case Released, Undecided:
- 		return d.body, true
+ 		return Content{Body: d.content.Body, Snippet: d.content.Snippet, AttachmentNames: slices.Clone(d.content.AttachmentNames)}, true
 -	case Undecided, NotReleasable, NoScanner, PatternMatched:
 +	case NotReleasable, NoScanner, PatternMatched:
- 		return "", false
+ 		return Content{}, false
  	default:
- 		return "", false
+ 		return Content{}, false

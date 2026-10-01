@@ -1,0 +1,19 @@
+control: The serve-time pattern check reads the snippet and the attachment filenames that follow a gate-skipped body, and the filenames of every message, and they are released with the delimiters' words replaced
+removes: a pattern match withholds the content without naming the rules that matched
+packages: ./mediate/internal/core/release
+tests: TestTheCheckReadsEverythingReleased/a_login_link_in_the_snippet TestTheCheckReadsEverythingReleased/a_one-time_code_in_a_filename TestTheCheckReadsEverythingReleased/a_code_in_the_body_and_a_link_in_the_snippet
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index 8fdca71..a51334e 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -146,7 +146,7 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+ 	}
+ 	if len(rules) > 0 {
+ 		slices.Sort(rules)
+-		return Decision{reason: PatternMatched, rules: slices.Compact(rules)}
++		return Decision{reason: PatternMatched}
+ 	}
+ 	names := make([]string, 0, len(c.AttachmentNames))
+ 	for _, n := range c.AttachmentNames {

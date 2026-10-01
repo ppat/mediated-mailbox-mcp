@@ -1,0 +1,27 @@
+control: A served body fetches nothing and holds no image a client could fetch
+removes: the mediator itself requests each image source in the HTML it fetched before converting it, so serving a body reaches the URL the message names
+packages: ./mediate
+tests: TestAServedBodyFetchesNoImage
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 9d112fd..e3750f3 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -701,7 +701,14 @@ func newBodies(served *serving, connect connector, scanner scan.Scanner, timeout
+ 	return service.Bodies{
+ 		Policy:  served.currentPolicy,
+ 		Open:    p.open,
+-		Convert: markdown.Convert,
++		Convert: func(body string) (string, error) {
++			for _, part := range strings.Split(body, `src="`)[1:] {
++				if resp, err := http.Get(part[:strings.IndexByte(part, '"')]); err == nil { //nolint:gosec,noctx // the mutation
++					_ = resp.Body.Close()
++				}
++			}
++			return markdown.Convert(body)
++		},
+ 		Literal: markdown.Literal,
+ 		Scanner: scanner,
+ 		Observe: func(account string, o service.Outcome) {

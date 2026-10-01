@@ -73,6 +73,7 @@ moves it. Records themselves link freely and deep, into
 | 0094 | [The scan gate evaluates every message, and no gate decision is memoized](./redaction/0094-scan-gate-decisions-are-not-memoized.md) | Accepted |
 | 0096 | [A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided](./redaction/0096-a-scanner-change-reopens-backfill.md) | Accepted |
 | 0098 | [Every backfill run decides each stored gate skip again, so a change of thresholds reaches the skips made under the earlier ones](./redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) | Accepted |
+| 0100 | [Message text with no HTML form is released as a fenced code block that shows it exactly](./redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md) | Accepted |
 
 ## Classification — `classification/`
 
@@ -155,6 +156,7 @@ moves it. Records themselves link freely and deep, into
 | 0090 | [A deployable takes its accounts and credentials as an account snapshot, loaded at start and reloaded on a schedule](./operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) | Accepted |
 | 0092 | [A key is replaced by delta sync re-sealing what it opens, and retires once a scan finds nothing left on it](./operability/0092-key-replacement-by-keyring-and-re-seal.md) | Accepted |
 | 0097 | [The adapter reports its latest authentication attempt, and the deployable records it at the end of each unit of work, the latest attempt winning](./operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md) | Accepted |
+| 0101 | [Every failure on the client surface names its origin, and a gated body denial is a result, not a failure](./operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md) | Accepted |
 
 ## Engineering — `engineering/`
 
@@ -187,3 +189,4 @@ moves it. Records themselves link freely and deep, into
 | 0076 | [Metrics are emitted through Prometheus's client_golang, on a registry each process builds](./engineering/0076-metrics-emitted-through-client-golang.md) | Accepted |
 | 0078 | [Configuration layers defaults, one optional YAML file, environment variables and flags, strictly, through a small project-owned library](./engineering/0078-configuration-layers-through-an-owned-library.md) | Accepted |
 | 0086 | [The MCP root speaks the protocol through the official Go SDK, stateless and tools only](./engineering/0086-mcp-root-on-the-official-go-sdk.md) | Accepted |
+| 0099 | [A body request loads the policy before it decides, sharing a load only with the requests that arrived before it started](./engineering/0099-a-body-request-loads-the-policy-before-it-decides.md) | Accepted |

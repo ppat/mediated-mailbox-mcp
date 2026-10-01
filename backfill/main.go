@@ -262,10 +262,11 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 		}
 		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
 	}, reauthorize: func(ctx context.Context, account string) (*gmail.TokenSource, error) {
-		stored, err := loader.Reread(ctx, account)
+		reread, err := loader.Reread(ctx, account)
 		if err != nil {
 			return nil, err
 		}
+		stored := reread.Credential()
 		if stored == nil || string(stored) == sources[account].RefreshToken() {
 			return nil, nil
 		}

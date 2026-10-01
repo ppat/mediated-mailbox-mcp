@@ -86,4 +86,5 @@ agent: the agent remains completely free to act on what it reads.
   converts it before the scanner reads it, both through the same shared conversion
   ([sanitize/README.md](../../../sanitize/README.md)), so a verdict holds for what is served. A
   body with no HTML part must not pass through the conversion as HTML, which would drop any text in
-  angle brackets. How such a body is released is decided where serving is built.
+  angle brackets. Such a body is released as
+  [ADR-0100](./0100-message-text-without-html-is-released-as-a-literal-code-block.md) decides.

@@ -1,24 +1,40 @@
 control: The mediator serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
-removes: a policy load that fails is recorded as done, so the next reload never loads the policy of the accounts it missed
+removes: a reload loads the policy only when its accounts differ from the ones the last load was tried for, so a load that failed is never retried and a policy edit never reaches the metadata reads
 packages: ./mediate
-tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
+tests: TestAFailedPolicyLoadStillFollowsTheSnapshot TestEveryReloadLoadsThePolicy
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/main.go b/mediate/main.go
-index ee8b9d9..28ad1ab 100644
+index 60aac7a..e4a566d 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -322,9 +322,8 @@ func (s *serving) reload(ctx context.Context) error {
- 	ids := idsOf(next)
- 	var failed error
- 	if !slices.Equal(ids, s.policyFor) || s.policies.Load() == nil {
--		if failed = s.loadPolicy(ctx, ids); failed == nil {
--			s.policyFor = ids
--		}
-+		failed = s.loadPolicy(ctx, ids)
-+		s.policyFor = ids
+@@ -38,6 +38,7 @@ import (
+ 	"os"
+ 	"os/signal"
+ 	"runtime/debug"
++	"slices"
+ 	"strings"
+ 	"sync"
+ 	"sync/atomic"
+@@ -321,6 +322,7 @@ type serving struct {
+ 	registry service.Registry
+ 	// snapshot is the account snapshot the registry serves.
+ 	snapshot atomic.Pointer[accountload.Snapshot]
++	tried    []string
+ }
+ 
+ // newServing returns the serving state, serving no account until its first reload, and registers on
+@@ -354,7 +356,11 @@ func (s *serving) reload(ctx context.Context) error {
  	}
+ 	next := s.loader.Snapshot()
+ 	ids := idsOf(next)
+-	failed := s.loadPolicy(ctx, ids)
++	var failed error
++	if !slices.Equal(ids, s.tried) {
++		s.tried = ids
++		failed = s.loadPolicy(ctx, ids)
++	}
  	s.snapshot.Store(next)
  	s.registry.Serve(ids)
+ 	s.logger.Info("accounts served", "accounts", len(ids))

@@ -7,12 +7,12 @@ integration: yes
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..0613cd3 100644
+index 60aac7a..940328e 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -290,9 +290,7 @@ type serving struct {
- func newServing(pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Registry, logger *slog.Logger) (*serving, error) {
+@@ -331,9 +331,7 @@ func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, met
  	s := &serving{loader: accountload.New(pool, keys, logger), pool: pool, metrics: metrics, logger: logger}
+ 	s.fresh = reload.New(ctx, s.reloadPolicy)
  	s.snapshot.Store(&accountload.Snapshot{})
 -	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
 -		return nil, err

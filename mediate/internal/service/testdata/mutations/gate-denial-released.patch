@@ -1,0 +1,20 @@
+control: The gate decides every body request from the index, and a denial never reaches the provider
+removes: a body the gate denies is released all the same
+packages: ./mediate
+tests: TestTheGateDeniesFromTheIndexWithoutReachingTheProvider
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index 4c0a9c5..2444b97 100644
+--- a/mediate/internal/service/body.go
++++ b/mediate/internal/service/body.go
+@@ -156,7 +156,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 	shown := audited(v, flags, state)
+ 	rules := gateRules(v, flags, row.RuleIds)
+ 	denied := bodyResult{AccountID: account, MessageID: args.MessageID}
+-	if !v.ReleasesBody() {
++	if false && !v.ReleasesBody() {
+ 		reason := v.Reason().String()
+ 		if err := s.audit(ctx, account, args.MessageID, actionDeny, shown, rules); err != nil {
+ 			return nil, err

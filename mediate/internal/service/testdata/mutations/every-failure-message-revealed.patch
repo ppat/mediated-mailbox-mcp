@@ -1,21 +1,19 @@
-control: An argument refusal reaches the client with its message on both roots, and no other failure's detail does
-removes: every failure's message reaches the client, an internal one included
+control: Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
+removes: a failure inside the mediator carries its error's own text, an internal detail included
 packages: ./mediate/internal/api ./mediate/internal/mcp
-tests: TestAnArgumentRefusalReachesTheClient TestAToolCallRunsTheOperation
+tests: TestEachFailureNamesItsOrigin TestAToolCallRunsTheOperation
 scheduled-count: no
 
-
-diff --git a/mediate/internal/service/registry.go b/mediate/internal/service/registry.go
-index 98ade84..d8eca72 100644
---- a/mediate/internal/service/registry.go
-+++ b/mediate/internal/service/registry.go
-@@ -73,7 +73,8 @@ var ErrAmbiguousAccount = errors.New("the call's arguments name the account more
- // other error it says only that the call failed.
- func Failure(err error) json.RawMessage {
- 	var arg *ArgumentError
--	if errors.As(err, &arg) {
-+	if errors.As(err, &arg) || err != nil {
-+		arg = Refuse(err.Error())
- 		if out, err := json.Marshal(struct {
- 			Error string `json:"error"`
- 		}{arg.Error()}); err == nil {
+diff --git a/mediate/internal/service/failure.go b/mediate/internal/service/failure.go
+index c2cba09..86a6724 100644
+--- a/mediate/internal/service/failure.go
++++ b/mediate/internal/service/failure.go
+@@ -80,7 +80,7 @@ func Classify(err error) (Origin, string) {
+ 	if errors.As(err, &provider) {
+ 		return OriginProvider, provider.message
+ 	}
+-	return OriginMediator, mediatorMessage
++	return OriginMediator, err.Error()
+ }
+ 
+ // Failure returns the structured content a failed call answers with on both roots, its origin and

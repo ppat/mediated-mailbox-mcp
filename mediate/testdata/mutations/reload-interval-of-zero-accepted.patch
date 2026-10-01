@@ -6,10 +6,10 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..2c79146 100644
+index 9d112fd..2ab9247 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -128,7 +128,7 @@ func validate(c Configuration) error {
+@@ -154,7 +154,7 @@ func validate(c Configuration) error {
  	if strings.TrimSpace(c.TokenFile) == "" {
  		return errors.New("token_file is empty")
  	}
@@ -17,4 +17,4 @@ index 9a59611..2c79146 100644
 +	if c.AccountReloadInterval < 0 {
  		return fmt.Errorf("account_reload_interval %s is not positive", c.AccountReloadInterval)
  	}
- 	if err := dbconnectcore.Validate(c.Database); err != nil {
+ 	if c.ProviderTimeout <= 0 || c.ProviderTimeout > maxProviderTimeout {

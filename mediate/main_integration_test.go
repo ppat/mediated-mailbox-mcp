@@ -25,6 +25,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/accountload"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
@@ -120,6 +121,16 @@ func TestTheMediatorCannotApproveAPlan(t *testing.T) {
 	}
 }
 
+// scanner returns the scanner the application ships.
+func scanner(t *testing.T) scan.Scanner {
+	t.Helper()
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
 // keys returns a generated keyring and the public key it seals to.
 func keys(t *testing.T) (*open.Keyring, seal.PublicKey) {
 	t.Helper()
@@ -186,7 +197,7 @@ func served(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, metrics *prome
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := newServing(pool, ring, metrics, log)
+	s, err := newServing(t.Context(), pool, ring, metrics, log)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -375,7 +386,7 @@ func TestTheMetricsEndpointCarriesEachServedAccountsRateState(t *testing.T) {
 // package shares one database.
 func reset(t *testing.T, conn *pgx.Conn) {
 	t.Helper()
-	for _, table := range []string{"reorg_plans", "account_state", "rate_state", "policy_rules", "accounts"} {
+	for _, table := range []string{"reorg_plans", "messages", "audit_log", "oauth_clients", "account_state", "rate_grants", "rate_state", "policy_rules", "accounts"} {
 		must(t, conn, "DELETE FROM "+table)
 	}
 }
@@ -525,11 +536,16 @@ func TestTheReadOperationsReadTheServingState(t *testing.T) {
 		VALUES ($1, 5, 8, 10, now() + interval '1 hour'), ($2, 5, 8, 10, now() - interval '1 hour')`, account, accounts[1])
 	must(t, conn, "UPDATE account_state SET sync_cursor_at = now() - interval '1 hour' WHERE account_id = $1", account)
 	pool := mediator(t)
-	s, err := newServing(pool, ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler))
+	metrics := prometheus.NewRegistry()
+	s, err := newServing(t.Context(), pool, ring, metrics, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
-	reg, err := service.NewRegistry(nil, service.Operations(sources(pool, s))...)
+	bodies, _, err := newBodies(s, nil, scanner(t), time.Second, metrics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reg, err := service.NewRegistry(nil, service.Operations(sources(pool, s, bodies))...)
 	if err != nil {
 		t.Fatal(err)
 	}

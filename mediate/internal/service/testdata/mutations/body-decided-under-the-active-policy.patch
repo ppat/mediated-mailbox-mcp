@@ -1,0 +1,20 @@
+control: A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
+removes: the body operation takes the active policy without having it loaded
+packages: ./mediate
+tests: TestANewlyListedDomainIsDeniedOnTheNextCall
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index b89bba9..8204a43 100644
+--- a/mediate/internal/service/body.go
++++ b/mediate/internal/service/body.go
+@@ -137,7 +137,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 	if err := arguments(input, &args, "message_id"); err != nil {
+ 		return nil, err
+ 	}
+-	p := s.Bodies.Policy(ctx, account)
++	p := s.Policy(account)
+ 	var rows []messages.BodyGateRow
+ 	err := tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
+ 		var err error

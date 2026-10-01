@@ -27,9 +27,13 @@ noticing.
   set.
 - **A write-back never puts back a value someone else replaced.** Every write of a sealed value is
   a compare-and-set on the bytes the process last read or wrote, and a reload keeps a rotated
-  credential whose write-back failed only while the stored bytes are still those. A copy that
-  wrote unconditionally would put a revoked grant back after the operator re-authorized the
-  account.
+  credential whose write-back failed only while the stored bytes are still those. A hand-over from
+  a unit of work that started before the loader adopted a value someone else stored, by a reload
+  or a re-read, is discarded under the same lock that adopted it. The process's own write-backs
+  never discard a hand-over, so overlapping rotations each land. A copy that wrote
+  unconditionally, or that compared only the bytes it knows now, would put a revoked grant back
+  after the operator re-authorized the account, and one that discarded on its own earlier
+  write-back would lose a live rotation.
 - **An OAuth client is optional per provider.** An account whose provider authenticates without one
   loads without one, and nothing looks for a client that does not exist. A copy that assumed every
   provider has a client would refuse such an account or fail on its load.

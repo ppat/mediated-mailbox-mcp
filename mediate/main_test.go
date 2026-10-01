@@ -29,6 +29,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/readiness"
@@ -358,18 +359,22 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"AccountReloadInterval time.Duration",
 		"Database core.Config",
 		"Credential core.Config",
+		"Scanner scan.Config",
+		"ProviderTimeout time.Duration",
 	)
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The mediator's defaults are its two listeners, a reload each minute, the port, its own runtime role
-// and the TLS mode that fails closed. The token file, the database host, name and password file and
-// the key files are required.
+// The mediator's defaults are its two listeners, a reload each minute, the port, its own runtime role,
+// the TLS mode that fails closed, the scanner configuration the application ships and a provider
+// timeout of thirty seconds. The token file, the database host, name and password file and the key
+// files are required.
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
 		Listen: ":8443", ProbeListen: ":8080", AccountReloadInterval: time.Minute,
 		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
+		Scanner:  scan.DefaultConfig(), ProviderTimeout: 30 * time.Second,
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
@@ -407,6 +412,8 @@ func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 		{"a blank token file path", func(c *Configuration) { c.TokenFile = " " }, "token_file is empty"},
 		{"a reload interval of zero", func(c *Configuration) { c.AccountReloadInterval = 0 }, "account_reload_interval 0s is not positive"},
 		{"a negative reload interval", func(c *Configuration) { c.AccountReloadInterval = -time.Second }, "account_reload_interval -1s is not positive"},
+		{"a provider timeout of zero", func(c *Configuration) { c.ProviderTimeout = 0 }, "provider_timeout 0s is not positive and at most 5m0s"},
+		{"a provider timeout above five minutes", func(c *Configuration) { c.ProviderTimeout = 5*time.Minute + time.Second }, "provider_timeout 5m1s is not positive and at most 5m0s"},
 		{"an empty database host", func(c *Configuration) { c.Database.Host = "" }, "database.host is empty"},
 		{"no private key", func(c *Configuration) { c.Credential.PrivateKeyFiles = nil }, "credential.private_key_files names no file"},
 	}
@@ -489,6 +496,20 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_mediate`,
 		`level=INFO msg=configuration path=listen source=default value=:8443`,
 		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
+		`level=INFO msg=configuration path=provider_timeout source=default value=30s`,
+		`level=INFO msg=configuration path=scanner.dense_entropy source=default value=3`,
+		`level=INFO msg=configuration path=scanner.dense_length source=default value=16`,
+		`level=INFO msg=configuration path=scanner.link_params source=default value="[token code key auth t otp reset_password_token confirmation_token unlock_token oobcode verification_code confirmation_code ticket signature]"`,
+		`level=INFO msg=configuration path=scanner.link_words source=default value="[token confirm verify reset magic auth password login unlock]"`,
+		`level=INFO msg=configuration path=scanner.subject_threshold source=default value=0.6`,
+		`level=INFO msg=configuration path=scanner.threshold source=default value=0.6`,
+		`level=INFO msg=configuration path=scanner.triggers.en source=default value="[code otp verification verify pin passcode password 2fa two-factor two factor 2-factor one-time one time single-use security code login log in log-in sign-in sign in auth authenticate authentication secret access validate validation tan confirmation]"`,
+		`level=INFO msg=configuration path=scanner.weights.entropy source=default value=1`,
+		`level=INFO msg=configuration path=scanner.weights.length source=default value=1`,
+		`level=INFO msg=configuration path=scanner.weights.mix source=default value=1`,
+		`level=INFO msg=configuration path=scanner.weights.position source=default value=1`,
+		`level=INFO msg=configuration path=scanner.weights.proximity source=default value=1`,
+		`level=INFO msg=configuration path=scanner.window source=default value=8`,
 		`level=INFO msg=configuration path=tls_at_ingress source="flag --tls_at_ingress" value=true`,
 		`level=INFO msg=configuration path=tls_cert source=default value=""`,
 		`level=INFO msg=configuration path=tls_key source=default value=""`,
@@ -519,6 +540,44 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard())
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("run returned %v, want the configuration library's refusal", err)
+			}
+		})
+	}
+}
+
+// D3's part of VERIFICATIONS' row for a configuration value that would disable the gate, skip
+// masking or weaken deny-by-default. No such value exists, so every layer naming one refuses the
+// start, and the scanner's section, whose pattern tier the serve-time check runs, refuses a value that
+// would leave the check nothing to match (ADR-0051, ADR-0002). The Configuration type, pinned above,
+// holds no field a safety disposition could be read from, so the gate and the check run as they do
+// without any of these.
+func TestNoConfigurationValueWeakensTheGate(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "mediate.yaml")
+	if err := os.WriteFile(file, []byte("redaction:\n  enabled: false\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	emptied := filepath.Join(t.TempDir(), "scanner.yaml")
+	if err := os.WriteFile(emptied, []byte("scanner:\n  triggers: {}\n  link_words: []\n  link_params: []\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name    string
+		args    []string
+		environ []string
+		want    string
+	}{
+		{"a flag disabling the gate", []string{"--gate.enabled=false"}, nil, "loading the configuration: "},
+		{"a flag skipping masking", []string{"--masking=false"}, nil, "loading the configuration: "},
+		{"a flag releasing restricted bodies", []string{"--release_restricted=true"}, nil, "loading the configuration: "},
+		{"a flag skipping the serve-time check", []string{"--scanner.serve_time_check=false"}, nil, "loading the configuration: "},
+		{"an environment variable allowing by default", nil, []string{"MEDIATED_MAILBOX_DEFAULT_ALLOW=true"}, "loading the configuration: "},
+		{"a file switching redaction off", []string{"--config-file=" + file}, nil, "loading the configuration: "},
+		{"a scanner section with nothing to match", []string{"--config-file=" + emptied}, nil, "validating the configuration: scanner: "},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard())
+			if err == nil || !strings.HasPrefix(err.Error(), c.want) {
+				t.Errorf("run returned %v, want an error starting %q", err, c.want)
 			}
 		})
 	}

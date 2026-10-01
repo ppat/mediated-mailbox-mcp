@@ -114,4 +114,6 @@ reading anything.
   where the metadata itself carries a secret (the masked MFA code). This is the "metadata is
   deliberately exposed" row in [DESIGN.md's Known limits](../../../DESIGN.md#3-known-limits).
 - The policy schema keeps a **per-rule subject-masking switch**, off by default.
-- The matrix is the Redaction Gate's complete field-level specification.
+- The matrix is the Redaction Gate's complete field-level specification. The form a released
+  snippet and attachment filename take is
+  [ADR-0100](./0100-message-text-without-html-is-released-as-a-literal-code-block.md)'s.

@@ -1,0 +1,19 @@
+control: Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
+removes: the registry's refusals of a call are classified as the mediator's failures
+packages: ./mediate/internal/api ./mediate/internal/mcp
+tests: TestEachFailureNamesItsOrigin TestTheRootRefusesWhatItCannotBind TestAToolCallRunsTheOperation
+scheduled-count: no
+
+diff --git a/mediate/internal/service/failure.go b/mediate/internal/service/failure.go
+index c2cba09..ed3077d 100644
+--- a/mediate/internal/service/failure.go
++++ b/mediate/internal/service/failure.go
+@@ -71,7 +71,7 @@ func Classify(err error) (Origin, string) {
+ 	if errors.As(err, &arg) {
+ 		return OriginClient, arg.Error()
+ 	}
+-	for _, refusal := range refusals {
++	for _, refusal := range refusals[:0] {
+ 		if errors.Is(err, refusal) {
+ 			return OriginClient, refusal.Error()
+ 		}
