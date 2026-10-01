@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+index 2e9f426..81a6981 100644
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -194,7 +194,7 @@
- 			AuthResults:    m.AuthResults,
+@@ -243,7 +243,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+ 			Stamp:          StampOf(s),
  			Class:          Normal,
  			ClassRule:      verdict.Rule(),
 -			Unclassified:   verdict.Reason() == classify.Unclassifiable,

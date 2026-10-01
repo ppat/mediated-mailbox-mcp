@@ -38,24 +38,29 @@ func NewPostgres(db tx.Beginner) *Postgres { return &Postgres{db: db} }
 // checkpoint and counters are the stored forms of a run's checkpoint and counters. The checkpoint's
 // page is the page the jobs card shows, and its token is the provider's token for the next page. Of
 // is the pages the enumeration takes, left out when the provider reported no total, so the card shows
-// no estimate, and a checkpoint stored without it reads as having none (ADR-0095).
+// no estimate, and a checkpoint stored without it reads as having none (ADR-0095). Its version and
+// revision are the scanner the enumeration masks under (ADR-0096).
 type checkpoint struct {
-	Page  int    `json:"page"`
-	Token string `json:"token"`
-	Of    int    `json:"of,omitempty"`
+	Page     int    `json:"page"`
+	Token    string `json:"token"`
+	Of       int    `json:"of,omitempty"`
+	Version  int    `json:"version"`
+	Revision string `json:"revision"`
 }
 
 type counters struct {
 	Pages    int `json:"pages"`
 	Messages int `json:"messages"`
+	Remasked int `json:"remasked"`
 }
 
 func encode(p core.Progress) (cp, ct []byte, err error) {
-	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, Token: string(p.Checkpoint.Token), Of: p.Checkpoint.Of})
+	c := p.Checkpoint
+	cp, err = json.Marshal(checkpoint{Page: c.Page, Token: string(c.Token), Of: c.Of, Version: c.Stamp.Version, Revision: c.Stamp.Revision})
 	if err != nil {
 		return nil, nil, err
 	}
-	ct, err = json.Marshal(counters{Pages: p.Counters.Pages, Messages: p.Counters.Messages})
+	ct, err = json.Marshal(counters{Pages: p.Counters.Pages, Messages: p.Counters.Messages, Remasked: p.Counters.Remasked})
 	return cp, ct, err
 }
 
@@ -71,8 +76,8 @@ func decode(cp, ct []byte) (core.Progress, error) {
 		return core.Progress{}, fmt.Errorf("reading the counters: %w", err)
 	}
 	return core.Progress{
-		Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Of: c.Of},
-		Counters:   core.Counters{Pages: n.Pages, Messages: n.Messages},
+		Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Of: c.Of, Stamp: core.Stamp{Version: c.Version, Revision: c.Revision}},
+		Counters:   core.Counters{Pages: n.Pages, Messages: n.Messages, Remasked: n.Remasked},
 	}, nil
 }
 
@@ -80,11 +85,14 @@ func text(s string) pgtype.Text { return pgtype.Text{String: s, Valid: s != ""} 
 
 func page(n int) pgtype.Int4 { return pgtype.Int4{Int32: int32(min(n, 1<<31-1)), Valid: true} } //nolint:gosec // Bounded above.
 
+// version returns a scanner version as the database stores it.
+func version(v int) int32 { return int32(min(max(v, 0), 1<<31-1)) } //nolint:gosec // Bounded.
+
 // State implements Store.
-func (s *Postgres) State(ctx context.Context, account string) (bool, core.Latest[core.Progress], error) {
+func (s *Postgres) State(ctx context.Context, account string, stamp core.Stamp) (bool, bool, core.Latest[core.Progress], error) {
 	var (
-		ended  bool
-		latest core.Latest[core.Progress]
+		ended, due bool
+		latest     core.Latest[core.Progress]
 	)
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		var err error
@@ -93,6 +101,12 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, core.Latest
 			return fmt.Errorf("reading the completion flag: %w", err)
 		}
 		ended = progress.BackfillPass1Complete
+		due, err = messageingest.New(t).StaleSubject(ctx, messageingest.StaleSubjectParams{
+			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
+		})
+		if err != nil {
+			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
+		}
 		r, err := LatestRun(ctx, record.New(t), account, pass)
 		if err != nil || !r.Found {
 			return err
@@ -101,7 +115,7 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, core.Latest
 		latest.Progress, err = decode(r.Checkpoint, r.Counters)
 		return err
 	})
-	return ended, latest, err
+	return ended, due, latest, err
 }
 
 // Start implements Store.
@@ -111,6 +125,11 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
 		return err
 	}
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+		if start.Reopen {
+			if err := completion.New(t).ReopenBackfillFirst(ctx, account); err != nil {
+				return fmt.Errorf("recording the pass as due again: %w", err)
+			}
+		}
 		return StartRun(ctx, record.New(t), account, Starting{
 			Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
 			Checkpoint: cp, Counters: ct, Page: start.From.Checkpoint.Page,
@@ -119,30 +138,32 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
 }
 
 // Commit implements Store.
-func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Page, recovered *Failure, advance func(int) core.Progress) (Committed, error) {
+func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Page, recovered *Failure, advance func(int, int) core.Progress) (Committed, error) {
 	var c Committed
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		added, unclassified := 0, 0
+		added, remasked, unclassified := 0, 0, 0
 		messages, events := messageingest.New(t), maskingrecord.New(t)
 		for _, m := range p.Messages {
 			ok, err := insert(ctx, messages, account, m)
 			if err != nil {
 				return fmt.Errorf("adding message %s: %w", m.ID, err)
 			}
-			if !ok {
-				continue
-			}
-			added++
-			if m.Unclassified {
-				unclassified++
-			}
-			for _, mask := range m.Masks {
-				err := events.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{
-					AccountID: account, MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
-				})
-				if err != nil {
-					return fmt.Errorf("recording a masking event of message %s: %w", m.ID, err)
+			if ok {
+				added++
+				if m.Unclassified {
+					unclassified++
 				}
+			} else {
+				if ok, err = remask(ctx, messages, account, m); err != nil {
+					return fmt.Errorf("masking the subject of message %s again: %w", m.ID, err)
+				}
+				if !ok {
+					continue
+				}
+				remasked++
+			}
+			if err := recordMasks(ctx, events, account, m); err != nil {
+				return err
 			}
 		}
 		for _, domain := range p.Domains {
@@ -157,7 +178,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 				return fmt.Errorf("recording the page's recovered failure: %w", err)
 			}
 		}
-		at := advance(added)
+		at := advance(added, remasked)
 		cp, ct, err := encode(at)
 		if err != nil {
 			return err
@@ -189,23 +210,25 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m cor
 		labels = []string{}
 	}
 	_, err = q.InsertMessage(ctx, messageingest.InsertMessageParams{
-		AccountID:      account,
-		MessageID:      m.ID,
-		ThreadID:       m.ThreadID,
-		FromEmail:      m.From.Email,
-		FromDomain:     m.Domain,
-		FromName:       text(m.From.Name),
-		Subject:        pgtype.Text{String: m.Subject, Valid: true},
-		SubjectMasked:  m.SubjectMasked,
-		SentAt:         pgtype.Timestamptz{Time: time.UnixMilli(int64(m.Date)).UTC(), Valid: true},
-		Labels:         labels,
-		Flags:          flags,
-		HasAttachments: m.HasAttachments,
-		ListID:         text(m.ListID),
-		SizeBytes:      pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
-		AuthResults:    auth,
-		SenderClass:    string(m.Class),
-		ClassRuleID:    text(m.ClassRule),
+		AccountID:              account,
+		MessageID:              m.ID,
+		ThreadID:               m.ThreadID,
+		FromEmail:              m.From.Email,
+		FromDomain:             m.Domain,
+		FromName:               text(m.From.Name),
+		Subject:                pgtype.Text{String: m.Subject, Valid: true},
+		SubjectMasked:          m.SubjectMasked,
+		SentAt:                 pgtype.Timestamptz{Time: time.UnixMilli(int64(m.Date)).UTC(), Valid: true},
+		Labels:                 labels,
+		Flags:                  flags,
+		HasAttachments:         m.HasAttachments,
+		ListID:                 text(m.ListID),
+		SizeBytes:              pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
+		AuthResults:            auth,
+		SenderClass:            string(m.Class),
+		ClassRuleID:            text(m.ClassRule),
+		SubjectScannerVersion:  pgtype.Int4{Int32: version(m.Stamp.Version), Valid: true},
+		SubjectScannerRevision: pgtype.Text{String: m.Stamp.Revision, Valid: true},
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
@@ -213,14 +236,75 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m cor
 	return err == nil, err
 }
 
+// remask masks the subject of a message the index holds again, when its stored subject was masked
+// under another scanner than m's, and reports whether it did.
+func remask(ctx context.Context, q *messageingest.Queries, account string, m core.Message) (bool, error) {
+	n, err := q.RemaskSubject(ctx, messageingest.RemaskSubjectParams{
+		Subject: pgtype.Text{String: m.Subject, Valid: true}, SubjectMasked: m.SubjectMasked,
+		ScannerVersion: version(m.Stamp.Version), ScannerRevision: m.Stamp.Revision,
+		AccountID: account, MessageID: m.ID,
+	})
+	return n == 1, err
+}
+
+// recordMasks records a masking event for each mask on m's subject, with the scanner it was masked
+// under (ADR-0003, ADR-0096).
+func recordMasks(ctx context.Context, q *maskingrecord.Queries, account string, m core.Message) error {
+	for _, mask := range m.Masks {
+		err := q.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{
+			AccountID: account, MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
+			ScannerVersion:  pgtype.Int4{Int32: version(m.Stamp.Version), Valid: true},
+			ScannerRevision: pgtype.Text{String: m.Stamp.Revision, Valid: true},
+		})
+		if err != nil {
+			return fmt.Errorf("recording a masking event of message %s: %w", m.ID, err)
+		}
+	}
+	return nil
+}
+
 // Finish implements Store.
-func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
-	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp core.Stamp, gone func([]core.Stored) []core.Message, now time.Time) (int, error) {
+	whole := 0
+	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+		whole = 0
+		messages, events, q := messageingest.New(t), maskingrecord.New(t), record.New(t)
+		rows, err := messages.StaleSubjects(ctx, messageingest.StaleSubjectsParams{
+			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
+		})
+		if err != nil {
+			return fmt.Errorf("reading the subjects masked under another scanner: %w", err)
+		}
+		stored := make([]core.Stored, 0, len(rows))
+		for _, r := range rows {
+			stored = append(stored, core.Stored{ID: r.MessageID, Subject: r.Subject})
+		}
+		for _, m := range gone(stored) {
+			ok, err := remask(ctx, messages, account, m)
+			if err != nil {
+				return fmt.Errorf("masking the subject of message %s whole: %w", m.ID, err)
+			}
+			if !ok {
+				return fmt.Errorf("masking the subject of message %s whole changed no row", m.ID)
+			}
+			if err := recordMasks(ctx, events, account, m); err != nil {
+				return err
+			}
+			err = RecordItem(ctx, q, account, runID, Item{
+				Kind: "message", ID: m.ID, Class: string(core.Gone), Attempts: 1, First: now, Last: now, Disposition: "gone",
+				Summary: "the enumeration did not find the message, so its subject was masked whole under the scanner in force",
+			})
+			if err != nil {
+				return fmt.Errorf("recording the message %s as gone: %w", m.ID, err)
+			}
+			whole++
+		}
 		if err := completion.New(t).SetBackfillFirstComplete(ctx, account); err != nil {
 			return fmt.Errorf("setting the completion flag: %w", err)
 		}
-		return SucceedRun(ctx, record.New(t), account, runID)
+		return SucceedRun(ctx, q, account, runID)
 	})
+	return whole, err
 }
 
 // Fail implements Store.

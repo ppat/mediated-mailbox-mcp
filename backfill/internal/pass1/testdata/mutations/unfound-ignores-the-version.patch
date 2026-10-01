@@ -1,0 +1,33 @@
+control: A stored subject the enumeration did not find is masked whole under the scanner in force
+removes: a stored subject whose scanner version alone differs is not found stale when the enumeration ends, so a removed message keeps a subject masked under the earlier version
+packages: ./backfill
+tests: TestAChangeOfScannerVersionAloneMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
+index 06df47c..d5e6c9f 100644
+--- a/db/messages/ingest/ingest.sql
++++ b/db/messages/ingest/ingest.sql
+@@ -73,7 +73,7 @@ FROM messages AS m
+ WHERE
+     m.account_id = @account_id
+     AND (
+-        m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
++        false AND m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
+         OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
+     )
+ ORDER BY m.message_id;
+diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
+index 32d506c..9093c60 100644
+--- a/db/messages/ingest/ingest.sql.go
++++ b/db/messages/ingest/ingest.sql.go
+@@ -188,7 +188,7 @@ FROM messages AS m
+ WHERE
+     m.account_id = $1
+     AND (
+-        m.subject_scanner_version IS DISTINCT FROM $2::int
++        false AND m.subject_scanner_version IS DISTINCT FROM $2::int
+         OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+     )
+ ORDER BY m.message_id

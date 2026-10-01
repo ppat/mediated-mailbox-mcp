@@ -190,7 +190,14 @@ func policyListing(t tb, delisted bool) policy.Snapshot {
 
 func scanner(t tb) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	return scannerAt(t, "a-revision")
+}
+
+// scannerAt returns the scanner built under revision, every one of them scanning alike, so only the
+// revision tells them apart.
+func scannerAt(t tb, revision string) scan.Scanner {
+	t.Helper()
+	s, err := scan.New(scan.DefaultConfig(), revision)
 	if err != nil {
 		t.Fatalf("building the scanner: %v", err)
 	}
@@ -351,7 +358,9 @@ func inspectPostgres(t tb, url, account string) state {
 // (ADR-0069). Each method makes its whole change or none, as a transaction does, and a method called
 // with a cancelled context changes nothing. It starts from what the first pass stores.
 type memory struct {
-	ended    bool
+	ended bool
+	// restart is the mark the run-start step sets so the next run starts over.
+	restart  bool
 	runs     []run
 	messages map[string]*memoryMessage
 	volume   map[string]int64
@@ -362,6 +371,8 @@ type memory struct {
 type memoryMessage struct {
 	in core.Message
 	st stored
+	// subject is the scanner revision the first pass masked the subject under.
+	subject string
 }
 
 var _ pass2.Store = (*memory)(nil)
@@ -378,24 +389,25 @@ func newMemory(t tb, messages []fake.Message) *memory {
 	m := &memory{messages: map[string]*memoryMessage{}, volume: map[string]int64{}, hits: map[string]int64{}, items: map[string][]string{}}
 	for _, d := range page.Messages {
 		m.messages[d.ID] = &memoryMessage{
-			in: core.Message{ID: d.ID, From: d.From.Email, Domain: d.Domain, SubjectMasked: d.SubjectMasked, ListID: d.ListID != "", SizeBytes: d.SizeBytes, SentAt: d.Date},
-			st: stored{Domain: d.Domain, Class: string(d.Class), State: "pending", Flags: []string{}, Rules: []string{}},
+			in:      core.Message{ID: d.ID, From: d.From.Email, Domain: d.Domain, SubjectMasked: d.SubjectMasked, ListID: d.ListID != "", SizeBytes: d.SizeBytes, SentAt: d.Date},
+			st:      stored{Domain: d.Domain, Class: string(d.Class), State: "pending", Flags: []string{}, Rules: []string{}},
+			subject: d.Stamp.Revision,
 		}
 		m.volume[d.Domain]++
 	}
 	return m
 }
 
-func (m *memory) State(ctx context.Context, _ string) (bool, bool, pass1core.Latest[core.Progress], error) {
+func (m *memory) State(ctx context.Context, _ string) (bool, bool, bool, pass1core.Latest[core.Progress], error) {
 	if err := ctx.Err(); err != nil {
-		return false, false, pass1core.Latest[core.Progress]{}, err
+		return false, false, false, pass1core.Latest[core.Progress]{}, err
 	}
 	if len(m.runs) == 0 {
-		return true, m.ended, pass1core.Latest[core.Progress]{}, nil
+		return true, m.ended, m.restart, pass1core.Latest[core.Progress]{}, nil
 	}
 	r := m.runs[len(m.runs)-1]
 	states := map[string]pass1core.RunState{"running": pass1core.Running, "succeeded": pass1core.Succeeded, "failed": pass1core.Failed}
-	return true, m.ended, pass1core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+	return true, m.ended, m.restart, pass1core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
 }
 
 func (m *memory) end(id, st string) {
@@ -421,8 +433,50 @@ func (m *memory) Start(ctx context.Context, _, runID string, start pass1core.Sta
 	if start.Abandon {
 		m.end(start.ResumedFrom, "failed")
 	}
+	m.restart = false
 	m.runs = append(m.runs, run{ID: runID, State: "running", Progress: start.From})
 	return nil
+}
+
+func (m *memory) Reopen(ctx context.Context, _ string, s pass1core.Stamp) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	marked, stale := 0, false
+	for _, msg := range m.messages {
+		if msg.st.State == "scanned" && (msg.st.Version != s.Version || msg.st.Revision != s.Revision) {
+			msg.st.State, msg.st.Flags, msg.st.Rules, msg.st.Version, msg.st.Revision = "pending", []string{}, []string{}, 0, ""
+			marked++
+		}
+		stale = stale || msg.subject != s.Revision
+	}
+	if marked > 0 {
+		m.hits = map[string]int64{}
+		for _, msg := range m.messages {
+			if msg.st.State == "scanned" && len(msg.st.Flags) > 0 {
+				m.hits[msg.st.Domain]++
+			}
+		}
+	}
+	if marked == 0 && !stale {
+		return 0, nil
+	}
+	m.ended, m.restart = false, true
+	return marked, nil
+}
+
+func (m *memory) RequeueSkips(ctx context.Context, _, _ string) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	marked := 0
+	for _, msg := range m.messages {
+		if msg.st.State == "skipped_gate" && msg.in.SubjectMasked {
+			msg.st.State = "pending"
+			marked++
+		}
+	}
+	return marked, nil
 }
 
 func (m *memory) Delist(ctx context.Context, _, runID string, delisted func([]string) []string, restart core.Progress) (int, error) {
@@ -601,6 +655,50 @@ type world struct {
 	// lastOpenDelisted is set when the last recovery's delisting transition marked messages, and
 	// delistApplied once a run opened under the policy without the bank's rule.
 	lastOpenDelisted, delistApplied bool
+	// rescans counts the changes of scanner, and ended is set while the pass was last seen ended, so
+	// a change of scanner reopens it.
+	rescans int
+	ended   bool
+	// current numbers the scanner in force, 0 for the first, and earlier the scanners a revert
+	// returns to, the latest last. mark is set while the run-start step's mark to start the pass over
+	// is set, as the world knows it.
+	current, issued int
+	earlier         []int
+	mark            bool
+}
+
+// revision returns the revision of the scanner in force.
+func (w *world) revision() string {
+	if w.current == 0 {
+		return "a-revision"
+	}
+	return fmt.Sprintf("revision-%d", w.current)
+}
+
+// rescan changes the scanner every later process scans with to a new one, as a release or a
+// configuration change does, and stops the process, since a change takes a restart (ADR-0078,
+// ADR-0096).
+func (w *world) rescan(t tb) {
+	t.Helper()
+	w.rescans++
+	w.earlier = append(w.earlier, w.current)
+	w.issued++
+	w.current = w.issued
+	w.deps.Scanner = scannerAt(t, w.revision())
+	w.pass = nil
+}
+
+// revert changes the scanner back to the one in force before the last change, as an operator rolling a
+// tuning change back does, and stops the process. With no earlier change it does nothing.
+func (w *world) revert(t tb) {
+	t.Helper()
+	if len(w.earlier) == 0 {
+		return
+	}
+	w.rescans++
+	w.current, w.earlier = w.earlier[len(w.earlier)-1], w.earlier[:len(w.earlier)-1]
+	w.deps.Scanner = scannerAt(t, w.revision())
+	w.pass = nil
 }
 
 // newWorld builds a world over store for the mailbox s generates. body turns the throttled fake into
@@ -656,11 +754,27 @@ func (w *world) restricted(id string) bool {
 	return false
 }
 
-// open opens a run, the recovery path, loading the policy as it stands.
+// open opens a run, the recovery path, loading the policy as it stands. As a backfill run does, it
+// first returns the verdicts made under another scanner to pending (ADR-0096).
 func (w *world) open(t tb) {
 	t.Helper()
 	w.deps.Policy = policyListing(t, w.delisted).For(w.account)
 	before := w.inspect(t)
+	if _, err := pass2.Reopen(w.ctx, w.deps, w.account); err != nil {
+		t.Fatalf("returning the stale verdicts to pending: %v", err)
+	}
+	// The run-start step marks the pass to start over when it returned a verdict to pending, or when
+	// the subjects the first pass masked are stale, here whenever the scanner in force is not the one
+	// the first pass masked under, since this world runs no first pass (ADR-0096).
+	reopened := w.inspect(t)
+	for id, m := range before.Messages {
+		if m.State == "scanned" && reopened.Messages[id].State == "pending" {
+			w.mark = true
+		}
+	}
+	if w.revision() != "a-revision" {
+		w.mark = true
+	}
 	p, err := pass2.Open(w.ctx, w.deps, w.account)
 	if err != nil {
 		t.Fatalf("opening a run: %v", err)
@@ -670,14 +784,26 @@ func (w *world) open(t tb) {
 	if w.delisted && p.Run() != "" {
 		w.delistApplied = true
 	}
+	// A pass reopened by a change of scanner starts afresh, and a run resuming a stopped pass while
+	// the mark is set starts it over.
+	over := p.Run() != "" && !w.ended && w.mark
+	if w.ended && p.Run() != "" {
+		w.reported, w.ended = core.Progress{}, false
+	}
+	if p.Run() != "" {
+		w.mark = false
+	}
 	after := w.inspect(t)
 	for id, m := range before.Messages {
 		if m.Class == "restricted" && after.Messages[id].Class == "normal" || m.State == "skipped_restricted" && after.Messages[id].State == "pending" {
 			w.lastOpenDelisted = true
 			delete(w.decided, id)
 		}
+		if (m.State == "scanned" || m.State == "skipped_gate") && after.Messages[id].State == "pending" {
+			delete(w.decided, id)
+		}
 	}
-	if w.lastOpenDelisted {
+	if w.lastOpenDelisted || over {
 		w.reported = core.Restart(w.reported)
 	}
 }
@@ -706,6 +832,9 @@ func (w *world) step(t tb) bool {
 	if err != nil {
 		w.pass = nil
 		return false
+	}
+	if s.Done {
+		w.ended = true
 	}
 	return s.Done
 }
@@ -827,7 +956,7 @@ func (w *world) progress(t tb) {
 			t.Errorf("message %s of a restricted sender is %+v, want skipped as restricted", id, st)
 		case !restricted && st.State != "scanned" && st.State != "skipped_gate":
 			t.Errorf("message %s of a normal sender is %+v, want scanned or skipped by the gate", id, st)
-		case st.State == "scanned" && (st.Decision != "SCAN" || flagged != hasCode || st.Version != scan.Version || st.Revision != "a-revision"):
+		case st.State == "scanned" && (st.Decision != "SCAN" || flagged != hasCode || st.Version != scan.Version || st.Revision != w.revision()):
 			t.Errorf("message %s is %+v, want a scan decision and a code flag %v", id, st, hasCode)
 		case st.State == "skipped_gate" && (st.Decision != "SKIP" || st.Reason != "high_volume_no_hits"):
 			t.Errorf("message %s is %+v, want skipped by the high-volume rule", id, st)
@@ -842,8 +971,10 @@ func (w *world) progress(t tb) {
 	if !maps.Equal(hits, got.Hits) {
 		t.Errorf("the senders' prior hits are %v, want %v, one for each flagged message", got.Hits, hits)
 	}
-	if rework := len(w.fetched) - scanned; rework > w.crashes*w.pageSize {
-		t.Errorf("%d bodies were fetched for %d scanned messages across %d crashes, more than a page of rework a crash", len(w.fetched), scanned, w.crashes)
+	// Each change of scanner costs at most every body scanned again.
+	if rework := len(w.fetched) - scanned; rework > w.crashes*w.pageSize+w.rescans*len(w.messages) {
+		t.Errorf("%d bodies were fetched for %d scanned messages across %d crashes and %d changes of scanner, more than a page of rework a crash and the mailbox a change",
+			len(w.fetched), scanned, w.crashes, w.rescans)
 	}
 }
 

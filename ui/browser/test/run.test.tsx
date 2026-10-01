@@ -25,7 +25,7 @@ import { canonicalize, parse } from "../src/app/url.ts";
 import { GroupsView } from "../src/lens/groups.tsx";
 import { RowsTable } from "../src/lens/table.tsx";
 import { failureColumns, pageRow } from "../src/row/failure.tsx";
-import { FailureBody, RunScreen } from "../src/screens/run.tsx";
+import { FailureBody, meaning, RunScreen } from "../src/screens/run.tsx";
 import { testDeps, type Connection } from "./app.ts";
 import { ok, recorded, type Answer, type Recorded } from "./fixtures/fetch.ts";
 import { at, mount, settle, type Mounted } from "./render.ts";
@@ -112,7 +112,7 @@ test("the strip shows the run, where it failed, its failures and its resumer", a
     "page 14 of 3,368, 1 retrywhere it failed",
     "5item failures",
     "1recovered by r-0913 (1)",
-    "1permanently gone",
+    "1not found at the provider",
     "r-0913 runningresumed by",
   ]);
   expect(root.querySelector('[aria-label="Failures of the run"] a')?.getAttribute("href")).toBe(
@@ -156,14 +156,14 @@ test("the breakdown draws bars by error class with the restricted share, and one
   const [byClass, byDisposition] = [...root.querySelectorAll("figure.bars")];
   expect(barsOf(byClass)).toEqual([
     ["provider error", "2", 0],
-    ["gone at provider", "1", 0],
+    ["not found at provider", "1", 0],
     ["scanner timeout", "1", 1],
     ["provider throttled", "1", 0],
   ]);
   expect(barsOf(byDisposition)).toEqual([
     ["pending", "2", 0],
     ["abandoned", "1", 0],
-    ["gone", "1", 0],
+    ["not found", "1", 0],
     ["recovered", "1", 1],
   ]);
   expect(byClass?.querySelector(".bar")?.getAttribute("href")).toBe(
@@ -443,6 +443,26 @@ test("a group's value carrying markup arrives as text in its bar and its row", a
   } finally {
     groups.unmount();
   }
+});
+
+test("a gone item says the message was not found at the provider, and what the index holds of it", async () => {
+  await open(`/personal/jobs/r-0912/failures/4?${canonical}`, {
+    ...r0912,
+    [failurePath("personal", "r-0912", "4")]: ok("failure-4.json"),
+  });
+  expect(document.querySelector('aside[role="dialog"]')?.textContent).toContain(
+    "not found at provider. The index no longer holds it.",
+  );
+  const provenance = document.querySelector('aside[role="dialog"] .provenance');
+  const shown = [...(provenance?.querySelectorAll("dt") ?? [])].find(
+    (dt) => dt.textContent === "disposition",
+  )?.nextElementSibling?.textContent;
+  expect(shown).toBe("not found");
+  // A gone item the first pass records keeps its message in the index, with its scan state as it was.
+  const detail: FailureDetail = await recording("failure-4.json");
+  expect(meaning({ ...detail.row, scan_state: "skipped_restricted" })).toBe(
+    "not found at provider. Its scan state is not scanned, restricted sender.",
+  );
 });
 
 test("a failure's panel shows its message's rule ids, scan time and scanner version", async () => {

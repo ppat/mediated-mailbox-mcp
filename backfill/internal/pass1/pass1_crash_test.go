@@ -31,8 +31,10 @@ func drawSetup(t *rapid.T) setup {
 }
 
 // target is pass 1's checkpoint and resume, the crash harness's backfill target (ADR-0045). A page
-// step makes the next page durable, and a throttle makes the provider throttle its next calls, so a
-// run can fail on a page and a later run resume it.
+// step makes the next page durable, a throttle makes the provider throttle its next calls, so a run
+// can fail on a page and a later run resume it, and a rescan changes the scanner the next process
+// masks with and stops the process, so the next run reopens the pass or starts its enumeration over
+// (ADR-0096).
 func target() crash.Target[setup, *world] {
 	return crash.Target[setup, *world]{
 		Setup: drawSetup,
@@ -44,6 +46,7 @@ func target() crash.Target[setup, *world] {
 				Arg:   rapid.IntRange(1, 6),
 				Apply: func(_ rapid.TB, w *world, n int) { w.throttle = n },
 			},
+			"rescan": {Apply: func(t rapid.TB, w *world, _ int) { w.rescan(t) }},
 		},
 		CrashAt:     rapid.IntRange(betweenSteps, afterCommit),
 		Crash:       func(t rapid.TB, w *world, at int) { w.crash(t, at) },
@@ -61,8 +64,9 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // between pages, inside a page before its commit ends, or after it ends and before the run records
 // anything more, loses nothing it reported durable, and the
 // next run resumes from exactly the checkpoint last reported. Every sequence then ends the pass with
-// every message indexed once, masked and classified, its senders' statistics counted once, and no
-// more than one page of rework for each crash (ADR-0017, ADR-0045).
+// every message indexed once, masked under the scanner in force and classified, each mask recorded once
+// under that scanner, its senders' statistics counted once, and no more than one page of rework for
+// each crash and one enumeration for each change of scanner (ADR-0017, ADR-0045, ADR-0096).
 func TestAKilledRunResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
 }
@@ -76,6 +80,8 @@ func TestTheCrashSequencesReachEveryKind(t *testing.T) {
 		"a crash after a page's commit":                  0.001,
 		"two crashes with no page between them":          0.001,
 		"a run failed on a throttled page":               0.001,
+		"a change of scanner after the pass ended":       0.001,
+		"a change of scanner inside the enumeration":     0.001,
 	}
 	for name, draw := range crash.Draws(target(), config) {
 		t.Run(name, func(t *testing.T) {
@@ -87,11 +93,15 @@ func TestTheCrashSequencesReachEveryKind(t *testing.T) {
 // kind classifies a case by the rarest telling thing its sequence does, in the order listed. A run
 // fails on a throttled page only when a step asks for a page while the provider still has at least
 // core.MaxAttempts throttles to give, so the classifier follows the order of the operations, how many
-// throttles each step uses up and how many pages the mailbox has left, as the world does.
+// throttles each step uses up and how many pages the mailbox has left, as the world does. A change of
+// scanner over a mailbox holding messages starts the enumeration over, whether the pass had ended or
+// was part way through it.
 func kind(c crash.Case[setup]) string {
-	left := max(1, (len(c.Setup.Messages)+c.Setup.PageSize-1)/max(c.Setup.PageSize, 1))
+	total := max(1, (len(c.Setup.Messages)+c.Setup.PageSize-1)/max(c.Setup.PageSize, 1))
+	left := total
 	pages, crashes, pending := 0, 0, 0
 	lastWasCrash, back2back, inside, afterPage, afterCommitted, failedOnThrottle := false, false, false, false, false, false
+	rescanEnded, rescanInside := false, false
 	// step is one attempt to make the next page durable, which commits unless commit is false.
 	step := func(commit bool) {
 		if left == 0 {
@@ -131,10 +141,24 @@ func kind(c crash.Case[setup]) string {
 			step(true)
 		case "throttle":
 			pending = op.Arg
+		case "rescan":
+			if len(c.Setup.Messages) > 0 {
+				switch {
+				case left == 0:
+					rescanEnded = true
+				case left < total:
+					rescanInside = true
+				}
+				left = total
+			}
 		}
 		lastWasCrash = false
 	}
 	switch {
+	case inside:
+		return "a crash inside a page"
+	case rescanEnded:
+		return "a change of scanner after the pass ended"
 	case failedOnThrottle:
 		return "a run failed on a throttled page"
 	case back2back:
@@ -143,8 +167,8 @@ func kind(c crash.Case[setup]) string {
 		return "a crash after a page's commit"
 	case afterPage:
 		return "a crash between steps after a page was durable"
-	case inside:
-		return "a crash inside a page"
+	case rescanInside:
+		return "a change of scanner inside the enumeration"
 	case crashes > 0:
 		return "another crash"
 	default:

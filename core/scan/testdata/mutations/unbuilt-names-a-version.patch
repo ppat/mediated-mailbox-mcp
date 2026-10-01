@@ -1,0 +1,20 @@
+control: A scanner names the version and revision its maskings and verdicts are made under
+removes: a scanner nobody built names the version a built one does
+packages: ./core/scan
+tests: TestAScannerNamesTheVersionAndRevisionItDecidesUnder
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index c5f2c44..3cfdba6 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -225,9 +225,6 @@ func (v Verdict) Revision() string { return v.revision }
+ // Version returns the scanner version the scanner's verdicts and maskings are made under, Version for
+ // a Scanner built by New and 0 for one nobody built, which matches no version a built one records.
+ func (s Scanner) Version() int {
+-	if !s.built {
+-		return 0
+-	}
+ 	return Version
+ }
+ 

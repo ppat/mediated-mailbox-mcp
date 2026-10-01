@@ -5,8 +5,8 @@
 
 ## Context
 
-Four kinds of background work exist: the one-time backfill, the recurring delta sync, the
-human-triggered reorg apply, and the periodic heuristics run. They could share one long-running
+Four kinds of background work exist: the backfill that builds the index, the recurring delta sync,
+the human-triggered reorg apply, and the periodic heuristics run. They could share one long-running
 worker process or run as separate Kubernetes workloads.
 
 ## Decision
@@ -16,7 +16,7 @@ worker process or run as separate Kubernetes workloads.
 | | Backfill | Delta sync | Reorg apply | Heuristics |
 | --- | --- | --- | --- | --- |
 | Runtime | minutes–hours | seconds | minutes | seconds |
-| Trigger | manual, once | every 5 min | human-approved | daily |
+| Trigger | manual, once, then again after each change of scanner, started by the deployment with no manual step ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md), [ADR-0051](../engineering/0051-environment-contract.md)) | every 5 min | human-approved | daily |
 | Reversible | n/a (read-only) | n/a | **must be** | n/a |
 | Writes provider | no | no | **yes, bulk** | no |
 

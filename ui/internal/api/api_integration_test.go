@@ -359,6 +359,7 @@ func fixtures() map[string]string {
 		"failures-provider-error-rows.json":           "/api/personal/lens?dataset=failures&run=r-0912&level=3&sort=last_at,desc&page=1&error_class=provider_error",
 		"failure-5.json":                              "/api/personal/failures/5?run=r-0912",
 		"failure-1.json":                              "/api/personal/failures/1?run=r-0912",
+		"failure-4.json":                              "/api/personal/failures/4?run=r-0912",
 		"error-unknown-dataset.json":                  "/api/personal/lens?dataset=messages",
 		"error-unknown-account.json":                  "/api/nobody/system",
 		"jobs-other.json":                             "/api/other/jobs",

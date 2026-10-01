@@ -1,0 +1,24 @@
+control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
+removes: a backfill run returns stale verdicts to pending only after its first pass ends, so they keep releasing bodies while it runs or fails
+packages: ./backfill
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index ba0e8fe..0c490f2 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -349,10 +349,10 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
+ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, metrics *pass1.Metrics, secondMetrics *pass2.Metrics,
+ 	handOver func(context.Context, string) error, logger *slog.Logger,
+ ) error {
+-	if err := reopen(ctx, second, account, logger); err != nil {
++	if err := passAccount(ctx, first, account, metrics, handOver, logger); err != nil {
+ 		return err
+ 	}
+-	if err := passAccount(ctx, first, account, metrics, handOver, logger); err != nil {
++	if err := reopen(ctx, second, account, logger); err != nil {
+ 		return err
+ 	}
+ 	return secondPassAccount(ctx, second, account, secondMetrics, handOver, logger)

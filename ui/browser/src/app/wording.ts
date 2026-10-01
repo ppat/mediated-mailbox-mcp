@@ -65,7 +65,7 @@ export const scanStateLong: Readonly<Record<string, string>> = {
 export const errorClass: Readonly<Record<string, string>> = {
   throttled: "provider throttled",
   provider_error: "provider error",
-  gone: "gone at provider",
+  gone: "not found at provider",
   scanner_timeout: "scanner timeout",
   validation: "validation",
   authentication: "authentication",
@@ -74,7 +74,7 @@ export const errorClass: Readonly<Record<string, string>> = {
 export const disposition: Readonly<Record<string, string>> = {
   recovered: "recovered",
   pending: "pending",
-  gone: "gone",
+  gone: "not found",
   abandoned: "abandoned",
 };
 

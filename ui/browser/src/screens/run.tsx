@@ -200,7 +200,7 @@ function RunHead(props: {
 
 // RunCounts is the rest of the L0 strip, from the run summary. Where it failed is the checkpoint the
 // run stopped at and how many retries it recorded, item failures, how many recovered and by which run,
-// how many are permanently gone, and the resuming run with its state.
+// how many were not found at the provider, and the resuming run with its state.
 function RunCounts(props: { account: string; summary: RunSummary; live: Stream }) {
   const { account, summary, live } = props;
   const retries = summary.events.filter((e) => e.kind === "retry").length;
@@ -238,7 +238,7 @@ function RunCounts(props: { account: string; summary: RunSummary; live: Stream }
       </span>
       <span class="figure">
         <span class="figure-value">{count(gone)}</span>
-        <span class="label">permanently gone</span>
+        <span class="label">not found at the provider</span>
       </span>
       <span class="figure">
         <span class="figure-value">
@@ -359,7 +359,7 @@ export function meaning(row: FailureRow): string {
     case "pending":
       return `${cls} on this item. It has not been retried yet. Its scan state stays pending, so its body is denied until a run reaches it.`;
     case "gone":
-      return `${cls}. The message was removed at the provider after it was indexed. Its scan state stays pending, so its body is denied, and the next delta-sync tick will remove the row from the index.`;
+      return `${cls}. ${row.scan_state === null ? "The index no longer holds it." : `Its scan state is ${word(scanStateLong, row.scan_state).text}.`}`;
     case "abandoned":
       return `${cls} on this item after ${row.attempts} attempts. The workload gave up. Its scan state stays pending, so its body is denied until a later run reaches it.`;
     default:

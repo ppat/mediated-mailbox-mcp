@@ -1,0 +1,33 @@
+{
+  "account": "personal",
+  "dataset": "failures",
+  "as_of": "2026-09-10T10:16:04Z",
+  "run": "r-0912",
+  "row": {
+    "seq": 4,
+    "item_kind": "message",
+    "item_id": "m-gone",
+    "message_id": null,
+    "from_email": null,
+    "subject": null,
+    "sent_at": null,
+    "labels": null,
+    "sender_class": null,
+    "content_flags": null,
+    "scan_state": null,
+    "page": 14,
+    "error_class": "gone",
+    "attempts": 1,
+    "first_at": "2026-09-08T08:46:04Z",
+    "last_at": "2026-09-08T08:46:04Z",
+    "disposition": "gone",
+    "recovered_by": null
+  },
+  "error_summary": null,
+  "class_rule_id": null,
+  "rule_ids": null,
+  "scanned_at": null,
+  "scanner_version": null,
+  "audit": [],
+  "audit_count": 0
+}

@@ -1,0 +1,20 @@
+control: A second pass resuming a stopped pass while the run-start step's mark is set starts over from the first waiting message
+removes: the second pass run that starts leaves the mark set, so every later run resuming the pass starts it over again
+packages: ./backfill
+tests: TestAStoppedSecondPassKeepsItsRecordAndStartsOver
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+index 53b4947..c2a5aaf 100644
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -118,7 +118,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1
+ 		return err
+ 	}
+ 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+-		if err := completion.New(t).ClearSecondRestart(ctx, account); err != nil {
++		if err := error(nil); err != nil {
+ 			return fmt.Errorf("clearing the mark that starts the pass over: %w", err)
+ 		}
+ 		return pass1.StartRun(ctx, record.New(t), account, pass1.Starting{
