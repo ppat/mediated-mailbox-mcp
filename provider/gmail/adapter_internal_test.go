@@ -3,6 +3,7 @@ package gmail
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -21,13 +22,6 @@ type cancellingTokens struct{ cancel context.CancelFunc }
 func (c cancellingTokens) AccessToken(context.Context) (string, error) {
 	c.cancel()
 	return "ya29.test", nil
-}
-
-// refusingTokens fails every token request, so no request is ever sent.
-type refusingTokens struct{}
-
-func (refusingTokens) AccessToken(context.Context) (string, error) {
-	return "", errors.New("invalid_grant")
 }
 
 // counted is one series of the request cost counter or of the hard cap.
@@ -153,18 +147,114 @@ func TestARequestNeverSentIsNotCounted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewMetrics: %v", err)
 	}
-	a, err := New(Config{Account: "you@example.com", Client: &http.Client{}, Tokens: refusingTokens{}, Metrics: metrics})
+	a, err := New(Config{Account: "you@example.com", Client: &http.Client{}, Tokens: unreachableTokens(), Metrics: metrics})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if _, err := a.ListLabels(t.Context()); !errors.Is(err, mail.ErrAuthentication) {
-		t.Errorf("ListLabels returned %v, want an error wrapping %v", err, mail.ErrAuthentication)
+	if _, err := a.ListLabels(t.Context()); err == nil {
+		t.Error("ListLabels without an access token succeeded")
 	}
 	if got := gatheredCost(t, reg); len(got) != 0 {
 		t.Errorf("request cost counted %+v, want nothing", got)
 	}
 	if got := gathered(t, reg, hardCapSeries); len(got) != 0 {
 		t.Errorf("hard cap emitted %+v, want nothing", got)
+	}
+}
+
+// unreachableTokens returns a token source whose every refresh fails before it leaves the machine,
+// so no access token is ever had.
+func unreachableTokens() *TokenSource {
+	return NewTokenSource(unreachable(), Credentials{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "refresh-token"})
+}
+
+// A port call whose token request got no answer returns the provider failing the request, never a
+// refused credential, so neither a client nor backfill takes a network fault for a credential the
+// operator must replace (ADR-0097, O5).
+func TestATokenRequestThatGetsNoAnswerIsAProviderError(t *testing.T) {
+	metrics, err := NewMetrics(prometheus.NewRegistry())
+	if err != nil {
+		t.Fatalf("NewMetrics: %v", err)
+	}
+	a, err := New(Config{Account: "you@example.com", Client: &http.Client{}, Tokens: unreachableTokens(), Metrics: metrics})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	_, err = a.ListLabels(t.Context())
+	if !errors.Is(err, mail.ErrProvider) || errors.Is(err, mail.ErrAuthentication) {
+		t.Errorf("ListLabels returned %v, want an error wrapping %v and not %v", err, mail.ErrProvider, mail.ErrAuthentication)
+	}
+}
+
+// failingTokens fails every token request with err, as the token source reports the token
+// endpoint's answer, so a port call meets that failure without a stand-in for Google (ADR-0043).
+type failingTokens struct{ err error }
+
+func (f failingTokens) AccessToken(context.Context) (string, error) { return "", f.err }
+
+// A port call whose token request the token endpoint refused returns a refused credential, never
+// the provider failing the request, so backfill fails its run for the operator rather than retrying
+// a credential that will be refused again (ADR-0097, ADR-0090). The refusals are the answers Google
+// documents, read by the source's own reading of an answer.
+func TestAPortCallWhoseTokenRequestWasRefusedIsARefusedCredential(t *testing.T) {
+	metrics, err := NewMetrics(prometheus.NewRegistry())
+	if err != nil {
+		t.Fatalf("NewMetrics: %v", err)
+	}
+	for name, c := range map[string]struct {
+		code         int
+		status, body string
+	}{
+		"revoked grant":  {400, "400 Bad Request", `{"error": "invalid_grant", "error_description": "Token has been expired or revoked."}`},
+		"unknown client": {401, "401 Unauthorized", `{"error": "invalid_client", "error_description": "The OAuth client was not found."}`},
+	} {
+		_, refusal := answer(c.code, c.status, []byte(c.body))
+		a, err := New(Config{Account: "you@example.com", Client: &http.Client{}, Tokens: failingTokens{refusal}, Metrics: metrics})
+		if err != nil {
+			t.Fatalf("New: %v", err)
+		}
+		_, err = a.ListLabels(t.Context())
+		if !errors.Is(err, mail.ErrAuthentication) || errors.Is(err, mail.ErrProvider) {
+			t.Errorf("%s: ListLabels returned %v, want an error wrapping %v and not %v", name, err, mail.ErrAuthentication, mail.ErrProvider)
+		}
+	}
+}
+
+// A failure to obtain an access token is the port error the outcome of its attempt names. The token
+// endpoint's answers are the ones Google documents, read by the source's own reading of an answer.
+// A refusal, a 400 or a 401, is a refused credential alone, and every other failure is the provider
+// failing the request alone (ADR-0097, RFC 6749 section 5.2).
+func TestATokenFailureIsThePortErrorItsOutcomeNames(t *testing.T) {
+	_, unusable := parseTokenResponse([]byte(`{"expires_in": 3599}`))
+	answered := func(code int, status, body string) error {
+		_, err := answer(code, status, []byte(body))
+		return err
+	}
+	for name, c := range map[string]struct {
+		err  error
+		want error
+	}{
+		"revoked grant":             {answered(400, "400 Bad Request", `{"error": "invalid_grant", "error_description": "Token has been expired or revoked."}`), mail.ErrAuthentication},
+		"unknown client":            {answered(401, "401 Unauthorized", `{"error": "invalid_client", "error_description": "The OAuth client was not found."}`), mail.ErrAuthentication},
+		"a refusal wrapped further": {fmt.Errorf("refreshing: %w", answered(400, "400 Bad Request", `{"error": "invalid_grant"}`)), mail.ErrAuthentication},
+		"server error":              {answered(500, "500 Internal Server Error", `{"error": "internal_failure"}`), mail.ErrProvider},
+		"unavailable":               {answered(503, "503 Service Unavailable", ``), mail.ErrProvider},
+		"too many requests":         {answered(429, "429 Too Many Requests", `{"error": "rate_limit_exceeded"}`), mail.ErrProvider},
+		"forbidden":                 {answered(403, "403 Forbidden", ``), mail.ErrProvider},
+		"a success it cannot read":  {unusable, mail.ErrProvider},
+		"no answer":                 {errors.New("dial tcp 127.0.0.1:9: connect: connection refused"), mail.ErrProvider},
+	} {
+		got := tokenError(c.err)
+		other := mail.ErrProvider
+		if errors.Is(c.want, mail.ErrProvider) {
+			other = mail.ErrAuthentication
+		}
+		if !errors.Is(got, c.want) || errors.Is(got, other) {
+			t.Errorf("%s: the port error is %v, want one wrapping %v and not %v", name, got, c.want, other)
+		}
+		if !errors.Is(got, c.err) {
+			t.Errorf("%s: the port error %v drops the failure it reports", name, got)
+		}
 	}
 }
 
