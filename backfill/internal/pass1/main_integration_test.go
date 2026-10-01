@@ -105,6 +105,8 @@ type setup struct {
 	// PageSize is how many messages a page of the mailbox's enumeration holds.
 	PageSize int
 	Messages []drawn
+	// Totals has the provider report a total on every page of the enumeration.
+	Totals bool
 }
 
 // drawn is one message of a generated mailbox.
@@ -252,7 +254,7 @@ type world struct {
 func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb) state, port func(mail.Port[context.Context]) pass1.Fetch) *world {
 	t.Helper()
 	messages, want := mailbox(s)
-	f, err := fake.New(fake.Config{Account: account, PageSize: max(s.PageSize, 1), BudgetPerSecond: 10_000}, messages...)
+	f, err := fake.New(fake.Config{Account: account, PageSize: max(s.PageSize, 1), BudgetPerSecond: 10_000, ReportsTotal: s.Totals}, messages...)
 	if err != nil {
 		t.Fatalf("building the mailbox: %v", err)
 	}

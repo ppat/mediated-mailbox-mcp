@@ -411,11 +411,11 @@ func (a *Adapter) CurrentCursor(ctx context.Context) (mail.Cursor, error) {
 	if err != nil {
 		return "", err
 	}
-	id, err := parseProfile(body)
+	p, err := parseProfile(body)
 	if err != nil {
 		return "", err
 	}
-	return cursor(id), nil
+	return cursor(p.historyID), nil
 }
 
 // ChangesSince implements the port. It reads one page of Gmail's history.
@@ -447,7 +447,8 @@ func (a *Adapter) ChangesSince(ctx context.Context, cur mail.Cursor) (mail.Chang
 }
 
 // EnumerateAll implements the port. A page holds messagesPerPage messages, so its worst case fits
-// the cost the rate profile declares.
+// the cost the rate profile declares. Every page carries the mailbox's total from a profile read
+// before the listing (ADR-0095).
 func (a *Adapter) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
 	if err := ctx.Err(); err != nil {
 		return mail.Page[mail.MessageMetadata]{}, err
@@ -457,7 +458,15 @@ func (a *Adapter) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.P
 		return mail.Page[mail.MessageMetadata]{}, err
 	}
 	c := a.begin(mail.OpEnumerateAll, 0)
-	body, err := c.do(ctx, messagesRequest(gmailToken, messagesPerPage))
+	body, err := c.do(ctx, profileRequest())
+	if err != nil {
+		return mail.Page[mail.MessageMetadata]{}, err
+	}
+	p, err := parseProfile(body)
+	if err != nil {
+		return mail.Page[mail.MessageMetadata]{}, err
+	}
+	body, err = c.do(ctx, messagesRequest(gmailToken, messagesPerPage))
 	if err != nil {
 		return mail.Page[mail.MessageMetadata]{}, err
 	}
@@ -473,7 +482,7 @@ func (a *Adapter) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.P
 	if err != nil {
 		return mail.Page[mail.MessageMetadata]{}, err
 	}
-	return mail.Page[mail.MessageMetadata]{Items: items, Next: pageToken(messageListing, l.Next)}, nil
+	return mail.Page[mail.MessageMetadata]{Items: items, Next: pageToken(messageListing, l.Next), Total: p.total()}, nil
 }
 
 // RateProfile implements the port.

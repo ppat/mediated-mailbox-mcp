@@ -165,7 +165,7 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
 	decided := core.Decide(page.Items, p.deps.Policy, p.deps.Scanner, p.deps.Lookups)
 	from := p.at
 	c, err := p.deps.Store.Commit(ctx, p.account, p.run, decided, recovered, func(added int) core.Progress {
-		return core.Advance(from, page.Next, added)
+		return core.Advance(from, page.Next, page.Total, added)
 	})
 	if err != nil {
 		return Step{}, p.failed(ctx, fmt.Errorf("making page %d durable: %w", from.Checkpoint.Page+1, err))

@@ -106,7 +106,7 @@ func testAdapter(t *testing.T) (*Adapter, *prometheus.Registry, context.Context)
 // Every request the adapter sends is counted at what Gmail charges for it, under the account and
 // the gmail provider label, whether or not it succeeds, and nothing about a lease enters into it.
 // The account's hard cap is emitted beside the count (ADR-0077). Each port call here sends one
-// request that fails.
+// request that fails, which for an enumeration is its read of the profile for the page's total.
 func TestEveryRequestSentIsCounted(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -124,7 +124,7 @@ func TestEveryRequestSentIsCounted(t *testing.T) {
 		}, 40},
 		{"a cursor", func(ctx context.Context, a *Adapter) error { _, err := a.CurrentCursor(ctx); return err }, 1},
 		{"changes", func(ctx context.Context, a *Adapter) error { _, err := a.ChangesSince(ctx, cursor(12)); return err }, 2},
-		{"an enumeration", func(ctx context.Context, a *Adapter) error { _, err := a.EnumerateAll(ctx, ""); return err }, 5},
+		{"an enumeration", func(ctx context.Context, a *Adapter) error { _, err := a.EnumerateAll(ctx, ""); return err }, 1},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -233,7 +233,7 @@ func TestEachOperationsDearestPathFitsItsCall(t *testing.T) {
 		{"Mutate, every op modifying", mail.OpMutate, opsPerMutation, []request{labelsRequest(), modify, modify, modify}},
 		{"CurrentCursor", mail.OpCurrentCursor, 0, []request{profileRequest()}},
 		{"ChangesSince", mail.OpChangesSince, 0, []request{historyRequest(1, historyPage), labelsRequest()}},
-		{"EnumerateAll", mail.OpEnumerateAll, 0, []request{messagesRequest("", messagesPerPage), get, get, get, labelsRequest()}},
+		{"EnumerateAll", mail.OpEnumerateAll, 0, []request{profileRequest(), messagesRequest("", messagesPerPage), get, get, get, labelsRequest()}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

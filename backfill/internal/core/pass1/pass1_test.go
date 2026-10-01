@@ -160,16 +160,48 @@ func TestBegin(t *testing.T) {
 func TestAdvanceAndRestart(t *testing.T) {
 	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 2, Token: "p3"}, Counters: pass1.Counters{Pages: 4, Messages: 150}}
 	want := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 3, Token: "p4"}, Counters: pass1.Counters{Pages: 5, Messages: 170}}
-	if diff := cmp.Diff(want, pass1.Advance(at, "p4", 20), compare.Options); diff != "" {
+	if diff := cmp.Diff(want, pass1.Advance(at, "p4", nil, 20), compare.Options); diff != "" {
 		t.Errorf("Advance (-want +got):\n%s", diff)
 	}
-	last := pass1.Advance(at, "", 0)
+	last := pass1.Advance(at, "", nil, 0)
 	if !last.Checkpoint.Ended() || at.Checkpoint.Ended() || (pass1.Checkpoint{}).Ended() {
 		t.Errorf("Ended is %v after the last page, %v mid-way and %v before the first, want true, false, false",
 			last.Checkpoint.Ended(), at.Checkpoint.Ended(), (pass1.Checkpoint{}).Ended())
 	}
 	if diff := cmp.Diff(pass1.Progress{Counters: at.Counters}, pass1.Restart(at), compare.Options); diff != "" {
 		t.Errorf("Restart (-want +got):\n%s", diff)
+	}
+}
+
+// The pages an enumeration takes come from the total and page limit the page reports and its next
+// token alone. A page with no total gives no estimate. Before the last page it is the items over the
+// limit, rounded up, so a short last page is still a page, and never fewer than one past the current
+// page while a next token says another follows. Each page's total gives a fresh figure, so a mailbox
+// that grows or shrinks moves it. At the last page it is that page.
+func TestAdvanceEstimatesThePagesFromTheTotal(t *testing.T) {
+	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 2, Token: "p3", Of: 9}}
+	total := func(items, limit int) *mail.Total { return &mail.Total{Items: items, PageLimit: limit} }
+	cases := []struct {
+		name  string
+		next  mail.PageToken
+		total *mail.Total
+		want  int
+	}{
+		{"no total", "p4", nil, 0},
+		{"no total at the last page", "", nil, 0},
+		{"a total filling its pages", "p4", total(30, 3), 10},
+		{"a total whose last page is short", "p4", total(31, 3), 11},
+		{"a mailbox that shrank below the pages taken", "p4", total(4, 3), 4},
+		{"a total of nothing while pages remain", "p4", total(0, 3), 4},
+		{"the last page", "", total(31, 3), 3},
+		{"a page limit of nothing", "p4", total(30, 0), 0},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := pass1.Advance(at, c.next, c.total, 0).Checkpoint.Of; got != c.want {
+				t.Errorf("Advance to page 3 with the next token %q and the total %+v gave of %d, want %d", c.next, c.total, got, c.want)
+			}
+		})
 	}
 }
 

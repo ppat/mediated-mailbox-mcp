@@ -2,6 +2,7 @@ package fake_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -75,4 +76,31 @@ func TestTheFakePassesTheContractOnOnePage(t *testing.T) {
 		Harness: sized(100, func(f *fake.Fake) mail.Port[context.Context] { return f }),
 		Run:     "fake",
 	})
+}
+
+// counting is sized with a fake that reports a total on every page of an enumeration.
+func counting(pageSize int) contract.Harness {
+	return func(t *testing.T, account string) contract.Implementation {
+		f, err := fake.New(fake.Config{Account: account, PageSize: pageSize, ReportsTotal: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return contract.Implementation{
+			Port: f,
+			Deliver: func(m contract.Message) (string, error) {
+				return m.Metadata.ID, f.Deliver(fake.Message{Metadata: m.Metadata, Body: m.Body})
+			},
+			Remove: f.Remove,
+		}
+	}
+}
+
+// A fake that counts its mailbox passes the suite told to expect a total, on pages of two and on one
+// page, as the fake that counts nothing passes the suite told to expect none (ADR-0095).
+func TestTheFakeReportingATotalPassesTheContract(t *testing.T) {
+	for _, size := range []int{2, 100} {
+		t.Run(fmt.Sprintf("pages of %d", size), func(t *testing.T) {
+			contract.Run(t, contract.Config{Harness: counting(size), Run: "fake", ReportsTotal: true})
+		})
+	}
 }

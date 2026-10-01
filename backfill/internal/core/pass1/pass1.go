@@ -6,9 +6,10 @@
 // against the account's policy and each subject masked by the scanner, a restricted sender's
 // included (ADR-0003, ADR-0004). Advance moves the checkpoint past a page once the page is durable.
 //
-// A checkpoint is the number of pages made durable and the provider's token for the page after them.
-// A checkpoint past its first page whose token is empty marks an enumeration that has ended, so a
-// run stopped between its last page and its finish only finishes.
+// A checkpoint is the number of pages made durable, the provider's token for the page after them, and
+// the number of pages the enumeration takes when the provider counts it. A checkpoint past its first
+// page whose token is empty marks an enumeration that has ended, so a run stopped between its last
+// page and its finish only finishes.
 package pass1
 
 import (
@@ -30,6 +31,9 @@ type Checkpoint struct {
 	// Token is the provider's token for the next page, empty before the first page and after the
 	// last.
 	Token mail.PageToken
+	// Of is how many pages the enumeration takes, an estimate from the total the provider reported
+	// with the page made durable, and zero when it reported none (ADR-0095).
+	Of int
 }
 
 // Ended reports whether the enumeration the checkpoint follows has ended.
@@ -106,12 +110,29 @@ func Restart(at Progress) Progress {
 	return Progress{Counters: at.Counters}
 }
 
-// Advance returns the progress after one more page is durable, whose next token is next and which
-// added added messages to the index.
-func Advance(at Progress, next mail.PageToken, added int) Progress {
+// Advance returns the progress after one more page is durable, whose next token is next, whose total
+// is total, and which added added messages to the index.
+func Advance(at Progress, next mail.PageToken, total *mail.Total, added int) Progress {
+	page := at.Checkpoint.Page + 1
 	return Progress{
-		Checkpoint: Checkpoint{Page: at.Checkpoint.Page + 1, Token: next},
+		Checkpoint: Checkpoint{Page: page, Token: next, Of: pagesOf(page, next, total)},
 		Counters:   Counters{Pages: at.Counters.Pages + 1, Messages: at.Counters.Messages + added},
+	}
+}
+
+// pagesOf is how many pages an enumeration takes, judged at the page numbered page, whose next token
+// is next and whose total is total, from those alone (ADR-0095). With no total it is zero, for no
+// estimate. At the last page it is that page. Before it, it is the total's items over its page
+// limit, rounded up, and never fewer than one page past this one, since a next token means another
+// page.
+func pagesOf(page int, next mail.PageToken, total *mail.Total) int {
+	switch {
+	case total == nil || total.PageLimit <= 0:
+		return 0
+	case next == "":
+		return page
+	default:
+		return max(page+1, (max(total.Items, 0)+total.PageLimit-1)/total.PageLimit)
 	}
 }
 

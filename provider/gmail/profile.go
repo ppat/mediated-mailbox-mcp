@@ -27,8 +27,8 @@ const (
 // The largest page each listing returns, sized so that its worst case costs no more than one
 // second's worth at the hard cap, 80 units at Gmail's budget (ADR-0023, ADR-0024). A page of threads
 // is two reads of the label table, one threads.list and a threads.get per thread, 52 units for one
-// thread. A page of EnumerateAll is one messages.list, a messages.get per message and one read of the
-// label table, 66 units for three messages.
+// thread. A page of EnumerateAll is one messages.list, a messages.get per message, one read of the
+// label table and one getProfile for the mailbox's total, 67 units for three messages.
 const (
 	threadsPerPage  = 1
 	messagesPerPage = 3
@@ -67,8 +67,8 @@ const (
 //     of the message for an op left with nothing to change.
 //   - CurrentCursor costs a getProfile, and ChangesSince a history.list and a read of the label
 //     table.
-//   - EnumerateAll costs a messages.list, a messages.get for each message of its page and a read
-//     of the label table.
+//   - EnumerateAll costs a messages.list, a messages.get for each message of its page, a read of
+//     the label table and a getProfile, which counts the mailbox for the page's total (ADR-0095).
 //
 // A call naming no operation costs nothing and is refused at lease issuance.
 type Profile struct{}
@@ -99,7 +99,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
 	case mail.OpChangesSince:
 		units = unitsHistoryList + unitsLabelsList
 	case mail.OpEnumerateAll:
-		units = unitsMessagesList + unitsMessagesGet*messagesPerPage + unitsLabelsList
+		units = unitsMessagesList + unitsMessagesGet*messagesPerPage + unitsLabelsList + unitsGetProfile
 	default:
 		return mail.OpCost{}
 	}

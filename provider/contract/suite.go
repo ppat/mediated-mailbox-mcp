@@ -48,6 +48,11 @@ type Config struct {
 	// provider need document, so a run against a real provider sets a bound that fails the case early
 	// and plainly if that order puts them behind the account's other mail.
 	EnumerationPages int
+	// ReportsTotal says the implementation counts its mailbox, so every page of an enumeration must
+	// carry a total that counts at least the messages the case added, with a page limit no page
+	// passes. Unset, no page may carry one (ADR-0095). An account the run does not control holds
+	// other mail, so a total is checked as a bound and never as an exact count.
+	ReportsTotal bool
 	// Reserve is how long before the test's deadline the suite stops starting cases, so the cases
 	// already run end and clean up before the test binary is stopped. Zero means the suite starts
 	// every case.
@@ -369,6 +374,7 @@ func (s *subject) enumerate(t *testing.T, page mail.PageToken, want []string) ([
 		if err != nil {
 			t.Fatalf("EnumerateAll: %v", err)
 		}
+		s.checkTotal(t, got)
 		var keys []string
 		for _, m := range got.Items {
 			key, ours := s.key(t, m)
@@ -394,6 +400,26 @@ func (s *subject) enumerate(t *testing.T, page mail.PageToken, want []string) ([
 	}
 	t.Fatalf("EnumerateAll returned %d pages without ending or reaching every message the case added. The order of a full enumeration is the provider's own, and it may put the case's messages behind the account's other mail", limit)
 	return nil, nil, nil
+}
+
+// checkTotal requires a page of an enumeration to carry a total exactly when the implementation
+// says it counts its mailbox, and a total it carries to count at least the messages the case added,
+// with a positive page limit the page does not pass.
+func (s *subject) checkTotal(t *testing.T, got mail.Page[mail.MessageMetadata]) {
+	t.Helper()
+	switch {
+	case !s.runner.cfg.ReportsTotal && got.Total != nil:
+		t.Fatalf("EnumerateAll reported a total of %d items from an implementation configured to report none", got.Total.Items)
+	case !s.runner.cfg.ReportsTotal:
+	case got.Total == nil:
+		t.Fatalf("EnumerateAll reported no total from an implementation configured to report one")
+	case got.Total.PageLimit <= 0:
+		t.Fatalf("EnumerateAll reported the page limit %d, want a positive one", got.Total.PageLimit)
+	case len(got.Items) > got.Total.PageLimit:
+		t.Fatalf("EnumerateAll returned %d items on a page whose limit is %d", len(got.Items), got.Total.PageLimit)
+	case got.Total.Items < len(s.messages):
+		t.Fatalf("EnumerateAll reported a total of %d items in a mailbox holding the %d messages the case added", got.Total.Items, len(s.messages))
+	}
 }
 
 // seededFields returns what the seed decides of m. The identifiers, the account, the snippet, the

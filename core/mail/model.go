@@ -104,10 +104,21 @@ type Label struct {
 // page whose Next is empty is the last.
 type PageToken string
 
-// Page is one page of a paged listing.
+// Page is one page of a paged listing. Total is nil when the implementation does not count the
+// listing (ADR-0010, ADR-0095).
 type Page[T any] struct {
 	Items []T
 	Next  PageToken
+	Total *Total
+}
+
+// Total is how many items a whole paged listing holds, as the provider counts them, with the most
+// items any page of that listing holds. The count can differ from what the listing returns, since
+// the provider counts on its own terms and the mailbox can change while it is listed, so a caller
+// takes it as an estimate. A page holds no more items than PageLimit, and may hold fewer.
+type Total struct {
+	Items     int
+	PageLimit int
 }
 
 // Cursor marks a point in a mailbox's change history. It is opaque, and only the implementation that

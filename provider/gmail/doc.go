@@ -42,8 +42,12 @@
 //
 //   - ListThreads lists one thread through threads.list and reads it through threads.get, every
 //     message through the metadata mask. GetThreadMetadata reads its thread the same way.
-//   - EnumerateAll pages messages.list and reads each message through messages.get with the
-//     metadata mask. GetMessageMetadata reads each identifier the same way.
+//   - EnumerateAll reads the profile, then pages messages.list and reads each message through
+//     messages.get with the metadata mask. GetMessageMetadata reads each identifier the same way.
+//     Every page's total is the profile's messagesTotal with three as its page limit (ADR-0095).
+//     Whether messagesTotal counts the same set the listing returns, spam, trash, drafts and chats
+//     alike, is unverified, so the total is the provider's count and the contract checks it only as
+//     a bound.
 //   - The metadata mask is a fields mask sent with the full format, naming no body field, so Google
 //     returns the headers and the parts tree without any body content (ADR-0010). Every header of
 //     the message comes back, since a mask cannot pick headers by name, and the model reads only

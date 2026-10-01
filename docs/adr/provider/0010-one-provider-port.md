@@ -45,7 +45,7 @@ class MailProvider(Protocol):
     async def mutate(self, ops: list[MutationOp]) -> MutationResult: ...
     async def changes_since(self, cursor: str) -> ChangeSet: ...
     async def current_cursor(self) -> str: ...                        # where delta sync starts
-    async def enumerate_all(self, cursor: str | None) -> Page[MessageMetadata]: ...
+    async def enumerate_all(self, cursor: str | None) -> Page[MessageMetadata]: ...  # may carry a total
 
     # Cost declaration — the adapter is the only layer that knows what
     # an operation costs on its provider. See ADR-0023.
@@ -60,6 +60,7 @@ The choices inside the contract, each with its reason:
 | `Query` is a canonical AST | Gmail `q=` and JMAP `Filter` differ; each adapter compiles the AST. Keeps Gmail syntax out of the agent's model |
 | `changes_since` returns an opaque cursor | Gmail `historyId`, JMAP `state` — same semantics, different tokens |
 | `enumerate_all` distinct from `changes_since` | Full traversal is resumable but not a delta; backfill needs it and sync must not use it |
+| `enumerate_all`'s page may carry a total | The backfill card shows a pass's page of total pages and an estimated time left ([docs/UI.md section 8.1](../../UI.md#81-home)), which needs to know how many pages an enumeration takes. The operator ruled on 2026-09-30 that the port reports the total rather than the card's design changing, and on 2026-10-01 that the total counts items, and that the page also carries the most items any page of the listing holds, so a caller derives a page count from the two numbers and the next-page token alone. The items are the messages a full enumeration returns as the provider counts them. That keeps the caller to what the contract states, which [Concerns stay un-braided; components know only their contracts](../../../DESIGN.md#concerns-stay-un-braided-components-know-only-their-contracts) requires, since how an adapter sizes its pages is no promise of the port. The total is optional, so a backend or the provider fake that does not count reports none, and the card shows no estimate. That keeps it inside [P1](../../../USE_CASES.md#p1--one-contract)'s intersection: Gmail counts with `messagesTotal` on [`users.getProfile`](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users/getProfile), "the total number of messages in the mailbox", and JMAP's `/query` returns `total` when the request sets `calculateTotal` and clamps its own `limit`, returning the limit it enforced ([RFC 8620 section 5.5](https://www.rfc-editor.org/rfc/rfc8620#section-5.5)). How the two numbers travel on the page is [ADR-0095](./0095-enumeration-total-on-every-page.md)'s |
 | `current_cursor` in the port | Delta sync needs a first cursor to start from, which Gmail's profile `historyId` and JMAP's `state` each supply |
 | `ensure_label` in the port | Reorg creates taxonomy; without it each adapter invents its own create-if-missing |
 | Batched mutation ops | Gmail `batchModify` and JMAP `Email/set` both batch natively |
@@ -74,6 +75,7 @@ What each adapter compiles, per concern:
 | --- | --- | --- |
 | Delta sync | `history.list` from `historyId`; gap → resync | `Email/changes` from `state`; `cannotCalculateChanges` → resync |
 | Full enumeration | `messages.list` + `pageToken` | `Email/query` position/anchor |
+| Enumeration total | `messagesTotal` on `users.getProfile` | `total` on `Email/query` with `calculateTotal` |
 | Metadata fetch | `format=FULL` with a `fields` mask naming no `body` — **provider guarantees no body** | `Email/get` with explicit `properties`, omitting `bodyValues` |
 | Labels | flat IDs | mailbox tree; adapter flattens to paths |
 | Batch | `batchModify`, 1000 ids | `Email/set` multi-update |
@@ -93,6 +95,9 @@ them.
   gate and tools must know about — the exact provider-awareness the port exists to prevent.
 - **Pass provider-native query strings through.** Rejected: query syntax in the agent's vocabulary
   couples the client surface to one backend and makes queries unanalyzable by the mediator.
+- **The enumeration's total reported in pages rather than items.** The case for it is one field
+  rather than two, with the page size kept private to the adapter, which would divide its own count
+  by it. Rejected by the operator on 2026-10-01 in favour of the item count above.
 - **One combined `get_message` returning metadata plus optional body.** Rejected: it makes "does
   this call carry content" a runtime question. Two methods make it a structural one.
 

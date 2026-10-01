@@ -275,6 +275,61 @@ func TestAPassStartedOverCountsNothingTwice(t *testing.T) {
 	}
 }
 
+// storedCheckpoint returns the checkpoint the run's record holds, as its keys and values.
+func storedCheckpoint(t *testing.T, account, runID string) map[string]any {
+	t.Helper()
+	var out map[string]any
+	if err := superuser(t).QueryRow(t.Context(), "SELECT checkpoint FROM job_runs WHERE account_id = $1 AND run_id = $2",
+		account, runID).Scan(&out); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The run record's checkpoint carries the pages the enumeration takes, from the total the provider
+// reports with each page, which the backfill card reads as page of pages. Seven messages in pages of
+// three take three pages. A provider reporting no total leaves the checkpoint without them, so the
+// card shows no estimate (ADR-0095).
+func TestTheCheckpointCarriesThePagesTheTotalImplies(t *testing.T) {
+	counted := realWorld(t, setup{PageSize: 3, Messages: mixed.Messages, Totals: true})
+	counted.step(t)
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "of": 3.0}, storedCheckpoint(t, counted.account, "run1"), compare.Options); diff != "" {
+		t.Errorf("the checkpoint after the first page (-want +got):\n%s", diff)
+	}
+	counted.finish(t, 10)
+	if diff := cmp.Diff(map[string]any{"page": 3.0, "token": "", "of": 3.0}, storedCheckpoint(t, counted.account, "run1"), compare.Options); diff != "" {
+		t.Errorf("the checkpoint after the last page (-want +got):\n%s", diff)
+	}
+	uncounted := realWorld(t, mixed)
+	uncounted.step(t)
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4"}, storedCheckpoint(t, uncounted.account, "run1"), compare.Options); diff != "" {
+		t.Errorf("the checkpoint after the first page of an enumeration with no total (-want +got):\n%s", diff)
+	}
+}
+
+// A run stopped with a checkpoint that carries no page count, as one stored before the provider
+// reported a total, is resumed from it like any other, and the next page it makes durable records the
+// count (ADR-0095).
+func TestACheckpointWithoutAPageCountResumes(t *testing.T) {
+	w := realWorld(t, setup{PageSize: 3, Messages: mixed.Messages, Totals: true})
+	w.step(t)
+	w.crash(t, betweenSteps)
+	if _, err := superuser(t).Exec(t.Context(), "UPDATE job_runs SET checkpoint = checkpoint - 'of' WHERE account_id = $1", w.account); err != nil {
+		t.Fatal(err)
+	}
+	w.reported.Checkpoint.Of = 0
+	w.open(t)
+	w.persistence(t)
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the resumed run's first checkpoint (-want +got):\n%s", diff)
+	}
+	w.step(t)
+	if diff := cmp.Diff(map[string]any{"page": 2.0, "token": "m7", "of": 3.0}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the checkpoint after the resumed run's first page (-want +got):\n%s", diff)
+	}
+	w.progress(t)
+}
+
 // A page's commit is one transaction. When one of its statements fails, none of the page's messages,
 // masking events or sender statistics is left, and the checkpoint stays where it was, so the page is
 // taken again whole by the next run.

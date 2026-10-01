@@ -36,11 +36,13 @@ var _ Store = (*Postgres)(nil)
 func NewPostgres(db tx.Beginner) *Postgres { return &Postgres{db: db} }
 
 // checkpoint and counters are the stored forms of a run's checkpoint and counters. The checkpoint's
-// page is the page the jobs card shows, and its token is the provider's token for the next page. The
-// port reports no total, so the checkpoint carries no of, and the card shows no estimate.
+// page is the page the jobs card shows, and its token is the provider's token for the next page. Of
+// is the pages the enumeration takes, left out when the provider reported no total, so the card shows
+// no estimate, and a checkpoint stored without it reads as having none (ADR-0095).
 type checkpoint struct {
 	Page  int    `json:"page"`
 	Token string `json:"token"`
+	Of    int    `json:"of,omitempty"`
 }
 
 type counters struct {
@@ -49,7 +51,7 @@ type counters struct {
 }
 
 func encode(p core.Progress) (cp, ct []byte, err error) {
-	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, Token: string(p.Checkpoint.Token)})
+	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, Token: string(p.Checkpoint.Token), Of: p.Checkpoint.Of})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -69,7 +71,7 @@ func decode(cp, ct []byte) (core.Progress, error) {
 		return core.Progress{}, fmt.Errorf("reading the counters: %w", err)
 	}
 	return core.Progress{
-		Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token)},
+		Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Of: c.Of},
 		Counters:   core.Counters{Pages: n.Pages, Messages: n.Messages},
 	}, nil
 }

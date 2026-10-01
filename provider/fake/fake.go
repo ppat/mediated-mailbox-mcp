@@ -33,6 +33,10 @@ type Config struct {
 	PageSize int
 	// BudgetPerSecond is the ceiling the Fake's rate profile declares. Zero means 100.
 	BudgetPerSecond float64
+	// ReportsTotal gives every page of EnumerateAll a total, the messages the mailbox holds with
+	// PageSize as the page limit, as a provider that counts its mailbox does. Without it the Fake
+	// reports none, as a provider that does not count (ADR-0095).
+	ReportsTotal bool
 }
 
 // Message is one message as the Fake holds it.
@@ -50,6 +54,7 @@ type Fake struct {
 	mu       sync.Mutex
 	account  string
 	pageSize int
+	totals   bool
 	profile  Profile
 	seq      int
 	byID     map[string]*stored
@@ -87,6 +92,7 @@ func New(cfg Config, messages ...Message) (*Fake, error) {
 	f := &Fake{
 		account:  cfg.Account,
 		pageSize: cfg.PageSize,
+		totals:   cfg.ReportsTotal,
 		profile:  Profile{budget: cfg.BudgetPerSecond},
 		byID:     map[string]*stored{},
 		labels:   map[string]bool{mail.Inbox: true, mail.Trash: true, mail.Spam: true},
@@ -408,6 +414,9 @@ func (f *Fake) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page
 			break
 		}
 		out.Items = append(out.Items, clone(s.meta))
+	}
+	if f.totals {
+		out.Total = &mail.Total{Items: len(f.byID), PageLimit: f.pageSize}
 	}
 	return out, nil
 }

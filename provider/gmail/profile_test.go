@@ -35,7 +35,7 @@ func TestCostDeclaresEachCallsWorstCase(t *testing.T) {
 		{mail.ProviderOp{Operation: mail.OpMutate, Messages: 3}, mail.OpCost{Weight: 61, OpsCount: 3}},
 		{mail.ProviderOp{Operation: mail.OpCurrentCursor}, mail.OpCost{Weight: 1}},
 		{mail.ProviderOp{Operation: mail.OpChangesSince}, mail.OpCost{Weight: 3}},
-		{mail.ProviderOp{Operation: mail.OpEnumerateAll}, mail.OpCost{Weight: 66}},
+		{mail.ProviderOp{Operation: mail.OpEnumerateAll}, mail.OpCost{Weight: 67}},
 		{mail.ProviderOp{}, mail.OpCost{}},
 		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: -1}, mail.OpCost{Weight: 1}},
 	}
