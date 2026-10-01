@@ -85,8 +85,8 @@ func TestIntegrationRunsUnderPgrunWithTheTag(t *testing.T) {
 		p    preamble
 		want []string
 	}{
-		{"plain", plain, []string{"go", "test", "-json", "-count=1", "./p", "./q"}},
-		{"integration", integration, []string{"go", "tool", "pgrun", "-host", "127.0.0.1", "-port", "55432", "--", "go", "test", "-json", "-count=1", "-tags", "integration", "./p", "./q"}},
+		{"plain", plain, []string{"go", "test", "-json", "-count=1", "-trimpath", "./p", "./q"}},
+		{"integration", integration, []string{"go", "tool", "pgrun", "-host", "127.0.0.1", "-port", "55432", "--", "go", "test", "-json", "-count=1", "-trimpath", "-tags", "integration", "./p", "./q"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

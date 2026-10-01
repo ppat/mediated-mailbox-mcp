@@ -83,12 +83,13 @@ type testEvent struct {
 	FailedBuild string
 }
 
-// testCommand is the command a demonstration's runs use, go test -json -count=1 over the patch's
-// packages. A patch whose tests are integration tests runs them with the integration tag under pgrun,
-// given the flags in pgrun. pgrun runs from the copy's root, so it prepares the database from the
-// copy's own bootstrap and migration chain, which the patch may have changed.
+// testCommand is the command a demonstration's runs use, go test -json -count=1 -trimpath over the
+// patch's packages. -trimpath keeps the copy's directory out of the cache key of every package go
+// test compiles (main.go). A patch whose tests are integration tests runs them with the integration
+// tag under pgrun, given the flags in pgrun. pgrun runs from the copy's root, so it prepares the
+// database from the copy's own bootstrap and migration chain, which the patch may have changed.
 func testCommand(p preamble, pgrun []string) []string {
-	test := []string{"go", "test", "-json", "-count=1"}
+	test := []string{"go", "test", "-json", "-count=1", "-trimpath"}
 	if !p.integration {
 		return append(test, p.packages...)
 	}
