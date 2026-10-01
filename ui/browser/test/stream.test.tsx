@@ -9,7 +9,7 @@ import { options, type VNode } from "preact";
 import { act } from "preact/test-utils";
 import type { PlansPage, System } from "../src/app/api.ts";
 import { LiveIndicator, liveText } from "../src/app/live.tsx";
-import { LiveObjects } from "../src/app/stream.ts";
+import { LiveObjects, Streams } from "../src/app/stream.ts";
 import { schedule, type LiveStatus } from "../src/app/transport.ts";
 import { mount, type Mounted } from "./render.ts";
 
@@ -152,4 +152,85 @@ test("an event and the clock redraw the indicator's text and never re-run the co
   } finally {
     options.diffed = previous;
   }
+});
+
+// open is a stand-in for the transport, recording each connection Streams opens, which a test closes
+// and drives as the transport would.
+function streamsOver() {
+  const opened: { account: string; refetch: () => void; open: boolean }[] = [];
+  const streams = new Streams((account, _objects, refetch) => {
+    const connection = { account, refetch, open: true };
+    opened.push(connection);
+    return {
+      status: signal<LiveStatus>("connecting"),
+      stop: () => {
+        connection.open = false;
+      },
+    };
+  });
+  return { streams, opened };
+}
+
+test("surfaces following one account share one connection, which closes when the last stops", async () => {
+  const { streams, opened } = streamsOver();
+  const calls: string[] = [];
+  const strip = streams.follow("personal", {
+    onRun: (r) => calls.push(`strip ${r.run_id}`),
+    refetch: () => calls.push("strip refetch"),
+  });
+  const banner = streams.follow("personal", {
+    onRun: (r) => calls.push(`banner ${r.run_id}`),
+    refetch: () => calls.push("banner refetch"),
+  });
+  expect(opened.map((c) => c.account)).toEqual(["personal"]);
+  expect(banner.objects).toBe(strip.objects);
+  expect(banner.status).toBe(strip.status);
+  const run = (await system()).operational.backfill_pass2_run;
+  if (run === null) {
+    throw new Error("the recording holds no pass 2 run");
+  }
+  strip.objects.handle("run", JSON.stringify({ ...run, account: "personal" }), 1);
+  opened[0]?.refetch();
+  expect(calls).toEqual(["strip r-0913", "banner r-0913", "strip refetch", "banner refetch"]);
+
+  // A surface that stops is called no more, and the connection stays open for the other.
+  strip.stop();
+  strip.stop();
+  calls.length = 0;
+  opened[0]?.refetch();
+  strip.objects.handle("run", JSON.stringify({ ...run, account: "personal", state: "failed" }), 2);
+  expect(calls).toEqual(["banner refetch", "banner r-0913"]);
+  expect(opened[0]?.open).toBe(true);
+
+  // The last surface stopping closes the connection and clears the objects, keeping each signal a
+  // surface bound, so a connection opened later starts from nothing and still reaches that signal.
+  const bound = banner.objects.run(run.run_id);
+  banner.stop();
+  expect(opened[0]?.open).toBe(false);
+  expect(bound.value).toBeUndefined();
+  expect(banner.objects.updatedAt.value).toBeUndefined();
+  expect(banner.objects.lastRun.value).toBeUndefined();
+  calls.length = 0;
+  const later = streams.follow("personal", { refetch: () => calls.push("later refetch") });
+  expect(opened.map((c) => c.open)).toEqual([false, true]);
+  expect(later.objects).toBe(banner.objects);
+  later.objects.handle("run", JSON.stringify({ ...run, account: "personal" }), 3);
+  expect(bound.value?.run_id).toBe(run.run_id);
+  opened[0]?.refetch();
+  expect(calls).toEqual([]);
+  later.stop();
+});
+
+test("each account has its own connection", () => {
+  const { streams, opened } = streamsOver();
+  const personal = streams.follow("personal", { refetch: () => undefined });
+  const other = streams.follow("other", { refetch: () => undefined });
+  expect(opened.map((c) => [c.account, c.open])).toEqual([
+    ["personal", true],
+    ["other", true],
+  ]);
+  personal.stop();
+  expect(opened.map((c) => c.open)).toEqual([false, true]);
+  expect(other.objects).not.toBe(personal.objects);
+  other.stop();
 });

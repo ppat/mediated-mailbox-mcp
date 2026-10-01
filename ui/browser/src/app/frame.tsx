@@ -2,7 +2,6 @@
 // top bar, the address line, the partial-index banner of section 12 while a backfill pass runs, and the
 // screen's body. A detail panel, when the route opens one, sits beside the frame, and everything behind
 // it is inert until it closes (section 4).
-import { effect } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { useLocation } from "preact-iso";
@@ -13,7 +12,6 @@ import { count, share } from "./format.ts";
 import { bindings, ignoresKeys } from "./keys.ts";
 import { Menu } from "./menu.tsx";
 import { keepLastAccount, switchAccount } from "./routes.ts";
-import { LiveObjects } from "./stream.ts";
 import { applyTheme, keepTheme, storedTheme, themes, type Theme } from "./theme.ts";
 
 type FrameProps = {
@@ -32,6 +30,17 @@ const screens = [
   { name: "Jobs", path: "jobs", key: "j" },
   { name: "System", path: "system", key: "s" },
 ] as const;
+
+// existingScreen is the name of the screen an app path under an account opens, when that screen exists,
+// and undefined for one that does not exist yet, which the UI does not link to (docs/UI.md section 8.8).
+export function existingScreen(href: string): string | undefined {
+  const segment =
+    href
+      .split("?")[0]
+      ?.split("/")
+      .filter((s) => s !== "")[1] ?? "";
+  return screens.find((s) => s.path === segment)?.name;
+}
 
 export function Frame(props: FrameProps) {
   const { storage } = useDeps();
@@ -280,11 +289,11 @@ export const unknownIndex =
   "The index's backfill state is unknown, because the system read failed, so every count here may be a count so far.";
 
 // PartialIndexBanner reads the system endpoint's operational block. While it shows, it follows the
-// account's event stream and reads the block again on every backfill run event and on every poll of
+// account's event stream, through the tab's one connection for the account, and reads the block again on every backfill run event and on every poll of
 // the stream's fallback, so its figures move with the pass. It is not a live surface and shows no live
 // indicator (docs/UI.md section 9).
 function PartialIndexBanner(props: { account: string }) {
-  const { system, connect } = useDeps();
+  const { system, streams } = useDeps();
   const { account } = props;
   const path = systemPath(account);
   const text = bannerText(system.read(path).value);
@@ -293,19 +302,17 @@ function PartialIndexBanner(props: { account: string }) {
     if (!showing) {
       return undefined;
     }
-    const objects = new LiveObjects(account);
     const refresh = () => void system.refresh(path);
-    const subscription = connect(account, objects, refresh);
-    const stop = effect(() => {
-      if (objects.lastRun.value?.workload === "backfill") {
-        refresh();
-      }
+    const following = streams.follow(account, {
+      onRun: (run) => {
+        if (run.workload === "backfill") {
+          refresh();
+        }
+      },
+      refetch: refresh,
     });
-    return () => {
-      stop();
-      subscription.stop();
-    };
-  }, [showing, account, path, system, connect]);
+    return following.stop;
+  }, [showing, account, path, system, streams]);
   return text === undefined ? null : (
     <p class="banner" role="status">
       {text} <a href={screenPath(account, "jobs")}>See Jobs</a>

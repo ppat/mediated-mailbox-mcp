@@ -1,0 +1,39 @@
+{
+  "account": "other",
+  "as_of": "2026-09-10T10:16:04Z",
+  "backfill": {
+    "state": "not_started",
+    "pass1": {
+      "complete": false,
+      "run": null,
+      "eta_seconds": null
+    },
+    "pass2": {
+      "complete": false,
+      "run": null,
+      "eta_seconds": null
+    }
+  },
+  "sync": {
+    "state": "not_started",
+    "cadence_seconds": 300,
+    "cursor_at": null,
+    "last_tick": null,
+    "gap_recoveries_7d": 0,
+    "last_gap_recovery": null
+  },
+  "apply": {
+    "state": "not_started",
+    "running": null,
+    "last": null,
+    "rollback_available": false,
+    "op_log_rows": null
+  },
+  "heuristics": {
+    "state": "not_started",
+    "cadence_seconds": 86400,
+    "last": null,
+    "next_run_at": null
+  },
+  "rate": null
+}

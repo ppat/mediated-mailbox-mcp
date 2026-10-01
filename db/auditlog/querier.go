@@ -12,6 +12,12 @@ type Querier interface {
 	// The audit rows written since a time, counted per action, for the system endpoint's corpus block
 	// (docs/UI.md section 8.1). An action with no row has no count.
 	AuditActionCounts(ctx context.Context, arg AuditActionCountsParams) ([]AuditActionCountsRow, error)
+	// The bodies served on each UTC day from one time up to another, one row per day that has a serve, the
+	// daily counts the body-serve rule takes its median of (docs/UI.md section 8.1).
+	BodyServesByDay(ctx context.Context, arg BodyServesByDayParams) ([]BodyServesByDayRow, error)
+	// How many bodies were served since a time and when the first of them was, for the body-serve rule of
+	// Home's worth-a-look cards (docs/UI.md section 8.1). A denial is not a serve.
+	BodyServesSince(ctx context.Context, arg BodyServesSinceParams) (BodyServesSinceRow, error)
 	// How many audit rows one message has, beside the newest fifty a row detail lists.
 	MessageAuditCount(ctx context.Context, arg MessageAuditCountParams) (int64, error)
 	// The newest fifty audit rows of one message, which a row detail lists (docs/UI.md sections 7.1 and

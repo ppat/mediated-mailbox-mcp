@@ -4,7 +4,7 @@ import { act } from "preact/test-utils";
 import { accountsPath, systemPath, type System } from "../src/app/api.ts";
 import { bannerText, partialIndex, unknownIndex } from "../src/app/frame.tsx";
 import { App } from "../src/app/router.tsx";
-import { testDeps, type Connection } from "./app.ts";
+import { homeAnswers, testDeps, type Connection } from "./app.ts";
 import { ok, recorded, type Recorded } from "./fixtures/fetch.ts";
 import { at, mount, settle, type Mounted } from "./render.ts";
 
@@ -23,6 +23,8 @@ function serve(): Recorded {
     [accountsPath()]: ok("accounts.json"),
     [systemPath("personal")]: ok("system.json"),
     [systemPath("other")]: ok("system-other.json"),
+    ...homeAnswers("personal"),
+    ...homeAnswers("other"),
   });
   return server;
 }

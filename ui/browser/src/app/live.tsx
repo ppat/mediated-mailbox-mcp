@@ -5,7 +5,6 @@ import {
   computed,
   useComputed,
   effect,
-  untracked,
   useSignal,
   type ReadonlySignal,
   type Signal,
@@ -14,7 +13,7 @@ import { useEffect, useMemo } from "preact/hooks";
 import type { RunEvent } from "./api.ts";
 import { useDeps } from "./deps.ts";
 import { duration } from "./format.ts";
-import { LiveObjects } from "./stream.ts";
+import type { LiveObjects } from "./stream.ts";
 import { filled, ProgressTrack, type ProgressState } from "../lens/progress.tsx";
 import type { LiveStatus } from "./transport.ts";
 
@@ -62,35 +61,29 @@ export type Stream = {
   clock: Signal<number>;
 };
 
-// useStream subscribes a live surface to its account's stream while it is mounted (ADR-0058). onRun is
-// called with each run event and refetch on a reconnect and on every poll of the fallback. Neither
-// callback subscribes the surface to what it reads, since each runs untracked. A new callback opens a
-// new subscription, so each is made once per account and object, and reads the view it acts on when it
-// is called. enabled holds the
-// subscription back, for an account the accounts endpoint has not listed.
+// useStream follows the account's stream while the surface is mounted (ADR-0058), through the tab's one
+// connection for the account (docs/UI.md section 9). onRun is called with each run event and refetch on a
+// reconnect and on every poll of the fallback. Neither callback subscribes the surface to what it reads,
+// since each runs untracked. A new callback follows anew, so each is made once per account and object,
+// and reads the view it acts on when it is called. enabled holds the following back, for an account the
+// accounts endpoint has not listed.
 export function useStream(
   account: string,
   onRun: (run: RunEvent) => void,
   refetch: () => void,
   enabled = true,
 ): Stream {
-  const { connect, now, timers } = useDeps();
-  const objects = useMemo(() => new LiveObjects(account), [account]);
+  const { streams, now, timers } = useDeps();
+  const objects = useMemo(() => streams.objects(account), [streams, account]);
   const status = useSignal<LiveStatus>("connecting");
   const clock = useSignal(now());
   useEffect(() => {
     if (!enabled) {
       return undefined;
     }
-    const subscription = connect(account, objects, () => untracked(refetch));
+    const following = streams.follow(account, { onRun, refetch });
     const stopStatus = effect(() => {
-      status.value = subscription.status.value;
-    });
-    const stopRun = effect(() => {
-      const run = objects.lastRun.value;
-      if (run !== undefined) {
-        untracked(() => onRun(run));
-      }
+      status.value = following.status.value;
     });
     let tick: number | undefined;
     const advance = () => {
@@ -100,11 +93,10 @@ export function useStream(
     tick = timers.set(advance, 1_000);
     return () => {
       timers.clear(tick);
-      stopRun();
       stopStatus();
-      subscription.stop();
+      following.stop();
     };
-  }, [enabled, account, objects, connect, now, timers, status, clock, onRun, refetch]);
+  }, [enabled, account, streams, now, timers, status, clock, onRun, refetch]);
   return { objects, status, clock };
 }
 

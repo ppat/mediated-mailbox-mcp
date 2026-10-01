@@ -77,3 +77,36 @@ func TestTheStatementSetCheckReportsEachMismatch(t *testing.T) {
 		t.Fatalf("(-want +got):\n%s", d)
 	}
 }
+
+// A candidate's stored signals are read entry by entry, and nothing stored is refused or dropped: a key
+// of the wrong type is null, an entry without a string identifier has an empty one, an identifier
+// outside the five is sent as stored, and a value that is not a list is one entry (docs/UI.md section
+// 17.1).
+func TestStoredSignalsAreReadEntryByEntry(t *testing.T) {
+	text := func(s string) *string { return &s }
+	score := 0.87
+	cases := []struct {
+		stored string
+		want   []registry.Signal
+	}{
+		{`[]`, []registry.Signal{}},
+		{
+			`[{"heuristic": "display_name", "evidence": {"name": "Chase", "domain": "chase.com"}}, {"heuristic": "embedding_similarity", "evidence": {"domain": "chase.com", "score": 0.87}}]`,
+			[]registry.Signal{
+				{Heuristic: "display_name", Evidence: registry.Evidence{Name: text("Chase"), Domain: text("chase.com")}},
+				{Heuristic: "embedding_similarity", Evidence: registry.Evidence{Domain: text("chase.com"), Score: &score}},
+			},
+		},
+		{
+			`[{"heuristic": "institution_keyword", "evidence": {"keyword": 7, "score": "high"}}, {"heuristic": 3, "evidence": "x"}, "loose", {"heuristic": "a_new_one"}]`,
+			[]registry.Signal{{Heuristic: "institution_keyword"}, {}, {}, {Heuristic: "a_new_one"}},
+		},
+		{`{"heuristic": "display_name"}`, []registry.Signal{{}}},
+		{`null`, []registry.Signal{{}}},
+	}
+	for _, c := range cases {
+		if diff := cmp.Diff(c.want, registry.Signals([]byte(c.stored))); diff != "" {
+			t.Errorf("Signals(%s) (-want +got):\n%s", c.stored, diff)
+		}
+	}
+}

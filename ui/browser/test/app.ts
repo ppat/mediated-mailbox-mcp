@@ -7,7 +7,9 @@ import { configDefaults } from "../src/app/config.ts";
 import { makeDeps, regionTiming, type Deps, type Timers } from "../src/app/deps.ts";
 import type { LiveObjects } from "../src/app/stream.ts";
 import type { LiveStatus } from "../src/app/transport.ts";
-import type { Recorded } from "./fixtures/fetch.ts";
+import { attentionPath, jobsPath } from "../src/app/api.ts";
+import { oldestCandidates, pendingCandidates } from "../src/screens/home.tsx";
+import { ok, type Answer, type Recorded } from "./fixtures/fetch.ts";
 
 export type Connection = {
   account: string;
@@ -88,4 +90,16 @@ export function testDeps(
       };
     },
   );
+}
+
+// homeAnswers are the recordings of the reads Home makes for an account beside the system endpoint's,
+// which a test landing on Home serves with the chrome's (docs/UI.md section 8.1).
+export function homeAnswers(account: "personal" | "other"): Record<string, Answer> {
+  const suffix = account === "personal" ? "" : "-other";
+  return {
+    [jobsPath(account)]: ok(`jobs${suffix}.json`),
+    [attentionPath(account)]: ok(`attention${suffix}.json`),
+    [pendingCandidates(account)]: ok(`candidates-rows-pending${suffix}.json`),
+    [oldestCandidates(account)]: ok(`candidates-rows-pending-oldest${suffix}.json`),
+  };
 }

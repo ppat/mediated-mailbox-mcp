@@ -1,0 +1,20 @@
+control: Message-derived text renders inert
+removes: a signal whose identifier no template knows hands that identifier to the raw-markup escape hatch
+packages: ./ui/browser/test/home.test.tsx
+tests: message-derived and attacker-written text arrives inert on every surface of the screen
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 11d29a7..16fa927 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -357,7 +357,7 @@ export function SignalWords(props: { signals: readonly Signal[] }) {
+   }
+   return (
+     <>
+-      <span class="muted">{s.heuristic === "" ? "unreadable signal" : s.heuristic}</span>{" "}
++      <span class="muted" dangerouslySetInnerHTML={{ __html: s.heuristic }} />{" "}
+       <Badge tone="muted" text="unknown" />
+     </>
+   );

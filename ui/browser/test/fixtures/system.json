@@ -81,9 +81,9 @@
     "last_auth_outcome": "\u003cscript\u003emmfieldmarker-authoutcome\u003c/script\u003e"
   },
   "corpus": {
-    "messages": 4,
-    "threads": 3,
-    "unfiled": 2,
+    "messages": 5,
+    "threads": 4,
+    "unfiled": 3,
     "restricted": 1,
     "audit_24h": {
       "DENY_BODY": 1,
@@ -91,12 +91,12 @@
       "MUTATE": 0,
       "READ_BODY": 1
     },
-    "masking_events_7d": 1,
+    "masking_events_7d": 22,
     "gate_skips_7d": 1
   },
   "decisions": {
     "plans_draft": 1,
-    "candidates_pending": 1,
+    "candidates_pending": 6,
     "workloads_running": 2
   }
 }

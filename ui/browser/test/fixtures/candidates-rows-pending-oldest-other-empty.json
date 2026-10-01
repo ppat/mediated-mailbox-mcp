@@ -1,0 +1,17 @@
+{
+  "account": "other",
+  "dataset": "candidates",
+  "level": 3,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {
+    "range": "all",
+    "status": "pending"
+  },
+  "sort": "created_at,asc",
+  "page": 1,
+  "pages": 1,
+  "total": {
+    "count": 0
+  },
+  "rows": []
+}

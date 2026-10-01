@@ -1,0 +1,38 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: the strip draws the backfill checkpoint and its bar only when the first answer's checkpoint records a page, so a pass that starts while Home is open shows no progress on its first page event
+packages: ./ui/browser/test/home.test.tsx
+tests: a pass that starts while Home is open draws its checkpoint and bar on its first page event, and nothing re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 72cd67e..d93c3b2 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -184,15 +184,17 @@ function Cells(props: { account: string; jobs: Jobs; live: Stream }) {
+                 }
+               />
+             </Field>
+-            <Field name="checkpoint">
+-              <RunLine live={live} run={backfill.run} text={checkpointText} />
+-              <LiveProgress
+-                value={live.objects.run(backfill.run.run_id)}
+-                fallback={backfill.run}
+-                measure={runMeasure}
+-                label="Backfill progress"
+-              />
+-            </Field>
++            {pagesOf(backfill.run) === undefined ? null : (
++              <Field name="checkpoint">
++                <RunLine live={live} run={backfill.run} text={checkpointText} />
++                <LiveProgress
++                  value={live.objects.run(backfill.run.run_id)}
++                  fallback={backfill.run}
++                  measure={runMeasure}
++                  label="Backfill progress"
++                />
++              </Field>
++            )}
+             {backfill.eta === null ? null : (
+               <Field name="estimated time left">{duration(backfill.eta * 1_000)}</Field>
+             )}

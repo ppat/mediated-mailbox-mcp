@@ -32,6 +32,7 @@ import (
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/settings"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/serving"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/devloop"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
@@ -56,24 +57,34 @@ type Configuration struct {
 	DefaultTheme       string               `yaml:"default_theme"`
 	StreamReconnectMax time.Duration        `yaml:"stream_reconnect_max"`
 	StreamPollInterval time.Duration        `yaml:"stream_poll_interval"`
+	// The worth-a-look thresholds of docs/UI.md section 8.1, each 0 to disable its rule.
+	AttentionBacklogShare float64 `yaml:"attention_backlog_share"`
+	AttentionMaskCount    int64   `yaml:"attention_mask_count"`
+	AttentionServeFactor  float64 `yaml:"attention_serve_factor"`
+	AttentionGapDays      int64   `yaml:"attention_gap_days"`
 }
 
 // defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is
 // the one that fails closed, the two listen addresses are the mediator's, the intervals shown on the
 // jobs cards are ADR-0018's sync interval and ADR-0022's daily heuristics run, and the stream polls
 // every two seconds. The browser follows the OS theme, and its stream client backs off to 30 seconds
-// and polls every 5 seconds after its fallback (ADR-0058).
+// and polls every 5 seconds after its fallback (ADR-0058). The worth-a-look thresholds are section 8.1's
+// starting values.
 func defaults() Configuration {
 	return Configuration{
-		Database:           dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full"},
-		Listen:             ":8443",
-		ProbeListen:        ":8080",
-		SyncInterval:       5 * time.Minute,
-		HeuristicsInterval: 24 * time.Hour,
-		StreamInterval:     2 * time.Second,
-		DefaultTheme:       "system",
-		StreamReconnectMax: 30 * time.Second,
-		StreamPollInterval: 5 * time.Second,
+		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full"},
+		Listen:                ":8443",
+		ProbeListen:           ":8080",
+		SyncInterval:          5 * time.Minute,
+		HeuristicsInterval:    24 * time.Hour,
+		StreamInterval:        2 * time.Second,
+		DefaultTheme:          "system",
+		StreamReconnectMax:    30 * time.Second,
+		StreamPollInterval:    5 * time.Second,
+		AttentionBacklogShare: 5,
+		AttentionMaskCount:    20,
+		AttentionServeFactor:  2,
+		AttentionGapDays:      7,
 	}
 }
 
@@ -114,6 +125,8 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		Listen: c.Listen, ProbeListen: c.ProbeListen, TLSCert: c.TLSCert, TLSKey: c.TLSKey, InsecureHTTP: c.InsecureHTTP,
 		SyncInterval: int64(c.SyncInterval), HeuristicsInterval: int64(c.HeuristicsInterval), StreamInterval: int64(c.StreamInterval),
 		DefaultTheme: c.DefaultTheme, StreamReconnectMax: int64(c.StreamReconnectMax), StreamPollInterval: int64(c.StreamPollInterval),
+		AttentionBacklogShare: c.AttentionBacklogShare, AttentionMaskCount: c.AttentionMaskCount,
+		AttentionServeFactor: c.AttentionServeFactor, AttentionGapDays: c.AttentionGapDays,
 	}, devloop.Enabled()); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
@@ -139,6 +152,10 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		Clock:          time.Now,
 		Cadences:       api.Cadences{Sync: c.SyncInterval, Heuristics: c.HeuristicsInterval},
 		StreamInterval: c.StreamInterval,
+		Attention: attention.Thresholds{
+			BacklogShare: c.AttentionBacklogShare, MaskCount: c.AttentionMaskCount,
+			ServeFactor: c.AttentionServeFactor, GapDays: c.AttentionGapDays,
+		},
 		Browser: api.Browser{
 			DefaultTheme: c.DefaultTheme, StreamReconnectMax: c.StreamReconnectMax, StreamPollInterval: c.StreamPollInterval,
 		},

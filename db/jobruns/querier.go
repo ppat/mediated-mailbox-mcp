@@ -14,6 +14,10 @@ type Querier interface {
 	// A run's item failures counted per disposition, for the run summary's L0 (docs/UI.md section 8.4). A
 	// disposition with no failure has no row.
 	FailureDispositions(ctx context.Context, arg FailureDispositionsParams) ([]FailureDispositionsRow, error)
+	// The delta sync gap recoveries that succeeded and started since a time, oldest first, for the sync-gap
+	// rule of Home's worth-a-look cards (docs/UI.md section 8.1). Each carries its counters, which record
+	// the window it re-enumerated and the messages it reconciled (ADR-0016).
+	GapRecoveriesSince(ctx context.Context, arg GapRecoveriesSinceParams) ([]GapRecoveriesSinceRow, error)
 	// When the account's latest delta sync tick that succeeded finished, null when none has (ADR-0034).
 	LastSucceededTick(ctx context.Context, accountID string) (pgtype.Timestamptz, error)
 	// The latest run whose resumed_from names a run, the run summary's resumer (docs/UI.md section 8.4).

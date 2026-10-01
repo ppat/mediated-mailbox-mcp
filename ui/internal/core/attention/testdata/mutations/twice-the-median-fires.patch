@@ -1,0 +1,20 @@
+control: Body serves far above their daily median raise Home's body-serve card
+removes: the rule fires at exactly the factor times the median, so a count equal to its threshold raises the card
+packages: ./ui/internal/core/attention ./ui/internal/api
+tests: TestBodyServesFireAboveTheFactorOfTheMedian TestTheBodyServeRuleFiresFarAboveItsMedian
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/core/attention/attention.go b/ui/internal/core/attention/attention.go
+index 4a82aee..9ae7754 100644
+--- a/ui/internal/core/attention/attention.go
++++ b/ui/internal/core/attention/attention.go
+@@ -175,7 +175,7 @@ func Median(counts []int64) int64 {
+ // A median of 0 fires on any serve, which section 8.1 keeps on purpose.
+ func serves(t Thresholds, s Serves) (Card, bool) {
+ 	median := Median(s.DayCounts)
+-	if t.ServeFactor <= 0 || s.Count == 0 || float64(s.Count) <= t.ServeFactor*float64(median) {
++	if t.ServeFactor <= 0 || s.Count == 0 || float64(s.Count) < t.ServeFactor*float64(median) {
+ 		return Card{}, false
+ 	}
+ 	return Card{

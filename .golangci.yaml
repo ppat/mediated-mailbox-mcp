@@ -710,6 +710,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
+          # The masking events counted under their message's sender, which Home's masking card reads, in
+          # ui/internal/api/attention.go.
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policycandidates$"

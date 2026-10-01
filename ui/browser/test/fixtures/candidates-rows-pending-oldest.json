@@ -1,0 +1,153 @@
+{
+  "account": "personal",
+  "dataset": "candidates",
+  "level": 3,
+  "as_of": "2026-09-10T10:16:04Z",
+  "filters": {
+    "range": "all",
+    "status": "pending"
+  },
+  "sort": "created_at,asc",
+  "page": 1,
+  "pages": 1,
+  "total": {
+    "count": 6
+  },
+  "rows": [
+    {
+      "domain": "cluster.example",
+      "score": 0.85,
+      "signals": [
+        {
+          "heuristic": "domain_clustering",
+          "evidence": {
+            "name": null,
+            "domain": "\u003cscript\u003emmfieldmarker-clusterdomain\u003c/script\u003e",
+            "keyword": null,
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-08-01T10:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
+      "domain": "lender.example",
+      "score": 0.9,
+      "signals": [
+        {
+          "heuristic": "embedding_similarity",
+          "evidence": {
+            "name": null,
+            "domain": "bank.example",
+            "keyword": null,
+            "score": 0.5
+          }
+        },
+        {
+          "heuristic": "display_name",
+          "evidence": {
+            "name": "\u003cscript\u003emmfieldmarker-displayname\u003c/script\u003e",
+            "domain": "bank.example",
+            "keyword": null,
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-09T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": 4,
+      "first_seen": "2026-06-12T10:16:04Z"
+    },
+    {
+      "domain": "credit.example",
+      "score": 0.8,
+      "signals": [
+        {
+          "heuristic": "institution_keyword",
+          "evidence": {
+            "name": null,
+            "domain": null,
+            "keyword": "\u003cscript\u003emmfieldmarker-keyword\u003c/script\u003e",
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
+      "domain": "\u003cscript\u003emmfieldmarker-candidatedomain\u003c/script\u003e",
+      "score": 0.65,
+      "signals": [
+        {
+          "heuristic": "transactional_pattern",
+          "evidence": {
+            "name": null,
+            "domain": null,
+            "keyword": null,
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
+      "domain": "similar.example",
+      "score": 0.6,
+      "signals": [
+        {
+          "heuristic": "embedding_similarity",
+          "evidence": {
+            "name": null,
+            "domain": "\u003cscript\u003emmfieldmarker-similardomain\u003c/script\u003e",
+            "keyword": null,
+            "score": 0.874
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
+      "domain": "strange.example",
+      "score": 0.4,
+      "signals": [
+        {
+          "heuristic": "\u003cscript\u003emmfieldmarker-heuristic\u003c/script\u003e",
+          "evidence": {
+            "name": null,
+            "domain": null,
+            "keyword": null,
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    }
+  ]
+}

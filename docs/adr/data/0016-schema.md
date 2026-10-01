@@ -144,7 +144,19 @@ CREATE TABLE scan_gate_decisions (        -- makes ADR-0093's residual auditable
 CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
   account_id   text NOT NULL,
   domain       citext NOT NULL,
-  signals      jsonb NOT NULL,            -- one entry per heuristic that fired, with its evidence
+  signals      jsonb NOT NULL,            -- one entry per heuristic that fired, with its evidence, as
+                                          --   [{heuristic, evidence}], heuristic one of display_name,
+                                          --   domain_clustering, institution_keyword, transactional_pattern,
+                                          --   embedding_similarity (ADR-0004's heuristics in its table's
+                                          --   order), and evidence per heuristic: display_name name, domain;
+                                          --   domain_clustering domain; institution_keyword keyword;
+                                          --   transactional_pattern none, since it fires only when its three
+                                          --   facts all hold; embedding_similarity domain, score.
+                                          --   domain is the listed domain the display name matched
+                                          --   (display_name), the listed domain the sender clusters with
+                                          --   (domain_clustering), or the nearest confirmed sender's domain
+                                          --   (embedding_similarity); score is the similarity against the
+                                          --   confirmed-sensitive centroid ADR-0004 compares with
   score        real NOT NULL,
   status       text NOT NULL DEFAULT 'pending',  -- pending|confirmed|dismissed
   created_at   timestamptz NOT NULL DEFAULT now(),

@@ -124,7 +124,7 @@ test("the cards show each workload's state and fields, with the decisions block'
   expect(fields(root, "Heuristics")).toEqual([
     ["cadence", "every 1d"],
     ["last run", "2026-09-09 14:16Z, 0s, 2 candidates emitted"],
-    ["awaiting review", "1 candidates"],
+    ["awaiting review", "6 candidates"],
     ["next run", "2026-09-10 14:16Z"],
   ]);
   expect(root.querySelector('section[aria-label="Rate budget"] p')?.textContent).toBe(

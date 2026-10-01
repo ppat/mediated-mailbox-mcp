@@ -33,6 +33,12 @@ func TestTheConfigurationIsValidated(t *testing.T) {
 	if err := serving.Validate(valid(), false); err != nil {
 		t.Fatalf("a valid configuration was refused: %v", err)
 	}
+	// A threshold of 0 disables its rule, so every threshold at 0 is valid.
+	disabled := valid()
+	disabled.AttentionBacklogShare, disabled.AttentionMaskCount, disabled.AttentionServeFactor, disabled.AttentionGapDays = 0, 0, 0, 0
+	if err := serving.Validate(disabled, false); err != nil {
+		t.Fatalf("every worth-a-look rule disabled was refused: %v", err)
+	}
 	cases := []struct {
 		name   string
 		change func(*serving.Config)
@@ -48,6 +54,10 @@ func TestTheConfigurationIsValidated(t *testing.T) {
 		{"an unknown default theme", func(c *serving.Config) { c.DefaultTheme = "dim" }, "default_theme is not system, dark or light"},
 		{"a reconnection ceiling under a millisecond", func(c *serving.Config) { c.StreamReconnectMax = 999_999 }, "stream_reconnect_max is under a millisecond"},
 		{"a polling interval under a millisecond", func(c *serving.Config) { c.StreamPollInterval = 0 }, "stream_poll_interval is under a millisecond"},
+		{"a negative backlog share", func(c *serving.Config) { c.AttentionBacklogShare = -0.5 }, "attention_backlog_share is negative"},
+		{"a negative masking count", func(c *serving.Config) { c.AttentionMaskCount = -1 }, "attention_mask_count is negative"},
+		{"a negative serve factor", func(c *serving.Config) { c.AttentionServeFactor = -2 }, "attention_serve_factor is negative"},
+		{"a negative gap window", func(c *serving.Config) { c.AttentionGapDays = -7 }, "attention_gap_days is negative"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

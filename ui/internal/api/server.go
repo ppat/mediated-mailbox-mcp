@@ -16,6 +16,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
@@ -46,6 +47,8 @@ type Options struct {
 	// Clock is the server's time, which as_of and every relative range read.
 	Clock    func() time.Time
 	Cadences Cadences
+	// Attention is the worth-a-look rules' thresholds (docs/UI.md sections 8.1 and 18.1).
+	Attention attention.Thresholds
 	// StreamInterval is how often the event stream polls the recorded state (ADR-0058).
 	StreamInterval time.Duration
 	// Browser is the configuration the entry document hands the browser.
@@ -125,6 +128,7 @@ func New(opts Options) (*Server, error) {
 		"getLens":      s.lens,
 		"listAccounts": s.listAccounts,
 		"getSystem":    s.getSystem,
+		"getAttention": s.getAttention,
 		"getJobs":      s.getJobs,
 		"getRun":       s.getRun,
 		"streamEvents": s.streamEvents,

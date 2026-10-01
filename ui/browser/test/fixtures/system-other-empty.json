@@ -1,0 +1,37 @@
+{
+  "account": "other",
+  "provider": "gmail",
+  "as_of": "2026-09-10T10:16:04Z",
+  "operational": {
+    "connected": false,
+    "backfill_pass1_complete": false,
+    "backfill_pass1_run": null,
+    "backfill_pass2_complete": false,
+    "backfill_pass2_run": null,
+    "pending_scan": 0,
+    "sync_cursor_at": null,
+    "last_successful_tick_at": null,
+    "rate": null,
+    "last_auth_at": null,
+    "last_auth_outcome": null
+  },
+  "corpus": {
+    "messages": 0,
+    "threads": 0,
+    "unfiled": 0,
+    "restricted": 0,
+    "audit_24h": {
+      "DENY_BODY": 0,
+      "DENY_MUTATE": 0,
+      "MUTATE": 0,
+      "READ_BODY": 0
+    },
+    "masking_events_7d": 0,
+    "gate_skips_7d": 0
+  },
+  "decisions": {
+    "plans_draft": 0,
+    "candidates_pending": 0,
+    "workloads_running": 0
+  }
+}

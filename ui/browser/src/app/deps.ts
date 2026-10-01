@@ -6,12 +6,14 @@ import { createContext } from "preact";
 import { useContext } from "preact/hooks";
 import {
   readAccounts,
+  readAttention,
   readFailure,
   readJobs,
   readLens,
   readRun,
   readSystem,
   type Accounts,
+  type Attention,
   type FailureDetail,
   type Fetch,
   type Jobs,
@@ -21,8 +23,7 @@ import {
 } from "./api.ts";
 import { Cache } from "./cache.ts";
 import type { BrowserConfig } from "./config.ts";
-import type { LiveObjects } from "./stream.ts";
-import type { Subscription } from "./transport.ts";
+import { Streams, type Connect } from "./stream.ts";
 
 // Timing is when a region still loading says so, and when it shows its error card while the request
 // stays open (docs/UI.md section 12).
@@ -53,11 +54,12 @@ export type Deps = {
   timers: Timers;
   // config is what the entry document carries for the browser (docs/UI.md section 18.1).
   config: BrowserConfig;
-  // connect opens an account's event stream into objects, calling refetch on a reconnect and on every
-  // poll of the fallback. The composition root binds it to the transport, which only a browser runs.
-  connect: (account: string, objects: LiveObjects, refetch: () => void) => Subscription;
+  // streams shares one event stream per account among the surfaces that follow it. The composition
+  // root binds its connection to the transport, which only a browser runs.
+  streams: Streams;
   accounts: Cache<Accounts>;
   system: Cache<System>;
+  attention: Cache<Attention>;
   lens: Cache<LensAnswer>;
   jobs: Cache<Jobs>;
   runs: Cache<RunSummary>;
@@ -71,7 +73,7 @@ export function makeDeps(
   timing: Timing,
   timers: Timers,
   config: BrowserConfig,
-  connect: Deps["connect"],
+  connect: Connect,
 ): Deps {
   return {
     fetch,
@@ -80,9 +82,10 @@ export function makeDeps(
     timing,
     timers,
     config,
-    connect,
+    streams: new Streams(connect),
     accounts: new Cache((path, signal) => readAccounts(fetch, path, signal), now),
     system: new Cache((path, signal) => readSystem(fetch, path, signal), now),
+    attention: new Cache((path, signal) => readAttention(fetch, path, signal), now),
     lens: new Cache((path, signal) => readLens(fetch, path, signal), now),
     jobs: new Cache((path, signal) => readJobs(fetch, path, signal), now),
     runs: new Cache((path, signal) => readRun(fetch, path, signal), now),

@@ -1,0 +1,20 @@
+control: Body serves far above their daily median raise Home's body-serve card
+removes: the baseline is the seven whole UTC days before today rather than before the 24 hours start, so it takes in the day the 24 hours overlap
+packages: ./ui/internal/api
+tests: TestTheBodyServeRuleFiresFarAboveItsMedian
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/attention.go b/ui/internal/api/attention.go
+index 50b29ec..21c2e40 100644
+--- a/ui/internal/api/attention.go
++++ b/ui/internal/api/attention.go
+@@ -142,7 +142,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, accoun
+ 		}
+ 		// The baseline is the seven whole UTC days before the 24 hours start, the days the audit lens's
+ 		// median reads (docs/UI.md sections 8.1 and 8.5).
+-		end := start.UTC().Truncate(24 * time.Hour)
++		end := now.UTC().Truncate(24 * time.Hour)
+ 		days, err := q.audit.BodyServesByDay(ctx, auditlog.BodyServesByDayParams{
+ 			AccountID: account, RangeStart: at(end.AddDate(0, 0, -attention.BaselineDays)), RangeEnd: at(end),
+ 		})

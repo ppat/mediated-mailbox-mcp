@@ -103,3 +103,21 @@ WHERE
     r.account_id = @account_id
     AND (r.state = 'running' OR r.finished_at >= @since)
 ORDER BY r.started_at ASC, r.run_id ASC;
+
+-- name: GapRecoveriesSince :many
+-- The delta sync gap recoveries that succeeded and started since a time, oldest first, for the sync-gap
+-- rule of Home's worth-a-look cards (docs/UI.md section 8.1). Each carries its counters, which record
+-- the window it re-enumerated and the messages it reconciled (ADR-0016).
+SELECT
+    r.run_id,
+    r.started_at,
+    r.finished_at,
+    r.counters
+FROM job_runs AS r
+WHERE
+    r.account_id = @account_id
+    AND r.workload = 'sync'
+    AND r.pass = 'gap_recovery'
+    AND r.state = 'succeeded'
+    AND r.started_at >= @since
+ORDER BY r.started_at, r.run_id;

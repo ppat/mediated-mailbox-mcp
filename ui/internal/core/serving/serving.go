@@ -20,11 +20,16 @@ type Config struct {
 	DefaultTheme       string
 	StreamReconnectMax int64
 	StreamPollInterval int64
+	// The worth-a-look thresholds (docs/UI.md section 18.1), each 0 to disable its rule.
+	AttentionBacklogShare float64
+	AttentionMaskCount    int64
+	AttentionServeFactor  float64
+	AttentionGapDays      int64
 }
 
 // Validate refuses an empty listen or probe_listen, plain HTTP in a binary built without the devloop
-// build tag, TLS without both its files, an interval that is not positive, and a default theme
-// other than system, dark or light. devLoop is whether
+// build tag, TLS without both its files, an interval that is not positive, a default theme
+// other than system, dark or light, and a negative worth-a-look threshold. devLoop is whether
 // the binary was built with the tag. No image build sets it, so a deployed UI serves TLS only
 // (docs/UI.md section 18).
 func Validate(c Config, devLoop bool) error {
@@ -49,6 +54,14 @@ func Validate(c Config, devLoop bool) error {
 		return refusal("stream_reconnect_max is under a millisecond")
 	case c.StreamPollInterval < 1_000_000:
 		return refusal("stream_poll_interval is under a millisecond")
+	case c.AttentionBacklogShare < 0:
+		return refusal("attention_backlog_share is negative")
+	case c.AttentionMaskCount < 0:
+		return refusal("attention_mask_count is negative")
+	case c.AttentionServeFactor < 0:
+		return refusal("attention_serve_factor is negative")
+	case c.AttentionGapDays < 0:
+		return refusal("attention_gap_days is negative")
 	}
 	return nil
 }

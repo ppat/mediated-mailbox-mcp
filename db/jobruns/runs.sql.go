@@ -11,6 +11,62 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const gapRecoveriesSince = `-- name: GapRecoveriesSince :many
+SELECT
+    r.run_id,
+    r.started_at,
+    r.finished_at,
+    r.counters
+FROM job_runs AS r
+WHERE
+    r.account_id = $1
+    AND r.workload = 'sync'
+    AND r.pass = 'gap_recovery'
+    AND r.state = 'succeeded'
+    AND r.started_at >= $2
+ORDER BY r.started_at, r.run_id
+`
+
+type GapRecoveriesSinceParams struct {
+	AccountID string
+	Since     pgtype.Timestamptz
+}
+
+type GapRecoveriesSinceRow struct {
+	RunID      string
+	StartedAt  pgtype.Timestamptz
+	FinishedAt pgtype.Timestamptz
+	Counters   []byte
+}
+
+// The delta sync gap recoveries that succeeded and started since a time, oldest first, for the sync-gap
+// rule of Home's worth-a-look cards (docs/UI.md section 8.1). Each carries its counters, which record
+// the window it re-enumerated and the messages it reconciled (ADR-0016).
+func (q *Queries) GapRecoveriesSince(ctx context.Context, arg GapRecoveriesSinceParams) ([]GapRecoveriesSinceRow, error) {
+	rows, err := q.db.Query(ctx, gapRecoveriesSince, arg.AccountID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GapRecoveriesSinceRow
+	for rows.Next() {
+		var i GapRecoveriesSinceRow
+		if err := rows.Scan(
+			&i.RunID,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.Counters,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const latestRunInStates = `-- name: LatestRunInStates :one
 SELECT
     r.run_id,

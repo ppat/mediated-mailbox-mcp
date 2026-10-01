@@ -1,0 +1,19 @@
+control: A streamed event redraws a live surface's text without re-rendering a component
+removes: the running-work strip reads the rate's signal while rendering its cells, so every rate event re-renders every cell
+packages: ./ui/browser/test/home.test.tsx
+tests: an event redraws the strip's run and the batch class, and nothing re-runs
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 11d29a7..4b2ef07 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -156,6 +156,7 @@ function RunningNow(props: { account: string; live: Stream }) {
+ function Cells(props: { account: string; jobs: Jobs; live: Stream }) {
+   const { account, jobs, live } = props;
+   useFirstSpend(account, jobs, live);
++  void live.objects.rate.value;
+   const backfill = stripPass(jobs);
+   const tick = jobs.sync.last_tick;
+   const apply = jobs.apply;

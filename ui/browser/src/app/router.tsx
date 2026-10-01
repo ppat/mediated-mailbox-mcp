@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo } from "preact/hooks";
 import type { VNode } from "preact";
 import { LocationProvider, Route, Router, useLocation } from "preact-iso";
+import { HomeScreen, homeReads, onHomeRun } from "../screens/home.tsx";
 import { JobsScreen, onJobsRun } from "../screens/jobs.tsx";
 import { FailurePanel, onRunEvent, RunLive, RunScreen, runReads } from "../screens/run.tsx";
 import { summaryView } from "../lens/lens.tsx";
@@ -27,8 +28,7 @@ export function App(props: { deps: Deps }) {
   );
 }
 
-// Routes is the route table. The screens' bodies land with their own work, so an account's route shows
-// the frame around an empty body until the home screen does.
+// Routes is the route table, one route for each screen that exists.
 export function Routes() {
   return (
     <Router>
@@ -99,8 +99,37 @@ function Entry() {
   );
 }
 
+// AccountHome is the home screen with its stream and live indicator (docs/UI.md sections 8.1 and 9).
 function AccountHome(props: { account: string }) {
-  return <Frame account={props.account}>{null}</Frame>;
+  const { account } = props;
+  const deps = useDeps();
+  const listed = useListed(account);
+  const onRun = useMemo(() => onHomeRun(deps, account, new Map()), [deps, account]);
+  const refetch = useCallback(() => {
+    for (const p of homeReads(account)) {
+      void refetchPath(deps, p);
+    }
+  }, [deps, account]);
+  const live = useStream(account, onRun, refetch, listed);
+  return (
+    <Frame account={account} live={<Live stream={live} />}>
+      <HomeScreen account={account} live={live} />
+    </Frame>
+  );
+}
+
+// refetchPath reads one of Home's paths again through the cache that holds it.
+function refetchPath(deps: Deps, path: string): Promise<unknown> {
+  if (path.includes("/lens?")) {
+    return deps.lens.refresh(path);
+  }
+  if (path.endsWith("/attention")) {
+    return deps.attention.refresh(path);
+  }
+  if (path.endsWith("/system")) {
+    return deps.system.refresh(path);
+  }
+  return deps.jobs.refresh(path);
 }
 
 function System(props: { account: string }) {

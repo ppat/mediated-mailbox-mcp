@@ -1,0 +1,26 @@
+control: Message-derived text renders inert
+removes: the decision inbox hands a candidate's domain to the raw-markup escape hatch
+packages: ./ui/browser/test/home.test.tsx
+tests: message-derived and attacker-written text arrives inert on every surface of the screen
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 11d29a7..910aa2d 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -392,9 +392,11 @@ function Inbox(props: { account: string }) {
+                 {rows.map((row) => (
+                   <li key={row.domain} class="inbox-item">
+                     <span class="label">Candidate</span>
+-                    <span class="inbox-domain" title={row.domain}>
+-                      {row.domain}
+-                    </span>
++                    <span
++                      class="inbox-domain"
++                      title={row.domain}
++                      dangerouslySetInnerHTML={{ __html: row.domain }}
++                    />
+                     <span class="inbox-signal">
+                       <SignalWords signals={row.signals} />
+                     </span>

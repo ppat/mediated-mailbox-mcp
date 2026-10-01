@@ -1,0 +1,20 @@
+control: Message-derived text renders inert
+removes: a candidate's strongest signal, worded from its evidence, is handed to the raw-markup escape hatch
+packages: ./ui/browser/test/home.test.tsx
+tests: message-derived and attacker-written text arrives inert on every surface of the screen
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 11d29a7..d095d92 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -353,7 +353,7 @@ export function SignalWords(props: { signals: readonly Signal[] }) {
+   }
+   const text = signalText(s);
+   if (text !== undefined) {
+-    return <>{text}</>;
++    return <span dangerouslySetInnerHTML={{ __html: text }} />;
+   }
+   return (
+     <>

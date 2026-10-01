@@ -31,13 +31,13 @@ export type Value = {
 
 // jobsHref is the jobs screen of an account, where the rows of the backfill run, delta sync and the
 // rate link (docs/UI.md section 8.8).
-function jobsHref(account: string): string {
+export function jobsHref(account: string): string {
   return `/${encodeURIComponent(account)}/jobs`;
 }
 
 // pass is a backfill pass's value, complete, or running with its page of pages while its latest run
 // runs, else not complete.
-function pass(key: string, label: string, complete: boolean, run: Run | null): Value {
+export function pass(key: string, label: string, complete: boolean, run: Run | null): Value {
   if (complete) {
     return { key, label, text: "complete" };
   }
