@@ -191,7 +191,8 @@ type state struct {
 	Ended    bool
 	Runs     []run
 	Messages map[string]stored
-	// Events counts the masking events recorded for each message.
+	// Events counts the masking events recorded for each message under the scanner its stored subject
+	// was masked under.
 	Events  map[string]int
 	Senders map[string]sender
 }
@@ -204,6 +205,9 @@ type run struct {
 type stored struct {
 	Domain, Subject, Class string
 	ClassRule              *string
+	// Revision is the scanner configuration's revision the subject was masked under, every scanner
+	// here being version 1.
+	Revision string
 }
 
 type sender struct {
@@ -247,6 +251,32 @@ type world struct {
 	unclassified int
 	runs         int
 	pageSize     int
+	// rescans counts the changes of scanner, and ended is set while the pass was last seen ended, so
+	// a change of scanner reopens it. expect is the progress a run recovering from the last crash
+	// must start from, worked out when the process stopped.
+	rescans int
+	ended   bool
+	expect  core.Progress
+	// enumerations counts the enumerations runs started from the first page, the first and each one a
+	// reopened pass or a change of scanner started over.
+	enumerations int
+}
+
+// revision returns the scanner configuration's revision after n changes of scanner.
+func revision(n int) string { return fmt.Sprintf("revision-%d", n) }
+
+// rescan changes the scanner every later process masks with, as a release or a configuration change
+// does, and stops the process, since a change takes a restart (ADR-0078, ADR-0096). Every scanner here
+// masks alike, so only the revision tells them apart.
+func (w *world) rescan(t tb) {
+	t.Helper()
+	w.rescans++
+	scanner, err := scan.New(scan.DefaultConfig(), revision(w.rescans))
+	if err != nil {
+		t.Fatalf("building the scanner: %v", err)
+	}
+	w.deps.Scanner = scanner
+	w.pass = nil
 }
 
 // newWorld builds a world over store, enumerating the mailbox s generates. port turns the throttled
@@ -258,7 +288,7 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 	if err != nil {
 		t.Fatalf("building the mailbox: %v", err)
 	}
-	w := &world{ctx: context.Background(), account: account, store: store, inspect: inspect, want: want, pageSize: max(s.PageSize, 1)}
+	w := &world{ctx: context.Background(), account: account, store: store, inspect: inspect, want: want, pageSize: max(s.PageSize, 1), enumerations: 1}
 	throttled := fake.Throttle(f, func(fake.Call) error {
 		if w.throttle > 0 {
 			w.throttle--
@@ -271,7 +301,7 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 	if err != nil {
 		t.Fatalf("loading the policy: %v", err)
 	}
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(scan.DefaultConfig(), revision(0))
 	if err != nil {
 		t.Fatalf("building the scanner: %v", err)
 	}
@@ -307,11 +337,21 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 // open opens a run, the recovery path.
 func (w *world) open(t tb) {
 	t.Helper()
+	// A pass that ended with messages masked under an earlier scanner is reopened, and a run resuming
+	// an enumeration made under an earlier scanner starts it over, each enumerating again (ADR-0096).
+	now := core.Stamp{Version: 1, Revision: revision(w.rescans)}
+	if w.reported.Checkpoint.Stamp != now && (w.ended && len(w.durable) > 0 || !w.ended && w.reported.Checkpoint.Page > 0) {
+		w.enumerations++
+	}
 	p, err := pass1.Open(w.ctx, w.deps, w.account)
 	if err != nil {
 		t.Fatalf("opening a run: %v", err)
 	}
 	w.pass = p
+	// A run that opened recorded the progress it starts from, which is then what was last reported.
+	if p.Run() != "" {
+		w.reported, w.ended = p.Progress(), false
+	}
 }
 
 // step makes one more page durable, opening a run first when no process runs one, as the job is
@@ -336,6 +376,9 @@ func (w *world) step(t tb) bool {
 	if err != nil {
 		w.pass = nil
 		return false
+	}
+	if s.Done {
+		w.ended = true
 	}
 	return s.Done
 }
@@ -363,6 +406,19 @@ func (w *world) crash(t tb, at int) {
 		w.cut, w.cutAfter = false, false
 	}
 	w.pass = nil
+	// The run that recovers resumes from the progress last reported. A pass reopened by a change of
+	// scanner starts afresh, and a run resuming an enumeration made under another scanner starts it
+	// over with its counters (ADR-0096).
+	now := core.Stamp{Version: 1, Revision: revision(w.rescans)}
+	w.expect = w.reported
+	switch {
+	case w.ended:
+		w.expect = core.Progress{Checkpoint: core.Checkpoint{Stamp: now}}
+	case w.expect.Checkpoint.Stamp != now && w.expect.Checkpoint.Page > 0:
+		w.expect = core.Progress{Checkpoint: core.Checkpoint{Stamp: now}, Counters: w.expect.Counters}
+	default:
+		w.expect.Checkpoint.Stamp = now
+	}
 }
 
 // cutting is the world's store, which stops the process once a commit has ended when the world's crash
@@ -372,7 +428,7 @@ type cutting struct {
 	w *world
 }
 
-func (c cutting) Commit(ctx context.Context, account, runID string, p core.Page, recovered *pass1.Failure, advance func(int) core.Progress) (pass1.Committed, error) {
+func (c cutting) Commit(ctx context.Context, account, runID string, p core.Page, recovered *pass1.Failure, advance func(int, int) core.Progress) (pass1.Committed, error) {
 	at, err := c.Store.Commit(ctx, account, runID, p, recovered, advance)
 	if err == nil && c.w.cutAfter {
 		c.w.cutAfter = false
@@ -399,8 +455,8 @@ func (w *world) persistence(t tb) {
 	if !ok || latest.State != "running" {
 		t.Fatalf("after recovery the latest run is %+v, want a running one", latest)
 	}
-	if diff := cmp.Diff(w.reported, latest.Progress, compare.Options); diff != "" {
-		t.Errorf("the recovered run does not start from the progress last reported (-reported +recovered):\n%s", diff)
+	if diff := cmp.Diff(w.expect, latest.Progress, compare.Options); diff != "" {
+		t.Errorf("the recovered run does not start from the progress last reported (-want +recovered):\n%s", diff)
 	}
 	for _, r := range got.Runs[:len(got.Runs)-1] {
 		if r.State == "running" {
@@ -445,12 +501,18 @@ func (w *world) progress(t tb) {
 			t.Errorf("run %s is left running", r.ID)
 		}
 	}
-	if latest, ok := got.latest(); !ok || latest.State != "succeeded" || latest.Progress.Counters.Messages != len(w.want) {
-		t.Errorf("the latest run is %+v, want one that succeeded having added %d messages", latest, len(w.want))
+	latest, ok := got.latest()
+	if !ok || latest.State != "succeeded" {
+		t.Errorf("the latest run is %+v, want one that succeeded", latest)
+	}
+	// With no change of scanner one pass added every message. A change of scanner reopens the pass,
+	// which starts afresh, so its counters count only what that pass added and masked again.
+	if w.rescans == 0 && latest.Progress.Counters.Messages != len(w.want) {
+		t.Errorf("the latest run is %+v, want one that added %d messages", latest, len(w.want))
 	}
 	messages, counts := map[string]stored{}, map[string]sender{}
 	for _, m := range w.want {
-		messages[m.ID] = stored{Domain: m.Domain, Subject: m.Subject, Class: m.Class, ClassRule: m.ClassRule}
+		messages[m.ID] = stored{Domain: m.Domain, Subject: m.Subject, Class: m.Class, ClassRule: m.ClassRule, Revision: revision(w.rescans)}
 		s := counts[m.Domain]
 		s.Count++
 		s.Class = m.Class
@@ -469,8 +531,10 @@ func (w *world) progress(t tb) {
 	if rework := w.fetched - w.committed; rework > w.crashes {
 		t.Errorf("%d pages were fetched and %d made durable across %d crashes, more than one page of rework a crash", w.fetched, w.committed, w.crashes)
 	}
-	if pages := max(1, (len(w.want)+w.pageSize-1)/w.pageSize); w.fetched > pages+w.crashes {
-		t.Errorf("the provider returned %d pages for a mailbox of %d across %d crashes, more than one page of rework a crash", w.fetched, pages, w.crashes)
+	// A change of scanner costs an enumeration only when a run starts one over from the first page.
+	if pages := max(1, (len(w.want)+w.pageSize-1)/w.pageSize); w.fetched > pages*w.enumerations+w.crashes {
+		t.Errorf("the provider returned %d pages for a mailbox of %d across %d crashes and %d enumerations started from the first page, more than a page of rework a crash",
+			w.fetched, pages, w.crashes, w.enumerations)
 	}
 }
 
@@ -533,17 +597,22 @@ func inspectPostgres(t tb, url, account string) state {
 	var r run
 	_, err = pgx.ForEachRow(rows, []any{&r.ID, &r.State, &r.ResumedFrom, &cp, &ct}, func() error {
 		var c struct {
-			Page  int    `json:"page"`
-			Token string `json:"token"`
+			Page     int    `json:"page"`
+			Token    string `json:"token"`
+			Version  int    `json:"version"`
+			Revision string `json:"revision"`
 		}
-		var n struct{ Pages, Messages int }
+		var n struct{ Pages, Messages, Remasked int }
 		if err := json.Unmarshal(cp, &c); err != nil {
 			return err
 		}
 		if err := json.Unmarshal(ct, &n); err != nil {
 			return err
 		}
-		r.Progress = core.Progress{Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token)}, Counters: core.Counters{Pages: n.Pages, Messages: n.Messages}}
+		r.Progress = core.Progress{
+			Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Stamp: core.Stamp{Version: c.Version, Revision: c.Revision}},
+			Counters:   core.Counters{Pages: n.Pages, Messages: n.Messages, Remasked: n.Remasked},
+		}
 		runs = append(runs, r)
 		return nil
 	})
@@ -553,12 +622,13 @@ func inspectPostgres(t tb, url, account string) state {
 	s.Runs = runs
 	var m stored
 	var id string
-	rows, err = conn.Query(ctx, "SELECT message_id, from_domain::text, subject, sender_class, class_rule_id FROM messages WHERE account_id = $1", account)
+	rows, err = conn.Query(ctx, `SELECT message_id, from_domain::text, subject, sender_class, class_rule_id, coalesce(subject_scanner_revision, '')
+		FROM messages WHERE account_id = $1`, account)
 	if err != nil {
 		t.Fatalf("reading: %v", err)
 	}
 	var rule pgtype.Text
-	_, err = pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.Subject, &m.Class, &rule}, func() error {
+	_, err = pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.Subject, &m.Class, &rule, &m.Revision}, func() error {
 		m.ClassRule = nil
 		if rule.Valid {
 			r := rule.String
@@ -571,7 +641,11 @@ func inspectPostgres(t tb, url, account string) state {
 		t.Fatalf("reading the messages: %v", err)
 	}
 	var n int
-	rows, err = conn.Query(ctx, "SELECT message_id, count(*) FROM masking_events WHERE account_id = $1 GROUP BY message_id", account)
+	rows, err = conn.Query(ctx, `SELECT e.message_id, count(*) FROM masking_events AS e
+		JOIN messages AS m ON m.account_id = e.account_id AND m.message_id = e.message_id
+		WHERE e.account_id = $1 AND e.scanner_version IS NOT DISTINCT FROM m.subject_scanner_version
+			AND e.scanner_revision IS NOT DISTINCT FROM m.subject_scanner_revision
+		GROUP BY e.message_id`, account)
 	if err != nil {
 		t.Fatalf("reading: %v", err)
 	}
@@ -597,27 +671,41 @@ type memory struct {
 	ended    bool
 	runs     []run
 	messages map[string]core.Message
-	events   map[string]int
+	// events counts the masking events of each message by the scanner they were recorded under.
+	events   map[string]map[core.Stamp]int
 	failures []pass1.Failure
 	timeline []pass1.Event
+	items    []pass1.Item
 }
 
 var _ pass1.Store = (*memory)(nil)
 
 func newMemory() *memory {
-	return &memory{messages: map[string]core.Message{}, events: map[string]int{}}
+	return &memory{messages: map[string]core.Message{}, events: map[string]map[core.Stamp]int{}}
 }
 
-func (m *memory) State(ctx context.Context, _ string) (bool, core.Latest[core.Progress], error) {
+func (m *memory) State(ctx context.Context, _ string, s core.Stamp) (bool, bool, core.Latest[core.Progress], error) {
 	if err := ctx.Err(); err != nil {
-		return false, core.Latest[core.Progress]{}, err
+		return false, false, core.Latest[core.Progress]{}, err
+	}
+	due := false
+	for _, msg := range m.messages {
+		due = due || msg.Stamp != s
 	}
 	if len(m.runs) == 0 {
-		return m.ended, core.Latest[core.Progress]{}, nil
+		return m.ended, due, core.Latest[core.Progress]{}, nil
 	}
 	r := m.runs[len(m.runs)-1]
 	states := map[string]core.RunState{"running": core.Running, "succeeded": core.Succeeded, "failed": core.Failed}
-	return m.ended, core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+	return m.ended, due, core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+}
+
+// mask stores msg's subject as masked under its scanner, with its masking events.
+func (m *memory) mask(msg core.Message) {
+	if m.events[msg.ID] == nil {
+		m.events[msg.ID] = map[core.Stamp]int{}
+	}
+	m.events[msg.ID][msg.Stamp] += len(msg.Masks)
 }
 
 func (m *memory) end(id, st string) {
@@ -635,22 +723,32 @@ func (m *memory) Start(ctx context.Context, _, runID string, start core.Start[co
 	if start.Abandon {
 		m.end(start.ResumedFrom, "failed")
 	}
+	if start.Reopen {
+		m.ended = false
+	}
 	m.runs = append(m.runs, run{ID: runID, State: "running", ResumedFrom: start.ResumedFrom, Progress: start.From})
 	return nil
 }
 
-func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, recovered *pass1.Failure, advance func(int) core.Progress) (pass1.Committed, error) {
+func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, recovered *pass1.Failure, advance func(int, int) core.Progress) (pass1.Committed, error) {
 	if err := ctx.Err(); err != nil {
 		return pass1.Committed{}, err
 	}
 	var c pass1.Committed
-	added := 0
+	added, remasked := 0, 0
 	for _, msg := range p.Messages {
-		if _, ok := m.messages[msg.ID]; ok {
+		if held, ok := m.messages[msg.ID]; ok {
+			if held.Stamp == msg.Stamp {
+				continue
+			}
+			held.Subject, held.SubjectMasked, held.Masks, held.Stamp = msg.Subject, msg.SubjectMasked, msg.Masks, msg.Stamp
+			m.messages[msg.ID] = held
+			m.mask(msg)
+			remasked++
 			continue
 		}
 		m.messages[msg.ID] = msg
-		m.events[msg.ID] += len(msg.Masks)
+		m.mask(msg)
 		added++
 		if msg.Unclassified {
 			c.Unclassified++
@@ -659,7 +757,7 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, recov
 	if recovered != nil {
 		m.failures = append(m.failures, *recovered)
 	}
-	c.Progress = advance(added)
+	c.Progress = advance(added, remasked)
 	for i := range m.runs {
 		if m.runs[i].ID == runID {
 			m.runs[i].Progress = c.Progress
@@ -668,13 +766,27 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, recov
 	return c, nil
 }
 
-func (m *memory) Finish(ctx context.Context, _, runID string) error {
+func (m *memory) Finish(ctx context.Context, _, runID string, s core.Stamp, gone func([]core.Stored) []core.Message, now time.Time) (int, error) {
 	if err := ctx.Err(); err != nil {
-		return err
+		return 0, err
+	}
+	var stale []core.Stored
+	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
+		if msg := m.messages[id]; msg.Stamp != s {
+			stale = append(stale, core.Stored{ID: id, Subject: msg.Subject})
+		}
+	}
+	whole := gone(stale)
+	for _, msg := range whole {
+		held := m.messages[msg.ID]
+		held.Subject, held.SubjectMasked, held.Masks, held.Stamp = msg.Subject, msg.SubjectMasked, msg.Masks, msg.Stamp
+		m.messages[msg.ID] = held
+		m.mask(msg)
+		m.items = append(m.items, pass1.Item{Kind: "message", ID: msg.ID, Class: "gone", Attempts: 1, First: now, Last: now, Disposition: "gone"})
 	}
 	m.ended = true
 	m.end(runID, "succeeded")
-	return nil
+	return len(whole), nil
 }
 
 func (m *memory) Fail(ctx context.Context, _, runID, _ string) error {
@@ -704,14 +816,15 @@ func (m *memory) Failure(ctx context.Context, _, _ string, f pass1.Failure) erro
 // inspect returns the model's state, the senders' statistics taken from the messages it holds, as the
 // store rebuilds them.
 func (m *memory) inspect(tb) state {
-	s := state{Ended: m.ended, Runs: slices.Clone(m.runs), Messages: map[string]stored{}, Events: maps.Clone(m.events), Senders: map[string]sender{}}
+	s := state{Ended: m.ended, Runs: slices.Clone(m.runs), Messages: map[string]stored{}, Events: map[string]int{}, Senders: map[string]sender{}}
 	for id, msg := range m.messages {
-		st := stored{Domain: msg.Domain, Subject: msg.Subject, Class: string(msg.Class)}
+		st := stored{Domain: msg.Domain, Subject: msg.Subject, Class: string(msg.Class), Revision: msg.Stamp.Revision}
 		if msg.ClassRule != "" {
 			rule := msg.ClassRule
 			st.ClassRule = &rule
 		}
 		s.Messages[id] = st
+		s.Events[id] = m.events[id][msg.Stamp]
 		sd := s.Senders[msg.Domain]
 		sd.Count++
 		if sd.Class != "restricted" {

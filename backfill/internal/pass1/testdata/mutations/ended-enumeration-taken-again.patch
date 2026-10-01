@@ -1,7 +1,7 @@
 control: A killed backfill run resumes from its last checkpointed page, with at most one page of rework
 removes: a run resuming an enumeration that has ended asks for the first page again rather than finishing
 packages: ./backfill/internal/pass1
-tests: TestAKilledRunResumesFromItsCheckpoint
+tests: TestARunKilledBeforeItsEndFinishesWithoutEnumeratingAgain
 scheduled-count: no
 integration: yes
 

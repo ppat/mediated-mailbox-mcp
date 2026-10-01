@@ -183,6 +183,72 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
 	return result.RowsAffected(), nil
 }
 
+const requeueSignalledSkips = `-- name: RequeueSignalledSkips :execrows
+UPDATE messages
+SET scan_state = 'pending'
+WHERE account_id = $1 AND scan_state = 'skipped_gate' AND subject_masked
+`
+
+// Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
+// since the gate decided without that signal (ADR-0096, ADR-0093).
+func (q *Queries) RequeueSignalledSkips(ctx context.Context, accountID string) (int64, error) {
+	result, err := q.db.Exec(ctx, requeueSignalledSkips, accountID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const requeueStaleVerdicts = `-- name: RequeueStaleVerdicts :many
+UPDATE messages
+SET
+    scan_state = 'pending',
+    content_flags = '{}',
+    rule_ids = '{}',
+    scanned_at = NULL,
+    scanner_version = NULL,
+    scanner_revision = NULL
+WHERE
+    account_id = $1
+    AND scan_state = 'scanned'
+    AND (
+        scanner_version IS DISTINCT FROM $2::int
+        OR scanner_revision IS DISTINCT FROM $3::text
+    )
+RETURNING from_domain
+`
+
+type RequeueStaleVerdictsParams struct {
+	AccountID       string
+	ScannerVersion  int32
+	ScannerRevision string
+}
+
+// Returns each of the account's scanned messages whose verdict was made under another scanner version
+// or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
+// Gate denies its body as pending its content scan (ADR-0096). A backfill run makes it at its start,
+// before the first pass. It returns each message's sender domain, whose prior hits the caller counts
+// again.
+func (q *Queries) RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerdictsParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, requeueStaleVerdicts, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var from_domain string
+		if err := rows.Scan(&from_domain); err != nil {
+			return nil, err
+		}
+		items = append(items, from_domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const restrictedDomains = `-- name: RestrictedDomains :many
 SELECT DISTINCT m.from_domain
 FROM messages AS m

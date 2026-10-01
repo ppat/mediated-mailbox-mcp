@@ -74,6 +74,37 @@ func TestBegin(t *testing.T) {
 	}
 }
 
+// A run resuming a stopped pass while a backfill run's start marked the pass to start over starts over
+// from the first waiting message, its counters carried, since what that step returned to pending may
+// sit before the checkpoint. Without the mark it resumes where it stopped (ADR-0096).
+func TestOver(t *testing.T) {
+	at := pass2.Progress{Checkpoint: pass2.Checkpoint{Page: 3, After: "m30"}, Counters: pass2.Counters{Pages: 3, Decided: 30, Scanned: 20, Skipped: 10}}
+	resumed := pass1.Start[pass2.Progress]{ResumedFrom: "r1", From: at}
+	cases := []struct {
+		name     string
+		start    pass1.Start[pass2.Progress]
+		marked   bool
+		want     pass1.Start[pass2.Progress]
+		wantOver bool
+	}{
+		{"a skipped pass", pass1.Start[pass2.Progress]{Skip: true}, true, pass1.Start[pass2.Progress]{Skip: true}, false},
+		{"a fresh pass", pass1.Start[pass2.Progress]{}, true, pass1.Start[pass2.Progress]{}, false},
+		{"a resumed run without the mark", resumed, false, resumed, false},
+		{"a resumed run with the mark", resumed, true, pass1.Start[pass2.Progress]{ResumedFrom: "r1", From: pass2.Progress{Counters: at.Counters}}, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, over := pass2.Over(c.start, c.marked)
+			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
+				t.Errorf("Over (-want +got):\n%s", diff)
+			}
+			if over != c.wantOver {
+				t.Errorf("Over reports starting over %v, want %v", over, c.wantOver)
+			}
+		})
+	}
+}
+
 // Starting over keeps the counters and returns to the first waiting message.
 func TestRestart(t *testing.T) {
 	at := pass2.Progress{Checkpoint: pass2.Checkpoint{Page: 3, After: "m30"}, Counters: pass2.Counters{Pages: 3, Decided: 30}}

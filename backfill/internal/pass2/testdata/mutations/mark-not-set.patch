@@ -1,0 +1,33 @@
+control: A second pass resuming a stopped pass while the run-start step's mark is set starts over from the first waiting message
+removes: the run-start step reopens the second pass without marking it to start over
+packages: ./backfill
+tests: TestARevertedChangeOfScannerStillScansWhatItReturnedToPending TestAStoppedSecondPassKeepsItsRecordAndStartsOver
+scheduled-count: no
+integration: yes
+
+diff --git a/db/accountstate/completion/completion.sql b/db/accountstate/completion/completion.sql
+index 635c28a..030cce3 100644
+--- a/db/accountstate/completion/completion.sql
++++ b/db/accountstate/completion/completion.sql
+@@ -24,7 +24,7 @@ WHERE account_id = @account_id;
+ -- first message waiting for a scan, in the transaction a backfill run makes before its first pass to
+ -- return the verdicts another scanner made to pending (ADR-0096).
+ UPDATE account_state
+-SET backfill_pass2_complete = false, backfill_pass2_restart = true
++SET backfill_pass2_complete = false
+ WHERE account_id = @account_id;
+ 
+ -- name: SecondRestart :one
+diff --git a/db/accountstate/completion/completion.sql.go b/db/accountstate/completion/completion.sql.go
+index b28d68c..16f4b1e 100644
+--- a/db/accountstate/completion/completion.sql.go
++++ b/db/accountstate/completion/completion.sql.go
+@@ -37,7 +37,7 @@ func (q *Queries) ReopenBackfillFirst(ctx context.Context, accountID string) err
+ 
+ const reopenBackfillSecond = `-- name: ReopenBackfillSecond :exec
+ UPDATE account_state
+-SET backfill_pass2_complete = false, backfill_pass2_restart = true
++SET backfill_pass2_complete = false
+ WHERE account_id = $1
+ `
+ 

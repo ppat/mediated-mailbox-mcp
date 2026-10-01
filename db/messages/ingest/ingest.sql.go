@@ -29,7 +29,9 @@ INSERT INTO messages (
     size_bytes,
     auth_results,
     sender_class,
-    class_rule_id
+    class_rule_id,
+    subject_scanner_version,
+    subject_scanner_revision
 ) VALUES (
     $1,
     $2,
@@ -47,37 +49,41 @@ INSERT INTO messages (
     $14,
     $15,
     $16,
-    $17
+    $17,
+    $18,
+    $19
 )
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id
 `
 
 type InsertMessageParams struct {
-	AccountID      string
-	MessageID      string
-	ThreadID       string
-	FromEmail      string
-	FromDomain     string
-	FromName       pgtype.Text
-	Subject        pgtype.Text
-	SubjectMasked  bool
-	SentAt         pgtype.Timestamptz
-	Labels         []string
-	Flags          []byte
-	HasAttachments bool
-	ListID         pgtype.Text
-	SizeBytes      pgtype.Int4
-	AuthResults    []byte
-	SenderClass    string
-	ClassRuleID    pgtype.Text
+	AccountID              string
+	MessageID              string
+	ThreadID               string
+	FromEmail              string
+	FromDomain             string
+	FromName               pgtype.Text
+	Subject                pgtype.Text
+	SubjectMasked          bool
+	SentAt                 pgtype.Timestamptz
+	Labels                 []string
+	Flags                  []byte
+	HasAttachments         bool
+	ListID                 pgtype.Text
+	SizeBytes              pgtype.Int4
+	AuthResults            []byte
+	SenderClass            string
+	ClassRuleID            pgtype.Text
+	SubjectScannerVersion  pgtype.Int4
+	SubjectScannerRevision pgtype.Text
 }
 
 // Adds one message's metadata to the index, with its sender class, the policy rule that set it or
-// null when none did, and its subject already masked (ADR-0003, ADR-0016, ADR-0017). A message the
-// index already holds is left as it is and returns no row, so a page ingested twice adds nothing the
-// second time and its caller records masking events only for the messages this call added. The row
-// holds no body, snippet or attachment name (ADR-0016).
+// null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
+// version and configuration revision the masking ran under (ADR-0096). A message the index already
+// holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
+// The row holds no body, snippet or attachment name (ADR-0016).
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error) {
 	row := q.db.QueryRow(ctx, insertMessage,
 		arg.AccountID,
@@ -97,8 +103,132 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (s
 		arg.AuthResults,
 		arg.SenderClass,
 		arg.ClassRuleID,
+		arg.SubjectScannerVersion,
+		arg.SubjectScannerRevision,
 	)
 	var message_id string
 	err := row.Scan(&message_id)
 	return message_id, err
+}
+
+const remaskSubject = `-- name: RemaskSubject :execrows
+UPDATE messages
+SET
+    subject = $1,
+    subject_masked = $2,
+    subject_scanner_version = $3::int,
+    subject_scanner_revision = $4::text
+WHERE
+    account_id = $5
+    AND message_id = $6
+    AND (
+        subject_scanner_version IS DISTINCT FROM $3::int
+        OR subject_scanner_revision IS DISTINCT FROM $4::text
+    )
+`
+
+type RemaskSubjectParams struct {
+	Subject         pgtype.Text
+	SubjectMasked   bool
+	ScannerVersion  int32
+	ScannerRevision string
+	AccountID       string
+	MessageID       string
+}
+
+// Replaces a stored subject masked under another scanner version or configuration revision, or under
+// none recorded, with the subject masked under the pair given, and records the pair (ADR-0096). No
+// other column of the row changes. A subject already masked under the pair given is left as it is and
+// counts no row, so a page taken twice masks nothing twice.
+func (q *Queries) RemaskSubject(ctx context.Context, arg RemaskSubjectParams) (int64, error) {
+	result, err := q.db.Exec(ctx, remaskSubject,
+		arg.Subject,
+		arg.SubjectMasked,
+		arg.ScannerVersion,
+		arg.ScannerRevision,
+		arg.AccountID,
+		arg.MessageID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const staleSubject = `-- name: StaleSubject :one
+SELECT exists(
+    SELECT 1
+    FROM messages AS m
+    WHERE
+        m.account_id = $1
+        AND (
+            m.subject_scanner_version IS DISTINCT FROM $2::int
+            OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+        )
+) AS stale
+`
+
+type StaleSubjectParams struct {
+	AccountID       string
+	ScannerVersion  int32
+	ScannerRevision string
+}
+
+// Whether any of the account's stored subjects was masked under another scanner version or
+// configuration revision than the one given, or under none recorded, which makes the first pass due
+// again (ADR-0096).
+func (q *Queries) StaleSubject(ctx context.Context, arg StaleSubjectParams) (bool, error) {
+	row := q.db.QueryRow(ctx, staleSubject, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	var stale bool
+	err := row.Scan(&stale)
+	return stale, err
+}
+
+const staleSubjects = `-- name: StaleSubjects :many
+SELECT
+    m.message_id,
+    coalesce(m.subject, '')::text AS subject
+FROM messages AS m
+WHERE
+    m.account_id = $1
+    AND (
+        m.subject_scanner_version IS DISTINCT FROM $2::int
+        OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+    )
+ORDER BY m.message_id
+`
+
+type StaleSubjectsParams struct {
+	AccountID       string
+	ScannerVersion  int32
+	ScannerRevision string
+}
+
+type StaleSubjectsRow struct {
+	MessageID string
+	Subject   string
+}
+
+// The account's messages whose stored subject was masked under another scanner version or
+// configuration revision than the one given, or under none recorded, with the subject as stored, in
+// the order of their identifiers. When an enumeration made under the pair given ends, these are the
+// messages it did not find (ADR-0096).
+func (q *Queries) StaleSubjects(ctx context.Context, arg StaleSubjectsParams) ([]StaleSubjectsRow, error) {
+	rows, err := q.db.Query(ctx, staleSubjects, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StaleSubjectsRow
+	for rows.Next() {
+		var i StaleSubjectsRow
+		if err := rows.Scan(&i.MessageID, &i.Subject); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
+	"github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/scan"
 	decisions "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/senders"
@@ -81,11 +82,14 @@ func decode(cp, ct []byte) (core.Progress, error) {
 	}, nil
 }
 
+// version returns a scanner version as the database stores it.
+func version(v int) int32 { return int32(min(max(v, 0), 1<<31-1)) } //nolint:gosec // Bounded.
+
 // State implements Store.
-func (s *Postgres) State(ctx context.Context, account string) (bool, bool, pass1core.Latest[core.Progress], error) {
+func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool, pass1core.Latest[core.Progress], error) {
 	var (
-		first, ended bool
-		latest       pass1core.Latest[core.Progress]
+		first, ended, restart bool
+		latest                pass1core.Latest[core.Progress]
 	)
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		progress, err := accountstate.New(t).AccountProgress(ctx, account)
@@ -93,6 +97,9 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, bool, pass1
 			return fmt.Errorf("reading the completion flags: %w", err)
 		}
 		first, ended = progress.BackfillPass1Complete, progress.BackfillPass2Complete
+		if restart, err = completion.New(t).SecondRestart(ctx, account); err != nil {
+			return fmt.Errorf("reading whether the pass is marked to start over: %w", err)
+		}
 		r, err := pass1.LatestRun(ctx, record.New(t), account, pass)
 		if err != nil || !r.Found {
 			return err
@@ -101,7 +108,7 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, bool, pass1
 		latest.Progress, err = decode(r.Checkpoint, r.Counters)
 		return err
 	})
-	return first, ended, latest, err
+	return first, ended, restart, latest, err
 }
 
 // Start implements Store.
@@ -111,6 +118,9 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1
 		return err
 	}
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+		if err := completion.New(t).ClearSecondRestart(ctx, account); err != nil {
+			return fmt.Errorf("clearing the mark that starts the pass over: %w", err)
+		}
 		return pass1.StartRun(ctx, record.New(t), account, pass1.Starting{
 			Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
 			Checkpoint: cp, Counters: ct, Page: start.From.Checkpoint.Page,
@@ -154,6 +164,65 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 			Kind: "retry",
 			Detail: fmt.Sprintf("the delisting transition returned %d messages of %d senders the policy no longer restricts to pending scan, "+
 				"so the pass starts over from the first message waiting for a scan", marked, len(domains)),
+		})
+	})
+	return marked, err
+}
+
+// Reopen implements Store.
+func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.Stamp) (int, error) {
+	marked := 0
+	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+		marked = 0
+		domains, err := scan.New(t).RequeueStaleVerdicts(ctx, scan.RequeueStaleVerdictsParams{
+			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
+		})
+		if err != nil {
+			return fmt.Errorf("returning the verdicts another scanner made to pending scan: %w", err)
+		}
+		slices.Sort(domains)
+		for _, d := range slices.Compact(slices.Clone(domains)) {
+			n, err := senders.New(t).RecountScanHits(ctx, senders.RecountScanHitsParams{AccountID: account, Domain: d})
+			if err != nil {
+				return fmt.Errorf("counting the prior hits of the sender at %q again: %w", d, err)
+			}
+			if n != 1 {
+				return fmt.Errorf("counting the prior hits of the sender at %q again changed %d rows, want 1", d, n)
+			}
+		}
+		stale, err := ingest.New(t).StaleSubject(ctx, ingest.StaleSubjectParams{
+			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
+		})
+		if err != nil {
+			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
+		}
+		marked = len(domains)
+		if marked == 0 && !stale {
+			return nil
+		}
+		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
+			return fmt.Errorf("recording the pass as due again: %w", err)
+		}
+		return nil
+	})
+	return marked, err
+}
+
+// RequeueSkips implements Store.
+func (s *Postgres) RequeueSkips(ctx context.Context, account, runID string) (int, error) {
+	marked := 0
+	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+		skips, err := scan.New(t).RequeueSignalledSkips(ctx, account)
+		if err != nil {
+			return fmt.Errorf("returning the skips decided without their subject's signal to pending scan: %w", err)
+		}
+		marked = int(skips)
+		if marked == 0 {
+			return nil
+		}
+		return pass1.RecordEvent(ctx, record.New(t), account, runID, pass1.Event{
+			Kind:   "retry",
+			Detail: fmt.Sprintf("%d skips decided without their subject's signal returned to pending scan", skips),
 		})
 	})
 	return marked, err

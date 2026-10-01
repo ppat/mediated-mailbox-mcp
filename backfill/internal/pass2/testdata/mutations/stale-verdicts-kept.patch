@@ -1,0 +1,23 @@
+control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
+removes: a backfill run leaves a verdict made under another scanner in force
+packages: ./backfill ./backfill/internal/pass2
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+index 0ae704b..777ceb0 100644
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -168,9 +168,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
+ 	marked := 0
+ 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+ 		marked = 0
+-		domains, err := scan.New(t).RequeueStaleVerdicts(ctx, scan.RequeueStaleVerdictsParams{
+-			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
+-		})
++		var domains []string
++		var err error
+ 		if err != nil {
+ 			return fmt.Errorf("returning the verdicts another scanner made to pending scan: %w", err)
+ 		}

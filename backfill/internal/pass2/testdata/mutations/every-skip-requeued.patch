@@ -1,0 +1,30 @@
+control: A message the gate skipped whose subject is now masked returns to pending
+removes: every message the gate skipped returns to pending, whether or not its subject is masked
+packages: ./backfill ./backfill/internal/pass2
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
+index ad24399..2ac7fdd 100644
+--- a/db/messages/scan/scan.sql
++++ b/db/messages/scan/scan.sql
+@@ -116,4 +116,4 @@ RETURNING from_domain;
+ -- since the gate decided without that signal (ADR-0096, ADR-0093).
+ UPDATE messages
+ SET scan_state = 'pending'
+-WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_masked;
++WHERE account_id = @account_id AND scan_state = 'skipped_gate';
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index 5c37b00..4ce38b5 100644
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -185,7 +185,7 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
+ const requeueSignalledSkips = `-- name: RequeueSignalledSkips :execrows
+ UPDATE messages
+ SET scan_state = 'pending'
+-WHERE account_id = $1 AND scan_state = 'skipped_gate' AND subject_masked
++WHERE account_id = $1 AND scan_state = 'skipped_gate'
+ `
+ 
+ // Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,

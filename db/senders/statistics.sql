@@ -58,3 +58,20 @@ ON CONFLICT (account_id, domain) DO UPDATE
 UPDATE senders
 SET scan_hit_count = scan_hit_count + @hits
 WHERE account_id = @account_id AND domain = @domain;
+
+-- name: RecountScanHits :execrows
+-- Counts the prior hits of the account's sender at domain again from the stored messages whose scan
+-- verdict carries a content flag, after messages of the sender returned to pending scan with their
+-- verdict cleared, so a message scanned again counts once (ADR-0096, ADR-0093).
+UPDATE senders AS s
+SET
+    scan_hit_count = (
+        SELECT count(*)
+        FROM messages AS m
+        WHERE
+            m.account_id = @account_id
+            AND m.from_domain = @domain
+            AND m.scan_state = 'scanned'
+            AND cardinality(m.content_flags) > 0
+    )
+WHERE s.account_id = @account_id AND s.domain = @domain;

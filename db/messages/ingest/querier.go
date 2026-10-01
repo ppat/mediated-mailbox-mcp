@@ -10,11 +10,25 @@ import (
 
 type Querier interface {
 	// Adds one message's metadata to the index, with its sender class, the policy rule that set it or
-	// null when none did, and its subject already masked (ADR-0003, ADR-0016, ADR-0017). A message the
-	// index already holds is left as it is and returns no row, so a page ingested twice adds nothing the
-	// second time and its caller records masking events only for the messages this call added. The row
-	// holds no body, snippet or attachment name (ADR-0016).
+	// null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
+	// version and configuration revision the masking ran under (ADR-0096). A message the index already
+	// holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
+	// The row holds no body, snippet or attachment name (ADR-0016).
 	InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error)
+	// Replaces a stored subject masked under another scanner version or configuration revision, or under
+	// none recorded, with the subject masked under the pair given, and records the pair (ADR-0096). No
+	// other column of the row changes. A subject already masked under the pair given is left as it is and
+	// counts no row, so a page taken twice masks nothing twice.
+	RemaskSubject(ctx context.Context, arg RemaskSubjectParams) (int64, error)
+	// Whether any of the account's stored subjects was masked under another scanner version or
+	// configuration revision than the one given, or under none recorded, which makes the first pass due
+	// again (ADR-0096).
+	StaleSubject(ctx context.Context, arg StaleSubjectParams) (bool, error)
+	// The account's messages whose stored subject was masked under another scanner version or
+	// configuration revision than the one given, or under none recorded, with the subject as stored, in
+	// the order of their identifiers. When an enumeration made under the pair given ends, these are the
+	// messages it did not find (ADR-0096).
+	StaleSubjects(ctx context.Context, arg StaleSubjectsParams) ([]StaleSubjectsRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -67,8 +67,9 @@ func codeSubject() string {
 }
 
 // Each sender is classified under the account's policy, and each subject is masked, a restricted
-// sender's included (ADR-0003, ADR-0004). A listed sender carries the rule that restricted it, and
-// no other sender carries a rule (ADR-0016). An address whose domain cannot be read is restricted and
+// sender's included, and stamped with the scanner version and revision it was masked under (ADR-0003,
+// ADR-0004, ADR-0096). A listed sender carries the rule that restricted it, and no other sender
+// carries a rule (ADR-0016). An address whose domain cannot be read is restricted and
 // marked unclassified. The domains are listed once each, sorted.
 func TestDecide(t *testing.T) {
 	bank := fixture.Bank()
@@ -89,6 +90,7 @@ func TestDecide(t *testing.T) {
 			ID: m.ID, ThreadID: m.ThreadID, From: m.From, Domain: domain, Subject: subject,
 			SubjectMasked: len(masks) > 0, Date: m.Date, Labels: m.Labels, ListID: m.ListID,
 			SizeBytes: m.SizeBytes, Class: class, ClassRule: rule, Unclassified: m.From.Email == "no-address-at-all", Masks: masks,
+			Stamp: pass1.Stamp{Version: 1, Revision: "a-revision"},
 		}
 	}
 	want := pass1.Page{
@@ -126,49 +128,55 @@ func TestDecideFailsClosed(t *testing.T) {
 	}
 }
 
-// How a run starts, from whether the pass has ended and the latest run recorded (ADR-0017).
+// How a run starts, from whether the pass has ended, whether it is due again because a scanner other
+// than the one in force decided what the index holds, and the latest run recorded (ADR-0017,
+// ADR-0096).
 func TestBegin(t *testing.T) {
 	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 7, Token: "p8"}, Counters: pass1.Counters{Pages: 7, Messages: 690}}
+	succeeded := pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}
+	running := pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Running, Progress: at}
 	cases := []struct {
-		name   string
-		ended  bool
-		latest pass1.Latest[pass1.Progress]
-		want   pass1.Start[pass1.Progress]
+		name       string
+		ended, due bool
+		latest     pass1.Latest[pass1.Progress]
+		want       pass1.Start[pass1.Progress]
 	}{
-		{"a pass that ended", true, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}, pass1.Start[pass1.Progress]{Skip: true}},
-		{"a pass that ended with a run left running", true, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Running, Progress: at}, pass1.Start[pass1.Progress]{Skip: true}},
-		{"no run yet", false, pass1.Latest[pass1.Progress]{}, pass1.Start[pass1.Progress]{}},
-		{"a run that failed", false, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Failed, Progress: at}, pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: at}},
-		{
-			"a run that stopped without recording its end", false,
-			pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Running, Progress: at},
-			pass1.Start[pass1.Progress]{ResumedFrom: "r1", Abandon: true, From: at},
-		},
-		{"a pass asked to run again after it succeeded", false, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}, pass1.Start[pass1.Progress]{}},
+		{"a pass that ended", true, false, succeeded, pass1.Start[pass1.Progress]{Skip: true}},
+		{"a pass that ended with a run left running", true, false, running, pass1.Start[pass1.Progress]{Skip: true}},
+		{"no run yet", false, false, pass1.Latest[pass1.Progress]{}, pass1.Start[pass1.Progress]{}},
+		{"no run yet, with work another scanner decided", false, true, pass1.Latest[pass1.Progress]{}, pass1.Start[pass1.Progress]{}},
+		{"a run that failed", false, false, pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Failed, Progress: at}, pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: at}},
+		{"a run that stopped without recording its end", false, false, running, pass1.Start[pass1.Progress]{ResumedFrom: "r1", Abandon: true, From: at}},
+		{"a pass asked to run again after it succeeded", false, false, succeeded, pass1.Start[pass1.Progress]{}},
+		{"a pass that ended and is due again", true, true, succeeded, pass1.Start[pass1.Progress]{Reopen: true}},
+		{"a pass that ended and is due again with a run left running", true, true, running, pass1.Start[pass1.Progress]{Reopen: true, ResumedFrom: "r1", Abandon: true, From: at}},
+		{"a pass not ended that is due again", false, true, running, pass1.Start[pass1.Progress]{ResumedFrom: "r1", Abandon: true, From: at}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, pass1.Begin(c.ended, c.latest), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, pass1.Begin(c.ended, c.due, c.latest), compare.Options); diff != "" {
 				t.Errorf("Begin (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-// A page made durable moves the checkpoint one page on to the provider's next token and adds what it
-// added to the counters. A pass started over keeps its counters and returns to the first page.
+// A page made durable moves the checkpoint one page on to the provider's next token, keeps the scanner
+// the enumeration masks under, and adds what it added and masked again to the counters. A pass started
+// over keeps its counters and its scanner and returns to the first page.
 func TestAdvanceAndRestart(t *testing.T) {
-	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 2, Token: "p3"}, Counters: pass1.Counters{Pages: 4, Messages: 150}}
-	want := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 3, Token: "p4"}, Counters: pass1.Counters{Pages: 5, Messages: 170}}
-	if diff := cmp.Diff(want, pass1.Advance(at, "p4", nil, 20), compare.Options); diff != "" {
+	stamp := pass1.Stamp{Version: 3, Revision: "r"}
+	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 2, Token: "p3", Stamp: stamp}, Counters: pass1.Counters{Pages: 4, Messages: 150, Remasked: 9}}
+	want := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 3, Token: "p4", Stamp: stamp}, Counters: pass1.Counters{Pages: 5, Messages: 170, Remasked: 12}}
+	if diff := cmp.Diff(want, pass1.Advance(at, "p4", nil, 20, 3), compare.Options); diff != "" {
 		t.Errorf("Advance (-want +got):\n%s", diff)
 	}
-	last := pass1.Advance(at, "", nil, 0)
+	last := pass1.Advance(at, "", nil, 0, 0)
 	if !last.Checkpoint.Ended() || at.Checkpoint.Ended() || (pass1.Checkpoint{}).Ended() {
 		t.Errorf("Ended is %v after the last page, %v mid-way and %v before the first, want true, false, false",
 			last.Checkpoint.Ended(), at.Checkpoint.Ended(), (pass1.Checkpoint{}).Ended())
 	}
-	if diff := cmp.Diff(pass1.Progress{Counters: at.Counters}, pass1.Restart(at), compare.Options); diff != "" {
+	if diff := cmp.Diff(pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: stamp}, Counters: at.Counters}, pass1.Restart(at), compare.Options); diff != "" {
 		t.Errorf("Restart (-want +got):\n%s", diff)
 	}
 }
@@ -198,10 +206,69 @@ func TestAdvanceEstimatesThePagesFromTheTotal(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := pass1.Advance(at, c.next, c.total, 0).Checkpoint.Of; got != c.want {
+			if got := pass1.Advance(at, c.next, c.total, 0, 0).Checkpoint.Of; got != c.want {
 				t.Errorf("Advance to page 3 with the next token %q and the total %+v gave of %d, want %d", c.next, c.total, got, c.want)
 			}
 		})
+	}
+}
+
+// A run starting under a scanner the enumeration it resumes was not made under starts the enumeration
+// over from the first page, its counters carried, so an enumeration that ends was made under one
+// scanner from its first page. The estimate of the pages the old enumeration takes is dropped with
+// it, and a run that resumes under the same scanner keeps its estimate. Every run that starts records
+// the scanner it masks under (ADR-0096).
+func TestUnder(t *testing.T) {
+	old, now := pass1.Stamp{Version: 1, Revision: "old"}, pass1.Stamp{Version: 1, Revision: "new"}
+	counters := pass1.Counters{Pages: 4, Messages: 12, Remasked: 2}
+	resumed := func(page int, s pass1.Stamp) pass1.Start[pass1.Progress] {
+		return pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: page, Token: "p", Of: 9, Stamp: s}, Counters: counters}}
+	}
+	cases := []struct {
+		name     string
+		start    pass1.Start[pass1.Progress]
+		want     pass1.Start[pass1.Progress]
+		wantOver bool
+	}{
+		{"a skipped pass", pass1.Start[pass1.Progress]{Skip: true}, pass1.Start[pass1.Progress]{Skip: true}, false},
+		{"a fresh pass", pass1.Start[pass1.Progress]{Reopen: true}, pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}}, false},
+		{"a run resumed under the same scanner", resumed(3, now), resumed(3, now), false},
+		{
+			"a run resumed under another scanner", resumed(3, old),
+			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}, Counters: counters}},
+			true,
+		},
+		{
+			"a run resumed under another version", resumed(3, pass1.Stamp{Version: 2, Revision: "new"}),
+			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}, Counters: counters}},
+			true,
+		},
+		{"a run resumed before its first page", resumed(0, old), pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Token: "p", Of: 9, Stamp: now}, Counters: counters}}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, over := pass1.Under(c.start, now)
+			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
+				t.Errorf("Under (-want +got):\n%s", diff)
+			}
+			if over != c.wantOver {
+				t.Errorf("Under reports starting over %v, want %v", over, c.wantOver)
+			}
+		})
+	}
+}
+
+// A stored subject the enumeration did not find is masked whole under the scanner in force, with the
+// one event of a whole subject, as a scanner that cannot decide masks it (ADR-0096, ADR-0003).
+func TestUnfound(t *testing.T) {
+	s := pass1.Stamp{Version: 1, Revision: "new"}
+	got := pass1.Unfound([]pass1.Stored{{ID: "m1", Subject: "Your code is ██████"}, {ID: "m2", Subject: ""}}, s)
+	want := []pass1.Message{
+		{ID: "m1", Subject: "███████████████████", SubjectMasked: true, Masks: []pass1.Mask{{Rule: "mask.whole_subject"}}, Stamp: s},
+		{ID: "m2", Subject: "", SubjectMasked: true, Masks: []pass1.Mask{{Rule: "mask.whole_subject"}}, Stamp: s},
+	}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("Unfound (-want +got):\n%s", diff)
 	}
 }
 

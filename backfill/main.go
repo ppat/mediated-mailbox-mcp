@@ -285,7 +285,8 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
 }
 
 // firstPass returns the unit of work that runs backfill's two passes over every served account in
-// turn (ADR-0017), spending from each account's rate budget under the target its state row sets
+// turn (ADR-0017), returning the verdicts another scanner made to pending before the first
+// (ADR-0096), spending from each account's rate budget under the target its state row sets
 // (ADR-0024). The second pass runs for an account once its first has ended. Every page of either pass
 // is one unit of work, so the account's token is handed over after each. An account whose pass fails
 // leaves the others to run, and the run ends in an error naming it.
@@ -325,15 +326,12 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 				Policy: s.policy.For(account), Scanner: scanner, Lookups: lookups,
 				RunID: runID, Now: time.Now,
 			}
-			err = passAccount(ctx, deps, account, metrics, s.handOver, logger)
-			if err == nil {
-				second := pass2.Deps{
-					Store: secondStore, Body: leasedBody(limiter, adapter, account),
-					Policy: s.policy.For(account), Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
-					PageSize: pageSize, RunID: runID, Now: time.Now,
-				}
-				err = secondPassAccount(ctx, second, account, secondMetrics, s.handOver, logger)
+			second := pass2.Deps{
+				Store: secondStore, Body: leasedBody(limiter, adapter, account),
+				Policy: s.policy.For(account), Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
+				PageSize: pageSize, RunID: runID, Now: time.Now,
 			}
+			err = backfillAccount(ctx, deps, second, account, metrics, secondMetrics, s.handOver, logger)
 			if err != nil {
 				failures = append(failures, fmt.Errorf("account %s: %w", account, err))
 			}
@@ -343,6 +341,36 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 		}
 		return errors.Join(failures...)
 	}, nil
+}
+
+// backfillAccount runs backfill over one account. It first returns the verdicts made under another
+// scanner to pending, so they are denied whatever the first pass does, then runs the first pass, and
+// the second once the first has ended (ADR-0096, ADR-0017).
+func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, metrics *pass1.Metrics, secondMetrics *pass2.Metrics,
+	handOver func(context.Context, string) error, logger *slog.Logger,
+) error {
+	if err := reopen(ctx, second, account, logger); err != nil {
+		return err
+	}
+	if err := passAccount(ctx, first, account, metrics, handOver, logger); err != nil {
+		return err
+	}
+	return secondPassAccount(ctx, second, account, secondMetrics, handOver, logger)
+}
+
+// reopen returns to pending every verdict of the account made under another scanner than the one the
+// run scans with, before the first pass, so it is denied from the start of the run that sees it
+// whatever the first pass does, and reopens the second pass when it did or the first pass is due again
+// (ADR-0096).
+func reopen(ctx context.Context, deps pass2.Deps, account string, logger *slog.Logger) error {
+	n, err := pass2.Reopen(ctx, deps, account)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		logger.Info("verdicts made under another scanner returned to pending", "account", account, "messages", n)
+	}
+	return nil
 }
 
 // passAccount runs the first pass over one account a page at a time, handing the account's token

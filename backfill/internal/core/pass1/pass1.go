@@ -2,14 +2,17 @@
 // shell enumerates the mailbox a page at a time and enacts what this package decides.
 //
 // Begin decides how a run starts from what the index holds, a fresh pass, a resumed one or none at
-// all. OnFailure decides what a run does after an attempt at a page fails. Decide turns one page of metadata into the rows the index stores, each sender classified
-// against the account's policy and each subject masked by the scanner, a restricted sender's
-// included (ADR-0003, ADR-0004). Advance moves the checkpoint past a page once the page is durable.
+// all, and Under starts an enumeration made under another scanner over. OnFailure decides what a run
+// does after an attempt at a page fails. Decide turns one page of metadata into the rows the index
+// stores, each sender classified against the account's policy and each subject masked by the scanner,
+// a restricted sender's included (ADR-0003, ADR-0004). Advance moves the checkpoint past a page once
+// the page is durable. Unfound masks whole the stored subjects an enumeration that ended did not find
+// (ADR-0096).
 //
-// A checkpoint is the number of pages made durable, the provider's token for the page after them, and
-// the number of pages the enumeration takes when the provider counts it. A checkpoint past its first
-// page whose token is empty marks an enumeration that has ended, so a run stopped between its last
-// page and its finish only finishes.
+// A checkpoint is the number of pages made durable, the provider's token for the page after them,
+// the number of pages the enumeration takes when the provider counts it, and the scanner the
+// enumeration masks under. A checkpoint past its first page whose token is empty marks an enumeration
+// that has ended, so a run stopped between its last page and its finish only finishes.
 package pass1
 
 import (
@@ -24,6 +27,18 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 )
 
+// Stamp is the scanner version and configuration revision a subject's masking or a body's scan is
+// made under (ADR-0009, ADR-0096).
+type Stamp struct {
+	Version  int
+	Revision string
+}
+
+// StampOf returns the stamp of what s decides. A scanner nobody built has a stamp no built one has.
+func StampOf(s scan.Scanner) Stamp {
+	return Stamp{Version: s.Version(), Revision: s.Revision()}
+}
+
 // Checkpoint is where a pass stands.
 type Checkpoint struct {
 	// Page is how many pages of the enumeration are durable.
@@ -34,6 +49,8 @@ type Checkpoint struct {
 	// Of is how many pages the enumeration takes, an estimate from the total the provider reported
 	// with the page made durable, and zero when it reported none (ADR-0095).
 	Of int
+	// Stamp is the scanner the enumeration masks under.
+	Stamp Stamp
 }
 
 // Ended reports whether the enumeration the checkpoint follows has ended.
@@ -46,6 +63,9 @@ type Counters struct {
 	// Messages counts the messages the pass added to the index. A message the index already held is
 	// not counted again.
 	Messages int
+	// Remasked counts the messages the index already held whose subject the pass masked again,
+	// because it was masked under another scanner (ADR-0096).
+	Remasked int
 }
 
 // Progress is a pass's checkpoint and counters, as a run records them.
@@ -77,8 +97,12 @@ type Latest[P any] struct {
 
 // Start is how a run of a pass whose progress is a P starts.
 type Start[P any] struct {
-	// Skip is set when the pass has ended for the account, so the run does no work.
+	// Skip is set when the pass has ended for the account and is not due again, so the run does no
+	// work.
 	Skip bool
+	// Reopen is set when the pass had ended and is due again, so the shell records it as not ended
+	// as the run starts (ADR-0096).
+	Reopen bool
 	// ResumedFrom is the run this one resumes, empty for a fresh pass.
 	ResumedFrom string
 	// Abandon is set when the run resumed is still recorded as running, which it is only when it
@@ -88,35 +112,60 @@ type Start[P any] struct {
 	From P
 }
 
-// Begin decides how a run of a pass starts for an account whose pass has or has not ended, from its
-// latest recorded run. Both of backfill's passes start this way. A pass that ended is skipped. A run that stopped, whether it recorded its
-// failure or not, is resumed from its checkpoint and counters. With no run, or when the latest one
-// succeeded while the pass is recorded as not ended, which is how a pass is asked to run again, a
-// fresh pass starts from the first page.
-func Begin[P any](ended bool, latest Latest[P]) Start[P] {
+// Begin decides how a run of a pass starts for an account whose pass has or has not ended, and is or
+// is not due again because the index holds work a scanner other than the one in force decided, from
+// its latest recorded run. Both of backfill's passes start this way. A pass that ended and is not due
+// is skipped, and one that ended and is due is reopened (ADR-0096). A run that stopped, whether it
+// recorded its failure or not, is resumed from its checkpoint and counters. With no run, or when the
+// latest one succeeded while the pass is recorded as not ended, which is how a pass is asked to run
+// again, a fresh pass starts from the first page.
+func Begin[P any](ended, due bool, latest Latest[P]) Start[P] {
 	switch {
-	case ended:
+	case ended && !due:
 		return Start[P]{Skip: true}
 	case !latest.Found || latest.State == Succeeded:
-		return Start[P]{}
+		return Start[P]{Reopen: ended}
 	default:
-		return Start[P]{ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: latest.Progress}
+		return Start[P]{Reopen: ended, ResumedFrom: latest.RunID, Abandon: latest.State == Running, From: latest.Progress}
 	}
 }
 
+// Under returns how a run of the first pass starts under the scanner stamped s, and whether it starts
+// its enumeration over. An enumeration made under another scanner starts over from the first page,
+// counters carrying on, so an enumeration that ends was made under one scanner from its first page
+// and every message it found was masked under that scanner (ADR-0096).
+func Under(start Start[Progress], s Stamp) (Start[Progress], bool) {
+	if start.Skip {
+		return start, false
+	}
+	over := start.From.Checkpoint.Stamp != s && start.From.Checkpoint.Page > 0
+	if over {
+		start.From = Restart(start.From)
+	}
+	start.From.Checkpoint.Stamp = s
+	return start, over
+}
+
 // Restart returns the progress of a pass that starts its enumeration over from the first page, as a
-// run does when the provider refuses the token it resumed from. The counters carry on.
+// run does when the provider refuses the token it resumed from. The counters and the stamp carry on,
+// and the estimate of the pages the enumeration takes is dropped until a page of the new enumeration
+// reports one.
 func Restart(at Progress) Progress {
-	return Progress{Counters: at.Counters}
+	return Progress{Checkpoint: Checkpoint{Stamp: at.Checkpoint.Stamp}, Counters: at.Counters}
 }
 
 // Advance returns the progress after one more page is durable, whose next token is next, whose total
-// is total, and which added added messages to the index.
-func Advance(at Progress, next mail.PageToken, total *mail.Total, added int) Progress {
+// is total, which added added messages to the index and masked the subjects of remasked messages it
+// already held again.
+func Advance(at Progress, next mail.PageToken, total *mail.Total, added, remasked int) Progress {
 	page := at.Checkpoint.Page + 1
 	return Progress{
-		Checkpoint: Checkpoint{Page: page, Token: next, Of: pagesOf(page, next, total)},
-		Counters:   Counters{Pages: at.Counters.Pages + 1, Messages: at.Counters.Messages + added},
+		Checkpoint: Checkpoint{Page: page, Token: next, Of: pagesOf(page, next, total), Stamp: at.Checkpoint.Stamp},
+		Counters: Counters{
+			Pages:    at.Counters.Pages + 1,
+			Messages: at.Counters.Messages + added,
+			Remasked: at.Counters.Remasked + remasked,
+		},
 	}
 }
 
@@ -174,6 +223,8 @@ type Message struct {
 	Unclassified bool
 	// Masks are the masks applied to the subject, one per detection.
 	Masks []Mask
+	// Stamp is the scanner the subject was masked under (ADR-0096).
+	Stamp Stamp
 }
 
 // Mask is one mask applied to a subject, naming the rule and tier that detected what was masked and
@@ -192,9 +243,9 @@ type Page struct {
 }
 
 // Decide returns the rows one page of metadata adds to the index, each sender classified under the
-// account's policy p and each subject masked by s under subject masking's tuning. A policy that never
-// loaded restricts every sender, and a scanner nobody built masks every subject whole, so neither
-// fails open.
+// account's policy p and each subject masked by s under subject masking's tuning and stamped with s. A
+// policy that never loaded restricts every sender, and a scanner nobody built masks every subject
+// whole, so neither fails open.
 func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l classify.Lookups) Page {
 	var out Page
 	for _, m := range items {
@@ -213,6 +264,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
 			ListID:         m.ListID,
 			SizeBytes:      m.SizeBytes,
 			AuthResults:    m.AuthResults,
+			Stamp:          StampOf(s),
 			Class:          Normal,
 			ClassRule:      verdict.Rule(),
 			Unclassified:   verdict.Reason() == classify.Unclassifiable,
@@ -229,6 +281,29 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
 	}
 	slices.Sort(out.Domains)
 	out.Domains = slices.Compact(out.Domains)
+	return out
+}
+
+// Stored is a message's subject as the index stores it.
+type Stored struct {
+	ID, Subject string
+}
+
+// Unfound returns the subjects of stored masked whole under the scanner stamped s, as a scanner that
+// cannot decide masks a subject, each with the one event of a whole subject. They are the messages an
+// enumeration made under s from its first page did not find, so the provider no longer has them and
+// their subjects cannot be masked again from what it returns (ADR-0096, ADR-0003).
+func Unfound(stored []Stored, s Stamp) []Message {
+	var out []Message
+	for _, m := range stored {
+		masked := redact.MaskSubject(scan.Scanner{}, m.Subject)
+		msg := Message{ID: m.ID, Subject: masked.Subject(), Stamp: s}
+		for _, e := range masked.Events() {
+			msg.Masks = append(msg.Masks, Mask{Rule: e.Rule(), Tier: e.Tier()})
+		}
+		msg.SubjectMasked = len(msg.Masks) > 0
+		out = append(out, msg)
+	}
 	return out
 }
 

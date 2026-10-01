@@ -147,6 +147,29 @@ func TestAVerdictRecordsTheRevisionItWasBuiltUnder(t *testing.T) {
 	}
 }
 
+// A scanner names the version and revision its maskings are made under, so a subject masked under it
+// records them, and one nobody built names none a built scanner could, so whatever it masked is masked
+// again by the first built one (ADR-0096).
+func TestAScannerNamesTheVersionAndRevisionItDecidesUnder(t *testing.T) {
+	s, err := scan.New(scan.DefaultConfig(), "0f3a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Version(); got != 1 {
+		t.Errorf("Version() = %d, want 1", got)
+	}
+	if got := s.Revision(); got != "0f3a" {
+		t.Errorf("Revision() = %q, want %q", got, "0f3a")
+	}
+	var none scan.Scanner
+	if got := none.Version(); got != 0 {
+		t.Errorf("the version of a scanner nobody built is %d, want 0", got)
+	}
+	if got := none.Revision(); got != "" {
+		t.Errorf("the revision of a scanner nobody built is %q, want empty", got)
+	}
+}
+
 // ADR-0005's tier 1 rules for one-time codes, each with the near misses it must not flag.
 func TestTier1OneTimeCodes(t *testing.T) {
 	s := scanner(t)

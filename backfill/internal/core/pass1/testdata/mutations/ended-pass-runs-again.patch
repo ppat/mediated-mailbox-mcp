@@ -1,19 +1,20 @@
-control: Pass 1 sets its completion flag when it ends, and a pass that ended does no work
-removes: a pass that ended starts a fresh run
+control: Pass 1 sets its completion flag when it ends, and a pass that ended and is not due again does no work
+removes: a pass that ended and is not due again starts a fresh run
 packages: ./backfill/internal/pass1 ./backfill/internal/core/pass1
 tests: TestAPassThatEndedIsSkipped TestBegin
 scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+index 1ce1acf..deb3aff 100644
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -91,8 +91,6 @@ type Start[P any] struct {
- // fresh pass starts from the first page.
- func Begin[P any](ended bool, latest Latest[P]) Start[P] {
+@@ -117,8 +117,6 @@ type Start[P any] struct {
+ // again, a fresh pass starts from the first page.
+ func Begin[P any](ended, due bool, latest Latest[P]) Start[P] {
  	switch {
--	case ended:
+-	case ended && !due:
 -		return Start[P]{Skip: true}
  	case !latest.Found || latest.State == Succeeded:
- 		return Start[P]{}
+ 		return Start[P]{Reopen: ended}
  	default:

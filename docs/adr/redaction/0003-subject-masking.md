@@ -25,7 +25,9 @@ OTP is a compromise.
   text), surfaced via `list_masking_events` and the UI's masking-events view, so tuning is driven
   by observed traffic rather than intuition.
 - Masked subjects are masked **at rest** in the index — the stored subject is already safe to
-  serve.
+  serve. The stored subject and each of its masking events record the scanner version and
+  configuration revision the masking ran under, so a change of scanner masks it again
+  ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)).
 
 What the agent receives, concretely:
 

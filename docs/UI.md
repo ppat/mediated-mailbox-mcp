@@ -323,7 +323,7 @@ ellipsis and shows its full value on hover.
 
 A link to a screen that does not exist yet is left out and the cell shows its value, since the UI
 links only to screens that exist. A row whose message the index no longer holds, such as a failure
-whose message was removed at the provider, has no message fields to show. Its sender cell shows the
+whose message has since left the index, has no message fields to show. Its sender cell shows the
 message identifier in mono and its subject cell "not in the index" in muted text, and the other
 message cells are empty. Leaving such a row out was the alternative, and the failure would then be
 missing from its run's list while its counts still count it.
@@ -461,6 +461,11 @@ one row per value, each a link.
 | corpus | restricted messages | the corpus lens at L3 with `sender_class=restricted` |
 | corpus | masking events, last 7 days | the masking lens at L1 |
 | corpus | gate skips of decisions, last 7 days | the gate lens at L1 with `decision=skip` |
+
+The corpus block's masking count measures masking activity in the window, so it includes the masks a
+change of scanner records when it masks every subject again
+([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)). It can then exceed the
+masking lens's count, which counts only the masks of each subject as it now stands.
 
 States. With no plans and no candidates, the inbox says "Nothing awaits your decision" and the
 column keeps its height. With backfill pass 1 not started, the strip shows the workload as not
@@ -651,7 +656,7 @@ zero failures, L1 and L3 collapse to one line, "no failures".
 
 **L0 strip.** Workload and pass, run id, run state, started and finished times, duration, where it
 failed (the checkpoint and the retries of it), item failures, how many recovered and by which run,
-how many permanently gone, and the resuming run with its state.
+how many were not found at the provider, and the resuming run with its state.
 
 **Timeline.** The run timeline of [section 7.3](#73-charts), drawn from the run's recorded events.
 A legend names the six mark kinds. Start, backoff, retry, failure, resume, finish. Progress events
@@ -689,8 +694,20 @@ the panel lists the message's newest 50 audit rows the row detail carries, with 
 | --- | --- |
 | recovered | "{error class} on this item. Run {run} retried it successfully. Its scan state is {scan state}." |
 | pending | "{error class} on this item. It has not been retried yet. Its scan state stays pending, so its body is denied until a run reaches it." |
-| gone | "{error class}. The message was removed at the provider after it was indexed. Its scan state stays pending, so its body is denied, and the next delta-sync tick will remove the row from the index." |
+| gone | "{error class}. Its scan state is {scan state}." When the index no longer holds the message, the last sentence is "The index no longer holds it." |
 | abandoned | "{error class} on this item after {attempts} attempts. The workload gave up. Its scan state stays pending, so its body is denied until a later run reaches it." |
+
+Both passes of backfill record a `gone` item, and they differ in what follows. The second pass
+records one when a body fetch finds the message no longer at the provider, and the message waits
+for a scan. The first pass records one when an enumeration did not find a message whose subject it
+had to mask again, which may still be at the provider, and leaves its scan state as it was
+([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)). So the screen says only
+what holds for both. The error class reads "not found at provider", the disposition "not found",
+the L0 strip counts the items not found at the provider, and the sentence reads the scan state from
+the row as `recovered` does.
+Wording it for each pass was the alternative. It needs the pass beside every failed item, and
+the second pass's sentence would promise what delta sync later does to the row, a claim about
+another workload.
 
 The screen has no retry request. Resumption is the workload's own behavior, and the UI shows it.
 
@@ -724,7 +741,11 @@ Messages and Senders, each a route.
 
 The corpus lens's label grouping shows unfiled as its own group. A sender row's domain links to
 `messages?sender=` that domain. Audit rows without a message fall into the `none` group of the
-message-derived dimensions and count as neither restricted nor flagged.
+message-derived dimensions and count as neither restricted nor flagged. After a change of scanner
+every subject is masked again, and the masking events of the maskings it replaced stay in the table,
+so the masking lens and home's masking rule count a message's current masks by reading only the
+events whose scanner version and revision equal those its subject was masked under
+([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)).
 
 ### 8.6 Review queue
 
@@ -929,8 +950,8 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | workload state (derived, not stored) | no run yet · a run in running · the last run finished | not started · running · idle |
 | backoff state (derived from `backoff_until`) | null · a future time | not in backoff · in backoff until {time} |
 | validation result | passed · failed | passed · failed |
-| error class | throttled · provider_error · gone · scanner_timeout · validation · authentication | provider throttled · provider error · gone at provider · scanner timeout · validation · authentication |
-| disposition | recovered · pending · gone · abandoned | recovered (with the run) · pending · gone · abandoned |
+| error class | throttled · provider_error · gone · scanner_timeout · validation · authentication | provider throttled · provider error · not found at provider · scanner timeout · validation · authentication |
+| disposition | recovered · pending · gone · abandoned | recovered (with the run) · pending · not found · abandoned |
 | failure item kind | page · message · op | page · message · operation |
 
 The scan-state wording for pending is the denial envelope's own phrase (ADR-0002, ADR-0093), so

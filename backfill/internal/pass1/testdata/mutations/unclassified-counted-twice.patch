@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postgres.go
+index f2756aa..34beb62 100644
 --- a/backfill/internal/pass1/postgres.go
 +++ b/backfill/internal/pass1/postgres.go
-@@ -156,6 +156,9 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
- 		added, unclassified := 0, 0
+@@ -142,15 +142,15 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+ 		added, remasked, unclassified := 0, 0, 0
  		messages, events := messageingest.New(t), maskingrecord.New(t)
  		for _, m := range p.Messages {
 +			if m.Unclassified {
@@ -18,13 +19,12 @@ diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postg
  			ok, err := insert(ctx, messages, account, m)
  			if err != nil {
  				return fmt.Errorf("adding message %s: %w", m.ID, err)
-@@ -164,9 +167,6 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
- 				continue
  			}
- 			added++
--			if m.Unclassified {
--				unclassified++
--			}
- 			for _, mask := range m.Masks {
- 				err := events.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{
- 					AccountID: account, MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
+ 			if ok {
+ 				added++
+-				if m.Unclassified {
+-					unclassified++
+-				}
+ 			} else {
+ 				if ok, err = remask(ctx, messages, account, m); err != nil {
+ 					return fmt.Errorf("masking the subject of message %s again: %w", m.ID, err)

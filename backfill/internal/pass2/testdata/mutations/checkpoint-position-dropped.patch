@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+index 53b4947..d9c59d7 100644
 --- a/backfill/internal/pass2/postgres.go
 +++ b/backfill/internal/pass2/postgres.go
-@@ -55,7 +55,7 @@ type counters struct {
+@@ -56,7 +56,7 @@ type counters struct {
  }
  
  func encode(p core.Progress) (cp, ct []byte, err error) {

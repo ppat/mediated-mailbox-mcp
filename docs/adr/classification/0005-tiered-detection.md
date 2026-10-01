@@ -139,7 +139,9 @@ shipping the rules, never the model.
 - Patterns are code, so improving them is a reviewed change with a version bump. The vocabulary
   and the tuning are configuration, whose revision is stamped on every verdict beside the version.
   A change to either marks the verdicts made before it stale, which is what makes re-scanning after
-  improvements tractable ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)).
+  improvements tractable ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)), and
+  the subjects masked before it, which are masked again
+  ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md)).
 - A trigger word and a digit run are found only where a word boundary separates them, so in a
   language written without spaces between words neither is found, subject masking included, and
   that language needs matching of another kind. Digits outside ASCII, full-width digits among them,

@@ -95,3 +95,34 @@ func (q *Queries) RebuildSender(ctx context.Context, arg RebuildSenderParams) er
 	_, err := q.db.Exec(ctx, rebuildSender, arg.AccountID, arg.Domain)
 	return err
 }
+
+const recountScanHits = `-- name: RecountScanHits :execrows
+UPDATE senders AS s
+SET
+    scan_hit_count = (
+        SELECT count(*)
+        FROM messages AS m
+        WHERE
+            m.account_id = $1
+            AND m.from_domain = $2
+            AND m.scan_state = 'scanned'
+            AND cardinality(m.content_flags) > 0
+    )
+WHERE s.account_id = $1 AND s.domain = $2
+`
+
+type RecountScanHitsParams struct {
+	AccountID string
+	Domain    string
+}
+
+// Counts the prior hits of the account's sender at domain again from the stored messages whose scan
+// verdict carries a content flag, after messages of the sender returned to pending scan with their
+// verdict cleared, so a message scanned again counts once (ADR-0096, ADR-0093).
+func (q *Queries) RecountScanHits(ctx context.Context, arg RecountScanHitsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, recountScanHits, arg.AccountID, arg.Domain)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}

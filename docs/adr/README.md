@@ -71,6 +71,7 @@ moves it. Records themselves link freely and deep, into
 | 0074 | [html-to-markdown v2 converts released bodies, configured through its own hooks](./redaction/0074-html-to-markdown-v2-converts-bodies.md) | Accepted |
 | 0093 | [A composite scan gate with a measured, accepted residual](./redaction/0093-composite-scan-gate.md) | Accepted |
 | 0094 | [The scan gate evaluates every message, and no gate decision is memoized](./redaction/0094-scan-gate-decisions-are-not-memoized.md) | Accepted |
+| 0096 | [A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided](./redaction/0096-a-scanner-change-reopens-backfill.md) | Accepted |
 
 ## Classification — `classification/`
 

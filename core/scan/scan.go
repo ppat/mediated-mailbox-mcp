@@ -222,6 +222,19 @@ func (v Verdict) Version() int { return v.version }
 // Revision returns the revision of the configuration the verdict was produced under.
 func (v Verdict) Revision() string { return v.revision }
 
+// Version returns the scanner version the scanner's verdicts and maskings are made under, Version for
+// a Scanner built by New and 0 for one nobody built, which matches no version a built one records.
+func (s Scanner) Version() int {
+	if !s.built {
+		return 0
+	}
+	return Version
+}
+
+// Revision returns the revision of the configuration the scanner was built under, empty for a Scanner
+// nobody built.
+func (s Scanner) Revision() string { return s.revision }
+
 // ScanPatterns returns the verdict of tier 1 alone on body, a message body as Markdown. It is the
 // serve-time pattern check a body released without being scanned passes, which runs the structural
 // patterns and never tier 2's scoring (ADR-0002). A Scanner nobody built returns the zero Verdict, as

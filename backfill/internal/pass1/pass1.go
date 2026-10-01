@@ -59,20 +59,27 @@ type Committed struct {
 
 // Store is where a pass keeps the index and its runs. Each method is one transaction.
 type Store interface {
-	// State returns whether the account's pass has ended and its latest recorded run of the pass.
-	State(ctx context.Context, account string) (ended bool, latest core.Latest[core.Progress], err error)
+	// State returns whether the account's pass has ended, whether any stored subject was masked
+	// under another scanner than the one stamped s, which makes the pass due again, and its latest
+	// recorded run of the pass.
+	State(ctx context.Context, account string, s core.Stamp) (ended, due bool, latest core.Latest[core.Progress], err error)
 	// Start records the run runID as it starts from start, recording the run it resumes as failed
-	// first when start abandons it, with a start event, or a resume event naming the checkpoint page.
+	// first when start abandons it, and the pass as not ended when start reopens it, with a start
+	// event, or a resume event naming the checkpoint page.
 	Start(ctx context.Context, account, runID string, start core.Start[core.Progress]) error
 	// Commit makes one page durable. It adds each of the page's messages the index does not hold yet,
-	// records a masking event for each mask on the subject of a message it added and for no other,
-	// rebuilds the statistics of the page's senders, records recovered when earlier attempts at the
-	// page failed, and records the progress advance returns for the number of messages it added,
-	// with a progress event, all in one transaction.
-	Commit(ctx context.Context, account, runID string, page core.Page, recovered *Failure, advance func(added int) core.Progress) (Committed, error)
-	// Finish records that the run ended the pass. It sets the account's completion flag and records
-	// the run as succeeded with a finish event.
-	Finish(ctx context.Context, account, runID string) error
+	// masks again the subject of each it holds whose subject was masked under another scanner than
+	// the message's, records a masking event for each mask on the subject of a message it added or
+	// masked again and for no other, rebuilds the statistics of the page's senders, records recovered
+	// when earlier attempts at the page failed, and records the progress advance returns for the
+	// numbers of messages it added and masked again, with a progress event, all in one transaction.
+	Commit(ctx context.Context, account, runID string, page core.Page, recovered *Failure, advance func(added, remasked int) core.Progress) (Committed, error)
+	// Finish records that the run ended the pass. It reads the stored subjects masked under another
+	// scanner than the one stamped s, stores the subjects gone returns for them with a masking event
+	// for each mask, records each as a failed item of class gone at the instant now, sets the
+	// account's completion flag and records the run as succeeded with a finish event. It returns how
+	// many subjects it masked whole.
+	Finish(ctx context.Context, account, runID string, s core.Stamp, gone func([]core.Stored) []core.Message, now time.Time) (int, error)
 	// Fail records the run as failed with its last error, and a failure event.
 	Fail(ctx context.Context, account, runID, cause string) error
 	// Event adds an event to the run's timeline.
@@ -121,22 +128,31 @@ type Step struct {
 }
 
 // Open starts a run of the pass over the account, resuming its latest run when that run stopped
-// before the pass ended. A pass that has ended opens done, and records no run.
+// before the pass ended, and starting its enumeration over when that run enumerated under another
+// scanner. A pass that has ended opens done and records no run, unless a stored subject was masked
+// under another scanner than the one the pass masks with, which reopens it (ADR-0096).
 func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
-	ended, latest, err := deps.Store.State(ctx, account)
+	stamp := core.StampOf(deps.Scanner)
+	ended, due, latest, err := deps.Store.State(ctx, account, stamp)
 	if err != nil {
 		return nil, fmt.Errorf("reading the account's first pass: %w", err)
 	}
-	start := core.Begin(ended, latest)
+	start, over := core.Under(core.Begin(ended, due, latest), stamp)
 	if start.Skip {
 		return &Pass{deps: deps, account: account, done: true}, nil
 	}
 	p := &Pass{deps: deps, account: account, run: deps.RunID(), at: start.From}
-	if start.ResumedFrom != "" {
+	if start.ResumedFrom != "" && !over {
 		p.resumed = start.From.Checkpoint.Token
 	}
 	if err := deps.Store.Start(ctx, account, p.run, start); err != nil {
 		return nil, fmt.Errorf("recording the run: %w", err)
+	}
+	if over {
+		e := Event{Kind: "retry", Detail: "the run it resumes enumerated under another scanner, so the pass starts over from the first page"}
+		if err := deps.Store.Event(ctx, account, p.run, e); err != nil {
+			return nil, p.failed(ctx, err)
+		}
 	}
 	return p, nil
 }
@@ -164,8 +180,8 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
 	}
 	decided := core.Decide(page.Items, p.deps.Policy, p.deps.Scanner, p.deps.Lookups)
 	from := p.at
-	c, err := p.deps.Store.Commit(ctx, p.account, p.run, decided, recovered, func(added int) core.Progress {
-		return core.Advance(from, page.Next, page.Total, added)
+	c, err := p.deps.Store.Commit(ctx, p.account, p.run, decided, recovered, func(added, remasked int) core.Progress {
+		return core.Advance(from, page.Next, page.Total, added, remasked)
 	})
 	if err != nil {
 		return Step{}, p.failed(ctx, fmt.Errorf("making page %d durable: %w", from.Checkpoint.Page+1, err))
@@ -180,9 +196,13 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
 	return step, nil
 }
 
-// finish records that the run ended the pass.
+// finish records that the run ended the pass, masking whole the subjects of the messages the
+// enumeration did not find (ADR-0096).
 func (p *Pass) finish(ctx context.Context) (Step, error) {
-	if err := p.deps.Store.Finish(ctx, p.account, p.run); err != nil {
+	_, err := p.deps.Store.Finish(ctx, p.account, p.run, p.at.Checkpoint.Stamp, func(stored []core.Stored) []core.Message {
+		return core.Unfound(stored, p.at.Checkpoint.Stamp)
+	}, p.deps.Now().UTC())
+	if err != nil {
 		return Step{}, p.failed(ctx, fmt.Errorf("finishing the pass: %w", err))
 	}
 	p.done = true

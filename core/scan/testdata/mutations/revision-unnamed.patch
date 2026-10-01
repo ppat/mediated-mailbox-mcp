@@ -1,0 +1,19 @@
+control: A scanner names the version and revision its maskings and verdicts are made under
+removes: a scanner names no revision, so a subject masked under it records none
+packages: ./core/scan
+tests: TestAScannerNamesTheVersionAndRevisionItDecidesUnder
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index c5f2c44..7493caf 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -233,7 +233,7 @@ func (s Scanner) Version() int {
+ 
+ // Revision returns the revision of the configuration the scanner was built under, empty for a Scanner
+ // nobody built.
+-func (s Scanner) Revision() string { return s.revision }
++func (s Scanner) Revision() string { return "" }
+ 
+ // ScanPatterns returns the verdict of tier 1 alone on body, a message body as Markdown. It is the
+ // serve-time pattern check a body released without being scanned passes, which runs the structural

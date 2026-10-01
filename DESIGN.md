@@ -529,8 +529,10 @@ top-level documents, a decision record, or a ticket from here without guessing.
 
 ### Data paths and mutation
 
-- **Backfill** — the one-time construction of the full-history metadata index, metadata first,
-  gated body scanning after.
+- **Backfill** — the construction of the full-history metadata index, metadata first, gated body
+  scanning after, started by hand once and run again by the deployment after each change of
+  scanner, to mask and scan again what an earlier scanner decided (rule in ADR-0096, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Delta sync** — the recurring job that keeps the index current against provider change feeds.
 - **Sync interval** — the delta-sync polling cadence that bounds index freshness (rule and
   value in ADR-0018, via the [decision-record index](./docs/adr/README.md)).

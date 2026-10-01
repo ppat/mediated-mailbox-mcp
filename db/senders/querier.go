@@ -18,6 +18,10 @@ type Querier interface {
 	// restricted when any of its messages was classified restricted. The statistics are read from the
 	// stored messages rather than added to, so a page ingested twice leaves them as one ingestion does.
 	RebuildSender(ctx context.Context, arg RebuildSenderParams) error
+	// Counts the prior hits of the account's sender at domain again from the stored messages whose scan
+	// verdict carries a content flag, after messages of the sender returned to pending scan with their
+	// verdict cleared, so a message scanned again counts once (ADR-0096, ADR-0093).
+	RecountScanHits(ctx context.Context, arg RecountScanHitsParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

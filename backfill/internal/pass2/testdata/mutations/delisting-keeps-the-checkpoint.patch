@@ -6,11 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/pass2.go b/backfill/internal/pass2/pass2.go
+index 7043431..e44c44e 100644
 --- a/backfill/internal/pass2/pass2.go
 +++ b/backfill/internal/pass2/pass2.go
-@@ -115,7 +115,7 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
- 	if err := deps.Store.Start(ctx, account, p.run, start); err != nil {
- 		return nil, fmt.Errorf("recording the run: %w", err)
+@@ -146,7 +146,7 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+ 			return nil, p.failed(ctx, err)
+ 		}
  	}
 -	restart := core.Restart(p.at)
 +	restart := p.at

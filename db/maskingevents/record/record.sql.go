@@ -7,28 +7,35 @@ package record
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const recordMaskingEvent = `-- name: RecordMaskingEvent :exec
-INSERT INTO masking_events (account_id, message_id, field, rule_id, tier)
-VALUES ($1, $2, 'subject', $3, $4)
+INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision)
+VALUES ($1, $2, 'subject', $3, $4, $5, $6)
 `
 
 type RecordMaskingEventParams struct {
-	AccountID string
-	MessageID string
-	RuleID    string
-	Tier      int32
+	AccountID       string
+	MessageID       string
+	RuleID          string
+	Tier            int32
+	ScannerVersion  pgtype.Int4
+	ScannerRevision pgtype.Text
 }
 
-// Records one mask applied to a message's subject as it entered the index, naming the rule and tier
-// that detected what was masked and never the text (ADR-0003).
+// Records one mask applied to a message's subject as the subject was masked, naming the rule and tier
+// that detected what was masked and never the text (ADR-0003), and the scanner version and
+// configuration revision the masking ran under (ADR-0096).
 func (q *Queries) RecordMaskingEvent(ctx context.Context, arg RecordMaskingEventParams) error {
 	_, err := q.db.Exec(ctx, recordMaskingEvent,
 		arg.AccountID,
 		arg.MessageID,
 		arg.RuleID,
 		arg.Tier,
+		arg.ScannerVersion,
+		arg.ScannerRevision,
 	)
 	return err
 }

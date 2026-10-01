@@ -83,6 +83,9 @@ Properties the split buys:
 
 ## Consequences
 
+- Both passes run again after a change of scanner, the first to mask the stored subjects again and
+  the second to scan again what an earlier scanner decided
+  ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md)).
 - Backfill is the first workload long enough to trip real provider limits, which is why the rate
   controller exists before it runs (an ordering fact carried by [ROADMAP.md](../../../ROADMAP.md)).
 - Pass-1-then-pass-2 is also the corpus's first real test of the canonical mapping against messy

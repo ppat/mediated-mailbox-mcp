@@ -1,0 +1,36 @@
+control: The run-start step writes to no run's record
+removes: the run-start step records the stopped second pass run's progress as starting over, with a progress and a retry event, on that run's record
+packages: ./backfill
+tests: TestAStoppedSecondPassKeepsItsRecordAndStartsOver
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+index ba4fbe6..ce4bd78 100644
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -200,7 +200,23 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
+ 		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
+ 			return fmt.Errorf("recording the pass as due again: %w", err)
+ 		}
+-		return nil
++		r := record.New(t)
++		run, err := pass1.LatestRun(ctx, r, account, pass)
++		if err != nil || !run.Found || run.State == pass1core.Succeeded {
++			return err
++		}
++		at, err := decode(run.Checkpoint, run.Counters)
++		if err != nil {
++			return err
++		}
++		cp, ct, err := encode(core.Restart(at))
++		if err != nil {
++			return err
++		}
++		if err := pass1.RecordProgress(ctx, r, account, run.RunID, cp, ct, 0); err != nil {
++			return err
++		}
++		return pass1.RecordEvent(ctx, r, account, run.RunID, pass1.Event{Kind: "retry"})
+ 	})
+ 	return marked, err
+ }

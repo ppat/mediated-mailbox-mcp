@@ -1,0 +1,20 @@
+control: A stored subject the enumeration did not find is masked whole under the scanner in force
+removes: the run that ends the pass masks no subject the enumeration did not find, leaving it masked under the earlier scanner
+packages: ./backfill ./backfill/internal/pass1 ./backfill/internal/core/pass1
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/pass1.go b/backfill/internal/pass1/pass1.go
+index 7e32116..ff9fe09 100644
+--- a/backfill/internal/pass1/pass1.go
++++ b/backfill/internal/pass1/pass1.go
+@@ -200,7 +200,7 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
+ // enumeration did not find (ADR-0096).
+ func (p *Pass) finish(ctx context.Context) (Step, error) {
+ 	_, err := p.deps.Store.Finish(ctx, p.account, p.run, p.at.Checkpoint.Stamp, func(stored []core.Stored) []core.Message {
+-		return core.Unfound(stored, p.at.Checkpoint.Stamp)
++		return nil
+ 	}, p.deps.Now().UTC())
+ 	if err != nil {
+ 		return Step{}, p.failed(ctx, fmt.Errorf("finishing the pass: %w", err))

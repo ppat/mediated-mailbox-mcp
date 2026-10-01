@@ -9,6 +9,61 @@ import (
 	"context"
 )
 
+const clearSecondRestart = `-- name: ClearSecondRestart :exec
+UPDATE account_state
+SET backfill_pass2_restart = false
+WHERE account_id = $1
+`
+
+// Clears the mark that starts backfill's second pass over, in the transaction that records the start of
+// the second pass run that starts, which reads it first (ADR-0096).
+func (q *Queries) ClearSecondRestart(ctx context.Context, accountID string) error {
+	_, err := q.db.Exec(ctx, clearSecondRestart, accountID)
+	return err
+}
+
+const reopenBackfillFirst = `-- name: ReopenBackfillFirst :exec
+UPDATE account_state
+SET backfill_pass1_complete = false
+WHERE account_id = $1
+`
+
+// Records that backfill's first pass is due again for the account, in the transaction that starts the
+// run which runs it again (ADR-0096).
+func (q *Queries) ReopenBackfillFirst(ctx context.Context, accountID string) error {
+	_, err := q.db.Exec(ctx, reopenBackfillFirst, accountID)
+	return err
+}
+
+const reopenBackfillSecond = `-- name: ReopenBackfillSecond :exec
+UPDATE account_state
+SET backfill_pass2_complete = false, backfill_pass2_restart = true
+WHERE account_id = $1
+`
+
+// Records that backfill's second pass is due again for the account and marks it to start over from the
+// first message waiting for a scan, in the transaction a backfill run makes before its first pass to
+// return the verdicts another scanner made to pending (ADR-0096).
+func (q *Queries) ReopenBackfillSecond(ctx context.Context, accountID string) error {
+	_, err := q.db.Exec(ctx, reopenBackfillSecond, accountID)
+	return err
+}
+
+const secondRestart = `-- name: SecondRestart :one
+SELECT a.backfill_pass2_restart
+FROM account_state AS a
+WHERE a.account_id = $1
+`
+
+// Whether backfill's second pass is marked to start over from the first message waiting for a scan
+// (ADR-0096).
+func (q *Queries) SecondRestart(ctx context.Context, accountID string) (bool, error) {
+	row := q.db.QueryRow(ctx, secondRestart, accountID)
+	var backfill_pass2_restart bool
+	err := row.Scan(&backfill_pass2_restart)
+	return backfill_pass2_restart, err
+}
+
 const setBackfillFirstComplete = `-- name: SetBackfillFirstComplete :exec
 UPDATE account_state
 SET backfill_pass1_complete = true

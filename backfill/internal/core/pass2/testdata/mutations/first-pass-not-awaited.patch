@@ -6,14 +6,15 @@ scheduled-count: no
 integration: no
 
 diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+index d27b5c3..d74de77 100644
 --- a/backfill/internal/core/pass2/pass2.go
 +++ b/backfill/internal/core/pass2/pass2.go
-@@ -54,7 +54,7 @@ type Progress struct {
- // is skipped, since the gate reads the statistics the first pass builds (ADR-0017). After that it
- // starts as the first pass's runs do.
+@@ -56,7 +56,7 @@ type Progress struct {
+ // since what a change of scanner makes stale for it, a backfill run's Reopen records before the first
+ // pass (ADR-0096).
  func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Progress] {
 -	if !firstEnded {
 +	if false && !firstEnded {
  		return pass1.Start[Progress]{Skip: true}
  	}
- 	return pass1.Begin(ended, latest)
+ 	return pass1.Begin(ended, false, latest)

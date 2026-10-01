@@ -29,6 +29,15 @@ type Querier interface {
 	// that fired, the scanner version and the configuration's revision (ADR-0009). The rules are the
 	// content rules alone. A message no longer waiting is left as it is and counts no row.
 	RecordVerdict(ctx context.Context, arg RecordVerdictParams) (int64, error)
+	// Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
+	// since the gate decided without that signal (ADR-0096, ADR-0093).
+	RequeueSignalledSkips(ctx context.Context, accountID string) (int64, error)
+	// Returns each of the account's scanned messages whose verdict was made under another scanner version
+	// or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
+	// Gate denies its body as pending its content scan (ADR-0096). A backfill run makes it at its start,
+	// before the first pass. It returns each message's sender domain, whose prior hits the caller counts
+	// again.
+	RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerdictsParams) ([]string, error)
 	// The sender domains of the account whose messages the index stores as restricted or holds skipped as
 	// restricted, each once, which the delisting transition compares with the policy in force (ADR-0037).
 	// A rule added after a message was stored leaves its stored class normal while the gate skips it as

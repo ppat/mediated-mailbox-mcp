@@ -9,8 +9,9 @@ import (
 )
 
 type Querier interface {
-	// Records one mask applied to a message's subject as it entered the index, naming the rule and tier
-	// that detected what was masked and never the text (ADR-0003).
+	// Records one mask applied to a message's subject as the subject was masked, naming the rule and tier
+	// that detected what was masked and never the text (ADR-0003), and the scanner version and
+	// configuration revision the masking ran under (ADR-0096).
 	RecordMaskingEvent(ctx context.Context, arg RecordMaskingEventParams) error
 }
 

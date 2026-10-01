@@ -35,7 +35,11 @@ func drawSetup(t *rapid.T) setup {
 // (ADR-0045). A page step makes the next page durable, a throttle makes the provider throttle its next
 // body fetches, so a run can stop on a message and a later run resume the page, and a delist removes
 // the bank's rule from the policy the next process loads, so its recovery runs the delisting
-// transition and starts over.
+// transition and starts over, and a rescan changes the scanner the next process scans with and stops
+// the process, so the next run reopens the pass or returns the verdicts made under the earlier scanner
+// to pending and starts over, or, with its argument 1, changes it back to the scanner before the last
+// change, so a pass resumed under a scanner it already ran under still reads what the change returned
+// to pending (ADR-0096).
 func target() crash.Target[setup, *world] {
 	return crash.Target[setup, *world]{
 		Setup: drawSetup,
@@ -48,6 +52,16 @@ func target() crash.Target[setup, *world] {
 				Apply: func(_ rapid.TB, w *world, n int) { w.throttle = n },
 			},
 			"delist": {Apply: func(_ rapid.TB, w *world, _ int) { w.delisted = true }},
+			"rescan": {
+				Arg: rapid.IntRange(0, 1),
+				Apply: func(t rapid.TB, w *world, revert int) {
+					if revert == 1 {
+						w.revert(t)
+						return
+					}
+					w.rescan(t)
+				},
+			},
 		},
 		CrashAt:     rapid.IntRange(betweenSteps, afterCommit),
 		Crash:       func(t rapid.TB, w *world, at int) { w.crash(t, at) },
@@ -66,8 +80,9 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // commit ends and before the run records anything more, loses no decision it reported durable, and the
 // next run resumes from exactly the checkpoint last reported, or starts over when its delisting
 // transition returned messages to pending scan. Every sequence then ends the pass with no restricted
-// sender's body fetched, every message decided and recorded once, each sender's prior hits counted
-// once, and no more than a page of bodies fetched again for each crash (ADR-0017, ADR-0037, ADR-0045).
+// sender's body fetched, every message decided and recorded once under the scanner in force, each
+// sender's prior hits counted once, and no more than a page of bodies fetched again for each crash and
+// the mailbox for each change of scanner (ADR-0017, ADR-0037, ADR-0045, ADR-0096).
 func TestAKilledSecondPassResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
 }
@@ -81,6 +96,8 @@ func TestTheSecondPassCrashSequencesReachEveryKind(t *testing.T) {
 		"a crash after a page's commit":                  0.001,
 		"a delisting recovered after a page was durable": 0.001,
 		"a run stopped on a throttled body":              0.001,
+		"a change of scanner after a body was scanned":   0.001,
+		"a change of scanner reverted":                   0.001,
 	}
 	for name, draw := range crash.Draws(target(), config) {
 		t.Run(name, func(t *testing.T) {
@@ -101,7 +118,8 @@ func kind(c crash.Case[setup]) string {
 		}
 	}
 	pages, pending := 0, 0
-	delistPending := false
+	delistPending, rescanned, reverted := false, false, false
+	changes := 0
 	inside, afterPage, afterCommitted, delistRecovered, stoppedOnThrottle := false, false, false, false, false
 	for _, op := range c.Ops {
 		switch op.Name {
@@ -128,13 +146,28 @@ func kind(c crash.Case[setup]) string {
 			pending = op.Arg
 		case "delist":
 			delistPending = true
+		case "rescan":
+			switch {
+			case op.Arg == 1 && changes > 0:
+				changes--
+				reverted = true
+			case op.Arg == 0:
+				changes++
+				if bodies && pages > 0 {
+					rescanned = true
+				}
+			}
 		}
 	}
 	switch {
+	case rescanned:
+		return "a change of scanner after a body was scanned"
 	case stoppedOnThrottle:
 		return "a run stopped on a throttled body"
 	case delistRecovered:
 		return "a delisting recovered after a page was durable"
+	case reverted:
+		return "a change of scanner reverted"
 	case afterCommitted:
 		return "a crash after a page's commit"
 	case afterPage:

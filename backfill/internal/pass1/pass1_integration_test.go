@@ -113,7 +113,7 @@ func TestAPassIndexesTheWholeMailbox(t *testing.T) {
 		t.Errorf("the run's timeline (-want +got):\n%s", diff)
 	}
 	s := w.inspect(t)
-	wantProgress := core.Progress{Checkpoint: core.Checkpoint{Page: 3}, Counters: core.Counters{Pages: 3, Messages: 7}}
+	wantProgress := core.Progress{Checkpoint: core.Checkpoint{Page: 3, Stamp: core.Stamp{Version: 1, Revision: "revision-0"}}, Counters: core.Counters{Pages: 3, Messages: 7}}
 	latest, _ := s.latest()
 	if diff := cmp.Diff(wantProgress, latest.Progress, compare.Options); diff != "" {
 		t.Errorf("the run's last checkpoint and counters (-want +got):\n%s", diff)
@@ -171,6 +171,22 @@ func TestAKilledRunIsResumedByTheNextRun(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{"resume 2", "progress 3", "finish"}, timeline(t, w.account, "run2"), compare.Options); diff != "" {
 		t.Errorf("the resuming run's timeline (-want +got):\n%s", diff)
+	}
+}
+
+// A run killed after the commit of the page that ended the enumeration, before it recorded its end, is
+// resumed by a run that finishes the pass and asks the provider for no page again (ADR-0017).
+func TestARunKilledBeforeItsEndFinishesWithoutEnumeratingAgain(t *testing.T) {
+	w := realWorld(t, setup{PageSize: 1, Messages: []drawn{{Sender: 1}, {Sender: 2}}})
+	w.step(t)
+	w.crash(t, afterCommit)
+	w.open(t)
+	w.persistence(t)
+	if !w.step(t) {
+		t.Fatalf("the resuming run did not end the pass on its first step")
+	}
+	if w.fetched != 2 {
+		t.Errorf("the provider was asked for %d pages, want 2, the mailbox once", w.fetched)
 	}
 }
 
@@ -293,16 +309,16 @@ func storedCheckpoint(t *testing.T, account, runID string) map[string]any {
 func TestTheCheckpointCarriesThePagesTheTotalImplies(t *testing.T) {
 	counted := realWorld(t, setup{PageSize: 3, Messages: mixed.Messages, Totals: true})
 	counted.step(t)
-	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "of": 3.0}, storedCheckpoint(t, counted.account, "run1"), compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "of": 3.0, "version": 1.0, "revision": "revision-0"}, storedCheckpoint(t, counted.account, "run1"), compare.Options); diff != "" {
 		t.Errorf("the checkpoint after the first page (-want +got):\n%s", diff)
 	}
 	counted.finish(t, 10)
-	if diff := cmp.Diff(map[string]any{"page": 3.0, "token": "", "of": 3.0}, storedCheckpoint(t, counted.account, "run1"), compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]any{"page": 3.0, "token": "", "of": 3.0, "version": 1.0, "revision": "revision-0"}, storedCheckpoint(t, counted.account, "run1"), compare.Options); diff != "" {
 		t.Errorf("the checkpoint after the last page (-want +got):\n%s", diff)
 	}
 	uncounted := realWorld(t, mixed)
 	uncounted.step(t)
-	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4"}, storedCheckpoint(t, uncounted.account, "run1"), compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "version": 1.0, "revision": "revision-0"}, storedCheckpoint(t, uncounted.account, "run1"), compare.Options); diff != "" {
 		t.Errorf("the checkpoint after the first page of an enumeration with no total (-want +got):\n%s", diff)
 	}
 }
@@ -318,14 +334,39 @@ func TestACheckpointWithoutAPageCountResumes(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.reported.Checkpoint.Of = 0
+	w.expect.Checkpoint.Of = 0
 	w.open(t)
 	w.persistence(t)
-	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "version": 1.0, "revision": "revision-0"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
 		t.Errorf("the resumed run's first checkpoint (-want +got):\n%s", diff)
 	}
 	w.step(t)
-	if diff := cmp.Diff(map[string]any{"page": 2.0, "token": "m7", "of": 3.0}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]any{"page": 2.0, "token": "m7", "of": 3.0, "version": 1.0, "revision": "revision-0"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
 		t.Errorf("the checkpoint after the resumed run's first page (-want +got):\n%s", diff)
+	}
+	w.progress(t)
+}
+
+// A run resuming an enumeration made under another scanner starts it over, and the page count the
+// old enumeration's checkpoint carried goes with its token, so the restarted run's checkpoint carries
+// no count until a page of the new enumeration reports one, and then carries that page's (ADR-0095,
+// ADR-0096).
+func TestAnEnumerationStartedOverUnderAnotherScannerDropsItsPageCount(t *testing.T) {
+	w := realWorld(t, setup{PageSize: 3, Messages: mixed.Messages, Totals: true})
+	w.step(t)
+	if got := storedCheckpoint(t, w.account, "run1")["of"]; got != 3.0 {
+		t.Fatalf("the first run's checkpoint carries of %v, want 3", got)
+	}
+	w.rescan(t)
+	w.crash(t, betweenSteps)
+	w.open(t)
+	w.persistence(t)
+	if diff := cmp.Diff(map[string]any{"page": 0.0, "token": "", "version": 1.0, "revision": "revision-1"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the restarted run's first checkpoint (-want +got):\n%s", diff)
+	}
+	w.step(t)
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "of": 3.0, "version": 1.0, "revision": "revision-1"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the checkpoint after the restarted run's first page (-want +got):\n%s", diff)
 	}
 	w.progress(t)
 }
