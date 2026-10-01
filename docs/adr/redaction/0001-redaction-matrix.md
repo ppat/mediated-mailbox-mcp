@@ -55,8 +55,9 @@ class ScanState(Enum):
 @dataclass(frozen=True)
 class Sensitivity:
     sender_class:  SenderClass
+    class_rule_id: str | None               # the policy rule that set sender_class, if one did
     content_flags: frozenset[ContentFlag]
-    rule_ids:      tuple[str, ...]
+    rule_ids:      tuple[str, ...]          # the content rules that set content_flags
     scan_state:    ScanState
 ```
 
@@ -83,9 +84,10 @@ And for a restricted sender:
   "date": "2026-07-20T09:12:00Z", "labels": ["INBOX", "Finance"],
   "has_attachments": true, "attachment_types": ["pdf"],
   "snippet": null,
-  "sensitivity": {"sender_class": "restricted", "content_flags": [],
-                  "scan_state": "skipped_restricted",
-                  "rule_ids": ["financial.brokerage.fidelity"]},
+  "sensitivity": {"sender_class": "restricted",
+                  "class_rule_id": "financial.brokerage.fidelity",
+                  "content_flags": [], "rule_ids": [],
+                  "scan_state": "skipped_restricted"},
   "body_available": false,
   "allowed_mutations": ["label", "move"],
   "note": "Metadata only. Body access denied by policy and cannot be granted by request." }

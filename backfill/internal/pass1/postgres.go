@@ -203,6 +203,7 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m cor
 		SizeBytes:      pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
 		AuthResults:    auth,
 		SenderClass:    string(m.Class),
+		ClassRuleID:    text(m.ClassRule),
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil

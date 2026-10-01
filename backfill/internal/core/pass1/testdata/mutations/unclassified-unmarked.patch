@@ -8,10 +8,10 @@ integration: yes
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -189,7 +189,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
- 			SizeBytes:      m.SizeBytes,
+@@ -194,7 +194,7 @@
  			AuthResults:    m.AuthResults,
  			Class:          Normal,
+ 			ClassRule:      verdict.Rule(),
 -			Unclassified:   verdict.Reason() == classify.Unclassifiable,
 +			Unclassified:   false && verdict.Reason() == classify.Unclassifiable,
  		}

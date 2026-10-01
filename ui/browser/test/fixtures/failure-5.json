@@ -15,7 +15,9 @@
       "INBOX"
     ],
     "sender_class": "normal",
-    "content_flags": [],
+    "content_flags": [
+      "mfa_code"
+    ],
     "scan_state": "scanned",
     "page": null,
     "error_class": "provider_error",
@@ -26,9 +28,10 @@
     "recovered_by": null
   },
   "error_summary": null,
+  "class_rule_id": null,
   "rule_ids": [
     "content.mfa.subject_numeric_6",
-    "sender.list.newsletter"
+    "content.mfa.trigger_window"
   ],
   "scanned_at": "2026-09-09T05:16:04Z",
   "scanner_version": 3,

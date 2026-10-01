@@ -419,6 +419,8 @@ export function FailureBody(props: { detail: FailureDetail }) {
         <dd>{utc(row.last_at)}</dd>
         <dt>sender class</dt>
         <dd>{row.sender_class === null ? "" : word(senderClass, row.sender_class).text}</dd>
+        <dt>rule that set the class</dt>
+        <dd class="mono">{detail.class_rule_id ?? "none"}</dd>
         <dt>content flags</dt>
         <dd>{(row.content_flags ?? []).map((f) => word(contentFlag, f).text).join(", ")}</dd>
         <dt>rule ids that fired</dt>

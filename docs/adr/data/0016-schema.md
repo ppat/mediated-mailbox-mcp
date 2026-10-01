@@ -110,7 +110,8 @@ CREATE TABLE messages (
   auth_results     jsonb,
   sender_class     text NOT NULL,          -- normal | restricted
   content_flags    text[] NOT NULL DEFAULT '{}',  -- mfa_code | login_link
-  rule_ids         text[] NOT NULL DEFAULT '{}',
+  rule_ids         text[] NOT NULL DEFAULT '{}',  -- the content rules that set content_flags
+  class_rule_id    text,                   -- the policy rule that set sender_class, NULL when none did
   scan_state       text NOT NULL DEFAULT 'pending',  -- scanned | skipped_restricted | skipped_gate | pending (ADR-0093)
   scanned_at       timestamptz,
   scanner_version  int,
@@ -323,6 +324,19 @@ The properties the shape enforces:
 - **The UI's decisions are recorded in the columns its verbs set and the rule row its confirm
   verb inserts** ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), so a
   decision is readable from `reorg_plans` and `policy_candidates` without an audit row.
+- **A message names the rule behind each sensitivity axis apart.** A message's `class_rule_id` is
+  the policy rule that set its `sender_class`
+  ([ADR-0004](../classification/0004-sender-list-decides.md)), written when the message is stored.
+  It is NULL when no rule set the class, which is a sender no rule lists, a classification made
+  while no policy has loaded, and an address that cannot be classified. A message's `rule_ids` are
+  the content rules that set its `content_flags`, written by the scan
+  ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)). Whatever writes a message's
+  `sender_class` writes its `class_rule_id` with it, so the delisting transition clears the rule
+  with the class it resets ([ADR-0037](../redaction/0037-delisting-transition.md)). The sender
+  statistics' `sender_class` in `senders` carries no rule. Otherwise a message's `class_rule_id`
+  stays as written, like the class it explains, so a rule edited or replaced while its domain stays
+  restricted leaves the old identifier. Rows stored before `class_rule_id` existed hold NULL, and
+  nothing fills them in.
 - **Masked subjects are stored masked** — the index never holds a live code.
 - **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
   (`scan_state = 'pending'`) directly.

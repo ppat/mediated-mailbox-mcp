@@ -26,8 +26,10 @@ that scans compares the sender domains of the messages the index stores as restr
 skipped as restricted, with the policy snapshot it loaded
 ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)), before it evaluates the gate.
 For every domain the snapshot now classifies normal, it sets that domain's messages stored as
-restricted or skipped as restricted to a normal sender class and to pending scan, and rebuilds the
-domain's sender statistics, in one transaction. The skip state is read as well as the stored class,
+restricted or skipped as restricted to a normal sender class with no rule naming it, and to pending
+scan, and rebuilds the domain's sender statistics, in one transaction. Clearing the rule keeps a
+message from naming a rule for a class that rule no longer sets
+([ADR-0016](../data/0016-schema.md)). The skip state is read as well as the stored class,
 because a rule added after a message was stored leaves its stored class normal while the scan gate
 skips it as restricted, and how a newly added rule changes the stored class is not decided here.
 Backfill's second pass runs the comparison at the start of each of its runs, which it makes until

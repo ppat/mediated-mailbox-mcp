@@ -53,9 +53,10 @@ ORDER BY m.from_domain;
 
 -- name: MarkDelisted :execrows
 -- The delisting transition for one domain the policy in force no longer restricts. Its messages stored
--- restricted or skipped as restricted return to a normal sender class and to pending scan (ADR-0037).
+-- restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
+-- pending scan (ADR-0037, ADR-0016).
 UPDATE messages
-SET sender_class = 'normal', scan_state = 'pending'
+SET sender_class = 'normal', class_rule_id = NULL, scan_state = 'pending'
 WHERE
     account_id = @account_id
     AND from_domain = @domain

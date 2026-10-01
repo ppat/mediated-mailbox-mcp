@@ -144,6 +144,10 @@ type Message struct {
 	SizeBytes      int64
 	AuthResults    mail.AuthResults
 	Class          Class
+	// ClassRule is the identifier of the policy rule that set the class, empty when no rule set it,
+	// which is a sender no rule lists, a classification made while no policy has loaded and an
+	// address that cannot be classified (ADR-0016).
+	ClassRule string
 	// Unclassified is set when the classifier could not classify the sender, which classifies it
 	// restricted.
 	Unclassified bool
@@ -189,6 +193,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
 			SizeBytes:      m.SizeBytes,
 			AuthResults:    m.AuthResults,
 			Class:          Normal,
+			ClassRule:      verdict.Rule(),
 			Unclassified:   verdict.Reason() == classify.Unclassifiable,
 		}
 		if verdict.Class().Restricted() {

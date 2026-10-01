@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
@@ -94,6 +95,10 @@ var senderDomains = []string{"bank.example", "news.example", "shop.example", ""}
 
 const listedDomain = "bank.example"
 
+// listedRule is the policy rule that lists listedDomain, which its messages name as the rule that set
+// their class (ADR-0016).
+const listedRule = "rule.bank"
+
 // setup is what a world is built from, kept whole by the failing-case store, so every field is a
 // plain value.
 type setup struct {
@@ -124,9 +129,11 @@ func tag(n int) string {
 	}
 }
 
-// expected is one message as the index must hold it, known from how it was generated.
+// expected is one message as the index must hold it, known from how it was generated. ClassRule is
+// nil for a class no rule set, which the index holds as NULL.
 type expected struct {
 	ID, Domain, Subject, Class string
+	ClassRule                  *string
 	Masks                      int
 }
 
@@ -162,11 +169,16 @@ func mailbox(s setup) ([]fake.Message, []expected) {
 			m.ListID = marker.Field("list"+tag(i)) + ".news.example"
 		}
 		class := "normal"
+		var rule *string
 		if domain == listedDomain || domain == "" {
 			class = "restricted"
 		}
+		if domain == listedDomain {
+			listed := listedRule
+			rule = &listed
+		}
 		messages = append(messages, fake.Message{Metadata: m})
-		want = append(want, expected{ID: id, Domain: domain, Subject: stored, Class: class, Masks: masks})
+		want = append(want, expected{ID: id, Domain: domain, Subject: stored, Class: class, ClassRule: rule, Masks: masks})
 	}
 	return messages, want
 }
@@ -189,6 +201,7 @@ type run struct {
 
 type stored struct {
 	Domain, Subject, Class string
+	ClassRule              *string
 }
 
 type sender struct {
@@ -252,7 +265,7 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 		return nil
 	}, time.Now)
 	inner := port(throttled)
-	rules, err := policy.Load([]policy.Row{{ID: "rule.bank", Class: policy.Restricted, DomainSuffixes: []string{listedDomain}}})
+	rules, err := policy.Load([]policy.Row{{ID: listedRule, Class: policy.Restricted, DomainSuffixes: []string{listedDomain}}})
 	if err != nil {
 		t.Fatalf("loading the policy: %v", err)
 	}
@@ -435,7 +448,7 @@ func (w *world) progress(t tb) {
 	}
 	messages, counts := map[string]stored{}, map[string]sender{}
 	for _, m := range w.want {
-		messages[m.ID] = stored{Domain: m.Domain, Subject: m.Subject, Class: m.Class}
+		messages[m.ID] = stored{Domain: m.Domain, Subject: m.Subject, Class: m.Class, ClassRule: m.ClassRule}
 		s := counts[m.Domain]
 		s.Count++
 		s.Class = m.Class
@@ -538,11 +551,21 @@ func inspectPostgres(t tb, url, account string) state {
 	s.Runs = runs
 	var m stored
 	var id string
-	rows, err = conn.Query(ctx, "SELECT message_id, from_domain::text, subject, sender_class FROM messages WHERE account_id = $1", account)
+	rows, err = conn.Query(ctx, "SELECT message_id, from_domain::text, subject, sender_class, class_rule_id FROM messages WHERE account_id = $1", account)
 	if err != nil {
 		t.Fatalf("reading: %v", err)
 	}
-	if _, err := pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.Subject, &m.Class}, func() error { s.Messages[id] = m; return nil }); err != nil {
+	var rule pgtype.Text
+	_, err = pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.Subject, &m.Class, &rule}, func() error {
+		m.ClassRule = nil
+		if rule.Valid {
+			r := rule.String
+			m.ClassRule = &r
+		}
+		s.Messages[id] = m
+		return nil
+	})
+	if err != nil {
 		t.Fatalf("reading the messages: %v", err)
 	}
 	var n int
@@ -681,7 +704,12 @@ func (m *memory) Failure(ctx context.Context, _, _ string, f pass1.Failure) erro
 func (m *memory) inspect(tb) state {
 	s := state{Ended: m.ended, Runs: slices.Clone(m.runs), Messages: map[string]stored{}, Events: maps.Clone(m.events), Senders: map[string]sender{}}
 	for id, msg := range m.messages {
-		s.Messages[id] = stored{Domain: msg.Domain, Subject: msg.Subject, Class: string(msg.Class)}
+		st := stored{Domain: msg.Domain, Subject: msg.Subject, Class: string(msg.Class)}
+		if msg.ClassRule != "" {
+			rule := msg.ClassRule
+			st.ClassRule = &rule
+		}
+		s.Messages[id] = st
 		sd := s.Senders[msg.Domain]
 		sd.Count++
 		if sd.Class != "restricted" {

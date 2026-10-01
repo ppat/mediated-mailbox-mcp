@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	core "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2"
@@ -298,10 +300,10 @@ func releaseReason(t *testing.T, w *world, id string, st stored) redact.Reason {
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list. A run stops after the page
 // that skipped the bank's messages as restricted. The bank's rule is removed, as any path might remove
 // it, and the next run's delisting transition returns the bank's messages to a normal sender class and
-// to pending scan before its first page, and starts over, since they sit before its checkpoint. A body
-// requested in that state is denied as pending its content scan rather than as a restricted sender's.
-// Once the pass scans them, a clean body is releasable and a body holding a code is withheld for its
-// flag (ADR-0037).
+// to pending scan before its first page, and starts over, since they sit before its checkpoint. They
+// stop naming the removed rule as the one that set their class (ADR-0016). A body requested in that
+// state is denied as pending its content scan rather than as a restricted sender's. Once the pass scans
+// them, a clean body is releasable and a body holding a code is withheld for its flag (ADR-0037).
 func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	messages := []fake.Message{
 		message("m01", "alerts@bank.example", false, marker.Body("bankclean")+" Your statement is ready.", ""),
@@ -318,6 +320,10 @@ func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	if r := releaseReason(t, w, "m01", before.Messages["m01"]); r != redact.SkippedRestricted {
 		t.Fatalf("before the removal the bank's body is denied as %v, want skipped as restricted", r)
 	}
+	rule := "rule.bank"
+	if diff := cmp.Diff(map[string]*string{"m01": &rule, "m02": &rule, "m03": nil, "m04": nil}, classRules(t, w.account), compare.Options); diff != "" {
+		t.Fatalf("before the removal the rules that set the classes (-want +got):\n%s", diff)
+	}
 
 	w.delisted = true
 	w.open(t)
@@ -331,6 +337,9 @@ func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 		if r := releaseReason(t, w, id, st); r != redact.PendingScan {
 			t.Errorf("after the transition message %s is denied as %v, want pending its content scan", id, r)
 		}
+	}
+	if diff := cmp.Diff(map[string]*string{"m01": nil, "m02": nil, "m03": nil, "m04": nil}, classRules(t, w.account), compare.Options); diff != "" {
+		t.Errorf("after the transition the rules that set the classes, none (-want +got):\n%s", diff)
 	}
 	if latest, _ := marked.latest(); latest.Progress.Checkpoint != (core.Checkpoint{}) {
 		t.Errorf("after the transition the run starts from %+v, want the first waiting message", latest.Progress.Checkpoint)
@@ -354,6 +363,31 @@ func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	if diff := cmp.Diff([]string{"m01", "m02", "m03", "m04"}, w.fetched, compare.Options); diff != "" {
 		t.Errorf("the bodies asked for, the bank's only after the removal (-want +got):\n%s", diff)
 	}
+}
+
+// classRules returns the rule each of the account's messages names as the one that set its class, nil
+// for none.
+func classRules(t testing.TB, account string) map[string]*string {
+	t.Helper()
+	rows, err := superuser(t).Query(context.Background(), "SELECT message_id, class_rule_id FROM messages WHERE account_id = $1", account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]*string{}
+	var id string
+	var rule pgtype.Text
+	_, err = pgx.ForEachRow(rows, []any{&id, &rule}, func() error {
+		out[id] = nil
+		if rule.Valid {
+			r := rule.String
+			out[id] = &r
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list, a rule added after the

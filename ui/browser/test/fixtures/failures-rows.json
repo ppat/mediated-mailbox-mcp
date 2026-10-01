@@ -10,7 +10,7 @@
   "total": {
     "count": 5,
     "restricted": 1,
-    "flagged": 1
+    "flagged": 2
   },
   "rows": [
     {
@@ -85,7 +85,9 @@
         "INBOX"
       ],
       "sender_class": "normal",
-      "content_flags": [],
+      "content_flags": [
+        "mfa_code"
+      ],
       "scan_state": "scanned",
       "page": null,
       "error_class": "provider_error",

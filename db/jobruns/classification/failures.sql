@@ -239,8 +239,9 @@ LIMIT 50 OFFSET @row_offset;
 
 -- name: FailureDetail :one
 -- One of a run's failures with the error summary as recorded, the failures dataset's provenance for its
--- row detail, and its message's sensitivity block, the rule ids that assigned its class and flags, the
--- time it was scanned and the scanner version (docs/UI.md sections 7.1, 8.4 and 17.1).
+-- row detail, and its message's sensitivity block, the policy rule that set its class apart from the
+-- content rules that set its flags, the time it was scanned and the scanner version (docs/UI.md
+-- sections 7.1, 8.4 and 17.1).
 SELECT
     f.seq,
     f.item_kind,
@@ -261,6 +262,7 @@ SELECT
     f.disposition,
     f.recovered_by,
     f.error_summary,
+    m.class_rule_id,
     m.rule_ids,
     m.scanned_at,
     m.scanner_version

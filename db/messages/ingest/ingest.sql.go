@@ -28,7 +28,8 @@ INSERT INTO messages (
     list_id,
     size_bytes,
     auth_results,
-    sender_class
+    sender_class,
+    class_rule_id
 ) VALUES (
     $1,
     $2,
@@ -45,7 +46,8 @@ INSERT INTO messages (
     $13,
     $14,
     $15,
-    $16
+    $16,
+    $17
 )
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id
@@ -68,12 +70,14 @@ type InsertMessageParams struct {
 	SizeBytes      pgtype.Int4
 	AuthResults    []byte
 	SenderClass    string
+	ClassRuleID    pgtype.Text
 }
 
-// Adds one message's metadata to the index, with its sender class and its subject already masked
-// (ADR-0003, ADR-0017). A message the index already holds is left as it is and returns no row, so a
-// page ingested twice adds nothing the second time and its caller records masking events only for the
-// messages this call added. The row holds no body, snippet or attachment name (ADR-0016).
+// Adds one message's metadata to the index, with its sender class, the policy rule that set it or
+// null when none did, and its subject already masked (ADR-0003, ADR-0016, ADR-0017). A message the
+// index already holds is left as it is and returns no row, so a page ingested twice adds nothing the
+// second time and its caller records masking events only for the messages this call added. The row
+// holds no body, snippet or attachment name (ADR-0016).
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error) {
 	row := q.db.QueryRow(ctx, insertMessage,
 		arg.AccountID,
@@ -92,6 +96,7 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (s
 		arg.SizeBytes,
 		arg.AuthResults,
 		arg.SenderClass,
+		arg.ClassRuleID,
 	)
 	var message_id string
 	err := row.Scan(&message_id)

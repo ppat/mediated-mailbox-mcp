@@ -422,6 +422,12 @@
           "audit_count": {
             "type": "integer"
           },
+          "class_rule_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "dataset": {
             "enum": [
               "failures"
@@ -470,6 +476,7 @@
           "run",
           "row",
           "error_summary",
+          "class_rule_id",
           "rule_ids",
           "scanned_at",
           "scanner_version",

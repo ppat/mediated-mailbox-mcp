@@ -86,7 +86,10 @@ type FailureDetail struct {
 	Row          FailureRow `json:"row"`
 	ErrorSummary *string    `json:"error_summary"`
 	// The message's sensitivity block (docs/UI.md section 7.1), each nil for a page item and for a
-	// message the index no longer holds, and the scan fields nil for a message never scanned.
+	// message the index no longer holds, and the scan fields nil for a message never scanned. The class
+	// rule is the policy rule that set the sender class, nil when none did, and the rule ids are the
+	// content rules that set the flags (ADR-0016).
+	ClassRuleID    *string      `json:"class_rule_id"`
 	RuleIDs        []string     `json:"rule_ids"`
 	ScannedAt      *string      `json:"scanned_at"`
 	ScannerVersion *int32       `json:"scanner_version"`
@@ -110,6 +113,7 @@ func failureDetailType() schema.Type {
 		schema.F("run", schema.Str()),
 		schema.F("row", failureRowType()),
 		schema.F("error_summary", schema.Null(schema.Str())),
+		schema.F("class_rule_id", schema.Null(schema.Str())),
 		schema.F("rule_ids", schema.Null(schema.ArrayOf(schema.Str()))),
 		schema.F("scanned_at", schema.Null(schema.Time())),
 		schema.F("scanner_version", schema.Null(schema.Int())),
@@ -398,7 +402,7 @@ func failureDetail(ctx context.Context, q Queries, account string, req lens.RowR
 	out := FailureDetail{
 		Account: account, Dataset: "failures", AsOf: Stamp(asOf), Run: req.ParentID, Row: failureRow(row),
 		ErrorSummary: text(row.ErrorSummary.Valid, row.ErrorSummary.String), ScannedAt: optionalStamp(row.ScannedAt),
-		Audit: []AuditEntry{},
+		ClassRuleID: text(row.ClassRuleID.Valid, row.ClassRuleID.String), Audit: []AuditEntry{},
 	}
 	if row.MessageID.Valid {
 		out.RuleIDs = row.RuleIds

@@ -1,0 +1,19 @@
+control: Message-derived text renders inert
+removes: the failure's panel hands the rule that set the message's class to the raw-markup escape hatch
+packages: ./ui/browser/test/run.test.tsx
+tests: markup in every message-derived field of a failure's panel arrives as text
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/run.tsx b/ui/browser/src/screens/run.tsx
+--- a/ui/browser/src/screens/run.tsx
++++ b/ui/browser/src/screens/run.tsx
+@@ -420,7 +420,7 @@
+         <dt>sender class</dt>
+         <dd>{row.sender_class === null ? "" : word(senderClass, row.sender_class).text}</dd>
+         <dt>rule that set the class</dt>
+-        <dd class="mono">{detail.class_rule_id ?? "none"}</dd>
++        <dd class="mono" dangerouslySetInnerHTML={{ __html: detail.class_rule_id ?? "none" }} />
+         <dt>content flags</dt>
+         <dd>{(row.content_flags ?? []).map((f) => word(contentFlag, f).text).join(", ")}</dd>
+         <dt>rule ids that fired</dt>

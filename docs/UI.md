@@ -104,7 +104,7 @@ Every lens is viewed at one of five levels, the **zoom ladder**.
 | L1 | Distribution | one dimension, chart plus table, each group clickable | operations by flow (from label → to label) |
 | L2 | Cohort | one filter applied, a second dimension opened | inside one flow, by sender domain |
 | L3 | Rows | a paged list of individual rows | operations with sender, masked subject, date, before → after labels, reason |
-| L4 | Row detail | one row with its provenance, as a panel over the L3 list it came from | one message with both sensitivity axes, the rule that fired, scan state, audit trail, and what the plan does to it |
+| L4 | Row detail | one row with its provenance, as a panel over the L3 list it came from | one message with both sensitivity axes and the rules that set them, scan state, audit trail, and what the plan does to it |
 
 The navigation rules that make this analysis rather than page-hopping:
 
@@ -340,12 +340,19 @@ never hidden. The browser's counterpart to ADR-0042's rule that an unhandled var
 that an unhandled value is shown, not dropped.
 
 The row detail (L4) shows the same fields as a two-column list, then a sensitivity block (sender
-class, content flags, the rule ids that fired, and scan state with the time scanned and the scanner
-version), then the audit rows for this message as an L3 list, then, when reached from a plan, what
-the plan does to it and why. Never a body, never a snippet. The database has no column to show
-(ADR-0016). The rule ids are one list, because the index keeps one list of rule ids per message and
-not which rule set which axis (ADR-0016, ADR-0001). Showing the rule that set the class apart from
-the rules that set the flags was the alternative, and nothing recorded could tell them apart.
+class with the rule id that set it, content flags with the rule ids that fired, and scan state with
+the time scanned and the scanner version), then the audit rows for this message as an L3 list,
+then, when reached from a plan, what the plan does to it and why. Never a body, never a snippet. The
+database has no column to show (ADR-0016). Each axis shows the rule behind it, as the index records
+them (ADR-0016, ADR-0001). Sender class and content flags are separate questions with separate
+consequences ([DESIGN.md](../DESIGN.md#sensitivity-is-two-independent-axes)). The sender class
+decides whether the body can be read and whether the message can be disposed of, and the content
+flags decide only whether it can be read. Tuning a rule starts from seeing which rule fired and on
+what ([O4](../USE_CASES.md#o4--the-operator-can-see-and-steer)), and that needs each rule shown
+beside the axis it set. One list of every rule id was the alternative. Its case was fewer cells and
+the shape the index used to have. It lost because a reader could not tell which rule set which
+axis. When no rule set the class (ADR-0016 names when), its rule shows as "none", as an empty list
+of rule ids that fired does, never as an empty cell.
 
 ### 7.2 The sender row, the audit row, and the page row
 
@@ -670,7 +677,8 @@ here.
 
 **L4.** One item in a panel with three parts, in order. What happened ("The run recorded:
 {error_summary}"), what it means for the message (the sentence for its disposition, below), and
-provenance (run, page, attempts, first and last error time, sender class, content flags,
+provenance (run, page, attempts, first and last error time, sender class with the rule that set
+it, content flags with the rule ids that fired, the time scanned and the scanner version,
 disposition, and the error summary as recorded). The error summary is provider or scanner text
 and never a body. The panel ends with two links, the message in the corpus lens and its audit
 rows. The panel is the route `/{account}/jobs/{run-id}/failures/{seq}` over the items, read through
@@ -1266,8 +1274,11 @@ datasets. `senders` declares none. `plans`, `candidates` and `runs` declare none
 paths belong to the bespoke handlers, and the contract generator refuses a path claimed by both
 sources. A row the account's parent does not hold is refused with the client's 404, `unknown_row`.
 `failures` declares one. Its detail is the row with the error summary as recorded, the item's
-message's sensitivity block of [section 7.1](#71-the-message-row), which is its rule ids, the time it
-was scanned and the scanner version, and the newest 50 audit rows of the message with their count.
+message's sensitivity block of [section 7.1](#71-the-message-row), which is the rule that set its
+class as `class_rule_id`, the content rules that fired as `rule_ids`, the time it was scanned and the
+scanner version, and the newest 50 audit rows of the message with their count. `class_rule_id` is
+`null` when no rule set the class, and every field of the block is `null` for a page item or a
+message the index no longer holds.
 
 The page dimension is `page_number`, because `page=` is the common parameter that pages rows.
 Naming it `page`, as the run screen's group-by control words it, was the alternative, and a URL
