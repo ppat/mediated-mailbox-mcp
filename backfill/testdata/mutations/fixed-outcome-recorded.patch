@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 28d2276..abdda69 100644
+index 67ad03c..c4be592 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -305,7 +305,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
+@@ -330,7 +330,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
  	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
  		return authentication.New(t).RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
  			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},

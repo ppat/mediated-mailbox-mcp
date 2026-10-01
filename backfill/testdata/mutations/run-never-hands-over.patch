@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 28d2276..382b129 100644
+index 354c386..922848d 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -247,7 +247,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+@@ -260,7 +260,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
  		if source != nil {
  			attempt = source.LastAttempt()
  		}
 -		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
 +		return recordAttempt(ctx, pool, account, attempt)
- 	}})
- }
- 
+ 	}, reauthorize: func(ctx context.Context, account string) (*gmail.TokenSource, error) {
+ 		stored, err := loader.Reread(ctx, account)
+ 		if err != nil {

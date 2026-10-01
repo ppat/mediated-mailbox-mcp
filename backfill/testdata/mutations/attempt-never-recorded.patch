@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 28d2276..4aa38a8 100644
+index 354c386..c99117c 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -245,7 +245,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+@@ -258,7 +258,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
  		source := sources[account]
  		var attempt mail.AuthAttempt
  		if source != nil {
@@ -17,4 +17,4 @@ index 28d2276..4aa38a8 100644
 +			_ = source.LastAttempt()
  		}
  		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
- 	}})
+ 	}, reauthorize: func(ctx context.Context, account string) (*gmail.TokenSource, error) {

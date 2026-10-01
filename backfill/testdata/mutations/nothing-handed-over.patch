@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 28d2276..0375f28 100644
+index 67ad03c..bf48daa 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -289,8 +289,7 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
+@@ -314,8 +314,7 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
  	if source == nil {
  		return nil
  	}

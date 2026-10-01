@@ -148,7 +148,11 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		return fmt.Errorf("listening for the probes: %w", err)
 	}
 	stopProbes := serveProbes(ln, registry, logger)
-	work, err := firstPass(pool, scanner, registry, logger)
+	connect, err := gmailPorts(registry)
+	if err != nil {
+		return errors.Join(err, stopProbes())
+	}
+	work, err := firstPass(pool, scanner, registry, logger, connect)
 	if err != nil {
 		return errors.Join(err, stopProbes())
 	}
@@ -206,6 +210,12 @@ type served struct {
 	// authentication attempt, for the unit of work to call after each unit it does with that source
 	// (ADR-0082, ADR-0097).
 	handOver func(ctx context.Context, account string) error
+	// reauthorize reads the account's credential again from its state row after the provider refused
+	// the one its source holds (ADR-0090). When the row holds another credential, it makes a source
+	// holding that one the account's source, so handOver reads it from then on, and returns it. It
+	// returns nil when the row holds the credential the source holds, which is the one refused, or the
+	// account is no longer connected, so the refusal stands.
+	reauthorize func(ctx context.Context, account string) (*gmail.TokenSource, error)
 }
 
 // unitOfWork is the work a run does with what it serves, between taking its account snapshot and
@@ -217,7 +227,9 @@ type unitOfWork func(ctx context.Context, s served) error
 // backfill takes the account snapshot once, at the start of the run (ADR-0090), loads the policy of
 // every listed account through a loader whose reload-failure series registry serves, builds a token
 // source for each account it can serve and runs work with them. A snapshot whose read fails stops the
-// run, since a run that exits holds no previous snapshot.
+// run, since a run that exits holds no previous snapshot. A credential the provider refuses is read
+// again from its row through the loader, the one way a running unit of work sees a credential the
+// operator replaced after the snapshot was taken (ADR-0090).
 func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logger *slog.Logger, registry prometheus.Registerer, work unitOfWork) error {
 	loader := accountload.New(pool, keys, logger)
 	if err := loader.Load(ctx); err != nil {
@@ -238,7 +250,8 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 	}
 	logger.Info("policy loaded", "accounts", len(ids))
 	sources := map[string]*gmail.TokenSource{}
-	for account, c := range credentials(snapshot, logger) {
+	creds := credentials(snapshot, logger)
+	for account, c := range creds {
 		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
 	}
 	return work(ctx, served{sources: sources, policy: policies.Snapshot(), handOver: func(ctx context.Context, account string) error {
@@ -248,6 +261,18 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 			attempt = source.LastAttempt()
 		}
 		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
+	}, reauthorize: func(ctx context.Context, account string) (*gmail.TokenSource, error) {
+		stored, err := loader.Reread(ctx, account)
+		if err != nil {
+			return nil, err
+		}
+		if stored == nil || string(stored) == sources[account].RefreshToken() {
+			return nil, nil
+		}
+		c := creds[account]
+		c.RefreshToken = string(stored)
+		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
+		return sources[account], nil
 	}})
 }
 
@@ -315,17 +340,85 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt 
 	return nil
 }
 
-// firstPass returns the unit of work that runs backfill's two passes over every served account in
-// turn (ADR-0017), returning the verdicts another scanner made and the gate skips the gate no longer
-// decides as the same skip to pending before the first (ADR-0096, ADR-0098), spending from each
-// account's rate budget under the target its state row sets (ADR-0024). The second pass runs for an account once its first has ended. Every page of either pass
-// is one unit of work, so the account's token is handed over after each. An account whose pass fails
-// leaves the others to run, and the run ends in an error naming it.
-func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Registerer, logger *slog.Logger) (unitOfWork, error) {
-	gmailMetrics, err := gmail.NewMetrics(registry)
+// connector builds the port an account's calls go through, over the token source holding the
+// account's credential.
+type connector func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error)
+
+// gmailPorts returns the connector that builds a Gmail adapter over the source, counting its requests
+// on series registry serves, which every adapter it builds shares.
+func gmailPorts(registry prometheus.Registerer) (connector, error) {
+	metrics, err := gmail.NewMetrics(registry)
 	if err != nil {
 		return nil, err
 	}
+	return func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+		return gmail.New(gmail.Config{Account: account, Client: http.DefaultClient, Tokens: source, Metrics: metrics})
+	}, nil
+}
+
+// connection is one account's port, built by connect over the account's token source, and built
+// again over a new source when the provider refuses the credential the port's source holds and the
+// account's row holds another (ADR-0090).
+type connection struct {
+	account     string
+	port        mail.Port[context.Context]
+	connect     connector
+	reauthorize func(ctx context.Context, account string) (*gmail.TokenSource, error)
+}
+
+// retried makes call over the account's port. When the provider refuses the credential, the
+// credential is read again from the account's row before the refusal is returned. A row holding
+// another credential has the port built again over a source holding it, kept for the account's later
+// calls, and the call made once more over it, so a re-authorization reaches the run at the call it
+// refused rather than the next run (ADR-0090). The call made again goes through call whole, a new
+// lease included. A row holding the refused credential, or none, returns the refusal.
+func retried[T any](ctx context.Context, c *connection, call func(context.Context, mail.Port[context.Context]) (T, error)) (T, error) {
+	out, err := call(ctx, c.port)
+	if !errors.Is(err, mail.ErrAuthentication) {
+		return out, err
+	}
+	source, rerr := c.reauthorize(ctx, c.account)
+	if rerr != nil {
+		return out, errors.Join(err, fmt.Errorf("reading the refused credential again: %w", rerr))
+	}
+	if source == nil {
+		return out, err
+	}
+	port, cerr := c.connect(c.account, source)
+	if cerr != nil {
+		return out, errors.Join(err, cerr)
+	}
+	c.port = port
+	return call(ctx, port)
+}
+
+// fetch returns the first pass's enumeration over the account's port, under a lease (ADR-0025).
+func (c *connection) fetch(limiter *lease.Limiter) pass1.Fetch {
+	return func(ctx context.Context, token mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
+		return retried(ctx, c, func(ctx context.Context, port mail.Port[context.Context]) (mail.Page[mail.MessageMetadata], error) {
+			return pass1.Leased(limiter, port, c.account)(ctx, token)
+		})
+	}
+}
+
+// body returns the second pass's body fetch over the account's port, under a lease (ADR-0025).
+func (c *connection) body(limiter *lease.Limiter) pass2.Body {
+	return func(ctx context.Context, id string) (mail.MessageBody, error) {
+		return retried(ctx, c, func(ctx context.Context, port mail.Port[context.Context]) (mail.MessageBody, error) {
+			return leasedBody(limiter, port, c.account)(ctx, id)
+		})
+	}
+}
+
+// firstPass returns the unit of work that runs backfill's two passes over every served account in
+// turn (ADR-0017), returning the verdicts another scanner made and the gate skips the gate no longer
+// decides as the same skip to pending before the first (ADR-0096, ADR-0098), spending from each
+// account's rate budget under the target its state row sets (ADR-0024). Each account's calls go
+// through the port connect builds over its token source. The second pass runs for an account once its
+// first has ended. Every page of either pass is one unit of work, so the account's token is handed
+// over after each. An account whose pass fails leaves the others to run, and the run ends in an error
+// naming it.
+func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Registerer, logger *slog.Logger, connect connector) (unitOfWork, error) {
 	leaseMetrics, err := lease.NewMetrics(registry)
 	if err != nil {
 		return nil, err
@@ -348,17 +441,18 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 		}
 		var failures []error
 		for _, account := range accounts {
-			adapter, err := gmail.New(gmail.Config{Account: account, Client: http.DefaultClient, Tokens: s.sources[account], Metrics: gmailMetrics})
+			port, err := connect(account, s.sources[account])
 			if err != nil {
 				return err
 			}
+			c := &connection{account: account, port: port, connect: connect, reauthorize: s.reauthorize}
 			deps := pass1.Deps{
-				Store: store, Fetch: pass1.Leased(limiter, adapter, account),
+				Store: store, Fetch: c.fetch(limiter),
 				Policy: s.policy.For(account), Scanner: scanner, Lookups: lookups,
 				RunID: runID, Now: time.Now,
 			}
 			second := pass2.Deps{
-				Store: secondStore, Body: leasedBody(limiter, adapter, account),
+				Store: secondStore, Body: c.body(limiter),
 				Policy: s.policy.For(account), Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
 				PageSize: pageSize, RunID: runID, Now: time.Now,
 			}

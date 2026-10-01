@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 28d2276..b0f7a57 100644
+index 67ad03c..42f565c 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -299,7 +299,7 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
+@@ -324,7 +324,7 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
  // (ADR-0097). A recording that fails is returned, and the next unit of work records the attempt
  // again.
  func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt mail.AuthAttempt) error {

@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
+index 354c386..7632d37 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -209,9 +209,7 @@ type unitOfWork func(ctx context.Context, s served) error
- // run, since a run that exits holds no previous snapshot.
+@@ -232,9 +232,7 @@ type unitOfWork func(ctx context.Context, s served) error
+ // operator replaced after the snapshot was taken (ADR-0090).
  func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logger *slog.Logger, registry prometheus.Registerer, work unitOfWork) error {
  	loader := accountload.New(pool, keys, logger)
 -	if err := loader.Load(ctx); err != nil {
