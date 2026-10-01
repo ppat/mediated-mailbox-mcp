@@ -53,6 +53,11 @@ a 400 or a 401, or failed for anything else, a passed deadline included, and hol
 request its caller cancelled or for an access token it already held. The deployable records that
 attempt on the account's state row at the end of each unit of work
 ([ADR-0097](../docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
+A port call that could not obtain an access token returns the error that reading names, a refused
+credential for a refusal and the provider failing the request for any other failure, apart from a
+call cancelled or past its deadline, which returns the context's error. So a caller is never told
+its credential was refused when Google's token endpoint was unreachable
+([O5](../USE_CASES.md#o5--clients-can-tell-failures-apart)).
 
 ## Series and the rules that read them
 

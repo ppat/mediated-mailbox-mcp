@@ -1,0 +1,19 @@
+control: A token request the provider refuses surfaces as a refused credential, and one that fails any other way before the call is cancelled or its deadline passes as a provider failure
+removes: a refusal from the token endpoint is a provider failure, like any other failure to obtain an access token
+packages: ./provider/gmail
+tests: TestATokenFailureIsThePortErrorItsOutcomeNames TestAPortCallWhoseTokenRequestWasRefusedIsARefusedCredential
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index bf90bfe..3d23b46 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -136,7 +136,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+ // deadline.
+ func tokenError(err error) error {
+ 	if outcome(err) == mail.AuthRefused {
+-		return errors.Join(mail.ErrAuthentication, err)
++		return errors.Join(mail.ErrProvider, err)
+ 	}
+ 	return errors.Join(mail.ErrProvider, err)
+ }

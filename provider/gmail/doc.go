@@ -118,4 +118,14 @@
 // 429 applies to "daily per-user limits, bandwidth limits, and concurrent request limits"
 // (https://developers.google.com/workspace/gmail/api/guides/handle-errors). Any other 401 or 403
 // is ErrAuthentication, and anything else is ErrProvider.
+//
+// A call that could not obtain an access token is read the way the token source reads its attempt's
+// outcome (ADR-0097), so the error a caller sees and the outcome the deployable records never
+// disagree on whether the credential was refused. A refusal from the token endpoint, a 400 or a
+// 401, is ErrAuthentication. A token request that failed any other way, a transport error, another
+// status or a body that is not a token response, is ErrProvider, and so is any error from a Tokens
+// other than *TokenSource, since only the token endpoint's own answer shows the credential was
+// refused. A call cancelled or past its deadline returns the context's error, as any other call
+// does. In Mutate a refusal stops the batch, and a token failure without one fails only its op, as
+// every other provider failure does.
 package gmail

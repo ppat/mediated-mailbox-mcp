@@ -1,0 +1,19 @@
+control: A token request the provider refuses surfaces as a refused credential, and one that fails any other way before the call is cancelled or its deadline passes as a provider failure
+removes: a port call reports every failure to obtain an access token as a refused credential, without reading its outcome
+packages: ./provider/gmail
+tests: TestATokenRequestThatGetsNoAnswerIsAProviderError
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index bf90bfe..4de605c 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -96,7 +96,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+ 		if ctx.Err() != nil {
+ 			return nil, ctx.Err()
+ 		}
+-		return nil, fmt.Errorf("gmail: obtaining an access token: %w", tokenError(err))
++		return nil, fmt.Errorf("gmail: obtaining an access token: %w", errors.Join(mail.ErrAuthentication, err))
+ 	}
+ 	var body io.Reader
+ 	if r.Body != "" {

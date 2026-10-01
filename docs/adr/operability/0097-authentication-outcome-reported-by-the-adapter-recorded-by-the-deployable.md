@@ -49,9 +49,9 @@ for the same account, so they all record the same two columns.
   it, the adapter would need a database connection and the account's write grant, braiding storage
   into the one component that should know only its provider.
 - **The deployable infers the outcome from the errors the port returns.** For it, no new surface on
-  the adapter. Against it, a cached access token means no attempt was made, so success cannot be
-  told from silence, and the port's errors say what a call did, not whether the credential was
-  refused.
+  the adapter. Against it, the port's errors say whether a credential was refused but not whether
+  the token endpoint refused it, since a mailbox request the provider refuses is the same error,
+  and a cached access token means no attempt was made, so success cannot be told from silence.
 - **A callback the adapter calls on each attempt, which writes the row.** For it, no delay. Against
   it, database input and output inside the adapter's token path and under its lock, so a slow
   database slows every provider call.

@@ -72,7 +72,7 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 	if err := gmail.RequireAccount(granted, account); err != nil {
 		t.Fatalf("%v, the one GMAIL_TEST_ACCOUNT names, so the run adds nothing", err)
 	}
-	attemptsAgainstGoogle(t, client, creds, tokens)
+	attemptsAgainstGoogle(t, client, creds, tokens, metrics)
 	g := &provider{client: client, tokens: tokens, pace: pace, labels: map[string]string{}}
 	run := runText(t)
 	t.Logf("the messages this run adds carry marks beginning mmfieldmarker-contract%s", run)
@@ -118,10 +118,12 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 }
 
 // attemptsAgainstGoogle checks the outcomes the token source reports against Google's real token
-// endpoint (ADR-0097). The refresh that obtained the run's first access token succeeded. A refresh
-// with the installation's client and a refresh token Google never issued is answered with a
-// refusal, and touches nothing in the account.
-func attemptsAgainstGoogle(t *testing.T, client *http.Client, creds gmail.Credentials, tokens *gmail.TokenSource) {
+// endpoint (ADR-0097), and the port error a refusal surfaces as. The refresh that obtained the
+// run's first access token succeeded. A port call through an adapter holding the installation's
+// client and a refresh token Google never issued meets a refusal, returns a refused credential and
+// not a provider failure, and touches nothing in the account, since no request follows the refused
+// refresh.
+func attemptsAgainstGoogle(t *testing.T, client *http.Client, creds gmail.Credentials, tokens *gmail.TokenSource, metrics *gmail.Metrics) {
 	t.Helper()
 	if got := tokens.LastAttempt().Outcome; got != mail.AuthSucceeded {
 		t.Errorf("the refresh that obtained an access token reports %q, want %q", got, mail.AuthSucceeded)
@@ -131,8 +133,16 @@ func attemptsAgainstGoogle(t *testing.T, client *http.Client, creds gmail.Creden
 		ClientSecret: creds.ClientSecret,
 		RefreshToken: "1//mmfieldmarker-never-issued",
 	})
-	if _, err := bogus.AccessToken(t.Context()); err == nil {
+	adapter, err := gmail.New(gmail.Config{Account: "mmfieldmarker-never-issued", Client: client, Tokens: bogus, Metrics: metrics})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	_, err = adapter.ListLabels(t.Context())
+	switch {
+	case err == nil:
 		t.Error("Google issued an access token for a refresh token it never issued")
+	case !errors.Is(err, mail.ErrAuthentication) || errors.Is(err, mail.ErrProvider):
+		t.Errorf("a port call whose refresh Google refused returned %v, want an error wrapping %v and not %v", err, mail.ErrAuthentication, mail.ErrProvider)
 	}
 	if got := bogus.LastAttempt().Outcome; got != mail.AuthRefused {
 		t.Errorf("the refresh Google refused reports %q, want %q", got, mail.AuthRefused)

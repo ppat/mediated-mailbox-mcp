@@ -19,7 +19,10 @@ const historyPage = 500
 // maxResponse bounds how much of a Gmail response body is read.
 const maxResponse = 64 << 20
 
-// Tokens hands out access tokens for the account. *TokenSource is the one the deployables use.
+// Tokens hands out access tokens for the account. *TokenSource is the one the deployables use. A
+// port call reads only *TokenSource's report of the token endpoint's refusal as a refused
+// credential, and any other error as the provider failing the request, apart from a call cancelled
+// or past its deadline, which returns the context's error.
 type Tokens interface {
 	AccessToken(ctx context.Context) (string, error)
 }
@@ -93,7 +96,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		return nil, fmt.Errorf("gmail: obtaining an access token: %w", errors.Join(mail.ErrAuthentication, err))
+		return nil, fmt.Errorf("gmail: obtaining an access token: %w", tokenError(err))
 	}
 	var body io.Reader
 	if r.Body != "" {
@@ -123,6 +126,19 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
 		return nil, parseError(res.StatusCode, res.Header.Get("Retry-After"), time.Now(), data)
 	}
 	return data, nil
+}
+
+// tokenError is the port error for err, a failure to obtain an access token, read the way the token
+// source reads its attempt's outcome (ADR-0097). A refusal from the token endpoint is a credential
+// the provider refused. Any other failure, an error from a Tokens other than *TokenSource included,
+// is the provider failing the request, since only the token endpoint's own answer shows a refusal.
+// send returns the context's error instead, without asking, for a call cancelled or past its
+// deadline.
+func tokenError(err error) error {
+	if outcome(err) == mail.AuthRefused {
+		return errors.Join(mail.ErrAuthentication, err)
+	}
+	return errors.Join(mail.ErrProvider, err)
 }
 
 // labels reads the account's labels.
