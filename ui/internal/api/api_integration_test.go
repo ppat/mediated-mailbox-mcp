@@ -180,14 +180,14 @@ func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 // the per-account row).
 func TestEveryReadIsPerAccount(t *testing.T) {
 	s, _ := server(t)
-	for _, p := range []string{"/api/lens?dataset=plans", "/api/system", "/api/jobs", "/api/events", "/api/jobs/r-0912", "/api/failures/1?run=r-0912"} {
+	for _, p := range []string{"/api/lens?dataset=plans", "/api/system", "/api/attention", "/api/jobs", "/api/events", "/api/jobs/r-0912", "/api/failures/1?run=r-0912"} {
 		r := get(t, s.Handler(), p)
 		if origin, code := errorOf(t, r); r.status != http.StatusNotFound || origin != "client" || code != "not_found" {
 			t.Errorf("%s answered %d %s %s, want 404", p, r.status, origin, code)
 		}
 	}
 	for account, want := range map[string]string{"all": "all_accounts", "nobody": "unknown_account"} {
-		for _, route := range []string{"lens?dataset=plans", "system", "jobs", "events", "jobs/r-0912", "failures/1?run=r-0912", "lens?dataset=runs", "lens?dataset=failures&run=r-0912"} {
+		for _, route := range []string{"lens?dataset=plans", "system", "attention", "jobs", "events", "jobs/r-0912", "failures/1?run=r-0912", "lens?dataset=runs", "lens?dataset=failures&run=r-0912"} {
 			r := get(t, s.Handler(), "/api/"+account+"/"+route)
 			if origin, code := errorOf(t, r); r.status != http.StatusBadRequest || origin != "client" || code != want {
 				t.Errorf("/api/%s/%s answered %d %s %s, want 400 %s", account, route, r.status, origin, code, want)
@@ -200,7 +200,7 @@ func TestEveryReadIsPerAccount(t *testing.T) {
 	}
 	for _, p := range []string{
 		"/api/personal/lens?dataset=plans&level=3", "/api/personal/lens?dataset=candidates&level=3",
-		"/api/personal/lens?dataset=plans&level=0", "/api/personal/system", "/api/personal/jobs",
+		"/api/personal/lens?dataset=plans&level=0", "/api/personal/system", "/api/personal/jobs", "/api/personal/attention",
 		"/api/personal/lens?dataset=runs&level=3&range=all", "/api/personal/lens?dataset=runs&level=1&group=workload&range=all",
 		"/api/personal/lens?dataset=failures&run=r-0912&level=3", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender",
 		"/api/personal/failures/1?run=r-0912", "/api/personal/jobs/r-0912",
@@ -344,6 +344,11 @@ func fixtures() map[string]string {
 		"candidates-rows-pending.json":                "/api/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
 		"candidates-summary-all.json":                 "/api/personal/lens?dataset=candidates&level=0&range=all&sort=score,desc",
 		"candidates-rows-all.json":                    "/api/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1",
+		"candidates-rows-pending-oldest.json":         "/api/personal/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
+		"attention.json":                              "/api/personal/attention",
+		"attention-other.json":                        "/api/other/attention",
+		"candidates-rows-pending-other.json":          "/api/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
+		"candidates-rows-pending-oldest-other.json":   "/api/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
 		"runs-summary.json":                           "/api/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
 		"runs-rows.json":                              "/api/personal/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
 		"runs-by-workload.json":                       "/api/personal/lens?dataset=runs&level=1&group=workload&range=7d&sort=started_at,desc&pass=!tick",
@@ -396,6 +401,39 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 	// recorded once more after it spends for the first time.
 	firstSpend(t)
 	record(t, s, doc, map[string]string{"jobs-other-spent.json": "/api/other/jobs"})
+	// Home's states for an account with nothing indexed, nothing awaiting a decision and nothing worth a
+	// look are recorded once the other account's recorded state is removed (docs/UI.md section 8.1).
+	emptyOther(t)
+	record(t, s, doc, map[string]string{
+		"system-other-empty.json":                         "/api/other/system",
+		"jobs-other-empty.json":                           "/api/other/jobs",
+		"attention-other-empty.json":                      "/api/other/attention",
+		"candidates-rows-pending-other-empty.json":        "/api/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
+		"candidates-rows-pending-oldest-other-empty.json": "/api/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
+	})
+}
+
+// emptyOther removes every row the other account holds apart from the account itself, so it reads as an
+// account whose backfill has not started.
+func emptyOther(t *testing.T) {
+	t.Helper()
+	conn, err := pgx.Connect(t.Context(), postgres.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := conn.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	}()
+	for _, table := range []string{
+		"job_run_events", "job_run_failures", "job_runs", "masking_events", "audit_log", "scan_gate_decisions",
+		"policy_candidates", "reorg_plans", "messages", "rate_state",
+	} {
+		if _, err := conn.Exec(t.Context(), "DELETE FROM "+table+" WHERE account_id = $1", other); err != nil {
+			t.Fatalf("emptying %s: %v", table, err)
+		}
+	}
 }
 
 // firstSpend gives the other account, which has never spent, its first rate state.

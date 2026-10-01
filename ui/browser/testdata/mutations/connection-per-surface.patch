@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: every surface following an account opens a connection of its own, so the strip and the banner hold two
+packages: ./ui/browser/test/home.test.tsx ./ui/browser/test/stream.test.tsx
+tests: the strip and the banner share the account's one connection, which closes with the screen | surfaces following one account share one connection, which closes when the last stops
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/stream.ts b/ui/browser/src/app/stream.ts
+index 98d0af1..1ee376a 100644
+--- a/ui/browser/src/app/stream.ts
++++ b/ui/browser/src/app/stream.ts
+@@ -139,7 +139,7 @@ export class Streams {
+     const shared = this.#shared(account);
+     const own: Follower = { ...follower };
+     shared.followers.add(own);
+-    const open = shared.open ?? this.#open(account, shared);
++    const open = this.#open(account, shared);
+     let stopped = false;
+     return {
+       objects: shared.objects,

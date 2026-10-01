@@ -10,7 +10,7 @@
   "page": 1,
   "pages": 1,
   "total": {
-    "count": 2
+    "count": 7
   },
   "rows": [
     {
@@ -18,9 +18,22 @@
       "score": 0.9,
       "signals": [
         {
-          "name": "\u003cscript\u003emmfieldmarker-displayname\u003c/script\u003e",
-          "domain": "bank.example",
-          "heuristic": "display_name"
+          "heuristic": "embedding_similarity",
+          "evidence": {
+            "name": null,
+            "domain": "bank.example",
+            "keyword": null,
+            "score": 0.5
+          }
+        },
+        {
+          "heuristic": "display_name",
+          "evidence": {
+            "name": "\u003cscript\u003emmfieldmarker-displayname\u003c/script\u003e",
+            "domain": "bank.example",
+            "keyword": null,
+            "score": null
+          }
         }
       ],
       "status": "pending",
@@ -31,12 +44,59 @@
       "first_seen": "2026-06-12T10:16:04Z"
     },
     {
+      "domain": "cluster.example",
+      "score": 0.85,
+      "signals": [
+        {
+          "heuristic": "domain_clustering",
+          "evidence": {
+            "name": null,
+            "domain": "\u003cscript\u003emmfieldmarker-clusterdomain\u003c/script\u003e",
+            "keyword": null,
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-08-01T10:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
+      "domain": "credit.example",
+      "score": 0.8,
+      "signals": [
+        {
+          "heuristic": "institution_keyword",
+          "evidence": {
+            "name": null,
+            "domain": null,
+            "keyword": "\u003cscript\u003emmfieldmarker-keyword\u003c/script\u003e",
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
       "domain": "bank.example",
       "score": 0.7,
       "signals": [
         {
-          "keyword": "bank",
-          "heuristic": "institution_keyword"
+          "heuristic": "institution_keyword",
+          "evidence": {
+            "name": null,
+            "domain": null,
+            "keyword": "bank",
+            "score": null
+          }
         }
       ],
       "status": "confirmed",
@@ -45,6 +105,69 @@
       "reviewed_by": "operator",
       "message_count": 1,
       "first_seen": "2026-09-08T10:16:04Z"
+    },
+    {
+      "domain": "\u003cscript\u003emmfieldmarker-candidatedomain\u003c/script\u003e",
+      "score": 0.65,
+      "signals": [
+        {
+          "heuristic": "transactional_pattern",
+          "evidence": {
+            "name": null,
+            "domain": null,
+            "keyword": null,
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
+      "domain": "similar.example",
+      "score": 0.6,
+      "signals": [
+        {
+          "heuristic": "embedding_similarity",
+          "evidence": {
+            "name": null,
+            "domain": "\u003cscript\u003emmfieldmarker-similardomain\u003c/script\u003e",
+            "keyword": null,
+            "score": 0.874
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
+    },
+    {
+      "domain": "strange.example",
+      "score": 0.4,
+      "signals": [
+        {
+          "heuristic": "\u003cscript\u003emmfieldmarker-heuristic\u003c/script\u003e",
+          "evidence": {
+            "name": null,
+            "domain": null,
+            "keyword": null,
+            "score": null
+          }
+        }
+      ],
+      "status": "pending",
+      "created_at": "2026-09-10T08:16:04Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "message_count": null,
+      "first_seen": null
     }
   ]
 }

@@ -1,0 +1,20 @@
+control: A delta sync gap recovery shows on Home as the sync-gap card
+removes: the card is worded from the first recovery in the window rather than the latest
+packages: ./ui/internal/core/attention ./ui/internal/api
+tests: TestASyncGapIsOneCardWordedFromTheLatestRecovery TestTheSyncGapRuleShowsTheRecovery
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/core/attention/attention.go b/ui/internal/core/attention/attention.go
+index 4a82aee..a9435df 100644
+--- a/ui/internal/core/attention/attention.go
++++ b/ui/internal/core/attention/attention.go
+@@ -194,7 +194,7 @@ func gap(t Thresholds, rs []Recovery) (Card, bool) {
+ 	if t.GapDays <= 0 || len(rs) == 0 {
+ 		return Card{}, false
+ 	}
+-	latest := rs[len(rs)-1]
++	latest := rs[0]
+ 	at := latest.FinishedAt
+ 	if at == "" {
+ 		at = latest.StartedAt

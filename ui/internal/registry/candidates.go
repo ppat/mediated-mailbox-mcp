@@ -18,26 +18,26 @@ func candidateStatuses() []string { return []string{"pending", "confirmed", "dis
 func candidateWording() []string { return []string{"Awaiting review", "Confirmed", "Dismissed"} }
 
 // CandidateRow is one row of the candidates dataset, the review queue's columns (docs/UI.md section
-// 8.6). Signals is the recorded evidence, one entry per heuristic that fired, which the browser words
-// by its templates. MessageCount and FirstSeen come from the sender statistics, null when the index
-// holds no sender row for the domain.
+// 8.6). Signals is the recorded evidence, one entry per heuristic that fired, typed so no free-form
+// JSON reaches a text position (ADR-0063), which the browser words by its templates. MessageCount and
+// FirstSeen come from the sender statistics, null when the index holds no sender row for the domain.
 type CandidateRow struct {
-	Domain       string          `json:"domain"`
-	Score        float64         `json:"score"`
-	Signals      json.RawMessage `json:"signals"`
-	Status       string          `json:"status"`
-	CreatedAt    string          `json:"created_at"`
-	ReviewedAt   *string         `json:"reviewed_at"`
-	ReviewedBy   *string         `json:"reviewed_by"`
-	MessageCount *int64          `json:"message_count"`
-	FirstSeen    *string         `json:"first_seen"`
+	Domain       string   `json:"domain"`
+	Score        float64  `json:"score"`
+	Signals      []Signal `json:"signals"`
+	Status       string   `json:"status"`
+	CreatedAt    string   `json:"created_at"`
+	ReviewedAt   *string  `json:"reviewed_at"`
+	ReviewedBy   *string  `json:"reviewed_by"`
+	MessageCount *int64   `json:"message_count"`
+	FirstSeen    *string  `json:"first_seen"`
 }
 
 func candidateRowType() schema.Type {
 	return schema.Obj("CandidateRow",
 		schema.F("domain", schema.Str()),
 		schema.F("score", schema.Num()),
-		schema.F("signals", schema.Any()),
+		schema.F("signals", schema.ArrayOf(signalType())),
 		schema.F("status", schema.Str(candidateStatuses()...)),
 		schema.F("created_at", schema.Time()),
 		schema.F("reviewed_at", schema.Null(schema.Time())),
@@ -45,6 +45,79 @@ func candidateRowType() schema.Type {
 		schema.F("message_count", schema.Null(schema.Int())),
 		schema.F("first_seen", schema.Null(schema.Time())),
 	)
+}
+
+// Signal is one recorded signal as the read API sends it, the heuristic's identifier as stored and its
+// evidence keys, each null where the entry records none (ADR-0016, docs/UI.md section 17.1).
+type Signal struct {
+	Heuristic string   `json:"heuristic"`
+	Evidence  Evidence `json:"evidence"`
+}
+
+// Evidence is a signal's evidence. Which keys a heuristic records is ADR-0016's.
+type Evidence struct {
+	Name    *string  `json:"name"`
+	Domain  *string  `json:"domain"`
+	Keyword *string  `json:"keyword"`
+	Score   *float64 `json:"score"`
+}
+
+func signalType() schema.Type {
+	text := schema.Null(schema.Str())
+	return schema.Obj("Signal",
+		schema.F("heuristic", schema.Str()),
+		schema.F("evidence", schema.Obj("Evidence",
+			schema.F("name", text),
+			schema.F("domain", text),
+			schema.F("keyword", text),
+			schema.F("score", schema.Null(schema.Num())),
+		)),
+	)
+}
+
+// Signals reads a candidate's stored signals, each entry on its own, and never refuses one. A key of the
+// wrong type is null, an entry with no string identifier has an empty one, and a stored value that is not
+// a list is one entry with an empty identifier, so the screen shows that something it cannot word was
+// recorded (docs/UI.md section 17.1). The identifier is sent as stored, known or not.
+func Signals(stored []byte) []Signal {
+	var entries []json.RawMessage
+	// A stored JSON null decodes to no list, as anything else that is not one fails to decode.
+	if json.Unmarshal(stored, &entries) != nil || entries == nil {
+		return []Signal{{}}
+	}
+	out := make([]Signal, 0, len(entries))
+	for _, raw := range entries {
+		entry := decoded[map[string]json.RawMessage](raw)
+		evidence := decoded[map[string]json.RawMessage](entry["evidence"])
+		out = append(out, Signal{
+			Heuristic: decoded[string](entry["heuristic"]),
+			Evidence: Evidence{
+				Name:    optional[string](evidence["name"]),
+				Domain:  optional[string](evidence["domain"]),
+				Keyword: optional[string](evidence["keyword"]),
+				Score:   optional[float64](evidence["score"]),
+			},
+		})
+	}
+	return out
+}
+
+// optional is a JSON value of type T, nil when it is absent or of another type.
+func optional[T any](raw json.RawMessage) *T {
+	var v *T
+	if raw == nil || json.Unmarshal(raw, &v) != nil {
+		return nil
+	}
+	return v
+}
+
+// decoded is a JSON value of type T, its zero value when it is absent or of another type.
+func decoded[T any](raw json.RawMessage) T {
+	var zero T
+	if v := optional[T](raw); v != nil {
+		return *v
+	}
+	return zero
 }
 
 // candidates is the review queue's policy candidates, which the review queue lists and Home's
@@ -107,7 +180,7 @@ func candidateRows(ctx context.Context, q Queries, r Read) (any, error) {
 		c := CandidateRow{
 			Domain:     row.Domain,
 			Score:      Widen(row.Score),
-			Signals:    json.RawMessage(row.Signals),
+			Signals:    Signals(row.Signals),
 			Status:     row.Status,
 			CreatedAt:  stamp(row.CreatedAt),
 			ReviewedAt: optionalStamp(row.ReviewedAt),

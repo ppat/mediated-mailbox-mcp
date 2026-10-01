@@ -414,6 +414,21 @@ Estimated time left is pages remaining divided by the pages completed in the las
 the run, read from the run's progress events, and is absent until the run has ten minutes of
 history.
 
+Backfill's cell shows pass 1 while pass 1's latest run runs, else pass 2 while pass 2's latest run
+runs, else the pass whose latest run finished last, and "not started" when neither pass has a run.
+The checkpoint and its progress bar are drawn for every backfill run, the text reading "no page yet"
+and the bar an empty track until the run's checkpoint records a page of pages, so a pass that starts
+while Home is open shows its progress on its first page event, as Jobs' pass 2 bar does. Hiding them
+until the first answer held a page was the alternative, and a pass started after the page loaded
+would then show no progress until the page was read again. The estimated time left is read from the
+jobs endpoint and shows once the run has its ten minutes of history there. The strip reads the same jobs endpoint as Jobs and refreshes live the way
+Jobs' cards do ([section 8.3](#83-jobs)). Each cell's run fields, the progress bar and the batch
+class's used of reserved show the latest event for their run or for the rate, bound to that object
+alone, so an event redraws that text and re-renders nothing else. A run event for a run no cell
+shows, or whose state differs from the one shown, reads the jobs endpoint again, and a change of
+state also reads the system endpoint again, for the chrome's running mark and the reorg apply
+cell's count of plans in DRAFT. The rest of Home is not live.
+
 **Awaiting your decision**, fed by the plans dataset filtered to DRAFT and the candidates dataset
 filtered to pending. Plans first, oldest first. Then candidates by score, highest first. The
 heading carries the item count and the oldest plan's age, or with no plans the oldest candidate's
@@ -428,21 +443,82 @@ Candidate) is the row's label, not a field.
 
 A plan's title is the first line of its description, truncated at 80 characters.
 
+The inbox shows the first page of each list, 50 items, and the heading counts every item. The
+candidates' read is sorted by score, so the oldest candidate's age comes from a second read of the
+same filter sorted by created time ascending, whose first row is the oldest. Taking the oldest
+candidate of the page shown was the alternative, and with more than one page of candidates it
+would understate how long the queue has waited. A candidate's score shows two decimals, and its
+message count and first seen month show "none" when the index holds no sender row for its domain.
+
 **Worth a look**, fed by the attention endpoint, which returns each card complete. Zero to a
 handful of cards, newest first. Each card is the what, the number, since when, the sentence for
 its rule, and a link into the lens that explains it with the value applied as a filter. The rules,
 their starting thresholds, and their sentences are the table below. They are this design's own,
 undefined anywhere else, and starting values. Every threshold is a configuration key of
 [section 18.1](#181-the-configuration-the-ui-declares), read at start, and a value of 0 disables
-the rule.
+the rule. With no card, the region says "Nothing is worth a look right now."
 
-| Rule | Fires when | Sentence |
-| --- | --- | --- |
-| Backlog | pending scan above 5% of the corpus | "{count} messages are pending scan ({share}% of the corpus). Every pending message denies its body until scanned, which reads to the agent like a permission problem." |
-| Masking | one sender above 20 events in 7 days under one rule | "Masking fired {count} times on {sender} this week, all under {rule}. A sender masked this often under one rule is worth checking for an over-mask." |
-| Body serves | more than twice the 7-day median in 24 hours, the anomaly [A4](../USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) names | "{count} bodies were served in 24 hours against a 7-day median of {median}. Body-serve volume beyond triage plausibility is the anomaly the design watches for." |
-| Sync gap | one recovered in the last 7 days | "Delta sync recovered from a cursor gap on {time}, re-enumerating a {window} window and reconciling {count} messages. A repeated gap means the cadence or the cursor lifetime needs attention." |
-| Expiry | a DRAFT plan within 2 days of its maximum age | "Plan {title} expires in {remaining}. After that the apply job refuses it and the client must propose again." |
+| Rule | Fires when | Sentence | Links to |
+| --- | --- | --- | --- |
+| Backlog | pending scan above 5% of the corpus | "{count} messages are pending scan ({share}% of the corpus). Every pending message denies its body until scanned, which reads to the agent like a permission problem." | the corpus lens at L3 with `scan_state=pending` |
+| Masking | one sender above 20 events in 7 days under one rule | "Masking fired {count} times on {sender} this week, all under {rule}. A sender masked this often under one rule is worth checking for an over-mask." | the masking lens at L3 with `range=7d`, the `rule=` and the `sender=` |
+| Body serves | more than twice the 7-day median in 24 hours, the anomaly [A4](../USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) names | "{count} bodies were served in 24 hours against a 7-day median of {median}. Body-serve volume beyond triage plausibility is the anomaly the design watches for." | the audit lens at L3 with `action=READ_BODY` and `range=24h` |
+| Sync gap | one recovered in the last 7 days | "Delta sync recovered from a cursor gap on {time}, re-enumerating a {window} window and reconciling {count} messages. A repeated gap means the cadence or the cursor lifetime needs attention." | Jobs, its runs with `pass=gap_recovery` over the rule's days |
+| Expiry | a DRAFT plan within 2 days of its maximum age | "Plan {title} expires in {remaining}. After that the apply job refuses it and the client must propose again." | the plan |
+
+The server words every card, number, since and sentence included, so the browser renders text it
+does not compose, and a masking card's sender, a domain an adversary chose, renders inert like
+message-derived text ([section 11](#11-rendering-and-formatting-rules)). The card's what is the
+rule's name in the table. What each rule reads, and what its number and since are, is below. Each
+"above" and "more than" is strict, so a value equal to its threshold does not fire.
+
+| Rule | Reads | Number | Since | Cards |
+| --- | --- | --- | --- | --- |
+| Backlog | the messages pending scan against every message the index holds, as of the read | the messages pending scan | none, and the card shows "now" | one, and none while the index is empty |
+| Masking | the masking events of the last 7 days whose scanner version and revision equal those their subject was masked under ([section 8.5](#85-the-analysis-lenses)), each counted under its rule and the domain of its message's sender, lowered as the `sender` dimension lowers it ([section 17.1](#171-the-dataset-endpoint)) | the pair's events | the pair's first event in the 7 days | one per sender and rule above the threshold |
+| Body serves | the `READ_BODY` audit rows of the last 24 hours, against the median of the daily `READ_BODY` counts over the seven whole UTC days before the 24 hours start, a day without one counting 0 | the bodies served in the 24 hours | the first of them | one |
+| Sync gap | the delta-sync runs whose pass is `gap_recovery`, that succeeded and started within the rule's days | the recoveries | the first one's start | one, its sentence worded from the latest recovery |
+
+- **Backlog has no since.** No column records when a message became pending, so the card is a
+  state as of the read. Showing the oldest pending message's sent time was the alternative, and it
+  would date the backlog by when mail was sent, not by when it started waiting.
+- **Masking counts an event only through its message.** An event whose message the index no longer
+  holds has no sender to count under, so it counts toward no card. An event of a masking a change
+  of scanner replaced counts toward none either, so a subject masked again is never counted twice.
+  A sender's domain that the filter grammar of
+  [section 5](#5-information-architecture-and-the-url) cannot name is left out of the link, which
+  then names the rule alone. One card per sender and rule is the rule's own unit, and one card
+  naming the worst pair was the alternative, which would hide every other over-mask.
+- **A change of scanner can raise masking cards.** Masking every subject again records a new event
+  for each mask, under the current scanner and in the week it happens
+  ([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)), so in the week after a
+  change of scanner a sender whose subjects now carry more masks under one rule than the count
+  raises a card, however old its mail is. That card is true, since the rule did mask those
+  subjects that week. Recording which events are re-masks was the alternative, and it is a schema
+  change with no consumer but this card. Counting by the message's sent time was the other, and it
+  would date mail rather than masking.
+- **The body-serve median reads the same days as the audit lens's figure**
+  ([section 8.5](#85-the-analysis-lenses)), the seven whole UTC days before the 24 hours start, so
+  the card and the lens it links to show one median. Body denials are not serves and are not
+  counted. A week without a serve has a median of 0, and twice 0 is 0, so any serve after such a
+  week fires the card. That is kept on purpose. A first serve after a quiet week is a change in
+  the agent's behavior, the anomaly the rule exists to show, and the sentence names the median of
+  0, so the operator reads the card for what it is. It also means every serve fires the card in
+  the first week after the index has serves. A floor below which the rule stays silent was the
+  alternative, and it would hide exactly the serves after a quiet week.
+- **A sync gap counts only recoveries that succeeded**, because a recovery still running or failed
+  has not recovered, and Jobs shows it. One card counting the recoveries is the rule's answer to
+  "a repeated gap", and one card per recovery was the alternative, which would fill Home during a
+  week of repeated gaps while saying what the count says. The time is the latest recovery's finish,
+  and the window is its counters' window end less its window start (ADR-0016). A recovery whose
+  counters lack the window or the reconciled count is worded without that clause rather than with
+  a value it did not record.
+- **Newest first** orders the cards by since, newest first, with a card that has no since first,
+  since it is as of now. Cards with the same since keep the table's order, and masking cards with
+  the same since are ordered by sender, then by rule.
+- **A link to a screen that does not exist yet is left out** and the card shows no link, as
+  everywhere in the UI. The endpoint sends each card's link as the table states it, and the browser
+  decides whether the screen exists.
 
 **System**, the right column, fed by the system endpoint's three blocks. As-of time first, then
 one row per value, each a link.
@@ -462,14 +538,18 @@ one row per value, each a link.
 | corpus | masking events, last 7 days | the masking lens at L1 |
 | corpus | gate skips of decisions, last 7 days | the gate lens at L1 with `decision=skip` |
 
+A row whose screen does not exist yet renders its value unlinked, as the system screen's rows do
+([section 8.8](#88-system)).
+
 The corpus block's masking count measures masking activity in the window, so it includes the masks a
 change of scanner records when it masks every subject again
 ([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)). It can then exceed the
 masking lens's count, which counts only the masks of each subject as it now stands.
 
 States. With no plans and no candidates, the inbox says "Nothing awaits your decision" and the
-column keeps its height. With backfill pass 1 not started, the strip shows the workload as not
-started and the corpus rows say the index is empty. While a pass runs, the partial-index banner
+column keeps its height. With backfill pass 1 not started, which is pass 1 neither complete nor
+with a run, the strip shows the workload as not started and the corpus rows say the index is
+empty. While a pass runs, the partial-index banner
 of [section 12](#12-empty-loading-partial-and-error-patterns) sits above the columns and the corpus
 rows show counts so far. A failed read on one region shows that region's error card and leaves
 the others alone.
@@ -760,15 +840,24 @@ refetches when the tab regains focus.
 The strongest signal is the first of the candidate's recorded signals in ADR-0004's table order
 (display name, domain clustering, institution keyword, transactional pattern, embedding
 similarity), worded by its template from the signal's evidence keys (one entry per heuristic that
-fired, ADR-0016).
+fired, with the identifiers and evidence keys [ADR-0016](./adr/data/0016-schema.md) states).
 
-| Heuristic | Template |
-| --- | --- |
-| display-name matching | "display name {name} matches listed {domain}" |
-| registrable-domain clustering | "registrable-domain clustering with listed {domain}" |
-| institution keyword | "institution keyword {keyword} in domain" |
-| transactional pattern | "transactional pattern (noreply, no List-Id, never labeled)" |
-| embedding similarity | "similar to confirmed {domain} ({score})" |
+| Heuristic | Identifier | Template |
+| --- | --- | --- |
+| display-name matching | `display_name` | "display name {name} matches listed {domain}" |
+| registrable-domain clustering | `domain_clustering` | "registrable-domain clustering with listed {domain}" |
+| institution keyword | `institution_keyword` | "institution keyword {keyword} in domain" |
+| transactional pattern | `transactional_pattern` | "transactional pattern (noreply, no List-Id, never labeled)" |
+| embedding similarity | `embedding_similarity` | "similar to confirmed {domain} ({score})", the score with two decimals |
+
+The evidence is attacker-written, a display name above all, so it reaches the browser as typed
+strings and a number and renders as text ([section 11](#11-rendering-and-formatting-rules)), never
+as an object a generic renderer walks. A signal whose identifier the table does not name, or whose
+template lacks an evidence key, renders as its identifier in muted text with an `unknown` badge, the
+rule of [section 7.1](#71-the-message-row), and "unreadable signal" with the badge when it carries
+no identifier. A signal whose identifier is known comes before any whose identifier is not, so the
+strongest signal is an unknown one only when nothing else fired, and a candidate with no recorded
+signal shows "no signal recorded".
 
 `/{account}/candidates/{domain}`. Three regions and the outcomes.
 
@@ -885,6 +974,19 @@ the account's stream while it shows, and reads the system endpoint again on ever
 and on every poll of the fallback, so its figures move with the pass. It is not a live surface and
 shows no live indicator. Reading the system endpoint only on page load was the alternative, and it
 would leave a pass's progress frozen on a screen left open.
+
+A tab holds one stream connection per account, whichever surfaces follow it. Home's strip and the
+banner, Jobs and the banner, and a run and the banner each share the account's one connection, which
+opens when the first of them starts following and closes when the last stops. Each event reaches
+every surface following the account. A reconnect or a poll of the fallback reads again what each
+following surface reads, and a surface that has stopped following reads nothing more. Every surface
+sees the connection's one status. One connection per surface was the alternative. Its case was that
+each surface's connection lived and died with the surface alone. It was not chosen because every
+connection is a poll of the database every two seconds on the server, so two surfaces on one screen
+doubled that load for one answer, and under HTTP/1.1, which the dev loop's plain HTTP and a proxy
+that downgrades both use, a browser holds at most six connections to one origin, so a few tabs open
+during a backfill would leave no connection for the screens' reads. Sharing lives in the stream
+client module the next paragraph names, so no surface changes shape.
 
 The transport, the stream's content, and its cadence are ADR-0058's. In the browser only the stream
 client module depends on that record, and on the server only the stream endpoint of
@@ -1252,6 +1354,16 @@ statement.
 | L0 figures | one per status, worded as [section 11](#11-rendering-and-formatting-rules) words the status, each linking to the plans screen with that status | one per status, worded as section 11 words the status apart from `confirmed`, worded Confirmed because the count holds candidates in effect and not yet, each linking to the review queue with that status |
 | Row | plan id, description, status, proposer, created time, decision time and identity, refusal reason, message count, and the latest apply run and rollback run found by their plan reference | domain, score, the recorded signals, status, created time, reviewed time and identity, and the sender's message count and first-seen time from its sender statistics |
 
+A candidate's recorded signals reach the browser typed, as a list of entries each carrying
+`heuristic`, the stored identifier as a string, and `evidence`, an object of the four evidence keys
+of [ADR-0016](./adr/data/0016-schema.md), `name`, `domain` and `keyword` as strings and `score` as a
+number, each `null` where the entry records none. The server reads each stored entry on its own and
+never refuses the row over one. A key of the wrong type is sent as `null`, an entry with no string
+identifier is sent with an empty one, and a stored value that is not a list is sent as one entry
+with an empty identifier, so the screen shows that something it cannot word was recorded
+([section 8.6](#86-review-queue)). Refusing the read was the alternative, and one malformed row
+would then take down the review queue and Home's inbox.
+
 Levels 1 and 2 answer with the request's group, its applied filters, the total of the rows those
 filters match, and the groups. The groups are ordered by count descending, then by their key with
 `null` last, which is the order the bars of [section 7.3](#73-charts) draw. For `runs` and `failures`
@@ -1362,7 +1474,7 @@ Every failure is one shape, and the origin mirrors
 | `POST /api/{account}/candidates/{domain}/dismiss` with `{ "expected_status": "pending" }` | as confirm |
 | `GET /api/{account}/jobs` | one block per workload with its derived workload state and the card fields of [section 8.3](#83-jobs), the rate block (current, target, cap, backoff, last throttle, and reserved and used per class), and the cadences from configuration |
 | `GET /api/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
-| `GET /api/{account}/attention` | the "worth a look" cards, each with rule id, what, number, since, the sentence, and the lens URL |
+| `GET /api/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
 | `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |
 
@@ -1483,7 +1595,7 @@ reader, and a tag it cannot read takes the record's default.
 | `max_plan_age` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
 | `sample_size` | the plan sample's size | no, defaults to 24 |
 | `sync_interval`, `heuristics_interval` | the intervals displayed on the jobs cards (ADR-0018's sync interval of 5 minutes, and the heuristics job's daily run of ADR-0022) | no, defaults to the records' values |
-| `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `attention_expiry_days` | the "worth a look" thresholds of [section 8.1](#81-home), one key per rule, 0 disabling the rule | no, defaults apply |
+| `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `attention_expiry_days` | the "worth a look" thresholds of [section 8.1](#81-home), one key per rule, 0 disabling the rule and a negative value refused. The backlog's is a percent of the corpus, the masking rule's a count of events, the body-serve rule's a multiple of the median, and the sync-gap and expiry rules' a number of days | no, defaulting to the starting values of section 8.1, 5, 20, 2, 7 and 2 |
 | `default_theme` | `system`, `dark`, or `light` | no, defaults to `system` |
 | `stream_interval`, `stream_reconnect_max`, `stream_poll_interval` | the poll cadence behind the event stream, the reconnection backoff ceiling, and the polling fallback interval (ADR-0058) | no, defaults to the record's values |
 

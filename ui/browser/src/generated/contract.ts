@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/{account}/attention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home's worth-a-look cards, each worded, in their order */
+        get: operations["getAttention"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/{account}/events": {
         parameters: {
             query?: never;
@@ -142,6 +159,22 @@ export interface components {
             /** @enum {string} */
             state: "not_started" | "running" | "idle";
         };
+        Attention: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            cards: components["schemas"]["AttentionCard"][];
+        };
+        AttentionCard: {
+            link: string;
+            number: number;
+            /** @enum {string} */
+            rule: "backlog" | "masking" | "body_serves" | "sync_gap";
+            sentence: string;
+            /** Format: date-time */
+            since: string | null;
+            what: string;
+        };
         AuditEntry: {
             action: string;
             actor: string;
@@ -171,7 +204,7 @@ export interface components {
             reviewed_at: string | null;
             reviewed_by: string | null;
             score: number;
-            signals: Record<string, never> | unknown[] | string | number | boolean | null;
+            signals: components["schemas"]["Signal"][];
             /** @enum {string} */
             status: "pending" | "confirmed" | "dismissed";
         };
@@ -219,6 +252,12 @@ export interface components {
             /** @enum {string} */
             origin: "client" | "ui" | "database";
             request_id: string;
+        };
+        Evidence: {
+            domain: string | null;
+            keyword: string | null;
+            name: string | null;
+            score: number | null;
         };
         FailureDetail: {
             account: string;
@@ -676,6 +715,10 @@ export interface components {
             flagged: number;
             restricted: number;
         };
+        Signal: {
+            evidence: components["schemas"]["Evidence"];
+            heuristic: string;
+        };
         SyncBlock: {
             cadence_seconds: number;
             /** Format: date-time */
@@ -727,6 +770,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Accounts"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAttention: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attention"];
                 };
             };
             /** @description Bad Request */

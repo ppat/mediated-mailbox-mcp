@@ -1,0 +1,20 @@
+control: every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
+removes: the attention route is declared without its account, so no account check admits its requests
+packages: ./ui/internal/api
+tests: TestEveryReadIsPerAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index de39936..6ffe381 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -38,7 +38,7 @@ func Bespoke() []Route {
+ 			Response: accountsType(),
+ 		},
+ 		{
+-			Pattern: "/api/{account}/attention", Operation: "getAttention", Scoped: true,
++			Pattern: "/api/{account}/attention", Operation: "getAttention",
+ 			Summary:  "Home's worth-a-look cards, each worded, in their order",
+ 			Response: attentionType(),
+ 		},

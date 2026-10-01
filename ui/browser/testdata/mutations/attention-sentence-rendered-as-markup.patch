@@ -1,0 +1,20 @@
+control: Message-derived text renders inert
+removes: a worth-a-look card hands its sentence, which carries a masked sender's domain, to the raw-markup escape hatch
+packages: ./ui/browser/test/home.test.tsx
+tests: message-derived and attacker-written text arrives inert on every surface of the screen
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 11d29a7..0cdd29b 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -473,7 +473,7 @@ function AttentionItem(props: { card: AttentionCard }) {
+           </span>
+         )}
+       </p>
+-      <p class="attention-sentence">{card.sentence}</p>
++      <p class="attention-sentence" dangerouslySetInnerHTML={{ __html: card.sentence }} />
+       {screen === undefined ? null : <a href={card.link}>See {screen}</a>}
+     </article>
+   );

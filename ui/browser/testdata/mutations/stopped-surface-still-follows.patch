@@ -1,0 +1,19 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: a surface that stops following stays among the account's followers, so a later event or poll still calls it and its connection never closes
+packages: ./ui/browser/test/home.test.tsx ./ui/browser/test/stream.test.tsx
+tests: the strip and the banner share the account's one connection, which closes with the screen | surfaces following one account share one connection, which closes when the last stops
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/stream.ts b/ui/browser/src/app/stream.ts
+index 98d0af1..52a7cd7 100644
+--- a/ui/browser/src/app/stream.ts
++++ b/ui/browser/src/app/stream.ts
+@@ -149,7 +149,6 @@ export class Streams {
+           return;
+         }
+         stopped = true;
+-        shared.followers.delete(own);
+         if (shared.followers.size === 0 && shared.open === open) {
+           shared.open = undefined;
+           open.stopRuns();

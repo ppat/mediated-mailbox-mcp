@@ -77,9 +77,17 @@ jobs:
     # The Go tests run under go tool pgrun with -tags integration, so the server's tests against PostgreSQL run
     # here, and among them the one that records the browser's fixtures from the real server and fails when a
     # checked-in fixture differs (ADR-0064). That diff runs in this job because the browser tests read the fixtures.
+    #
+    # This run also runs the UI's property tests, so it sets RAPID_SEED non-zero, RAPID_CHECKS to the gating case
+    # count and RAPID_NOFAILFILE=true, and passes no -short (ADR-0069), the same values go-test.yaml sets.
+    # property.Check and property.Report fail a run whose seed is unset or zero or whose RAPID_NOFAILFILE is not true.
     - name: Compile the UI with the bundle embedded and run its Go tests against one PostgreSQL container
       shell: bash
       working-directory: ./current
+      env:
+        RAPID_SEED: '1'
+        RAPID_CHECKS: '200'
+        RAPID_NOFAILFILE: 'true'
       run: |
         mise exec -- go build -o /dev/null ./ui
         mise exec -- go tool pgrun -- go test -tags integration ./ui/...

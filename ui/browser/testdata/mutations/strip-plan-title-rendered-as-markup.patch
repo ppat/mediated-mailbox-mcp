@@ -1,0 +1,20 @@
+control: Message-derived text renders inert
+removes: the running-work strip's reorg apply cell hands the applying plan's title to the raw-markup escape hatch
+packages: ./ui/browser/test/home.test.tsx
+tests: message-derived and attacker-written text arrives inert on every surface of the screen
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 11d29a7..974cbe9 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -253,7 +253,7 @@ function Cells(props: { account: string; jobs: Jobs; live: Stream }) {
+           </Field>
+         ) : (
+           <Field name="applying">
+-            {planTitle(apply.running.plan_description)}
++            <span dangerouslySetInnerHTML={{ __html: planTitle(apply.running.plan_description) }} />
+             {", "}
+             <RunLine live={live} run={apply.running} text={(r) => progressOf(r)} />
+           </Field>

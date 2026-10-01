@@ -5,7 +5,7 @@ import { accountsPath, systemPath, type System } from "../src/app/api.ts";
 import { App } from "../src/app/router.tsx";
 import { filled, ProgressBar } from "../src/lens/progress.tsx";
 import { backoff, systemValues, Values } from "../src/screens/system.tsx";
-import { testDeps } from "./app.ts";
+import { homeAnswers, testDeps } from "./app.ts";
 import { ok, recorded, type Answer, type Recorded } from "./fixtures/fetch.ts";
 import { at, mount, settle, type Mounted } from "./render.ts";
 
@@ -22,6 +22,7 @@ const answers = {
   [accountsPath()]: ok("accounts.json"),
   [systemPath("personal")]: ok("system.json"),
   [systemPath("other")]: ok("system-other.json"),
+  ...homeAnswers("personal"),
 };
 
 async function open(path: string, given: Readonly<Record<string, Answer>> = answers) {

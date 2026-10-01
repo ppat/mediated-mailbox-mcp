@@ -25,6 +25,10 @@ export type FailureDetail = Schemas["FailureDetail"];
 export type TimelineEvent = Schemas["TimelineEvent"];
 export type RateEvent = Schemas["RateEvent"];
 export type PlanEvent = Schemas["PlanEvent"];
+export type Attention = Schemas["Attention"];
+export type AttentionCard = Schemas["AttentionCard"];
+export type CandidateRow = Schemas["CandidateRow"];
+export type Signal = Schemas["Signal"];
 export type LensAnswer = operations["getLens"]["responses"][200]["content"]["application/json"];
 // Groups is a level 1 or 2 answer, every group of one dimension.
 export type Groups = Extract<LensAnswer, { group: string }>;
@@ -117,6 +121,10 @@ export function systemPath(account: string): string {
   return `/api/${encodeURIComponent(account)}/system`;
 }
 
+export function attentionPath(account: string): string {
+  return `/api/${encodeURIComponent(account)}/attention`;
+}
+
 export function eventsPath(account: string): string {
   return `/api/${encodeURIComponent(account)}/events`;
 }
@@ -153,6 +161,14 @@ export function readSystem(
   signal: AbortSignal,
 ): Promise<Result<System>> {
   return get<System>(fetch, path, signal);
+}
+
+export function readAttention(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<Attention>> {
+  return get<Attention>(fetch, path, signal);
 }
 
 export function readJobs(fetch: Fetch, path: string, signal: AbortSignal): Promise<Result<Jobs>> {

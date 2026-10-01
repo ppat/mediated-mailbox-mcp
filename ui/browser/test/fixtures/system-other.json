@@ -41,7 +41,7 @@
       "MUTATE": 0,
       "READ_BODY": 1
     },
-    "masking_events_7d": 0,
+    "masking_events_7d": 30,
     "gate_skips_7d": 0
   },
   "decisions": {

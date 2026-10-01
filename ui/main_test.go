@@ -38,7 +38,8 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui", "Configuration",
 		"Database core.Config", "Listen string", "ProbeListen string", "TLSCert string", "TLSKey string",
 		"InsecureHTTP bool", "SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
-		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration")
+		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
+		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64")
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -57,6 +58,11 @@ func TestTheDefaults(t *testing.T) {
 		DefaultTheme:       "system",
 		StreamReconnectMax: 30 * time.Second,
 		StreamPollInterval: 5 * time.Second,
+		// The worth-a-look thresholds are docs/UI.md section 8.1's starting values.
+		AttentionBacklogShare: 5,
+		AttentionMaskCount:    20,
+		AttentionServeFactor:  2,
+		AttentionGapDays:      7,
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
@@ -232,6 +238,10 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		t.Fatalf("run returned %v, want the key pair refused", err)
 	}
 	want := []string{
+		`level=INFO msg=configuration path=attention_backlog_share source=default value=5`,
+		`level=INFO msg=configuration path=attention_gap_days source=default value=7`,
+		`level=INFO msg=configuration path=attention_mask_count source=default value=20`,
+		`level=INFO msg=configuration path=attention_serve_factor source=default value=2`,
 		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
 		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
 		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,

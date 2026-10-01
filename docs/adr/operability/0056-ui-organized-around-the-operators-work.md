@@ -65,8 +65,9 @@ case best.
 - The jobs and failed-run screens read only recorded state, the bound
   [ADR-0034](./0034-system-status-operation.md) sets for the client surface. Each workload
   records its runs, timeline events, and per-item failures ([ADR-0022](./0022-four-workloads.md)).
-- The attention rules behind "worth a look" are undefined design work. They are derived at read
-  time from thresholds in the UI's configuration and carry no state and no verb.
+- The attention rules behind "worth a look" are the UI's own design, defined in
+  [docs/UI.md section 8.1](../../UI.md#81-home). They are derived at read time from thresholds in
+  the UI's configuration and carry no state and no verb.
 - Assumptions about other components: analysis views read through the dataset endpoint of
   [ADR-0057](./0057-one-dataset-endpoint-behind-a-registry.md). The plan's status set includes
   the rejected and refused states the reviewer displays ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)).

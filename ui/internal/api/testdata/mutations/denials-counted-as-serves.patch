@@ -1,0 +1,20 @@
+control: Body serves far above their daily median raise Home's body-serve card
+removes: the count of the last 24 hours takes body denials as serves
+packages: ./ui/internal/api
+tests: TestTheBodyServeRuleFiresFarAboveItsMedian
+scheduled-count: no
+integration: yes
+
+diff --git a/db/auditlog/serves.sql.go b/db/auditlog/serves.sql.go
+index 6ead64c..4384e7b 100644
+--- a/db/auditlog/serves.sql.go
++++ b/db/auditlog/serves.sql.go
+@@ -63,7 +63,7 @@ SELECT
+     count(*) AS serves,
+     min(a.ts)::timestamptz AS first_at
+ FROM audit_log AS a
+-WHERE a.account_id = $1 AND a.action = 'READ_BODY' AND a.ts >= $2
++WHERE a.account_id = $1 AND a.action IN ('READ_BODY', 'DENY_BODY') AND a.ts >= $2
+ `
+ 
+ type BodyServesSinceParams struct {

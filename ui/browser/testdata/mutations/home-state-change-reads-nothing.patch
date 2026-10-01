@@ -1,0 +1,22 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: a run event whose state differs from the one Home shows reads neither the jobs nor the system endpoint again, so the cells' workload states and the chrome's running mark keep the old state
+packages: ./ui/browser/test/home.test.tsx
+tests: a shown run's change of state reads the jobs and system endpoints again, and its cell follows
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index 72cd67e..10e0c30 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -95,10 +95,6 @@ export function onHomeRun(
+     }
+     if ((seen.get(run.run_id) ?? known.get(run.run_id)) !== run.state) {
+       seen.set(run.run_id, run.state);
+-      void deps.system.refresh(systemPath(account));
+-      if (known.has(run.run_id)) {
+-        void deps.jobs.refresh(jobsPath(account));
+-      }
+     }
+   };
+ }

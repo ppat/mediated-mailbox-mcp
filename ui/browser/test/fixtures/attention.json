@@ -1,0 +1,38 @@
+{
+  "account": "personal",
+  "as_of": "2026-09-10T10:16:04Z",
+  "cards": [
+    {
+      "rule": "backlog",
+      "what": "Scan backlog",
+      "number": 1,
+      "since": null,
+      "sentence": "1 messages are pending scan (20.0% of the corpus). Every pending message denies its body until scanned, which reads to the agent like a permission problem.",
+      "link": "/personal/messages?level=3\u0026scan_state=pending"
+    },
+    {
+      "rule": "body_serves",
+      "what": "Body serves",
+      "number": 1,
+      "since": "2026-09-10T08:16:04Z",
+      "sentence": "1 bodies were served in 24 hours against a 7-day median of 0. Body-serve volume beyond triage plausibility is the anomaly the design watches for.",
+      "link": "/personal/audit?level=3\u0026range=24h\u0026action=READ_BODY"
+    },
+    {
+      "rule": "sync_gap",
+      "what": "Sync gap",
+      "number": 1,
+      "since": "2026-09-08T10:16:04Z",
+      "sentence": "Delta sync recovered from a cursor gap on 2026-09-08 10:16Z, re-enumerating a 6h window and reconciling 41 messages. A repeated gap means the cadence or the cursor lifetime needs attention.",
+      "link": "/personal/jobs?range=7d\u0026pass=gap_recovery"
+    },
+    {
+      "rule": "masking",
+      "what": "Masking",
+      "number": 21,
+      "since": "2026-09-04T10:16:04Z",
+      "sentence": "Masking fired 21 times on \u003cscript\u003emmfieldmarker-masksender\u003c/script\u003e this week, all under \u003cscript\u003emmfieldmarker-maskrule\u003c/script\u003e. A sender masked this often under one rule is worth checking for an over-mask.",
+      "link": "/personal/masking?level=3\u0026range=7d\u0026rule=%3Cscript%3Emmfieldmarker-maskrule%3C%2Fscript%3E\u0026sender=%3Cscript%3Emmfieldmarker-masksender%3C%2Fscript%3E"
+    }
+  ]
+}

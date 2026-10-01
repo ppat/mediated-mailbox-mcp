@@ -82,6 +82,72 @@
         ],
         "type": "object"
       },
+      "Attention": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/AttentionCard"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "account",
+          "as_of",
+          "cards"
+        ],
+        "type": "object"
+      },
+      "AttentionCard": {
+        "additionalProperties": false,
+        "properties": {
+          "link": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer"
+          },
+          "rule": {
+            "enum": [
+              "backlog",
+              "masking",
+              "body_serves",
+              "sync_gap"
+            ],
+            "type": "string"
+          },
+          "sentence": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "what": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "what",
+          "number",
+          "since",
+          "sentence",
+          "link"
+        ],
+        "type": "object"
+      },
       "AuditEntry": {
         "additionalProperties": false,
         "properties": {
@@ -202,14 +268,10 @@
             "type": "number"
           },
           "signals": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
+            "items": {
+              "$ref": "#/components/schemas/Signal"
+            },
+            "type": "array"
           },
           "status": {
             "enum": [
@@ -400,6 +462,42 @@
           "code",
           "message",
           "request_id"
+        ],
+        "type": "object"
+      },
+      "Evidence": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "keyword": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "domain",
+          "keyword",
+          "score"
         ],
         "type": "object"
       },
@@ -2396,6 +2494,22 @@
         ],
         "type": "object"
       },
+      "Signal": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "$ref": "#/components/schemas/Evidence"
+          },
+          "heuristic": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "heuristic",
+          "evidence"
+        ],
+        "type": "object"
+      },
       "SyncBlock": {
         "additionalProperties": false,
         "properties": {
@@ -2579,6 +2693,75 @@
           }
         },
         "summary": "Every account's identifier and provider, the one unscoped read"
+      }
+    },
+    "/api/{account}/attention": {
+      "get": {
+        "operationId": "getAttention",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attention"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Home's worth-a-look cards, each worded, in their order"
       }
     },
     "/api/{account}/events": {

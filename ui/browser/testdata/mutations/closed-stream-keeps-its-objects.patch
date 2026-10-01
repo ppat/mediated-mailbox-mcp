@@ -1,0 +1,19 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: closing an account's connection keeps its objects, so a connection opened later starts from the last one's events
+packages: ./ui/browser/test/stream.test.tsx
+tests: surfaces following one account share one connection, which closes when the last stops
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/stream.ts b/ui/browser/src/app/stream.ts
+index 98d0af1..35f4e8c 100644
+--- a/ui/browser/src/app/stream.ts
++++ b/ui/browser/src/app/stream.ts
+@@ -154,7 +154,6 @@ export class Streams {
+           shared.open = undefined;
+           open.stopRuns();
+           open.stop();
+-          shared.objects.clear();
+         }
+       },
+     };

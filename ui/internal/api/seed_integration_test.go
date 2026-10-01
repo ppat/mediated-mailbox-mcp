@@ -21,6 +21,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
@@ -86,8 +87,12 @@ func seed(t *testing.T) {
 			($1, 'm-news', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'scanned'),
 			($1, 'm-news2', 't-news', $6, 'Newsletter.Example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'pending'),
 			($1, 'm-empty', 't-empty', 'nobody@', '', $7, $8, $9, '{}', false, 'normal', '{}', 'scanned'),
+			($1, 'm-mask', 't-mask', 'codes@' || $12::text, $12::text, $7, $8, $9, '{}', false, 'normal', '{mfa_code}', 'scanned'),
 			($10, 'm-other', 't-other', $11::text, 'other.example', $11::text, $11::text, $9, '{}', false, 'normal', '{}', 'pending')`,
-			[]any{personal, bank.FromAddress, bank.FromName, bank.Subject, at(48 * time.Hour), newsletter.FromAddress, newsletter.FromName, newsletter.Subject, at(30 * time.Hour), other, marker.Field("other")},
+			[]any{
+				personal, bank.FromAddress, bank.FromName, bank.Subject, at(48 * time.Hour), newsletter.FromAddress, newsletter.FromName,
+				newsletter.Subject, at(30 * time.Hour), other, marker.Field("other"), marker.MarkupField("masksender"),
+			},
 		},
 		{
 			// The newsletter's first message was scanned, so its row carries the scan's time and version
@@ -177,13 +182,26 @@ func seed(t *testing.T) {
 			},
 		},
 		{
+			// The pending candidates' strongest signals cover every heuristic and one identifier outside the
+			// five, and their evidence, and one candidate's domain, carry markup markers, all of which Home's
+			// inbox words (docs/UI.md sections 8.1 and 8.6). The signals are written in the shape ADR-0016
+			// states.
 			`INSERT INTO policy_candidates (account_id, domain, signals, score, status, created_at, reviewed_at, reviewed_by) VALUES
-			($1, 'lender.example', $2, 0.9, 'pending', $3, NULL, NULL),
-			($1, 'bank.example', '[{"heuristic": "institution_keyword", "keyword": "bank"}]', 0.7, 'confirmed', $4, $5, 'operator'),
-			($6, 'other.example', '[]', 0.5, 'pending', $3, NULL, NULL)`,
+			($1, 'lender.example', $2::jsonb, 0.9, 'pending', $3, NULL, NULL),
+			($1, 'bank.example', '[{"heuristic": "institution_keyword", "evidence": {"keyword": "bank"}}]', 0.7, 'confirmed', $4, $5, 'operator'),
+			($6, 'other.example', '[]', 0.5, 'pending', $3, NULL, NULL),
+			($1, 'cluster.example', jsonb_build_array(jsonb_build_object('heuristic', 'domain_clustering', 'evidence', jsonb_build_object('domain', $7::text))), 0.85, 'pending', $8, NULL, NULL),
+			($1, 'credit.example', jsonb_build_array(jsonb_build_object('heuristic', 'institution_keyword', 'evidence', jsonb_build_object('keyword', $9::text))), 0.8, 'pending', $10, NULL, NULL),
+			($1, $11, '[{"heuristic": "transactional_pattern", "evidence": {}}]', 0.65, 'pending', $10, NULL, NULL),
+			($1, 'similar.example', jsonb_build_array(jsonb_build_object('heuristic', 'embedding_similarity', 'evidence', jsonb_build_object('domain', $12::text, 'score', 0.874))), 0.6, 'pending', $10, NULL, NULL),
+			($1, 'strange.example', jsonb_build_array(jsonb_build_object('heuristic', $13::text, 'evidence', '{}'::jsonb)), 0.4, 'pending', $10, NULL, NULL)`,
 			[]any{
-				personal, `[{"heuristic": "display_name", "name": "` + marker.MarkupField("displayname") + `", "domain": "bank.example"}]`,
-				at(26 * time.Hour), at(5 * 24 * time.Hour), at(4 * 24 * time.Hour), other,
+				personal,
+				`[{"heuristic": "embedding_similarity", "evidence": {"domain": "bank.example", "score": 0.5}}, {"heuristic": "display_name", "evidence": {"name": "` +
+					marker.MarkupField("displayname") + `", "domain": "bank.example"}}]`,
+				at(26 * time.Hour), at(5 * 24 * time.Hour), at(4 * 24 * time.Hour), other, marker.MarkupField("clusterdomain"), at(40 * 24 * time.Hour),
+				marker.MarkupField("keyword"), at(2 * time.Hour), marker.MarkupField("candidatedomain"), marker.MarkupField("similardomain"),
+				marker.MarkupField("heuristic"),
 			},
 		},
 		{
@@ -194,6 +212,19 @@ func seed(t *testing.T) {
 		{
 			`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at) VALUES ($1, 'm-news', 'subject', 'content.mfa.subject_numeric_6', 1, $2)`,
 			[]any{personal, at(24 * time.Hour)},
+		},
+		{
+			// Twenty-one events on one sender under one rule, one above the masking rule's starting count, so
+			// Home's masking card shows the sender's domain and the rule, each carrying a markup marker.
+			`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at)
+			SELECT $1, 'm-mask', 'subject', $2, 1, $3::timestamptz + make_interval(hours => n) FROM generate_series(0, 20) AS n`,
+			[]any{personal, marker.MarkupField("maskrule"), at(6 * 24 * time.Hour)},
+		},
+		{
+			// The other account's sender is masked far above the count too, which no personal read may show.
+			`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at)
+			SELECT $1, 'm-other', 'subject', $2, 1, $3::timestamptz + make_interval(hours => n) FROM generate_series(0, 29) AS n`,
+			[]any{other, marker.Field("other"), at(5 * 24 * time.Hour)},
 		},
 		{
 			`INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason, decided_at) VALUES
@@ -261,6 +292,18 @@ func server(t *testing.T) (*api.Server, *prometheus.Registry) {
 
 func serverAs(t *testing.T, pool *pgxpool.Pool) (*api.Server, *prometheus.Registry) {
 	t.Helper()
+	return serverWith(t, pool, starting())
+}
+
+// starting are the worth-a-look rules' starting thresholds of docs/UI.md section 8.1, written out here
+// rather than read from the configuration's defaults.
+func starting() attention.Thresholds {
+	return attention.Thresholds{BacklogShare: 5, MaskCount: 20, ServeFactor: 2, GapDays: 7}
+}
+
+// serverWith is serverAs with the worth-a-look rules' thresholds given.
+func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds) (*api.Server, *prometheus.Registry) {
+	t.Helper()
 	reg := prometheus.NewRegistry()
 	s, err := api.New(api.Options{
 		Bundle:         os.DirFS(filepath.Join("..", "..", "browser", "dist")),
@@ -271,6 +314,7 @@ func serverAs(t *testing.T, pool *pgxpool.Pool) (*api.Server, *prometheus.Regist
 		Clock:          func() time.Time { return now },
 		Cadences:       api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour},
 		StreamInterval: 50 * time.Millisecond,
+		Attention:      thresholds,
 	})
 	if err != nil {
 		t.Fatal(err)

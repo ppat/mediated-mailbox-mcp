@@ -10,7 +10,7 @@
     {
       "key": "pending",
       "wording": "Awaiting review",
-      "value": 1,
+      "value": 6,
       "at": null,
       "unit": null,
       "link": "/personal/candidates?status=pending"

@@ -109,7 +109,7 @@ export function RunState(props: { live: Stream; run: Run }) {
 }
 
 // A card's line binds its text to one run's latest event.
-function RunLine(props: {
+export function RunLine(props: {
   live: Stream;
   run: Run;
   text: (run: Run, now: number) => string;
@@ -270,7 +270,7 @@ function runColumns(account: string, live: Stream): Column<RunRow>[] {
   ];
 }
 
-function Card(props: { name: string; state: string; children: ComponentChildren }) {
+export function Card(props: { name: string; state: string; children: ComponentChildren }) {
   return (
     <section class="card" aria-label={props.name}>
       <h2>
@@ -285,7 +285,7 @@ function Card(props: { name: string; state: string; children: ComponentChildren 
   );
 }
 
-function Field(props: { name: string; children: ComponentChildren }) {
+export function Field(props: { name: string; children: ComponentChildren }) {
   return (
     <>
       <dt>{props.name}</dt>
@@ -296,7 +296,7 @@ function Field(props: { name: string; children: ComponentChildren }) {
 
 // Decision is one count of the system endpoint's decisions block, which the cards show beside the
 // jobs endpoint's fields (section 8.3). It alone re-renders when the system read answers.
-function Decision(props: { account: string; count: (d: System["decisions"]) => number }) {
+export function Decision(props: { account: string; count: (d: System["decisions"]) => number }) {
   const { system } = useDeps();
   const state = system.read(systemPath(props.account)).value;
   return <>{state.status === "ok" ? count(props.count(state.answer.decisions)) : "…"}</>;
@@ -467,7 +467,7 @@ export function backoffWording(until: string | null, now: number): string {
 }
 
 // pagesOf is a run's checkpoint page of pages, undefined when its checkpoint records none.
-function pagesOf(run: Run): { page: number; of: number } | undefined {
+export function pagesOf(run: Run): { page: number; of: number } | undefined {
   const page = numberIn(run.checkpoint, "page");
   const of = numberIn(run.checkpoint, "of");
   return page === undefined || of === undefined ? undefined : { page, of };
@@ -480,7 +480,7 @@ function progressState(state: Run["state"]): ProgressState {
 
 // runMeasure is a paged run's checkpoint as its progress bar draws it, an empty track until the
 // checkpoint records a page, so the bar fills on the run's first page event (docs/UI.md section 8.3).
-function runMeasure(run: Run): Measure {
+export function runMeasure(run: Run): Measure {
   const pages = pagesOf(run);
   return { part: pages?.page ?? 0, whole: pages?.of ?? 0, state: progressState(run.state) };
 }
@@ -491,7 +491,7 @@ const classes = ["interactive", "sync", "batch"] as const;
 // classMeasures draw each class's used of reserved, in info, since a class's spend is a rate that
 // neither completes nor fails (docs/UI.md section 8.3). Each is made once, so a bar's fill is not
 // rebuilt on every render.
-const classMeasures: Record<
+export const classMeasures: Record<
   (typeof classes)[number],
   (rate: Pick<RateEvent, "classes">) => Measure
 > = {
@@ -507,12 +507,10 @@ function classMeasure(name: string): (rate: Pick<RateEvent, "classes">) => Measu
   };
 }
 
-// RateBudget is the rate budget of docs/UI.md section 8.3. While the answer shown has no rate state, a
-// rate event reads the jobs endpoint again, as a run the screen does not show does, so an account's
-// first spend brings up the budget. The event is read in an effect, so the component never re-runs on
-// it.
-function RateBudget(props: { account: string; jobs: Jobs; live: Stream }) {
-  const { account, jobs, live } = props;
+// useFirstSpend reads the jobs endpoint again on a rate event while the answer shown has no rate state,
+// so an account's first spend brings up what the answer's rate block feeds (docs/UI.md section 8.3). The
+// event is read in an effect, so the component holding it never re-runs on it.
+export function useFirstSpend(account: string, jobs: Jobs, live: Stream): void {
   const deps = useDeps();
   const spent = jobs.rate !== null;
   useEffect(() => {
@@ -525,6 +523,15 @@ function RateBudget(props: { account: string; jobs: Jobs; live: Stream }) {
       }
     });
   }, [spent, live, deps, account]);
+}
+
+// RateBudget is the rate budget of docs/UI.md section 8.3. While the answer shown has no rate state, a
+// rate event reads the jobs endpoint again, as a run the screen does not show does, so an account's
+// first spend brings up the budget. The event is read in an effect, so the component never re-runs on
+// it.
+function RateBudget(props: { account: string; jobs: Jobs; live: Stream }) {
+  const { account, jobs, live } = props;
+  useFirstSpend(account, jobs, live);
   if (jobs.rate === null) {
     return (
       <section class="card" aria-label="Rate budget">

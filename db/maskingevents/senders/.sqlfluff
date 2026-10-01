@@ -1,0 +1,10 @@
+# This file sets parameter values and nothing else. The placeholder templater renders a parameter with no
+# value as its bare name, and RF02 then reports it as an unqualified column in a statement that reads more
+# than one table. The statement here is the UI's count of masking events per sender and rule, which joins
+# each event to its message for the sender. Every parameter the statements here take is given a literal, so
+# RF02 does not report a parameter here. The rule itself stays on, as it is everywhere. A new parameter here
+# needs a value too.
+[sqlfluff:templater:placeholder]
+above = 1
+account_id = 1
+since = 1

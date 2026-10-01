@@ -38,6 +38,11 @@ func Bespoke() []Route {
 			Response: accountsType(),
 		},
 		{
+			Pattern: "/api/{account}/attention", Operation: "getAttention", Scoped: true,
+			Summary:  "Home's worth-a-look cards, each worded, in their order",
+			Response: attentionType(),
+		},
+		{
 			Pattern: "/api/{account}/system", Operation: "getSystem", Scoped: true,
 			Summary:  "The account's operational, corpus and decisions blocks",
 			Response: systemType(),
