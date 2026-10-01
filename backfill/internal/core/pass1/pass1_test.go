@@ -67,7 +67,8 @@ func codeSubject() string {
 }
 
 // Each sender is classified under the account's policy, and each subject is masked, a restricted
-// sender's included (ADR-0003, ADR-0004). An address whose domain cannot be read is restricted and
+// sender's included (ADR-0003, ADR-0004). A listed sender carries the rule that restricted it, and
+// no other sender carries a rule (ADR-0016). An address whose domain cannot be read is restricted and
 // marked unclassified. The domains are listed once each, sorted.
 func TestDecide(t *testing.T) {
 	bank := fixture.Bank()
@@ -83,20 +84,20 @@ func TestDecide(t *testing.T) {
 		metadata("m5", bank, 5000),
 	}
 	code := []pass1.Mask{{Rule: scan.RuleTriggerWindow, Tier: 1}}
-	message := func(m mail.MessageMetadata, domain, subject string, class pass1.Class, masks []pass1.Mask) pass1.Message {
+	message := func(m mail.MessageMetadata, domain, subject string, class pass1.Class, rule string, masks []pass1.Mask) pass1.Message {
 		return pass1.Message{
 			ID: m.ID, ThreadID: m.ThreadID, From: m.From, Domain: domain, Subject: subject,
 			SubjectMasked: len(masks) > 0, Date: m.Date, Labels: m.Labels, ListID: m.ListID,
-			SizeBytes: m.SizeBytes, Class: class, Unclassified: m.From.Email == "no-address-at-all", Masks: masks,
+			SizeBytes: m.SizeBytes, Class: class, ClassRule: rule, Unclassified: m.From.Email == "no-address-at-all", Masks: masks,
 		}
 	}
 	want := pass1.Page{
 		Messages: []pass1.Message{
-			message(items[0], "security.example", codeSubject(), pass1.Normal, code),
-			message(items[1], "bank.example", codeSubject(), pass1.Restricted, code),
-			message(items[2], "newsletter.example", items[2].Subject, pass1.Normal, nil),
-			message(items[3], "", items[3].Subject, pass1.Restricted, nil),
-			message(items[4], "bank.example", items[4].Subject, pass1.Restricted, nil),
+			message(items[0], "security.example", codeSubject(), pass1.Normal, "", code),
+			message(items[1], "bank.example", codeSubject(), pass1.Restricted, "rule.bank", code),
+			message(items[2], "newsletter.example", items[2].Subject, pass1.Normal, "", nil),
+			message(items[3], "", items[3].Subject, pass1.Restricted, "", nil),
+			message(items[4], "bank.example", items[4].Subject, pass1.Restricted, "rule.bank", nil),
 		},
 		Domains: []string{"", "bank.example", "newsletter.example", "security.example"},
 	}
@@ -107,6 +108,7 @@ func TestDecide(t *testing.T) {
 
 // A policy that never loaded restricts every sender, and a scanner nobody built masks every subject
 // whole, so neither failure lets a sender through as normal or a subject through unmasked (ADR-0042).
+// No rule set the class, so the message names none.
 func TestDecideFailsClosed(t *testing.T) {
 	item := metadata("m1", fixture.Newsletter(), 1000)
 	got := pass1.Decide([]mail.MessageMetadata{item}, policy.Snapshot{}.For(account), scan.Scanner{}, lookups)

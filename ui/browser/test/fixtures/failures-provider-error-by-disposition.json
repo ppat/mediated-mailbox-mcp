@@ -10,7 +10,7 @@
   "total": {
     "count": 2,
     "restricted": 0,
-    "flagged": 1
+    "flagged": 2
   },
   "rows": [
     {
@@ -19,7 +19,7 @@
       },
       "count": 2,
       "restricted": 0,
-      "flagged": 1
+      "flagged": 2
     }
   ]
 }

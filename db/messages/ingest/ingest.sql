@@ -1,8 +1,9 @@
 -- name: InsertMessage :one
--- Adds one message's metadata to the index, with its sender class and its subject already masked
--- (ADR-0003, ADR-0017). A message the index already holds is left as it is and returns no row, so a
--- page ingested twice adds nothing the second time and its caller records masking events only for the
--- messages this call added. The row holds no body, snippet or attachment name (ADR-0016).
+-- Adds one message's metadata to the index, with its sender class, the policy rule that set it or
+-- null when none did, and its subject already masked (ADR-0003, ADR-0016, ADR-0017). A message the
+-- index already holds is left as it is and returns no row, so a page ingested twice adds nothing the
+-- second time and its caller records masking events only for the messages this call added. The row
+-- holds no body, snippet or attachment name (ADR-0016).
 INSERT INTO messages (
     account_id,
     message_id,
@@ -19,7 +20,8 @@ INSERT INTO messages (
     list_id,
     size_bytes,
     auth_results,
-    sender_class
+    sender_class,
+    class_rule_id
 ) VALUES (
     @account_id,
     @message_id,
@@ -36,7 +38,8 @@ INSERT INTO messages (
     sqlc.narg(list_id),
     @size_bytes,
     @auth_results,
-    @sender_class
+    @sender_class,
+    sqlc.narg(class_rule_id)
 )
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id;

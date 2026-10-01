@@ -9,10 +9,11 @@ import (
 )
 
 type Querier interface {
-	// Adds one message's metadata to the index, with its sender class and its subject already masked
-	// (ADR-0003, ADR-0017). A message the index already holds is left as it is and returns no row, so a
-	// page ingested twice adds nothing the second time and its caller records masking events only for the
-	// messages this call added. The row holds no body, snippet or attachment name (ADR-0016).
+	// Adds one message's metadata to the index, with its sender class, the policy rule that set it or
+	// null when none did, and its subject already masked (ADR-0003, ADR-0016, ADR-0017). A message the
+	// index already holds is left as it is and returns no row, so a page ingested twice adds nothing the
+	// second time and its caller records masking events only for the messages this call added. The row
+	// holds no body, snippet or attachment name (ADR-0016).
 	InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error)
 }
 

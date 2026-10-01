@@ -207,11 +207,11 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 	if want := []string{"provider_error=2", "gone=1", "scanner_timeout=1", "throttled=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by error class the groups are %v, want %v", g.counts(), want)
 	}
-	if g.Total.Count != 5 || *g.Total.Restricted != 1 || *g.Total.Flagged != 1 {
-		t.Fatalf("the total is %+v, want 5 with the bank message restricted and the second newsletter flagged", g.Total)
+	if g.Total.Count != 5 || *g.Total.Restricted != 1 || *g.Total.Flagged != 2 {
+		t.Fatalf("the total is %+v, want 5 with the bank message restricted and both newsletters flagged", g.Total)
 	}
-	if first := g.Rows[0]; *first.Restricted != 0 || *first.Flagged != 1 {
-		t.Fatalf("provider errors count %d restricted and %d flagged, want 0 and 1", *first.Restricted, *first.Flagged)
+	if first := g.Rows[0]; *first.Restricted != 0 || *first.Flagged != 2 {
+		t.Fatalf("provider errors count %d restricted and %d flagged, want 0 and 2", *first.Restricted, *first.Flagged)
 	}
 	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender", &g)
 	if want := []string{"newsletter.example=2", "none=2", "bank.example=1"}; !slices.Equal(g.counts(), want) {
@@ -315,6 +315,7 @@ func TestTheRowDetailAnswersItsRow(t *testing.T) {
 			Seq int64 `json:"seq"`
 		} `json:"row"`
 		ErrorSummary   *string  `json:"error_summary"`
+		ClassRuleID    *string  `json:"class_rule_id"`
 		RuleIDs        []string `json:"rule_ids"`
 		ScannedAt      *string  `json:"scanned_at"`
 		ScannerVersion *int32   `json:"scanner_version"`
@@ -328,20 +329,23 @@ func TestTheRowDetailAnswersItsRow(t *testing.T) {
 		len(detail.Audit) != 1 || detail.Audit[0].Action != "DENY_BODY" || detail.AuditCount != 1 {
 		t.Fatalf("the bank message's failure detail is %+v", detail)
 	}
-	if detail.RuleIDs == nil || len(detail.RuleIDs) != 0 || detail.ScannedAt != nil || detail.ScannerVersion != nil {
-		t.Fatalf("the bank message's sensitivity block is %v %v %v, want no rule, never scanned", detail.RuleIDs, detail.ScannedAt, detail.ScannerVersion)
+	if detail.ClassRuleID == nil || *detail.ClassRuleID != "rule.bank" || detail.RuleIDs == nil || len(detail.RuleIDs) != 0 ||
+		detail.ScannedAt != nil || detail.ScannerVersion != nil {
+		t.Fatalf("the bank message's sensitivity block is %v %v %v %v, want its class set by rule.bank, no content rule, never scanned",
+			detail.ClassRuleID, detail.RuleIDs, detail.ScannedAt, detail.ScannerVersion)
 	}
 	read(t, h, "/api/{account}/failures/{row}", "/api/personal/failures/5?run=r-0912", &detail)
 	if len(detail.Audit) != 2 || detail.AuditCount != 2 {
 		t.Fatalf("the newsletter's failure carries %d audit rows of %d, want 2 of 2", len(detail.Audit), detail.AuditCount)
 	}
 	scanned := now.Add(-29 * time.Hour).Format(time.RFC3339)
-	if want := []string{"content.mfa.subject_numeric_6", "sender.list.newsletter"}; !slices.Equal(detail.RuleIDs, want) ||
+	if want := []string{"content.mfa.subject_numeric_6", "content.mfa.trigger_window"}; detail.ClassRuleID != nil || !slices.Equal(detail.RuleIDs, want) ||
 		detail.ScannedAt == nil || *detail.ScannedAt != scanned || detail.ScannerVersion == nil || *detail.ScannerVersion != 3 {
-		t.Fatalf("the newsletter's sensitivity block is %v %v %v, want %v, %s and version 3", detail.RuleIDs, detail.ScannedAt, detail.ScannerVersion, want, scanned)
+		t.Fatalf("the newsletter's sensitivity block is %v %v %v %v, want no class rule, %v, %s and version 3",
+			detail.ClassRuleID, detail.RuleIDs, detail.ScannedAt, detail.ScannerVersion, want, scanned)
 	}
 	read(t, h, "/api/{account}/failures/{row}", "/api/personal/failures/3?run=r-0912", &detail)
-	if len(detail.Audit) != 0 || detail.AuditCount != 0 || detail.RuleIDs != nil {
+	if len(detail.Audit) != 0 || detail.AuditCount != 0 || detail.ClassRuleID != nil || detail.RuleIDs != nil {
 		t.Fatalf("the page item's detail carries audit rows or a sensitivity block: %+v", detail)
 	}
 	for _, p := range []string{"/api/personal/failures/9?run=r-0912", "/api/personal/failures/1?run=r-0913", "/api/personal/failures/1?run=r-other"} {

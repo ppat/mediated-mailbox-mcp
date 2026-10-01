@@ -226,6 +226,7 @@ export interface components {
             as_of: string;
             audit: components["schemas"]["AuditEntry"][];
             audit_count: number;
+            class_rule_id: string | null;
             /** @enum {string} */
             dataset: "failures";
             error_summary: string | null;

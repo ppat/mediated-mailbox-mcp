@@ -13,7 +13,8 @@ type Querier interface {
 	// workload emits as a metric (ADR-0093).
 	Backlog(ctx context.Context, accountID string) (int64, error)
 	// The delisting transition for one domain the policy in force no longer restricts. Its messages stored
-	// restricted or skipped as restricted return to a normal sender class and to pending scan (ADR-0037).
+	// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
+	// pending scan (ADR-0037, ADR-0016).
 	MarkDelisted(ctx context.Context, arg MarkDelistedParams) (int64, error)
 	// The account's messages waiting for their content scan after the message identified by after, in
 	// the order of their identifiers, each with what the scan gate reads of it and of its sender, the

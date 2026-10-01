@@ -455,9 +455,11 @@ test("a failure's panel shows its message's rule ids, scan time and scanner vers
     dt.textContent,
     dt.nextElementSibling?.textContent,
   ]);
+  // No rule set the newsletter's normal class, and both content rules the scan recorded are listed.
+  expect(pairs).toContainEqual(["rule that set the class", "none"]);
   expect(pairs).toContainEqual([
     "rule ids that fired",
-    "content.mfa.subject_numeric_6, sender.list.newsletter",
+    "content.mfa.subject_numeric_6, content.mfa.trigger_window",
   ]);
   expect(pairs).toContainEqual(["scanned", "2026-09-09 05:16Z, scanner version 3"]);
   // The newsletter's subject carries markup marker text, which arrives as text.
@@ -469,12 +471,29 @@ test("a failure's panel shows its message's rule ids, scan time and scanner vers
   expect(document.querySelectorAll("script").length).toBe(0);
 });
 
+test("a failure's panel shows the rule that set its message's class apart from the rule ids that fired", async () => {
+  await open(`/personal/jobs/r-0912/failures/1?${canonical}`, {
+    ...r0912,
+    [failurePath("personal", "r-0912", "1")]: ok("failure-1.json"),
+  });
+  const provenance = document.querySelector('aside[role="dialog"] .provenance');
+  const pairs = [...(provenance?.querySelectorAll("dt") ?? [])].map((dt) => [
+    dt.textContent,
+    dt.nextElementSibling?.textContent,
+  ]);
+  // The bank's rule restricted the sender, and no content rule fired on a message never scanned.
+  expect(pairs).toContainEqual(["sender class", "restricted"]);
+  expect(pairs).toContainEqual(["rule that set the class", "rule.bank"]);
+  expect(pairs).toContainEqual(["rule ids that fired", "none"]);
+});
+
 test("markup in every message-derived field of a failure's panel arrives as text", async () => {
   const detail: FailureDetail = await recording("failure-5.json");
   const text = "<script>mmfieldmarker-newslettersubject</script>";
   const markedDetail: FailureDetail = {
     ...detail,
     error_summary: text,
+    class_rule_id: text,
     rule_ids: [text],
     row: {
       ...detail.row,
@@ -493,7 +512,14 @@ test("markup in every message-derived field of a failure's panel arrives as text
   try {
     expect(panel.root.querySelectorAll("script").length).toBe(0);
     const values = [...panel.root.querySelectorAll(".provenance dd")];
-    for (const label of ["item", "subject", "sender", "rule ids that fired", "error summary"]) {
+    for (const label of [
+      "item",
+      "subject",
+      "sender",
+      "rule that set the class",
+      "rule ids that fired",
+      "error summary",
+    ]) {
       const dd = values.find((v) => v.previousElementSibling?.textContent === label);
       expect(dd?.textContent).toContain(text);
       expect([...(dd?.querySelectorAll("*") ?? [])].every((el) => el.tagName === "SPAN")).toBe(

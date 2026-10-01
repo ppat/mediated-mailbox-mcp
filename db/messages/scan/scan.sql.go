@@ -28,7 +28,7 @@ func (q *Queries) Backlog(ctx context.Context, accountID string) (int64, error) 
 
 const markDelisted = `-- name: MarkDelisted :execrows
 UPDATE messages
-SET sender_class = 'normal', scan_state = 'pending'
+SET sender_class = 'normal', class_rule_id = NULL, scan_state = 'pending'
 WHERE
     account_id = $1
     AND from_domain = $2
@@ -41,7 +41,8 @@ type MarkDelistedParams struct {
 }
 
 // The delisting transition for one domain the policy in force no longer restricts. Its messages stored
-// restricted or skipped as restricted return to a normal sender class and to pending scan (ADR-0037).
+// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
+// pending scan (ADR-0037, ADR-0016).
 func (q *Queries) MarkDelisted(ctx context.Context, arg MarkDelistedParams) (int64, error) {
 	result, err := q.db.Exec(ctx, markDelisted, arg.AccountID, arg.Domain)
 	if err != nil {

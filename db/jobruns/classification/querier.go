@@ -10,8 +10,9 @@ import (
 
 type Querier interface {
 	// One of a run's failures with the error summary as recorded, the failures dataset's provenance for its
-	// row detail, and its message's sensitivity block, the rule ids that assigned its class and flags, the
-	// time it was scanned and the scanner version (docs/UI.md sections 7.1, 8.4 and 17.1).
+	// row detail, and its message's sensitivity block, the policy rule that set its class apart from the
+	// content rules that set its flags, the time it was scanned and the scanner version (docs/UI.md
+	// sections 7.1, 8.4 and 17.1).
 	FailureDetail(ctx context.Context, arg FailureDetailParams) (FailureDetailRow, error)
 	// The failures dataset's figures under its filters, one row per disposition with its count and how many
 	// of those items' messages are restricted or flagged (docs/UI.md sections 8.4 and 17.1). The totals

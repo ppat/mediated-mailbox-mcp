@@ -83,7 +83,7 @@ func seed(t *testing.T) {
 		{
 			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, sender_class, content_flags, scan_state) VALUES
 			($1, 'm-bank', 't-bank', $2, 'bank.example', $3, $4, $5, '{}', true, 'restricted', '{}', 'skipped_restricted'),
-			($1, 'm-news', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{}', 'scanned'),
+			($1, 'm-news', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'scanned'),
 			($1, 'm-news2', 't-news', $6, 'Newsletter.Example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'pending'),
 			($1, 'm-empty', 't-empty', 'nobody@', '', $7, $8, $9, '{}', false, 'normal', '{}', 'scanned'),
 			($10, 'm-other', 't-other', $11::text, 'other.example', $11::text, $11::text, $9, '{}', false, 'normal', '{}', 'pending')`,
@@ -91,11 +91,13 @@ func seed(t *testing.T) {
 		},
 		{
 			// The newsletter's first message was scanned, so its row carries the scan's time and version
-			// and the rule ids the scan recorded, which a failure's row detail shows (docs/UI.md 7.1).
-			`UPDATE messages SET rule_ids = '{content.mfa.subject_numeric_6,sender.list.newsletter}', scanned_at = $2, scanner_version = 3
+			// and the two content rules that set its flag, and no rule set its normal class. The bank's rule
+			// set its restricted class. A failure's row detail shows both apart (docs/UI.md 7.1).
+			`UPDATE messages SET rule_ids = '{content.mfa.subject_numeric_6,content.mfa.trigger_window}', scanned_at = $2, scanner_version = 3
 			WHERE account_id = $1 AND message_id = 'm-news'`,
 			[]any{personal, at(29 * time.Hour)},
 		},
+		{"UPDATE messages SET class_rule_id = 'rule.bank' WHERE account_id = $1 AND message_id = 'm-bank'", []any{personal}},
 		{
 			`INSERT INTO senders (account_id, domain, message_count, first_seen, last_seen, sender_class) VALUES
 			($1, 'bank.example', 1, $2, $2, 'restricted'), ($1, 'lender.example', 4, $3, $2, 'normal')`,

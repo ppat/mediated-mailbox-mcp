@@ -24,6 +24,7 @@
     "recovered_by": "r-0913"
   },
   "error_summary": "\u003cscript\u003emmfieldmarker-errorsummary\u003c/script\u003e",
+  "class_rule_id": "rule.bank",
   "rule_ids": [],
   "scanned_at": null,
   "scanner_version": null,

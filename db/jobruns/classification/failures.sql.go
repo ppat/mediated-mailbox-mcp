@@ -32,6 +32,7 @@ SELECT
     f.disposition,
     f.recovered_by,
     f.error_summary,
+    m.class_rule_id,
     m.rule_ids,
     m.scanned_at,
     m.scanner_version
@@ -67,14 +68,16 @@ type FailureDetailRow struct {
 	Disposition    string
 	RecoveredBy    pgtype.Text
 	ErrorSummary   pgtype.Text
+	ClassRuleID    pgtype.Text
 	RuleIds        []string
 	ScannedAt      pgtype.Timestamptz
 	ScannerVersion pgtype.Int4
 }
 
 // One of a run's failures with the error summary as recorded, the failures dataset's provenance for its
-// row detail, and its message's sensitivity block, the rule ids that assigned its class and flags, the
-// time it was scanned and the scanner version (docs/UI.md sections 7.1, 8.4 and 17.1).
+// row detail, and its message's sensitivity block, the policy rule that set its class apart from the
+// content rules that set its flags, the time it was scanned and the scanner version (docs/UI.md
+// sections 7.1, 8.4 and 17.1).
 func (q *Queries) FailureDetail(ctx context.Context, arg FailureDetailParams) (FailureDetailRow, error) {
 	row := q.db.QueryRow(ctx, failureDetail, arg.AccountID, arg.RunID, arg.Seq)
 	var i FailureDetailRow
@@ -98,6 +101,7 @@ func (q *Queries) FailureDetail(ctx context.Context, arg FailureDetailParams) (F
 		&i.Disposition,
 		&i.RecoveredBy,
 		&i.ErrorSummary,
+		&i.ClassRuleID,
 		&i.RuleIds,
 		&i.ScannedAt,
 		&i.ScannerVersion,
