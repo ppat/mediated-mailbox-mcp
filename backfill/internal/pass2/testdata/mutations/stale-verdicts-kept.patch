@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
-index 0ae704b..777ceb0 100644
+index 86c762e..fda9326 100644
 --- a/backfill/internal/pass2/postgres.go
 +++ b/backfill/internal/pass2/postgres.go
-@@ -168,9 +168,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
- 	marked := 0
+@@ -174,9 +174,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
+ 	var marked Reopened
  	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
- 		marked = 0
+ 		marked = Reopened{}
 -		domains, err := scan.New(t).RequeueStaleVerdicts(ctx, scan.RequeueStaleVerdictsParams{
 -			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
 -		})

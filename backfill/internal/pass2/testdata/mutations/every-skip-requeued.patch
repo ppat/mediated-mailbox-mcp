@@ -6,20 +6,23 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
-index ad24399..2ac7fdd 100644
+index 8c12699..cdaafa6 100644
 --- a/db/messages/scan/scan.sql
 +++ b/db/messages/scan/scan.sql
-@@ -116,4 +116,4 @@ RETURNING from_domain;
+@@ -97,7 +97,7 @@ RETURNING from_domain;
  -- since the gate decided without that signal (ADR-0096, ADR-0093).
  UPDATE messages
  SET scan_state = 'pending'
 -WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_masked;
 +WHERE account_id = @account_id AND scan_state = 'skipped_gate';
+ 
+ -- name: GateSkips :many
+ -- The account's messages the scan gate skipped, in the order of their identifiers, each with what the
 diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
-index 5c37b00..4ce38b5 100644
+index 06153b5..f134147 100644
 --- a/db/messages/scan/scan.sql.go
 +++ b/db/messages/scan/scan.sql.go
-@@ -185,7 +185,7 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
+@@ -271,7 +271,7 @@ func (q *Queries) RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsPara
  const requeueSignalledSkips = `-- name: RequeueSignalledSkips :execrows
  UPDATE messages
  SET scan_state = 'pending'

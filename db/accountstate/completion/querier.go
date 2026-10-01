@@ -17,7 +17,8 @@ type Querier interface {
 	ReopenBackfillFirst(ctx context.Context, accountID string) error
 	// Records that backfill's second pass is due again for the account and marks it to start over from the
 	// first message waiting for a scan, in the transaction a backfill run makes before its first pass to
-	// return the verdicts another scanner made to pending (ADR-0096).
+	// return the verdicts another scanner made and the overturned gate skips to pending (ADR-0096,
+	// ADR-0098).
 	ReopenBackfillSecond(ctx context.Context, accountID string) error
 	// Whether backfill's second pass is marked to start over from the first message waiting for a scan
 	// (ADR-0096).

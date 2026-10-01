@@ -72,6 +72,7 @@ moves it. Records themselves link freely and deep, into
 | 0093 | [A composite scan gate with a measured, accepted residual](./redaction/0093-composite-scan-gate.md) | Accepted |
 | 0094 | [The scan gate evaluates every message, and no gate decision is memoized](./redaction/0094-scan-gate-decisions-are-not-memoized.md) | Accepted |
 | 0096 | [A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided](./redaction/0096-a-scanner-change-reopens-backfill.md) | Accepted |
+| 0098 | [Every backfill run decides each stored gate skip again, so a change of thresholds reaches the skips made under the earlier ones](./redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) | Accepted |
 
 ## Classification — `classification/`
 

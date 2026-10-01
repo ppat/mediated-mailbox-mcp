@@ -1,0 +1,20 @@
+control: A stored gate skip the gate no longer decides as the same skip returns to pending at every backfill run's start
+removes: every stored gate skip is overturned, the ones the gate still decides as the same skip included
+packages: ./backfill ./backfill/internal/core/pass2
+tests: TestOverturned TestAChangeOfThresholdsDecidesTheStoredSkipsAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+index f3541ad..97a42ed 100644
+--- a/backfill/internal/core/pass2/pass2.go
++++ b/backfill/internal/core/pass2/pass2.go
+@@ -143,7 +143,7 @@ func Gate(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.Uni
+ func Overturned(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.UnixMilli, skips []Message) []string {
+ 	var out []string
+ 	for _, m := range skips {
+-		if Gate(p, l, c, now, m, 0).Reason() != scangate.HighVolumeNoHits {
++		if Gate(p, l, c, now, m, 0).Reason() >= scangate.Undecided {
+ 			out = append(out, m.ID)
+ 		}
+ 	}

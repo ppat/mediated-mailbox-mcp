@@ -69,7 +69,7 @@ distinct meanings with different consequences:
 | `SCANNED` | Scanner ran, verdict recorded | Yes, if no flags and sender normal |
 | `SKIPPED_RESTRICTED` | Sender restricted; scan pointless | No — denied by sender class |
 | `SKIPPED_GATE` | Gate said don't scan | **Yes** — accepted risk, after the serve-time pattern check ([ADR-0002](./0002-fetch-time-re-evaluation.md)) |
-| `PENDING` | Not yet scanned: backfill or sync has not reached it, delisting re-queued it ([ADR-0037](./0037-delisting-transition.md)), or a change of scanner re-queued it ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)) | No — fail closed |
+| `PENDING` | Not yet scanned: backfill or sync has not reached it, delisting re-queued it ([ADR-0037](./0037-delisting-transition.md)), a change of scanner re-queued it ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)), or a gate skip the gate no longer decides as the same skip was re-queued ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)) | No — fail closed |
 
 `SKIPPED_GATE` is the compromise made explicit in the type system: the one state where a body is
 released without having been scanned.
@@ -117,4 +117,6 @@ content scan" so the agent explains rather than misreports.
   [C3](../../../USE_CASES.md#c3--content-based-secrets-caught) even with zero leaks.
 - The gate needs sender statistics to evaluate, which is why backfill runs metadata-first
   ([ADR-0017](../data/0017-two-pass-backfill.md)) — the gate cannot run on a cold index.
-- Widening or narrowing the gate is a policy change with observable effect, not a redesign.
+- Widening or narrowing the gate is a policy change with observable effect, not a redesign. A
+  change of thresholds reaches the skips already stored at the next backfill run
+  ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)).

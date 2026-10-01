@@ -26,6 +26,69 @@ func (q *Queries) Backlog(ctx context.Context, accountID string) (int64, error) 
 	return pending, err
 }
 
+const gateSkips = `-- name: GateSkips :many
+SELECT
+    m.message_id,
+    m.from_email,
+    m.from_domain,
+    m.subject_masked,
+    m.sent_at,
+    (m.list_id IS NOT NULL)::boolean AS has_list_id,
+    coalesce(m.size_bytes, 0)::bigint AS size_bytes,
+    coalesce(s.message_count, 0)::bigint AS sender_volume,
+    coalesce(s.scan_hit_count, 0)::bigint AS sender_hits
+FROM messages AS m
+LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
+WHERE m.account_id = $1 AND m.scan_state = 'skipped_gate'
+ORDER BY m.message_id
+`
+
+type GateSkipsRow struct {
+	MessageID     string
+	FromEmail     string
+	FromDomain    string
+	SubjectMasked bool
+	SentAt        pgtype.Timestamptz
+	HasListID     bool
+	SizeBytes     int64
+	SenderVolume  int64
+	SenderHits    int64
+}
+
+// The account's messages the scan gate skipped, in the order of their identifiers, each with what the
+// gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
+// them, so a backfill run decides each skip again under the gate it holds (ADR-0098). A message with no
+// sender statistics reads a volume and hits of zero.
+func (q *Queries) GateSkips(ctx context.Context, accountID string) ([]GateSkipsRow, error) {
+	rows, err := q.db.Query(ctx, gateSkips, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GateSkipsRow
+	for rows.Next() {
+		var i GateSkipsRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.FromEmail,
+			&i.FromDomain,
+			&i.SubjectMasked,
+			&i.SentAt,
+			&i.HasListID,
+			&i.SizeBytes,
+			&i.SenderVolume,
+			&i.SenderHits,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markDelisted = `-- name: MarkDelisted :execrows
 UPDATE messages
 SET sender_class = 'normal', class_rule_id = NULL, scan_state = 'pending'
@@ -177,6 +240,28 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
 		arg.AccountID,
 		arg.MessageID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const requeueGateSkips = `-- name: RequeueGateSkips :execrows
+UPDATE messages
+SET scan_state = 'pending'
+WHERE account_id = $1 AND scan_state = 'skipped_gate' AND message_id = any($2::text[])
+`
+
+type RequeueGateSkipsParams struct {
+	AccountID  string
+	MessageIds []string
+}
+
+// Returns to pending scan each of the given messages the scan gate skipped, the skips the gate no
+// longer decides as the same skip (ADR-0098). A message no longer skipped by the gate is left as it is
+// and counts no row.
+func (q *Queries) RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, requeueGateSkips, arg.AccountID, arg.MessageIds)
 	if err != nil {
 		return 0, err
 	}

@@ -165,7 +165,9 @@ deployment's ([ADR-0051](../engineering/0051-environment-contract.md)).
   over-redaction for that time.
 - One window remains open. A message the gate skipped, whose subject the new scanner masks, keeps its
   skip, and its body stays released as the skip allows, until the first pass has masked the subject
-  again and the second pass has started. A first pass that fails on every run holds that window open.
+  again and either the second pass has started or a later backfill run's start has decided the skip
+  again ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)). A first pass that
+  fails on every run before it masks the subject holds that window open.
 - Superseded masking events stay as history. The masking events of a message whose pair equals its
   subject's are the masks of the subject as it now stands.
 - An enumeration that leaves out a message the provider still holds, without an error, masks that

@@ -7,8 +7,9 @@
 // recovery path. It reads the account's latest run and resumes from its checkpoint, and it runs the
 // delisting transition and returns to pending each skip decided without its subject's signal before
 // the first page (ADR-0037, ADR-0096). Reopen, which a backfill run calls before the first pass,
-// returns to pending every verdict made under another scanner. A restricted sender's body is never asked
-// for (ADR-0008). A body the gate selects is fetched under a lease in the batch class, converted and
+// returns to pending every verdict made under another scanner and every stored gate skip the gate no
+// longer decides as the same skip (ADR-0096, ADR-0098). A restricted sender's body is never asked for
+// (ADR-0008). A body the gate selects is fetched under a lease in the batch class, converted and
 // scanned in memory, and dropped, so nothing of it reaches the store or a log (ADR-0009).
 package pass2
 
@@ -46,12 +47,12 @@ type Store interface {
 	Delist(ctx context.Context, account, runID string, delisted func(restricted []string) []string, restart core.Progress) (int, error)
 	// Reopen returns to pending scan each scanned message whose verdict was made under another scanner
 	// than the one stamped s, its verdict cleared, and counts again the prior hits of their senders.
-	// When it marked any message, or a stored subject was masked under another scanner so the first
-	// pass is due again, it records the pass as not ended and marks it to start over. It writes to no
-	// run's record. It is one
-	// transaction, which a backfill run makes before the first pass (ADR-0096). It returns how many
-	// messages it marked.
-	Reopen(ctx context.Context, account string, s pass1core.Stamp) (int, error)
+	// It then reads every message the gate skipped with its gate inputs and returns to pending scan
+	// each one overturned names. When it marked any message, or a stored subject was masked under
+	// another scanner so the first pass is due again, it records the pass as not ended and marks it to
+	// start over. It writes to no run's record. It is one transaction, which a backfill run makes
+	// before the first pass (ADR-0096, ADR-0098). It returns how many messages of each kind it marked.
+	Reopen(ctx context.Context, account string, s pass1core.Stamp, overturned func(skips []core.Message) []string) (Reopened, error)
 	// RequeueSkips returns to pending scan each message the gate skipped whose subject is masked, with
 	// an event when it marked any, in one transaction (ADR-0096). It returns how many it marked.
 	RequeueSkips(ctx context.Context, account, runID string) (int, error)
@@ -113,22 +114,34 @@ type Step struct {
 	Done bool
 }
 
+// Reopened counts what a backfill run's start returned to pending, the verdicts made under another
+// scanner and the gate skips the gate no longer decides as the same skip.
+type Reopened struct {
+	Verdicts, Skips int
+}
+
 // Reopen returns to pending every verdict made under another scanner than the one the pass scans
-// with, and reopens the pass when it did or when the first pass is due again, so a stale verdict is
-// denied from the start of the run that sees it, whatever the first pass's state. A backfill run calls
-// it before the first pass (ADR-0096). It returns how many messages it marked.
-func Reopen(ctx context.Context, deps Deps, account string) (int, error) {
-	n, err := deps.Store.Reopen(ctx, account, pass1core.StampOf(deps.Scanner))
+// with, and every stored gate skip the gate, deciding it again under the pass's thresholds and policy
+// with the message's age measured at the pass's clock, no longer decides as the same skip. It reopens
+// the pass when it returned either or when the first pass is due again, so a stale verdict or an
+// overturned skip is denied from the start of the run that sees it, whatever the first pass's state. A
+// backfill run calls it before the first pass (ADR-0096, ADR-0098).
+func Reopen(ctx context.Context, deps Deps, account string) (Reopened, error) {
+	now := mail.UnixMilli(deps.Now().UnixMilli())
+	r, err := deps.Store.Reopen(ctx, account, pass1core.StampOf(deps.Scanner), func(skips []core.Message) []string {
+		return core.Overturned(deps.Policy, deps.Lookups, deps.Gate, now, skips)
+	})
 	if err != nil {
-		return 0, fmt.Errorf("returning the verdicts another scanner made to pending: %w", err)
+		return Reopened{}, fmt.Errorf("returning the verdicts another scanner made and the overturned gate skips to pending: %w", err)
 	}
-	return n, nil
+	return r, nil
 }
 
 // Open starts a run of the pass over the account, resuming its latest run when that run stopped
 // before the pass ended, runs the delisting transition, and returns to pending each skip decided
 // without its subject's signal. A pass that has ended, or whose first pass has not, opens done and
-// records no run. Reopen is what records the pass as not ended after a change of scanner (ADR-0096).
+// records no run. Reopen is what records the pass as not ended after a change of scanner or of what
+// the gate decides (ADR-0096, ADR-0098).
 func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
 	firstEnded, ended, startOver, latest, err := deps.Store.State(ctx, account)
 	if err != nil {

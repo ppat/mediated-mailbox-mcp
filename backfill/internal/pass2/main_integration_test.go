@@ -438,9 +438,9 @@ func (m *memory) Start(ctx context.Context, _, runID string, start pass1core.Sta
 	return nil
 }
 
-func (m *memory) Reopen(ctx context.Context, _ string, s pass1core.Stamp) (int, error) {
+func (m *memory) Reopen(ctx context.Context, _ string, s pass1core.Stamp, overturned func([]core.Message) []string) (pass2.Reopened, error) {
 	if err := ctx.Err(); err != nil {
-		return 0, err
+		return pass2.Reopened{}, err
 	}
 	marked, stale := 0, false
 	for _, msg := range m.messages {
@@ -458,11 +458,23 @@ func (m *memory) Reopen(ctx context.Context, _ string, s pass1core.Stamp) (int, 
 			}
 		}
 	}
-	if marked == 0 && !stale {
-		return 0, nil
+	var skips []core.Message
+	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
+		if msg := m.messages[id]; msg.st.State == "skipped_gate" {
+			c := msg.in
+			c.SenderVolume, c.SenderHits = m.volume[msg.st.Domain], m.hits[msg.st.Domain]
+			skips = append(skips, c)
+		}
+	}
+	overturn := overturned(skips)
+	for _, id := range overturn {
+		m.messages[id].st.State = "pending"
+	}
+	if marked == 0 && len(overturn) == 0 && !stale {
+		return pass2.Reopened{}, nil
 	}
 	m.ended, m.restart = false, true
-	return marked, nil
+	return pass2.Reopened{Verdicts: marked, Skips: len(overturn)}, nil
 }
 
 func (m *memory) RequeueSkips(ctx context.Context, _, _ string) (int, error) {
@@ -665,6 +677,8 @@ type world struct {
 	current, issued int
 	earlier         []int
 	mark            bool
+	// widened is set once the gate's thresholds were widened past every sender's volume.
+	widened bool
 }
 
 // revision returns the revision of the scanner in force.
@@ -698,6 +712,14 @@ func (w *world) revert(t tb) {
 	w.rescans++
 	w.current, w.earlier = w.earlier[len(w.earlier)-1], w.earlier[:len(w.earlier)-1]
 	w.deps.Scanner = scannerAt(t, w.revision())
+	w.pass = nil
+}
+
+// widen raises the gate's high-volume mark above any sender's volume every later process runs the
+// gate with, as a release changing the thresholds does, and stops the process (ADR-0098).
+func (w *world) widen() {
+	w.widened = true
+	w.deps.Gate.HighVolume = 1 << 20
 	w.pass = nil
 }
 
@@ -755,7 +777,8 @@ func (w *world) restricted(id string) bool {
 }
 
 // open opens a run, the recovery path, loading the policy as it stands. As a backfill run does, it
-// first returns the verdicts made under another scanner to pending (ADR-0096).
+// first returns the verdicts made under another scanner and the overturned gate skips to pending
+// (ADR-0096, ADR-0098).
 func (w *world) open(t tb) {
 	t.Helper()
 	w.deps.Policy = policyListing(t, w.delisted).For(w.account)
@@ -763,12 +786,13 @@ func (w *world) open(t tb) {
 	if _, err := pass2.Reopen(w.ctx, w.deps, w.account); err != nil {
 		t.Fatalf("returning the stale verdicts to pending: %v", err)
 	}
-	// The run-start step marks the pass to start over when it returned a verdict to pending, or when
-	// the subjects the first pass masked are stale, here whenever the scanner in force is not the one
-	// the first pass masked under, since this world runs no first pass (ADR-0096).
+	// The run-start step marks the pass to start over when it returned a verdict or a gate skip to
+	// pending, or when the subjects the first pass masked are stale, here whenever the scanner in force
+	// is not the one the first pass masked under, since this world runs no first pass (ADR-0096,
+	// ADR-0098).
 	reopened := w.inspect(t)
 	for id, m := range before.Messages {
-		if m.State == "scanned" && reopened.Messages[id].State == "pending" {
+		if (m.State == "scanned" || m.State == "skipped_gate") && reopened.Messages[id].State == "pending" {
 			w.mark = true
 		}
 	}
@@ -912,7 +936,8 @@ func (w *world) persistence(t tb) {
 // progress drives the pass until it is done and checks what it left. No body of a sender the policy
 // listed was fetched. Every message is decided, a listed or unreadable sender's as skipped restricted
 // with its reason, and every other either scanned, with a flag exactly when its body holds a code, or
-// skipped by the gate. Every decision is recorded with a decision row that agrees with it. Each sender's
+// skipped by the gate, and none skipped by the gate once its thresholds were widened past every
+// sender's volume. Every decision is recorded with a decision row that agrees with it. Each sender's
 // prior hits count its flagged messages once. The pass is recorded as ended with its last run
 // succeeded and none left running, and no crash cost more than a page of bodies fetched again.
 func (w *world) progress(t tb) {
@@ -960,6 +985,8 @@ func (w *world) progress(t tb) {
 			t.Errorf("message %s is %+v, want a scan decision and a code flag %v", id, st, hasCode)
 		case st.State == "skipped_gate" && (st.Decision != "SKIP" || st.Reason != "high_volume_no_hits"):
 			t.Errorf("message %s is %+v, want skipped by the high-volume rule", id, st)
+		case st.State == "skipped_gate" && w.widened:
+			t.Errorf("message %s is %+v, still skipped by the gate after its thresholds were widened past every sender's volume", id, st)
 		}
 		if flagged {
 			hits[st.Domain]++

@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/accountstate/completion/completion.sql b/db/accountstate/completion/completion.sql
-index 635c28a..030cce3 100644
+index bcd4438..58270b7 100644
 --- a/db/accountstate/completion/completion.sql
 +++ b/db/accountstate/completion/completion.sql
-@@ -24,7 +24,7 @@ WHERE account_id = @account_id;
- -- first message waiting for a scan, in the transaction a backfill run makes before its first pass to
- -- return the verdicts another scanner made to pending (ADR-0096).
+@@ -25,7 +25,7 @@ WHERE account_id = @account_id;
+ -- return the verdicts another scanner made and the overturned gate skips to pending (ADR-0096,
+ -- ADR-0098).
  UPDATE account_state
 -SET backfill_pass2_complete = false, backfill_pass2_restart = true
 +SET backfill_pass2_complete = false
@@ -19,7 +19,7 @@ index 635c28a..030cce3 100644
  
  -- name: SecondRestart :one
 diff --git a/db/accountstate/completion/completion.sql.go b/db/accountstate/completion/completion.sql.go
-index b28d68c..16f4b1e 100644
+index c265101..de49384 100644
 --- a/db/accountstate/completion/completion.sql.go
 +++ b/db/accountstate/completion/completion.sql.go
 @@ -37,7 +37,7 @@ func (q *Queries) ReopenBackfillFirst(ctx context.Context, accountID string) err
