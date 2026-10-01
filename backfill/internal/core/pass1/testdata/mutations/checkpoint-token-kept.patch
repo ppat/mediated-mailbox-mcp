@@ -8,12 +8,12 @@ integration: yes
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -109,7 +109,7 @@ func Restart(at Progress) Progress {
- // added added messages to the index.
- func Advance(at Progress, next mail.PageToken, added int) Progress {
+@@ -115,7 +115,7 @@ func Restart(at Progress) Progress {
+ func Advance(at Progress, next mail.PageToken, total *mail.Total, added int) Progress {
+ 	page := at.Checkpoint.Page + 1
  	return Progress{
--		Checkpoint: Checkpoint{Page: at.Checkpoint.Page + 1, Token: next},
-+		Checkpoint: Checkpoint{Page: at.Checkpoint.Page + 1, Token: at.Checkpoint.Token},
+-		Checkpoint: Checkpoint{Page: page, Token: next, Of: pagesOf(page, next, total)},
++		Checkpoint: Checkpoint{Page: page, Token: at.Checkpoint.Token, Of: pagesOf(page, next, total)},
  		Counters:   Counters{Pages: at.Counters.Pages + 1, Messages: at.Counters.Messages + added},
  	}
  }

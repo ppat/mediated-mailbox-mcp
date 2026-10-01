@@ -221,10 +221,10 @@ CREATE TABLE job_runs (                   -- every batch workload's runs (ADR-00
   started_at    timestamptz NOT NULL,
   finished_at   timestamptz,
   heartbeat_at  timestamptz,
-  checkpoint    jsonb,                    -- {page, of} or {seq, of}, and backfill's pass 1 records {page, token},
-                                          --   the provider's token for the next page, since its enumeration
-                                          --   reports no total, and pass 2 {page, after}, the last message
-                                          --   identifier its pages read
+  checkpoint    jsonb,                    -- {page, of} or {seq, of}, and backfill's pass 1 records {page, token, of},
+                                          --   the provider's token for the next page, with of only when its
+                                          --   enumeration reports a total (ADR-0095), and pass 2 {page, after},
+                                          --   the last message identifier its pages read
   counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages; pass2 pages, decided,
                                           --   pending, scanned, skipped; sync added, modified, removed,
                                           --   window_start, window_end, reconciled; apply ops_done,

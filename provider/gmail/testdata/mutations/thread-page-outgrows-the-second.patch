@@ -7,9 +7,9 @@ scheduled-count: no
 diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
 --- a/provider/gmail/profile.go
 +++ b/provider/gmail/profile.go
-@@ -31,7 +31,7 @@
- // thread. A page of EnumerateAll is one messages.list, a messages.get per message and one read of the
- // label table, 66 units for three messages.
+@@ -30,7 +30,7 @@ const (
+ // thread. A page of EnumerateAll is one messages.list, a messages.get per message, one read of the
+ // label table and one getProfile for the mailbox's total, 67 units for three messages.
  const (
 -	threadsPerPage  = 1
 +	threadsPerPage  = 2

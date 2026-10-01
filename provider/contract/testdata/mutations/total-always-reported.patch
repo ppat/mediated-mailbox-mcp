@@ -1,0 +1,18 @@
+control: The contract suite fails an implementation whose enumeration reports a total it was not configured to, reports none when configured to, passes its page limit, or counts fewer messages than the case added
+removes: the fake reports a total whether or not it is configured to
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/enumeration_returns_every_message_once_with_what_was_seeded TestTheFakePassesTheContract/enumeration_resumes_from_any_page_token
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -415,7 +415,7 @@ func (f *Fake) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page
+ 		}
+ 		out.Items = append(out.Items, clone(s.meta))
+ 	}
+-	if f.totals {
++	if true {
+ 		out.Total = &mail.Total{Items: len(f.byID), PageLimit: f.pageSize}
+ 	}
+ 	return out, nil

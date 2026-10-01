@@ -39,8 +39,10 @@ type Port[C any] interface {
 	// ErrCursorGap when the provider cannot calculate changes from cursor.
 	ChangesSince(ctx C, cursor Cursor) (ChangeSet, error)
 	// EnumerateAll returns a page of every message in the mailbox. Full traversal is the backfill
-	// primitive and never a delta, so delta sync does not call it (ADR-0017, ADR-0018). It returns
-	// ErrInvalid for a page token it did not issue.
+	// primitive and never a delta, so delta sync does not call it (ADR-0017, ADR-0018). An
+	// implementation that counts the mailbox gives every page its Total, the messages a full
+	// enumeration returns as the provider counts them and its page limit, and one that does not
+	// gives none (ADR-0095). It returns ErrInvalid for a page token it did not issue.
 	EnumerateAll(ctx C, page PageToken) (Page[MessageMetadata], error)
 	// RateProfile returns what the implementation's operations cost (ADR-0023).
 	RateProfile() RateLimitProfile[C]

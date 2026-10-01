@@ -418,18 +418,39 @@ func parseListing(body []byte) (listing, error) {
 	return out, nil
 }
 
-// parseProfile reads the mailbox's current history identifier from a profile response.
-func parseProfile(body []byte) (uint64, error) {
+// profile is what the adapter reads of a profile response, the mailbox's current history identifier
+// and the number of messages Gmail counts in it, nil when the response gives none.
+type profile struct {
+	historyID     uint64
+	messagesTotal *int
+}
+
+// parseProfile reads a profile response.
+func parseProfile(body []byte) (profile, error) {
 	var raw struct {
-		HistoryID uint64 `json:"historyId,string"`
+		HistoryID     uint64 `json:"historyId,string"`
+		MessagesTotal *int   `json:"messagesTotal"`
 	}
 	if err := unmarshal(body, &raw, "the profile"); err != nil {
-		return 0, err
+		return profile{}, err
 	}
 	if raw.HistoryID == 0 {
-		return 0, fmt.Errorf("gmail: the profile has no history identifier: %w", mail.ErrProvider)
+		return profile{}, fmt.Errorf("gmail: the profile has no history identifier: %w", mail.ErrProvider)
 	}
-	return raw.HistoryID, nil
+	if raw.MessagesTotal != nil && *raw.MessagesTotal < 0 {
+		return profile{}, fmt.Errorf("gmail: the profile counts %d messages: %w", *raw.MessagesTotal, mail.ErrProvider)
+	}
+	return profile{historyID: raw.HistoryID, messagesTotal: raw.MessagesTotal}, nil
+}
+
+// total is an enumeration page's total from the profile, the messages Gmail counts in the mailbox
+// with the page limit the adapter sizes its pages to, or nil when the profile counts none
+// (ADR-0095).
+func (p profile) total() *mail.Total {
+	if p.messagesTotal == nil {
+		return nil
+	}
+	return &mail.Total{Items: *p.messagesTotal, PageLimit: messagesPerPage}
 }
 
 // gmailHistory is one page of history.list.

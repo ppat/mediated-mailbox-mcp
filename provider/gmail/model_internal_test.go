@@ -292,16 +292,32 @@ func TestParseListing(t *testing.T) {
 	}
 }
 
+// A profile gives the history identifier a cursor starts from, and the mailbox's count of messages
+// as an enumeration page's total, with the page limit the adapter sizes its pages to. A profile
+// counting no messages gives no total, and one counting fewer than none is refused.
 func TestParseProfile(t *testing.T) {
 	got, err := parseProfile([]byte(`{"emailAddress": "you@example.com", "messagesTotal": 7, "threadsTotal": 6, "historyId": "9876543"}`))
 	if err != nil {
 		t.Fatalf("parseProfile: %v", err)
 	}
-	if got != 9876543 {
-		t.Errorf("parseProfile = %d, want 9876543", got)
+	if got.historyID != 9876543 {
+		t.Errorf("parseProfile's history identifier = %d, want 9876543", got.historyID)
+	}
+	if diff := cmp.Diff(&mail.Total{Items: 7, PageLimit: 3}, got.total(), compare.Options); diff != "" {
+		t.Errorf("total (-want +got):\n%s", diff)
+	}
+	uncounted, err := parseProfile([]byte(`{"emailAddress": "you@example.com", "historyId": "9876543"}`))
+	if err != nil {
+		t.Fatalf("parseProfile: %v", err)
+	}
+	if got := uncounted.total(); got != nil {
+		t.Errorf("a profile counting no messages gave the total %+v, want none", *got)
 	}
 	if _, err := parseProfile([]byte(`{"emailAddress": "you@example.com"}`)); !errors.Is(err, mail.ErrProvider) {
 		t.Errorf("parseProfile without a history identifier returned %v, want an error wrapping %v", err, mail.ErrProvider)
+	}
+	if _, err := parseProfile([]byte(`{"messagesTotal": -1, "historyId": "9876543"}`)); !errors.Is(err, mail.ErrProvider) {
+		t.Errorf("parseProfile counting -1 messages returned %v, want an error wrapping %v", err, mail.ErrProvider)
 	}
 }
 

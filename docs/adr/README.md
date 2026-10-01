@@ -91,6 +91,7 @@ moves it. Records themselves link freely and deep, into
 | 0027 | [Calendar sensitivity keys on any participant, not organizer-only; Fastmail speaks CalDAV](./provider/0027-calendar-classification.md) | Accepted |
 | 0083 | [Each installation connects Gmail through an installed-app OAuth client of its own, set up through the UI, with `gmail.modify`](./provider/0083-gmail-through-an-installation-oauth-client.md) | Accepted |
 | 0085 | [Multi-account: one process, N account contexts, each account its own grant, through the installation's OAuth client where its provider uses one](./provider/0085-multi-account-contexts-with-an-installation-client.md) | Accepted |
+| 0095 | [Every page of an enumeration carries the total and the page limit together, as one optional field of the port's page](./provider/0095-enumeration-total-on-every-page.md) | Accepted |
 
 ## Data — `data/`
 

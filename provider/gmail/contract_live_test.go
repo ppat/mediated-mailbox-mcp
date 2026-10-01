@@ -111,6 +111,8 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 		// that does not fails the enumeration cases there rather than at the timeout.
 		EnumerationPages: 300,
 		Reserve:          reserve,
+		// Gmail counts the mailbox on its profile, so every enumeration page carries a total.
+		ReportsTotal: true,
 	})
 }
 

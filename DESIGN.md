@@ -506,6 +506,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
   concepts. Adapters are deliberately dumb. Full data in, no redaction responsibility.
 - **Canonical model** — the provider-neutral representation of messages, threads, labels, queries,
   and changes that everything above the port speaks.
+- **Enumeration total** — the optional count a page of the port's full enumeration carries, the
+  messages a full enumeration returns as the provider counts them, with the **page limit**, the
+  most items any page of the listing holds. Backfill's pass 1 turns the two into the pages its
+  checkpoint records (rules in ADR-0010, and how the two travel on the page in ADR-0095, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Account context** — the per-account bundle of provider clients, credentials, policy overlay,
   and rate state. Nothing about an account is ambient. Every operation names one.
 - **Sealed credential** — an account's provider credential as the database stores it, encrypted so

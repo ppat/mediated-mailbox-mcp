@@ -266,7 +266,8 @@ func TestMetadataTypesHaveNoBodyField(t *testing.T) {
 	mustnotcompile.RequireFields(t, pkg, "Flags", "Read bool", "Starred bool")
 	mustnotcompile.RequireFields(t, pkg, "AuthResults", "SPF string", "DKIM string", "DMARC string")
 	mustnotcompile.RequireFields(t, pkg, "ThreadMetadata", "AccountID string", "ID string", "Messages []MessageMetadata")
-	mustnotcompile.RequireFields(t, pkg, "Page", "Items []T", "Next PageToken")
+	mustnotcompile.RequireFields(t, pkg, "Page", "Items []T", "Next PageToken", "Total *Total")
+	mustnotcompile.RequireFields(t, pkg, "Total", "Items int", "PageLimit int")
 	mustnotcompile.RequireFields(t, pkg, "ChangeSet",
 		"AccountID string", "Added []string", "Modified []string", "Removed []string", "Next Cursor")
 	mustnotcompile.RequireFields(t, pkg, "Label", "AccountID string", "Path string")
