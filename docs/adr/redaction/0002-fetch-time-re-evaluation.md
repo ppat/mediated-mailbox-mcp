@@ -29,7 +29,8 @@ Gate re-classifies from the index at fetch time
   └─ otherwise (SCANNED clean, or SKIPPED_GATE)
         → adapter.get_message_body() → sanitize
           (SKIPPED_GATE additionally: serve-time pattern check —
-           a hit denies; the fetched body is discarded, audit row written)
+           a hit denies; the fetched body is discarded, audit row written;
+           every release: the check also reads the attachment filenames)
         → audit ALLOW → return
 ```
 
@@ -38,7 +39,9 @@ Two properties are the point:
 - **On a gate deny, the provider is never contacted**, so no gate-denied body ever enters
   mediator memory — the denial is decided entirely from the index.
 - **Policy changes bind on the next call, not the next sync.** A newly deny-listed domain denies
-  immediately, because classification is re-derived against current policy at fetch time.
+  immediately, because classification is re-derived against current policy at fetch time. How the
+  mediator holds current policy at each call is
+  [ADR-0099](../engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)'s.
 
 `SKIPPED_GATE` allowing is deliberate and visible in the flow rather than hidden — it is the
 accepted residual of [ADR-0093](./0093-composite-scan-gate.md).
@@ -61,7 +64,13 @@ of [ADR-0093](./0093-composite-scan-gate.md) shrinks precisely for the highest-v
 class, at the exact moment of exposure. The pattern tier is the Content Scanner's first tier run
 alone, without its scoring tier ([ADR-0005](../classification/0005-tiered-detection.md)). A
 `SKIPPED_GATE` body with no built scanner to check it is withheld, and a scanned body is not
-checked again.
+checked again. The check reads everything the release hands the client from the message, the body
+and the snippet and attachment filenames that follow it under
+[ADR-0001](./0001-redaction-matrix.md)'s matrix, so a hit in any of them withholds all of them.
+Attachment filenames are the one released field no scanner reads on any scan state, so the same
+reasons apply to them on every release. A scanned message's filenames pass the pattern tier too, and
+a hit withholds its body, snippet and filenames with the same audit row, while its body and snippet
+are not checked again.
 
 ## Alternatives considered
 

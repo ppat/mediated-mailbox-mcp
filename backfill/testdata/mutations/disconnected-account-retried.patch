@@ -4,15 +4,13 @@ packages: ./backfill
 tests: TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected
 scheduled-count: no
 integration: yes
-
 diff --git a/backfill/main.go b/backfill/main.go
-index 354c386..c49410d 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -266,7 +266,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
- 		if err != nil {
+@@ -267,7 +267,7 @@
  			return nil, err
  		}
+ 		stored := reread.Credential()
 -		if stored == nil || string(stored) == sources[account].RefreshToken() {
 +		if string(stored) == sources[account].RefreshToken() {
  			return nil, nil

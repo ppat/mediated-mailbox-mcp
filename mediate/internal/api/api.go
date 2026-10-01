@@ -106,16 +106,8 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
 	out, err := reg.Call(r.Context(), rt.op.Name, input)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "operation failed", "operation", rt.op.Name, "error", err)
-		status := http.StatusInternalServerError
-		var refused *service.ArgumentError
-		if errors.As(err, &refused) {
-			status = http.StatusBadRequest
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		if _, err := w.Write(service.Failure(err)); err != nil { //nolint:gosec // a JSON body sent as application/json, never rendered as HTML
-			slog.WarnContext(r.Context(), "writing an error response failed", "error", err)
-		}
+		origin, _ := service.Classify(err)
+		writeFailure(w, status(origin), service.Failure(err))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -265,17 +257,31 @@ func objectMembers(body []byte) ([]member, error) {
 	return members, nil
 }
 
-// writeError writes a JSON error response.
-func writeError(w http.ResponseWriter, status int, message string) {
-	body, err := json.Marshal(struct {
-		Error string `json:"error"`
-	}{message})
-	if err != nil {
-		body = []byte(`{"error":"internal"}`)
+// status returns the HTTP status a failure of origin answers with (ADR-0101).
+func status(origin service.Origin) int {
+	switch origin {
+	case service.OriginClient:
+		return http.StatusBadRequest
+	case service.OriginProvider:
+		return http.StatusBadGateway
+	case service.OriginMediator:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
 	}
+}
+
+// writeError writes the root's own refusal of a request it cannot turn into a call, a failure of the
+// client's, in the shape every failure takes (ADR-0101).
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeFailure(w, status, service.Failure(service.Refuse(message)))
+}
+
+// writeFailure writes a failure's content with status.
+func writeFailure(w http.ResponseWriter, status int, body json.RawMessage) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if _, err := w.Write(body); err != nil {
+	if _, err := w.Write(body); err != nil { //nolint:gosec // a JSON body sent as application/json, never rendered as HTML
 		slog.Warn("writing an error response failed", "error", err)
 	}
 }

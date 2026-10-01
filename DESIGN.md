@@ -126,9 +126,12 @@ The one narrative to read first, assembled from the decision records, resolved t
 
 - ADR-0002 — the fetch-time gate flow that decides allow or deny, including the serve-time
   pattern check that can still deny a never-scanned body.
+- ADR-0099 — the policy load each body request waits for before the gate decides.
 - ADR-0001 — the field-level matrix behind that decision.
 - ADR-0093 — the scan states a message can be in, including the accepted residual.
-- ADR-0036 — the sanitization applied to whatever is released.
+- ADR-0036 — the sanitization applied to whatever is released, and ADR-0100 for text with no
+  HTML form.
+- ADR-0101 — the result a denial returns, and the failure that names its origin.
 
 Metadata requests need none of it. Metadata paths cannot carry a body by construction.
 
@@ -469,11 +472,14 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Delisting transition** — the designed path for a sender removed from the sensitive list. Its
   messages are marked pending scan and re-enter the ordinary scanning machinery (rule in
   ADR-0037, via the [decision-record index](./docs/adr/README.md)).
-- **Serve-time pattern check** — the additional inspection a gate-skipped body passes at
-  release (rule in ADR-0002, via the [decision-record index](./docs/adr/README.md)).
+- **Serve-time pattern check** — the additional inspection a gate-skipped body, with its snippet
+  and attachment filenames, passes at release, and that every released message's filenames pass,
+  since no scanner reads them (rule in ADR-0002, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Release step** — the mediator's last decision on a body the Redaction Gate lets through,
-  which either wraps its Markdown in the untrusted-content delimiters or withholds it, running the
-  serve-time pattern check on a gate-skipped body on the way (rules in ADR-0036 and ADR-0002, via
+  which either releases its Markdown wrapped in the untrusted-content delimiters, with the snippet
+  and attachment filenames beside it, or withholds all of them, running the serve-time pattern check
+  over all of them for a gate-skipped message, and over the filenames of every message, on the way (rules in ADR-0036 and ADR-0002, via
   the [decision-record index](./docs/adr/README.md)).
 - **The residual** — the accepted, measured set of bodies released without having been scanned
   (bounds in ADR-0093 and ADR-0002, via the

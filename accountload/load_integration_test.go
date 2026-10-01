@@ -161,6 +161,89 @@ func TestAStaleWriteBackIsRefusedAndTheStoredCredentialUsed(t *testing.T) {
 	}
 }
 
+// VERIFICATIONS' row for a stale write refused by the compare-and-set, for a loader that adopted the
+// replacement before the unit of work ended. A unit started at the first credential's adoption, a
+// reload then adopted the operator's, and the unit hands over what it holds. The loader discards the
+// hand-over, hands back the operator's credential and leaves it stored, while a unit that started at
+// the adoption the loader holds still has its rotation written (ADR-0089).
+func TestAHandOverFromAReplacedCredentialIsDiscarded(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	keys := generate(t)
+	c := seal.AccountCredential("personal")
+	account(t, conn, "personal", "gmail", sealed(t, keys, "first-token", c))
+	var log logBuffer
+	l := load(t, keyring(t, keys), &log)
+	first := adoption(t, l, "personal")
+
+	reauthorized := sealed(t, keys, "reauthorized-token", c)
+	must(t, conn, "UPDATE account_state SET credential = $1 WHERE account_id = 'personal'", reauthorized)
+	if err := l.Load(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	for _, held := range []string{"first-token", "rotated-from-first"} {
+		use, err := l.HandOver(t.Context(), "personal", first, []byte(held))
+		if err != nil || string(use) != "reauthorized-token" {
+			t.Errorf("handing over %q from the replaced credential returned %q, %v, want the operator's credential", held, use, err)
+		}
+		if !bytes.Equal(storedCredential(t, conn, "personal"), reauthorized) {
+			t.Errorf("handing over %q from the replaced credential replaced the operator's", held)
+		}
+	}
+
+	use, err := l.HandOver(t.Context(), "personal", adoption(t, l, "personal"), []byte("rotated-token"))
+	if err != nil || string(use) != "rotated-token" {
+		t.Errorf("a hand-over from the adoption the loader holds returned %q, %v, want the rotation", use, err)
+	}
+	if got, err := keyring(t, keys).Open(storedCredential(t, conn, "personal"), c); err != nil || string(got) != "rotated-token" {
+		t.Errorf("the stored credential opens as %q, %v, want the rotated one", got, err)
+	}
+}
+
+// VERIFICATIONS' row for a stale write refused by the compare-and-set, for the process's own earlier
+// write-back. Two units start at one adoption and each sees its own rotation. The first's lands, and
+// the second's lands after it by compare-and-set against the first's bytes, since no one else stored
+// a value meanwhile (ADR-0082, ADR-0089). A reload after them keeps the second rotation.
+func TestOverlappingRotationsEachLand(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	keys := generate(t)
+	c := seal.AccountCredential("personal")
+	account(t, conn, "personal", "gmail", sealed(t, keys, "first-token", c))
+	var log logBuffer
+	l := load(t, keyring(t, keys), &log)
+	start := adoption(t, l, "personal")
+
+	for _, rotated := range []string{"rotated-in-one", "rotated-in-two"} {
+		use, err := l.HandOver(t.Context(), "personal", start, []byte(rotated))
+		if err != nil || string(use) != rotated {
+			t.Errorf("handing over %q returned %q, %v, want it", rotated, use, err)
+		}
+		if got, err := keyring(t, keys).Open(storedCredential(t, conn, "personal"), c); err != nil || string(got) != rotated {
+			t.Errorf("after handing over %q the stored credential opens as %q, %v", rotated, got, err)
+		}
+	}
+	if err := l.Load(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if got := credentials(l.Snapshot())["personal"]; got != "rotated-in-two" {
+		t.Errorf("after a reload the account holds %q, want the later rotation", got)
+	}
+	if got := adoption(t, l, "personal"); got != start {
+		t.Errorf("the loader's own write-backs moved the adoption from %d to %d", start, got)
+	}
+}
+
+// adoption returns the account's adoption in the loader's active snapshot.
+func adoption(t *testing.T, l *accountload.Loader, id string) uint64 {
+	t.Helper()
+	a, ok := l.Snapshot().Account(id)
+	if !ok {
+		t.Fatalf("the snapshot does not list %s", id)
+	}
+	return a.Adoption()
+}
+
 // F6's part of VERIFICATIONS' row for forcing a rotation and restarting. At the end of a unit of work
 // the deployable hands over the credential its adapter holds. One equal to the credential last read
 // or written writes nothing, and a rotated one is written back once, and is what a new loader, as
@@ -267,9 +350,13 @@ func TestAStoredCredentialSomeoneElseReplacedWins(t *testing.T) {
 	}
 
 	must(t, conn, "UPDATE account_state SET credential = $1 WHERE account_id = 'personal'", sealed(t, keys, "again-token", c))
+	before := adoption(t, l, "personal")
 	got, err := l.Reread(t.Context(), "personal")
-	if err != nil || string(got) != "again-token" {
-		t.Errorf("reading a refused credential again: %q, %v, want the stored one", got, err)
+	if err != nil || string(got.Credential()) != "again-token" {
+		t.Errorf("reading a refused credential again: %q, %v, want the stored one", got.Credential(), err)
+	}
+	if got.Adoption() == before || got.Adoption() != adoption(t, l, "personal") {
+		t.Errorf("reading a replaced credential again returned adoption %d, from %d, want a new one the snapshot holds", got.Adoption(), before)
 	}
 	if got := credentials(l.Snapshot())["personal"]; got != "again-token" {
 		t.Errorf("after reading again the snapshot holds %q", got)

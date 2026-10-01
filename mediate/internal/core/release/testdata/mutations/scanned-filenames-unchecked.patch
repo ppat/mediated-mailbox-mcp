@@ -1,0 +1,19 @@
+control: The serve-time pattern check reads the snippet and the attachment filenames that follow a gate-skipped body, and the filenames of every message, and they are released with the delimiters' words replaced
+removes: a scanned message's filenames are released without the pattern check, as its body and snippet are
+packages: ./mediate/internal/core/release
+tests: TestAScannedMessagesFilenamesAreChecked
+scheduled-count: no
+
+diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
+index 8fdca71..b110ffb 100644
+--- a/mediate/internal/core/release/release.go
++++ b/mediate/internal/core/release/release.go
+@@ -128,7 +128,7 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+ 	var checked []string
+ 	switch state {
+ 	case sensitivity.Scanned():
+-		checked = c.AttachmentNames
++		checked = nil
+ 	case sensitivity.SkippedGate():
+ 		checked = append([]string{c.Body, c.Snippet}, c.AttachmentNames...)
+ 	default:

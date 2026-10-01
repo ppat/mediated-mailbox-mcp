@@ -7,12 +7,12 @@ integration: yes
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index ee8b9d9..ce9f548 100644
+index 60aac7a..5cbfbd9 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -327,7 +327,6 @@ func (s *serving) reload(ctx context.Context) error {
- 		}
- 	}
+@@ -356,7 +356,6 @@ func (s *serving) reload(ctx context.Context) error {
+ 	ids := idsOf(next)
+ 	failed := s.loadPolicy(ctx, ids)
  	s.snapshot.Store(next)
 -	s.registry.Serve(ids)
  	s.logger.Info("accounts served", "accounts", len(ids))

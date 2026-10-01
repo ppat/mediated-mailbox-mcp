@@ -1,0 +1,19 @@
+control: Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
+removes: the API root answers a provider failure with 500, as it answers a fault of its own
+packages: ./mediate/internal/api
+tests: TestEachFailureNamesItsOrigin
+scheduled-count: no
+
+diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
+index 2b19c7e..3562fca 100644
+--- a/mediate/internal/api/api.go
++++ b/mediate/internal/api/api.go
+@@ -263,7 +263,7 @@ func status(origin service.Origin) int {
+ 	case service.OriginClient:
+ 		return http.StatusBadRequest
+ 	case service.OriginProvider:
+-		return http.StatusBadGateway
++		return http.StatusInternalServerError
+ 	case service.OriginMediator:
+ 		return http.StatusInternalServerError
+ 	default:

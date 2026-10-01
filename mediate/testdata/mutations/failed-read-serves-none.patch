@@ -7,11 +7,11 @@ integration: yes
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index ee8b9d9..e6f4607 100644
+index 60aac7a..a651621 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -316,6 +316,7 @@ func newServing(pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Regi
- // sender (ADR-0041). The next reload loads the policy again.
+@@ -350,6 +350,7 @@ func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, met
+ // next reload loads the policy again.
  func (s *serving) reload(ctx context.Context) error {
  	if err := s.loader.Load(ctx); err != nil {
 +		s.registry.Serve(nil)

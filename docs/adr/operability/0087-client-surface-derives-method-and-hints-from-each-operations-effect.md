@@ -181,9 +181,10 @@ What the ordinary path of HTTP and MCP tooling does that this record forbids, an
 
 Left open, and settled where each is first needed:
 
-- **The denial of a gated body read** is a successful result carrying the denial, or a failure. The
-  failure contract of [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) decides it,
-  and either shape is derived the same way on both roots.
+- **The denial of a gated body read** is a successful result carrying the denial, not a failure.
+  The failure contract of [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) decided
+  it, in [ADR-0101](./0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md), and
+  the shape is derived the same way on both roots.
 - **Paging** takes a cursor argument and returns the next cursor, bound to the account and the
   filter. Its exact fields are the first listing's. The first listings take `cursor` and return
   `next_cursor`, which is opaque to the client and null on the last page, and a cursor given to

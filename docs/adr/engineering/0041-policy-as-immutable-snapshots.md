@@ -69,7 +69,8 @@ decision ever being made against one policy and audited against another.
   takes effect on the next call once its update has validly loaded — before that moment the
   edit is not yet policy. No latency bound is promised. An edit is a row in the policy tables,
   and the gap between writing it and it becoming active is the next snapshot load, whose cadence
-  is each process's own.
+  is each process's own. The mediator loads before each body request
+  ([ADR-0099](./0099-a-body-request-loads-the-policy-before-it-decides.md)).
 - A reorganization plan created under one policy and applied under a later one is decided at
   apply time by the policy active then — the plan carries its operations, never a frozen
   policy.

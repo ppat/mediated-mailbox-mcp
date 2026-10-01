@@ -6,11 +6,11 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..9b16ace 100644
+index 9d112fd..d336dd4 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -110,7 +110,7 @@ func defaults() Configuration {
- // an ingress is declared to terminate TLS, and refused when one is. The reload interval is positive.
+@@ -136,7 +136,7 @@ func defaults() Configuration {
+ // and the provider timeout positive and at most five minutes.
  func validate(c Configuration) error {
  	if c.TLSAtIngress {
 -		if c.TLSCert != "" || c.TLSKey != "" {

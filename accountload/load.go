@@ -40,6 +40,7 @@ type Account struct {
 	id         string
 	provider   string
 	credential []byte
+	adoption   uint64
 }
 
 // ID returns the account's identifier.
@@ -55,6 +56,11 @@ func (a Account) Connected() bool { return a.credential != nil }
 // Credential returns the account's opened credential, or nil when it is not connected. Its meaning is
 // the provider adapter's (ADR-0016).
 func (a Account) Credential() []byte { return a.credential }
+
+// Adoption identifies the last value the loader adopted from the account's row that it did not write
+// itself. A unit of work hands it over as it stood when the unit started, and HandOver discards the
+// hand-over once it has moved (ADR-0089).
+func (a Account) Adoption() uint64 { return a.adoption }
 
 // Client is an installation's OAuth client for one provider (ADR-0083).
 type Client struct {
@@ -109,11 +115,13 @@ func (s *Snapshot) Client(provider string) (Client, bool) {
 
 // held is what the loader last knew of one stored sealed value and the plaintext it holds for it.
 // baseline is the plaintext of known, the credential as it was last read or written. The plaintext
-// is newer than the baseline while a write-back of it has not landed.
+// is newer than the baseline while a write-back of it has not landed. adoption is the loader's count
+// of outside values when it adopted known or the value known replaced by a write-back of its own.
 type held struct {
 	known     []byte
 	baseline  []byte
 	plaintext []byte
+	adoption  uint64
 }
 
 // Loader holds the active snapshot and what it last knew of each stored value. It is safe for use by
@@ -127,8 +135,11 @@ type Loader struct {
 	// with one of them at a time.
 	mu       sync.Mutex
 	accounts map[string]held
-	scan     Scan
-	active   atomic.Pointer[Snapshot]
+	// adoptions counts the values adopted from a row that the loader did not write, across every
+	// account, so an account dropped and connected again never reuses a count.
+	adoptions uint64
+	scan      Scan
+	active    atomic.Pointer[Snapshot]
 }
 
 // New returns a Loader reading from db and opening with keys. Its snapshot serves no account until a
@@ -222,7 +233,7 @@ func (l *Loader) Load(ctx context.Context) error {
 		a := Account{id: r.id, provider: r.provider}
 		h, ok := l.adopt(r.id, r.stored)
 		if ok {
-			a.credential = h.plaintext
+			a.credential, a.adoption = h.plaintext, h.adoption
 			known[r.id] = h
 		}
 		scan.Accounts[r.id] = r.stored != nil && (!ok || l.onOldKey(r.stored))
@@ -250,7 +261,8 @@ func (l *Loader) onOldKey(stored []byte) bool {
 }
 
 // adopt returns what the loader holds for an account whose state row holds stored. A value it
-// already knew keeps the plaintext it holds, and any other is opened.
+// already knew keeps the plaintext it holds, and any other is opened and counted as an outside
+// value.
 func (l *Loader) adopt(account string, stored []byte) (held, bool) {
 	if stored == nil {
 		return held{}, false
@@ -263,5 +275,6 @@ func (l *Loader) adopt(account string, stored []byte) (held, bool) {
 		l.log.Error("an account's credential did not open, so it is not connected", slog.String("account", account), slog.Any("error", err))
 		return held{}, false
 	}
-	return held{known: stored, baseline: plaintext, plaintext: plaintext}, true
+	l.adoptions++
+	return held{known: stored, baseline: plaintext, plaintext: plaintext, adoption: l.adoptions}, true
 }

@@ -6,14 +6,14 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 93c89f3..2b7d89f 100644
+index 60aac7a..3e17cc8 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -92,6 +92,7 @@ type Configuration struct {
+@@ -102,6 +102,7 @@ type Configuration struct {
  	AccountReloadInterval time.Duration         `yaml:"account_reload_interval"`
  	Database              dbconnectcore.Config  `yaml:"database"`
  	Credential            credentialcore.Config `yaml:"credential"`
 +	Accounts              []string              `yaml:"accounts"`
- }
- 
- // defaults are the mediator's defaults. The user is the mediator's own runtime role (ADR-0075), and
+ 	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
+ 	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
+ 	Scanner scan.Config `yaml:"scanner"`

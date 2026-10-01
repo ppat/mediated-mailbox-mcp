@@ -40,7 +40,8 @@ type inputSchema struct {
 // path under its derived method, its operationId the operation's name. A path variable is a path
 // parameter. Every other argument of a GET is a query parameter, and of a POST a member of the
 // request body, whose schema is the input schema without the path variables. The response is the
-// output schema, and every operation requires the bearer token.
+// output schema, any failure is the failure schema with the status its origin gives (ADR-0101), and
+// every operation requires the bearer token.
 func document(t *testing.T, reg service.Registry) *openapi3.T {
 	t.Helper()
 	doc := &openapi3.T{
@@ -61,7 +62,13 @@ func document(t *testing.T, reg service.Registry) *openapi3.T {
 		operation := &openapi3.Operation{
 			OperationID: op.Name,
 			Description: op.Description,
-			Responses:   openapi3.NewResponses(openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{Value: openapi3.NewResponse().WithDescription("The operation's result.").WithJSONSchema(schema(t, op.Output))})),
+			Responses: openapi3.NewResponses(
+				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{Value: openapi3.NewResponse().WithDescription("The operation's result.").WithJSONSchema(schema(t, op.Output))}),
+				openapi3.WithName("default", openapi3.NewResponse().WithDescription(
+					"A failure of the operation call, naming its origin: client with a 400, or a 405 for HEAD, mediator with a 500, provider with a 502. "+
+						"A path or method the root does not route is answered by its router, outside this shape.").
+					WithJSONSchema(schema(t, json.RawMessage(service.FailureSchema)))),
+			),
 		}
 		for _, v := range vars {
 			operation.AddParameter(openapi3.NewPathParameter(v).WithSchema(schema(t, in.Properties[v])))

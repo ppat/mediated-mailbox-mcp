@@ -38,12 +38,14 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
-	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -52,18 +54,26 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication"
+	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/readiness"
+	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/reload"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	"github.com/ppat/mediated-mailbox-mcp/sanitize/markdown"
 	"github.com/ppat/mediated-mailbox-mcp/settings"
 )
 
@@ -92,7 +102,20 @@ type Configuration struct {
 	AccountReloadInterval time.Duration         `yaml:"account_reload_interval"`
 	Database              dbconnectcore.Config  `yaml:"database"`
 	Credential            credentialcore.Config `yaml:"credential"`
+	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
+	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
+	Scanner scan.Config `yaml:"scanner"`
+	// ProviderTimeout bounds each provider call a body request makes, after which the call is the
+	// provider's failure (ADR-0101).
+	ProviderTimeout time.Duration `yaml:"provider_timeout"`
 }
+
+// maxProviderTimeout is the longest provider timeout the configuration accepts.
+const maxProviderTimeout = 5 * time.Minute
+
+// scannerSection is the scanner's section of the configuration, whose revision the serve-time
+// pattern check runs under (ADR-0078).
+const scannerSection = "scanner"
 
 // defaults are the mediator's defaults. The user is the mediator's own runtime role (ADR-0075), and
 // the TLS mode is the one that fails closed. The TLS, token and key files have no default, since a
@@ -103,11 +126,14 @@ func defaults() Configuration {
 		ProbeListen:           ":8080",
 		AccountReloadInterval: time.Minute,
 		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
+		Scanner:               scan.DefaultConfig(),
+		ProviderTimeout:       30 * time.Second,
 	}
 }
 
 // validate refuses a configuration the mediator cannot serve with. The TLS files are required unless
-// an ingress is declared to terminate TLS, and refused when one is. The reload interval is positive.
+// an ingress is declared to terminate TLS, and refused when one is. The reload interval is positive,
+// and the provider timeout positive and at most five minutes.
 func validate(c Configuration) error {
 	if c.TLSAtIngress {
 		if c.TLSCert != "" || c.TLSKey != "" {
@@ -130,6 +156,9 @@ func validate(c Configuration) error {
 	}
 	if c.AccountReloadInterval <= 0 {
 		return fmt.Errorf("account_reload_interval %s is not positive", c.AccountReloadInterval)
+	}
+	if c.ProviderTimeout <= 0 || c.ProviderTimeout > maxProviderTimeout {
+		return fmt.Errorf("provider_timeout %s is not positive and at most %s", c.ProviderTimeout, maxProviderTimeout)
 	}
 	if err := dbconnectcore.Validate(c.Database); err != nil {
 		return err
@@ -172,6 +201,10 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err := validate(c); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
+	scanner, err := scan.New(c.Scanner, loaded.Revisions[scannerSection])
+	if err != nil {
+		return fmt.Errorf("validating the configuration: scanner: %w", err)
+	}
 	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
 	if err != nil {
 		return fmt.Errorf("loading the keyring: %w", err)
@@ -186,11 +219,19 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	}
 	defer pool.Close()
 	metrics := prometheus.NewRegistry()
-	served, err := newServing(pool, keys, metrics, logger)
+	served, err := newServing(ctx, pool, keys, metrics, logger)
 	if err != nil {
 		return err
 	}
-	registry, err := service.NewRegistry(nil, service.Operations(sources(pool, served))...)
+	connect, err := gmailPorts(metrics)
+	if err != nil {
+		return err
+	}
+	bodies, _, err := newBodies(served, connect, scanner, c.ProviderTimeout, metrics)
+	if err != nil {
+		return err
+	}
+	registry, err := service.NewRegistry(nil, service.Operations(sources(pool, served, bodies))...)
 	if err != nil {
 		return err
 	}
@@ -251,15 +292,16 @@ func serve(ctx context.Context, c Configuration, served *serving, metrics *prome
 	return errors.Join(err, surfaceServer.Shutdown(shutdown), probeServer.Shutdown(shutdown))
 }
 
-// sources are what the read operations read from, the pool, the accounts and policy the serving state
-// holds in force, the classifier's lookups and the clock.
-func sources(pool *pgxpool.Pool, served *serving) service.Sources {
+// sources are what the operations read from, the pool, the accounts and policy the serving state
+// holds in force, the classifier's lookups, the clock, and what the body operation needs beyond them.
+func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service.Sources {
 	return service.Sources{
 		DB:       pool,
 		Accounts: served.accounts,
 		Policy:   served.policy,
 		Lookups:  lookups(),
 		Now:      time.Now,
+		Bodies:   bodies,
 	}
 }
 
@@ -274,9 +316,9 @@ func lookups() classify.Lookups {
 }
 
 // serving is the set of accounts the mediator serves and their policy. Each reload takes a new
-// account snapshot and serves its accounts. The policy is loaded again whenever the accounts differ
-// from the ones it was last loaded for, and an account whose rules no load has read restricts every
-// sender (ADR-0090, ADR-0041).
+// account snapshot, serves its accounts and loads their policy, and an account whose rules no load
+// has read restricts every sender (ADR-0090, ADR-0041). A body request has the policy loaded again
+// before it decides, through the same coalesced load the reloads use (ADR-0099).
 type serving struct {
 	loader  *accountload.Loader
 	pool    *pgxpool.Pool
@@ -285,18 +327,20 @@ type serving struct {
 	// policies is the policy loader, built at the first reload that serves an account. Calls read it
 	// while a reload may be building it.
 	policies atomic.Pointer[policyload.Loader]
+	// fresh runs the policy loads, each started after every caller it answers asked (ADR-0099).
+	fresh    *reload.Coalesced
 	registry service.Registry
 	// snapshot is the account snapshot the registry serves.
 	snapshot atomic.Pointer[accountload.Snapshot]
-	// policyFor are the accounts the policy was last loaded for, which only reload reads and writes.
-	policyFor []string
 }
 
 // newServing returns the serving state, serving no account until its first reload, and registers on
 // metrics F3's collector of each served account's rate-state series, which the mediator carries
-// because it runs continuously (ADR-0077).
-func newServing(pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Registry, logger *slog.Logger) (*serving, error) {
+// because it runs continuously (ADR-0077). Its policy loads run under ctx, so they end when the
+// mediator stops and never because a client stopped waiting.
+func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Registry, logger *slog.Logger) (*serving, error) {
 	s := &serving{loader: accountload.New(pool, keys, logger), pool: pool, metrics: metrics, logger: logger}
+	s.fresh = reload.New(ctx, s.reloadPolicy)
 	s.snapshot.Store(&accountload.Snapshot{})
 	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
 		return nil, err
@@ -309,31 +353,27 @@ func newServing(pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Regi
 // treats as fatal and a scheduled reload logs. A read listing no account serves none, and an account a
 // read no longer lists is dropped (ADR-0090).
 //
-// The policy is loaded again whenever the accounts differ from the ones it was last loaded for. A
-// policy load that fails is returned, and the snapshot's accounts are served all the same, so an
-// account the snapshot drops is dropped. The policy loader keeps its active snapshot, so an account it
-// read before keeps that policy, and an account it never read gets the policy that restricts every
-// sender (ADR-0041). The next reload loads the policy again.
+// The policy is loaded on every reload, so a policy edit reaches the metadata reads and the
+// reload-failure alarm clears without a body request (ADR-0099). A policy load that fails is
+// returned, and the snapshot's accounts are served all the same, so an account the snapshot drops is
+// dropped. The policy loader keeps its active snapshot, so an account it read before keeps that
+// policy, and an account it never read gets the policy that restricts every sender (ADR-0041). The
+// next reload loads the policy again.
 func (s *serving) reload(ctx context.Context) error {
 	if err := s.loader.Load(ctx); err != nil {
 		return fmt.Errorf("loading the accounts: %w", err)
 	}
 	next := s.loader.Snapshot()
 	ids := idsOf(next)
-	var failed error
-	if !slices.Equal(ids, s.policyFor) || s.policies.Load() == nil {
-		if failed = s.loadPolicy(ctx, ids); failed == nil {
-			s.policyFor = ids
-		}
-	}
+	failed := s.loadPolicy(ctx, ids)
 	s.snapshot.Store(next)
 	s.registry.Serve(ids)
 	s.logger.Info("accounts served", "accounts", len(ids))
 	return failed
 }
 
-// loadPolicy loads the policy of accounts through the shared policy loader, which reads each
-// account's policy in a transaction of that account. With no account there is no policy to load.
+// loadPolicy sets the accounts the shared policy loader reads to accounts and has it load, through
+// the coalesced load. With no account there is no policy to load.
 func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
 	if len(accounts) == 0 {
 		s.logger.Info("no account is served, so no policy is loaded")
@@ -345,16 +385,39 @@ func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
 		if err != nil {
 			return err
 		}
-		policies = built
-		s.policies.Store(policies)
+		s.policies.Store(built)
 	} else if err := policies.SetAccounts(accounts); err != nil {
 		return err
 	}
-	if err := policies.Reload(ctx); err != nil {
+	if err := s.fresh.Load(ctx); err != nil {
 		return fmt.Errorf("loading the policy: %w", err)
 	}
 	s.logger.Info("policy loaded", "accounts", len(accounts))
 	return nil
+}
+
+// reloadPolicy is one policy load, of the accounts the policy loader was last set to read. Before the
+// first reload that serves an account there is no loader and nothing to load.
+func (s *serving) reloadPolicy(ctx context.Context) error {
+	policies := s.policies.Load()
+	if policies == nil {
+		return nil
+	}
+	return policies.Reload(ctx)
+}
+
+// currentPolicy has the policy loaded by a load that starts after the call, and returns the account's
+// policy from the snapshot then active (ADR-0099). A load that fails leaves the active valid policy,
+// whose failure the loader alarms on (ADR-0041). A caller that stops waiting gets the policy that
+// restricts every sender, so a decision is never made against a policy the load did not reach.
+func (s *serving) currentPolicy(ctx context.Context, account string) policy.Composed {
+	if err := s.fresh.Load(ctx); err != nil {
+		if ctx.Err() != nil {
+			return policy.Composed{}
+		}
+		s.logger.Error("the policy was not loaded, so the active policy decides", "error", err)
+	}
+	return s.policy(account)
 }
 
 // reloadEvery reloads on every tick of interval until ctx ends. A failed reload is logged and keeps
@@ -603,4 +666,315 @@ func version() string {
 		return info.Main.Version
 	}
 	return "unknown"
+}
+
+// The series counting body requests, served and denied, a denial told apart by the stage that
+// decided it and its reason (ADR-0036, ADR-0002).
+const (
+	bodiesServedName = "mediated_mailbox_mediate_bodies_served_total"
+	bodiesDeniedName = "mediated_mailbox_mediate_bodies_denied_total"
+)
+
+// newBodies returns what the body operation needs beyond the index, with the opener of its provider
+// sessions. Its policy is loaded for each request through served, its provider calls go through ports
+// connect builds, the serve-time pattern check runs scanner, and its outcomes are counted on series
+// metrics serves. Each provider call is bounded by timeout.
+func newBodies(served *serving, connect connector, scanner scan.Scanner, timeout time.Duration, metrics prometheus.Registerer) (service.Bodies, *providers, error) {
+	leases, err := lease.NewMetrics(metrics)
+	if err != nil {
+		return service.Bodies{}, nil, err
+	}
+	servedBodies := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: bodiesServedName,
+		Help: "The bodies the mediator served, each after its audit row was written.",
+	}, []string{"account"})
+	deniedBodies := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: bodiesDeniedName,
+		Help: "The body requests the mediator denied, by the stage that decided it, gate or serve, and the reason.",
+	}, []string{"account", "stage", "reason"})
+	for _, c := range []prometheus.Collector{servedBodies, deniedBodies} {
+		if err := metrics.Register(c); err != nil {
+			return service.Bodies{}, nil, err
+		}
+	}
+	p := &providers{served: served, connect: connect, leases: leases, timeout: timeout, sources: map[string]heldSource{}}
+	return service.Bodies{
+		Policy:  served.currentPolicy,
+		Open:    p.open,
+		Convert: markdown.Convert,
+		Literal: markdown.Literal,
+		Scanner: scanner,
+		Observe: func(account string, o service.Outcome) {
+			if o.Stage == "" {
+				servedBodies.WithLabelValues(account).Inc()
+				return
+			}
+			deniedBodies.WithLabelValues(account, o.Stage, o.Reason).Inc()
+		},
+	}, p, nil
+}
+
+// connector builds the port an account's calls go through, over the token source holding the
+// account's credential.
+type connector func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error)
+
+// gmailPorts returns the connector that builds a Gmail adapter over the source, counting its requests
+// on series registry serves, which every adapter it builds shares.
+func gmailPorts(registry prometheus.Registerer) (connector, error) {
+	metrics, err := gmail.NewMetrics(registry)
+	if err != nil {
+		return nil, err
+	}
+	return func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+		return gmail.New(gmail.Config{Account: account, Client: http.DefaultClient, Tokens: source, Metrics: metrics})
+	}, nil
+}
+
+// errNotConnected is a body request for an account the mediator holds no usable credential for.
+var errNotConnected = errors.New("the account has no connected credential, or its provider has no OAuth client")
+
+// credentials returns the Gmail credentials the mediator calls the account's provider with, the
+// installation's Gmail client and the account's refresh token, which is the account's credential as
+// the snapshot opened it from its state row and nothing else (ADR-0080, ADR-0083). An account the
+// snapshot does not list, that is not connected, whose provider is not Gmail, or whose provider has no
+// client is not connected.
+func credentials(snapshot *accountload.Snapshot, account string) (gmail.Credentials, error) {
+	a, ok := snapshot.Account(account)
+	if !ok || !a.Connected() || a.Provider() != gmailProvider {
+		return gmail.Credentials{}, errNotConnected
+	}
+	c, ok := snapshot.Client(gmailProvider)
+	if !ok {
+		return gmail.Credentials{}, errNotConnected
+	}
+	return gmail.Credentials{ClientID: c.ID(), ClientSecret: string(c.Secret()), RefreshToken: string(a.Credential())}, nil
+}
+
+// providers opens each body request's session with its account's provider. It keeps one token source
+// per account across requests, so an access token the provider issued serves the requests after it
+// rather than each request refreshing its own.
+type providers struct {
+	served  *serving
+	connect connector
+	leases  *lease.Metrics
+	// timeout bounds each provider call (ADR-0101).
+	timeout time.Duration
+	mu      sync.Mutex
+	sources map[string]heldSource
+}
+
+// heldSource is an account's token source and the credentials it was built from.
+type heldSource struct {
+	built  gmail.Credentials
+	source *gmail.TokenSource
+}
+
+// source returns the account's token source for creds, the credentials the snapshot in force holds.
+// The held source is kept while creds are the ones it was built from or carry the refresh token it
+// now holds, a rotation it made, and is replaced when someone else replaced the credential.
+func (p *providers) source(account string, creds gmail.Credentials) *gmail.TokenSource {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	held, ok := p.sources[account]
+	sameClient := held.built.ClientID == creds.ClientID && held.built.ClientSecret == creds.ClientSecret
+	if ok && sameClient && (held.built.RefreshToken == creds.RefreshToken || held.source.RefreshToken() == creds.RefreshToken) {
+		return held.source
+	}
+	return p.replace(account, creds)
+}
+
+// replace holds a new token source for the account built from creds, and returns it. p.mu is held.
+func (p *providers) replace(account string, creds gmail.Credentials) *gmail.TokenSource {
+	source := gmail.NewTokenSource(http.DefaultClient, creds)
+	p.sources[account] = heldSource{built: creds, source: source}
+	return source
+}
+
+// open returns a body request's session with the account's provider, the request's unit of work. It
+// is called only once the gate has released a message (ADR-0002).
+func (p *providers) open(ctx context.Context, account string) (service.Provider, error) {
+	snapshot := p.served.loader.Snapshot()
+	creds, err := credentials(snapshot, account)
+	if err != nil {
+		return nil, err
+	}
+	held, _ := snapshot.Account(account)
+	limiter, err := newLimiter(ctx, p.served.pool, account, p.leases)
+	if err != nil {
+		return nil, err
+	}
+	source := p.source(account, creds)
+	port, err := p.connect(account, source)
+	if err != nil {
+		return nil, err
+	}
+	return &session{p: p, account: account, creds: creds, adoption: held.Adoption(), source: source, port: port, limiter: limiter}, nil
+}
+
+// session is one body request's calls to the account's provider.
+type session struct {
+	p       *providers
+	account string
+	creds   gmail.Credentials
+	// adoption is the account's Adoption when the session started, or when a refused credential was
+	// read again, which the hand-over names so a credential someone else replaced since is never put
+	// back (ADR-0089).
+	adoption uint64
+	source   *gmail.TokenSource
+	port     mail.Port[context.Context]
+	limiter  *lease.Limiter
+}
+
+// Body returns the message's body, under a lease in the interactive class.
+func (s *session) Body(ctx context.Context, id string) (mail.MessageBody, error) {
+	return retried(ctx, s, func(ctx context.Context, port mail.Port[context.Context]) (mail.MessageBody, error) {
+		return leased(ctx, s.limiter, port, s.account, mail.OpGetMessageBody, 0, s.p.timeout, func(ctx context.Context) (mail.MessageBody, error) {
+			return port.GetMessageBody(ctx, id)
+		})
+	})
+}
+
+// Metadata returns the message's metadata, under a lease in the interactive class, or an error
+// wrapping mail.ErrNotFound when the provider no longer holds the message.
+func (s *session) Metadata(ctx context.Context, id string) (mail.MessageMetadata, error) {
+	read, err := retried(ctx, s, func(ctx context.Context, port mail.Port[context.Context]) ([]mail.MessageMetadata, error) {
+		return leased(ctx, s.limiter, port, s.account, mail.OpGetMessageMetadata, 1, s.p.timeout, func(ctx context.Context) ([]mail.MessageMetadata, error) {
+			return port.GetMessageMetadata(ctx, []string{id})
+		})
+	})
+	if err != nil {
+		return mail.MessageMetadata{}, err
+	}
+	if len(read) == 0 {
+		return mail.MessageMetadata{}, fmt.Errorf("message %s: %w", id, mail.ErrNotFound)
+	}
+	return read[0], nil
+}
+
+// Done ends the request's unit of work. It hands the source's current refresh token to the loader,
+// naming the account's adoption the session started from, so the loader writes a rotated one back by
+// compare-and-set and discards it when someone else replaced the credential while the request ran, and records
+// the latest authentication attempt the source reports (ADR-0082, ADR-0089, ADR-0097). A failure of either is logged and fails nothing, since the
+// request's answer is already decided. The loader keeps a rotated credential whose write-back failed,
+// and the next request hands it over again (ADR-0090).
+func (s *session) Done(ctx context.Context) {
+	logger, loader := s.p.served.logger, s.p.served.loader
+	if _, err := loader.HandOver(ctx, s.account, s.adoption, []byte(s.source.RefreshToken())); err != nil {
+		logger.Error("handing the account's credential over failed", "account", s.account, "error", err)
+	}
+	if err := recordAttempt(ctx, s.p.served.pool, s.account, s.source.LastAttempt()); err != nil {
+		logger.Error("recording the last authentication attempt failed", "account", s.account, "error", err)
+	}
+}
+
+// retried makes call over the session's port. When the provider refuses the credential, the
+// credential is read again from the account's row before the refusal is returned (ADR-0090). A row
+// holding another credential has a source built holding it, kept for the account's later requests,
+// the port built again over it, and the call made once more, a new lease included. A row holding the
+// refused credential, or none, returns the refusal.
+func retried[T any](ctx context.Context, s *session, call func(context.Context, mail.Port[context.Context]) (T, error)) (T, error) {
+	out, err := call(ctx, s.port)
+	if !errors.Is(err, mail.ErrAuthentication) {
+		return out, err
+	}
+	reread, rerr := s.p.served.loader.Reread(ctx, s.account)
+	stored := reread.Credential()
+	if rerr != nil {
+		return out, errors.Join(err, fmt.Errorf("reading the refused credential again: %w", rerr))
+	}
+	if stored == nil || string(stored) == s.source.RefreshToken() {
+		return out, err
+	}
+	creds := s.creds
+	creds.RefreshToken = string(stored)
+	s.p.mu.Lock()
+	source := s.p.replace(s.account, creds)
+	s.p.mu.Unlock()
+	port, cerr := s.p.connect(s.account, source)
+	if cerr != nil {
+		return out, errors.Join(err, cerr)
+	}
+	s.creds, s.adoption, s.source, s.port = creds, reread.Adoption(), source, port
+	return call(ctx, port)
+}
+
+// leased makes one call of port's operation op for the account under a lease in the interactive
+// class, sized by what port's rate profile says a call naming messages messages costs, and tells the
+// limiter how the call went (ADR-0023, ADR-0024, ADR-0025). A failure to tell the limiter fails the
+// call, since a controller that never hears of a throttle would not slow down. The call has timeout
+// to answer, and one that has not answered by then while ctx is still live is the provider's failure
+// (ADR-0101). The lease's own wait is not bounded by it.
+func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[context.Context], account string, op mail.Operation, messages int,
+	timeout time.Duration, call func(context.Context) (T, error),
+) (T, error) {
+	var zero T
+	cost := port.RateProfile().Cost(mail.ProviderOp{Operation: op, Messages: messages})
+	if _, err := limiter.Acquire(ctx, account, ratecore.Interactive, cost.Weight); err != nil {
+		return zero, fmt.Errorf("leasing the call: %w", err)
+	}
+	start := time.Now()
+	bounded, cancel := context.WithTimeout(ctx, timeout)
+	out, err := call(bounded)
+	if err != nil && errors.Is(bounded.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+		err = fmt.Errorf("%w: no answer within %s: %w", mail.ErrProvider, timeout, err)
+	}
+	cancel()
+	var told error
+	switch signal, throttled := mail.Throttled(err); {
+	case err == nil:
+		told = limiter.Succeeded(ctx, account, cost, time.Since(start))
+	case throttled:
+		told = limiter.Throttled(ctx, account, signal)
+	case errors.Is(err, mail.ErrProvider):
+		told = limiter.ServerErrored(ctx, account)
+	}
+	if told != nil {
+		return zero, errors.Join(err, fmt.Errorf("telling the rate limiter how the call went: %w", told))
+	}
+	return out, err
+}
+
+// newLimiter returns the rate limiter a body request spends from for a Gmail account, at the lower
+// target the account's state row sets, if it sets one (ADR-0024). It is built for each request, so a
+// target changed while the mediator runs applies from the next request.
+func newLimiter(ctx context.Context, db tx.Beginner, account string, metrics *lease.Metrics) (*lease.Limiter, error) {
+	targets := map[string]float64{}
+	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
+		target, err := accountstate.New(t).LoweredTarget(ctx, account)
+		if err != nil {
+			return err
+		}
+		if target.Valid {
+			targets[account] = float64(target.Float32)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("reading the lowered target of account %s: %w", account, err)
+	}
+	limiter, err := lease.NewWithTargets(db, gmail.Profile{}.BudgetPerSecond(), targets, metrics)
+	if err != nil {
+		return nil, fmt.Errorf("building the rate limiter: %w", err)
+	}
+	return limiter, nil
+}
+
+// recordAttempt records the latest authentication attempt the account's source reported on the
+// account's state row. The zero attempt, from a source that has made none, records nothing, and the
+// statement keeps a later attempt another deployable recorded (ADR-0097).
+func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt mail.AuthAttempt) error {
+	if attempt == (mail.AuthAttempt{}) {
+		return nil
+	}
+	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
+		return authentication.New(t).RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},
+			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},
+			AccountID:   account,
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("account %s: recording the last authentication attempt: %w", account, err)
+	}
+	return nil
 }

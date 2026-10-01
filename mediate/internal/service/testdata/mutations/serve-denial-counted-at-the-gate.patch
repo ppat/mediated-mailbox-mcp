@@ -1,0 +1,20 @@
+control: Served and denied bodies are counted, a denial by the stage that decided it
+removes: a serve-time denial is counted as a gate denial
+packages: ./mediate
+tests: TestTheServeTimeCheckReadsEverythingReleased TestABodyTheConversionRefusesIsDenied
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index b89bba9..66d4333 100644
+--- a/mediate/internal/service/body.go
++++ b/mediate/internal/service/body.go
+@@ -192,7 +192,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 		if err := s.audit(ctx, account, args.MessageID, actionDeny, shown, sortedUnion(rules, d.Rules())); err != nil {
+ 			return nil, err
+ 		}
+-		s.Bodies.Observe(account, Outcome{Stage: StageServe, Reason: reason})
++		s.Bodies.Observe(account, Outcome{Stage: StageGate, Reason: reason})
+ 		return ok(deny(denied, reason))
+ 	}
+ 	if err := s.audit(ctx, account, args.MessageID, actionRead, shown, rules); err != nil {

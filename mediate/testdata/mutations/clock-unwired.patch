@@ -7,15 +7,15 @@ integration: yes
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9c3c8a0..2ff1b55 100644
+index 60aac7a..1d08e85 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -259,7 +259,7 @@ func sources(pool *pgxpool.Pool, served *serving) service.Sources {
+@@ -289,7 +289,7 @@ func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service
  		Accounts: served.accounts,
  		Policy:   served.policy,
  		Lookups:  lookups(),
 -		Now:      time.Now,
 +		Now:      func() time.Time { return time.Now().Add(2 * time.Hour) },
+ 		Bodies:   bodies,
  	}
  }
- 

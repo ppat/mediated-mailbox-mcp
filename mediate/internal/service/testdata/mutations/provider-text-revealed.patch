@@ -1,0 +1,19 @@
+control: Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
+removes: a provider failure's message carries the provider's own error text
+packages: ./mediate/internal/api
+tests: TestEachFailureNamesItsOrigin
+scheduled-count: no
+
+diff --git a/mediate/internal/service/failure.go b/mediate/internal/service/failure.go
+index c2cba09..9c44fb7 100644
+--- a/mediate/internal/service/failure.go
++++ b/mediate/internal/service/failure.go
+@@ -78,7 +78,7 @@ func Classify(err error) (Origin, string) {
+ 	}
+ 	var provider *providerError
+ 	if errors.As(err, &provider) {
+-		return OriginProvider, provider.message
++		return OriginProvider, provider.Error()
+ 	}
+ 	return OriginMediator, mediatorMessage
+ }

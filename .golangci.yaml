@@ -580,6 +580,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          # The recording of the last authentication attempt at the end of each body request, and the audit row of
+          # each body served or denied, writes only the mediator's list admits (ADR-0097, ADR-0016).
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/auditlog/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
@@ -758,10 +762,10 @@ linters:
 
         # Every package of the mediator but the two roots serves no HTTP, so none can register an operation on the
         # client surface outside the roots' generators (ADR-0053). A new package under internal falls under it
-        # without being named. It admits the standard-library packages and the pure core these packages import,
-        # pgx and its pgtype, the transaction helper, and the data-access subsections the service layer's read
-        # operations run, and nothing under net/http. A package added here that imports anything else adds its entry
-        # with it.
+        # without being named. It admits the standard-library packages and the pure cores these packages import,
+        # the shared one and the mediator's own, pgx and its pgtype, the transaction helper, and the data-access
+        # subsections the service layer's operations run, and nothing under net/http. A package added here that
+        # imports anything else adds its entry with it.
         mediate-no-http:
           list-mode: strict
           files:
@@ -779,6 +783,7 @@ linters:
           - "slices$"
           - "strconv$"
           - "strings$"
+          - "sync$"
           - "sync/atomic$"
           - "time$"
           - "encoding/base64$"
@@ -787,8 +792,12 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/pgtype$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
-          # The read operations' statements, each run through the transaction helper (ADR-0047).
+          # The release step, which the body operation runs (ADR-0036).
+          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
+          # The operations' statements, each run through the transaction helper (ADR-0047), the body operation's
+          # audit row among them.
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/auditlog/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"

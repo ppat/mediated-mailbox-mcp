@@ -9,6 +9,11 @@ import (
 )
 
 type Querier interface {
+	// What the Redaction Gate decides a body request from, read at fetch time (ADR-0002): the sender it
+	// classifies again under the policy in force, the content flags and scan state the index stores, and
+	// the content rules that set the flags, which the request's audit row names. Never the stored sender
+	// class. No row means the account holds no such message.
+	BodyGate(ctx context.Context, arg BodyGateParams) ([]BodyGateRow, error)
 	// Every distinct value the account's messages hold in their labels, in order. These are the values the
 	// other operations take as a label.
 	Labels(ctx context.Context, accountID string) ([]string, error)

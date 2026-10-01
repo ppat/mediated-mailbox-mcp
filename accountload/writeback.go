@@ -34,6 +34,28 @@ var ErrNotConnected = errors.New("the account has no stored credential the loade
 func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([]byte, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	return l.persist(ctx, account, current)
+}
+
+// HandOver is Persist for a unit of work that took the account's Adoption as it started and holds
+// current as it ends. When the adoption has moved, a reload or a re-read adopted a value someone else
+// stored while the unit ran, so current is stale beside it. It is discarded and the credential the
+// loader holds is returned, since a compare-and-set against the adopted bytes would land and put the
+// replaced value back (ADR-0089). A write-back of the loader's own moves nothing, so a rotation
+// handed over by a unit that overlapped one whose rotation landed is written by compare-and-set
+// against that rotation's bytes. The check and the write hold the same lock a reload and a re-read
+// take, so neither can land between them.
+func (l *Loader) HandOver(ctx context.Context, account string, adoption uint64, current []byte) ([]byte, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if h, ok := l.accounts[account]; ok && h.adoption != adoption {
+		return slices.Clone(h.plaintext), nil
+	}
+	return l.persist(ctx, account, current)
+}
+
+// persist is Persist with l.mu held.
+func (l *Loader) persist(ctx context.Context, account string, current []byte) ([]byte, error) {
 	h, ok := l.accounts[account]
 	if !ok {
 		return nil, fmt.Errorf("account %s: %w", account, ErrNotConnected)
@@ -87,16 +109,26 @@ func (l *Loader) replace(ctx context.Context, account string, known, sealed []by
 }
 
 // Reread reads the account's stored credential again, as a deployable does when the provider refuses
-// the credential it holds, before it reports the refusal (ADR-0090). It returns the credential to use,
-// the one the operator stored when it changed, or nil when the account is no longer connected.
-func (l *Loader) Reread(ctx context.Context, account string) ([]byte, error) {
+// the credential it holds, before it reports the refusal (ADR-0090). It returns the account as the
+// loader then holds it, whose credential is the one to use, the one the operator stored when it
+// changed, and whose Adoption a unit of work that goes on with it hands over. An account no longer
+// connected is returned not connected.
+func (l *Loader) Reread(ctx context.Context, account string) (Account, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	stored, err := l.stored(ctx, account)
 	if err != nil {
-		return nil, err
+		return Account{}, err
 	}
-	return l.reread(account, stored), nil
+	a, _ := l.active.Load().Account(account)
+	a.id = account
+	if l.reread(account, stored) == nil {
+		a.credential, a.adoption = nil, 0
+		return a, nil
+	}
+	h := l.accounts[account]
+	a.credential, a.adoption = h.plaintext, h.adoption
+	return a, nil
 }
 
 // reread adopts a value just read from the account's row and publishes it in a new snapshot.
@@ -104,7 +136,7 @@ func (l *Loader) reread(account string, stored []byte) []byte {
 	h, ok := l.adopt(account, stored)
 	if !ok {
 		delete(l.accounts, account)
-		l.publish(account, nil)
+		l.publish(account, held{})
 		return nil
 	}
 	l.hold(account, h)
@@ -115,16 +147,16 @@ func (l *Loader) reread(account string, stored []byte) []byte {
 // a unit of work that starts later takes it. A unit already running keeps the snapshot it took.
 func (l *Loader) hold(account string, h held) {
 	l.accounts[account] = h
-	l.publish(account, h.plaintext)
+	l.publish(account, h)
 }
 
-// publish stores a snapshot equal to the active one but for the account's credential.
-func (l *Loader) publish(account string, credential []byte) {
+// publish stores a snapshot equal to the active one but for the account's credential and adoption.
+func (l *Loader) publish(account string, h held) {
 	current := l.active.Load()
 	next := &Snapshot{accounts: slices.Clone(current.accounts), clients: current.clients}
 	for i := range next.accounts {
 		if next.accounts[i].id == account {
-			next.accounts[i].credential = credential
+			next.accounts[i].credential, next.accounts[i].adoption = h.plaintext, h.adoption
 		}
 	}
 	l.active.Store(next)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
@@ -115,15 +117,15 @@ func TestTheRootRefusesWhatItCannotBind(t *testing.T) {
 		{"a query parameter on a change", "POST", post + "?label=L", `{"message_ids":[],"label":"L"}`, 400},
 		{"a body that is not an object", "POST", post, `["m1"]`, 400},
 		{"a body with bytes after the object", "POST", post, `{"label":"L"} {}`, 400},
-		{"an account in the query string beside the path's", "GET", get + "?account_id=acct-a", "", 500},
-		{"a case-variant account in the query string", "GET", get + "?Account_ID=Ωmega%20ünicode", "", 500},
-		{"an account in the body beside the path's", "POST", post, `{"account_id":"acct-a","message_ids":[],"label":"L"}`, 500},
-		{"a case-variant account in the body", "POST", post, `{"ACCOUNT_ID":"a/b","message_ids":[],"label":"L"}`, 500},
-		{"an account the mediator does not serve", "GET", "/api/accounts/acct-z/messages/m1", "", 500},
+		{"an account in the query string beside the path's", "GET", get + "?account_id=acct-a", "", 400},
+		{"a case-variant account in the query string", "GET", get + "?Account_ID=Ωmega%20ünicode", "", 400},
+		{"an account in the body beside the path's", "POST", post, `{"account_id":"acct-a","message_ids":[],"label":"L"}`, 400},
+		{"a case-variant account in the body", "POST", post, `{"ACCOUNT_ID":"a/b","message_ids":[],"label":"L"}`, 400},
+		{"an account the mediator does not serve", "GET", "/api/accounts/acct-z/messages/m1", "", 400},
 		{"a declared argument in a change's query string", "POST", post + "?label=L", `{"message_ids":[]}`, 400},
 		{"a body member given twice", "POST", post, `{"message_ids":[],"label":"x","label":"y"}`, 400},
-		{"a case variant of a path variable in the body", "POST", "/api/accounts/acct-a/reorg-plans/P1/items:label", `{"label":"x","PLAN_ID":"P2"}`, 500},
-		{"a case variant of a body member", "POST", post, `{"message_ids":[],"label":"x","LABEL":"y"}`, 500},
+		{"a case variant of a path variable in the body", "POST", "/api/accounts/acct-a/reorg-plans/P1/items:label", `{"label":"x","PLAN_ID":"P2"}`, 400},
+		{"a case variant of a body member", "POST", post, `{"message_ids":[],"label":"x","LABEL":"y"}`, 400},
 		{"an account in the accounts listing's query string", "GET", "/api/accounts?account_id=acct-a", "", 400},
 		{"a case-variant account in the accounts listing's query string", "GET", "/api/accounts?ACCOUNT_ID=x", "", 400},
 	}
@@ -137,7 +139,13 @@ func TestTheRootRefusesWhatItCannotBind(t *testing.T) {
 			}
 		})
 	}
-	if got := send(t, h, "POST", "/api/accounts/acct-a/messages:fail", `{}`); got != (answer{500, `{"error":"the operation failed"}`}) {
+	// The root refuses an argument given twice itself, before the service layer's refusal of a
+	// repeated key could, and names the argument.
+	repeated := answer{400, `{"error":{"origin":"client","message":"the argument \"label\" is given more than once"}}`}
+	if got := send(t, h, "POST", post, `{"message_ids":[],"label":"x","label":"y"}`); got != repeated {
+		t.Errorf("a body member given twice answered %+v, want %+v", got, repeated)
+	}
+	if got := send(t, h, "POST", "/api/accounts/acct-a/messages:fail", `{}`); got != (answer{500, mediatorFailure}) {
 		t.Errorf("a failing operation answered %+v", got)
 	}
 }
@@ -195,10 +203,16 @@ func TestBothRootsCarryExactlyTheRegistry(t *testing.T) {
 	}
 }
 
-// An operation's refusal of an argument reaches the client with its message and a 400, the same body
-// the MCP root carries, while any other failure is a 500 that says only that the call failed, so no
-// internal detail leaks (ADR-0033, ADR-0087).
-func TestAnArgumentRefusalReachesTheClient(t *testing.T) {
+// mediatorFailure is the content of a failure inside the mediator, written out here rather than read
+// from the service layer.
+const mediatorFailure = `{"error":{"origin":"mediator","message":"the operation failed inside the mediator; get_system_status reports the account's operational state"}}`
+
+// Each failure names its origin, with the status the origin gives (ADR-0101). An operation's refusal
+// of an argument and the registry's refusal of an account are the client's, a 400 carrying the
+// message, a provider's failure is a 502 naming its kind and never the provider's text, and any other
+// failure is a 500 that names no detail, so nothing internal leaks. The body is the content the MCP
+// root carries for the same failure.
+func TestEachFailureNamesItsOrigin(t *testing.T) {
 	op := func(name string, err error) service.Operation {
 		return service.Operation{
 			Name: name, Description: "Fails.", Effect: service.Read, Path: "/api/accounts/{account_id}/" + name,
@@ -210,15 +224,25 @@ func TestAnArgumentRefusalReachesTheClient(t *testing.T) {
 	reg, err := service.NewRegistry([]string{"acct-a"},
 		op("refuses", service.Refuse("since must be an ISO 8601 timestamp in UTC ending in Z")),
 		op("fails", errors.New("internal detail mmfieldmarker-leak")),
+		op("upstream", service.FromProvider(fmt.Errorf("gmail: 503 mmfieldmarker-leak: %w", mail.ErrProvider))),
+		op("throttled", service.FromProvider(fmt.Errorf("gmail: 429 mmfieldmarker-leak: %w", mail.ErrThrottled))),
+		op("leasing", service.FromProvider(errors.New("leasing the call: mmfieldmarker-leak"))),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	h := root(t, reg)
-	got := []answer{send(t, h, http.MethodGet, "/api/accounts/acct-a/refuses", ""), send(t, h, http.MethodGet, "/api/accounts/acct-a/fails", "")}
+	var got []answer
+	for _, path := range []string{"acct-a/refuses", "acct-a/fails", "acct-a/upstream", "acct-a/throttled", "acct-a/leasing", "acct-z/refuses"} {
+		got = append(got, send(t, h, http.MethodGet, "/api/accounts/"+path, ""))
+	}
 	want := []answer{
-		{http.StatusBadRequest, `{"error":"since must be an ISO 8601 timestamp in UTC ending in Z"}`},
-		{http.StatusInternalServerError, `{"error":"the operation failed"}`},
+		{http.StatusBadRequest, `{"error":{"origin":"client","message":"since must be an ISO 8601 timestamp in UTC ending in Z"}}`},
+		{http.StatusInternalServerError, mediatorFailure},
+		{http.StatusBadGateway, `{"error":{"origin":"provider","message":"the provider failed the request or did not answer"}}`},
+		{http.StatusBadGateway, `{"error":{"origin":"provider","message":"the provider throttled the request; get_system_status reports the rate controller's state"}}`},
+		{http.StatusInternalServerError, mediatorFailure},
+		{http.StatusBadRequest, `{"error":{"origin":"client","message":"the operation's account_id names no account the mediator serves"}}`},
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("the answers (-want +got):\n%s", diff)

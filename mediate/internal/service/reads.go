@@ -28,8 +28,10 @@ type Account struct {
 	Provider string `json:"provider"`
 }
 
-// Sources are what the read operations read from. They read the index and the recorded state and
-// never a provider, so no read spends rate budget or reaches a body (ADR-0002, ADR-0034).
+// Sources are what the operations read from. The reads of metadata and state read the index and the
+// recorded state and never a provider, so none of them spends rate budget or reaches a body
+// (ADR-0002, ADR-0034). The body operation alone reaches a provider, through Bodies, and only for a
+// message the Redaction Gate released.
 type Sources struct {
 	// DB is the mediator's pool. Every read runs in a transaction of its account through db/tx.
 	DB tx.Beginner
@@ -42,14 +44,16 @@ type Sources struct {
 	Lookups classify.Lookups
 	// Now returns the current time, which the system status measures ages and backoff against.
 	Now func() time.Time
+	// Bodies are what the body operation needs beyond the index.
+	Bodies Bodies
 }
 
 // pageSize is how many rows one page of a listing holds.
 const pageSize = 100
 
 // Operations returns every operation the client surface serves, the complete set both roots are
-// generated from (ADR-0030). Every operation is a read of the index or the recorded state, and every
-// identifier one takes comes from another (ADR-0035). A message's identifier comes from the message
+// generated from (ADR-0030). Every operation is a read, of the index, of the recorded state, or of a
+// body the Redaction Gate releases, and every identifier one takes comes from another (ADR-0035). A message's identifier comes from the message
 // listing or a thread, a thread's from the thread listing, and an account's from the accounts listing.
 func Operations(s Sources) []Operation {
 	return []Operation{
@@ -89,11 +93,13 @@ func Operations(s Sources) []Operation {
 			Effect: Read,
 			Path:   accountPrefix + "messages/{message_id}",
 			Description: "Returns one message's metadata as the redaction matrix allows it. " +
-				"body_available says whether the body could be released, and no body, snippet or attachment filename is returned.",
+				"body_available is the Redaction Gate's verdict under the policy this read took. get_message_body decides again when it is called, " +
+				"and can still withhold the body. No body, snippet or attachment filename is returned here.",
 			Input:  accountInput(`,"message_id":{"type":"string"}`, `,"message_id"`),
 			Output: json.RawMessage(messageSchema),
 			Handle: s.getMessage,
 		},
+		s.bodyOperation(),
 		{
 			Name:   "list_threads",
 			Effect: Read,

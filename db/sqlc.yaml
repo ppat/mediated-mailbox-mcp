@@ -197,6 +197,16 @@ sql:
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
+  queries: auditlog/record
+  gen:
+    go:
+      package: record
+      out: auditlog/record
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
   queries: maskingevents/record
   gen:
     go:

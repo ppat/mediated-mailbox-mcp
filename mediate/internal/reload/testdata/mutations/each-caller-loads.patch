@@ -1,0 +1,20 @@
+control: A body request has the policy loaded by a load that started after it arrived, sharing a load only with the requests waiting when it started
+removes: each caller runs a load of its own, so a burst of callers runs a burst of loads
+packages: ./mediate/internal/reload
+tests: TestCallersWaitingTogetherShareOneLoad TestLoadsRunOneAtATime
+scheduled-count: no
+
+diff --git a/mediate/internal/reload/reload.go b/mediate/internal/reload/reload.go
+index fa28d06..023f257 100644
+--- a/mediate/internal/reload/reload.go
++++ b/mediate/internal/reload/reload.go
+@@ -39,6 +39,9 @@ func New(ctx context.Context, load func(context.Context) error) *Coalesced {
+ // Load waits for a load that starts after it was called and returns that load's error, or ctx's error
+ // when ctx ends first. The load goes on for the other callers waiting on it.
+ func (c *Coalesced) Load(ctx context.Context) error {
++	if ctx != nil {
++		return c.load(c.ctx)
++	}
+ 	c.mu.Lock()
+ 	r := c.next
+ 	if r == nil {

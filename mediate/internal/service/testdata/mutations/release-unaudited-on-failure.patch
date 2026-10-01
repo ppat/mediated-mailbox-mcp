@@ -1,0 +1,22 @@
+control: Every body serve and denial writes its audit row, and nothing is released without it
+removes: a release whose audit write fails is served all the same
+packages: ./mediate
+tests: TestNoBodyIsReleasedWithoutItsAuditRow TestEachOriginIsToldApartOnBothRoots
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index b89bba9..fa70d5c 100644
+--- a/mediate/internal/service/body.go
++++ b/mediate/internal/service/body.go
+@@ -195,9 +195,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 		s.Bodies.Observe(account, Outcome{Stage: StageServe, Reason: reason})
+ 		return ok(deny(denied, reason))
+ 	}
+-	if err := s.audit(ctx, account, args.MessageID, actionRead, shown, rules); err != nil {
+-		return nil, err
+-	}
++	_ = s.audit(ctx, account, args.MessageID, actionRead, shown, rules)
+ 	s.Bodies.Observe(account, Outcome{Reason: releasedReason})
+ 	result := bodyResult{
+ 		AccountID: account, MessageID: args.MessageID, Released: true, Reason: releasedReason,

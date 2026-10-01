@@ -16,7 +16,11 @@ sit in `core/`, and a copy of its configuration in each deployable could drift a
 library holds it, in `sanitize/markdown`, and both deployables import it. What is released around
 the Markdown, the untrusted-content delimiters and the serve-time pattern check
 ([ADR-0002](../docs/adr/redaction/0002-fetch-time-re-evaluation.md)), is the mediator's alone and
-sits in its own pure core.
+sits in its own pure core. Text from a message that has no HTML form is released as a fenced code
+block that shows it exactly
+([ADR-0100](../docs/adr/redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md)),
+and that form is `sanitize/markdown`'s too, so every Markdown a client receives from a message comes
+from this library.
 
 Only `sanitize/markdown` may import the converter library. Its property test reads the output
 with [goldmark](https://github.com/yuin/goldmark), an independent CommonMark parser, to find what a

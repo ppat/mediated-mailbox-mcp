@@ -7,12 +7,12 @@ integration: yes
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..973c3cc 100644
+index 60aac7a..f836159 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -319,7 +319,7 @@ func (s *serving) reload(ctx context.Context) error {
- // loadPolicy loads the policy of accounts through the shared policy loader, which reads each
- // account's policy in a transaction of that account. With no account there is no policy to load.
+@@ -364,7 +364,7 @@ func (s *serving) reload(ctx context.Context) error {
+ // loadPolicy sets the accounts the shared policy loader reads to accounts and has it load, through
+ // the coalesced load. With no account there is no policy to load.
  func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
 -	if len(accounts) == 0 {
 +	if false {

@@ -1,20 +1,19 @@
-control: An argument refusal reaches the client with its message on both roots, and no other failure's detail does
+control: Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
 removes: the API root answers an argument refusal with 500, as it answers a fault of its own
 packages: ./mediate/internal/api
-tests: TestAnArgumentRefusalReachesTheClient
+tests: TestEachFailureNamesItsOrigin
 scheduled-count: no
 
-
 diff --git a/mediate/internal/api/api.go b/mediate/internal/api/api.go
-index 9021dc4..3d5a74a 100644
+index 2b19c7e..2e61d4d 100644
 --- a/mediate/internal/api/api.go
 +++ b/mediate/internal/api/api.go
-@@ -109,7 +109,7 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
- 		status := http.StatusInternalServerError
- 		var refused *service.ArgumentError
- 		if errors.As(err, &refused) {
--			status = http.StatusBadRequest
-+			status = http.StatusInternalServerError
- 		}
- 		w.Header().Set("Content-Type", "application/json")
- 		w.WriteHeader(status)
+@@ -261,7 +261,7 @@ func objectMembers(body []byte) ([]member, error) {
+ func status(origin service.Origin) int {
+ 	switch origin {
+ 	case service.OriginClient:
+-		return http.StatusBadRequest
++		return http.StatusInternalServerError
+ 	case service.OriginProvider:
+ 		return http.StatusBadGateway
+ 	case service.OriginMediator:

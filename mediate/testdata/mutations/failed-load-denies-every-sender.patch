@@ -1,0 +1,19 @@
+control: A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
+removes: a request whose policy load fails is decided under the policy that restricts every sender rather than the active valid one
+packages: ./mediate
+tests: TestANewlyListedDomainIsDeniedOnTheNextCall
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 9d112fd..8e400c5 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -416,6 +416,7 @@ func (s *serving) currentPolicy(ctx context.Context, account string) policy.Comp
+ 			return policy.Composed{}
+ 		}
+ 		s.logger.Error("the policy was not loaded, so the active policy decides", "error", err)
++		return policy.Composed{}
+ 	}
+ 	return s.policy(account)
+ }

@@ -1,0 +1,31 @@
+control: A body request has the policy loaded by a load that started after it arrived, sharing a load only with the requests waiting when it started
+removes: a load runs under the context of the caller that started it, so a caller that stops waiting cancels the load the others wait on
+packages: ./mediate/internal/reload
+tests: TestACallerThatStopsWaitingLeavesTheLoadRunning
+scheduled-count: no
+
+diff --git a/mediate/internal/reload/reload.go b/mediate/internal/reload/reload.go
+index fa28d06..4a04c50 100644
+--- a/mediate/internal/reload/reload.go
++++ b/mediate/internal/reload/reload.go
+@@ -46,7 +46,7 @@ func (c *Coalesced) Load(ctx context.Context) error {
+ 		c.next = r
+ 		if !c.running {
+ 			c.running = true
+-			go c.run()
++			go c.runFor(ctx)
+ 		}
+ 	}
+ 	c.mu.Unlock()
+@@ -58,6 +58,11 @@ func (c *Coalesced) Load(ctx context.Context) error {
+ 	}
+ }
+ 
++func (c *Coalesced) runFor(ctx context.Context) {
++	c.ctx = ctx
++	c.run()
++}
++
+ // run starts each waiting round in turn, after the one before it ended, until none waits.
+ func (c *Coalesced) run() {
+ 	for {

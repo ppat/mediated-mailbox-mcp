@@ -320,8 +320,9 @@ func TestTheRootOffersToolsOnly(t *testing.T) {
 }
 
 // A tool call runs the registry's operation on the call's arguments and returns its result, at either
-// revision. A failed operation, a missing account among them, is a tool error whose structured
-// content and text say only that it failed, and a refused argument one that carries the refusal.
+// revision. A failed operation is a tool error whose structured content and text name its origin, the
+// mediator's saying only that it failed, and a missing account and a refused argument are the
+// client's, carrying the refusal (ADR-0101).
 func TestAToolCallRunsTheOperation(t *testing.T) {
 	h := mcp.Handler(registry(t), "test")
 	for _, e := range []era{legacy, modern} {
@@ -351,16 +352,22 @@ func TestAToolCallRunsTheOperation(t *testing.T) {
 		if echo.IsError || string(echo.StructuredContent) != `{"account":"acct-a","input":{}}` {
 			t.Errorf("echo at %s returned isError %v and %s", e.name, echo.IsError, echo.StructuredContent)
 		}
-		for name, r := range map[string]result{"fail": fail, "echo without an account": noAccount} {
-			// The failure's structured content and its text are the service layer's, and say only
-			// that the call failed (ADR-0086's R10).
-			failure := `{"error":"the operation failed"}`
-			if !r.IsError || string(r.StructuredContent) != failure || len(r.Content) != 1 || r.Content[0].Text != failure {
+		for name, c := range map[string]struct {
+			got     result
+			failure string
+		}{
+			// The failure's structured content and its text are the service layer's, and the mediator's
+			// says only that the call failed (ADR-0086's R10).
+			"fail":                    {fail, `{"error":{"origin":"mediator","message":"the operation failed inside the mediator; get_system_status reports the account's operational state"}}`},
+			"echo without an account": {noAccount, `{"error":{"origin":"client","message":"the operation needs account_id, and the call carries none"}}`},
+		} {
+			r := c.got
+			if !r.IsError || string(r.StructuredContent) != c.failure || len(r.Content) != 1 || r.Content[0].Text != c.failure {
 				t.Errorf("%s at %s returned isError %v, structured content %s and %+v", name, e.name, r.IsError, r.StructuredContent, r.Content)
 			}
 		}
 		// A refused argument is a tool error carrying the refusal's message, as the API root's body does.
-		refused := `{"error":"since must be an ISO 8601 timestamp in UTC ending in Z"}`
+		refused := `{"error":{"origin":"client","message":"since must be an ISO 8601 timestamp in UTC ending in Z"}}`
 		if !refuse.IsError || string(refuse.StructuredContent) != refused || len(refuse.Content) != 1 || refuse.Content[0].Text != refused {
 			t.Errorf("refuse at %s returned isError %v, structured content %s and %+v", e.name, refuse.IsError, refuse.StructuredContent, refuse.Content)
 		}
@@ -418,8 +425,8 @@ func TestAServedToolTakesOnlyTheArgumentsItDeclares(t *testing.T) {
 	h := mcp.Handler(reg, "test")
 	for _, e := range []era{legacy, modern} {
 		for args, want := range map[string]string{
-			`{"account_id":"acct-a","SINCE":"2026-07-21T20:00:00Z"}`: `{"error":"the arguments name one the operation does not take"}`,
-			`{"account_id":"acct-a","since":null}`:                   `{"error":"since may not be null"}`,
+			`{"account_id":"acct-a","SINCE":"2026-07-21T20:00:00Z"}`: `{"error":{"origin":"client","message":"the arguments name one the operation does not take"}}`,
+			`{"account_id":"acct-a","since":null}`:                   `{"error":{"origin":"client","message":"since may not be null"}}`,
 		} {
 			var params map[string]any
 			if err := json.Unmarshal([]byte(`{"name":"list_masking_events","arguments":`+args+`}`), &params); err != nil {
