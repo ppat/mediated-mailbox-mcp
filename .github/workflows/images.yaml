@@ -51,7 +51,7 @@ jobs:
         persist-credentials: false
 
     - name: Build the image
-      uses: ppat/homelab-ops-actions/actions/build-docker-image@2045fb6e6cb00ab099280625b6989cf62ccc1b77 # v2.7.0
+      uses: ppat/homelab-ops-actions/actions/build-docker-image@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
       with:
         image_context_path: .
         dockerfile: ${{ matrix.image }}/Dockerfile
