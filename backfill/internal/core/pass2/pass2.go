@@ -4,9 +4,11 @@
 // Begin decides how a run starts, and only once the first pass has ended for the account. Delisted
 // decides which sender domains of the messages stored as restricted or skipped as restricted the
 // policy in force no longer restricts, the delisting transition's comparison (ADR-0037). Gate decides whether one message's body is
-// scanned, from its own inputs and its sender's current ones (ADR-0093, ADR-0094). Scan decides what a
-// scanned body records. OnFailure decides what a run does after an attempt at a body fails. Advance
-// moves the checkpoint past a page once the page is durable, and Restart starts the pass over.
+// scanned, from its own inputs and its sender's current ones (ADR-0093, ADR-0094). Overturned decides
+// which stored gate skips a backfill run returns to pending, those the gate no longer decides as the
+// same skip (ADR-0098). Scan decides what a scanned body records. OnFailure decides what a run does
+// after an attempt at a body fails. Advance moves the checkpoint past a page once the page is durable,
+// and Restart starts the pass over.
 //
 // A checkpoint is the number of pages made durable and the identifier of the last message they read.
 // Pages are read in the order of the messages' identifiers, so a message left waiting is read once
@@ -53,8 +55,8 @@ type Progress struct {
 // Begin decides how a run of the pass starts. Until the first pass has ended for the account the run
 // is skipped, since the gate reads the statistics the first pass builds and the subjects it masks
 // (ADR-0017). After that it starts as the first pass's runs do. It is never found due again by itself,
-// since what a change of scanner makes stale for it, a backfill run's Reopen records before the first
-// pass (ADR-0096).
+// since what a change of scanner makes stale for it, and the gate skips the gate no longer decides as
+// the same skip, a backfill run's Reopen records before the first pass (ADR-0096, ADR-0098).
 func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Progress] {
 	if !firstEnded {
 		return pass1.Start[Progress]{Skip: true}
@@ -95,7 +97,8 @@ func Delisted(p policy.Composed, l classify.Lookups, restricted []string) []stri
 	return out
 }
 
-// Message is one message waiting for a scan, as the page read returns it.
+// Message is one message waiting for a scan, as the page read returns it, or one the gate skipped, as
+// the read of the stored gate skips returns it.
 type Message struct {
 	ID string
 	// From is the sender's address, and Domain its domain as the index stores it.
@@ -129,6 +132,22 @@ func Gate(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.Uni
 		SenderVolume:  m.SenderVolume,
 		PriorHits:     m.SenderHits + pageHits,
 	})
+}
+
+// Overturned returns the identifiers of the stored gate skips among skips that the gate, deciding each
+// again, no longer decides as the same skip, in the order given (ADR-0098). It decides as Gate does,
+// with the sender's class under the account policy p, the thresholds c and the message's age measured
+// at now. A skip stands only while the gate decides it again as high_volume_no_hits, so a message the
+// gate would now scan, one under thresholds that cannot decide and one whose sender p now restricts
+// are all overturned.
+func Overturned(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.UnixMilli, skips []Message) []string {
+	var out []string
+	for _, m := range skips {
+		if Gate(p, l, c, now, m, 0).Reason() != scangate.HighVolumeNoHits {
+			out = append(out, m.ID)
+		}
+	}
+	return out
 }
 
 // Scanned is what a scanned body records, its content flags, the identifiers of the content rules

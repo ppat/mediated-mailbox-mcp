@@ -572,7 +572,7 @@ func TestAStoppedSecondPassKeepsItsRecordAndStartsOver(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if marked == 0 {
+	if marked.Verdicts == 0 {
 		t.Fatalf("the run-start step returned no verdict to pending")
 	}
 	if diff := cmp.Diff(before, readRun(t, conn, stopped), compare.Options); diff != "" {

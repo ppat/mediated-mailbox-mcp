@@ -39,7 +39,9 @@ func drawSetup(t *rapid.T) setup {
 // the process, so the next run reopens the pass or returns the verdicts made under the earlier scanner
 // to pending and starts over, or, with its argument 1, changes it back to the scanner before the last
 // change, so a pass resumed under a scanner it already ran under still reads what the change returned
-// to pending (ADR-0096).
+// to pending (ADR-0096). A widen raises the gate's high-volume mark above any sender's volume and stops
+// the process, as a release changing the thresholds does, so the next run returns every gate skip to
+// pending and the pass scans it (ADR-0098).
 func target() crash.Target[setup, *world] {
 	return crash.Target[setup, *world]{
 		Setup: drawSetup,
@@ -52,6 +54,7 @@ func target() crash.Target[setup, *world] {
 				Apply: func(_ rapid.TB, w *world, n int) { w.throttle = n },
 			},
 			"delist": {Apply: func(_ rapid.TB, w *world, _ int) { w.delisted = true }},
+			"widen":  {Apply: func(_ rapid.TB, w *world, _ int) { w.widen() }},
 			"rescan": {
 				Arg: rapid.IntRange(0, 1),
 				Apply: func(t rapid.TB, w *world, revert int) {
@@ -81,8 +84,9 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // next run resumes from exactly the checkpoint last reported, or starts over when its delisting
 // transition returned messages to pending scan. Every sequence then ends the pass with no restricted
 // sender's body fetched, every message decided and recorded once under the scanner in force, each
-// sender's prior hits counted once, and no more than a page of bodies fetched again for each crash and
-// the mailbox for each change of scanner (ADR-0017, ADR-0037, ADR-0045, ADR-0096).
+// sender's prior hits counted once, no message left skipped by the gate once its thresholds were
+// widened past every sender's volume, and no more than a page of bodies fetched again for each crash
+// and the mailbox for each change of scanner (ADR-0017, ADR-0037, ADR-0045, ADR-0096, ADR-0098).
 func TestAKilledSecondPassResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
 }
@@ -98,6 +102,7 @@ func TestTheSecondPassCrashSequencesReachEveryKind(t *testing.T) {
 		"a run stopped on a throttled body":              0.001,
 		"a change of scanner after a body was scanned":   0.001,
 		"a change of scanner reverted":                   0.001,
+		"a change of thresholds after a page":            0.001,
 	}
 	for name, draw := range crash.Draws(target(), config) {
 		t.Run(name, func(t *testing.T) {
@@ -118,7 +123,7 @@ func kind(c crash.Case[setup]) string {
 		}
 	}
 	pages, pending := 0, 0
-	delistPending, rescanned, reverted := false, false, false
+	delistPending, rescanned, reverted, widened := false, false, false, false
 	changes := 0
 	inside, afterPage, afterCommitted, delistRecovered, stoppedOnThrottle := false, false, false, false, false
 	for _, op := range c.Ops {
@@ -146,6 +151,10 @@ func kind(c crash.Case[setup]) string {
 			pending = op.Arg
 		case "delist":
 			delistPending = true
+		case "widen":
+			if pages > 0 {
+				widened = true
+			}
 		case "rescan":
 			switch {
 			case op.Arg == 1 && changes > 0:
@@ -174,6 +183,8 @@ func kind(c crash.Case[setup]) string {
 		return "a crash between steps after a page was durable"
 	case inside:
 		return "a crash inside a page"
+	case widened:
+		return "a change of thresholds after a page"
 	default:
 		return "another sequence"
 	}

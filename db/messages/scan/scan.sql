@@ -98,3 +98,31 @@ RETURNING from_domain;
 UPDATE messages
 SET scan_state = 'pending'
 WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_masked;
+
+-- name: GateSkips :many
+-- The account's messages the scan gate skipped, in the order of their identifiers, each with what the
+-- gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
+-- them, so a backfill run decides each skip again under the gate it holds (ADR-0098). A message with no
+-- sender statistics reads a volume and hits of zero.
+SELECT
+    m.message_id,
+    m.from_email,
+    m.from_domain,
+    m.subject_masked,
+    m.sent_at,
+    (m.list_id IS NOT NULL)::boolean AS has_list_id,
+    coalesce(m.size_bytes, 0)::bigint AS size_bytes,
+    coalesce(s.message_count, 0)::bigint AS sender_volume,
+    coalesce(s.scan_hit_count, 0)::bigint AS sender_hits
+FROM messages AS m
+LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
+WHERE m.account_id = @account_id AND m.scan_state = 'skipped_gate'
+ORDER BY m.message_id;
+
+-- name: RequeueGateSkips :execrows
+-- Returns to pending scan each of the given messages the scan gate skipped, the skips the gate no
+-- longer decides as the same skip (ADR-0098). A message no longer skipped by the gate is left as it is
+-- and counts no row.
+UPDATE messages
+SET scan_state = 'pending'
+WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND message_id = any(@message_ids::text[]);

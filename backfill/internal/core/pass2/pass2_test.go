@@ -185,6 +185,44 @@ func TestGate(t *testing.T) {
 	}
 }
 
+// A stored gate skip stands only while the gate, deciding it again under the thresholds given, decides
+// it as the same skip. A skip the gate would now scan, every skip under thresholds that cannot decide
+// and a skip whose sender the policy now restricts are overturned (ADR-0098, ADR-0093).
+func TestOverturned(t *testing.T) {
+	skip := func(id string, volume int64) pass2.Message {
+		m := skipped()
+		m.ID, m.SenderVolume = id, volume
+		return m
+	}
+	hit, masked, bank := skip("c", 10), skip("d", 10), skip("e", 30)
+	hit.SenderHits = 1
+	masked.SubjectMasked = true
+	bank.From, bank.Domain = "news@bank.example", "bank.example"
+	skips := []pass2.Message{skip("a", 10), skip("b", 30), hit, masked, bank}
+	widened := thresholds
+	widened.HighVolume = 20
+	cases := []struct {
+		name       string
+		policy     policy.Composed
+		thresholds scangate.Config
+		skips      []pass2.Message
+		want       []string
+	}{
+		{"the thresholds the skips were made under", listing(t), thresholds, skips, []string{"c", "d"}},
+		{"a widened high-volume mark", listing(t), widened, skips, []string{"a", "c", "d"}},
+		{"thresholds that cannot decide", listing(t), scangate.Config{}, skips, []string{"a", "b", "c", "d", "e"}},
+		{"a sender the policy now lists", listing(t, "bank.example"), thresholds, skips, []string{"c", "d", "e"}},
+		{"no skips", listing(t), thresholds, nil, nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if diff := cmp.Diff(c.want, pass2.Overturned(c.policy, lookups, c.thresholds, now, c.skips), compare.Options); diff != "" {
+				t.Errorf("Overturned (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 // A scanned body records a flag found in either part, the content rules that fired in either, each
 // once and sorted, and the scanner's version and revision. A scanner nobody built flags the body
 // (ADR-0009, ADR-0017).

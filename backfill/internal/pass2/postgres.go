@@ -170,10 +170,10 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 }
 
 // Reopen implements Store.
-func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.Stamp) (int, error) {
-	marked := 0
+func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.Stamp, overturned func([]core.Message) []string) (Reopened, error) {
+	var marked Reopened
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		marked = 0
+		marked = Reopened{}
 		domains, err := scan.New(t).RequeueStaleVerdicts(ctx, scan.RequeueStaleVerdictsParams{
 			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
 		})
@@ -190,14 +190,18 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
 				return fmt.Errorf("counting the prior hits of the sender at %q again changed %d rows, want 1", d, n)
 			}
 		}
+		skips, err := requeueOverturned(ctx, scan.New(t), account, overturned)
+		if err != nil {
+			return err
+		}
 		stale, err := ingest.New(t).StaleSubject(ctx, ingest.StaleSubjectParams{
 			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
 		})
 		if err != nil {
 			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
 		}
-		marked = len(domains)
-		if marked == 0 && !stale {
+		marked = Reopened{Verdicts: len(domains), Skips: skips}
+		if marked.Verdicts == 0 && marked.Skips == 0 && !stale {
 			return nil
 		}
 		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
@@ -206,6 +210,35 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
 		return nil
 	})
 	return marked, err
+}
+
+// requeueOverturned reads every message the gate skipped with its gate inputs, read as Pending reads
+// them, and returns to pending scan each one overturned names (ADR-0098). It returns how many it
+// returned.
+func requeueOverturned(ctx context.Context, q *scan.Queries, account string, overturned func([]core.Message) []string) (int, error) {
+	rows, err := q.GateSkips(ctx, account)
+	if err != nil {
+		return 0, fmt.Errorf("reading the messages the gate skipped: %w", err)
+	}
+	skips := make([]core.Message, 0, len(rows))
+	for _, r := range rows {
+		skips = append(skips, core.Message{
+			ID: r.MessageID, From: r.FromEmail, Domain: r.FromDomain, SubjectMasked: r.SubjectMasked, ListID: r.HasListID,
+			SizeBytes: r.SizeBytes, SentAt: mail.UnixMilli(r.SentAt.Time.UnixMilli()), SenderVolume: r.SenderVolume, SenderHits: r.SenderHits,
+		})
+	}
+	ids := overturned(skips)
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	n, err := q.RequeueGateSkips(ctx, scan.RequeueGateSkipsParams{AccountID: account, MessageIds: ids})
+	if err != nil {
+		return 0, fmt.Errorf("returning the overturned gate skips to pending scan: %w", err)
+	}
+	if n != int64(len(ids)) {
+		return 0, fmt.Errorf("returning %d overturned gate skips to pending scan changed %d rows", len(ids), n)
+	}
+	return len(ids), nil
 }
 
 // RequeueSkips implements Store.

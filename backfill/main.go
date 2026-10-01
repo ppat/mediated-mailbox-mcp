@@ -316,9 +316,9 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt 
 }
 
 // firstPass returns the unit of work that runs backfill's two passes over every served account in
-// turn (ADR-0017), returning the verdicts another scanner made to pending before the first
-// (ADR-0096), spending from each account's rate budget under the target its state row sets
-// (ADR-0024). The second pass runs for an account once its first has ended. Every page of either pass
+// turn (ADR-0017), returning the verdicts another scanner made and the gate skips the gate no longer
+// decides as the same skip to pending before the first (ADR-0096, ADR-0098), spending from each
+// account's rate budget under the target its state row sets (ADR-0024). The second pass runs for an account once its first has ended. Every page of either pass
 // is one unit of work, so the account's token is handed over after each. An account whose pass fails
 // leaves the others to run, and the run ends in an error naming it.
 func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Registerer, logger *slog.Logger) (unitOfWork, error) {
@@ -375,8 +375,9 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 }
 
 // backfillAccount runs backfill over one account. It first returns the verdicts made under another
-// scanner to pending, so they are denied whatever the first pass does, then runs the first pass, and
-// the second once the first has ended (ADR-0096, ADR-0017).
+// scanner and the gate skips the gate no longer decides as the same skip to pending, so they are
+// denied whatever the first pass does, then runs the first pass, and the second once the first has
+// ended (ADR-0096, ADR-0098, ADR-0017).
 func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, metrics *pass1.Metrics, secondMetrics *pass2.Metrics,
 	handOver func(context.Context, string) error, logger *slog.Logger,
 ) error {
@@ -390,16 +391,20 @@ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, a
 }
 
 // reopen returns to pending every verdict of the account made under another scanner than the one the
-// run scans with, before the first pass, so it is denied from the start of the run that sees it
-// whatever the first pass does, and reopens the second pass when it did or the first pass is due again
-// (ADR-0096).
+// run scans with, and every stored gate skip the gate under the run's thresholds no longer decides as
+// the same skip, before the first pass, so each is denied from the start of the run that sees it
+// whatever the first pass does, and reopens the second pass when it returned either or the first pass
+// is due again (ADR-0096, ADR-0098).
 func reopen(ctx context.Context, deps pass2.Deps, account string, logger *slog.Logger) error {
-	n, err := pass2.Reopen(ctx, deps, account)
+	r, err := pass2.Reopen(ctx, deps, account)
 	if err != nil {
 		return err
 	}
-	if n > 0 {
-		logger.Info("verdicts made under another scanner returned to pending", "account", account, "messages", n)
+	if r.Verdicts > 0 {
+		logger.Info("verdicts made under another scanner returned to pending", "account", account, "messages", r.Verdicts)
+	}
+	if r.Skips > 0 {
+		logger.Info("gate skips the gate no longer decides as the same skip returned to pending", "account", account, "messages", r.Skips)
 	}
 	return nil
 }

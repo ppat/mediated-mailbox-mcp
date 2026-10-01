@@ -12,6 +12,11 @@ type Querier interface {
 	// How many of the account's messages wait for their content scan, the scan backlog depth a scanning
 	// workload emits as a metric (ADR-0093).
 	Backlog(ctx context.Context, accountID string) (int64, error)
+	// The account's messages the scan gate skipped, in the order of their identifiers, each with what the
+	// gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
+	// them, so a backfill run decides each skip again under the gate it holds (ADR-0098). A message with no
+	// sender statistics reads a volume and hits of zero.
+	GateSkips(ctx context.Context, accountID string) ([]GateSkipsRow, error)
 	// The delisting transition for one domain the policy in force no longer restricts. Its messages stored
 	// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
 	// pending scan (ADR-0037, ADR-0016).
@@ -29,6 +34,10 @@ type Querier interface {
 	// that fired, the scanner version and the configuration's revision (ADR-0009). The rules are the
 	// content rules alone. A message no longer waiting is left as it is and counts no row.
 	RecordVerdict(ctx context.Context, arg RecordVerdictParams) (int64, error)
+	// Returns to pending scan each of the given messages the scan gate skipped, the skips the gate no
+	// longer decides as the same skip (ADR-0098). A message no longer skipped by the gate is left as it is
+	// and counts no row.
+	RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsParams) (int64, error)
 	// Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
 	// since the gate decided without that signal (ADR-0096, ADR-0093).
 	RequeueSignalledSkips(ctx context.Context, accountID string) (int64, error)
