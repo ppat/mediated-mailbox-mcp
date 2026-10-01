@@ -1,0 +1,18 @@
+control: A token request the provider refuses is reported as refused, one that gets no answer as failed, and a cancelled request or a held access token as no attempt
+removes: a refresh is never held as an attempt, so the source reports none
+packages: ./provider/gmail
+tests: TestARefreshThatGetsNoAnswerIsAFailedAttempt
+scheduled-count: no
+
+diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
+index 4e68dc3..89b46fd 100644
+--- a/provider/gmail/tokensource.go
++++ b/provider/gmail/tokensource.go
+@@ -81,7 +81,6 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
+ 	if err == nil {
+ 		err = s.receive(body, now)
+ 	}
+-	s.attempted(ctx, now, err)
+ 	if err != nil {
+ 		return "", err
+ 	}

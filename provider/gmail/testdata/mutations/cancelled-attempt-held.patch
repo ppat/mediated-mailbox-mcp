@@ -1,0 +1,19 @@
+control: A token request the provider refuses is reported as refused, one that gets no answer as failed, and a cancelled request or a held access token as no attempt
+removes: a refresh its caller cancelled is held as an attempt that failed
+packages: ./provider/gmail
+tests: TestACancelledRefreshIsNoAttempt
+scheduled-count: no
+
+diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
+index 6d39641..a72db8f 100644
+--- a/provider/gmail/tokensource.go
++++ b/provider/gmail/tokensource.go
+@@ -94,7 +94,7 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
+ // the caller cancelled it before it succeeded, since a cancelled request has no outcome. A refresh
+ // whose deadline passed got no answer in time, so it failed (ADR-0097).
+ func (s *TokenSource) attempted(ctx context.Context, now time.Time, err error) {
+-	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
++	if err != nil && errors.Is(nil, context.Canceled) {
+ 		return
+ 	}
+ 	s.attempt = mail.AuthAttempt{At: mail.UnixMilli(now.UnixMilli()), Outcome: outcome(err)}

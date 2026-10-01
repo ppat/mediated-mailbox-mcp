@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 )
 
 // Scope is the one OAuth scope the grant requests (ADR-0011). It permits applying labels, which
@@ -160,15 +162,45 @@ func postForm(ctx context.Context, client *http.Client, form url.Values) ([]byte
 	if err := errors.Join(readErr, res.Body.Close()); err != nil {
 		return nil, fmt.Errorf("gmail: reading the token response: %w", err)
 	}
-	if res.StatusCode != http.StatusOK {
-		var e struct {
-			Error       string `json:"error"`
-			Description string `json:"error_description"`
-		}
-		if json.Unmarshal(body, &e) != nil {
-			return nil, fmt.Errorf("gmail: the token endpoint answered %s", res.Status)
-		}
-		return nil, fmt.Errorf("gmail: the token endpoint answered %s: %s %s", res.Status, e.Error, e.Description)
+	return answer(res.StatusCode, res.Status, body)
+}
+
+// answer returns the body of the token endpoint's answer when it succeeded. Any other answer is an
+// *answerError naming Google's error code and description, which carry no credential.
+func answer(code int, status string, body []byte) ([]byte, error) {
+	if code == http.StatusOK {
+		return body, nil
 	}
-	return body, nil
+	var e struct {
+		Error       string `json:"error"`
+		Description string `json:"error_description"`
+	}
+	if json.Unmarshal(body, &e) != nil {
+		return nil, &answerError{code: code, text: fmt.Sprintf("gmail: the token endpoint answered %s", status)}
+	}
+	return nil, &answerError{code: code, text: fmt.Sprintf("gmail: the token endpoint answered %s: %s %s", status, e.Error, e.Description)}
+}
+
+// answerError is an answer from the token endpoint other than success, carrying its status code.
+type answerError struct {
+	code int
+	text string
+}
+
+func (e *answerError) Error() string { return e.text }
+
+// outcome is the outcome of a refresh that ended with err (ADR-0097). An answer the token endpoint
+// gives an error response, a 400 or a 401 (RFC 6749 section 5.2), is a refusal. Anything else that
+// went wrong, a transport error, another status or a body that is not a token response, got no
+// answer the source could read as either, so it failed.
+func outcome(err error) mail.AuthOutcome {
+	var answered *answerError
+	switch {
+	case err == nil:
+		return mail.AuthSucceeded
+	case errors.As(err, &answered) && (answered.code == http.StatusBadRequest || answered.code == http.StatusUnauthorized):
+		return mail.AuthRefused
+	default:
+		return mail.AuthFailed
+	}
 }

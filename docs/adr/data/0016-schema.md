@@ -30,11 +30,12 @@ CREATE TABLE account_state (             -- everything else an account carries (
   backfill_pass2_restart  boolean NOT NULL DEFAULT false,  -- the next pass 2 run starts over (ADR-0096)
   sync_cursor       text,
   sync_cursor_at    timestamptz,           -- when sync_cursor was last written
-  last_auth_at      timestamptz,           -- last provider authentication attempt
-  last_auth_outcome text                   -- its outcome, exposed by ADR-0034
+  last_auth_at      timestamptz,           -- latest authentication attempt recorded (ADR-0097)
+  last_auth_outcome text                   -- succeeded | refused | failed, exposed by ADR-0034
 );
--- sync_cursor_at is written by delta sync, last_auth_* by the provider adapter on every
--- authentication attempt; an account's policy overlay is its rows in policy_rules
+-- sync_cursor_at is written by delta sync, last_auth_* by each provider-calling deployable from
+-- what its provider adapter reports, as ADR-0097 decides; an account's policy overlay is its rows
+-- in policy_rules
 
 CREATE TABLE oauth_clients (             -- an installation's OAuth client, for a provider that has one (ADR-0080, ADR-0083); statements in db/oauthclients
   provider          text PRIMARY KEY,

@@ -5,7 +5,8 @@
 // (ADR-0083). That is the one-time consent, which requests only the modify scope, and the token
 // source, built from the client and the refresh token the deployable opened from the database. The
 // source holds a rotated refresh token and hands it to the deployable, which writes it back to the
-// account's state row (ADR-0080, ADR-0082).
+// account's state row (ADR-0080, ADR-0082). It also holds its latest request to the token endpoint
+// with its outcome, which the deployable records there (ADR-0097).
 //
 // # How the adapter is built and what proves it
 //

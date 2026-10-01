@@ -1,6 +1,7 @@
 package gmail
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"testing"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -129,5 +131,79 @@ func TestTheRefreshRequest(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, src.refreshForm(), compare.Options); diff != "" {
 		t.Errorf("refresh request (-want +got):\n%s", diff)
+	}
+}
+
+// unreachable returns a client whose requests fail before they leave the machine, sent through a
+// proxy on a port nothing listens on. The failure is the real transport's, with no stand-in for
+// Google answering anything (ADR-0043).
+func unreachable() *http.Client {
+	return &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(&url.URL{Scheme: "http", Host: "127.0.0.1:9"})}}
+}
+
+// A refresh that gets no answer is an attempt that failed, held with the instant it started, so the
+// deployable records it as transient rather than as a refused credential (ADR-0097).
+func TestARefreshThatGetsNoAnswerIsAFailedAttempt(t *testing.T) {
+	src := NewTokenSource(unreachable(), Credentials{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "refresh-token"})
+	before := time.Now().UnixMilli()
+
+	if _, err := src.AccessToken(t.Context()); err == nil {
+		t.Fatal("a refresh through an unreachable proxy returned an access token")
+	}
+
+	after := time.Now().UnixMilli()
+	got := src.LastAttempt()
+	if got.Outcome != "failed" {
+		t.Errorf("the attempt's outcome is %q, want failed", got.Outcome)
+	}
+	if int64(got.At) < before || int64(got.At) > after {
+		t.Errorf("the attempt is held at %d, want an instant from %d to %d", got.At, before, after)
+	}
+}
+
+// A refresh its caller cancelled has no outcome, so the source holds no attempt for it (ADR-0097).
+func TestACancelledRefreshIsNoAttempt(t *testing.T) {
+	src := NewTokenSource(unreachable(), Credentials{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "refresh-token"})
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	if _, err := src.AccessToken(ctx); err == nil {
+		t.Fatal("a cancelled refresh returned an access token")
+	}
+
+	if got := src.LastAttempt(); got != (mail.AuthAttempt{}) {
+		t.Errorf("after a cancelled refresh the source holds the attempt %+v, want none", got)
+	}
+}
+
+// A refresh whose deadline passed before an answer arrived got no answer, so it is an attempt that
+// failed, not a cancellation (ADR-0097).
+func TestARefreshPastItsDeadlineIsAFailedAttempt(t *testing.T) {
+	src := NewTokenSource(unreachable(), Credentials{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "refresh-token"})
+	ctx, cancel := context.WithDeadline(t.Context(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	if _, err := src.AccessToken(ctx); err == nil {
+		t.Fatal("a refresh past its deadline returned an access token")
+	}
+
+	if got := src.LastAttempt().Outcome; got != "failed" {
+		t.Errorf("a refresh past its deadline is held as %q, want failed", got)
+	}
+}
+
+// Handing out an access token the source holds is not an attempt, so a source whose calls all run
+// on a held token reports none (ADR-0097).
+func TestAHeldAccessTokenIsNoAttempt(t *testing.T) {
+	src := NewTokenSource(unreachable(), Credentials{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "refresh-token"})
+	receive(t, src, plainResponse, time.Now())
+
+	token, err := src.AccessToken(t.Context())
+	if err != nil || token != "access" {
+		t.Fatalf("AccessToken returned %q, %v, want the held token", token, err)
+	}
+
+	if got := src.LastAttempt(); got != (mail.AuthAttempt{}) {
+		t.Errorf("handing out the held token left the attempt %+v, want none", got)
 	}
 }
