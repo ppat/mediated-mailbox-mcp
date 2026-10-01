@@ -239,15 +239,6 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err := served.reload(ctx); err != nil {
 		return err
 	}
-	return serve(ctx, c, served, metrics, logger)
-}
-
-// serve listens, reloads the account snapshot on its interval and serves the registry until ctx
-// ends.
-func serve(ctx context.Context, c Configuration, served *serving, metrics *prometheus.Registry, logger *slog.Logger) error {
-	registry := served.registry
-	var ready readiness.State
-
 	surfaceListener, err := net.Listen("tcp", c.Listen)
 	if err != nil {
 		return err
@@ -256,6 +247,16 @@ func serve(ctx context.Context, c Configuration, served *serving, metrics *prome
 	if err != nil {
 		return errors.Join(err, surfaceListener.Close())
 	}
+	return serve(ctx, c, surfaceListener, probeListener, served, metrics, logger)
+}
+
+// serve reloads the account snapshot on its interval and serves the registry on the two listeners
+// until ctx ends. It takes the listeners already open, so a caller that must know the addresses
+// holds them from before the start, and it closes both on every path.
+func serve(ctx context.Context, c Configuration, surfaceListener, probeListener net.Listener, served *serving, metrics *prometheus.Registry, logger *slog.Logger) error {
+	registry := served.registry
+	var ready readiness.State
+
 	surfaceHandler, err := surface(registry, c.TokenFile)
 	if err != nil {
 		return errors.Join(err, surfaceListener.Close(), probeListener.Close())

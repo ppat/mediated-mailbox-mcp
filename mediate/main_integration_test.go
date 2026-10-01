@@ -301,10 +301,13 @@ func TestTheMediatorReloadsOnItsInterval(t *testing.T) {
 	if err := os.WriteFile(token, []byte("s3cret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	c := Configuration{TLSAtIngress: true, Listen: "127.0.0.1:0", ProbeListen: "127.0.0.1:0", TokenFile: token, AccountReloadInterval: 20 * time.Millisecond}
+	c := Configuration{TLSAtIngress: true, TokenFile: token, AccountReloadInterval: 20 * time.Millisecond}
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, c, s, metrics, slog.New(slog.DiscardHandler)) }()
+	surfaceListener, probeListener := loopback(t), loopback(t)
+	go func() {
+		done <- serve(ctx, c, surfaceListener, probeListener, s, metrics, slog.New(slog.DiscardHandler))
+	}()
 	defer func() {
 		cancel()
 		if err := <-done; err != nil {

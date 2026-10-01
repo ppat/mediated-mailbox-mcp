@@ -730,31 +730,29 @@ func TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
 	}
 }
 
-// freeAddress returns a loopback address with a port nothing listens on when it returns.
-func freeAddress(t *testing.T) string {
+// loopback opens a loopback listener on a port the system picks and keeps it open, so a test learns
+// the address from the listener it hands the start and no other process can take the port in between.
+func loopback(t *testing.T) net.Listener {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	addr := ln.Addr().String()
-	if err := ln.Close(); err != nil {
-		t.Fatal(err)
-	}
-	return addr
+	return ln
 }
 
 // A start whose bearer token file holds no token fails, and the readiness probe never answers ready
 // while it runs (ADR-0051). The probe is polled for as long as the start runs.
 func TestAStartThatCannotServeFailsAndNeverReportsReady(t *testing.T) {
-	probe := freeAddress(t)
+	surfaceListener, probeListener := loopback(t), loopback(t)
+	probe := probeListener.Addr().String()
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	reg, _ := counted(t)
-	c := Configuration{TLSAtIngress: true, Listen: "127.0.0.1:0", ProbeListen: probe, TokenFile: tokenFile(t, "\n"), AccountReloadInterval: time.Hour}
+	c := Configuration{TLSAtIngress: true, TokenFile: tokenFile(t, "\n"), AccountReloadInterval: time.Hour}
 	done := make(chan error, 1)
 	go func() {
-		done <- serve(ctx, c, &serving{registry: reg, logger: discard()}, prometheus.NewRegistry(), discard())
+		done <- serve(ctx, c, surfaceListener, probeListener, &serving{registry: reg, logger: discard()}, prometheus.NewRegistry(), discard())
 	}()
 	client := &http.Client{Timeout: 200 * time.Millisecond}
 	sawReady := false
