@@ -622,7 +622,11 @@ func TestTheProbesServeTheRunsSeries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := firstPass(pool, s, registry, slog.New(slog.DiscardHandler)); err != nil {
+	connect, err := gmailPorts(registry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := firstPass(pool, s, registry, slog.New(slog.DiscardHandler), connect); err != nil {
 		t.Fatal(err)
 	}
 	if err := backfill(t.Context(), pool, ring, slog.New(slog.DiscardHandler), registry, idle); err != nil {

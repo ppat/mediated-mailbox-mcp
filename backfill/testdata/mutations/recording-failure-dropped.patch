@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 28d2276..308a7b6 100644
+index 67ad03c..ef43341 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -309,9 +309,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
+@@ -334,9 +334,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
  			AccountID:   account,
  		})
  	})

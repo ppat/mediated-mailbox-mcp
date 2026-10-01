@@ -1,0 +1,20 @@
+control: A credential the provider refuses is read again from the account's row before the refusal is reported, and a replaced one is used for the call it refused
+removes: an account whose row no longer holds a credential has the call made again with an empty one
+packages: ./backfill
+tests: TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 354c386..c49410d 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -266,7 +266,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		if stored == nil || string(stored) == sources[account].RefreshToken() {
++		if string(stored) == sources[account].RefreshToken() {
+ 			return nil, nil
+ 		}
+ 		c := creds[account]
