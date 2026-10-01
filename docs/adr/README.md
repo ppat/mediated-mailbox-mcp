@@ -153,6 +153,7 @@ moves it. Records themselves link freely and deep, into
 | 0089 | [A deployable writes a sealed value only if the stored bytes are still the ones it last knew](./operability/0089-sealed-values-written-by-compare-and-set.md) | Accepted |
 | 0090 | [A deployable takes its accounts and credentials as an account snapshot, loaded at start and reloaded on a schedule](./operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) | Accepted |
 | 0092 | [A key is replaced by delta sync re-sealing what it opens, and retires once a scan finds nothing left on it](./operability/0092-key-replacement-by-keyring-and-re-seal.md) | Accepted |
+| 0097 | [The adapter reports its latest authentication attempt, and the deployable records it at the end of each unit of work, the latest attempt winning](./operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md) | Accepted |
 
 ## Engineering — `engineering/`
 

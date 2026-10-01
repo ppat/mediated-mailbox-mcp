@@ -1,0 +1,21 @@
+control: The latest authentication attempt is recorded at the end of every unit of work, a failed one included, and a failed recording ends the pass in an error
+removes: the hand-over the run gives its unit of work records the attempt but drops a recording that fails
+packages: ./backfill
+tests: TestTheRunsHandOverReturnsAFailedRecording
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 28d2276..eb343dc 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -247,7 +247,8 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 		if source != nil {
+ 			attempt = source.LastAttempt()
+ 		}
+-		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
++		_ = recordAttempt(ctx, pool, account, attempt)
++		return handOver(ctx, loader, account, source)
+ 	}})
+ }
+ 

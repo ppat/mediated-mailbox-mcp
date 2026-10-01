@@ -72,6 +72,7 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 	if err := gmail.RequireAccount(granted, account); err != nil {
 		t.Fatalf("%v, the one GMAIL_TEST_ACCOUNT names, so the run adds nothing", err)
 	}
+	attemptsAgainstGoogle(t, client, creds, tokens)
 	g := &provider{client: client, tokens: tokens, pace: pace, labels: map[string]string{}}
 	run := runText(t)
 	t.Logf("the messages this run adds carry marks beginning mmfieldmarker-contract%s", run)
@@ -114,6 +115,28 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 		// Gmail counts the mailbox on its profile, so every enumeration page carries a total.
 		ReportsTotal: true,
 	})
+}
+
+// attemptsAgainstGoogle checks the outcomes the token source reports against Google's real token
+// endpoint (ADR-0097). The refresh that obtained the run's first access token succeeded. A refresh
+// with the installation's client and a refresh token Google never issued is answered with a
+// refusal, and touches nothing in the account.
+func attemptsAgainstGoogle(t *testing.T, client *http.Client, creds gmail.Credentials, tokens *gmail.TokenSource) {
+	t.Helper()
+	if got := tokens.LastAttempt().Outcome; got != mail.AuthSucceeded {
+		t.Errorf("the refresh that obtained an access token reports %q, want %q", got, mail.AuthSucceeded)
+	}
+	bogus := gmail.NewTokenSource(client, gmail.Credentials{
+		ClientID:     creds.ClientID,
+		ClientSecret: creds.ClientSecret,
+		RefreshToken: "1//mmfieldmarker-never-issued",
+	})
+	if _, err := bogus.AccessToken(t.Context()); err == nil {
+		t.Error("Google issued an access token for a refresh token it never issued")
+	}
+	if got := bogus.LastAttempt().Outcome; got != mail.AuthRefused {
+		t.Errorf("the refresh Google refused reports %q, want %q", got, mail.AuthRefused)
+	}
 }
 
 // environment returns the value of a variable the run needs.

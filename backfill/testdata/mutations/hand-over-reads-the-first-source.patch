@@ -6,16 +6,22 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
+index 28d2276..c61ff7f 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -230,8 +230,9 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+@@ -241,13 +241,14 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
  	for account, c := range credentials(snapshot, logger) {
  		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
  	}
 +	first := maps.Clone(sources)
  	return work(ctx, served{sources: sources, policy: policies.Snapshot(), handOver: func(ctx context.Context, account string) error {
--		return handOver(ctx, loader, account, sources[account])
-+		return handOver(ctx, loader, account, first[account])
+ 		source := sources[account]
+ 		var attempt mail.AuthAttempt
+ 		if source != nil {
+ 			attempt = source.LastAttempt()
+ 		}
+-		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
++		return errors.Join(handOver(ctx, loader, account, first[account]), recordAttempt(ctx, pool, account, attempt))
  	}})
  }
  

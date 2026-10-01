@@ -1,6 +1,8 @@
 package gmail
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -129,5 +131,57 @@ func TestGrantFrom(t *testing.T) {
 				t.Errorf("grantFrom accepted %s as %+v", name, got)
 			}
 		})
+	}
+}
+
+// The outcome of a refresh, from the token endpoint's answers as Google documents them and the
+// failures that get no answer. An error response, a 400 or a 401, is a refusal, and everything else
+// that goes wrong failed (ADR-0097, RFC 6749 section 5.2).
+func TestARefreshsOutcome(t *testing.T) {
+	_, unusable := parseTokenResponse([]byte(`{"expires_in": 3599}`))
+	answered := func(code int, status, body string) error {
+		_, err := answer(code, status, []byte(body))
+		return err
+	}
+	for name, c := range map[string]struct {
+		err  error
+		want string
+	}{
+		"success":                   {nil, "succeeded"},
+		"revoked grant":             {answered(400, "400 Bad Request", `{"error": "invalid_grant", "error_description": "Token has been expired or revoked."}`), "refused"},
+		"unknown client":            {answered(401, "401 Unauthorized", `{"error": "invalid_client", "error_description": "The OAuth client was not found."}`), "refused"},
+		"refusal without its body":  {answered(400, "400 Bad Request", `<html></html>`), "refused"},
+		"server error":              {answered(500, "500 Internal Server Error", `{"error": "internal_failure"}`), "failed"},
+		"unavailable":               {answered(503, "503 Service Unavailable", ``), "failed"},
+		"too many requests":         {answered(429, "429 Too Many Requests", `{"error": "rate_limit_exceeded"}`), "failed"},
+		"forbidden":                 {answered(403, "403 Forbidden", ``), "failed"},
+		"a success it cannot read":  {unusable, "failed"},
+		"no answer":                 {errors.New("dial tcp 127.0.0.1:9: connect: connection refused"), "failed"},
+		"a refusal wrapped further": {fmt.Errorf("refreshing: %w", answered(400, "400 Bad Request", `{"error": "invalid_grant"}`)), "refused"},
+	} {
+		if got := outcome(c.err); string(got) != c.want {
+			t.Errorf("%s: the outcome is %q, want %q", name, got, c.want)
+		}
+	}
+}
+
+// A successful answer hands its body on, and any other names the status and Google's error, as the
+// code exchange and the refresh both report it.
+func TestTheTokenEndpointsAnswer(t *testing.T) {
+	body, err := answer(200, "200 OK", []byte(`{"access_token": "access"}`))
+	if err != nil || string(body) != `{"access_token": "access"}` {
+		t.Errorf("a success returned %q, %v", body, err)
+	}
+	for _, c := range []struct {
+		code         int
+		status, body string
+		want         string
+	}{
+		{400, "400 Bad Request", `{"error": "invalid_grant", "error_description": "Bad Request"}`, "gmail: the token endpoint answered 400 Bad Request: invalid_grant Bad Request"},
+		{502, "502 Bad Gateway", `<html></html>`, "gmail: the token endpoint answered 502 Bad Gateway"},
+	} {
+		if _, err := answer(c.code, c.status, []byte(c.body)); err == nil || err.Error() != c.want {
+			t.Errorf("answer %d returned %v, want %q", c.code, err, c.want)
+		}
 	}
 }

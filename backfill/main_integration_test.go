@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -34,6 +35,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
+	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
@@ -685,5 +688,203 @@ func TestAFailedPageIsStillHandedOver(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{"personal"}, handedOver, compare.Options); diff != "" {
 		t.Errorf("the hand-overs after the failed page (-want +got):\n%s", diff)
+	}
+}
+
+// unreachable returns a client whose requests fail before they leave the machine, sent through a
+// proxy on a port nothing listens on, so a token source refreshing through it makes a real attempt
+// that gets no answer, with no stand-in for Google's endpoint (ADR-0043).
+func unreachable() *http.Client {
+	return &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(&url.URL{Scheme: "http", Host: "127.0.0.1:9"})}}
+}
+
+// attempted returns a token source holding a failed authentication attempt, made through
+// unreachable.
+func attempted(t *testing.T) *gmail.TokenSource {
+	t.Helper()
+	source := gmail.NewTokenSource(unreachable(), gmail.Credentials{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "refresh-token"})
+	if _, err := source.AccessToken(t.Context()); err == nil {
+		t.Fatal("a refresh through an unreachable proxy returned an access token")
+	}
+	if source.LastAttempt().Outcome != mail.AuthFailed {
+		t.Fatalf("the source holds %+v, want a failed attempt", source.LastAttempt())
+	}
+	return source
+}
+
+// lastAuthentication reads the account's last authentication through the statement the system
+// status operation reads it with, as backfill's role (ADR-0034).
+func lastAuthentication(t *testing.T, pool *pgxpool.Pool, account string) (*time.Time, *string) {
+	t.Helper()
+	var at *time.Time
+	var outcome *string
+	err := tx.Run(t.Context(), pool, account, func(q pgx.Tx) error {
+		progress, err := accountstate.New(q).AccountProgress(t.Context(), account)
+		if err != nil {
+			return err
+		}
+		if progress.LastAuthAt.Valid {
+			at = &progress.LastAuthAt.Time
+		}
+		if progress.LastAuthOutcome.Valid {
+			outcome = &progress.LastAuthOutcome.String
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return at, outcome
+}
+
+// D3's part of VERIFICATIONS' row for failing a unit of work after an authentication attempt. The
+// hand-over the run gives its unit of work records each account's source's latest attempt, a unit
+// that failed included, and the statement the system status reads returns it. An account whose
+// source made no attempt records nothing (ADR-0097, ADR-0034).
+func TestARunRecordsEachAccountsAttemptWhenItsUnitEnds(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	ring, public := keys(t)
+	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
+	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
+	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
+		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	failed := errors.New("the unit of work failed")
+	var attempt mail.AuthAttempt
+	work := func(ctx context.Context, s served) error {
+		s.sources["personal"] = attempted(t)
+		attempt = s.sources["personal"].LastAttempt()
+		for _, account := range []string{"personal", "work"} {
+			if err := s.handOver(ctx, account); err != nil {
+				return err
+			}
+		}
+		return failed
+	}
+	pool := backfillPool(t)
+
+	err := backfill(t.Context(), pool, ring, slog.New(slog.DiscardHandler), prometheus.NewRegistry(), work)
+
+	if !errors.Is(err, failed) {
+		t.Errorf("backfill returned %v, want the unit of work's failure", err)
+	}
+	at, outcome := lastAuthentication(t, pool, "personal")
+	if at == nil || outcome == nil || !at.Equal(time.UnixMilli(int64(attempt.At))) || *outcome != "failed" {
+		t.Errorf("the personal account's last authentication reads %v %v, want failed at %d", at, outcome, attempt.At)
+	}
+	if at, outcome := lastAuthentication(t, pool, "work"); at != nil || outcome != nil {
+		t.Errorf("the work account, whose source made no attempt, reads %v %v, want nothing recorded", at, outcome)
+	}
+}
+
+// The recorded attempt is the latest one. An attempt older than the one the row holds changes
+// nothing, and one later than it, or than a row that holds none, replaces it, so a deployable whose
+// unit of work ended late never puts an older outcome back (ADR-0097).
+func TestOnlyALaterAttemptIsRecorded(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	for _, id := range []string{"later-stored", "earlier-stored", "none-stored"} {
+		account(t, conn, id, gmailProvider, nil, false)
+	}
+	source := attempted(t)
+	made := time.UnixMilli(int64(source.LastAttempt().At)).UTC()
+	must(t, conn, "UPDATE account_state SET last_auth_at = $1, last_auth_outcome = 'succeeded' WHERE account_id = 'later-stored'", made.Add(time.Millisecond))
+	must(t, conn, "UPDATE account_state SET last_auth_at = $1, last_auth_outcome = 'refused' WHERE account_id = 'earlier-stored'", made.Add(-time.Millisecond))
+	pool := backfillPool(t)
+
+	for _, id := range []string{"later-stored", "earlier-stored", "none-stored"} {
+		if err := recordAttempt(t.Context(), pool, id, source.LastAttempt()); err != nil {
+			t.Fatalf("recording for %s: %v", id, err)
+		}
+	}
+
+	got := map[string]string{}
+	for _, id := range []string{"later-stored", "earlier-stored", "none-stored"} {
+		at, outcome := lastAuthentication(t, pool, id)
+		if at == nil || outcome == nil {
+			t.Fatalf("%s holds no attempt", id)
+		}
+		got[id] = fmt.Sprintf("%s at %+dms", *outcome, at.Sub(made).Milliseconds())
+	}
+	want := map[string]string{"later-stored": "succeeded at +1ms", "earlier-stored": "failed at +0ms", "none-stored": "failed at +0ms"}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("the recorded attempts (-want +got):\n%s", diff)
+	}
+}
+
+// Each outcome is recorded as the adapter reported it, with the instant the attempt started, and
+// the statement the system status reads returns both, so an account Google refused never reads as
+// one whose attempt failed (ADR-0097, ADR-0034).
+func TestEachOutcomeIsRecordedAsReported(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	reported := map[string]mail.AuthAttempt{
+		"succeeded": {At: 1_790_000_000_001, Outcome: mail.AuthSucceeded},
+		"refused":   {At: 1_790_000_000_002, Outcome: mail.AuthRefused},
+		"failed":    {At: 1_790_000_000_003, Outcome: mail.AuthFailed},
+	}
+	for id := range reported {
+		account(t, conn, id, gmailProvider, nil, false)
+	}
+	pool := backfillPool(t)
+
+	for id, attempt := range reported {
+		if err := recordAttempt(t.Context(), pool, id, attempt); err != nil {
+			t.Fatalf("recording for %s: %v", id, err)
+		}
+	}
+
+	got := map[string]string{}
+	for id := range reported {
+		at, outcome := lastAuthentication(t, pool, id)
+		if at == nil || outcome == nil {
+			t.Fatalf("%s holds no attempt", id)
+		}
+		got[id] = fmt.Sprintf("%s at %d", *outcome, at.UnixMilli())
+	}
+	want := map[string]string{
+		"succeeded": "succeeded at 1790000000001",
+		"refused":   "refused at 1790000000002",
+		"failed":    "failed at 1790000000003",
+	}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("the recorded attempts (-want +got):\n%s", diff)
+	}
+}
+
+// A recording that fails is returned naming the account, so the pass ends in an error, and the next
+// unit of work records the attempt again (ADR-0097).
+func TestAFailedRecordingIsReturned(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	account(t, conn, "personal", gmailProvider, nil, false)
+	revoke(t, conn, "UPDATE (last_auth_at, last_auth_outcome) ON account_state")
+
+	err := recordAttempt(t.Context(), backfillPool(t), "personal", attempted(t).LastAttempt())
+
+	if err == nil || !strings.Contains(err.Error(), "account personal: recording the last authentication attempt") {
+		t.Errorf("recordAttempt returned %v, want the failed recording", err)
+	}
+}
+
+// The hand-over the run gives its unit of work returns a recording that fails, so the unit of work,
+// which joins the hand-overs that fail into the error its pass ends in, ends in it too (ADR-0097).
+func TestTheRunsHandOverReturnsAFailedRecording(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	ring, public := keys(t)
+	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
+	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
+		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	revoke(t, conn, "UPDATE (last_auth_at, last_auth_outcome) ON account_state")
+	work := func(ctx context.Context, s served) error {
+		s.sources["personal"] = attempted(t)
+		return s.handOver(ctx, "personal")
+	}
+
+	err := backfill(t.Context(), backfillPool(t), ring, slog.New(slog.DiscardHandler), prometheus.NewRegistry(), work)
+
+	if err == nil || !strings.Contains(err.Error(), "account personal: recording the last authentication attempt") {
+		t.Errorf("backfill returned %v, want the failed recording", err)
 	}
 }

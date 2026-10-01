@@ -5,10 +5,10 @@ tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver TestARefreshThatDoesNotRo
 scheduled-count: no
 
 diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
-index 5dddcab..7ba2467 100644
+index 4e68dc3..d0bfe9b 100644
 --- a/provider/gmail/tokensource.go
 +++ b/provider/gmail/tokensource.go
-@@ -46,7 +46,7 @@ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
+@@ -51,7 +51,7 @@ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
  func (s *TokenSource) RefreshToken() string {
  	s.mu.Lock()
  	defer s.mu.Unlock()
@@ -16,4 +16,4 @@ index 5dddcab..7ba2467 100644
 +	return s.access
  }
  
- // AccessToken returns an access token valid for at least expiryMargin, refreshing it when needed.
+ // LastAttempt returns the source's latest request to the token endpoint and its outcome, or the

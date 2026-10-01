@@ -2,10 +2,13 @@ package gmail
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 )
 
 // expiryMargin is how long before an access token's stated expiry it is refreshed, so a request
@@ -24,15 +27,18 @@ type Credentials struct {
 // TokenSource hands out access tokens for one account, refreshing them from the refresh token.
 //
 // When Google rotates the refresh token, the source holds the new one and uses it from then on.
-// It writes nothing. The deployable reads the refresh token the source holds at the end of each
-// unit of work and writes a rotated one back to the account's state row (ADR-0082, ADR-0089).
+// It also holds its latest request to the token endpoint and that request's outcome. It writes
+// nothing. The deployable reads the refresh token and the latest attempt the source holds at the
+// end of each unit of work, writes a rotated token back to the account's state row and records
+// the attempt there (ADR-0082, ADR-0089, ADR-0097).
 type TokenSource struct {
 	client *http.Client
 
-	mu     sync.Mutex
-	creds  Credentials
-	access string
-	expiry time.Time
+	mu      sync.Mutex
+	creds   Credentials
+	access  string
+	expiry  time.Time
+	attempt mail.AuthAttempt
 }
 
 // NewTokenSource returns a source for the credentials the deployable supplies. Every argument is
@@ -49,13 +55,23 @@ func (s *TokenSource) RefreshToken() string {
 	return s.creds.RefreshToken
 }
 
+// LastAttempt returns the source's latest request to the token endpoint and its outcome, or the
+// zero value when it has made none (ADR-0097). Handing out a held access token is not an attempt.
+func (s *TokenSource) LastAttempt() mail.AuthAttempt {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.attempt
+}
+
 // AccessToken returns an access token valid for at least expiryMargin, refreshing it when needed.
+// Every refresh is an attempt the source holds with its outcome, unless the caller cancelled it.
 //
-// No test covers this function's own composition, the cache check, the post and the hand-over of
-// the response body to receive. Each step is tested alone, but running them together needs a
-// token endpoint. A stand-in for Google's would be a mock (ADR-0043), and the contract suite's run
-// against real Gmail cannot make Google rotate a refresh token. So the function stays this thin,
-// and each step keeps its logic out of it.
+// Its composition is tested where a request can fail without a token endpoint, a cached token, a
+// cancelled call, a passed deadline and a request that reaches no provider. A refresh Google
+// answers needs Google's endpoint, since a stand-in would be a mock (ADR-0043). The contract
+// suite's run against real Gmail covers a refresh that succeeds and one Google refuses, and cannot
+// make Google rotate a refresh token. So the function stays this thin, and each step keeps its
+// logic out of it.
 func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -64,13 +80,24 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
 		return token, nil
 	}
 	body, err := postForm(ctx, s.client, s.refreshForm())
+	if err == nil {
+		err = s.receive(body, now)
+	}
+	s.attempted(ctx, now, err)
 	if err != nil {
 		return "", err
 	}
-	if err := s.receive(body, now); err != nil {
-		return "", err
-	}
 	return s.access, nil
+}
+
+// attempted holds a refresh that started at now and ended with err as the latest attempt, unless
+// the caller cancelled it before it succeeded, since a cancelled request has no outcome. A refresh
+// whose deadline passed got no answer in time, so it failed (ADR-0097).
+func (s *TokenSource) attempted(ctx context.Context, now time.Time, err error) {
+	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
+		return
+	}
+	s.attempt = mail.AuthAttempt{At: mail.UnixMilli(now.UnixMilli()), Outcome: outcome(err)}
 }
 
 // cached returns the held access token while it has more than expiryMargin left at now.

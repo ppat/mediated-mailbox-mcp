@@ -523,9 +523,11 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
-          # The two passes' statements. The writes sit in the subsections only backfill's list admits, and
-          # the lowered target's read in db/accountstate (ADR-0075, ADR-0066).
+          # The two passes' statements and the recording of the last authentication attempt. The writes sit
+          # in the subsections only backfill's list admits, and the lowered target's read in db/accountstate
+          # (ADR-0075, ADR-0066, ADR-0097).
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"

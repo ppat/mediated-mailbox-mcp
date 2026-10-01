@@ -839,8 +839,8 @@ A row whose screen does not exist yet renders its value unlinked and gains the l
 screen lands, since the UI links only to screens that exist. Linking ahead of the screen was the
 alternative, and it would send the operator to a page that says no screen is there. The scan
 backlog links where Home's pass 2 row does, the one Home row that carries the pending count. The
-authentication outcome is text the provider adapter records, so it renders inert like
-message-derived text ([section 11](#11-rendering-and-formatting-rules)).
+authentication outcome is text a deployable records from what its provider adapter reports, so it
+renders inert like message-derived text ([section 11](#11-rendering-and-formatting-rules)).
 
 The screen is not a live surface. It reads the system endpoint through the same cached read as the
 chrome's partial-index banner, so a page load sends one request, and while the banner follows the

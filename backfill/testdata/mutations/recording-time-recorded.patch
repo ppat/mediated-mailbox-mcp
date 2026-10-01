@@ -1,0 +1,20 @@
+control: The latest authentication attempt is recorded at the end of every unit of work, a failed one included, and a failed recording ends the pass in an error
+removes: an attempt is recorded at the instant it is recorded rather than the instant it started
+packages: ./backfill
+tests: TestEachOutcomeIsRecordedAsReported
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 28d2276..d73a294 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -304,7 +304,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
+ 	}
+ 	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
+ 		return authentication.New(t).RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+-			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},
++			AttemptedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true},
+ 			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},
+ 			AccountID:   account,
+ 		})

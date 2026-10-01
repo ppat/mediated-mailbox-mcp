@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -38,6 +39,7 @@ import (
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
@@ -200,14 +202,16 @@ type served struct {
 	sources map[string]*gmail.TokenSource
 	// policy is the policy of every listed account, loaded once at the start of the run.
 	policy policyload.Snapshot
-	// handOver hands an account's source's current refresh token over, for the unit of work to call
-	// after each unit it does with that source (ADR-0082).
+	// handOver hands over what an account's source holds, its current refresh token and its latest
+	// authentication attempt, for the unit of work to call after each unit it does with that source
+	// (ADR-0082, ADR-0097).
 	handOver func(ctx context.Context, account string) error
 }
 
 // unitOfWork is the work a run does with what it serves, between taking its account snapshot and
 // ending. It calls handOver for an account after each unit of work it does with that account's
-// source, so a rotated refresh token is written back as soon as the unit ends (ADR-0082).
+// source, so a rotated refresh token is written back and the latest authentication attempt recorded
+// as soon as the unit ends (ADR-0082, ADR-0097).
 type unitOfWork func(ctx context.Context, s served) error
 
 // backfill takes the account snapshot once, at the start of the run (ADR-0090), loads the policy of
@@ -238,7 +242,12 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
 	}
 	return work(ctx, served{sources: sources, policy: policies.Snapshot(), handOver: func(ctx context.Context, account string) error {
-		return handOver(ctx, loader, account, sources[account])
+		source := sources[account]
+		var attempt mail.AuthAttempt
+		if source != nil {
+			attempt = source.LastAttempt()
+		}
+		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
 	}})
 }
 
@@ -282,6 +291,28 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
 	}
 	_, err := loader.Persist(ctx, account, []byte(source.RefreshToken()))
 	return err
+}
+
+// recordAttempt records the latest authentication attempt the account's source reported on the
+// account's state row at the end of a unit of work. The zero attempt, from a source that has made
+// none, records nothing, and the statement keeps a later attempt another deployable recorded
+// (ADR-0097). A recording that fails is returned, and the next unit of work records the attempt
+// again.
+func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt mail.AuthAttempt) error {
+	if attempt == (mail.AuthAttempt{}) {
+		return nil
+	}
+	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
+		return authentication.New(t).RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},
+			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},
+			AccountID:   account,
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("account %s: recording the last authentication attempt: %w", account, err)
+	}
+	return nil
 }
 
 // firstPass returns the unit of work that runs backfill's two passes over every served account in

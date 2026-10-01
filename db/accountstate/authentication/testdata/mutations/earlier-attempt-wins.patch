@@ -1,0 +1,30 @@
+control: The recorded authentication outcome is the latest attempt, and recording an older one changes nothing
+removes: the statement replaces the stored attempt only with an older one, so a later attempt never replaces an earlier one
+packages: ./backfill
+tests: TestOnlyALaterAttemptIsRecorded
+scheduled-count: no
+integration: yes
+
+diff --git a/db/accountstate/authentication/authentication.sql b/db/accountstate/authentication/authentication.sql
+index fd62f74..36c3422 100644
+--- a/db/accountstate/authentication/authentication.sql
++++ b/db/accountstate/authentication/authentication.sql
+@@ -8,4 +8,4 @@ SET
+     last_auth_outcome = @outcome
+ WHERE
+     account_id = @account_id
+-    AND (last_auth_at IS NULL OR last_auth_at < @attempted_at);
++    AND (last_auth_at IS NULL OR last_auth_at > @attempted_at);
+diff --git a/db/accountstate/authentication/authentication.sql.go b/db/accountstate/authentication/authentication.sql.go
+index bf400c6..e786507 100644
+--- a/db/accountstate/authentication/authentication.sql.go
++++ b/db/accountstate/authentication/authentication.sql.go
+@@ -18,7 +18,7 @@ SET
+     last_auth_outcome = $2
+ WHERE
+     account_id = $3
+-    AND (last_auth_at IS NULL OR last_auth_at < $1)
++    AND (last_auth_at IS NULL OR last_auth_at > $1)
+ `
+ 
+ type RecordAuthenticationParams struct {

@@ -8,10 +8,11 @@ diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
 index 5dddcab..f9dc819 100644
 --- a/provider/gmail/tokensource.go
 +++ b/provider/gmail/tokensource.go
-@@ -2,6 +2,8 @@ package gmail
+@@ -2,7 +2,9 @@ package gmail
  
  import (
  	"context"
+ 	"errors"
 +	"os"
 +	"strings"
  	"net/http"

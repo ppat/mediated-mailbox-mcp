@@ -47,7 +47,12 @@ reads that token at the end of each unit of work and writes a rotated one back t
 state row through `accountload/`
 ([ADR-0080](../docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
 [ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md),
-[ADR-0083](../docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)).
+[ADR-0083](../docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). The source
+also holds its latest request to Google's token endpoint with its outcome, succeeded, refused for
+a 400 or a 401, or failed for anything else, a passed deadline included, and holds nothing for a
+request its caller cancelled or for an access token it already held. The deployable records that
+attempt on the account's state row at the end of each unit of work
+([ADR-0097](../docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
 
 ## Series and the rules that read them
 

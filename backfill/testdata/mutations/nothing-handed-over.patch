@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
+index 28d2276..0375f28 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -280,8 +280,7 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
+@@ -289,8 +289,7 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
  	if source == nil {
  		return nil
  	}
@@ -17,4 +18,4 @@ diff --git a/backfill/main.go b/backfill/main.go
 +	return nil
  }
  
- // firstPass returns the unit of work that runs backfill's two passes over every served account in
+ // recordAttempt records the latest authentication attempt the account's source reported on the
