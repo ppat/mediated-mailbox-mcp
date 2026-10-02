@@ -1272,12 +1272,13 @@ classifications already stored in the index.
   Building the policy writes and sender search [docs/UI.md section 8.7](./docs/UI.md#87-policy)
   designs, and the base policy's installation screen of
   [section 8.14](./docs/UI.md#814-base-policy), which writes base rules with no account connected,
-  and designing then building the import and export, on
+  and the import and export of one scope's rules as a file that section designs
+  ([ADR-0110](./docs/adr/mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md)), on
   [M3](#group-m--mutation-and-approval)'s server and browser app. Policy lives in the database and
   every change to it is made through the UI
   ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)). The unit carries the policy
-  screen of [docs/UI.md section 8.7](./docs/UI.md#87-policy), importing the policy from a file into
-  the tables and exporting it to one, adding, editing and lifting rules, the policy history, and
+  screen of [docs/UI.md section 8.7](./docs/UI.md#87-policy), importing a scope's rules from a file,
+  which makes the stored rules equal to the file, and exporting them to one, adding, editing and lifting rules, the policy history, and
   searching the stored senders
   and picking them as sensitive senders into the policy. Its requests change state, so each is
   bound to the session's request token [M7](#group-m--mutation-and-approval) builds
@@ -1287,18 +1288,24 @@ classifications already stored in the index.
   to the policy history in that transaction, which no runtime role can rewrite, and the policy
   screen shows it ([ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
   The UI's role gains exactly the writes on the policy rules these requests make and insert on the
-  history ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). A removed rule
+  history ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). A
+  migration keys the policy rules on their scope and identifier rather than the identifier alone,
+  and the policy snapshot's validation [S1](#delivered-mapped-to-outcomes) landed refuses a repeated
+  identifier within one scope only, both in one pull request, so a file exported from one scope
+  imports into any other
+  ([ADR-0110](./docs/adr/mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md),
+  [ADR-0016](./docs/adr/data/0016-schema.md)). A removed rule
   reaches the delisting transition [D2](#delivered-mapped-to-outcomes) builds. A published edit takes effect
   at each process's next reload, which validates it through the policy snapshot validation
   [S1](#delivered-mapped-to-outcomes) landed, and an edit that fails validation stays unapplied
-  ([ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). How importing and
-  exporting the policy behave, including the file's format, how a newly added policy rule changes
+  ([ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). How a newly added policy rule changes
   the classifications already stored in the index, how the UI writes base rules and their history
   rows, and whether a base-rule edit landing between two accounts' reads should page, are
   [open decisions](#open-decisions) settled here. *Criteria:* a policy request without its request token is refused, a write the
   policy snapshot's validation would refuse is refused before it is written, every policy
-  write leaves its history row or nothing, and the base policy's installation screen reads no
-  account's state. Importing the real policy is
+  write leaves its history row or nothing, the base policy's installation screen reads no
+  account's state, an import that lifts anything is refused without its typed confirmation, and an
+  import is applied whole or not at all. Importing the real policy is
   proven at [production point 1](#production-point-1--the-read-path). It adds handlers and screens
   inside the UI's server and browser app and touches no composition root, so it finishes at tested.
 
@@ -1650,7 +1657,6 @@ index](./docs/adr/README.md).
 | Tier-3 model choice and training setup | X1 | Deliberately open. [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) defers it until real labeled data exists |
 | Whether the tier-3 model's weights ship in the binary or beside it in the image | X1 | [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lets a final stage copy runtime artifacts and [CLAUDE.md](./CLAUDE.md#images) says a Go deployable's image copies only its binary. No record decides which the model is, and beside the binary would need that convention to admit a second artifact |
 | The feedback verb on masking and gate events | X1 | [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) takes its confirmed examples from corrections the operator makes in the UI's masking-events view, and [docs/UI.md](./docs/UI.md#20-what-remains-open) leaves that verb to a record that does not exist yet. No unit produces a confirmed example until the verb exists, so X1 builds the verb and writes its record first. Training waits for the examples the verb then produces |
-| How importing and exporting the policy behave in the UI, including the file format they use | M8 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database, with a file form for import and export, and every change to it made through the UI. The operator said on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file, and on 2026-09-26 that this is done through the UI, which also adds and updates rules, including by searching the stored senders and selecting them as sensitive senders. Adding, editing and lifting rules and picking stored senders are designed in [docs/UI.md section 8.7](./docs/UI.md#87-policy), and the operator set the import and export apart on 2026-10-01 to be designed on their own. The first thing that needs them is supplying the policy at [production point 1](#production-point-1--the-read-path), so M8 decides how an import meets the rules already stored, the file's format, and the writes the UI's role gains ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)) |
 | How the UI writes base rules and their policy history rows, and reads the base policy with no account named | M8 | [docs/UI.md section 8.7](./docs/UI.md#87-policy) writes base rules, adding, editing and lifting them, from an account's policy screen, and [section 8.14](./docs/UI.md#814-base-policy) from the base policy's installation screen, in a request that names no account and may come before any account exists, and [ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md) appends a history row for each, with no account for a base rule's. The row-level security policy on the policy rules lets a writer name only its own account, never the base policy's null one, which a proven row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) holds ("written by none"), so no role can write a base rule today. The base policy's installation screen and the installation endpoint also read the base rules and the base policy's history with no account named, and the transaction helper of [ADR-0016](./docs/adr/data/0016-schema.md) fails a transaction whose account is unset, as a proven row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) holds, so no such read runs today either. The UI's policy management is the first work that writes a base rule or reads one with no account, so it decides how, and those rows are revisited with the answer |
 | How the audit of every applied and refused mutation is guaranteed | M1 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the violation to refuse, a mutation reaching the provider with no audit row. It has no injection for it until a record decides between two mechanisms, writing the audit row before the provider call, or a structural check that refuses any path without an audit row. M1 writes the first audited mutation, so it decides, and M2's apply follows the same answer |
 | Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value has not been chosen. The UI reads the same value from configuration ([docs/UI.md](./docs/UI.md)), and the value settled here is also that key's default, so the plans screens M6 builds follow this answer |

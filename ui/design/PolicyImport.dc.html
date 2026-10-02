@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    .page { width: 1440px; min-height: 980px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box; display: flex; flex-direction: column; position: relative; }
+    .note { font-family: 'Patrick Hand', cursive; color: #9c9890; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: #9c9890; }
+    .faint { color: #6c6863; }
+    .bar { display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .sel { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; }
+    .nav { display: flex; gap: 16px; color: #9c9890; }
+    .nav a { color: #9c9890; text-decoration: none; }
+    .panel { background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .head { display: flex; align-items: baseline; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #3b3734; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px; font-weight: 500; background: #1f1c1a; white-space: nowrap; }
+    .btn-lift { border-color: #f47b74; color: #f47b74; }
+    .chip { display: inline-block; padding: 0 6px; border: 1px solid #3b3734; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+    .gr { display: grid; grid-template-columns: 290px minmax(0, 1fr) 260px; gap: 12px; align-items: center; padding: 0 16px; height: 36px; border-bottom: 1px solid #292623; font-size: 12px; }
+    .count { font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+    .field { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #161311; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  </style>
+</helmet>
+<div class="page">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div class="note" style="font-size: 18px;">ui · Policy import · /personal/policy/import</div>
+    <div class="note" style="font-size: 15px;">dark palette · sample data · personal's own file, edited and previewed, the import dialog open</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel">
+      <span class="muted">account</span>
+      <span class="mono" style="font-weight: 500;">personal</span>
+      <span class="muted">· Gmail</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div class="mono" style="font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div class="nav">
+      <a href="#">Home</a><a href="#">Plans</a><a href="#">Jobs</a><a href="#">Corpus</a><a href="#">Masking</a><a href="#">Gate</a><a href="#">Audit</a><a href="#">Review queue</a><a href="#" style="color: #e1ddd7; box-shadow: inset 0 -2px 0 #ed9c55;">Policy</a><a href="#">System</a>
+    </div>
+    <div class="muted" style="margin-left: auto;">search · settings</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
+    <a href="#" class="muted" style="text-decoration: none;">Policy</a><span class="faint">›</span><span>Import</span>
+    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/personal/policy/import</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 12px 20px 24px 20px; align-items: start;">
+
+    <div style="display: flex; flex-direction: column; gap: 14px; opacity: 0.5;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 20px; font-weight: 600;">Import <span class="mono" style="font-weight: 500;">personal</span>'s rules</div>
+        <div class="muted">The file replaces <span class="mono">personal</span>'s own rules. The base rules are not touched.</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 16px; border: 1px dashed #9c9890; border-radius: 4px; background: #161311;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div><span class="mono">policy-personal.yaml</span> <span class="muted">· read, 3 rules, every rule passes the checks of a write</span></div>
+        </div>
+        <span class="btn">Choose a policy file</span>
+      </div>
+
+      <div class="panel">
+        <div class="head" style="color: #f47b74;"><span style="font-weight: 600;">Rules lifted</span><span class="count">1</span><span style="font-size: 12px;">stored, missing from the file</span></div>
+        <div class="gr" style="color: #f47b74;"><span class="mono">candidate.personal.chasealerts.com</span><span style="display: flex; gap: 4px;"><span class="chip" style="border-color: #f47b74;">chasealerts.com</span></span><span style="text-align: right;">1 sender · 220 stored messages</span></div>
+        <div class="head" style="color: #f47b74; border-top: 1px solid #3b3734;"><span style="font-weight: 600;">Suffixes removed from a rule</span><span class="count">1</span></div>
+        <div class="gr" style="color: #f47b74;"><span class="mono">operator.chase.com</span><span style="display: flex; gap: 4px;"><span class="chip" style="border-color: #f47b74;">−jpmorgan.com</span></span><span style="text-align: right;">1 sender · 18 stored messages</span></div>
+        <div class="head" style="border-top: 1px solid #3b3734;"><span style="font-weight: 600;">Suffixes added to a rule</span><span class="count">1</span></div>
+        <div class="gr"><span class="mono">operator.chase.com</span><span style="display: flex; gap: 4px;"><span class="chip" style="border-color: #6fc082; color: #6fc082;">+jpmchase.com</span></span><span></span></div>
+        <div class="head" style="border-top: 1px solid #3b3734;"><span style="font-weight: 600;">Rules added</span><span class="count">2</span></div>
+        <div class="gr"><span class="mono">financial.bank.amex</span><span style="display: flex; gap: 4px;"><span class="chip">americanexpress.com</span><span class="chip">aexp.com</span></span><span></span></div>
+        <div class="gr"><span class="mono">financial.brokerage.schwab</span><span style="display: flex; gap: 4px;"><span class="chip">schwab.com</span><span class="chip">schwabmail.com</span></span><span></span></div>
+        <div style="padding: 10px 16px; font-size: 12px;" class="muted"><span class="count" style="color: #e1ddd7;">0</span> rules unchanged</div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <a href="#" class="btn btn-lift">Import, lifting 2 restrictions</a>
+        <a href="#" class="btn">Cancel</a>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 2;">
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px; background: #161311;">
+        export and import, one scope at a time<br>
+        Import and Export on personal's policy screen act on personal's own rules alone. Export downloads policy-personal.yaml as stored, asks nothing, changes nothing. the file is checked whole before anything shows. the preview is the difference, lifted and removed first in the restricted color, each with personal's numbers, the senders and stored messages no other rule restricts.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px; background: #161311;">
+        other states<br>
+        · nothing lifted: the button reads "Import {n} changes" and applies at once, since it only adds restriction.<br>
+        · the file matches: "The file matches the stored rules. Nothing to import." no button.<br>
+        · a refused file: refused whole, each problem with its rule and line, such as a file that is not this form, a suffix not shaped like a domain name, two rules sharing an identifier, or a file over 1 MB.<br>
+        · any scope: a file names no scope, so one exported from the base policy or from any account, work's included, imports here, and personal's file imports as the base policy or into any other account. identifiers are unique within a scope only, so a file never collides with another scope's rules.<br>
+        · stale: "The policy changed since this preview. Preview again."<br>
+        · after: the browser returns to the policy screen, which reads "Imported: 2 rules added, 1 rule edited, 2 restrictions lifted." and "Put back the 2 lifted restrictions", which adds back exactly what the import lifted, with no confirmation.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px; background: #161311;">
+        the base variant, /setup/policy/import<br>
+        the same screen in the installation frame, titled "Import the base policy" with "The file replaces the base rules, which every account inherits." lifted rules and removed suffixes carry no counts. the dialog lists each lift, states "Every account loses these restrictions: family, personal, work." and the same released and recall sentences, and asks for lift {k} typed before its button enables, reading "Type lift {k} to enable" while disabled. an account's import, as drawn above, needs no typing.
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(22,19,17,0.55);"></div>
+
+  <div role="alertdialog" aria-labelledby="import-title" class="panel" style="position: absolute; top: 220px; left: 300px; width: 640px; box-shadow: 0 16px 48px rgba(0,0,0,0.6); display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #3b3734;">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#f47b74" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l6.5 11.5h-13z"></path><path d="M8 6.5v3M8 11.6v.1"></path></svg>
+      <div id="import-title" style="font-size: 15px; font-weight: 600;">This import lifts 2 restrictions</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px 20px;">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid #3b3734; border-radius: 4px; background: #161311; font-size: 12px;">
+        <div><span class="mono">candidate.personal.chasealerts.com</span> <span class="muted">· rule lifted · 1 sender · 220 stored messages</span></div>
+        <div><span class="mono">−jpmorgan.com</span> <span class="muted">from </span><span class="mono">operator.chase.com</span> <span class="muted">· 1 sender · 18 stored messages</span></div>
+      </div>
+      <div>In <span class="mono">personal</span>, <span class="mono">2</span> senders and <span class="mono">238</span> stored messages are restricted by what this import lifts and by no other rule.</div>
+      <div>From each process's next policy reload, their bodies are no longer denied for their sender. A message scanned before the rule existed, or skipped by the scan gate, can then be released to the agent at once. A message held as restricted goes back to pending scan when a scanning workload next compares the index with the policy, and is released once a scan finds no code or link in it. A body already released cannot be recalled.</div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid #3b3734;">
+      <a href="#" class="btn" style="box-shadow: 0 0 0 2px #161311, 0 0 0 4px #ed9c55;">Cancel</a>
+      <span class="btn" style="border-color: #f47b74; color: #f47b74;">Import and lift 2</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

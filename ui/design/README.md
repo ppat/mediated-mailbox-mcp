@@ -18,7 +18,7 @@ decision records it cites (among them ADR-0056 through ADR-0065 and ADR-0072, vi
 
 The deliverable boards are `Main` (home), `PlanReview`, `Jobs`, `JobRun`, and `Palette`, then
 `Installation`, `OAuthClient`, `OAuthClientGuide`, `ConnectAccount`, `Account`, `BasePolicy`,
-`Policy`, `PolicyRule`, `PolicyPick` and `PolicyHistory` for the installation screens, the account settings and the policy writes. The
+`Policy`, `PolicyRule`, `PolicyPick`, `PolicyHistory` and `PolicyImport` for the installation screens, the account settings and the policy writes. The
 boards `Foundation`, `ConsoleHome`, `ConsolePlan`, `ExplorerHome`, `ExplorerPlan`, `DeskHome`, and
 `DeskPlan` are the shared foundation and the three directions explored. `DeskHome` and `DeskPlan`
 are the light sketches the deliverable was rebuilt from.
