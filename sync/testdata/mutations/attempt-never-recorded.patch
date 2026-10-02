@@ -1,0 +1,20 @@
+control: A tick hands its account over and records its latest authentication attempt when it ends
+removes: no tick records its source's authentication attempt
+packages: ./sync
+tests: TestEachTickHandsItsAccountOverAndRecordsItsAttempt
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/main.go b/sync/main.go
+index 86ddcc1..efa087e 100644
+--- a/sync/main.go
++++ b/sync/main.go
+@@ -404,7 +404,7 @@ func (s *syncer) tickAccount(ctx context.Context, account string, creds gmail.Cr
+ 		s.logger.Info("the account's tick ended", "account", account, "run", result.Run, "recovery", result.Recovery, "gap", result.Gap,
+ 			"added", c.Added, "modified", c.Modified, "removed", c.Removed, "decided", c.Decided, "scanned", c.Scanned, "skipped", c.Skipped)
+ 	}
+-	return errors.Join(err, handOver(ctx, s.loader, account, provider.adoption, provider.source), recordAttempt(ctx, s.pool, account, provider.source.LastAttempt()))
++	return errors.Join(err, handOver(ctx, s.loader, account, provider.adoption, provider.source), recordAttempt(ctx, s.pool, account, mail.AuthAttempt{}))
+ }
+ 
+ // tickDeps returns what the account's tick runs with over provider. The gate decides under the

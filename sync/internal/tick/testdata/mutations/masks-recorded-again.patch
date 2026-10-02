@@ -1,0 +1,21 @@
+control: Applying the same changes twice leaves the index as applying them once
+removes: a message the index already holds has its masks recorded again
+packages: ./sync/internal/tick
+tests: TestApplyingTheSameChangesTwiceLeavesTheIndexAsOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/postgres.go b/sync/internal/tick/postgres.go
+index 8fb4cdc..81bd833 100644
+--- a/sync/internal/tick/postgres.go
++++ b/sync/internal/tick/postgres.go
+@@ -136,6 +136,9 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
+ 				}
+ 				continue
+ 			}
++			if err := recordMasks(ctx, events, account, m); err != nil {
++				return err
++			}
+ 			changed, err := relabel(ctx, changes, account, m)
+ 			if err != nil {
+ 				return fmt.Errorf("setting the labels and flags of message %s: %w", m.ID, err)

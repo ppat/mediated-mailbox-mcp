@@ -48,7 +48,11 @@ each deployable that imports it
 ([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). The listing comes from
 `db/accounts` and each account's credential from `db/accountstate/credential`
-([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)).
+([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)). The re-seal of an
+OAuth client's secret writes through a compare-and-set its caller supplies, because only delta
+sync's role may write a client secret ([ADR-0016](../docs/adr/data/0016-schema.md)), and a
+statement this library ran would be planned under the role of every deployable that imports it.
+Delta sync supplies the write from `db/oauthclients/secret`, which only its list admits.
 
 When a process reloads is its caller's. The library loads when asked and swaps only on a read it
 can trust. A unit of work takes the snapshot once.

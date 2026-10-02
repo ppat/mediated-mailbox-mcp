@@ -1,0 +1,19 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's metadata read leaves out a message in the trash
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/the_trash_and_spam_are_listed_and_read_like_any_other_mail
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 247cd2f..6ec8a4f 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -232,7 +232,7 @@ func (f *Fake) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.Mes
+ 	defer f.mu.Unlock()
+ 	var out []mail.MessageMetadata
+ 	for _, id := range ids {
+-		if s, ok := f.byID[id]; ok {
++		if s, ok := f.byID[id]; ok && !slices.Contains(s.meta.Labels, mail.Trash) {
+ 			out = append(out, clone(s.meta))
+ 		}
+ 	}

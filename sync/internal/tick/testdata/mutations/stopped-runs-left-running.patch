@@ -1,0 +1,20 @@
+control: A tick records as failed the account's tick and gap recovery a stopped process left running
+removes: a tick's start leaves every run a stopped process left running recorded as running
+packages: ./sync/internal/tick
+tests: TestATickRecordsAStoppedRunAsFailed
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/postgres.go b/sync/internal/tick/postgres.go
+index e6cc3e0..49dd502 100644
+--- a/sync/internal/tick/postgres.go
++++ b/sync/internal/tick/postgres.go
+@@ -93,7 +93,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
+ 	}
+ 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+ 		q := record.New(t)
+-		if pass == PassTick {
++		if pass == "" {
+ 			if err := endStopped(ctx, q, account); err != nil {
+ 				return err
+ 			}

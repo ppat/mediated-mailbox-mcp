@@ -1,0 +1,19 @@
+control: Delta sync refuses a configuration it cannot tick with
+removes: the interval is refused when it is positive and taken when it is not
+packages: ./sync
+tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheStart/--sync_interval=0s
+scheduled-count: no
+
+diff --git a/sync/main.go b/sync/main.go
+index a54a058..36f73d0 100644
+--- a/sync/main.go
++++ b/sync/main.go
+@@ -102,7 +102,7 @@ func defaults() Configuration {
+ // the bound on a tick's decisions are positive.
+ func validate(c Configuration) error {
+ 	switch {
+-	case c.SyncInterval <= 0:
++	case c.SyncInterval > 0:
+ 		return fmt.Errorf("sync_interval %s is not positive", c.SyncInterval)
+ 	case c.FirstWindow <= 0:
+ 		return fmt.Errorf("first_window %s is not positive", c.FirstWindow)

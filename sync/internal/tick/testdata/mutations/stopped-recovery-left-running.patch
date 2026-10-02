@@ -1,0 +1,20 @@
+control: A tick records as failed the account's tick and gap recovery a stopped process left running
+removes: a tick's start records a stopped tick as failed and leaves a stopped recovery recorded as running
+packages: ./sync/internal/tick
+tests: TestATickRecordsAStoppedRunAsFailed
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/postgres.go b/sync/internal/tick/postgres.go
+index e6cc3e0..20ecb78 100644
+--- a/sync/internal/tick/postgres.go
++++ b/sync/internal/tick/postgres.go
+@@ -115,7 +115,7 @@ const stopped = "the run stopped before it recorded its end"
+ // still recorded as running. Ticks do not overlap, so one still running when a tick starts was
+ // stopped before it recorded its end (ADR-0103).
+ func endStopped(ctx context.Context, q *record.Queries, account string) error {
+-	for _, pass := range []string{PassTick, PassGapRecovery} {
++	for _, pass := range []string{PassTick} {
+ 		latest, err := q.LatestRun(ctx, record.LatestRunParams{AccountID: account, Workload: Workload, Pass: text(pass)})
+ 		if errors.Is(err, pgx.ErrNoRows) {
+ 			continue

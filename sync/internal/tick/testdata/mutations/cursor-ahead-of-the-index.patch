@@ -1,0 +1,23 @@
+control: A tick applies each change set in the transaction that advances the cursor past it
+removes: the cursor is stored in a transaction of its own before the change set's writes
+packages: ./sync/internal/tick
+tests: TestTheCursorNeverRunsAheadOfTheIndex
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index b5e0a1d..7f678ec 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -147,7 +147,10 @@ func (t *ticker) changes(ctx context.Context, state State) (mail.Cursor, error)
+ 		next.Counters.Added += len(cs.Added)
+ 		next.Counters.Modified += len(cs.Modified)
+ 		next.Counters.Removed += len(cs.Removed)
+-		applied, err := t.deps.Store.Apply(ctx, t.account, t.run, Application{Page: page, Removed: cs.Removed, Cursor: cs.Next}, func(Applied) Recorder { return next })
++		if _, err := t.deps.Store.Apply(ctx, t.account, t.run, Application{Cursor: cs.Next}, func(Applied) Recorder { return t.at }); err != nil {
++			return "", err
++		}
++		applied, err := t.deps.Store.Apply(ctx, t.account, t.run, Application{Page: page, Removed: cs.Removed}, func(Applied) Recorder { return next })
+ 		if err != nil {
+ 			return "", fmt.Errorf("applying a change set: %w", err)
+ 		}

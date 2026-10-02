@@ -1,0 +1,20 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: a tick stopped by a throttle keeps its checkpoint past the rest of its read, so the next tick passes the throttled message over
+packages: ./sync/internal/tick
+tests: TestAThrottledBodyStopsTheAccountsScanning
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index 3237b9b..bb72268 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -382,7 +382,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
+ 	}
+ 	next := t.at
+ 	if len(outcomes) > 0 {
+-		next.Checkpoint.After = outcomes[len(outcomes)-1].ID
++		next.Checkpoint.After = waiting[len(waiting)-1].ID
+ 	}
+ 	for _, o := range outcomes {
+ 		if o.Verdict.Decided() {

@@ -1,0 +1,20 @@
+control: A hand-over from a unit of work that started before the loader adopted a value someone else stored is discarded
+removes: delta sync hands its token over with no adoption stamp, so a tick that adopted the operator's credential and kept the refused one writes the refused one back
+packages: ./sync
+tests: TestATickWhoseRebuildFailsLeavesTheReauthorization
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/main.go b/sync/main.go
+index 86ddcc1..1c4e968 100644
+--- a/sync/main.go
++++ b/sync/main.go
+@@ -537,7 +537,7 @@ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string
+ // source does not hold, and otherwise writes a rotated one back by compare-and-set and an unchanged
+ // one nowhere, and logs a write-back that fails (ADR-0082, ADR-0089).
+ func handOver(ctx context.Context, loader *accountload.Loader, account string, adoption uint64, source *gmail.TokenSource) error {
+-	_, err := loader.HandOver(ctx, account, adoption, []byte(source.RefreshToken()))
++	_, err := loader.Persist(ctx, account, []byte(source.RefreshToken()))
+ 	return err
+ }
+ 

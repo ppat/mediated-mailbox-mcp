@@ -1,14 +1,15 @@
 control: A removed rule returns its sender's messages to pending scan, and the pass starts over
 removes: the comparison delists the domains the policy still restricts
-packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2
-tests: TestDelisted TestARemovedRuleReturnsItsSendersMessagesToPendingScan TestTheTransitionMarksNothingTwice TestAKilledSecondPassResumesFromItsCheckpoint
+packages: ./core/index ./backfill/internal/pass2 ./sync/internal/tick
+tests: TestDelisted TestARemovedRuleReturnsItsSendersMessagesToPendingScan TestTheTransitionMarksNothingTwice TestAKilledSecondPassResumesFromItsCheckpoint TestATickScansADelistedSendersMessages
 scheduled-count: no
 integration: yes
 
-diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
---- a/backfill/internal/core/pass2/pass2.go
-+++ b/backfill/internal/core/pass2/pass2.go
-@@ -74,7 +74,7 @@ func Restart(at Progress) Progress {
+diff --git a/core/index/scan.go b/core/index/scan.go
+index 5e07cbf..5a7e653 100644
+--- a/core/index/scan.go
++++ b/core/index/scan.go
+@@ -19,7 +19,7 @@ import (
  func Delisted(p policy.Composed, l classify.Lookups, restricted []string) []string {
  	var out []string
  	for _, d := range restricted {

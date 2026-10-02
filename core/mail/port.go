@@ -13,12 +13,14 @@ import "errors"
 // call is cancelled, so a caller never inspects a provider's own error.
 type Port[C any] interface {
 	// ListThreads returns a page of the threads holding at least one message that q selects, each
-	// with every one of its messages. It returns ErrInvalid for a query Valid refuses.
+	// with every one of its messages. A message in the trash or marked as spam is listed like any
+	// other. It returns ErrInvalid for a query Valid refuses.
 	ListThreads(ctx C, q Query, page PageToken) (Page[ThreadMetadata], error)
 	// GetThreadMetadata returns one thread with every one of its messages, or ErrNotFound.
 	GetThreadMetadata(ctx C, threadID string) (ThreadMetadata, error)
-	// GetMessageMetadata returns the metadata of each message ids names, in the order of ids. An
-	// identifier naming no message is left out of the result rather than failing the call.
+	// GetMessageMetadata returns the metadata of each message ids names, in the order of ids, one in
+	// the trash or marked as spam included. An identifier naming no message, such as one the mailbox
+	// no longer holds, is left out of the result rather than failing the call.
 	GetMessageMetadata(ctx C, ids []string) ([]MessageMetadata, error)
 	// GetMessageBody returns a message's body, or ErrNotFound. It is the only operation that
 	// returns body content, and the gate guards every call to it (ADR-0002).

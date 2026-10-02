@@ -34,6 +34,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/credential/core"
@@ -45,6 +46,7 @@ import (
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
 	"github.com/ppat/mediated-mailbox-mcp/settings"
 )
@@ -452,11 +454,7 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 				Policy: s.policy.For(account), Scanner: scanner, Lookups: lookups,
 				RunID: runID, Now: time.Now,
 			}
-			second := pass2.Deps{
-				Store: secondStore, Body: c.body(limiter),
-				Policy: s.policy.For(account), Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
-				PageSize: pageSize, RunID: runID, Now: time.Now,
-			}
+			second := secondDeps(secondStore, c.body(limiter), s.policy.For(account), lookups, scanner)
 			err = backfillAccount(ctx, deps, second, account, metrics, secondMetrics, s.handOver, logger)
 			if err != nil {
 				failures = append(failures, fmt.Errorf("account %s: %w", account, err))
@@ -467,6 +465,16 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 		}
 		return errors.Join(failures...)
 	}, nil
+}
+
+// secondDeps returns what an account's second pass runs with. The gate decides under the thresholds
+// delta sync decides under, and the scanner is the one delta sync builds from the same section, so
+// neither workload reopens the other's work (ADR-0096, ADR-0098, ADR-0104).
+func secondDeps(store pass2.Store, body pass2.Body, composed policy.Composed, lookups classify.Lookups, scanner scan.Scanner) pass2.Deps {
+	return pass2.Deps{
+		Store: store, Body: body, Policy: composed, Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
+		PageSize: pageSize, RunID: runID, Now: time.Now,
+	}
 }
 
 // backfillAccount runs backfill over one account. It first returns the verdicts made under another
@@ -540,7 +548,7 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
 // the batch class (ADR-0025).
 func leasedBody(limiter *lease.Limiter, port mail.Port[context.Context], account string) pass2.Body {
 	return func(ctx context.Context, id string) (mail.MessageBody, error) {
-		return pass1.Call(ctx, limiter, port, account, mail.OpGetMessageBody, func(ctx context.Context) (mail.MessageBody, error) {
+		return lease.Call(ctx, limiter, port, account, ratecore.Batch, mail.ProviderOp{Operation: mail.OpGetMessageBody}, func(ctx context.Context) (mail.MessageBody, error) {
 			return port.GetMessageBody(ctx, id)
 		})
 	}

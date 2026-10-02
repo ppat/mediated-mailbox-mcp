@@ -6,14 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
+index a87b958..7868856 100644
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -293,7 +293,7 @@ func OnFailure(f Attempt) Next {
+@@ -236,7 +236,7 @@ func OnFailure(f Attempt) Next {
  		return FailRun
- 	case f.Class == Validation && f.ResumedToken && !f.Restarted:
+ 	case f.Class == index.Validation && f.ResumedToken && !f.Restarted:
  		return StartOver
--	case f.Class == Throttled && f.Attempts < MaxAttempts:
-+	case f.Class == Throttled && f.Attempts < 1:
+-	case f.Class == index.Throttled && f.Attempts < MaxAttempts:
++	case f.Class == index.Throttled && f.Attempts < 1:
  		return Backoff
- 	case f.Class == ProviderError && f.Attempts < MaxAttempts:
+ 	case f.Class == index.ProviderError && f.Attempts < MaxAttempts:
  		return Retry

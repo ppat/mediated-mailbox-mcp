@@ -12,8 +12,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
-
+	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/settings"
@@ -293,5 +295,39 @@ func TestAVerdictsRevisionFollowsTheScannerSection(t *testing.T) {
 				t.Errorf("the revision is %q against the default's %q, want it changed %v", got, base, c.changed)
 			}
 		})
+	}
+}
+
+// D2's part of D4's row for the gate and the scanner delta sync shares with backfill. The second pass
+// decides under thresholds written out here, which delta sync's own test holds delta sync to as
+// well, and scans with the scanner backfill's default section builds, whose version and revision
+// are written out here and in delta sync's test, so a workload that differs from the other fails its
+// own test (ADR-0096, ADR-0098, ADR-0104).
+func TestARunDecidesUnderTheSharedThresholdsAndScanner(t *testing.T) {
+	loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanner, err := buildScanner(loaded)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	deps := secondDeps(nil, nil, policy.Composed{}, classify.Lookups{}, scanner)
+
+	want := scangate.Config{
+		NoReplyLocalParts: []string{"noreply", "no-reply", "security", "accounts", "verify", "auth", "support"},
+		SmallBytes:        30 * 1024,
+		RecentAgeMillis:   24 * 60 * 60 * 1000,
+		LowVolume:         20,
+		HighVolume:        500,
+	}
+	if diff := cmp.Diff(want, deps.Gate, compare.Options); diff != "" {
+		t.Errorf("the gate's thresholds (-delta sync's +backfill's):\n%s", diff)
+	}
+	v := deps.Scanner.Scan("Your code is 419283")
+	const syncs = "version 1 revision c9fa3ff13948e4f89ac094b91a27455c"
+	if got := fmt.Sprintf("version %d revision %s", v.Version(), v.Revision()); got != syncs {
+		t.Errorf("the scanner records %s, want delta sync's %s", got, syncs)
 	}
 }

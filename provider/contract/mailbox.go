@@ -103,6 +103,20 @@ func late(mark string, base mail.UnixMilli) Message {
 	return seed(mark, base, "late", "late", f, 7, mail.Flags{}, mail.Inbox)
 }
 
+// discarded is a message a case delivers into the trash, and junk one it delivers marked as spam.
+// Each is the receipt fixture with a subject and a thread of its own.
+func discarded(mark string, base mail.UnixMilli) Message {
+	f := fixture.Receipt()
+	f.Subject = marker.Field("discardedsubject") + " Your order has shipped"
+	return seed(mark, base, "discarded", "discarded", f, 7, mail.Flags{Read: true}, mail.Trash)
+}
+
+func junk(mark string, base mail.UnixMilli) Message {
+	f := fixture.Receipt()
+	f.Subject = marker.Field("junksubject") + " Your order has shipped"
+	return seed(mark, base, "junk", "junk", f, 8, mail.Flags{Read: true}, mail.Spam)
+}
+
 // brief is a message a case delivers and then removes.
 func brief(mark string, base mail.UnixMilli) Message {
 	f := fixture.Receipt()

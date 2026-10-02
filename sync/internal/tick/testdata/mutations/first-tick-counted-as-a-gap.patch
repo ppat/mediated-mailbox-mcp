@@ -1,0 +1,19 @@
+control: An account with no cursor is reconciled over the first window inside its tick
+removes: an account's first reconciliation is reported as a cursor gap, so the gap series and its alert count a cursor that was never lost
+packages: ./sync/internal/tick
+tests: TestATickAppliesTheChangesSinceItsCursor
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index dd6a834..52d4ff7 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -122,6 +122,7 @@ type ticker struct {
+ // cursor is already stored.
+ func (t *ticker) changes(ctx context.Context, state State) (mail.Cursor, error) {
+ 	if state.Cursor == "" {
++		t.result.Gap = true
+ 		return t.first(ctx)
+ 	}
+ 	cursor := state.Cursor

@@ -74,6 +74,7 @@ moves it. Records themselves link freely and deep, into
 | 0096 | [A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided](./redaction/0096-a-scanner-change-reopens-backfill.md) | Accepted |
 | 0098 | [Every backfill run decides each stored gate skip again, so a change of thresholds reaches the skips made under the earlier ones](./redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) | Accepted |
 | 0100 | [Message text with no HTML form is released as a fenced code block that shows it exactly](./redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md) | Accepted |
+| 0104 | [Once backfill's second pass has ended, each delta sync tick decides and scans what waits for a scan, a bounded number per tick](./redaction/0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md) | Accepted |
 
 ## Classification — `classification/`
 
@@ -111,6 +112,7 @@ moves it. Records themselves link freely and deep, into
 | 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | Accepted |
 | 0080 | [Accounts and their provider credentials are created and repaired through the UI and live in the database](./data/0080-accounts-and-credentials-live-in-the-database.md) | Accepted |
 | 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
+| 0105 | [A cursor gap re-enumerates from an hour before the last cursor was written, with no cap, and an account with no cursor is reconciled over a first window](./data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -157,6 +159,7 @@ moves it. Records themselves link freely and deep, into
 | 0092 | [A key is replaced by delta sync re-sealing what it opens, and retires once a scan finds nothing left on it](./operability/0092-key-replacement-by-keyring-and-re-seal.md) | Accepted |
 | 0097 | [The adapter reports its latest authentication attempt, and the deployable records it at the end of each unit of work, the latest attempt winning](./operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md) | Accepted |
 | 0101 | [Every failure on the client surface names its origin, and a gated body denial is a result, not a failure](./operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md) | Accepted |
+| 0103 | [Delta sync runs until stopped, ticks on the sync interval, and serves its metrics between ticks](./operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md) | Accepted |
 
 ## Engineering — `engineering/`
 

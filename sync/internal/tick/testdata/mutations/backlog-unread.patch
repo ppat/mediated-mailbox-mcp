@@ -1,0 +1,20 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: a tick reports no backlog after its scanning
+packages: ./sync/internal/tick
+tests: TestOnceTheSecondPassHasEndedATickScansWhatWaits
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index b5e0a1d..22b6f11 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -98,7 +98,7 @@ func Run(ctx context.Context, deps Deps, account string) (Result, error) {
+ 		if err != nil {
+ 			return t.result, t.failed(ctx, fmt.Errorf("reading the scan backlog: %w", err))
+ 		}
+-		t.result.Backlog = backlog
++		t.result.Backlog = 0 * backlog
+ 	}
+ 	if err := deps.Store.Finish(ctx, account, t.run, cursor, t.at); err != nil {
+ 		return t.result, t.failed(ctx, fmt.Errorf("finishing the tick: %w", err))

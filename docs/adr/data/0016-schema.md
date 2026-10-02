@@ -243,10 +243,12 @@ CREATE TABLE job_runs (                   -- every batch workload's runs (ADR-00
                                           --   of, version, revision}, the provider's token for the next page,
                                           --   with of only when its enumeration reports a total (ADR-0095),
                                           --   and the scanner it masks under (ADR-0096), and pass 2 {page,
-                                          --   after}, the last message identifier its pages read
+                                          --   after}, the last message identifier its pages read, and a sync
+                                          --   tick {after}, the last message identifier its scanning read (ADR-0104)
   counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages, remasked; pass2 pages, decided,
                                           --   pending, scanned, skipped; sync added, modified, removed,
-                                          --   window_start, window_end, reconciled; apply ops_done,
+                                          --   window_start, window_end, reconciled, and a tick's decided,
+                                          --   pending, scanned, skipped (ADR-0104, ADR-0105); apply ops_done,
                                           --   ops_total, failures; heuristics candidates
   last_error    text,                     -- provider or scanner text, never a body
   PRIMARY KEY (account_id, run_id)

@@ -1,0 +1,21 @@
+control: A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
+removes: a recovery stores the current cursor before it lists the window, so a recovery that fails is never tried again
+packages: ./sync/internal/tick
+tests: TestAFailedRecoveryIsTriedAgainByTheNextTick
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index b5e0a1d..7ee86ad 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -212,6 +212,9 @@ func (t *ticker) recover(ctx context.Context, state State) error {
+ 	if err != nil {
+ 		return fail(fmt.Errorf("asking for the current cursor: %w", err))
+ 	}
++	if _, err := t.deps.Store.Apply(ctx, t.account, run, Application{Cursor: cursor}, func(Applied) Recorder { return at }); err != nil {
++		return fail(err)
++	}
+ 	var written *mail.UnixMilli
+ 	if state.CursorAt != nil {
+ 		w := mail.UnixMilli(state.CursorAt.UnixMilli())

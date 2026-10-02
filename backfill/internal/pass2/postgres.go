@@ -14,6 +14,7 @@ import (
 	pass1core "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass1"
 	core "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
@@ -170,7 +171,7 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 }
 
 // Reopen implements Store.
-func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.Stamp, overturned func([]core.Message) []string) (Reopened, error) {
+func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp, overturned func([]index.Waiting) []string) (Reopened, error) {
 	var marked Reopened
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		marked = Reopened{}
@@ -215,14 +216,14 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
 // requeueOverturned reads every message the gate skipped with its gate inputs, read as Pending reads
 // them, and returns to pending scan each one overturned names (ADR-0098). It returns how many it
 // returned.
-func requeueOverturned(ctx context.Context, q *scan.Queries, account string, overturned func([]core.Message) []string) (int, error) {
+func requeueOverturned(ctx context.Context, q *scan.Queries, account string, overturned func([]index.Waiting) []string) (int, error) {
 	rows, err := q.GateSkips(ctx, account)
 	if err != nil {
 		return 0, fmt.Errorf("reading the messages the gate skipped: %w", err)
 	}
-	skips := make([]core.Message, 0, len(rows))
+	skips := make([]index.Waiting, 0, len(rows))
 	for _, r := range rows {
-		skips = append(skips, core.Message{
+		skips = append(skips, index.Waiting{
 			ID: r.MessageID, From: r.FromEmail, Domain: r.FromDomain, SubjectMasked: r.SubjectMasked, ListID: r.HasListID,
 			SizeBytes: r.SizeBytes, SentAt: mail.UnixMilli(r.SentAt.Time.UnixMilli()), SenderVolume: r.SenderVolume, SenderHits: r.SenderHits,
 		})
@@ -262,8 +263,8 @@ func (s *Postgres) RequeueSkips(ctx context.Context, account, runID string) (int
 }
 
 // Pending implements Store.
-func (s *Postgres) Pending(ctx context.Context, account, after string, n int) ([]core.Message, error) {
-	var out []core.Message
+func (s *Postgres) Pending(ctx context.Context, account, after string, n int) ([]index.Waiting, error) {
+	var out []index.Waiting
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		out = nil
 		rows, err := scan.New(t).PendingPage(ctx, scan.PendingPageParams{AccountID: account, After: after, PageSize: int32(min(max(n, 1), 1<<31-1))}) //nolint:gosec // Bounded.
@@ -271,7 +272,7 @@ func (s *Postgres) Pending(ctx context.Context, account, after string, n int) ([
 			return err
 		}
 		for _, r := range rows {
-			out = append(out, core.Message{
+			out = append(out, index.Waiting{
 				ID: r.MessageID, From: r.FromEmail, Domain: r.FromDomain, SubjectMasked: r.SubjectMasked, ListID: r.HasListID,
 				SizeBytes: r.SizeBytes, SentAt: mail.UnixMilli(r.SentAt.Time.UnixMilli()), SenderVolume: r.SenderVolume, SenderHits: r.SenderHits,
 			})
@@ -321,7 +322,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 // commitOutcome records what the run did with one message: the gate's decision when it decided, and
 // the verdict or skip state it leads to. A message the gate could not decide, or whose body was not
 // scanned, stays waiting.
-func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.Queries, account string, o core.Outcome) error {
+func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.Queries, account string, o index.Outcome) error {
 	if !o.Verdict.Decided() {
 		return nil
 	}

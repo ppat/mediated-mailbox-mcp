@@ -22,6 +22,7 @@ import (
 	core "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -339,7 +340,7 @@ func (w *world) open(t tb) {
 	t.Helper()
 	// A pass that ended with messages masked under an earlier scanner is reopened, and a run resuming
 	// an enumeration made under an earlier scanner starts it over, each enumerating again (ADR-0096).
-	now := core.Stamp{Version: 1, Revision: revision(w.rescans)}
+	now := index.Stamp{Version: 1, Revision: revision(w.rescans)}
 	if w.reported.Checkpoint.Stamp != now && (w.ended && len(w.durable) > 0 || !w.ended && w.reported.Checkpoint.Page > 0) {
 		w.enumerations++
 	}
@@ -409,7 +410,7 @@ func (w *world) crash(t tb, at int) {
 	// The run that recovers resumes from the progress last reported. A pass reopened by a change of
 	// scanner starts afresh, and a run resuming an enumeration made under another scanner starts it
 	// over with its counters (ADR-0096).
-	now := core.Stamp{Version: 1, Revision: revision(w.rescans)}
+	now := index.Stamp{Version: 1, Revision: revision(w.rescans)}
 	w.expect = w.reported
 	switch {
 	case w.ended:
@@ -428,7 +429,7 @@ type cutting struct {
 	w *world
 }
 
-func (c cutting) Commit(ctx context.Context, account, runID string, p core.Page, recovered *pass1.Failure, advance func(int, int) core.Progress) (pass1.Committed, error) {
+func (c cutting) Commit(ctx context.Context, account, runID string, p index.Page, recovered *pass1.Failure, advance func(int, int) core.Progress) (pass1.Committed, error) {
 	at, err := c.Store.Commit(ctx, account, runID, p, recovered, advance)
 	if err == nil && c.w.cutAfter {
 		c.w.cutAfter = false
@@ -610,7 +611,7 @@ func inspectPostgres(t tb, url, account string) state {
 			return err
 		}
 		r.Progress = core.Progress{
-			Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Stamp: core.Stamp{Version: c.Version, Revision: c.Revision}},
+			Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Stamp: index.Stamp{Version: c.Version, Revision: c.Revision}},
 			Counters:   core.Counters{Pages: n.Pages, Messages: n.Messages, Remasked: n.Remasked},
 		}
 		runs = append(runs, r)
@@ -670,9 +671,9 @@ func inspectPostgres(t tb, url, account string) state {
 type memory struct {
 	ended    bool
 	runs     []run
-	messages map[string]core.Message
+	messages map[string]index.Message
 	// events counts the masking events of each message by the scanner they were recorded under.
-	events   map[string]map[core.Stamp]int
+	events   map[string]map[index.Stamp]int
 	failures []pass1.Failure
 	timeline []pass1.Event
 	items    []pass1.Item
@@ -681,10 +682,10 @@ type memory struct {
 var _ pass1.Store = (*memory)(nil)
 
 func newMemory() *memory {
-	return &memory{messages: map[string]core.Message{}, events: map[string]map[core.Stamp]int{}}
+	return &memory{messages: map[string]index.Message{}, events: map[string]map[index.Stamp]int{}}
 }
 
-func (m *memory) State(ctx context.Context, _ string, s core.Stamp) (bool, bool, core.Latest[core.Progress], error) {
+func (m *memory) State(ctx context.Context, _ string, s index.Stamp) (bool, bool, core.Latest[core.Progress], error) {
 	if err := ctx.Err(); err != nil {
 		return false, false, core.Latest[core.Progress]{}, err
 	}
@@ -701,9 +702,9 @@ func (m *memory) State(ctx context.Context, _ string, s core.Stamp) (bool, bool,
 }
 
 // mask stores msg's subject as masked under its scanner, with its masking events.
-func (m *memory) mask(msg core.Message) {
+func (m *memory) mask(msg index.Message) {
 	if m.events[msg.ID] == nil {
-		m.events[msg.ID] = map[core.Stamp]int{}
+		m.events[msg.ID] = map[index.Stamp]int{}
 	}
 	m.events[msg.ID][msg.Stamp] += len(msg.Masks)
 }
@@ -730,7 +731,7 @@ func (m *memory) Start(ctx context.Context, _, runID string, start core.Start[co
 	return nil
 }
 
-func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, recovered *pass1.Failure, advance func(int, int) core.Progress) (pass1.Committed, error) {
+func (m *memory) Commit(ctx context.Context, _, runID string, p index.Page, recovered *pass1.Failure, advance func(int, int) core.Progress) (pass1.Committed, error) {
 	if err := ctx.Err(); err != nil {
 		return pass1.Committed{}, err
 	}
@@ -766,7 +767,7 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, recov
 	return c, nil
 }
 
-func (m *memory) Finish(ctx context.Context, _, runID string, s core.Stamp, gone func([]core.Stored) []core.Message, now time.Time) (int, error) {
+func (m *memory) Finish(ctx context.Context, _, runID string, s index.Stamp, gone func([]core.Stored) []index.Message, now time.Time) (int, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}

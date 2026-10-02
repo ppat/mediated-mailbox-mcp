@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass1/pass1.go b/backfill/internal/pass1/pass1.go
-index 7e32116..ff9fe09 100644
+index 70988ba..49810cb 100644
 --- a/backfill/internal/pass1/pass1.go
 +++ b/backfill/internal/pass1/pass1.go
-@@ -200,7 +200,7 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
+@@ -201,7 +201,7 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
  // enumeration did not find (ADR-0096).
  func (p *Pass) finish(ctx context.Context) (Step, error) {
- 	_, err := p.deps.Store.Finish(ctx, p.account, p.run, p.at.Checkpoint.Stamp, func(stored []core.Stored) []core.Message {
+ 	_, err := p.deps.Store.Finish(ctx, p.account, p.run, p.at.Checkpoint.Stamp, func(stored []core.Stored) []index.Message {
 -		return core.Unfound(stored, p.at.Checkpoint.Stamp)
 +		return nil
  	}, p.deps.Now().UTC())

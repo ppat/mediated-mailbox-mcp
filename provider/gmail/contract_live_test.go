@@ -438,13 +438,17 @@ func (p *provider) insert(ctx context.Context, m contract.Message, threads map[s
 
 // discard takes the labels a case's message was inserted with off it and moves it to the trash,
 // once the case has ended. The labels come off first, so a message a failed cleanup leaves behind
-// is at least out of every label a later run lists.
+// is at least out of every label a later run lists. The trash and spam stay on, since moving the
+// message to the trash next settles both.
 func (p *provider) discard(t *testing.T, id string, labels []string) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 2*time.Minute)
 	defer cancel()
 	var remove []string
 	for _, path := range labels {
+		if path == mail.Trash || path == mail.Spam {
+			continue
+		}
 		if labelID, ok := p.labels[path]; ok {
 			remove = append(remove, labelID)
 		}

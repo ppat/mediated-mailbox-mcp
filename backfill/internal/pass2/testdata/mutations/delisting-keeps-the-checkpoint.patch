@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/pass2.go b/backfill/internal/pass2/pass2.go
-index 7043431..e44c44e 100644
+index 1fcf569..9ecbb62 100644
 --- a/backfill/internal/pass2/pass2.go
 +++ b/backfill/internal/pass2/pass2.go
-@@ -146,7 +146,7 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+@@ -162,7 +162,7 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
  			return nil, p.failed(ctx, err)
  		}
  	}
 -	restart := core.Restart(p.at)
 +	restart := p.at
  	marked, err := deps.Store.Delist(ctx, account, p.run, func(restricted []string) []string {
- 		return core.Delisted(deps.Policy, deps.Lookups, restricted)
+ 		return index.Delisted(deps.Policy, deps.Lookups, restricted)
  	}, restart)

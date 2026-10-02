@@ -32,6 +32,9 @@ const (
 // reloadFailedName is the policy loader's reload-failure series, which the policy reload rule reads.
 const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
 
+// cursorGapsName is delta sync's count of cursor gaps, which the cursor gap rule reads.
+const cursorGapsName = "mediated_mailbox_sync_cursor_gaps_total"
+
 // series is one gathered sample, by metric name and account.
 type series struct {
 	name, account, other string
@@ -193,10 +196,10 @@ func TestTheCollectorFailsTheScrapeWhenItCannotRead(t *testing.T) {
 	}
 }
 
-// Every series the alerting rules read, apart from the two the provider adapters emit and the
-// reload-failure series the policy loader emits, is one the collector or a Limiter emits under that
-// exact name, so a rule never watches a name nothing emits (ADR-0076). The policy loader's own tests
-// hold its series to the same check.
+// Every series the alerting rules read, apart from the two the provider adapters emit, the
+// reload-failure series the policy loader emits and delta sync's count of cursor gaps, is one the
+// collector or a Limiter emits under that exact name, so a rule never watches a name nothing emits
+// (ADR-0076). The policy loader's and delta sync's own tests hold their series to the same check.
 func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
@@ -211,7 +214,7 @@ func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	reg.MustRegister(lease.NewCollector(spenders(t), func(context.Context) ([]lease.Account, error) {
 		return []lease.Account{{ID: account, Ceiling: ceiling}}, nil
 	}))
-	emitted := map[string]bool{requestCostName: true, hardCapName: true, reloadFailedName: true}
+	emitted := map[string]bool{requestCostName: true, hardCapName: true, reloadFailedName: true, cursorGapsName: true}
 	for s := range gathered(t, reg) {
 		emitted[s.name] = true
 	}

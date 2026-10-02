@@ -1,0 +1,33 @@
+control: Applying the same changes twice leaves the index as applying them once
+removes: applying a message's labels adds them to the ones stored rather than setting them
+packages: ./sync/internal/tick
+tests: TestApplyingTheSameChangesTwiceLeavesTheIndexAsOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/change/change.sql b/db/messages/change/change.sql
+index b0bbf94..8663f4a 100644
+--- a/db/messages/change/change.sql
++++ b/db/messages/change/change.sql
+@@ -3,7 +3,7 @@
+ -- for a message the change feed names (ADR-0018). A message that already carries them is left as it
+ -- is and counts no row, so a change applied twice changes nothing the second time.
+ UPDATE messages
+-SET labels = @labels, flags = @flags
++SET labels = labels || @labels, flags = @flags
+ WHERE
+     account_id = @account_id
+     AND message_id = @message_id
+diff --git a/db/messages/change/change.sql.go b/db/messages/change/change.sql.go
+index eb37161..330c0f1 100644
+--- a/db/messages/change/change.sql.go
++++ b/db/messages/change/change.sql.go
+@@ -11,7 +11,7 @@ import (
+ 
+ const applyLabelsAndFlags = `-- name: ApplyLabelsAndFlags :execrows
+ UPDATE messages
+-SET labels = $1, flags = $2
++SET labels = labels || $1, flags = $2
+ WHERE
+     account_id = $3
+     AND message_id = $4

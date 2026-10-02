@@ -37,8 +37,9 @@ paged.
 - **The account-level series come from the mediator, which runs continuously.** It reads each
   account's rate-state row and emits the rate, the floor, the bucket's level, how long since any
   class last asked and how long since the last grant. A worker still waiting asks again at least
-  once a lease period, so an abandoned request stops counting as demand within a minute. The job workloads run only now and then, so their series are absent between runs
-  by design. A rule that fires when the mediator's series are absent covers missing data, so it
+  once a lease period, so an abandoned request stops counting as demand within a minute. The
+  workloads that run and exit run only now and then, so their series are absent between runs by
+  design. A rule that fires when the mediator's series are absent covers missing data, so it
   never reads as a healthy account.
 - **The runaway rule reads the cost of provider requests counted where each request is sent,**
   never a figure derived from lease accounting, because a runaway is the failure in which lease
@@ -88,10 +89,12 @@ paged.
   pinned tools.
 - The page reaching a person is proven on the deploying side.
 - Each spending process counts the cost of the provider requests it sends. A process that exits
-  between two scrapes can leave its last requests uncounted, which matters for delta sync's short
-  ticks, and how its count reaches the runaway rule is decided with delta sync. More generally the
-  rules see a process's cost only once it has been scraped twice inside their window, so a runaway
-  spread across processes that each live less than two scrape intervals reaches neither rule.
+  between two scrapes can leave its last requests uncounted. Delta sync's ticks are short, so it
+  runs until stopped and serves its count between ticks
+  ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)). More
+  generally the rules see a process's cost only once it has been scraped twice inside their window,
+  so a runaway spread across processes that each live less than two scrape intervals reaches
+  neither rule.
 - The runaway rule's two minutes do not see the one more bucket a forward step of the database
   clock or a stale stored instant can release ([ADR-0024](./0024-conservative-target-aimd.md)),
   since two minutes at the target stay far below its threshold. A stored instant that stays stale

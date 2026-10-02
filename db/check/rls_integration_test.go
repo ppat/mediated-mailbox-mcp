@@ -301,6 +301,9 @@ var providerRoles = []string{
 	"mediated_mailbox_sync",
 }
 
+// syncRole is delta sync's role, the one runtime role that writes a client's secret (ADR-0092).
+const syncRole = "mediated_mailbox_sync"
+
 // TestTheProviderCallingRolesReadOnlyTheirAccountsState holds the account snapshot's grants on
 // account_state to row-level security, under the roles as the migration chain grants them. Each of the
 // four roles that call a provider reads its transaction's account's credential and no other's, and an
@@ -364,9 +367,9 @@ func TestTheProviderCallingRolesReadOnlyTheirAccountsState(t *testing.T) {
 
 // TestOnlyTheProviderCallingRolesReadTheOAuthClients holds oauth_clients' grants, the only barrier
 // around a table that belongs to no account (ADR-0016). The four roles that call a provider read every
-// row. The UI's read of the client's identity arrives with M7's statements, and delta sync's write
-// with the statement that re-seals a client's secret, so today no other role reads it and no role
-// writes it (ADR-0084, ADR-0092).
+// row. Delta sync's role writes a client's secret, which its re-seal does, and nothing else of the
+// table. The UI's read of the client's identity and its write arrive with M7's statements, so today no
+// other role reads it and no other role writes it (ADR-0084, ADR-0092).
 func TestOnlyTheProviderCallingRolesReadTheOAuthClients(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -393,11 +396,21 @@ func TestOnlyTheProviderCallingRolesReadTheOAuthClients(t *testing.T) {
 	}
 	for _, role := range runtimeRoles {
 		t.Run(role+"/writes a client", func(t *testing.T) {
-			if _, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_secret = client_secret"); !refusedByGrant(err) {
-				t.Errorf("updating: got %v, want the grant to refuse it", err)
+			_, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_secret = client_secret")
+			switch {
+			case role == syncRole && err != nil:
+				t.Errorf("updating the secret: got %v, want delta sync's re-seal to write it", err)
+			case role != syncRole && !refusedByGrant(err):
+				t.Errorf("updating the secret: got %v, want the grant to refuse it", err)
+			}
+			if _, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_id = client_id"); !refusedByGrant(err) {
+				t.Errorf("updating the identifier: got %v, want the grant to refuse it", err)
 			}
 			if _, err := as(ctx, tx, role, accountA, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ('new', 'id', 's')"); !refusedByGrant(err) {
 				t.Errorf("inserting: got %v, want the grant to refuse it", err)
+			}
+			if _, err := as(ctx, tx, role, accountA, "DELETE FROM oauth_clients"); !refusedByGrant(err) {
+				t.Errorf("deleting: got %v, want the grant to refuse it", err)
 			}
 		})
 	}

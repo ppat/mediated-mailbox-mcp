@@ -27,9 +27,10 @@ immutable snapshot that a process reloads and that a unit of work takes once
   loads the snapshot at start. A process that runs until stopped, as the mediator does, reloads it
   on a schedule its configuration sets
   ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)). A workload
-  that runs and exits, as backfill does, takes it once at start. Delta sync does one or the other,
-  as its form is built ([ADR-0022](./0022-four-workloads.md)), and either way it loads the snapshot
-  within each five-minute run.
+  that runs and exits, as backfill does, takes it once at start. Delta sync runs until stopped and
+  loads the snapshot at the start of each tick, so it loads it within each five-minute run
+  ([ADR-0022](./0022-four-workloads.md),
+  [ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)).
 - **A unit of work takes the snapshot once** and never reads it again mid-flight.
 - **A reload whose read fails keeps the previous snapshot and is logged.** A read that succeeds and
   lists no account serves none, so a fault that empties the table fails closed rather than keeping

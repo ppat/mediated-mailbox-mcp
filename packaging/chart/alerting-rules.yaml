@@ -3,8 +3,10 @@
 # PrometheusRule resource when alertingRules.enabled is set, and a platform without the Prometheus Operator loads it
 # its own way. Routing a firing rule to a person is the platform's.
 #
-# ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules, and
-# policyload/testdata/alerting-rules-test.yaml those of the policy reload rule, each run from a Go test in its package.
+# ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules,
+# policyload/testdata/alerting-rules-test.yaml those of the policy reload rule, and
+# sync/internal/tick/testdata/alerting-rules-test.yaml those of the cursor gap rule, each run from a Go test in its
+# package.
 # ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule and the rule for
 # its missing threshold read none of them. They read two series every spending process emits through its provider
 # adapter, labelled by account and by provider. mediated_mailbox_provider_request_cost_total counts the cost, in the
@@ -97,3 +99,24 @@ groups:
       summary: >-
         A policy reload failed in {{ $labels.instance }}. A process that loaded policy earlier keeps its last good
         snapshot, and one that never did restricts every sender.
+- name: mediated-mailbox-sync
+  rules:
+  # A cursor gap (ADR-0018, ADR-0105). Delta sync counts every gap it finds, each starting a recovery that
+  # re-enumerates the window since the account's last cursor was written. The rule fires for about an hour after any
+  # gap, so a recovery that succeeds is still loud, and a gap found again on every tick, whose recovery keeps
+  # failing, keeps it firing. Delta sync runs until stopped and creates each account's series at zero on its first
+  # tick (ADR-0103). The second clause fires for a series whose first sample already counts a gap, found on the
+  # tick a process started with, which an increase cannot see. A process that restarts starts its count at zero,
+  # which the increase reads as a reset rather than a gap. The sums by account join the two clauses on one label set.
+  - alert: MediatedMailboxSyncCursorGap
+    expr: |
+      sum by (account) (increase(mediated_mailbox_sync_cursor_gaps_total[1h])) > 0
+      or sum by (account) (mediated_mailbox_sync_cursor_gaps_total
+      unless mediated_mailbox_sync_cursor_gaps_total offset 1h) > 0
+    labels:
+      severity: warning
+    annotations:
+      summary: >-
+        Delta sync found a cursor gap for account {{ $labels.account }} within the last hour and re-enumerated the
+        window since its last cursor. A gap found again and again means delta sync is stuck or stopped for longer than
+        the provider keeps its change history.

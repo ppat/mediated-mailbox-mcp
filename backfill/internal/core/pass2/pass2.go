@@ -1,13 +1,11 @@
 // Package pass2 holds the decisions of backfill's second pass, as values (ADR-0017, ADR-0040). The
 // shell reads the messages waiting for a scan a page at a time and enacts what this package decides.
 //
-// Begin decides how a run starts, and only once the first pass has ended for the account. Delisted
-// decides which sender domains of the messages stored as restricted or skipped as restricted the
-// policy in force no longer restricts, the delisting transition's comparison (ADR-0037). Gate decides whether one message's body is
-// scanned, from its own inputs and its sender's current ones (ADR-0093, ADR-0094). Overturned decides
-// which stored gate skips a backfill run returns to pending, those the gate no longer decides as the
-// same skip (ADR-0098). Scan decides what a scanned body records. OnFailure decides what a run does
-// after an attempt at a body fails. Advance moves the checkpoint past a page once the page is durable,
+// Begin decides how a run starts, and only once the first pass has ended for the account. The delisting
+// transition's comparison, the gate and what a scanned body records are core/index's, which delta sync
+// shares (ADR-0037, ADR-0093, ADR-0094). Overturned decides which stored gate skips a backfill run
+// returns to pending, those the gate no longer decides as the same skip (ADR-0098). OnFailure decides
+// what a run does after an attempt at a body fails. Advance moves the checkpoint past a page once the page is durable,
 // and Restart starts the pass over.
 //
 // A checkpoint is the number of pages made durable and the identifier of the last message they read.
@@ -16,16 +14,12 @@
 package pass2
 
 import (
-	"slices"
-	"strings"
-
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
-	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
-	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 )
 
 // Checkpoint is where a pass stands.
@@ -83,101 +77,25 @@ func Restart(at Progress) Progress {
 	return Progress{Counters: at.Counters}
 }
 
-// Delisted returns the domains among restricted, the sender domains of the messages stored as
-// restricted or skipped as restricted, that the account policy p no longer restricts, in the order given (ADR-0037). A domain
-// the classifier cannot read stays restricted, and a policy that never loaded restricts every domain,
-// so neither delists anything.
-func Delisted(p policy.Composed, l classify.Lookups, restricted []string) []string {
-	var out []string
-	for _, d := range restricted {
-		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
-			out = append(out, d)
-		}
-	}
-	return out
-}
-
-// Message is one message waiting for a scan, as the page read returns it, or one the gate skipped, as
-// the read of the stored gate skips returns it.
-type Message struct {
-	ID string
-	// From is the sender's address, and Domain its domain as the index stores it.
-	From, Domain string
-	// SubjectMasked reports whether the first pass masked the subject.
-	SubjectMasked bool
-	// ListID reports whether the message carries its own List-Id header.
-	ListID    bool
-	SizeBytes int64
-	SentAt    mail.UnixMilli
-	// SenderVolume and SenderHits are the sender's volume and prior hits as the page read found them.
-	SenderVolume, SenderHits int64
-}
-
-// Gate returns the scan gate's decision on m, with the sender's class under the account policy p and
-// its prior hits counting pageHits, the hits the run found on this page among the sender's messages
-// before m, so a sender's first hit reaches its next message (ADR-0094). The thresholds are c, and
-// the message's age is measured at now.
-func Gate(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.UnixMilli, m Message, pageHits int64) scangate.Verdict {
-	local := m.From
-	if at := strings.LastIndexByte(m.From, '@'); at >= 0 {
-		local = m.From[:at]
-	}
-	return scangate.Decide(c, now, scangate.Input{
-		Class:         classify.Classify(p, m.From, l).Class(),
-		SubjectMasked: m.SubjectMasked,
-		ListID:        m.ListID,
-		LocalPart:     local,
-		SizeBytes:     m.SizeBytes,
-		SentAt:        m.SentAt,
-		SenderVolume:  m.SenderVolume,
-		PriorHits:     m.SenderHits + pageHits,
-	})
-}
-
 // Overturned returns the identifiers of the stored gate skips among skips that the gate, deciding each
 // again, no longer decides as the same skip, in the order given (ADR-0098). It decides as Gate does,
 // with the sender's class under the account policy p, the thresholds c and the message's age measured
 // at now. A skip stands only while the gate decides it again as high_volume_no_hits, so a message the
 // gate would now scan, one under thresholds that cannot decide and one whose sender p now restricts
 // are all overturned.
-func Overturned(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.UnixMilli, skips []Message) []string {
+func Overturned(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.UnixMilli, skips []index.Waiting) []string {
 	var out []string
 	for _, m := range skips {
-		if Gate(p, l, c, now, m, 0).Reason() != scangate.HighVolumeNoHits {
+		if index.Gate(p, l, c, now, m, 0).Reason() != scangate.HighVolumeNoHits {
 			out = append(out, m.ID)
 		}
 	}
 	return out
 }
 
-// Scanned is what a scanned body records, its content flags, the identifiers of the content rules
-// that fired, the scanner version and the configuration's revision (ADR-0009).
-type Scanned struct {
-	Flags    sensitivity.ContentFlags
-	Rules    []string
-	Version  int
-	Revision string
-}
-
-// Scan returns what a body records once scanned by s, from the Markdown of its HTML part and its text
-// part. A flag in either flags the message, since release may serve either (ADR-0017). The rules are
-// the content rules alone, each once, sorted. A scanner nobody built flags the body, as its verdict
-// does.
-func Scan(s scan.Scanner, markdown, text string) Scanned {
-	a, b := s.Scan(markdown), s.Scan(text)
-	rules := append(append([]string{}, a.Rules()...), b.Rules()...)
-	slices.Sort(rules)
-	return Scanned{
-		Flags:    sensitivity.Flags(a.Flags().MFACode() || b.Flags().MFACode(), a.Flags().LoginLink() || b.Flags().LoginLink()),
-		Rules:    slices.Compact(rules),
-		Version:  a.Version(),
-		Revision: a.Revision(),
-	}
-}
-
 // Attempt is what a run knows when an attempt at a message's body fails.
 type Attempt struct {
-	Class pass1.ErrorClass
+	Class index.ErrorClass
 	// Attempts counts the attempts at the body, the one that failed included.
 	Attempts int
 }
@@ -211,47 +129,30 @@ const (
 // is not the provider's fails the run.
 func OnFailure(f Attempt) Next {
 	switch {
-	case f.Class == pass1.NotProvider:
+	case f.Class == index.NotProvider:
 		return FailRun
-	case f.Class == pass1.Throttled && f.Attempts < pass1.MaxAttempts:
+	case f.Class == index.Throttled && f.Attempts < pass1.MaxAttempts:
 		return Backoff
-	case f.Class == pass1.ProviderError && f.Attempts < pass1.MaxAttempts:
+	case f.Class == index.ProviderError && f.Attempts < pass1.MaxAttempts:
 		return Retry
-	case f.Class == pass1.ProviderError, f.Class == pass1.Validation:
+	case f.Class == index.ProviderError, f.Class == index.Validation:
 		return Abandon
-	case f.Class == pass1.Gone:
+	case f.Class == index.Gone:
 		return Gone
 	default:
 		return Stop
 	}
 }
 
-// Outcome is what the run did with one message of a page.
-type Outcome struct {
-	ID, Domain string
-	// Verdict is the gate's decision.
-	Verdict scangate.Verdict
-	// Scanned is what the message's scan records, nil when it was not scanned.
-	Scanned *Scanned
-}
-
 // Page is what one page of the pass makes durable.
 type Page struct {
-	Outcomes []Outcome
+	Outcomes []index.Outcome
 	// Last is the identifier of the page's last message.
 	Last string
 }
 
 // Hits returns how many of the page's scanned messages carry a content flag, by the sender's domain.
-func (p Page) Hits() map[string]int64 {
-	hits := map[string]int64{}
-	for _, o := range p.Outcomes {
-		if o.Scanned != nil && o.Scanned.Flags.Any() {
-			hits[o.Domain]++
-		}
-	}
-	return hits
-}
+func (p Page) Hits() map[string]int64 { return index.Hits(p.Outcomes) }
 
 // Advance returns the progress after the page is durable.
 func Advance(at Progress, p Page) Progress {

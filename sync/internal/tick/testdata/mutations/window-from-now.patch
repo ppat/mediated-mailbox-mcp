@@ -1,0 +1,20 @@
+control: A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
+removes: a gap's window starts an hour before now, whenever the last cursor was written
+packages: ./sync/internal/core/tick ./sync/internal/tick
+tests: TestWindow TestAGapIsRecoveredOverTheWindowSinceTheLastCursor
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/core/tick/tick.go b/sync/internal/core/tick/tick.go
+index 32aeabc..d7601ec 100644
+--- a/sync/internal/core/tick/tick.go
++++ b/sync/internal/core/tick/tick.go
+@@ -23,7 +23,7 @@ const Overlap = mail.UnixMilli(60 * 60 * 1000)
+ // reconciliation, and starts first before now (ADR-0105).
+ func Window(cursorAt *mail.UnixMilli, now, first mail.UnixMilli) (start, end mail.UnixMilli) {
+ 	if cursorAt != nil {
+-		return *cursorAt - Overlap, now
++		return now - Overlap, now
+ 	}
+ 	return now - first, now
+ }

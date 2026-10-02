@@ -6,12 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
+index 702bfb7..44f325d 100644
 --- a/backfill/internal/core/pass2/pass2.go
 +++ b/backfill/internal/core/pass2/pass2.go
-@@ -187,7 +187,7 @@ func OnFailure(f Attempt) Next {
- 	case f.Class == pass1.ProviderError, f.Class == pass1.Validation:
+@@ -138,7 +138,7 @@ func OnFailure(f Attempt) Next {
+ 	case f.Class == index.ProviderError, f.Class == index.Validation:
  		return Abandon
- 	case f.Class == pass1.Gone:
+ 	case f.Class == index.Gone:
 -		return Gone
 +		return Stop
  	default:

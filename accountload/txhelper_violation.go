@@ -10,8 +10,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
 )
 
-// This file runs statements beside the txhelper analyser's two exceptions on purpose, and banproof
-// requires the wants below from go vet. The accounts listing and the read of oauth_clients may run on
+// This file runs statements beside the two of the txhelper analyser's exceptions that accountload
+// uses on purpose, and banproof requires the wants below from go vet. The accounts listing and the read of oauth_clients may run on
 // any handle only as one chained call. The listing's queries held in a variable, and the credential's
 // statement chained the same way, are held to the transaction helper.
 func besideTheExceptions(ctx context.Context, db DB) error {

@@ -1,0 +1,20 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: a tick scans whether or not backfill's second pass has ended
+packages: ./sync/internal/tick
+tests: TestBeforeTheSecondPassHasEndedATickScansNothing TestATickAppliesTheChangesSinceItsCursor
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index b5e0a1d..ad26ac4 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -89,7 +89,7 @@ func Run(ctx context.Context, deps Deps, account string) (Result, error) {
+ 	if err != nil {
+ 		return t.result, t.failed(ctx, err)
+ 	}
+-	if state.SecondEnded {
++	if true || state.SecondEnded {
+ 		t.result.Scanning = true
+ 		if err := t.scanning(ctx); err != nil {
+ 			return t.result, t.failed(ctx, err)

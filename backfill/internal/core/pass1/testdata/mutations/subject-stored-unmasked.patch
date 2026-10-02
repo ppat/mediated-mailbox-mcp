@@ -1,14 +1,15 @@
 control: Every subject is masked and every sender classified before the message reaches the index
 removes: a message reaches the index with its subject as the provider gave it
-packages: ./backfill/internal/core/pass1 ./backfill/internal/pass1
-tests: TestDecide TestDecideFailsClosed TestAKilledRunResumesFromItsCheckpoint TestAPassIndexesTheWholeMailbox
+packages: ./core/index ./backfill/internal/pass1 ./sync/internal/tick
+tests: TestDecide TestDecideFailsClosed TestAKilledRunResumesFromItsCheckpoint TestAPassIndexesTheWholeMailbox TestATickAppliesTheChangesSinceItsCursor
 scheduled-count: no
 integration: yes
 
-diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
---- a/backfill/internal/core/pass1/pass1.go
-+++ b/backfill/internal/core/pass1/pass1.go
-@@ -181,7 +181,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+diff --git a/core/index/index.go b/core/index/index.go
+index f1f7b2f..3a622cb 100644
+--- a/core/index/index.go
++++ b/core/index/index.go
+@@ -105,7 +105,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
  			ThreadID:       m.ThreadID,
  			From:           m.From,
  			Domain:         domain(m.From.Email),
