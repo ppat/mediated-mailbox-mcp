@@ -853,11 +853,13 @@ func (s *session) Metadata(ctx context.Context, id string) (mail.MessageMetadata
 }
 
 // Done ends the request's unit of work. It hands the source's current refresh token to the loader,
-// naming the account's adoption the session started from, so the loader writes a rotated one back by
-// compare-and-set and discards it when someone else replaced the credential while the request ran, and records
-// the latest authentication attempt the source reports (ADR-0082, ADR-0089, ADR-0097). A failure of either is logged and fails nothing, since the
-// request's answer is already decided. The loader keeps a rotated credential whose write-back failed,
-// and the next request hands it over again (ADR-0090).
+// naming the adoption that came with the credential the source was built from, at the session's start
+// or from a refused credential read again, so the loader writes a rotated one back by compare-and-set
+// and discards it when someone else replaced the credential since that credential was taken, and
+// records the latest authentication attempt the source reports (ADR-0082, ADR-0089, ADR-0097). A
+// failure of either is logged and fails nothing, since the request's answer is already decided. The
+// loader keeps a rotated credential whose write-back failed, and the next request hands it over again
+// (ADR-0090).
 func (s *session) Done(ctx context.Context) {
 	logger, loader := s.p.served.logger, s.p.served.loader
 	if _, err := loader.HandOver(ctx, s.account, s.adoption, []byte(s.source.RefreshToken())); err != nil {

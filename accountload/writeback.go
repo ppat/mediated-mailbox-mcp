@@ -18,33 +18,37 @@ import (
 // no bytes a compare-and-set could compare against.
 var ErrNotConnected = errors.New("the account has no stored credential the loader knows")
 
-// Persist is the call a deployable makes at the end of each unit of work with the credential its
-// provider adapter holds at that moment, such as the refresh token a Gmail token source holds. A
-// credential equal to the one last read or written needs nothing. Any other is a rotation, sealed
-// and written to the account's state row only if the row still holds the bytes the loader last read
-// or wrote (ADR-0082, ADR-0089). It returns the credential the caller should hold from then on.
+// Persist writes back the credential a provider adapter holds, such as the refresh token a Gmail
+// token source holds, without naming the Adoption that came with the credential it was built from. A
+// unit of work hands its credential over through HandOver instead, so a value someone else stored
+// since that credential was taken is never put back. A credential equal to the one last read or
+// written needs nothing. Any other is a rotation, sealed and written to the account's state row only
+// if the row still holds the bytes the loader last read or wrote (ADR-0082, ADR-0089). It returns the
+// credential the caller should hold from then on.
 //
 //   - When the write lands, that is the rotated credential.
 //   - When the row holds other bytes, someone else replaced the value. The write changes nothing, and
 //     the stored value is read again, opened and returned, so the caller drops its own.
 //   - When the write fails, the rotated credential is held in memory, the failure is logged and
 //     returned, and a reload keeps the rotated credential while the stored bytes stay the ones the
-//     loader knew (ADR-0090). The next unit of work's call writes it again. A restart before a write
-//     lands loses it.
+//     loader knew (ADR-0090). The next unit of work's hand-over writes it again. A restart before a
+//     write lands loses it.
 func (l *Loader) Persist(ctx context.Context, account string, current []byte) ([]byte, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return l.persist(ctx, account, current)
 }
 
-// HandOver is Persist for a unit of work that took the account's Adoption as it started and holds
-// current as it ends. When the adoption has moved, a reload or a re-read adopted a value someone else
-// stored while the unit ran, so current is stale beside it. It is discarded and the credential the
-// loader holds is returned, since a compare-and-set against the adopted bytes would land and put the
-// replaced value back (ADR-0089). A write-back of the loader's own moves nothing, so a rotation
-// handed over by a unit that overlapped one whose rotation landed is written by compare-and-set
-// against that rotation's bytes. The check and the write hold the same lock a reload and a re-read
-// take, so neither can land between them.
+// HandOver is the call a deployable makes at the end of each unit of work. It is Persist for a unit
+// that holds current as it ends and names adoption, the Adoption that came with the credential
+// current was built from, which is the account's Adoption when that credential was taken, from the
+// snapshot or from a re-read the unit went on with. When the adoption has moved, a reload or a
+// re-read adopted a value someone else stored since that credential was taken, so current is stale
+// beside it. It is discarded and the credential the loader holds is returned, since a compare-and-set
+// against the adopted bytes would land and put the replaced value back (ADR-0089). A write-back of
+// the loader's own moves nothing, so a rotation handed over by a unit that overlapped one whose
+// rotation landed is written by compare-and-set against that rotation's bytes. The check and the
+// write hold the same lock a reload and a re-read take, so neither can land between them.
 func (l *Loader) HandOver(ctx context.Context, account string, adoption uint64, current []byte) ([]byte, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

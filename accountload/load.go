@@ -58,8 +58,10 @@ func (a Account) Connected() bool { return a.credential != nil }
 func (a Account) Credential() []byte { return a.credential }
 
 // Adoption identifies the last value the loader adopted from the account's row that it did not write
-// itself. A unit of work hands it over as it stood when the unit started, and HandOver discards the
-// hand-over once it has moved (ADR-0089).
+// itself. A unit of work hands over, beside the credential it holds, the Adoption that came with the
+// credential that one was built from, which is the account's Adoption when that credential was
+// taken, from the snapshot or from a re-read the unit went on with. HandOver discards the hand-over
+// once the account's Adoption has moved since (ADR-0089).
 func (a Account) Adoption() uint64 { return a.adoption }
 
 // Client is an installation's OAuth client for one provider (ADR-0083).

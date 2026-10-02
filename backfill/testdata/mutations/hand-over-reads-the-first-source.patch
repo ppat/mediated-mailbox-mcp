@@ -1,24 +1,26 @@
 control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
 removes: the hand-over hands over the source the run started with, so a source the unit of work replaced is never handed over
 packages: ./backfill
-tests: TestARunHandsEachAccountOverWhenItsUnitEnds
+tests: TestARunHandsEachAccountOverWhenItsUnitEnds TestARotationAfterARereadIsWrittenBack
 scheduled-count: no
 integration: yes
+
 diff --git a/backfill/main.go b/backfill/main.go
+index 31cb3c5..b0a4738 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -254,13 +254,14 @@
- 	for account, c := range creds {
- 		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
+@@ -267,13 +267,14 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 		a, _ := snapshot.Account(account)
+ 		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), adoption: a.Adoption()}
  	}
 +	first := maps.Clone(sources)
  	return work(ctx, served{sources: sources, policy: policies.Snapshot(), handOver: func(ctx context.Context, account string) error {
- 		source := sources[account]
+ 		held := sources[account]
  		var attempt mail.AuthAttempt
- 		if source != nil {
- 			attempt = source.LastAttempt()
+ 		if held.source != nil {
+ 			attempt = held.source.LastAttempt()
  		}
--		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
+-		return errors.Join(handOver(ctx, loader, account, held), recordAttempt(ctx, pool, account, attempt))
 +		return errors.Join(handOver(ctx, loader, account, first[account]), recordAttempt(ctx, pool, account, attempt))
  	}, reauthorize: func(ctx context.Context, account string) (*gmail.TokenSource, error) {
  		reread, err := loader.Reread(ctx, account)

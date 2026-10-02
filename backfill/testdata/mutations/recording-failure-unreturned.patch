@@ -4,16 +4,18 @@ packages: ./backfill
 tests: TestTheRunsHandOverReturnsAFailedRecording
 scheduled-count: no
 integration: yes
+
 diff --git a/backfill/main.go b/backfill/main.go
+index 31cb3c5..31e9883 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -260,7 +260,8 @@
- 		if source != nil {
- 			attempt = source.LastAttempt()
+@@ -273,7 +273,8 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 		if held.source != nil {
+ 			attempt = held.source.LastAttempt()
  		}
--		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
+-		return errors.Join(handOver(ctx, loader, account, held), recordAttempt(ctx, pool, account, attempt))
 +		_ = recordAttempt(ctx, pool, account, attempt)
-+		return handOver(ctx, loader, account, source)
++		return handOver(ctx, loader, account, held)
  	}, reauthorize: func(ctx context.Context, account string) (*gmail.TokenSource, error) {
  		reread, err := loader.Reread(ctx, account)
  		if err != nil {

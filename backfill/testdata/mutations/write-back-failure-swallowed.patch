@@ -6,16 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 67ad03c..355f579 100644
+index 31cb3c5..5bffe13 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -314,8 +314,8 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, s
- 	if source == nil {
+@@ -329,8 +329,8 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, h
+ 	if held.source == nil {
  		return nil
  	}
--	_, err := loader.Persist(ctx, account, []byte(source.RefreshToken()))
+-	_, err := loader.HandOver(ctx, account, held.adoption, []byte(held.source.RefreshToken()))
 -	return err
-+	_, _ = loader.Persist(ctx, account, []byte(source.RefreshToken()))
++	_, _ = loader.HandOver(ctx, account, held.adoption, []byte(held.source.RefreshToken()))
 +	return nil
  }
  

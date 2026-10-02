@@ -8,8 +8,8 @@ integration: yes
 diff --git a/mediate/main.go b/mediate/main.go
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -859,7 +859,7 @@
- // and the next request hands it over again (ADR-0090).
+@@ -862,7 +862,7 @@
+ // (ADR-0090).
  func (s *session) Done(ctx context.Context) {
  	logger, loader := s.p.served.logger, s.p.served.loader
 -	if _, err := loader.HandOver(ctx, s.account, s.adoption, []byte(s.source.RefreshToken())); err != nil {

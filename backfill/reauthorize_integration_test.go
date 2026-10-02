@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
@@ -179,5 +181,99 @@ func TestAFailedReadOfTheRefusedCredentialIsReported(t *testing.T) {
 	}
 	if p.refused != 1 {
 		t.Errorf("the provider refused %d calls, want one", p.refused)
+	}
+}
+
+// operatorReplaced sets up the account personal, connected with the refresh token first-token, and
+// returns a run of backfill over work and a function that stores second-token as the operator's
+// re-authorization would, returning the sealed bytes it stored.
+func operatorReplaced(t *testing.T) (func(t *testing.T, work unitOfWork) error, func(t *testing.T) []byte, *open.Keyring) {
+	t.Helper()
+	conn := superuser(t)
+	reset(t, conn)
+	ring, public := keys(t)
+	account(t, conn, "personal", gmailProvider, sealed(t, public, "first-token", seal.AccountCredential("personal")), false)
+	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
+		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	run := func(t *testing.T, work unitOfWork) error {
+		t.Helper()
+		return backfill(t.Context(), backfillPool(t), ring, slog.New(slog.DiscardHandler), prometheus.NewRegistry(), work)
+	}
+	replace := func(t *testing.T) []byte {
+		t.Helper()
+		replaced := sealed(t, public, "second-token", seal.AccountCredential("personal"))
+		must(t, conn, "UPDATE account_state SET credential = $1 WHERE account_id = 'personal'", replaced)
+		return replaced
+	}
+	return run, replace, ring
+}
+
+// reauthorized reads the account's refused credential again through the run's reauthorize, failing
+// the test unless it built a source over the credential the operator stored.
+func reauthorized(ctx context.Context, t *testing.T, s served, account string) {
+	t.Helper()
+	source, err := s.reauthorize(ctx, account)
+	if err != nil {
+		t.Fatalf("reading the refused credential again: %v", err)
+	}
+	if source == nil || source.RefreshToken() != "second-token" {
+		t.Fatal("reading the refused credential again built no source over the one the operator stored")
+	}
+}
+
+// D1's part of VERIFICATIONS' row for a write-back based on a credential the operator has since
+// replaced, the re-read's half. A run that reads the operator's credential again after a refusal and
+// builds its source over it hands over with the re-read's adoption stamp, so a rotation the new
+// source receives afterwards is written to the account's row. Google's rotation is out of reach
+// without a stand-in for its endpoint (ADR-0043), so the unit of work replaces the new source with
+// one holding the token a rotation would leave (ADR-0082, ADR-0089, ADR-0090).
+func TestARotationAfterARereadIsWrittenBack(t *testing.T) {
+	run, replace, ring := operatorReplaced(t)
+	work := func(ctx context.Context, s served) error {
+		replace(t)
+		reauthorized(ctx, t, s, "personal")
+		s.sources["personal"] = called(s.sources["personal"], gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{
+			ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "second-token-rotated",
+		}))
+		return s.handOver(ctx, "personal")
+	}
+
+	if err := run(t, work); err != nil {
+		t.Fatalf("backfill returned %v", err)
+	}
+
+	if a, _ := loaded(t, ring, slog.New(slog.DiscardHandler)).Snapshot().Account("personal"); string(a.Credential()) != "second-token-rotated" {
+		t.Errorf("after a restart the account holds %q, want the rotation the new source received", a.Credential())
+	}
+}
+
+// D1's part of VERIFICATIONS' row for a write-back based on a credential the operator has since
+// replaced, the stale hand-over's half. A unit of work that took its source before the loader
+// adopted the operator's credential hands over that source's stamp, which the adoption moved, so the
+// loader discards the hand-over and the operator's credential stays stored, even though the loader
+// last knew the operator's bytes and a compare-and-set against them would land. Backfill's own
+// re-read replaces the source and its stamp together, so the unit of work hands the source it took
+// before the re-read back, as a run whose loader adopted a value while that unit ran would hold it,
+// rotated, since an unchanged credential writes nothing whatever its stamp (ADR-0089).
+func TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential(t *testing.T) {
+	run, replace, _ := operatorReplaced(t)
+	conn := superuser(t)
+	var replaced []byte
+	work := func(ctx context.Context, s served) error {
+		before := s.sources["personal"]
+		replaced = replace(t)
+		reauthorized(ctx, t, s, "personal")
+		s.sources["personal"] = called(before, gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{
+			ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "first-token-rotated",
+		}))
+		return s.handOver(ctx, "personal")
+	}
+
+	if err := run(t, work); err != nil {
+		t.Fatalf("backfill returned %v, want the stale hand-over discarded without an error", err)
+	}
+
+	if got := storedCredential(t, conn, "personal"); !bytes.Equal(got, replaced) {
+		t.Error("a hand-over from before the adoption wrote its credential over the one the operator stored")
 	}
 }
