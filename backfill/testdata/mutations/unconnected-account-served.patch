@@ -1,4 +1,4 @@
-control: A run serves only a connected account whose provider it has an adapter and an OAuth client for
+control: A run serves only a connected account whose provider it has an adapter for and that connects through an OAuth client
 removes: an account that is not connected is served with an empty refresh token
 packages: ./backfill
 tests: TestARunTakesItsAccountsFromTheDatabase
@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..044b885 100644
+index c684d7eb..9e643b37 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -150,10 +150,6 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
- func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string]gmail.Credentials {
+@@ -302,10 +302,6 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) (map[string]gmail.Credentials, error) {
  	out := map[string]gmail.Credentials{}
  	for _, a := range snapshot.Accounts() {
 -		if !a.Connected() {

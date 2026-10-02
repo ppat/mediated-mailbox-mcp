@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/sync/main.go b/sync/main.go
-index 86ddcc1..d52e4c9 100644
+index 2fea0413..2d2d99fb 100644
 --- a/sync/main.go
 +++ b/sync/main.go
-@@ -468,7 +468,7 @@ func retried[T any](ctx context.Context, r *reauthorizing, call func(context.Con
+@@ -471,7 +471,7 @@ func retried[T any](ctx context.Context, r *reauthorizing, call func(context.Con
  	if cerr != nil {
  		return out, errors.Join(err, cerr)
  	}
--	r.source, r.adoption, r.leased.Port = source, reread.Adoption(), port
-+	r.source, r.leased.Port = source, port
+-	r.creds, r.source, r.adoption, r.leased.Port = creds, source, reread.Adoption(), port
++	r.creds, r.source, r.leased.Port = creds, source, port
  	return call(ctx, r.leased)
  }
  

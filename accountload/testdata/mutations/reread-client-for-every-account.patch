@@ -1,0 +1,20 @@
+control: An account is loaded with the OAuth client it names, and an account that names none with none
+removes: a client read again after a refused re-seal is handed to every account that names a client, the ones naming another client included
+packages: ./sync/internal/reseal
+tests: TestAReSealNeverPutsBackAReplacedSecret
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/reseal.go b/accountload/reseal.go
+index 7878c544..69e3b89d 100644
+--- a/accountload/reseal.go
++++ b/accountload/reseal.go
+@@ -152,7 +152,7 @@ func (l *Loader) rereadClient(ctx context.Context, name string) error {
+ 	}
+ 	next := &Snapshot{accounts: slices.Clone(l.active.Load().accounts)}
+ 	for i, a := range next.accounts {
+-		if a.clientName == name {
++		if a.clientName != "" {
+ 			next.accounts[i] = l.paired(a, name, opened)
+ 		}
+ 	}

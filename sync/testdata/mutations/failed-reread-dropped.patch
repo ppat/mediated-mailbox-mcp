@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/sync/main.go b/sync/main.go
-index ef58805..4d13029 100644
+index 2fea0413..7319a622 100644
 --- a/sync/main.go
 +++ b/sync/main.go
-@@ -448,7 +448,7 @@ func retried[T any](ctx context.Context, r *reauthorizing, call func(context.Con
+@@ -458,7 +458,7 @@ func retried[T any](ctx context.Context, r *reauthorizing, call func(context.Con
  	}
  	reread, rerr := r.syncer.loader.Reread(ctx, r.account)
  	if rerr != nil {
 -		return out, errors.Join(err, fmt.Errorf("reading the refused credential again: %w", rerr))
 +		return out, err
  	}
- 	stored := reread.Credential()
- 	if stored == nil || string(stored) == r.source.RefreshToken() {
+ 	held := r.creds
+ 	held.RefreshToken = r.source.RefreshToken()

@@ -12,20 +12,20 @@ import (
 const replaceSealedClient = `-- name: ReplaceSealedClient :execrows
 UPDATE oauth_clients
 SET client_secret = $1
-WHERE provider = $2 AND client_secret = $3
+WHERE name = $2 AND client_secret = $3
 `
 
 type ReplaceSealedClientParams struct {
 	ClientSecret []byte
-	Provider     string
+	ClientName   string
 	Known        []byte
 }
 
-// Writes a provider's re-sealed client secret only if the stored bytes are still the ones delta sync
-// last read, so a client the operator set up again is never put back (ADR-0089, ADR-0092). A write
-// that finds other bytes changes no row.
+// Writes a client's re-sealed secret, found by the client's name, only if the stored bytes are still
+// the ones delta sync last read, so a client the operator set up again is never put back (ADR-0089,
+// ADR-0092). A write that finds other bytes changes no row.
 func (q *Queries) ReplaceSealedClient(ctx context.Context, arg ReplaceSealedClientParams) (int64, error) {
-	result, err := q.db.Exec(ctx, replaceSealedClient, arg.ClientSecret, arg.Provider, arg.Known)
+	result, err := q.db.Exec(ctx, replaceSealedClient, arg.ClientSecret, arg.ClientName, arg.Known)
 	if err != nil {
 		return 0, err
 	}

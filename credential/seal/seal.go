@@ -1,5 +1,5 @@
 // Package seal is the sealing half of the credential library. It seals an account's provider
-// credential or the OAuth client's secret to the current public key, and it defines the bytes a
+// credential or an OAuth client's secret to the current public key, and it defines the bytes a
 // sealed value carries (ADR-0081, ADR-0088). It holds nothing that opens a value, so an import list
 // can admit it without the opening half, and the UI links no code that opens a credential. The
 // opening half imports this one, so the compiler refuses an import of it from here as a cycle.
@@ -180,7 +180,8 @@ const (
 	purposeNone purpose = iota
 	// purposeAccountCredential is an account's provider credential, stored in its state row.
 	purposeAccountCredential
-	// purposeClientSecret is the installation's OAuth client's secret.
+	// purposeClientSecret is the secret of one of the installation's OAuth clients, stored in the row
+	// its name keys.
 	purposeClientSecret
 )
 
@@ -210,7 +211,8 @@ func AccountCredential(accountID string) Context {
 	return Context{purpose: purposeAccountCredential, row: accountID}
 }
 
-// ClientSecret is the context of the OAuth client's secret, stored in the row its argument names.
+// ClientSecret is the context of an OAuth client's secret, stored in the row its argument names,
+// which is the client's name.
 func ClientSecret(row string) Context {
 	return Context{purpose: purposeClientSecret, row: row}
 }

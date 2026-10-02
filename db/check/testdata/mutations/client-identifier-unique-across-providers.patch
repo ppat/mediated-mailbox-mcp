@@ -1,0 +1,20 @@
+control: One OAuth client is never stored twice
+removes: a client identifier is unique across providers, so another provider's client holding the same identifier is refused
+packages: ./db/check
+tests: TestOneClientIsNeverStoredTwice
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00021_oauth_clients_by_name.sql b/db/migrations/00021_oauth_clients_by_name.sql
+index d5bbbce0..5daf6633 100644
+--- a/db/migrations/00021_oauth_clients_by_name.sql
++++ b/db/migrations/00021_oauth_clients_by_name.sql
+@@ -15,7 +15,7 @@ ALTER TABLE oauth_clients ADD PRIMARY KEY (name);
+ -- What an account's reference names, so the reference carries the provider.
+ ALTER TABLE oauth_clients ADD UNIQUE (name, provider);
+ -- One client is never stored twice under two names.
+-ALTER TABLE oauth_clients ADD UNIQUE (provider, client_id);
++ALTER TABLE oauth_clients ADD UNIQUE (client_id);
+ 
+ -- The client the account connects through, NULL for a provider without one. The reference carries
+ -- the provider, so an account cannot name another provider's client, and a client an account

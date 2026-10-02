@@ -203,10 +203,12 @@ func serveProbes(ln net.Listener, registry *prometheus.Registry, logger *slog.Lo
 }
 
 // holding is what a run holds for one account it serves: the token source the account's calls go
-// through, and the adoption stamp of the credential that source was built over, which the hand-over
-// names (ADR-0089). The two are replaced together, so a source never hands over another's stamp.
+// through, the credentials it was built from, which are the account's client and the credential the
+// source started with, and the adoption stamp of that credential, which the hand-over names
+// (ADR-0089). They are replaced together, so a source never hands over another's stamp.
 type holding struct {
 	source   *gmail.TokenSource
+	built    gmail.Credentials
 	adoption uint64
 }
 
@@ -221,12 +223,13 @@ type served struct {
 	// authentication attempt, for the unit of work to call after each unit it does with that source
 	// (ADR-0082, ADR-0097).
 	handOver func(ctx context.Context, account string) error
-	// reauthorize reads the account's credential again from its state row after the provider refused
-	// the one its source holds (ADR-0090). When the row holds another credential, it makes a source
-	// holding that one, with the re-read's adoption stamp, the account's holding, so handOver reads
-	// both from then on, and returns the source. It
-	// returns nil when the row holds the credential the source holds, which is the one refused, or the
-	// account is no longer connected, so the refusal stands.
+	// reauthorize reads the account's credential again from its state row, with the client the
+	// account now connects through, after the provider refused the one its source holds (ADR-0090,
+	// ADR-0106). When the row holds another credential or the account names another client, it makes
+	// a source from that pair, with the re-read's adoption stamp, the account's holding, so handOver
+	// reads both from then on, and returns the source. It returns nil when the pair is the one the
+	// source holds, which is the one refused, or the account is no longer connected, so the refusal
+	// stands.
 	reauthorize func(ctx context.Context, account string) (*gmail.TokenSource, error)
 }
 
@@ -243,7 +246,7 @@ type unitOfWork func(ctx context.Context, s served) error
 // again from its row through the loader, the one way a running unit of work sees a credential the
 // operator replaced after the snapshot was taken (ADR-0090).
 func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logger *slog.Logger, registry prometheus.Registerer, work unitOfWork) error {
-	loader := accountload.New(pool, keys, logger)
+	loader := accountload.New(pool, keys, logger, []string{gmailProvider})
 	if err := loader.Load(ctx); err != nil {
 		return fmt.Errorf("loading the accounts: %w", err)
 	}
@@ -262,10 +265,13 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 	}
 	logger.Info("policy loaded", "accounts", len(ids))
 	sources := map[string]holding{}
-	creds := credentials(snapshot, logger)
+	creds, err := credentials(snapshot, logger)
+	if err != nil {
+		return err
+	}
 	for account, c := range creds {
 		a, _ := snapshot.Account(account)
-		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), adoption: a.Adoption()}
+		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), built: c, adoption: a.Adoption()}
 	}
 	return work(ctx, served{sources: sources, policy: policies.Snapshot(), handOver: func(ctx context.Context, account string) error {
 		held := sources[account]
@@ -279,23 +285,24 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 		if err != nil {
 			return nil, err
 		}
-		stored := reread.Credential()
-		if stored == nil || string(stored) == sources[account].source.RefreshToken() {
+		held := sources[account].built
+		held.RefreshToken = sources[account].source.RefreshToken()
+		c, ok := sourceCredentials(reread)
+		if !ok || c == held {
 			return nil, nil
 		}
-		c := creds[account]
-		c.RefreshToken = string(stored)
-		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), adoption: reread.Adoption()}
+		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), built: c, adoption: reread.Adoption()}
 		return sources[account].source, nil
 	}})
 }
 
 // credentials returns the Gmail credentials of each account of the snapshot that backfill can serve,
-// keyed on the account. They are the installation's Gmail client and the account's refresh token,
-// which is the account's credential as the snapshot opened it (ADR-0083). An account that is not
-// connected, whose provider backfill has no adapter for, or whose provider has no client in the
-// snapshot is logged and skipped.
-func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string]gmail.Credentials {
+// keyed on the account. They are the OAuth client the account connects through and the account's
+// refresh token, which is the account's credential as the snapshot opened it (ADR-0106). An account
+// that is not connected, or whose provider backfill has no adapter for, is logged and skipped. The
+// snapshot connects no Gmail account without its client, since the loader is told Gmail
+// authenticates through one, so a connected Gmail account without a client is an error.
+func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) (map[string]gmail.Credentials, error) {
 	out := map[string]gmail.Credentials{}
 	for _, a := range snapshot.Accounts() {
 		if !a.Connected() {
@@ -306,18 +313,26 @@ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string
 			logger.Warn("backfill has no adapter for an account's provider, so it is skipped", "account", a.ID(), "provider", a.Provider())
 			continue
 		}
-		c, ok := snapshot.Client(gmailProvider)
+		c, ok := sourceCredentials(a)
 		if !ok {
-			logger.Warn("an account's provider has no OAuth client, so it is skipped", "account", a.ID(), "provider", a.Provider())
-			continue
+			return nil, fmt.Errorf("account %s: connected without the OAuth client its provider authenticates through", a.ID())
 		}
-		out[a.ID()] = gmail.Credentials{
-			ClientID:     c.ID(),
-			ClientSecret: string(c.Secret()),
-			RefreshToken: string(a.Credential()),
-		}
+		out[a.ID()] = c
 	}
-	return out
+	return out, nil
+}
+
+// sourceCredentials returns the Gmail credentials an account's token source is built from, the OAuth
+// client the account connects through and the account's credential, as the loader paired them, and
+// false when the account is not connected through a client. Every token source this root builds,
+// from a snapshot or from a credential read again after a refusal, takes its credentials here
+// (ADR-0106).
+func sourceCredentials(a accountload.Account) (gmail.Credentials, bool) {
+	c, ok := a.Client()
+	if !a.Connected() || !ok {
+		return gmail.Credentials{}, false
+	}
+	return gmail.Credentials{ClientID: c.ID(), ClientSecret: string(c.Secret()), RefreshToken: string(a.Credential())}, true
 }
 
 // handOver hands the account's source's current refresh token to the loader at the end of a unit of
@@ -383,9 +398,10 @@ type connection struct {
 
 // retried makes call over the account's port. When the provider refuses the credential, the
 // credential is read again from the account's row before the refusal is returned. A row holding
-// another credential has the port built again over a source holding it, kept for the account's later
-// calls, and the call made once more over it, so a re-authorization reaches the run at the call it
-// refused rather than the next run (ADR-0090). The call made again goes through call whole, a new
+// another credential has the port built again over a source holding it with the client the account
+// now connects through, kept for the account's later calls, and the call made once more over it, so a
+// re-authorization reaches the run at the call it refused rather than the next run (ADR-0090,
+// ADR-0106). The call made again goes through call whole, a new
 // lease included. A row holding the refused credential, or none, returns the refusal.
 func retried[T any](ctx context.Context, c *connection, call func(context.Context, mail.Port[context.Context]) (T, error)) (T, error) {
 	out, err := call(ctx, c.port)

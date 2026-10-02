@@ -15,9 +15,9 @@ import (
 // never leaves with a token that expires in flight.
 const expiryMargin = time.Minute
 
-// Credentials are the installation's OAuth client and the account's refresh token, as the
-// deployable supplies them from what it opened out of the database (ADR-0080, ADR-0083). Nothing in
-// this package reads a credential from anywhere else.
+// Credentials are the OAuth client the account connects through and the account's refresh token, as
+// the deployable supplies them from what it opened out of the database (ADR-0080, ADR-0106). Nothing
+// in this package reads a credential from anywhere else.
 type Credentials struct {
 	ClientID     string
 	ClientSecret string

@@ -25,11 +25,11 @@ type DB interface {
 // Writer returns the ClientWriter accountload's re-seal of a client secret writes through, a
 // compare-and-set on the bytes it knew (ADR-0089).
 func Writer(db DB) accountload.ClientWriter {
-	return func(ctx context.Context, provider string, known, sealed []byte) (bool, error) {
+	return func(ctx context.Context, name string, known, sealed []byte) (bool, error) {
 		var n int64
 		err := pgx.BeginFunc(ctx, db, func(t pgx.Tx) error {
 			var err error
-			n, err = secret.New(t).ReplaceSealedClient(ctx, secret.ReplaceSealedClientParams{ClientSecret: sealed, Provider: provider, Known: known})
+			n, err = secret.New(t).ReplaceSealedClient(ctx, secret.ReplaceSealedClientParams{ClientSecret: sealed, ClientName: name, Known: known})
 			return err
 		})
 		return n == 1, err
@@ -49,7 +49,7 @@ type Metrics struct {
 	credentials *prometheus.GaugeVec
 	clients     *prometheus.GaugeVec
 	accounts    []string
-	providers   []string
+	clientNames []string
 }
 
 // NewMetrics registers the scan series on reg and returns them.
@@ -61,8 +61,8 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 		}, []string{"account"}),
 		clients: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: clientName,
-			Help: "1 while the provider's stored OAuth client secret is sealed to a key other than the current one or cannot be opened, 0 once it is sealed to the current key.",
-		}, []string{"provider"}),
+			Help: "1 while the OAuth client's stored secret is sealed to a key other than the current one or cannot be opened, 0 once it is sealed to the current key.",
+		}, []string{"client"}),
 	}
 	for _, c := range []prometheus.Collector{m.credentials, m.clients} {
 		if err := reg.Register(c); err != nil {
@@ -72,12 +72,12 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 	return m, nil
 }
 
-// Set sets one series for every account and every provider the scan holds, and removes the series of
-// an account or provider an earlier scan held and this one does not, so a series is reported exactly
-// for what the last load listed (ADR-0092).
+// Set sets one series for every account and every OAuth client the scan holds, the client's labelled
+// by its name, and removes the series of an account or client an earlier scan held and this one does
+// not, so a series is reported exactly for what the last load listed (ADR-0092, ADR-0103).
 func (m *Metrics) Set(s accountload.Scan) {
 	m.accounts = set(m.credentials, m.accounts, s.Accounts)
-	m.providers = set(m.clients, m.providers, s.Clients)
+	m.clientNames = set(m.clients, m.clientNames, s.Clients)
 }
 
 func set(g *prometheus.GaugeVec, before []string, now map[string]bool) []string {

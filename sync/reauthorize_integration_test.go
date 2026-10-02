@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/accountload"
@@ -21,6 +22,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
 // provider plays Google for one account over the provider fake: it honours one refresh token, and
@@ -42,6 +44,8 @@ type provider struct {
 	// and ring opens what the tick stored.
 	rotations map[string]string
 	ring      *open.Keyring
+	// built records the credentials of every source the tick built, in order.
+	built []gmail.Credentials
 }
 
 // connect is the ports the tick builds each account's port with.
@@ -69,7 +73,7 @@ func (p *provider) connect(_ string, tokens gmail.Tokens) (mail.Port[context.Con
 }
 
 // refusedTick sets up the account personal, connected with the refresh token first-token through the
-// installation's Gmail client, its second pass of backfill ended, and returns what a tick needs over
+// household Gmail client, its second pass of backfill ended, and returns what a tick needs over
 // p, which holds one waiting message and honours nothing until the test says what.
 func refusedTick(t *testing.T) (*provider, func(t *testing.T) error, seal.PublicKey) {
 	t.Helper()
@@ -88,6 +92,7 @@ func refusedTick(t *testing.T) (*provider, func(t *testing.T) error, seal.Public
 		s := newTestSyncer(t, syncPool(t), ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler), nil)
 		s.ports = p.connect
 		s.source = func(c gmail.Credentials) *gmail.TokenSource {
+			p.built = append(p.built, c)
 			if rotated, ok := p.rotations[c.RefreshToken]; ok {
 				c.RefreshToken = rotated
 			}
@@ -244,11 +249,56 @@ func TestARotationAfterARereadIsWrittenBack(t *testing.T) {
 		t.Fatalf("the tick returned %v, want it to end with the rotated credential", err)
 	}
 
-	restarted := accountload.New(syncPool(t), p.ring, slog.New(slog.DiscardHandler))
+	restarted := accountload.New(syncPool(t), p.ring, slog.New(slog.DiscardHandler), []string{gmailProvider})
 	if err := restarted.Load(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if a, _ := restarted.Snapshot().Account("personal"); string(a.Credential()) != "second-token-rotated" {
 		t.Errorf("after a restart the account holds %q, want the rotation the rebuilt source received", a.Credential())
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account's own client, for delta sync's re-read. The account
+// moves to another client while a tick is under way, its new client and new credential written in
+// one transaction (ADR-0106). The provider refuses the old credential, and the call made again is
+// built from the new client and the new credential (ADR-0090).
+func TestARereadAfterAMoveBuildsTheSourceFromTheNewClient(t *testing.T) {
+	p, run, public := refusedTick(t)
+	p.honoured, p.at = "first-token", mail.OpCurrentCursor
+	conn := superuser(t)
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('employer', $1, 'employer-id', $2)",
+		gmailProvider, sealed(t, public, "employer-secret", seal.ClientSecret("employer")))
+	moved := sealed(t, public, "moved-token", seal.AccountCredential("personal"))
+	p.operator = func() {
+		tx, err := conn.Begin(context.Background())
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		for _, sql := range []string{"UPDATE accounts SET oauth_client = 'employer' WHERE account_id = 'personal'", "UPDATE account_state SET credential = $1 WHERE account_id = 'personal'"} {
+			var args []any
+			if strings.Contains(sql, "$1") {
+				args = append(args, moved)
+			}
+			if _, err := tx.Exec(context.Background(), sql, args...); err != nil {
+				t.Error(err)
+			}
+		}
+		if err := tx.Commit(context.Background()); err != nil {
+			t.Error(err)
+		}
+		p.honoured = "moved-token"
+	}
+
+	if err := run(t); err != nil {
+		t.Fatalf("the tick returned %v, want it to end through the new client", err)
+	}
+
+	want := []gmail.Credentials{
+		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "first-token"},
+		{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "moved-token"},
+	}
+	if diff := cmp.Diff(want, p.built, compare.Options); diff != "" {
+		t.Errorf("the credentials the tick's sources were built from (-want +got):\n%s", diff)
 	}
 }

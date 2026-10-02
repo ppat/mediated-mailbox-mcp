@@ -1,8 +1,8 @@
 // Package gmail is the Gmail adapter. It implements the Provider Port over Gmail's REST API with the
 // standard library's HTTP client, and it declares its rate profile.
 //
-// It also holds the account's installed-app OAuth grant through the installation's OAuth client
-// (ADR-0083). That is the one-time consent, which requests only the modify scope, and the token
+// It also holds the account's installed-app OAuth grant through the OAuth client the account
+// connects through (ADR-0106, ADR-0107). That is the one-time consent, which requests only the modify scope, and the token
 // source, built from the client and the refresh token the deployable opened from the database. The
 // source holds a rotated refresh token and hands it to the deployable, which writes it back to the
 // account's state row (ADR-0080, ADR-0082). It also holds its latest request to the token endpoint

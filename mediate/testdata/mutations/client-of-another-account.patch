@@ -1,0 +1,21 @@
+control: The mediator's token source is built from the OAuth client the account connects through and the account's stored credential, and from nothing else
+removes: every account is served with the OAuth client of the snapshot's first account rather than its own
+packages: ./mediate
+tests: TestTheCredentialsAreTheClientAndTheAccountsToken
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 78009489..486628f2 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -746,6 +746,9 @@ func credentials(snapshot *accountload.Snapshot, account string) (gmail.Credenti
+ 		return gmail.Credentials{}, errNotConnected
+ 	}
+ 	c, ok := sourceCredentials(a)
++	if first, fok := snapshot.Accounts()[0].Client(); fok {
++		c.ClientID, c.ClientSecret = first.ID(), string(first.Secret())
++	}
+ 	if !ok {
+ 		return gmail.Credentials{}, fmt.Errorf("account %s: connected without the OAuth client its provider authenticates through", account)
+ 	}

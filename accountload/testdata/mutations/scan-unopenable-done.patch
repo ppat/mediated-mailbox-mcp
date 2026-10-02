@@ -4,10 +4,12 @@ packages: ./accountload
 tests: TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows
 scheduled-count: no
 integration: yes
+
 diff --git a/accountload/load.go b/accountload/load.go
+index 88f41d1d..d0e57e8f 100644
 --- a/accountload/load.go
 +++ b/accountload/load.go
-@@ -236,7 +236,7 @@
+@@ -259,7 +259,7 @@ func (l *Loader) Load(ctx context.Context) error {
  			a.credential, a.adoption = h.plaintext, h.adoption
  			known[r.id] = h
  		}
@@ -15,4 +17,4 @@ diff --git a/accountload/load.go b/accountload/load.go
 +		scan.Accounts[r.id] = r.stored != nil && ok && l.onOldKey(r.stored)
  		next.accounts = append(next.accounts, a)
  	}
- 	for _, c := range clients {
+ 	l.accounts = known

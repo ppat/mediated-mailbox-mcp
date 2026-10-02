@@ -5,13 +5,12 @@ tests: TestTheMetricsEndpointCarriesEachServedAccountsRateState
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/main.go b/mediate/main.go
-index 60aac7a..940328e 100644
+index 13bac107..ad3b3b84 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -331,9 +331,7 @@ func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, met
- 	s := &serving{loader: accountload.New(pool, keys, logger), pool: pool, metrics: metrics, logger: logger}
+@@ -343,9 +343,7 @@ func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, met
+ 	s := &serving{loader: accountload.New(pool, keys, logger, []string{gmailProvider}), pool: pool, metrics: metrics, logger: logger}
  	s.fresh = reload.New(ctx, s.reloadPolicy)
  	s.snapshot.Store(&accountload.Snapshot{})
 -	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {

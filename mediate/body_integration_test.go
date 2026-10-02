@@ -158,8 +158,8 @@ func newHarness(t *testing.T) *harness {
 	ring, public := keys(t)
 	h := &harness{conn: conn, pool: mediator(t), ring: ring, public: public, account: newAccounts(t, conn)[0], metrics: prometheus.NewRegistry(), log: &logBuffer{}}
 	connect(t, conn, public, h.account)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ('gmail', 'client-id', $1)",
-		sealedSecret(t, public))
+	client(t, conn, public, household, "client-id", "client-secret")
+	through(t, conn, h.account, household)
 	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES (NULL, 'base.bank', 'restricted', ARRAY['bank.example'], 'operator', 'test')`)
 	var held []fake.Message
@@ -212,14 +212,24 @@ func orEmpty(s []string) []string {
 	return s
 }
 
-// sealedSecret returns the installation's Gmail client secret sealed to public.
-func sealedSecret(t *testing.T, public seal.PublicKey) []byte {
+// household is the name of the Gmail client the harness's account connects through. It is not the
+// provider's name, so nothing finds it by the provider.
+const household = "household"
+
+// client writes a Gmail client under its name, its secret sealed to public.
+func client(t *testing.T, conn *pgx.Conn, public seal.PublicKey, name, id, secret string) {
 	t.Helper()
-	sealed, err := public.Seal([]byte("client-secret"), seal.ClientSecret(gmailProvider))
+	sealed, err := public.Seal([]byte(secret), seal.ClientSecret(name))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return sealed
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ($1, $2, $3, $4)", name, gmailProvider, id, sealed)
+}
+
+// through makes an account connect through the named client, as account setup writes it.
+func through(t *testing.T, conn *pgx.Conn, account, client string) {
+	t.Helper()
+	must(t, conn, "UPDATE accounts SET oauth_client = $2 WHERE account_id = $1", account, client)
 }
 
 // connect is the harness's connector. It builds a port over the provider fake whose every call is
@@ -803,22 +813,58 @@ func TestAnAccountWithoutAStoredCredentialIsNotConnected(t *testing.T) {
 	}
 }
 
-// D3's part of VERIFICATIONS' row for building a token source with the client's identifier and secret
-// swapped. The credentials a body request's source is built from are the installation's Gmail client,
-// its identifier and its secret each in its own place, and the account's own stored refresh token
-// (ADR-0083).
+// D3's part of VERIFICATIONS' rows for building a token source with the client's identifier and
+// secret swapped and for an account's own client. The credentials a body request's source is built
+// from are the Gmail client the account connects through, its identifier and its secret each in its
+// own place, and the account's own stored refresh token. A second account connects through a second
+// client of the one provider, so each account's credentials carry its own client and never the
+// other's (ADR-0085, ADR-0106).
 func TestTheCredentialsAreTheClientAndTheAccountsToken(t *testing.T) {
 	h := newHarness(t)
-	got, err := credentials(h.served.loader.Snapshot(), h.account)
-	if err != nil {
+	other := strings.TrimSuffix(h.account, "-a") + "-b"
+	connect(t, h.conn, h.public, other)
+	client(t, h.conn, h.public, "employer", "employer-id", "employer-secret")
+	through(t, h.conn, other, "employer")
+	if err := h.served.reload(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	want := gmail.Credentials{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: h.account + "-token"}
-	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
-		t.Errorf("credentials (-want +got):\n%s", diff)
+	for account, want := range map[string]gmail.Credentials{
+		h.account: {ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: h.account + "-token"},
+		other:     {ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: other + "-token"},
+	} {
+		got, err := credentials(h.served.loader.Snapshot(), account)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+			t.Errorf("credentials of %s (-want +got):\n%s", account, diff)
+		}
 	}
 	if _, err := credentials(h.served.loader.Snapshot(), "acct-unlisted"); !errors.Is(err, errNotConnected) {
 		t.Errorf("an account the snapshot does not list has credentials, %v", err)
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account of a provider that authenticates through an OAuth
+// client served without its client, for the mediator. The mediator tells the loader Gmail
+// authenticates through a client, so a connected Gmail account that names no client, though its
+// provider has one, is not connected and its body request never reaches a provider (ADR-0106,
+// ADR-0090).
+func TestAnAccountNamingNoClientIsNotConnected(t *testing.T) {
+	h := newHarness(t)
+	must(t, h.conn, "UPDATE accounts SET oauth_client = NULL WHERE account_id = $1", h.account)
+	if err := h.served.reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := credentials(h.served.loader.Snapshot(), h.account); !errors.Is(err, errNotConnected) {
+		t.Errorf("an account naming no client has credentials, %v", err)
+	}
+	_, err := h.reg.Call(t.Context(), "get_message_body", json.RawMessage(`{"account_id":"`+h.account+`","message_id":"m-news"}`))
+	if origin, _ := service.Classify(err); err == nil || origin != service.OriginMediator {
+		t.Errorf("a body of an account naming no client answered %v", err)
+	}
+	if h.providerCalls() != 0 || len(h.tokens) != 0 {
+		t.Errorf("the provider was reached with the tokens %v", h.tokens)
 	}
 }
 
@@ -855,6 +901,108 @@ func TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported(t *testing.T) {
 	}
 	if len(h.sources) == 4 && h.sources[3] != h.sources[2] {
 		t.Error("the request after the re-authorization built a source of its own rather than keeping the one the retry built")
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account's own client, for the mediator's re-read. The account
+// moves to another client while the mediator serves it, its new client and new credential written in
+// one transaction (ADR-0106). The provider refuses the old credential, and the call made again is
+// built from the new client and the new credential, which the account's later requests keep
+// (ADR-0090).
+func TestARereadAfterAMoveBuildsTheSourceFromTheNewClient(t *testing.T) {
+	h := newHarness(t)
+	if got, out := h.request(t, "m-plain"); !got.Released {
+		t.Fatalf("the first request answered %s", out)
+	}
+	h.mu.Lock()
+	h.refuse = h.account + "-token"
+	h.mu.Unlock()
+	client(t, h.conn, h.public, "employer", "employer-id", "employer-secret")
+	sealed, err := h.public.Seal([]byte(h.account+"-moved"), seal.AccountCredential(h.account))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := h.conn.Begin(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sql := range []string{"UPDATE accounts SET oauth_client = 'employer' WHERE account_id = $1", "UPDATE account_state SET credential = $2 WHERE account_id = $1"} {
+		args := []any{h.account}
+		if strings.Contains(sql, "$2") {
+			args = append(args, sealed)
+		}
+		if _, err := tx.Exec(t.Context(), sql, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, out := h.request(t, "m-news"); !got.Released {
+		t.Fatalf("after the account moved, the request answered %s", out)
+	}
+
+	h.providers.mu.Lock()
+	built := h.providers.sources[h.account].built
+	h.providers.mu.Unlock()
+	want := gmail.Credentials{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: h.account + "-moved"}
+	if diff := cmp.Diff(want, built, compare.Options); diff != "" {
+		t.Errorf("the credentials the retried source was built from (-want +got):\n%s", diff)
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account served without its client, for the mediator's
+// re-read. The provider refuses the credential, and the account is then moved to a client whose
+// secret does not open, or loses its credential. The re-read finds it not connected, so the refusal
+// is reported after the one refused call and no source is built for a second (ADR-0106, ADR-0090).
+func TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal(t *testing.T) {
+	cases := map[string]func(t *testing.T, h *harness){
+		"moved to a client that does not open": func(t *testing.T, h *harness) {
+			sealed, err := h.public.Seal([]byte("broken-secret"), seal.ClientSecret("another-row"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			must(t, h.conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('broken', $1, 'broken-id', $2)", gmailProvider, sealed)
+			credential, err := h.public.Seal([]byte(h.account+"-moved"), seal.AccountCredential(h.account))
+			if err != nil {
+				t.Fatal(err)
+			}
+			tx, err := h.conn.Begin(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tx.Exec(t.Context(), "UPDATE accounts SET oauth_client = 'broken' WHERE account_id = $1", h.account); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tx.Exec(t.Context(), "UPDATE account_state SET credential = $2 WHERE account_id = $1", h.account, credential); err != nil {
+				t.Fatal(err)
+			}
+			if err := tx.Commit(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"its credential removed": func(t *testing.T, h *harness) {
+			must(t, h.conn, "UPDATE account_state SET credential = NULL WHERE account_id = $1", h.account)
+		},
+	}
+	for name, change := range cases {
+		t.Run(name, func(t *testing.T) {
+			h := newHarness(t)
+			h.mu.Lock()
+			h.refuse = h.account + "-token"
+			h.mu.Unlock()
+			change(t, h)
+
+			_, err := h.reg.Call(t.Context(), "get_message_body", json.RawMessage(`{"account_id":"`+h.account+`","message_id":"m-news"}`))
+
+			if origin, _ := service.Classify(err); origin != service.OriginProvider {
+				t.Errorf("the request answered %v, want the provider's refusal", err)
+			}
+			if calls := h.providerCalls(); calls != 1 {
+				t.Errorf("the provider received %d calls, want the one refused", calls)
+			}
+		})
 	}
 }
 
@@ -945,7 +1093,7 @@ func TestEachBodyRequestHandsOverAndRecordsTheAttempt(t *testing.T) {
 // loadedSnapshot returns the account snapshot a process started now would load.
 func loadedSnapshot(t *testing.T, h *harness) *accountload.Snapshot {
 	t.Helper()
-	l := accountload.New(h.pool, h.ring, slog.New(slog.DiscardHandler))
+	l := accountload.New(h.pool, h.ring, slog.New(slog.DiscardHandler), []string{gmailProvider})
 	if err := l.Load(t.Context()); err != nil {
 		t.Fatal(err)
 	}

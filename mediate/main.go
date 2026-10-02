@@ -340,7 +340,7 @@ type serving struct {
 // because it runs continuously (ADR-0077). Its policy loads run under ctx, so they end when the
 // mediator stops and never because a client stopped waiting.
 func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Registry, logger *slog.Logger) (*serving, error) {
-	s := &serving{loader: accountload.New(pool, keys, logger), pool: pool, metrics: metrics, logger: logger}
+	s := &serving{loader: accountload.New(pool, keys, logger, []string{gmailProvider}), pool: pool, metrics: metrics, logger: logger}
 	s.fresh = reload.New(ctx, s.reloadPolicy)
 	s.snapshot.Store(&accountload.Snapshot{})
 	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
@@ -732,23 +732,37 @@ func gmailPorts(registry prometheus.Registerer) (connector, error) {
 }
 
 // errNotConnected is a body request for an account the mediator holds no usable credential for.
-var errNotConnected = errors.New("the account has no connected credential, or its provider has no OAuth client")
+var errNotConnected = errors.New("the account has no connected credential")
 
-// credentials returns the Gmail credentials the mediator calls the account's provider with, the
-// installation's Gmail client and the account's refresh token, which is the account's credential as
-// the snapshot opened it from its state row and nothing else (ADR-0080, ADR-0083). An account the
-// snapshot does not list, that is not connected, whose provider is not Gmail, or whose provider has no
-// client is not connected.
+// credentials returns the Gmail credentials the mediator calls the account's provider with, the OAuth
+// client the account connects through and the account's refresh token, which is the account's
+// credential as the snapshot opened it from its state row and nothing else (ADR-0080, ADR-0106). An
+// account the snapshot does not list, that is not connected, or whose provider is not Gmail is not
+// connected. The snapshot connects no Gmail account without its client, since the loader is told
+// Gmail authenticates through one, so a connected Gmail account without a client is an error.
 func credentials(snapshot *accountload.Snapshot, account string) (gmail.Credentials, error) {
 	a, ok := snapshot.Account(account)
 	if !ok || !a.Connected() || a.Provider() != gmailProvider {
 		return gmail.Credentials{}, errNotConnected
 	}
-	c, ok := snapshot.Client(gmailProvider)
+	c, ok := sourceCredentials(a)
 	if !ok {
-		return gmail.Credentials{}, errNotConnected
+		return gmail.Credentials{}, fmt.Errorf("account %s: connected without the OAuth client its provider authenticates through", account)
 	}
-	return gmail.Credentials{ClientID: c.ID(), ClientSecret: string(c.Secret()), RefreshToken: string(a.Credential())}, nil
+	return c, nil
+}
+
+// sourceCredentials returns the Gmail credentials an account's token source is built from, the OAuth
+// client the account connects through and the account's credential, as the loader paired them, and
+// false when the account is not connected through a client. Every token source this root builds,
+// from a snapshot or from a credential read again after a refusal, takes its credentials here
+// (ADR-0106).
+func sourceCredentials(a accountload.Account) (gmail.Credentials, bool) {
+	c, ok := a.Client()
+	if !a.Connected() || !ok {
+		return gmail.Credentials{}, false
+	}
+	return gmail.Credentials{ClientID: c.ID(), ClientSecret: string(c.Secret()), RefreshToken: string(a.Credential())}, true
 }
 
 // providers opens each body request's session with its account's provider. It keeps one token source
@@ -872,8 +886,9 @@ func (s *session) Done(ctx context.Context) {
 
 // retried makes call over the session's port. When the provider refuses the credential, the
 // credential is read again from the account's row before the refusal is returned (ADR-0090). A row
-// holding another credential has a source built holding it, kept for the account's later requests,
-// the port built again over it, and the call made once more, a new lease included. A row holding the
+// holding another credential has a source built holding it with the client the account now connects
+// through (ADR-0106), kept for the account's later requests, the port built again over it, and the
+// call made once more, a new lease included. A row holding the
 // refused credential, or none, returns the refusal.
 func retried[T any](ctx context.Context, s *session, call func(context.Context, mail.Port[context.Context]) (T, error)) (T, error) {
 	out, err := call(ctx, s.port)
@@ -881,15 +896,15 @@ func retried[T any](ctx context.Context, s *session, call func(context.Context, 
 		return out, err
 	}
 	reread, rerr := s.p.served.loader.Reread(ctx, s.account)
-	stored := reread.Credential()
 	if rerr != nil {
 		return out, errors.Join(err, fmt.Errorf("reading the refused credential again: %w", rerr))
 	}
-	if stored == nil || string(stored) == s.source.RefreshToken() {
+	held := s.creds
+	held.RefreshToken = s.source.RefreshToken()
+	creds, ok := sourceCredentials(reread)
+	if !ok || creds == held {
 		return out, err
 	}
-	creds := s.creds
-	creds.RefreshToken = string(stored)
 	s.p.mu.Lock()
 	source := s.p.replace(s.account, creds)
 	s.p.mu.Unlock()

@@ -159,10 +159,30 @@ func listedOnly(t *testing.T, conn *pgx.Conn, id, provider string) {
 	must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, $2)", id, provider)
 }
 
-// client writes a provider's OAuth client, its secret sealed to the key pair.
-func client(t *testing.T, conn *pgx.Conn, provider, id string, secret []byte) {
+// client writes an OAuth client of a provider under its name, its secret as given.
+func client(t *testing.T, conn *pgx.Conn, name, provider, id string, secret []byte) {
 	t.Helper()
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)", provider, id, secret)
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ($1, $2, $3, $4)", name, provider, id, secret)
+}
+
+// through makes an account connect through the named client, as account setup writes it.
+func through(t *testing.T, conn *pgx.Conn, account, client string) {
+	t.Helper()
+	must(t, conn, "UPDATE accounts SET oauth_client = $2 WHERE account_id = $1", account, client)
+}
+
+// clients returns each served account's client as its name and identifier with its opened secret,
+// "no client" for one without.
+func clients(s *accountload.Snapshot) map[string]string {
+	out := map[string]string{}
+	for _, a := range s.Accounts() {
+		if c, ok := a.Client(); ok {
+			out[a.ID()] = c.Name() + " " + c.Provider() + " " + c.ID() + " " + string(c.Secret())
+		} else {
+			out[a.ID()] = "no client"
+		}
+	}
+	return out
 }
 
 // storedCredential reads an account's stored credential as the superuser.
@@ -180,7 +200,7 @@ type logBuffer struct{ bytes.Buffer }
 
 func (b *logBuffer) logger() *slog.Logger { return slog.New(slog.NewJSONHandler(b, nil)) }
 
-// errors returns the message of every error-level record with its account and provider attributes.
+// errors returns the message of every error-level record with its account and client attributes.
 func (b *logBuffer) errors(t *testing.T) []map[string]string {
 	t.Helper()
 	var out []map[string]string
@@ -193,7 +213,7 @@ func (b *logBuffer) errors(t *testing.T) []map[string]string {
 			continue
 		}
 		r := map[string]string{}
-		for _, k := range []string{"msg", "account", "provider"} {
+		for _, k := range []string{"msg", "account", "client"} {
 			if v, ok := rec[k].(string); ok {
 				r[k] = v
 			}
@@ -203,10 +223,17 @@ func (b *logBuffer) errors(t *testing.T) []map[string]string {
 	return out
 }
 
-// load builds a loader over a pool as role and loads it, failing the test on an error.
+// load builds a loader over a pool as role, told no provider authenticates through an OAuth client,
+// and loads it, failing the test on an error.
 func load(t *testing.T, ring *open.Keyring, log *logBuffer) *accountload.Loader {
 	t.Helper()
-	l := accountload.New(pool(t), ring, log.logger())
+	return loadWith(t, ring, log, nil)
+}
+
+// loadWith builds a loader told that throughClient authenticate through an OAuth client, and loads it.
+func loadWith(t *testing.T, ring *open.Keyring, log *logBuffer, throughClient []string) *accountload.Loader {
+	t.Helper()
+	l := accountload.New(pool(t), ring, log.logger(), throughClient)
 	if err := l.Load(t.Context()); err != nil {
 		t.Fatalf("Load: %v", err)
 	}

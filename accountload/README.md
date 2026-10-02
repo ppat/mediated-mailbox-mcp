@@ -35,9 +35,20 @@ noticing.
   unconditionally, or that compared only the bytes it knows now, would put a revoked grant back
   after the operator re-authorized the account, and one that discarded on its own earlier
   write-back would lose a live rotation.
-- **An OAuth client is optional per provider.** An account whose provider authenticates without one
-  loads without one, and nothing looks for a client that does not exist. A copy that assumed every
-  provider has a client would refuse such an account or fail on its load.
+- **An OAuth client is optional per provider, and required where the provider uses one.** An
+  account whose provider authenticates without one loads without one, and nothing looks for a
+  client that does not exist. The deployable names the providers that authenticate through a
+  client, since it knows its adapters, and the library stays blind to which they are. An account of
+  such a provider that names no client, or whose client's secret did not open, loads as not
+  connected. A copy that assumed every provider has a client would refuse an account that needs
+  none, and one that left the refusal to each deployable would serve such an account wherever a
+  deployable forgot it.
+- **An account reaches only the client it names.** Each account carries the client its row in
+  `accounts` names, and the snapshot offers no lookup of a client by provider or by name. A copy
+  that took a provider's first or only client would pair an account with a client its grant was
+  never issued to, and would look right for as long as each provider had one client. A re-read
+  after a refusal pairs the credential with the client the account names at the time of the
+  re-read.
 - **Only delta sync re-seals, and its scan never passes on silence.** It reports a series for every
   account and every stored client secret, and a missing series never reads as done.
 

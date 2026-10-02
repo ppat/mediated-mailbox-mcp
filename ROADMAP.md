@@ -297,24 +297,25 @@ perfected up front.
   Delivered by pull requests [#178](https://github.com/ppat/mediated-mailbox-mcp/pull/178) and
   [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), which closed its tickets
   [#172](https://github.com/ppat/mediated-mailbox-mcp/issues/172) and
-  [#180](https://github.com/ppat/mediated-mailbox-mcp/issues/180), and not yet released. Accounts
+  [#180](https://github.com/ppat/mediated-mailbox-mcp/issues/180), and by pull request
+  [#255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), which closed its discovery
+  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244), and not yet released. Accounts
   and their provider credentials live in the database
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)). The
-  accounts table keeps each account's identifier and provider, read in full by the roles that list
-  accounts. Everything else an account carries lives in `account_state` under the per-account
+  accounts table keeps each account's identifier, provider and the OAuth client it connects through,
+  read in full by the roles that list accounts. Everything else an account carries lives in `account_state` under the per-account
   row-level security policy, the sealed credential and the rate target an operator may lower
   included ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md),
   [ADR-0016](./docs/adr/data/0016-schema.md)). For a provider that authenticates through one, F6
-  stores one OAuth client for the installation in `oauth_clients`, keyed on the provider and apart
-  from every account, its secret sealed the same way. A provider without one has no row, and no
-  account refers to one. That is the one client per provider that the superseded
-  [ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md) decided. Any
-  number of clients per provider, with each account naming the one it connects through
-  ([ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
-  is not yet built, and is ticket
-  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244)'s. The columns the UI's two
-  setups write in `accounts`, `account_state` and `oauth_clients` are named in ADR-0016's schema,
-  and each grant on them arrives with the statement that uses it
+  stores any number of OAuth clients in `oauth_clients`, each keyed on its name and apart from
+  every account, its secret sealed the same way, and each account names the client it connects
+  through in `accounts`, by a reference that carries the provider
+  ([ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
+  A provider without one has no row, and its accounts name none. The migration that moved the key
+  from the provider to the name named the client already stored after its provider and pointed
+  every account of that provider at it, so its sealed secret stayed bound to its row. The columns
+  the UI's two setups write in `accounts`, `account_state` and `oauth_clients` are named in
+  ADR-0016's schema, and each grant on them arrives with the statement that uses it
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). The three
   tables' statements sit in `db/accounts`, `db/accountstate` and `db/oauthclients`, with the
   statements that read and write an account's sealed credential in `db/accountstate/credential`
@@ -325,8 +326,9 @@ perfected up front.
   shared library `credential/` seals with HPKE's X-Wing suite and opens with a keyring, and its
   `keygen` command writes the key pair
   ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). The narrow
-  shared library `accountload/` builds the account snapshot, carrying an OAuth client only for a
-  provider that has one
+  shared library `accountload/` builds the account snapshot, pairing each account with the OAuth
+  client it names and with no other, and connecting no account of a provider the deployable names
+  as authenticating through a client without that client
   ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)),
   and writes a rotated credential back by compare-and-set
   ([ADR-0089](./docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)). It also
@@ -693,8 +695,8 @@ perfected up front.
   token in a cluster, which are [R1](#group-r--packaging)'s and the deploying side's. The refusal of
   an account identifier that is exactly `.`, `..` or `/`, which is
   [M7](#group-m--mutation-and-approval)'s account setup. Pairing each account with the OAuth client
-  it connects through in the mediator's composition root, which is
-  [F6](#delivered-mapped-to-outcomes)'s ticket
+  it connects through in the mediator's composition root, which landed with
+  [F6](#delivered-mapped-to-outcomes)'s discovery
   [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244). Running against the real mailbox
   and a real agent session, at [production point 1](#production-point-1--the-read-path).
 
@@ -1220,7 +1222,7 @@ classifications already stored in the index.
   provider that authenticates through one, each account connecting through one of them, shared or
   its own ([ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   The stored model and the account snapshot that allow it are F6's discovery
-  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244), which lands first, and this unit
+  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244), which landed first, and this unit
   builds adding, replacing and removing a client, choosing one when connecting, and moving an
   account to another. Setup links straight to each Google
   Cloud console page, gives each step's instructions with the exact value to enter, and checks the
@@ -1502,7 +1504,7 @@ lands in is the [value path](#the-value-path)'s.
 | F6 → M3 | The accounts table every role reads in full, which the UI's account selector lists ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)) |
 | F6 → D4 | The keyring and the re-seal delta sync runs, and the scan of what is sealed to an old key ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)) |
 | F6 → D1, F6 → D3 | The accounts, their state rows and the sealed credentials the first provider-calling deployables read, the library that opens them, and `accountload/`, which builds the account snapshot from them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
-| F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, the several clients per provider F6's discovery [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244) lands first, and the UI's server and browser app its screens live in |
+| F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, the several clients per provider F6's discovery [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244) landed, and the UI's server and browser app its screens live in |
 | M7 → F7, M8 → F7, D4 → F7 | The changes the UI makes that F7 carries, a connected account and a replaced credential (M7) and a policy edit (M8), and delta sync, the last read-path workload to receive them |
 | F7 → R1 | Whatever the signals need from the deployment, which the chart packages |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |

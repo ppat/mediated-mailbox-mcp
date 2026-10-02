@@ -160,13 +160,27 @@ func sealed(t *testing.T, to seal.PublicKey, plaintext string, c seal.Context) [
 	return b
 }
 
-// account writes an account, and a state row holding credential unless stateless.
+// account writes an account, and a state row holding credential unless stateless. An account of a
+// provider for which the household client is stored connects through it, as account setup writes it.
 func account(t *testing.T, conn *pgx.Conn, id, provider string, credential []byte, stateless bool) {
 	t.Helper()
-	must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, $2)", id, provider)
+	must(t, conn, "INSERT INTO accounts (account_id, provider, oauth_client) VALUES ($1, $2, (SELECT name FROM oauth_clients WHERE name = $3 AND provider = $2))", id, provider, household)
 	if !stateless {
 		must(t, conn, "INSERT INTO account_state (account_id, credential) VALUES ($1, $2)", id, credential)
 	}
+}
+
+// household is the name of the Gmail client the tests' accounts connect through. It is not the
+// provider's name, so nothing finds it by the provider.
+const household = "household"
+
+// client writes the household Gmail client, its secret sealed to public, and connects every Gmail
+// account that names no client through it.
+func client(t *testing.T, conn *pgx.Conn, public seal.PublicKey) {
+	t.Helper()
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ($1, $2, $3, $4)",
+		household, gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(household)))
+	must(t, conn, "UPDATE accounts SET oauth_client = $1 WHERE provider = $2 AND oauth_client IS NULL", household, gmailProvider)
 }
 
 func storedCredential(t *testing.T, conn *pgx.Conn, id string) []byte {
@@ -216,8 +230,7 @@ func TestARunTakesItsAccountsFromTheDatabase(t *testing.T) {
 	account(t, conn, "no-state", gmailProvider, nil, true)
 	account(t, conn, "no-credential", gmailProvider, nil, false)
 	account(t, conn, "work", "fastmail", sealed(t, public, "work-token", seal.AccountCredential("work")), false)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	client(t, conn, public)
 	t.Setenv("GMAIL_REFRESH_TOKEN", "environment-token")
 	mounted := filepath.Join(t.TempDir(), "refresh_token")
 	if err := os.WriteFile(mounted, []byte("mounted-token"), 0o600); err != nil {
@@ -244,13 +257,16 @@ func TestARunTakesItsAccountsFromTheDatabase(t *testing.T) {
 	}
 }
 
-// An account whose provider has no OAuth client in the snapshot is logged and skipped, and nothing
-// looks for a client that is not there (ADR-0080).
+// An account that connects through no OAuth client is not connected, because backfill tells the loader
+// Gmail authenticates through one, so it is logged and skipped, though its provider has a client, and
+// nothing looks for a client the account does not name (ADR-0080, ADR-0106).
 func TestAnAccountWithoutAClientIsSkipped(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
+	client(t, conn, public)
+	must(t, conn, "UPDATE accounts SET oauth_client = NULL WHERE account_id = 'personal'")
 	var log logBuffer
 
 	if err := backfill(t.Context(), backfillPool(t), ring, log.logger(), prometheus.NewRegistry(), idle); err != nil {
@@ -258,7 +274,8 @@ func TestAnAccountWithoutAClientIsSkipped(t *testing.T) {
 	}
 
 	want := []record{
-		{Level: "WARN", Msg: "an account's provider has no OAuth client, so it is skipped", Account: "personal", Provider: gmailProvider},
+		{Level: "WARN", Msg: "an account is not connected, so it is skipped", Account: "personal"},
+		{Level: "WARN", Msg: "an account's provider authenticates through an OAuth client and the account has none that opened, so it is not connected", Account: "personal", Provider: gmailProvider},
 		{Level: "INFO", Msg: "policy loaded", Accounts: 1},
 	}
 	if diff := cmp.Diff(want, log.records(t), compare.Options); diff != "" {
@@ -316,30 +333,36 @@ func adopted(t *testing.T, loader *accountload.Loader, account, token string) ho
 // loaded returns a loader that has loaded the snapshot.
 func loaded(t *testing.T, ring *open.Keyring, log *slog.Logger) *accountload.Loader {
 	t.Helper()
-	l := accountload.New(backfillPool(t), ring, log)
+	l := accountload.New(backfillPool(t), ring, log, []string{gmailProvider})
 	if err := l.Load(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	return l
 }
 
-// The credentials each served account's token source is built from are the installation's Gmail
-// client, its identifier and its secret each in its own place, and the account's own stored refresh
-// token (ADR-0083).
+// The credentials each served account's token source is built from are the Gmail client the account
+// connects through, its identifier and its secret each in its own place, and the account's own stored
+// refresh token. The two accounts connect through two clients of the one provider, so each source
+// carries its own account's client and never the other's (ADR-0085, ADR-0106).
 func TestTheCredentialsAreTheClientAndTheAccountsToken(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
+	client(t, conn, public)
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('employer', $1, 'employer-id', $2)",
+		gmailProvider, sealed(t, public, "employer-secret", seal.ClientSecret("employer")))
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	must(t, conn, "UPDATE accounts SET oauth_client = 'employer' WHERE account_id = 'work'")
 
-	got := credentials(loaded(t, ring, slog.New(slog.DiscardHandler)).Snapshot(), slog.New(slog.DiscardHandler))
+	got, err := credentials(loaded(t, ring, slog.New(slog.DiscardHandler)).Snapshot(), slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	want := map[string]gmail.Credentials{
 		"personal": {ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "personal-token"},
-		"work":     {ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "work-token"},
+		"work":     {ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "work-token"},
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("credentials (-want +got):\n%s", diff)
@@ -358,8 +381,7 @@ func TestARunHandsEachAccountOverWhenItsUnitEnds(t *testing.T) {
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	client(t, conn, public)
 	failed := errors.New("the unit of work failed")
 	held := map[string]string{}
 	rotate := func(ctx context.Context, s served) error {
@@ -403,6 +425,7 @@ func TestTheSourcesRefreshTokenIsHandedOver(t *testing.T) {
 	ring, public := keys(t)
 	account(t, conn, "rotated", gmailProvider, sealed(t, public, "first-token", seal.AccountCredential("rotated")), false)
 	account(t, conn, "unchanged", gmailProvider, sealed(t, public, "same-token", seal.AccountCredential("unchanged")), false)
+	client(t, conn, public)
 	unchanged := storedCredential(t, conn, "unchanged")
 	loader := loaded(t, ring, slog.New(slog.DiscardHandler))
 	sources := map[string]holding{
@@ -773,8 +796,7 @@ func TestARunRecordsEachAccountsAttemptWhenItsUnitEnds(t *testing.T) {
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	client(t, conn, public)
 	failed := errors.New("the unit of work failed")
 	var attempt mail.AuthAttempt
 	work := func(ctx context.Context, s served) error {
@@ -900,8 +922,7 @@ func TestTheRunsHandOverReturnsAFailedRecording(t *testing.T) {
 	reset(t, conn)
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	client(t, conn, public)
 	revoke(t, conn, "UPDATE (last_auth_at, last_auth_outcome) ON account_state")
 	work := func(ctx context.Context, s served) error {
 		s.sources["personal"] = called(s.sources["personal"], attempted(t))

@@ -154,20 +154,27 @@ func sealed(t *testing.T, to seal.PublicKey, plaintext string, c seal.Context) [
 	return b
 }
 
-// account writes an account, and a state row holding credential unless stateless.
+// account writes an account, and a state row holding credential unless stateless. An account of a
+// provider for which the household client is stored connects through it, as account setup writes it.
 func account(t *testing.T, conn *pgx.Conn, id, provider string, credential []byte, stateless bool) {
 	t.Helper()
-	must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, $2)", id, provider)
+	must(t, conn, "INSERT INTO accounts (account_id, provider, oauth_client) VALUES ($1, $2, (SELECT name FROM oauth_clients WHERE name = $3 AND provider = $2))", id, provider, household)
 	if !stateless {
 		must(t, conn, "INSERT INTO account_state (account_id, credential) VALUES ($1, $2)", id, credential)
 	}
 }
 
-// client writes the installation's Gmail client, its secret sealed to public.
+// household is the name of the Gmail client the tests' accounts connect through. It is not the
+// provider's name, so nothing finds it by the provider.
+const household = "household"
+
+// client writes the household Gmail client, its secret sealed to public, and connects every Gmail
+// account that names no client through it.
 func client(t *testing.T, conn *pgx.Conn, public seal.PublicKey) {
 	t.Helper()
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ($1, $2, $3, $4)",
+		household, gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(household)))
+	must(t, conn, "UPDATE accounts SET oauth_client = $1 WHERE provider = $2 AND oauth_client IS NULL", household, gmailProvider)
 }
 
 func storedCredential(t *testing.T, conn *pgx.Conn, id string) []byte {
@@ -182,7 +189,7 @@ func storedCredential(t *testing.T, conn *pgx.Conn, id string) []byte {
 func storedSecret(t *testing.T, conn *pgx.Conn) []byte {
 	t.Helper()
 	var b []byte
-	if err := conn.QueryRow(t.Context(), "SELECT client_secret FROM oauth_clients WHERE provider = $1", gmailProvider).Scan(&b); err != nil {
+	if err := conn.QueryRow(t.Context(), "SELECT client_secret FROM oauth_clients WHERE name = $1", household).Scan(&b); err != nil {
 		t.Fatal(err)
 	}
 	return b
@@ -264,8 +271,9 @@ func ticked(t *testing.T, conn *pgx.Conn) []string {
 // D4's parts of VERIFICATIONS' rows for loading the account snapshot within each run and for a
 // credential supplied outside the account's state row. A tick takes its accounts, the OAuth clients
 // and the credentials from the database. It ticks only a connected account whose provider it has an
-// adapter and a client for, whatever the environment and a mounted file hold, logging every other
-// one, and rewrites no credential the provider never rotated (ADR-0080, ADR-0090).
+// adapter for and that connects through a client, whatever the environment and a mounted file hold,
+// logging every other one, a Gmail account naming no client while the provider has one included,
+// and rewrites no credential the provider never rotated (ADR-0080, ADR-0090, ADR-0106).
 func TestATickTakesItsAccountsFromTheDatabase(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -274,7 +282,9 @@ func TestATickTakesItsAccountsFromTheDatabase(t *testing.T) {
 	account(t, conn, "no-state", gmailProvider, nil, true)
 	account(t, conn, "no-credential", gmailProvider, nil, false)
 	account(t, conn, "work", "fastmail", sealed(t, public, "work-token", seal.AccountCredential("work")), false)
+	account(t, conn, "unpaired", gmailProvider, sealed(t, public, "unpaired-token", seal.AccountCredential("unpaired")), false)
 	client(t, conn, public)
+	must(t, conn, "UPDATE accounts SET oauth_client = NULL WHERE account_id = 'unpaired'")
 	t.Setenv("GMAIL_REFRESH_TOKEN", "environment-token")
 	mounted := filepath.Join(t.TempDir(), "refresh_token")
 	if err := os.WriteFile(mounted, []byte("mounted-token"), 0o600); err != nil {
@@ -306,8 +316,10 @@ func TestATickTakesItsAccountsFromTheDatabase(t *testing.T) {
 		}
 	}
 	want := []record{
+		{Level: "WARN", Msg: "an account's provider authenticates through an OAuth client and the account has none that opened, so it is not connected", Account: "unpaired", Provider: gmailProvider},
 		{Level: "WARN", Msg: "an account is not connected, so it is skipped", Account: "no-credential"},
 		{Level: "WARN", Msg: "an account is not connected, so it is skipped", Account: "no-state"},
+		{Level: "WARN", Msg: "an account is not connected, so it is skipped", Account: "unpaired"},
 		{Level: "WARN", Msg: "delta sync has no adapter for an account's provider, so it is skipped", Account: "work", Provider: "fastmail"},
 	}
 	if diff := cmp.Diff(want, warned, compare.Options); diff != "" {
@@ -409,7 +421,7 @@ func series(t *testing.T, reg *prometheus.Registry) map[string]float64 {
 }
 
 // D4's parts of VERIFICATIONS' row for re-sealing to the current key with its scan. With a keyring
-// holding an old and a current key, a tick seals an account's credential and the OAuth client's secret
+// holding an old and a current key, a tick seals an account's credential and the household client's secret
 // stored under the old key again to the current one, and their scan series read 1 while a re-seal
 // cannot land and 0 once it has. An account whose credential cannot be opened reads 1, and an account
 // with no state row reads 0 (ADR-0092, ADR-0103).
@@ -438,7 +450,7 @@ func TestATickReSealsWhatItOpensWithAnOldKey(t *testing.T) {
 
 	before := map[string]float64{
 		"mediated_mailbox_sync_credential_on_old_key personal": 1, "mediated_mailbox_sync_credential_on_old_key broken": 1,
-		"mediated_mailbox_sync_credential_on_old_key stateless": 0, "mediated_mailbox_sync_client_secret_on_old_key gmail": 1,
+		"mediated_mailbox_sync_credential_on_old_key stateless": 0, "mediated_mailbox_sync_client_secret_on_old_key household": 1,
 	}
 	if diff := cmp.Diff(before, series(t, reg), compare.Options); diff != "" {
 		t.Errorf("the series while the re-seal cannot land (-want +got):\n%s", diff)
@@ -452,7 +464,7 @@ func TestATickReSealsWhatItOpensWithAnOldKey(t *testing.T) {
 
 	after := map[string]float64{
 		"mediated_mailbox_sync_credential_on_old_key personal": 0, "mediated_mailbox_sync_credential_on_old_key broken": 1,
-		"mediated_mailbox_sync_credential_on_old_key stateless": 0, "mediated_mailbox_sync_client_secret_on_old_key gmail": 0,
+		"mediated_mailbox_sync_credential_on_old_key stateless": 0, "mediated_mailbox_sync_client_secret_on_old_key household": 0,
 	}
 	if diff := cmp.Diff(after, series(t, reg), compare.Options); diff != "" {
 		t.Errorf("the series once re-sealed (-want +got):\n%s", diff)
@@ -464,11 +476,12 @@ func TestATickReSealsWhatItOpensWithAnOldKey(t *testing.T) {
 	if got := keyIdentifier(t, storedSecret(t, conn)); got != current {
 		t.Errorf("the client's secret is sealed to %s, want the current key %s", got, current)
 	}
-	restarted := accountload.New(syncPool(t), ring, slog.New(slog.DiscardHandler))
+	restarted := accountload.New(syncPool(t), ring, slog.New(slog.DiscardHandler), []string{gmailProvider})
 	if err := restarted.Load(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if c, ok := restarted.Snapshot().Client(gmailProvider); !ok || string(c.Secret()) != "client-secret" {
+	a, _ := restarted.Snapshot().Account("personal")
+	if c, ok := a.Client(); !ok || string(c.Secret()) != "client-secret" {
 		t.Errorf("after a restart the client's secret opens to %v, want client-secret", ok)
 	}
 }
@@ -539,7 +552,7 @@ func TestTheProbesServeEverySeriesBetweenTicks(t *testing.T) {
 	}
 	for _, want := range []string{
 		`mediated_mailbox_sync_credential_on_old_key{account="personal"} 0`,
-		`mediated_mailbox_sync_client_secret_on_old_key{provider="gmail"} 0`,
+		`mediated_mailbox_sync_client_secret_on_old_key{client="household"} 0`,
 		`mediated_mailbox_sync_cursor_gaps_total{account="personal"} 0`,
 		`mediated_mailbox_sync_unclassified_senders_total{account="personal"} 0`,
 		`mediated_mailbox_sync_scan_backlog{account="personal"} 0`,
@@ -588,7 +601,7 @@ func TestEachTickHandsItsAccountOverAndRecordsItsAttempt(t *testing.T) {
 		t.Fatal("the tick succeeded though it could not record its run")
 	}
 
-	restarted := accountload.New(syncPool(t), ring, slog.New(slog.DiscardHandler))
+	restarted := accountload.New(syncPool(t), ring, slog.New(slog.DiscardHandler), []string{gmailProvider})
 	if err := restarted.Load(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -670,16 +683,21 @@ func TestEachTickFeedsItsUnclassifiedAndBacklogSeries(t *testing.T) {
 	}
 }
 
-// D4's part of VERIFICATIONS' row for the credentials a token source is built from. A tick builds
-// each served account's token source from the installation's Gmail client, its identifier and its
-// secret each in its own place, and the account's own stored refresh token (ADR-0083).
+// D4's part of VERIFICATIONS' rows for the credentials a token source is built from and for an
+// account's own client. A tick builds each served account's token source from the Gmail client the
+// account connects through, its identifier and its secret each in its own place, and the account's
+// own stored refresh token. The two accounts connect through two clients of the one provider, so
+// each source carries its own account's client and never the other's (ADR-0085, ADR-0106).
 func TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
+	client(t, conn, public)
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('employer', $1, 'employer-id', $2)",
+		gmailProvider, sealed(t, public, "employer-secret", seal.ClientSecret("employer")))
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
-	client(t, conn, public)
+	must(t, conn, "UPDATE accounts SET oauth_client = 'employer' WHERE account_id = 'work'")
 	s := newTestSyncer(t, syncPool(t), ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler),
 		map[string]*fake.Fake{"personal": mailbox(t, "personal"), "work": mailbox(t, "work")})
 	var built []gmail.Credentials
@@ -694,7 +712,7 @@ func TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken(t *testing.T) 
 
 	want := []gmail.Credentials{
 		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "personal-token"},
-		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "work-token"},
+		{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "work-token"},
 	}
 	if diff := cmp.Diff(want, built, compare.Options); diff != "" {
 		t.Errorf("the credentials each tick's sources were built from (-want +got):\n%s", diff)

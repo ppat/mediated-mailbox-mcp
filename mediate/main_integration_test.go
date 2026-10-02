@@ -389,7 +389,7 @@ func TestTheMetricsEndpointCarriesEachServedAccountsRateState(t *testing.T) {
 // package shares one database.
 func reset(t *testing.T, conn *pgx.Conn) {
 	t.Helper()
-	for _, table := range []string{"reorg_plans", "messages", "audit_log", "oauth_clients", "account_state", "rate_grants", "rate_state", "policy_rules", "accounts"} {
+	for _, table := range []string{"reorg_plans", "messages", "audit_log", "account_state", "rate_grants", "rate_state", "policy_rules", "accounts", "oauth_clients"} {
 		must(t, conn, "DELETE FROM "+table)
 	}
 }

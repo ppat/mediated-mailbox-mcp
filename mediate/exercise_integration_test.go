@@ -81,7 +81,8 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	account := "exercise"
 	must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", account)
 	connect(t, conn, public, account)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ('gmail', 'client-id', $1)", sealedSecret(t, public))
+	client(t, conn, public, household, "client-id", "client-secret")
+	through(t, conn, account, household)
 	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES (NULL, 'base.bank', 'restricted', ARRAY['bank.example'], 'operator', 'exercise')`)
 

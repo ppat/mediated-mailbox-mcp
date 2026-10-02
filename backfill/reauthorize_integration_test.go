@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
@@ -20,6 +21,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
 // provider plays Google for one account over the provider fake: it honours one refresh token, and
@@ -55,7 +57,7 @@ func (p *provider) connect(_ string, source *gmail.TokenSource) (mail.Port[conte
 }
 
 // refusedRun sets up the account personal, connected with the refresh token first-token through the
-// installation's Gmail client, and returns what the run needs to run backfill's passes over p, which
+// household Gmail client, and returns what the run needs to run backfill's passes over p, which
 // holds bodyMailbox's messages and honours nothing until the test says what.
 func refusedRun(t *testing.T) (*provider, func(t *testing.T) error, seal.PublicKey) {
 	t.Helper()
@@ -63,8 +65,7 @@ func refusedRun(t *testing.T) (*provider, func(t *testing.T) error, seal.PublicK
 	reset(t, conn)
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "first-token", seal.AccountCredential("personal")), false)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	client(t, conn, public)
 	p := &provider{f: bodyMailbox(t, "personal")}
 	run := func(t *testing.T) error {
 		t.Helper()
@@ -184,17 +185,16 @@ func TestAFailedReadOfTheRefusedCredentialIsReported(t *testing.T) {
 	}
 }
 
-// operatorReplaced sets up the account personal, connected with the refresh token first-token, and
-// returns a run of backfill over work and a function that stores second-token as the operator's
-// re-authorization would, returning the sealed bytes it stored.
+// operatorReplaced sets up the account personal, connected with the refresh token first-token through
+// the household Gmail client, and returns a run of backfill over work and a function that stores
+// second-token as the operator's re-authorization would, returning the sealed bytes it stored.
 func operatorReplaced(t *testing.T) (func(t *testing.T, work unitOfWork) error, func(t *testing.T) []byte, *open.Keyring) {
 	t.Helper()
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "first-token", seal.AccountCredential("personal")), false)
-	must(t, conn, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ($1, $2, $3)",
-		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
+	client(t, conn, public)
 	run := func(t *testing.T, work unitOfWork) error {
 		t.Helper()
 		return backfill(t.Context(), backfillPool(t), ring, slog.New(slog.DiscardHandler), prometheus.NewRegistry(), work)
@@ -275,5 +275,54 @@ func TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential(t *testing.T)
 
 	if got := storedCredential(t, conn, "personal"); !bytes.Equal(got, replaced) {
 		t.Error("a hand-over from before the adoption wrote its credential over the one the operator stored")
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account's own client, for backfill's re-read. The account
+// moves to another client while a run is under way, its new client and new credential written in one
+// transaction (ADR-0106). The re-read after a refusal makes the account's source from the new client
+// and the new credential, and the run holds that pair from then on (ADR-0090).
+func TestARereadAfterAMoveBuildsTheSourceFromTheNewClient(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	ring, public := keys(t)
+	account(t, conn, "personal", gmailProvider, sealed(t, public, "first-token", seal.AccountCredential("personal")), false)
+	client(t, conn, public)
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('employer', $1, 'employer-id', $2)",
+		gmailProvider, sealed(t, public, "employer-secret", seal.ClientSecret("employer")))
+	var source *gmail.TokenSource
+	var built gmail.Credentials
+	work := func(ctx context.Context, s served) error {
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, "UPDATE accounts SET oauth_client = 'employer' WHERE account_id = 'personal'"); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, "UPDATE account_state SET credential = $1 WHERE account_id = 'personal'",
+			sealed(t, public, "moved-token", seal.AccountCredential("personal"))); err != nil {
+			return err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+		if source, err = s.reauthorize(ctx, "personal"); err != nil {
+			return err
+		}
+		built = s.sources["personal"].built
+		return nil
+	}
+
+	if err := backfill(t.Context(), backfillPool(t), ring, slog.New(slog.DiscardHandler), prometheus.NewRegistry(), work); err != nil {
+		t.Fatal(err)
+	}
+
+	if source == nil || source.RefreshToken() != "moved-token" {
+		t.Fatalf("the re-read made no source holding moved-token")
+	}
+	want := gmail.Credentials{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "moved-token"}
+	if diff := cmp.Diff(want, built, compare.Options); diff != "" {
+		t.Errorf("the credentials the re-read's source was built from (-want +got):\n%s", diff)
 	}
 }

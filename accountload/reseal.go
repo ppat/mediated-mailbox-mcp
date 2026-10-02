@@ -20,7 +20,7 @@ import (
 type Scan struct {
 	// Accounts is keyed on the account.
 	Accounts map[string]bool
-	// Clients is keyed on the provider.
+	// Clients is keyed on the client's name.
 	Clients map[string]bool
 }
 
@@ -78,10 +78,11 @@ func (l *Loader) Reseal(ctx context.Context) Scan {
 	return Scan{Accounts: maps.Clone(l.scan.Accounts), Clients: maps.Clone(l.scan.Clients)}
 }
 
-// ClientWriter writes a provider's client secret sealed again, only if the stored bytes are still
-// known, and reports whether the write landed (ADR-0089). Delta sync supplies it, through the one
-// statement that writes a client secret, which only its role is granted (ADR-0092, ADR-0016).
-type ClientWriter func(ctx context.Context, provider string, known, sealed []byte) (bool, error)
+// ClientWriter writes the secret of the client with the name sealed again, only if the stored bytes
+// are still known, and reports whether the write landed (ADR-0089). Delta sync supplies it, through
+// the one statement that writes a client secret, which only its role is granted (ADR-0092,
+// ADR-0016).
+type ClientWriter func(ctx context.Context, name string, known, sealed []byte) (bool, error)
 
 // ResealClients seals every OAuth client secret the last load opened with a key that is not the
 // current one again to the current key, and writes it through write by compare-and-set on the bytes
@@ -92,38 +93,39 @@ type ClientWriter func(ctx context.Context, provider string, known, sealed []byt
 func (l *Loader) ResealClients(ctx context.Context, write ClientWriter) Scan {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	for _, provider := range slices.Sorted(maps.Keys(l.clients)) {
-		known := l.clients[provider]
+	for _, name := range slices.Sorted(maps.Keys(l.clients)) {
+		known := l.clients[name]
 		if !l.onOldKey(known) {
 			continue
 		}
-		_, resealed, changed, err := l.keys.Reseal(known, seal.ClientSecret(provider))
+		_, resealed, changed, err := l.keys.Reseal(known, seal.ClientSecret(name))
 		if err == nil && changed {
 			var landed bool
-			if landed, err = write(ctx, provider, known, resealed); err == nil && !landed {
-				err = l.rereadClient(ctx, provider)
+			if landed, err = write(ctx, name, known, resealed); err == nil && !landed {
+				err = l.rereadClient(ctx, name)
 				if err == nil {
 					continue
 				}
 			}
 			if landed {
-				l.clients[provider] = resealed
+				l.clients[name] = resealed
 			}
 		}
 		if err != nil {
-			l.log.Error("an OAuth client's secret was not re-sealed to the current key", slog.String("provider", provider), slog.Any("error", err))
+			l.log.Error("an OAuth client's secret was not re-sealed to the current key", slog.String("client", name), slog.Any("error", err))
 			continue
 		}
-		l.scan.Clients[provider] = l.onOldKey(l.clients[provider])
+		l.scan.Clients[name] = l.onOldKey(l.clients[name])
 	}
 	return Scan{Accounts: maps.Clone(l.scan.Accounts), Clients: maps.Clone(l.scan.Clients)}
 }
 
-// rereadClient reads the provider's stored client secret again after someone else replaced it, opens
-// it, publishes it in a new snapshot and sets the provider's scan entry from it, as a load would. A
-// provider whose row is gone loses its client and its entry, and one whose secret does not open loses
-// its client and reads true (ADR-0089, ADR-0090).
-func (l *Loader) rereadClient(ctx context.Context, provider string) error {
+// rereadClient reads the named client's stored secret again after someone else replaced it, opens it,
+// publishes it in a new snapshot to every account that names the client and sets the client's scan
+// entry from it, as a load would. A client whose row is gone is taken from its accounts with its
+// entry, and one whose secret does not open is taken from its accounts and reads true (ADR-0089,
+// ADR-0090, ADR-0106).
+func (l *Loader) rereadClient(ctx context.Context, name string) error {
 	var rows []oauthclients.OAuthClientsRow
 	err := pgx.BeginFunc(ctx, l.db, func(t pgx.Tx) error {
 		var err error
@@ -133,23 +135,26 @@ func (l *Loader) rereadClient(ctx context.Context, provider string) error {
 	if err != nil {
 		return fmt.Errorf("reading the OAuth clients again: %w", err)
 	}
-	current := l.active.Load()
-	next := &Snapshot{accounts: slices.Clone(current.accounts), clients: maps.Clone(current.clients)}
-	delete(next.clients, provider)
-	delete(l.clients, provider)
-	delete(l.scan.Clients, provider)
+	delete(l.clients, name)
+	delete(l.scan.Clients, name)
+	opened := map[string]Client{}
 	for _, c := range rows {
-		if c.Provider != provider {
+		if c.ClientName != name {
 			continue
 		}
-		secret, err := l.keys.Open(c.SealedClientSecret, seal.ClientSecret(c.Provider))
-		l.scan.Clients[provider] = err != nil || l.onOldKey(c.SealedClientSecret)
-		if err != nil {
-			l.log.Error("an OAuth client's secret did not open, so its provider has no client", slog.String("provider", provider), slog.Any("error", err))
-			break
+		client, ok := l.openClient(c)
+		l.scan.Clients[name] = !ok || l.onOldKey(c.SealedClientSecret)
+		if ok {
+			opened[name] = client
+			l.clients[name] = c.SealedClientSecret
 		}
-		next.clients[provider] = Client{provider: provider, id: c.ClientID, secret: secret}
-		l.clients[provider] = c.SealedClientSecret
+		break
+	}
+	next := &Snapshot{accounts: slices.Clone(l.active.Load().accounts)}
+	for i, a := range next.accounts {
+		if a.clientName == name {
+			next.accounts[i] = l.paired(a, name, opened)
+		}
 	}
 	l.active.Store(next)
 	return nil
