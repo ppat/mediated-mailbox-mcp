@@ -127,6 +127,7 @@ moves it. Records themselves link freely and deep, into
 | 0032 | [All validation precedes the first write; saved plans validate at creation, re-validate at apply, and expire](./mutation/0032-whole-batch-validation.md) | Accepted |
 | 0084 | [The UI writes the database directly for two decisions, OAuth client setup, account setup and policy management, and seals credentials it can never open](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
 | 0102 | [Every change to the policy is appended to a history no runtime role can rewrite](./mutation/0102-policy-changes-recorded-in-an-append-only-history.md) | Accepted |
+| 0110 | [A policy file holds one scope's rules and imports into any scope, making that scope's rules equal to the file after a preview and one confirmation of every lift, and a rule's identifier is unique within its scope](./mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md) | Accepted |
 
 ## Operability — `operability/`
 

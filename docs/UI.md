@@ -162,6 +162,7 @@ every dataset the default-range table gives a range.
 | `/setup/policy` and `/setup/policy/{rule-id}` | Base policy and one base rule ([8.14](#814-base-policy)) |
 | `/setup/policy/new?suffix=…&id=…` | Add a base rule, the panel over the base policy screen, `id=` the identifier a restore fills in ([8.14](#814-base-policy)) |
 | `/setup/policy/history?…` | The base policy's history, the `policy_changes` dataset's base rows ([8.14](#814-base-policy)) |
+| `/setup/policy/import` | Import the base policy from a file ([8.7](#87-policy), [8.14](#814-base-policy)) |
 | `/{account}` | Home ([8.1](#81-home)) |
 | `/{account}/account` | Account settings ([8.13](#813-account-settings)) |
 | `/{account}/account/reauthorize?client=…` | Re-authorize the account ([8.12](#812-connect-an-account-and-re-authorize)), `client=` another client to move the account to |
@@ -175,10 +176,12 @@ every dataset the default-range table gives a range.
 | `/{account}/jobs` | Jobs ([8.3](#83-jobs)) |
 | `/{account}/jobs/{run-id}?…` | Run ([8.4](#84-run)), whose ladder is the `failures` dataset with `run` as its parent |
 | `/{account}/jobs/{run-id}/failures/{seq}` | one failure, the panel over the run's L3 |
-| `/{account}/policy` and `/{account}/policy/{rule-id}?suffix=…` | Policy and one rule, `suffix=` opening Edit domains with those suffixes added ([8.7](#87-policy)) |
+| `/{account}/policy` and `/{account}/policy/{rule-id}?suffix=…` | Policy and one rule, the account's own rule of that identifier or else the base rule, `suffix=` opening Edit domains with those suffixes added ([8.7](#87-policy)) |
+| `/{account}/policy/base/{rule-id}?suffix=…` | One base rule seen from the account, for an identifier the account also holds ([8.7](#87-policy)) |
 | `/{account}/policy/new?suffix=…&scope=…&id=…` | Add a rule, the panel over the policy screen, `suffix=` or `search=` carrying the senders picked into it, and `scope=` and `id=` the scope and identifier a restore or a change of scope fills in ([8.7](#87-policy)) |
 | `/{account}/policy/pick?search=…&pick=…` | Restrict senders from the index, the `senders` dataset at L3, `pick=` the selected domains, or `pick=all` for every sender the search matches ([8.7](#87-policy)) |
 | `/{account}/policy/history?…` | Policy history, the `policy_changes` dataset ([8.7](#87-policy)) |
+| `/{account}/policy/import` | Import the account's own rules from a file ([8.7](#87-policy)) |
 | `/{account}/system` | System ([8.8](#88-system)) |
 | `/{account}/{dataset}?group=a&level=N&range=…&{dimension}={value}…` | an analysis lens ([8.5](#85-the-analysis-lenses)), `{dataset}` one of `messages`, `senders`, `masking`, `gate`, `audit` |
 | `/{account}/{dataset}/{row-id}` | one row, the panel over the lens's L3. Not for `senders`, which has no row detail; its rows link out to `messages?sender=` |
@@ -237,7 +240,7 @@ is a dataset.
 | `ops` | a plan's message operations | `plan`, required | yes |
 | `runs` | job runs | none | no |
 | `failures` | a run's item failures | `run`, required | yes |
-| `rules` | policy rules | none | no |
+| `rules` | policy rules, the base rules and the account's own. Identity the scope and the rule identifier together, since both scopes may hold one identifier | none | no |
 | `policy_changes` | the policy history, one row per change to a rule (ADR-0102) | none | no |
 
 The op log, the accounts table, and the rate state are read by the bespoke endpoints of
@@ -373,7 +376,9 @@ never hidden. The browser's counterpart to ADR-0042's rule that an unhandled var
 that an unhandled value is shown, not dropped.
 
 The row detail (L4) shows the same fields as a two-column list, then a sensitivity block (sender
-class with the rule id that set it, content flags with the rule ids that fired, and scan state with
+class with the rule id that set it, linking to the account's policy searched for that identifier,
+which lists the base rule and the account's own rule when both scopes hold it, since the index
+records the identifier and not its scope (ADR-0110), content flags with the rule ids that fired, and scan state with
 the time scanned and the scanner version), then the audit rows for this message as an L3 list,
 then, when reached from a plan, what the plan does to it and why. Never a body, never a snippet. The
 database has no column to show (ADR-0016). Each axis shows the rule behind it, as the index records
@@ -387,7 +392,9 @@ the shape the index used to have. It lost because a reader could not tell which 
 axis. When no rule set the class (ADR-0016 names when), its rule shows as "none", as an empty list
 of rule ids that fired does, never as an empty cell.
 
-The rule id that set the sender class links to that rule's screen, `/{account}/policy/{rule-id}`. A
+The rule id that set the sender class links to the account's policy searched for it,
+`/{account}/policy?search={rule-id}`, which lists that identifier's rule in each scope that holds
+one, among any other rule whose identifier or suffix contains the text (ADR-0110). A
 sender class read `normal` carries the control "Restrict {domain}…", which opens Add a rule at
 `/{account}/policy/new?suffix={domain}` ([section 8.7](#87-policy)), so a restriction starts where
 the need to make one arises. Both follow the rule above, that the UI links only to screens that
@@ -948,8 +955,9 @@ suffixes at a label boundary, and a sender counts under every rule it matches. P
 rows and snapshotted by every process (ADR-0004, ADR-0041), and this screen is the one exception
 to per-account rows stated in [section 5](#5-information-architecture-and-the-url). The L0 strip
 counts the base rules, the account's rules and the senders restricted in the account, and shows
-the time of the latest change with a link to the history. Above the table sit three actions, Add a
-rule, Restrict senders from the index and History, and a search box, the `rules` dataset's
+the time of the latest change with a link to the history. Above the table sit the actions Add a
+rule, Restrict senders from the index and History, then Import and Export, which act on the
+account's own rules (Import and export, below), and a search box, the `rules` dataset's
 `search` filter ([section 5](#5-information-architecture-and-the-url)), which answers which rule
 holds a domain. With no overlay rule, the account's part of the table reads "No rules for
 {account} alone. The base rules above apply to every account."
@@ -959,11 +967,15 @@ deployables of ROADMAP's unit [F7](../ROADMAP.md#group-f--foundation), and each 
 the policy. This screen's sentences about a process's next policy reload rest on that.
 
 Every change to policy is made through the UI (ADR-0004), and every change is recorded in the
-policy history (ADR-0102). This section designs adding, editing and lifting rules and picking
-stored senders into the policy. Importing the policy from a file and exporting it to one are
-designed apart, with their file format ([section 20](#20-what-remains-open)).
+policy history (ADR-0102). This section designs adding, editing and lifting rules, picking stored
+senders into the policy, and importing and exporting a scope's rules as a file (ADR-0110).
 
-**A rule.** `/{account}/policy/{rule-id}` shows the rule's header (identifier in mono, scope,
+**A rule.** `/{account}/policy/{rule-id}` shows the account's own rule of that identifier, or the
+base rule when the account holds none, and `/{account}/policy/base/{rule-id}` always the base rule,
+so a base rule and an account's rule of one identifier are each reachable. Every link to a rule
+from a row of the table or the history names its scope this way. A message's rule link searches the
+policy for the identifier instead ([section 7.1](#71-the-message-row)). It shows the rule's
+header (identifier in mono, scope,
 class, source, created time and identity), its domain suffixes, each with the senders and messages
 it matches in the account, the senders it matches as sender rows, and its history as policy
 change rows, the changes recorded under its identifier and its scope. Three actions, Edit domains,
@@ -971,18 +983,20 @@ Change where this applies…, and set apart from them on the right, Lift restric
 
 **What a write may hold.** Every rule's class is restricted, the one class, shown on the rule's
 screen and never chosen. A rule is refused when its identifier is empty, carries surrounding space
-or is taken by any rule, or when it has no domain suffix or a suffix not shaped like a domain name.
+or is taken by a rule of the same scope, or when it has no domain suffix or a suffix not shaped
+like a domain name. An identifier is unique within its scope, the base policy or one account's
+own rules, so the base policy and an account may each hold a rule of the same identifier, and so
+may two accounts (ADR-0110).
 These are the checks the policy snapshot's validation makes when a process loads the policy
 (ADR-0041), and the UI makes them before it writes, so no write the UI makes fails that validation.
 A base edit landing while a process reloads can still fail that one reload, which is a separate
-open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)). Two refusals are the
-UI's own. An identifier that is one of this screen's route words, `new`, `pick` and `history`, or is
-exactly `.` or `..`, or holds a `/`, is refused so every rule can be reached, and so is one the account's policy history already records,
-so a rule's history is never another rule's, unless the identifier's latest history row in the same
-scope is a lift. That identifier may be added again, and its history then reads added, lifted,
-added, for one rule. An identifier a rule holds reads "This identifier is taken" and does not say
-where, since the rule holding it may be another account's. An identifier refused for its history
-alone reads "A rule lifted on {date} used this identifier." A suffix another rule already matches
+open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)). One refusal is the
+UI's own. An identifier that is one of this screen's route words, `new`, `pick`, `history`,
+`import` and `base`, or is exactly `.` or `..`, or holds a `/`, is refused so every rule can be
+reached. A rule's history is the rows recorded under its identifier and its scope, so an
+identifier lifted earlier in the same scope may be added again, and its history then reads added,
+lifted, added, for one rule. An identifier the scope holds reads "{account} already has a rule
+{id}.", or "The base policy already has a rule {id}.". A suffix another rule already matches
 is allowed, and says which rule. The scope and the identifier cannot change once a rule is added. A
 rule moves scope through Change where this applies…, below.
 
@@ -1002,11 +1016,10 @@ in view's alone, and nothing is summed across accounts.
 | Lift a base rule, or remove a suffix from it | lifts a restriction in every account | the lift dialog and the rule identifier typed |
 
 - **Add a rule** is the panel `/{account}/policy/new`, 480 px over the policy screen like a row
-  detail. Applies to, the rule identifier prefilled `operator.{account}.{first suffix}` for an
-  overlay rule or `operator.{first suffix}` for a base rule and editable, the domain suffixes one per
+  detail. Applies to, the rule identifier prefilled `operator.{first suffix}` in either scope and
+  editable, so an exported file's identifiers read the same in any scope, the domain suffixes one per
   line, each checked as it is typed and shown with what it matches ("matches {n} senders ·
-  {m} messages in {account}"), and the class. The prefilled identifier follows the scope chosen
-  only until the operator edits it. The sentence above the button reads "Restricts {n} senders and
+  {m} messages in {account}"), and the class. The sentence above the button reads "Restricts {n} senders and
   {m} stored messages in {account}. From each process's next policy reload their bodies are
   denied." Add rule stays disabled while any line is refused. A suffix that is itself a public
   suffix, or that matches more than a share of the account's senders, carries a warning on its
@@ -1039,7 +1052,8 @@ in view's alone, and nothing is summed across accounts.
   rule still exists.
 - **Change where this applies…** moves a rule between scopes, offering "Only {account}" on a base
   rule and "Every account" on an overlay rule. It opens Add a rule prefilled with the rule's
-  suffixes, the other scope and a proposed new identifier. Once the add succeeds, it continues to
+  suffixes, the other scope and the rule's own identifier, which the other scope may also hold.
+  Once the add succeeds, it continues to
   the old rule's lift dialog, whose counts are then 0 in the account in view, and which reads
   "Nothing in {account} loses its restriction, since {new rule} covers every suffix." A base rule's
   lift still asks for the identifier typed, since other accounts lose it. The move is two
@@ -1075,6 +1089,70 @@ changes and the account's own, newest first, at L3 by default with the range of
 figures are the changes in range, those that added restriction and those that lifted it. A lifted
 rule no longer exists, so its identifier renders without a link, and its row carries Restore.
 
+**Import and export.** One scope's rules are exported to a file, and a file is imported into one
+scope (ADR-0110). The account's policy screen exports and imports the account's own rules, and the
+base policy screen ([section 8.14](#814-base-policy)) the base rules. A file names no scope, so a
+file exported from any scope imports into any other, the base policy or any account. No file holds
+two accounts' policies, so the per-account rule of [section 1](#1-what-the-ui-is-for) holds. An
+import makes the scope's stored rules equal to the file, after a preview of every change and one
+confirmation of every restriction it lifts.
+
+- **The file** is ADR-0004's form, YAML, rules sorted by identifier, each with its identifier, its
+  domain suffixes and its class, and nothing else. Its source, its created time and its history
+  stay in the database.
+
+  ```yaml
+  rules:
+    - id: operator.schwab.com
+      domain_suffix: [schwab.com, schwabmail.com]
+      class: restricted
+  ```
+
+- **Export** downloads the scope's rules as they are stored, named `policy-{account}.yaml` or
+  `policy-base.yaml`. It asks nothing and changes nothing.
+- **Import** is the screen `/{account}/policy/import`, titled "Import {account}'s rules" with "The
+  file replaces {account}'s own rules. The base rules are not touched.", or `/setup/policy/import`,
+  titled "Import the base policy" with "The file replaces the base rules, which every account
+  inherits." The operator drops the file or chooses it, and the server reads it and checks every
+  rule with the checks of a write (What a write may hold, above) before anything is shown. A file is
+  refused whole, naming each problem with its rule and line, when it is not this form, when a rule
+  fails a check, when two rules share an identifier, or when it is over 1 MB. An identifier is
+  unique within its scope only, so a file's identifiers never collide with another scope's rules,
+  and a rule in the file whose identifier the scope holds is that rule, edited to the file's
+  suffixes.
+- **The preview** lists the difference between the stored rules and the file, in four groups,
+  each with its count. Rules added, suffixes added to a rule, suffixes removed from a rule, and rules
+  lifted, which are stored and missing from the file. Unchanged rules show as a count. The lifted
+  and removed groups come first, in the restricted color, since they are what the import
+  releases. For the account's scope each lifted rule and removed suffix carries the account's
+  numbers as the lift dialog states them, the senders and stored messages no other rule restricts.
+  For the base scope it carries none, as on [section 8.14](#814-base-policy). A file equal to the
+  stored rules reads "The file matches the stored rules. Nothing to import." with no button.
+- **Confirming.** {k} counts the restrictions an import lifts, each rule lifted and each suffix
+  removed from a rule counting one. With nothing lifted, "Import {n} changes" applies at once,
+  since it only adds restriction. With anything lifted, the button reads "Import, lifting {k}
+  restrictions" and opens one dialog for every lift, an `alertdialog` titled "This import lifts {k}
+  restrictions". It lists each rule and suffix lifted, then states for the account's scope "In
+  {account}, {n} senders and {m} stored messages are restricted by what this import lifts and by
+  no other rule.", followed by the lift dialog's sentences on what is released and what cannot be
+  recalled, or for the base scope "Every account loses these restrictions: {identifiers}." and the
+  same sentences. Its button reads "Import and lift {k}". For the base scope, whose lifts every
+  account loses, the operator types `lift {k}` before the button enables, and while disabled it
+  says "Type lift {k} to enable". For an account's scope the button needs no typing, as a single
+  overlay lift needs none. Focus starts on Cancel. Either way the request carries `lift {k}`, so the
+  server applies only an import whose confirmation covers the count it lifts.
+- **Applying.** The whole import is one transaction, each change with its history row, added,
+  edited or lifted, as any write writes it (ADR-0102), so an import that fails leaves neither rules
+  nor history. The preview carries the scope's stored rules it was computed against, and the
+  import compares them with the scope's rules read in its own transaction, so an import whose scope
+  changed since is refused with "The policy changed since this preview. Preview again."
+  A rule lifted by an import reaches the delisting transition as any lift does (ADR-0037).
+- **After an import** the browser returns to the scope's policy screen, which reads "Imported: {a}
+  rules added, {e} rules edited, {k} restrictions lifted.", each count taking the singular for one,
+  as every count line of this section does, and, when anything was lifted, "Put back
+  the {k} lifted restrictions", which adds back exactly what the
+  import lifted with no confirmation, as Put it back does for one lift.
+
 **Accessibility of the policy writes.** What the accessibility requirement of
 [section 16](#16-framework-requirements) means for these screens:
 
@@ -1085,6 +1163,7 @@ rule no longer exists, so its identifier renders without a link, and its row car
 | Sender picker | each selection box a checkbox labelled "Select {domain}". A restricted sender's box is disabled, described by "Already restricted by {rule}". The selection bar is a polite live region announcing "{n} senders, {m} messages selected", and the match count is announced as the search narrows |
 | Writes | each save, an add, an edit, a lift or the rate target of [section 8.13](#813-account-settings), announces its outcome in a status region, and a refusal moves focus to the refusal's text |
 | Selecting every match | `Ctrl` or `Cmd` with `a`, which selects rows on pages not in view, announces the count it selected |
+| Import | the file drop is also a file input labelled "Choose a policy file". The preview's groups are headings with their counts, read lifted first. The import dialog follows the lift dialog's contract, its typed field, on a base import, labelled with the expected `lift {k}` |
 
 ### 8.8 System
 
@@ -1490,7 +1569,8 @@ the base policy endpoints ([section 17.4](#174-the-bespoke-endpoints)). Not live
 account, those connected later included." followed by the accounts today, their identifiers in
 mono, each linking to that account's policy screen, where its numbers are, or "No account is
 connected yet." An L0 strip counts the base rules and shows the time of the latest change with a
-link to the history. Above the table sit Add a base rule and History, and a search box over the
+link to the history. Above the table sit Add a base rule, History, Import and Export, which act on the base rules as
+[section 8.7](#87-policy)'s Import and export states, and a search box over the
 rule identifiers and the domain suffixes. The table's rows are the base rules sorted by rule id,
 each with rule id, domain suffixes, source (operator, or the candidate it came from) and created
 time and identity, each row opening its rule. With no rule, the table reads "No base rules yet. A
@@ -1499,8 +1579,8 @@ Add a base rule.
 
 **What a write may hold** is [section 8.7](#87-policy)'s, with the base policy's history in place
 of the account's. An identifier is refused when it is empty, carries surrounding space, is taken
-by any rule, is `new` or `history`, is exactly `.` or `..`, holds a `/`, or is one the base policy's history records unless its latest
-row there is a lift. A suffix is refused when it is not shaped like a domain name. Every rule's
+by a base rule, is `new`, `history` or `import`, is exactly `.` or `..`, or holds a `/`. An
+account's rule may hold the same identifier as a base rule (ADR-0110). A suffix is refused when it is not shaped like a domain name. Every rule's
 class is restricted. Each write is recorded in the policy history in the same transaction
 (ADR-0102). How the UI writes a base rule and its history row, and reads the base policy with no
 account named, as this screen and the installation endpoint do, is an open decision of M8
@@ -1603,7 +1683,9 @@ The policy writes follow the same rule, and their direction decides their weight
 restriction can only deny more, so it asks nothing. Lifting a restriction lets a sensitive
 sender's bodies be released, at once for mail already scanned and after a scan for the rest, which
 cannot be recalled, so it states its consequence with the account's numbers, and on a base rule,
-which every account loses, asks for the rule's identifier typed ([section 8.7](#87-policy)). The setups weigh what they replace.
+which every account loses, asks for the rule's identifier typed ([section 8.7](#87-policy)). An import
+that lifts anything asks once for every lift it makes, typed as `lift {k}` for the base scope as a
+base lift is typed. The setups weigh what they replace.
 Replacing a client's identifier breaks the grant of every account connected through that client
 until each is re-authorized, so it asks for confirmation naming those accounts, while a new secret
 for the same client breaks no grant and asks nothing ([section 8.11](#811-oauth-client-setup)).
@@ -2145,8 +2227,11 @@ Every failure is one shape, and the origin mirrors
 | `POST /api/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 outside the range of [section 8.13](#813-account-settings) |
 | `GET /api/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed |
 | `POST /api/{account}/policy/rules` with `{ "scope": "account", "rule_id": "…", "suffixes": ["…"] }` | adds a rule, `scope` being `account` or `base`, with its history row. 400 `rule_refused` with each problem, 409 `identifier_taken` |
-| `POST /api/{account}/policy/rules/{rule-id}` with `{ "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
-| `POST /api/{account}/policy/rules/{rule-id}/lift` with `{ "suffixes_before": ["…"], "confirmation": null }` | removes the rule with its history row. 404 and 409 as edit, and `confirmation` as edit for a base rule |
+| `POST /api/{account}/policy/rules/{rule-id}` with `{ "scope": "account", "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
+| `POST /api/{account}/policy/rules/{rule-id}/lift` with `{ "scope": "account", "suffixes_before": ["…"], "confirmation": null }` | removes the rule with its history row. 404 and 409 as edit, and `confirmation` as edit for a base rule |
+| `GET /api/{account}/policy/export` and `GET /api/setup/policy/export` | the scope's rules in the file form of [section 8.7](#87-policy), as a download. The base one is unscoped and reads with no account named, M8's open decision |
+| `POST /api/{account}/policy/import/preview` and `POST /api/setup/policy/import/preview` with the file | reads and checks the file and answers the four groups of the preview, the account's numbers for the account's scope, and the scope's stored rules it was computed against. 400 `file_refused` with each problem, its rule and its line. Writes nothing. The base one is unscoped and reads with no account named, M8's open decision |
+| `POST /api/{account}/policy/import` and `POST /api/setup/policy/import` with `{ "file": "…", "computed_against": "…", "confirmation": null }` | applies the file as one transaction, each change with its history row. 409 `stale_preview` when the scope's rules read in the import's transaction differ from `computed_against`. An import that lifts anything needs `confirmation`, `lift {k}` with {k} the count it lifts, which the dialog sends, typed by the operator for the base scope, refused with 400 `confirmation_required` otherwise. The base one is unscoped and reads and writes with no account named, M8's open decision |
 
 The plans and candidates lists are read through the dataset endpoint's `plans` and `candidates`
 datasets ([section 17.1](#171-the-dataset-endpoint)), and the rules and the policy history through
@@ -2324,7 +2409,6 @@ used. What is still open, and where it is tracked:
 | --- | --- |
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
-| Importing the policy from a file and exporting it to one, how an import meets the rules already stored, and the file's format, which [section 8.7](#87-policy) leaves out | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds policy management |
 | How a newly connected account, a credential replaced by re-authorization and a policy edit reach the workloads with no manual step and no restart, which [sections 8.7](#87-policy) and [8.12](#812-connect-an-account-and-re-authorize) assume | ROADMAP.md's unit [F7](../ROADMAP.md#group-f--foundation), the signals between deployables |
 | What happens to the classifications the index has already stored when a rule is added, which [section 8.7](#87-policy)'s "index updated" reads but does not decide | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |

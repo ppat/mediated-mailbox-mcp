@@ -150,6 +150,15 @@
       "page": "page-3"
     },
     {
+      "file": "PolicyImport.dc.html",
+      "title": "Policy import · personal's own file, lifting 2",
+      "x": 3040,
+      "y": 4680,
+      "w": 1440,
+      "h": 1160,
+      "page": "page-3"
+    },
+    {
       "file": "Foundation.dc.html",
       "title": "Shared foundation · zoom ladder + information architecture",
       "x": 0,
@@ -228,7 +237,7 @@
       "y": 0,
       "w": 420,
       "page": "page-3",
-      "text": "What belongs to no account, and the policy writes.\n\nInstallation: the OAuth clients, any number per provider, each named, and the list of accounts with the client each connects through, on screens whose URL names no account. They show no account's state, so nothing aggregates across accounts. Its own navigation is Setup and Base policy.\nOAuth client setup: seven steps done in Google's console, each with its full instructions in the UI, one step expanded at a time, and a guide window that floats over Google's tab where the browser allows. The client file Google offers is dropped back in, or the ID and secret pasted, the client named, and checked with Google.\nConnect and re-authorize: the client to connect through chosen when there are several, the failed loopback page shown before it happens, then the whole address pasted back and read. Re-authorizing can move an account to another client.\nAccount settings: the client it connects through, the credential's health, the rate target, and what the account's rows hold.\nBase policy: the rules every account inherits, written with no account needed and showing no account's counts.\nPolicy: adding restricts at once; lifting a restriction states its consequence, and on a base rule asks for the rule typed. Every change lands in the policy history.\n\nAll numbers are sample data. docs/UI.md sections 8.7 and 8.10 to 8.14 are the specification."
+      "text": "What belongs to no account, and the policy writes.\n\nInstallation: the OAuth clients, any number per provider, each named, and the list of accounts with the client each connects through, on screens whose URL names no account. They show no account's state, so nothing aggregates across accounts. Its own navigation is Setup and Base policy.\nOAuth client setup: seven steps done in Google's console, each with its full instructions in the UI, one step expanded at a time, and a guide window that floats over Google's tab where the browser allows. The client file Google offers is dropped back in, or the ID and secret pasted, the client named, and checked with Google.\nConnect and re-authorize: the client to connect through chosen when there are several, the failed loopback page shown before it happens, then the whole address pasted back and read. Re-authorizing can move an account to another client.\nAccount settings: the client it connects through, the credential's health, the rate target, and what the account's rows hold.\nBase policy: the rules every account inherits, written with no account needed and showing no account's counts.\nPolicy: adding restricts at once; lifting a restriction states its consequence, and on a base rule asks for the rule typed. Every change lands in the policy history.\nImport and export: one file holds one scope's rules. Importing makes that scope's stored rules equal to the file, after a preview lifts first and one confirmation of every lift, typed as lift {k}.\n\nAll numbers are sample data. docs/UI.md sections 8.7 and 8.10 to 8.14 are the specification."
     },
     {
       "id": "foundation",

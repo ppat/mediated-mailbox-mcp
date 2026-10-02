@@ -128,7 +128,8 @@ CREATE TABLE messages (
   sender_class     text NOT NULL,          -- normal | restricted
   content_flags    text[] NOT NULL DEFAULT '{}',  -- mfa_code | login_link
   rule_ids         text[] NOT NULL DEFAULT '{}',  -- the content rules that set content_flags
-  class_rule_id    text,                   -- the policy rule that set sender_class, NULL when none did
+  class_rule_id    text,                   -- the identifier of the policy rule that set sender_class, NULL when none
+                                           -- did; an identifier, which two scopes may hold (ADR-0110)
   scan_state       text NOT NULL DEFAULT 'pending',  -- scanned | skipped_restricted | skipped_gate | pending (ADR-0093)
   scanned_at       timestamptz,
   scanner_version  int,
@@ -180,12 +181,14 @@ CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
 
 CREATE TABLE policy_rules (               -- the sender policy as rows (ADR-0004), snapshotted by ADR-0041
   account_id     text REFERENCES accounts, -- NULL for the base policy; an overlay names its account
-  rule_id        text PRIMARY KEY,        -- candidate.{account}.{domain} when a confirmation minted it
+  rule_id        text NOT NULL,           -- unique within its scope (ADR-0110); candidate.{account}.{domain}
+                                          -- when a confirmation minted it
   class          text NOT NULL,           -- restricted
   domain_suffix  text[] NOT NULL,
   source         text NOT NULL,           -- operator | candidate
   created_at     timestamptz NOT NULL DEFAULT now(),
-  created_by     text NOT NULL            -- the operator identity; in the UI's write grant (ADR-0084)
+  created_by     text NOT NULL,           -- the operator identity; in the UI's write grant (ADR-0084)
+  UNIQUE NULLS NOT DISTINCT (account_id, rule_id)  -- the base policy is one scope, each account another
 );
 CREATE INDEX ON policy_rules (account_id);
 
@@ -375,8 +378,10 @@ The properties the shape enforces:
   verb inserts** ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), so a
   decision is readable from `reorg_plans` and `policy_candidates` without an audit row.
 - **A message names the rule behind each sensitivity axis apart.** A message's `class_rule_id` is
-  the policy rule that set its `sender_class`
-  ([ADR-0004](../classification/0004-sender-list-decides.md)), written when the message is stored.
+  the identifier of the policy rule that set its `sender_class`, which the base policy and the
+  account may both hold ([ADR-0004](../classification/0004-sender-list-decides.md),
+  [ADR-0110](../mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md)),
+  written when the message is stored.
   It is NULL when no rule set the class, which is a sender no rule lists, a classification made
   while no policy has loaded, and an address that cannot be classified. A message's `rule_ids` are
   the content rules that set its `content_flags`, written by the scan
