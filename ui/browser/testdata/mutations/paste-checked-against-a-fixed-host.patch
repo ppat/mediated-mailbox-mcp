@@ -1,0 +1,23 @@
+control: the consent's redirect address is the configured loopback address, read by every use
+removes: the paste box checks a pasted address's host against 127.0.0.1 whatever the configuration names
+packages: ./ui/browser/test/setup.test.tsx
+tests: the connect page pictures and checks the configured redirect address
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/guide.ts b/ui/browser/src/app/guide.ts
+index aad3c053..d1388d6a 100644
+--- a/ui/browser/src/app/guide.ts
++++ b/ui/browser/src/app/guide.ts
+@@ -89,10 +89,7 @@ export function readPasted(text: string, state: string, redirect: string): Paste
+     return { address: false, state: false, code: false };
+   }
+   return {
+-    address:
+-      url.protocol === "http:" &&
+-      redirectHost(redirect) !== "" &&
+-      url.host === redirectHost(redirect),
++    address: url.protocol === "http:" && url.hostname === "127.0.0.1",
+     state: url.searchParams.get("state") === state,
+     code: (url.searchParams.get("code") ?? "") !== "",
+   };

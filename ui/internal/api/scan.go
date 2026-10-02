@@ -30,7 +30,8 @@ var (
 
 // allowedAbsolute are the absolute strings a bundle may carry because they can never become a request,
 // each certified by a person with the reason (ADR-0064). Each is matched whole, so no other URL on the
-// same origin passes. The operator certified the four below on 2026-09-30.
+// same origin passes. The operator certified the first four on 2026-09-30, and the seven OAuth client
+// setup carries are listed for the operator's certification.
 func allowedAbsolute() map[string]string {
 	return map[string]string{
 		"http://www.w3.org/2000/svg": "Preact's renderer passes the SVG namespace to " +
@@ -42,8 +43,23 @@ func allowedAbsolute() map[string]string {
 		"https://github.com/preactjs/preact-iso#locationprovider": "preact-iso writes it into the " +
 			"message of the error it throws when a hook runs outside its location provider, and never " +
 			"requests it",
+		// OAuth client setup's console pages, each the address of a link the operator follows or a
+		// window the operator's click opens, a navigation the policy does not govern and the page
+		// never fetches (docs/UI.md section 8.11).
+		"https://console.cloud.google.com/projectcreate":                     consolePage,
+		"https://console.cloud.google.com/apis/library/gmail.googleapis.com": consolePage,
+		"https://console.cloud.google.com/auth/overview":                     consolePage,
+		"https://console.cloud.google.com/auth/scopes":                       consolePage,
+		"https://console.cloud.google.com/auth/audience":                     consolePage,
+		"https://console.cloud.google.com/auth/clients":                      consolePage,
+		"https://www.googleapis.com/auth/gmail.modify": "the Gmail scope's name, shown as the value " +
+			"the operator enters at OAuth client setup's step 4, which names a scope and fetches nothing",
 	}
 }
+
+// consolePage is why a Google Cloud console page may sit in the bundle.
+const consolePage = "a Google Cloud console page OAuth client setup links to, which the operator " +
+	"opens and the page never fetches"
 
 // NeedsLooserPolicy returns what in one shipped file the policy would have to be loosened for, each finding named
 // by its kind.

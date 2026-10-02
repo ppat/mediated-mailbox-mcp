@@ -1,0 +1,19 @@
+control: a grant whose mailbox's API is not enabled is refused with its cause, and nothing is stored
+removes: a profile read refused for a disabled API reads as any other refusal
+packages: ./provider/gmail/consent
+tests: TestAProfileReadOfADisabledAPI
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/mailbox.go b/provider/gmail/consent/mailbox.go
+index dc823bf1..97c9d638 100644
+--- a/provider/gmail/consent/mailbox.go
++++ b/provider/gmail/consent/mailbox.go
+@@ -66,7 +66,7 @@ func profileRefusal(code int, status string, body []byte) error {
+ 		for _, d := range raw.Error.Details {
+ 			reasons = append(reasons, d.Reason)
+ 		}
+-		if slices.Contains(reasons, "accessNotConfigured") || slices.Contains(reasons, "SERVICE_DISABLED") {
++		if slices.Contains(reasons, "") {
+ 			return fmt.Errorf("gmail: reading the profile answered %s: %w", status, mail.ErrAPIDisabled)
+ 		}
+ 	}

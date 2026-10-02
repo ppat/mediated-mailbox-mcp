@@ -1,0 +1,40 @@
+control: an identifier checked free when an attempt started is checked again when it finishes
+removes: a finish writes over an account connected under the identifier meanwhile
+packages: ./ui/internal/api
+tests: TestASecondConnectionUnderOneIdentifierIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/db/accounts/setup/setup.sql.go b/db/accounts/setup/setup.sql.go
+index 7b5bf083..a889b34f 100644
+--- a/db/accounts/setup/setup.sql.go
++++ b/db/accounts/setup/setup.sql.go
+@@ -63,6 +63,7 @@ func (q *Queries) AccountSetup(ctx context.Context, accountID string) ([]Account
+ const addAccount = `-- name: AddAccount :exec
+ INSERT INTO accounts (account_id, provider, oauth_client)
+ VALUES ($1, $2, $3)
++ON CONFLICT (account_id) DO UPDATE SET oauth_client = excluded.oauth_client
+ `
+ 
+ type AddAccountParams struct {
+@@ -82,6 +83,7 @@ func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) error {
+ const addState = `-- name: AddState :exec
+ INSERT INTO account_state (account_id, credential, mailbox, lowered_target_rate)
+ VALUES ($1, $2, $3, $4)
++ON CONFLICT (account_id) DO UPDATE SET credential = excluded.credential
+ `
+ 
+ type AddStateParams struct {
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 18348c97..1cc9311a 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -375,7 +375,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
+ // attempt started and a client replaced or removed since any attempt started. The transaction that
+ // writes checks both again.
+ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bool {
+-	if a.Kind == attemptConnect {
++	if a.Kind == attemptConnect && false {
+ 		listed, err := accounts.New(s.opts.Database).Accounts(r.Context())
+ 		if err != nil {
+ 			s.databaseFailure(w, r, err)

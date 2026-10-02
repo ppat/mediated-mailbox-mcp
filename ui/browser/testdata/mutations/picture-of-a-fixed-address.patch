@@ -1,0 +1,20 @@
+control: the consent's redirect address is the configured loopback address, read by every use
+removes: the connect page pictures the default redirect address whatever the configuration names
+packages: ./ui/browser/test/setup.test.tsx
+tests: the connect page pictures and checks the configured redirect address
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/connect.tsx b/ui/browser/src/screens/connect.tsx
+index 582ceddb..d61cce28 100644
+--- a/ui/browser/src/screens/connect.tsx
++++ b/ui/browser/src/screens/connect.tsx
+@@ -446,7 +446,7 @@ function GrantStep(props: { attempt: ConsentAttempt; answer: Installation }) {
+       </p>
+       <div class="address-picture" aria-label="What the browser shows at the end">
+         <span class="mono">
+-          {config.consentRedirect === "" ? "" : `${config.consentRedirect}?state=…&code=…`}
++          {"http://127.0.0.1:47823/?state=…&code=…"}
+         </span>
+         <p>
+           Your browser cannot open this page. That is expected. If a page loads instead, something

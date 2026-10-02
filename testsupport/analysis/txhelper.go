@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"slices"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -33,12 +34,13 @@ import (
 //   - (*Queries).WithTx is reported everywhere, since it rebinds queries to any transaction.
 //   - A subsection's New used other than by calling it, as a value, is reported.
 //
-// Three statements are exempt, because they are not account-scoped and run outside the transaction
-// helper: the accounts listing, the read of oauth_clients (ADR-0091) and delta sync's re-seal of a
-// client secret (ADR-0092). Each is exempt only when written as one chained call,
-// accounts.New(h).Accounts(ctx), oauthclients.New(h).OAuthClients(ctx) and
-// secret.New(h).ReplaceSealedClient(ctx, arg), with any handle h. Any other use of those packages' New
-// follows the rules above, so a statement later added to any of them is not exempt.
+// The statements that are not account-scoped run outside the transaction helper and are exempt: the
+// accounts listing, the read of oauth_clients (ADR-0091), delta sync's re-seal of a client secret
+// (ADR-0092), and the UI's OAuth client setup, listing each client's identity and adding, replacing and
+// removing a client, which belong to no account (ADR-0084, ADR-0106). Each is exempt only when written
+// as one chained call, such as accounts.New(h).Accounts(ctx) or setup.New(h).AddClient(ctx, arg),
+// with any handle h. Any other use of those packages' New follows the rules above, so a statement later
+// added to any of them is not exempt.
 //
 // The check is lexical and has one known gap. A Queries value built correctly inside the literal
 // can escape it, stored in a field, sent on a channel or returned, and be used after db/tx.Run has
@@ -52,11 +54,12 @@ var TxHelper = &analysis.Analyzer{
 
 const txPath = modulePath + "/db/tx"
 
-// txHelperExceptions maps each exempt subsection to its one exempt statement.
-var txHelperExceptions = map[string]string{
-	modulePath + "/db/accounts":            "Accounts",
-	modulePath + "/db/oauthclients":        "OAuthClients",
-	modulePath + "/db/oauthclients/secret": "ReplaceSealedClient",
+// txHelperExceptions maps each exempt subsection to its exempt statements.
+var txHelperExceptions = map[string][]string{
+	modulePath + "/db/accounts":            {"Accounts"},
+	modulePath + "/db/oauthclients":        {"OAuthClients"},
+	modulePath + "/db/oauthclients/secret": {"ReplaceSealedClient"},
+	modulePath + "/db/oauthclients/setup":  {"SetupClients", "AddClient", "ReplaceClient", "RemoveClient"},
 }
 
 const (
@@ -183,8 +186,8 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
 		pass.Reportf(id.Pos(), txValueMessage, name)
 		return
 	}
-	if statement, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {
-		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && sel.Sel.Name == statement {
+	if statements, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {
+		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && slices.Contains(statements, sel.Sel.Name) {
 			if outer, ok := parent(level + 2).(*ast.CallExpr); ok && outer.Fun == sel {
 				return
 			}

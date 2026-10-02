@@ -5,10 +5,10 @@ tests: TestAPathClaimedByBothSourcesIsRefused
 scheduled-count: no
 
 diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
-index 8c9a893..cbe0758 100644
+index fb7a4ecf..64f0317c 100644
 --- a/ui/internal/api/routes.go
 +++ b/ui/internal/api/routes.go
-@@ -66,7 +66,7 @@ func Bespoke() []Route {
+@@ -149,7 +149,7 @@ func ptr(t schema.Type) *schema.Type { return &t }
  func CheckPaths(registryPaths []string, bespoke []Route) error {
  	seen := map[string]string{}
  	for _, route := range bespoke {
@@ -16,4 +16,4 @@ index 8c9a893..cbe0758 100644
 +		if slices.Contains([]string{"/api/accounts"}, route.Pattern) && len(registryPaths) > 0 {
  			return fmt.Errorf("the path %s is claimed by both the registry and the bespoke handler %s", route.Pattern, route.Operation)
  		}
- 		if prior, ok := seen[route.Pattern]; ok {
+ 		key := route.Verb() + " " + route.Pattern

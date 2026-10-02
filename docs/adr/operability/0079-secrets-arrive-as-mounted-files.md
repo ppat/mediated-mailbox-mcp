@@ -24,7 +24,9 @@ restarts.
   files.
 - **Only the deployables that use a secret can read its file.** In particular, only the
   deployables that open credentials to call a provider, the mediator, backfill, delta sync and the
-  reorg workload, can read the private key that opens an account's credential.
+  reorg workload, and the UI, whose one isolated part opens an OAuth client's secret with it
+  ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)), can read the private key that opens
+  an account's credential.
 
 ## Alternatives considered
 

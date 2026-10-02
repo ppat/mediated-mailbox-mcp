@@ -1,0 +1,19 @@
+control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+removes: only the driver's own methods are reported, so a generated subsection's handle, an interface embedding it and a wrapper escape
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index f9344bb0..9f8277d9 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -97,7 +97,7 @@ func runRawSQL(pass *analysis.Pass) (any, error) {
+ // it names one.
+ func statementRunner(fn *types.Func) bool {
+ 	sig := fn.Signature()
+-	if sig.Recv() == nil {
++	if sig.Recv() == nil || fn.Pkg() == nil || !strings.HasPrefix(fn.Pkg().Path(), pgxPath) {
+ 		return false
+ 	}
+ 	for _, sh := range statementRunners[fn.Name()] {

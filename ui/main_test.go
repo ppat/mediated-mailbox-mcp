@@ -6,9 +6,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"log/slog"
@@ -25,6 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
@@ -39,7 +42,9 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"Database core.Config", "Listen string", "ProbeListen string", "TLSCert string", "TLSKey string",
 		"InsecureHTTP bool", "SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
-		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64")
+		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
+		"SealPublicKeyFile string", "PrivateKeyFiles []string", "TokenKeyFile string",
+		"ConsentRedirect string")
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -63,6 +68,7 @@ func TestTheDefaults(t *testing.T) {
 		AttentionMaskCount:    20,
 		AttentionServeFactor:  2,
 		AttentionGapDays:      7,
+		ConsentRedirect:       "http://127.0.0.1:47823/",
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
@@ -79,7 +85,8 @@ func TestTheDefaults(t *testing.T) {
 func TestPlainHTTPRefusesTheStart(t *testing.T) {
 	args := []string{
 		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent",
-		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true",
+		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true", "--seal_public_key_file=/absent",
+		"--private_key_files=[/absent]",
 	}
 	err := run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard())
 	want := "validating the configuration: insecure_http is true, and a binary built without the devloop build tag serves TLS only"
@@ -90,7 +97,10 @@ func TestPlainHTTPRefusesTheStart(t *testing.T) {
 
 // TLS needs both its files unless plain HTTP is configured.
 func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
-	args := []string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080", "--tls_cert=/tls/cert"}
+	args := []string{
+		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
+		"--tls_cert=/tls/cert", "--seal_public_key_file=/absent", "--private_key_files=[/absent]",
+	}
 	err := run(t.Context(), args, nil, discard())
 	want := "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true"
 	if err == nil || err.Error() != want {
@@ -204,7 +214,7 @@ func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	c.TLSCert, c.TLSKey = filepath.Join(t.TempDir(), "absent.crt"), filepath.Join(t.TempDir(), "absent.key")
 	s, err := api.New(api.Options{
 		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(), Logger: discard(),
-		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second,
+		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -216,12 +226,14 @@ func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 }
 
 // The start logs every effective value with the layer that set it, the password file's path and
-// never its contents. It stops at the TLS key pair, after the log and before it listens.
+// never its contents, and the identifier of the key it seals to (ADR-0092, VERIFICATIONS, the row for
+// the UI's log of its key). It stops at the TLS key pair, after the log and before it listens.
 func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	passwordFile := filepath.Join(t.TempDir(), "password")
 	if err := os.WriteFile(passwordFile, []byte("the-secret-itself\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	publicKeyFile, privateKeyFile, keyID := writeKeys(t)
 	var out bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&out, &slog.HandlerOptions{ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
 		if a.Key == slog.TimeKey {
@@ -231,7 +243,8 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	}}))
 	err := run(bounded(t), []string{
 		"--database.host=db.example", "--database.password_file=" + passwordFile, "--tls_cert=/absent/tls.crt", "--tls_key=/absent/tls.key",
-		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0",
+		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--seal_public_key_file=" + publicKeyFile,
+		"--private_key_files=[" + privateKeyFile + "]",
 	},
 		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
@@ -242,6 +255,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=attention_gap_days source=default value=7`,
 		`level=INFO msg=configuration path=attention_mask_count source=default value=20`,
 		`level=INFO msg=configuration path=attention_serve_factor source=default value=2`,
+		`level=INFO msg=configuration path=consent_redirect source=default value=http://127.0.0.1:47823/`,
 		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
 		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
 		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
@@ -253,13 +267,17 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
 		`level=INFO msg=configuration path=insecure_http source=default value=false`,
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
+		`level=INFO msg=configuration path=private_key_files source="flag --private_key_files" value=[` + privateKeyFile + `]`,
 		`level=INFO msg=configuration path=probe_listen source="flag --probe_listen" value=127.0.0.1:0`,
+		`level=INFO msg=configuration path=seal_public_key_file source="flag --seal_public_key_file" value=` + publicKeyFile,
 		`level=INFO msg=configuration path=stream_interval source=default value=2s`,
 		`level=INFO msg=configuration path=stream_poll_interval source=default value=5s`,
 		`level=INFO msg=configuration path=stream_reconnect_max source=default value=30s`,
 		`level=INFO msg=configuration path=sync_interval source=default value=5m0s`,
 		`level=INFO msg=configuration path=tls_cert source="flag --tls_cert" value=/absent/tls.crt`,
 		`level=INFO msg=configuration path=tls_key source="flag --tls_key" value=/absent/tls.key`,
+		`level=INFO msg=configuration path=token_key_file source=default value=""`,
+		`level=INFO msg="sealing to the public key" key_id=` + keyID,
 	}
 	got := strings.Split(strings.TrimSpace(out.String()), "\n")
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
@@ -268,6 +286,32 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	if strings.Contains(out.String(), "the-secret-itself") {
 		t.Errorf("the log holds the password:\n%s", out.String())
 	}
+}
+
+// writeKeys writes a new key pair's files and returns their paths and the key identifier, the first
+// 16 bytes of SHA-256 over the credential library's domain string and the public key, in hexadecimal,
+// computed here rather than by the library (credential/README.md).
+func writeKeys(t *testing.T) (string, string, string) {
+	t.Helper()
+	private, err := seal.KEM().GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed, err := private.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := private.PublicKey().Bytes()
+	dir := t.TempDir()
+	public, secret := filepath.Join(dir, "public.key"), filepath.Join(dir, "private.key")
+	if err := os.WriteFile(public, key, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(secret, seed, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(append([]byte("mediated-mailbox credential key identifier\x00"), key...))
+	return public, secret, hex.EncodeToString(sum[:16])
 }
 
 // bounded is the test's context, ended after five seconds, so a start that gets past the check a test
@@ -279,4 +323,20 @@ func bounded(t *testing.T) context.Context {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 	return ctx
+}
+
+// A consent redirect that is not a loopback address with an explicit port refuses the start, before it
+// touches the database (docs/UI.md section 18.1).
+func TestANonLoopbackConsentRedirectRefusesTheStart(t *testing.T) {
+	for _, value := range []string{"http://localhost:47823/", "http://127.0.0.1/", "http://192.0.2.1:47823/"} {
+		args := []string{
+			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
+			"--tls_key=/tls/key", "--seal_public_key_file=/absent", "--private_key_files=[/absent]", "--consent_redirect=" + value,
+		}
+		err := run(t.Context(), args, nil, discard())
+		want := "validating the configuration: consent_redirect is not an http address on a loopback IP literal with an explicit port"
+		if err == nil || err.Error() != want {
+			t.Errorf("%s: run returned %v, want %q", value, err, want)
+		}
+	}
 }

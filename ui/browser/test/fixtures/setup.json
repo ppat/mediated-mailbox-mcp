@@ -1,0 +1,36 @@
+{
+  "accounts": [
+    {
+      "account_id": "other",
+      "oauth_client": "household-mail",
+      "provider": "gmail"
+    },
+    {
+      "account_id": "personal",
+      "oauth_client": "household-mail",
+      "provider": "gmail"
+    }
+  ],
+  "clients": [
+    {
+      "accounts": [
+        "other",
+        "personal"
+      ],
+      "client_id": "household-id.apps.example",
+      "name": "household-mail",
+      "project_id": "household-mail",
+      "provider": "gmail"
+    },
+    {
+      "accounts": [],
+      "client_id": "spare-id.apps.example",
+      "name": "spare-client",
+      "project_id": "spare-client",
+      "provider": "gmail"
+    }
+  ],
+  "providers": [
+    "gmail"
+  ]
+}

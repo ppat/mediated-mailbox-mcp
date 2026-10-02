@@ -104,6 +104,7 @@ const headings = {
   client: "This request was refused",
   ui: "The UI server failed",
   database: "The database did not answer",
+  provider: "The provider did not answer",
 } as const satisfies Record<Failure["origin"], string>;
 
 // ErrorCard stands in a region's place when its read failed, naming the failure's origin by the error

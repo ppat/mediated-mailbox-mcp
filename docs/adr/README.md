@@ -125,7 +125,7 @@ moves it. Records themselves link freely and deep, into
 | 0021 | [The approval surface writes the database directly: two verbs, no credentials](./mutation/0021-approval-surface.md) | **Superseded** |
 | 0031 | [Every mutating operation is dry-runnable — a preflight that writes nothing](./mutation/0031-dry-run-on-mutating-operations.md) | Accepted |
 | 0032 | [All validation precedes the first write; saved plans validate at creation, re-validate at apply, and expire](./mutation/0032-whole-batch-validation.md) | Accepted |
-| 0084 | [The UI writes the database directly for two decisions, OAuth client setup, account setup and policy management, and seals credentials it can never open](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
+| 0084 | [The UI writes the database directly for two decisions, OAuth client setup, account setup and policy management, and seals credentials its code never opens](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
 | 0102 | [Every change to the policy is appended to a history no runtime role can rewrite](./mutation/0102-policy-changes-recorded-in-an-append-only-history.md) | Accepted |
 | 0110 | [A policy file holds one scope's rules and imports into any scope, making that scope's rules equal to the file after a preview and one confirmation of every lift, and a rule's identifier is unique within its scope](./mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md) | Accepted |
 
@@ -154,7 +154,7 @@ moves it. Records themselves link freely and deep, into
 | 0062 | [The UI serves under a content security policy allowing one origin and no inline script](./operability/0062-ui-content-security-policy.md) | Accepted |
 | 0077 | [Rate collapse, rate runaway, a failed reload and a cursor gap are alerting rules, shipped with the chart and tested in CI](./operability/0077-conditions-raised-as-alerting-rules.md) | Accepted |
 | 0079 | [Every secret other than an account's provider credential arrives as a mounted file](./operability/0079-secrets-arrive-as-mounted-files.md) | Accepted |
-| 0081 | [A stored credential is sealed to a public key the UI holds; only provider-calling deployables open it](./operability/0081-credentials-sealed-to-a-public-key.md) | Accepted |
+| 0081 | [A stored credential is sealed to a public key; only code that calls a provider opens an account's credential, and one isolated part of the UI opens an OAuth client's secret](./operability/0081-credentials-sealed-to-a-public-key.md) | Accepted |
 | 0082 | [A rotated credential is sealed and written back to the account's state row](./operability/0082-rotation-writeback-to-the-database.md) | Accepted |
 | 0087 | [Each client operation declares its effect once, and its HTTP method, path shape and MCP annotations derive from it](./operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md) | Accepted |
 | 0088 | [A credential is sealed with HPKE's X-Wing suite from Go's standard library, under a header naming its key](./operability/0088-credentials-sealed-with-hpke-x-wing.md) | Accepted |
@@ -166,6 +166,7 @@ moves it. Records themselves link freely and deep, into
 | 0103 | [Delta sync runs until stopped, ticks on the sync interval, and serves its metrics between ticks](./operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md) | Accepted |
 | 0108 | [The index reads select messages by an index query of the client surface's own, never by the Provider Port's canonical query](./operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) | Accepted |
 | 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
+| 0111 | [A consent attempt travels in a cookie the UI server seals, bound to the session that started it](./operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md) | Accepted |
 
 ## Engineering — `engineering/`
 

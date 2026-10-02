@@ -1,0 +1,29 @@
+control: a consent attempt opens only in the session that started it, and only its newest state finishes
+removes: the attempt is sealed with no session, so another session's cookie opens
+packages: ./ui/internal/api
+tests: TestAnAttemptOpensOnlyInItsSession
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/attempt.go b/ui/internal/api/attempt.go
+index 42f982e1..c1c62b52 100644
+--- a/ui/internal/api/attempt.go
++++ b/ui/internal/api/attempt.go
+@@ -61,7 +61,7 @@ func (k keys) sealAttempt(a attempt, sessionID string) (string, error) {
+ 	if _, err := rand.Read(nonce); err != nil {
+ 		return "", err
+ 	}
+-	return base64.RawURLEncoding.EncodeToString(k.attempt.Seal(nonce, nonce, plain, []byte(sessionID))), nil
++	return base64.RawURLEncoding.EncodeToString(k.attempt.Seal(nonce, nonce, plain, nil)), nil
+ }
+ 
+ // errNoAttempt is a session holding no attempt this server can open.
+@@ -79,7 +79,7 @@ func (k keys) openAttempt(r *http.Request) (attempt, error) {
+ 	if err != nil || len(sealed) < n {
+ 		return attempt{}, errNoAttempt
+ 	}
+-	plain, err := k.attempt.Open(nil, sealed[:n], sealed[n:], []byte(sessionOf(r.Context()).id))
++	plain, err := k.attempt.Open(nil, sealed[:n], sealed[n:], nil)
+ 	if err != nil {
+ 		return attempt{}, errNoAttempt
+ 	}

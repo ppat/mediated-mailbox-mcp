@@ -1,4 +1,4 @@
-# 0084. The UI is a separate surface that writes the database directly, for two decisions, OAuth client setup, account setup and policy management, and seals credentials it can never open
+# 0084. The UI is a separate surface that writes the database directly, for two decisions, OAuth client setup, account setup and policy management, and seals credentials its code never opens
 
 **Status:** Accepted (supersedes [ADR-0021](./0021-approval-surface.md)) ·
 **Pillar:** [Approval is not in any client's vocabulary](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary) ·
@@ -54,6 +54,8 @@ Constraints that keep it safe to exist:
   ([ADR-0097](../operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)),
   delete on `oauth_clients` for removing a client no account connects through
   ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
+  and a read of a client's sealed secret for the one part of the UI that opens it
+  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)),
   the writes on `policy_rules` that policy management makes, which is
   importing, adding, editing and removing rules (ADR-0004), and insert on `policy_changes` for the
   history row each policy write appends
@@ -64,12 +66,13 @@ Constraints that keep it safe to exist:
   database-resident code ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The
   identity a decision records is the value of a header the deployment declares an authenticating
   proxy sets, else a configured operator name.
-- **It seals credentials and can never open one.** The UI runs a provider's consent exchange when
-  an account is connected or re-authorized
+- **It seals credentials and its code never opens one.** The UI runs a provider's consent exchange
+  when an account is connected or re-authorized
   ([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)),
-  seals the grant and the client's secret to the public key, and stores them. It holds no private key
-  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). It calls a provider only
-  to check a client, complete a consent, and confirm which mailbox granted it.
+  seals the grant and the client's secret to the public key, and stores them. It holds the private
+  key, and one isolated part of it opens an OAuth client's secret, for a consent's code exchange,
+  and nothing else ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). It
+  calls a provider only to check a client, complete a consent, and confirm which mailbox granted it.
 - **While it completes a consent it is part of the trust anchor.** It holds a full-mailbox grant in
   plaintext until it seals it, so it runs under the same hardening as the deployables that call a
   provider ([ADR-0028](../operability/0028-trust-anchor-hardening.md)).
@@ -110,7 +113,9 @@ connecting accounts and keeping the policy. Its design is [docs/UI.md](../../UI.
   can rewrite ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), so the
   evidence of it survives. Setup lets it replace a
   client or an account's credential, or capture a grant while a connection or re-authorization is
-  under way. It cannot open a stored credential, serve a body, or mutate mail directly.
+  under way. Its code cannot open a stored credential, serve a body, or mutate mail directly. A
+  compromised UI process holds the private key that opens every stored credential, the cost
+  [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md) states.
 - With no authentication in the first version, anyone who reaches the UI can set up a client,
   connect an account or replace a credential. The request token of
   [ADR-0061](../operability/0061-ui-browser-security-posture.md) stops another site from forging

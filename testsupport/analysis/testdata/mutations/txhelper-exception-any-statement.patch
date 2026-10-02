@@ -1,19 +1,19 @@
-control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients and delta sync's re-seal of a client secret
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret and the UI's client setup
 removes: the exception covers every statement of the three exempt subsections, not only the listing, the client read and the client secret's re-seal
 packages: ./testsupport/analysis
 tests: TestTxHelper
 scheduled-count: no
 
 diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
-index 87bf71f..6551daf 100644
+index 06a69d61..1892f8c1 100644
 --- a/testsupport/analysis/txhelper.go
 +++ b/testsupport/analysis/txhelper.go
-@@ -182,7 +182,7 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
+@@ -187,7 +187,7 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
  		return
  	}
- 	if statement, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {
--		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && sel.Sel.Name == statement {
-+		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && sel.Sel.Name != "" && statement != "" {
+ 	if statements, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {
+-		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && slices.Contains(statements, sel.Sel.Name) {
++		if sel, ok := parent(level + 1).(*ast.SelectorExpr); ok && sel.X == call && !slices.Contains(statements, "") {
  			if outer, ok := parent(level + 2).(*ast.CallExpr); ok && outer.Fun == sel {
  				return
  			}

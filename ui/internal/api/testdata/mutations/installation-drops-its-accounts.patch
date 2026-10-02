@@ -1,0 +1,20 @@
+control: the installation screens show no account's state
+removes: the installation endpoint lists no account
+packages: ./ui/internal/api
+tests: TestTheInstallationShowsNoAccountsState TestTheRecordedSetupFixturesMatchTheServer
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/setup.go b/ui/internal/api/setup.go
+index 53c0b68b..d2d84c21 100644
+--- a/ui/internal/api/setup.go
++++ b/ui/internal/api/setup.go
+@@ -119,7 +119,7 @@ func (s *Server) installation(ctx context.Context) (installationResponse, error)
+ 		out.Clients = append(out.Clients, entry)
+ 	}
+ 	for _, a := range listed {
+-		out.Accounts = append(out.Accounts, installAccount{AccountID: a.AccountID, Provider: a.AccountProvider, OAuthClient: optionalText(a.OauthClient)})
++		_ = a
+ 	}
+ 	return out, nil
+ }

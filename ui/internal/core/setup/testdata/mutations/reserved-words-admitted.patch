@@ -1,0 +1,19 @@
+control: an account identifier no screen or path could reach is refused, and nothing is stored
+removes: an identifier equal to a word the UI's own top-level paths use is admitted
+packages: ./ui/internal/core/setup
+tests: TestAnIdentifierEveryScreenCanReach
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index 1f9234a9..6e8cf58b 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -67,7 +67,7 @@ func ProjectID(id *string) Refusal {
+ // of reserved, the words the UI's own top-level paths use, so every account's screens can be reached
+ // (docs/UI.md section 8.12). An identifier another account holds is refused by the store.
+ func Identifier(id string, reserved []string) Refusal {
+-	if id == "" || id == "." || id == ".." || id == "/" || slices.Contains(reserved, id) {
++	if id == "" || id == "." || id == ".." || id == "/" || slices.Contains(reserved[:0], id) {
+ 		return IdentifierRefused
+ 	}
+ 	return None

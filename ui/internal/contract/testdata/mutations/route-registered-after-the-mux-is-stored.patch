@@ -5,13 +5,13 @@ tests: TestTheServerServesExactlyTheDocumentsRoutes
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 626acce..e776ac4 100644
+index a294fb54..fa53ceed 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -156,6 +156,7 @@ func New(opts Options) (*Server, error) {
- 	mux.Handle("/", a)
- 	s.uiMux = mux
- 	s.handler = observe(opts.Logger, withPolicy(mux))
+@@ -212,6 +212,7 @@ func New(opts Options) (*Server, error) {
+ 	// Every request is given its session, and every request whose method is not GET or HEAD is refused
+ 	// before it is routed unless it carries the session's request token (ADR-0061).
+ 	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
 +	mux.Handle("GET /export", named("/export", s.getSystem))
  
  	probes := &recordingMux{mux: http.NewServeMux()}

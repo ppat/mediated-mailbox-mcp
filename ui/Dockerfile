@@ -17,6 +17,7 @@ FROM golang:1.27.1-trixie@sha256:9baa6b4187bbb98d240372a8a235ac0bb6b5ddd52bba143
 WORKDIR /src
 COPY go.mod go.sum ./
 COPY core core
+COPY credential credential
 COPY db db
 COPY dbconnect dbconnect
 COPY provider provider

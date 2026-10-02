@@ -12,8 +12,12 @@ import { summaryView } from "../lens/lens.tsx";
 import { accountsPath, jobsPath, lensPath, systemPath, type RunEvent } from "./api.ts";
 import { DepsContext, useDeps, type Deps } from "./deps.ts";
 import { SystemScreen } from "../screens/system.tsx";
+import { AccountScreen } from "../screens/account.tsx";
+import { ClientSetupRoute } from "../screens/clientsetup.tsx";
+import { ConnectRoute, ReauthorizeRoute } from "../screens/connect.tsx";
+import { InstallationScreen } from "../screens/installation.tsx";
 import { Live, useStream } from "./live.tsx";
-import { Frame } from "./frame.tsx";
+import { Frame, InstallationFrame } from "./frame.tsx";
 import { Region } from "./region.tsx";
 import { entryAccount, readLastAccount } from "./routes.ts";
 import { apiQuery, canonical, canonicalize, parse, type DatasetName, type View } from "./url.ts";
@@ -28,12 +32,18 @@ export function App(props: { deps: Deps }) {
   );
 }
 
-// Routes is the route table, one route for each screen that exists.
+// Routes is the route table, one route for each screen that exists. The installation routes come
+// before every account route, so setup is never read as an account (section 5).
 export function Routes() {
   return (
     <Router>
       <Route path="/" component={Entry} />
+      <Route path="/setup" component={InstallationRoute} />
+      <Route path="/setup/connect" component={ConnectScreenRoute} />
+      <Route path="/setup/:provider/:client" component={ClientSetupScreenRoute} />
       <Route path="/:account" component={AccountHomeScreen} />
+      <Route path="/:account/account" component={AccountSettingsRoute} />
+      <Route path="/:account/account/reauthorize" component={ReauthorizeScreenRoute} />
       <Route path="/:account/system" component={SystemScreenRoute} />
       <Route path="/:account/jobs" component={JobsScreenRoute} />
       <Route path="/:account/jobs/:run" component={RunScreenRoute} />
@@ -50,7 +60,7 @@ export function Routes() {
 // asking isScreen of each route's component.
 const screens = new WeakSet<object>();
 
-function screen<P extends { account: string }>(
+function screen<P extends object>(
   component: (props: P) => VNode | null,
   identity: (props: P) => string,
 ): (props: P) => VNode {
@@ -69,8 +79,36 @@ const AccountHomeScreen = screen(AccountHome, (p) => p.account);
 const SystemScreenRoute = screen(System, (p) => p.account);
 const JobsScreenRoute = screen(JobsRoute, (p) => p.account);
 const RunScreenRoute = screen(RunRoute, (p) => `${p.account}/${p.run}`);
+const AccountSettingsRoute = screen(AccountSettingsScreen, (p) => p.account);
+// An installation screen holds no account, so its identity is the object its path names, the client
+// for a client's setup.
+const InstallationRoute = screen(Installation, () => "setup");
+const ConnectScreenRoute = screen(ConnectRoute, () => "connect");
+const ClientSetupScreenRoute = screen(
+  ClientSetupRoute,
+  (p: { provider: string; client: string }) => `${p.provider}/${p.client}`,
+);
+const ReauthorizeScreenRoute = screen(ReauthorizeRoute, (p) => p.account);
 
-// Entry sends the browser to the account last used here, else the first account by identifier.
+// Installation is the installation screen, which belongs to no account (section 8.10).
+function Installation() {
+  return (
+    <InstallationFrame>
+      <InstallationScreen />
+    </InstallationFrame>
+  );
+}
+
+function AccountSettingsScreen(props: { account: string }) {
+  return (
+    <Frame account={props.account}>
+      <AccountScreen account={props.account} />
+    </Frame>
+  );
+}
+
+// Entry sends the browser to the account last used here, else the first account by identifier, else to
+// the installation screen when no account exists (section 5).
 function Entry() {
   const { accounts, storage } = useDeps();
   const { route } = useLocation();
@@ -80,11 +118,14 @@ function Entry() {
     answer.status === "ok"
       ? entryAccount(answer.answer.accounts, readLastAccount(storage))
       : undefined;
+  const none = answer.status === "ok" && answer.answer.accounts.length === 0;
   useEffect(() => {
     if (target !== undefined) {
       route(`/${encodeURIComponent(target)}`, true);
+    } else if (none) {
+      route("/setup", true);
     }
-  }, [target, route]);
+  }, [target, none, route]);
   return (
     <main class="body">
       <Region

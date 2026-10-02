@@ -1,0 +1,32 @@
+control: a consent attempt that expired finishes nothing
+removes: a finish reads the pasted address before it checks the attempt's expiry, so an expired attempt answers with the address's refusal
+packages: ./ui/internal/api
+tests: TestAPastedAddressIsRefusedForItsCause
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 073610d6..55b011bf 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -328,16 +328,16 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "no_attempt", "no connection is in progress in this browser session"))
+ 		return
+ 	}
+-	if refusal := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refusal != setup.None {
+-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), "the attempt expired"))
+-		return
+-	}
+ 	redirect, err := consent.ReadRedirect(body.Address)
+ 	if err != nil {
+ 		requestInfo(r.Context()).err = err
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "wrong_address", "this is not the address the provider redirected to"))
+ 		return
+ 	}
++	if refusal := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refusal != setup.None {
++		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), "the attempt expired"))
++		return
++	}
+ 	if refusal := setup.Redirect(redirect, a.State); refusal != setup.None {
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), "the pasted address cannot finish this attempt"))
+ 		return

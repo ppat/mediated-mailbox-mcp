@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 )
 
 // historyPage is the most history records one history.list returns. Gmail charges the same for any
@@ -135,7 +136,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
 // send returns the context's error instead, without asking, for a call cancelled or past its
 // deadline.
 func tokenError(err error) error {
-	if outcome(err) == mail.AuthRefused {
+	if consent.Outcome(err) == mail.AuthRefused {
 		return errors.Join(mail.ErrAuthentication, err)
 	}
 	return errors.Join(mail.ErrProvider, err)

@@ -266,6 +266,6 @@ R7 and R9 separate none of these once each carries `no-store` and keeps structur
   identifiers hold to that on a JMAP provider because an Id takes only letters, digits, `-` and `_`
   ([RFC 8620 section 1.2](https://www.rfc-editor.org/rfc/rfc8620#section-1.2)). On Gmail this
   record judges they hold to it because Gmail issues them as opaque alphanumeric strings, which no
-  public statement of Gmail's guarantees. Plan identifiers hold to it because they are UUIDs. Account identifiers hold to it by [M7](../../../ROADMAP.md#group-m--mutation-and-approval)'s
+  public statement of Gmail's guarantees. Plan identifiers hold to it because they are UUIDs. Account identifiers hold to it by [M7](../../../ROADMAP.md#delivered-mapped-to-outcomes)'s
   account setup, and the row for such an account identifier in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) is pending on it.

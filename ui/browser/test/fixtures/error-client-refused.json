@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "client_refused",
+    "message": "the provider does not recognise this client identifier and secret",
+    "origin": "client",
+    "request_id": "recorded"
+  }
+}

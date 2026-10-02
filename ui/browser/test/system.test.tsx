@@ -66,7 +66,8 @@ test("the screen shows each operational value, and the rows UI.md sends to Jobs 
     ["Last authentication", marker, " · 2026-09-10 04:16Z"],
   ]);
   // The six rows section 8.8 sends to Jobs link there, and the two it sends to the corpus lens, which
-  // does not exist yet, and the account and authentication rows link nowhere.
+  // does not exist yet, link nowhere, nor does the account row. The authentication row links to
+  // account settings, and the rate row also to the rate target changed there.
   const linked = [...root.querySelectorAll('dl[aria-label="Operational state"] dd')].map(
     (dd) => dd.querySelector("a")?.getAttribute("href") ?? null,
   );
@@ -80,7 +81,14 @@ test("the screen shows each operational value, and the rows UI.md sends to Jobs 
     "/personal/jobs",
     "/personal/jobs",
     "/personal/jobs",
-    null,
+    "/personal/account",
+  ]);
+  const rate = [...root.querySelectorAll('dl[aria-label="Operational state"] dd')][6];
+  expect(
+    [...(rate?.querySelectorAll("a") ?? [])].map((a) => [a.textContent, a.getAttribute("href")]),
+  ).toEqual([
+    ["3.1 of 5.0 units/s, cap 8.0 units/s", "/personal/jobs"],
+    ["rate target", "/personal/account"],
   ]);
   const bars = [...root.querySelectorAll("main svg.progress")];
   expect(bars.map((b) => b.getAttribute("aria-label"))).toEqual(["Backfill pass 2 progress"]);
@@ -179,10 +187,10 @@ test("an authentication outcome carrying markup arrives as text, and nothing is 
   expect(auth?.textContent).toBe(marker);
   expect(auth?.childElementCount).toBe(0);
   expect(root.querySelectorAll("script").length).toBe(0);
-  // Ten labels and ten values, a value element in each, the six links to Jobs around their values,
-  // the account's and the authentication's notes, and pass 2's progress bar, an svg with its track and
-  // its fill.
-  expect(list?.querySelectorAll("*").length).toBe(10 + 10 + 10 + 6 + 2 + 3);
+  // Ten labels and ten values, a value element in each, the six links to Jobs and the authentication's
+  // link to account settings around their values, the rate target's link, the account's and the
+  // authentication's notes, and pass 2's progress bar, an svg with its track and its fill.
+  expect(list?.querySelectorAll("*").length).toBe(10 + 10 + 10 + 7 + 1 + 2 + 3);
 
   // The same text in every row's value and note, so rendering that stays inert for all but some rows
   // cannot pass.
@@ -201,9 +209,10 @@ test("an authentication outcome carrying markup arrives as text, and nothing is 
     expect(notes.map((n) => n.textContent)).toEqual(values.map(() => ` · ${marker}`));
     expect(notes.every((n) => n.childElementCount === 0)).toBe(true);
     expect(list2.root.querySelectorAll("script").length).toBe(0);
-    // Labels, values, value elements and notes, ten of each, the six links to Jobs and the progress bar.
+    // Labels, values, value elements and notes, ten of each, the six links to Jobs, the link to account
+    // settings, the rate target's link and the progress bar.
     expect(list2.root.querySelector("dl")?.querySelectorAll("*").length).toBe(
-      10 + 10 + 10 + 10 + 6 + 3,
+      10 + 10 + 10 + 10 + 6 + 1 + 1 + 3,
     );
   } finally {
     list2.unmount();

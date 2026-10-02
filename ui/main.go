@@ -12,6 +12,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"embed"
 	"errors"
@@ -28,10 +29,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/settings"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/serving"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/devloop"
@@ -62,14 +67,31 @@ type Configuration struct {
 	AttentionMaskCount    int64   `yaml:"attention_mask_count"`
 	AttentionServeFactor  float64 `yaml:"attention_serve_factor"`
 	AttentionGapDays      int64   `yaml:"attention_gap_days"`
+	// SealPublicKeyFile names the mounted public key the UI seals credentials and client secrets to.
+	SealPublicKeyFile string `yaml:"seal_public_key_file" settings:"required"`
+	// PrivateKeyFiles names every mounted private key, the keyring the deployables that call a provider
+	// open credentials with. Only the UI's client-secret package holds it, and it opens a client's
+	// secret for a consent's code exchange and nothing else (ADR-0081, ADR-0092).
+	PrivateKeyFiles []string `yaml:"private_key_files" settings:"required"`
+	// TokenKeyFile names a mounted key behind the request token and the consent attempt's seal, which
+	// replicas share. Unset, the UI generates one at its start (ADR-0061, ADR-0111).
+	TokenKeyFile string `yaml:"token_key_file"`
+	// ConsentRedirect is the loopback address a consent redirects the browser to, where nothing
+	// listens (docs/UI.md sections 8.12 and 18.1).
+	ConsentRedirect string `yaml:"consent_redirect"`
 }
+
+// providerTimeout bounds one request to a provider, checking a client, exchanging a consent's code or
+// reading which mailbox granted it.
+const providerTimeout = 30 * time.Second
 
 // defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is
 // the one that fails closed, the two listen addresses are the mediator's, the intervals shown on the
 // jobs cards are ADR-0018's sync interval and ADR-0022's daily heuristics run, and the stream polls
 // every two seconds. The browser follows the OS theme, and its stream client backs off to 30 seconds
 // and polls every 5 seconds after its fallback (ADR-0058). The worth-a-look thresholds are section 8.1's
-// starting values.
+// starting values. A consent redirects to 127.0.0.1 on a high port a web server on the operator's
+// computer is unlikely to answer on, which an installation may name otherwise (section 8.12).
 func defaults() Configuration {
 	return Configuration{
 		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full"},
@@ -85,6 +107,7 @@ func defaults() Configuration {
 		AttentionMaskCount:    20,
 		AttentionServeFactor:  2,
 		AttentionGapDays:      7,
+		ConsentRedirect:       "http://127.0.0.1:47823/",
 	}
 }
 
@@ -127,10 +150,20 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		DefaultTheme: c.DefaultTheme, StreamReconnectMax: int64(c.StreamReconnectMax), StreamPollInterval: int64(c.StreamPollInterval),
 		AttentionBacklogShare: c.AttentionBacklogShare, AttentionMaskCount: c.AttentionMaskCount,
 		AttentionServeFactor: c.AttentionServeFactor, AttentionGapDays: c.AttentionGapDays,
+		ConsentRedirect: c.ConsentRedirect,
 	}, devloop.Enabled()); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
 	bundle, err := fs.Sub(embedded, "browser/dist")
+	if err != nil {
+		return err
+	}
+	sealKey, err := seal.LoadPublicKey(c.SealPublicKeyFile)
+	if err != nil {
+		return fmt.Errorf("loading the public key: %w", err)
+	}
+	logger.Info("sealing to the public key", "key_id", sealKey.KeyID().String())
+	tokenKey, err := loadTokenKey(c.TokenKeyFile)
 	if err != nil {
 		return err
 	}
@@ -143,6 +176,10 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		return fmt.Errorf("configuring the database connection: %w", err)
 	}
 	defer pool.Close()
+	secrets, err := clientsecret.Load(c.SealPublicKeyFile, c.PrivateKeyFiles, pool)
+	if err != nil {
+		return fmt.Errorf("loading the keyring: %w", err)
+	}
 	server, err := api.New(api.Options{
 		Bundle:         bundle,
 		Database:       pool,
@@ -158,12 +195,40 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		},
 		Browser: api.Browser{
 			DefaultTheme: c.DefaultTheme, StreamReconnectMax: c.StreamReconnectMax, StreamPollInterval: c.StreamPollInterval,
+			ConsentRedirect: c.ConsentRedirect,
 		},
+		TokenKey: tokenKey,
+		Seal:     sealKey,
+		Consents: map[string]mail.Consent[context.Context]{
+			"gmail": consent.New(&http.Client{Timeout: providerTimeout}, c.ConsentRedirect),
+		},
+		ClientSecrets: secrets,
 	})
 	if err != nil {
 		return err
 	}
 	return serve(ctx, c, server, logger)
+}
+
+// loadTokenKey reads the key behind the request token from its mounted file, or generates one when no
+// file is named, in which case a page from before a restart gets stale_page and an attempt from before
+// it is lost (ADR-0061, ADR-0111).
+func loadTokenKey(path string) ([]byte, error) {
+	if path == "" {
+		key := make([]byte, api.MinTokenKey)
+		if _, err := rand.Read(key); err != nil {
+			return nil, fmt.Errorf("generating the request token's key: %w", err)
+		}
+		return key, nil
+	}
+	key, err := os.ReadFile(path) //nolint:gosec // the path is the mounted key file the configuration names
+	if err != nil {
+		return nil, fmt.Errorf("reading the request token's key file: %w", err)
+	}
+	if len(key) < api.MinTokenKey {
+		return nil, fmt.Errorf("the request token's key file holds %d bytes, and it needs at least %d", len(key), api.MinTokenKey)
+	}
+	return key, nil
 }
 
 // serve runs the UI's listener, TLS unless the dev loop's plain HTTP is configured, and the probes'

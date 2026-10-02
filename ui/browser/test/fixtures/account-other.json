@@ -1,0 +1,17 @@
+{
+  "account_id": "other",
+  "backfill_pass1_complete": false,
+  "backfill_pass2_complete": false,
+  "connected": false,
+  "current_target": null,
+  "last_auth_at": null,
+  "last_auth_outcome": null,
+  "lowered_target": null,
+  "mailbox": null,
+  "oauth_client": "household-mail",
+  "other_clients": [
+    "spare-client"
+  ],
+  "provider": "gmail",
+  "sync_cursor_at": null
+}

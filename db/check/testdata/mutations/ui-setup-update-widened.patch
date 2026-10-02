@@ -1,0 +1,18 @@
+control: the UI's role writes exactly what its decisions and setups write, and reads a client's secret only for its one opening part
+removes: the UI's update grant on account_state covers every column rather than the setups' five
+packages: ./db/check
+tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00022_ui_setups.sql b/db/migrations/00022_ui_setups.sql
+index 38f2557c..056e92f2 100644
+--- a/db/migrations/00022_ui_setups.sql
++++ b/db/migrations/00022_ui_setups.sql
+@@ -38,5 +38,5 @@ GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON acco
+ -- covers reading credential, so the UI cannot read back what it sealed (ADR-0081, ADR-0084).
+ GRANT SELECT (mailbox, lowered_target_rate),
+ INSERT (account_id, credential, mailbox, lowered_target_rate),
+-UPDATE (credential, mailbox, lowered_target_rate, last_auth_at, last_auth_outcome)
++UPDATE
+ ON account_state TO mediated_mailbox_ui;

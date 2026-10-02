@@ -1,0 +1,20 @@
+control: a grant whose mailbox's API is not enabled is refused with its cause, and nothing is stored
+removes: a grant whose API is disabled is reported as the provider not answering
+packages: ./ui/internal/api
+tests: TestAGrantWhoseAPIIsDisabledIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 18348c97..2cf89f76 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -410,7 +410,7 @@ func (s *Server) consentFailure(w http.ResponseWriter, r *http.Request, a attemp
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "scope_missing", "the provider granted no access to the mailbox"))
+ 	case errors.Is(err, mail.ErrScopeRefused):
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "scope_refused", "the provider granted more than the one permission asked for"))
+-	case errors.Is(err, mail.ErrAPIDisabled):
++	case errors.Is(err, mail.ErrAPIDisabled) && false:
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "api_disabled", "the provider's API is not enabled in the project of the client "+a.Client))
+ 	default:
+ 		s.providerFailure(w, r, err)

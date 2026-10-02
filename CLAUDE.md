@@ -74,7 +74,7 @@ carries the bare word.
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
 | `dbconnect/` | Library | `mediated-mailbox-dbconnect` | A deployable's database section of its configuration and the connection built from it, argued in [dbconnect/README.md](./dbconnect/README.md) |
 | `policyload/` | Library | `mediated-mailbox-policyload` | The loading of the policy tables into one snapshot, and the reload-failure alarm, argued in [policyload/README.md](./policyload/README.md) |
-| `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
+| `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, Gmail's consent apart from its adapter, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
 | `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
 | `sanitize/` | Library | `mediated-mailbox-sanitize` | The conversion of a body's HTML to clean Markdown, argued in [sanitize/README.md](./sanitize/README.md) |
 | `settings/` | Library | `mediated-mailbox-settings` | The layering of defaults, one optional configuration file, environment variables and flags into each deployable's configuration, argued in [settings/README.md](./settings/README.md) |
@@ -169,8 +169,10 @@ file's import target described under Violation files.
   used as a value and a declared function passed to `tx.Run`
   ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)). A subsection is recognised by its
   type, a package under `db/` whose `New` returns its own `Queries`. It covers every package, test
-  files included, and exempts the accounts listing, the read of `oauth_clients` and delta sync's
-  re-seal of a client secret, each written as one chained call, which are not account-scoped. The one gap it leaves is a query value built
+  files included, and exempts the accounts listing, the read of `oauth_clients`, delta sync's
+  re-seal of a client secret and the UI's OAuth client setup, listing each client's identity and
+  adding, replacing and removing a client, each written as one chained call, which are not
+  account-scoped. The one gap it leaves is a query value built
   inside the literal that escapes it and is used after `tx.Run` returns, which its package comment
   states. The routes analyser refuses a route registered on a mux in the UI other than through its
   recording mux, as any use of `(*http.ServeMux).Handle`, `(*http.ServeMux).HandleFunc`,
@@ -180,6 +182,17 @@ file's import target described under Violation files.
   Registration through reflection, by an imported package on the default mux, or through an
   interface method one of whose parameter types is a type parameter is left to review. The
   mediator is outside its scope, and what the mediator's composition root mounts is left to review.
+  The raw SQL analyser refuses a statement the UI runs other than through the data-access library,
+  as any use, on any type, of a method named and typed like one of the driver's methods that run a
+  statement or start a batch or pipeline that does, `Query`, `QueryRow`, `Exec`, `Prepare`,
+  `ExecParams`, `SendBatch`, `ExecBatch`, `CopyFrom`, `CopyTo` and `StartPipeline`, in a non-test
+  file under `ui/`, so the read of a client's sealed secret stays with
+  the part its import list admits it to
+  ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md),
+  [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). A statement run
+  through reflection, written to the wire through the raw connection the lower-level connection
+  hands out, or run through a method one of whose parameter types is a type parameter is left to
+  review.
   banproof requires each rule from its violation file, where a want annotation names the finding as
   `vetcheck`.
 - **`banproof`** is the ban-proof script of

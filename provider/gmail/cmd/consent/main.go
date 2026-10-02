@@ -28,7 +28,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 )
 
 func main() {
@@ -57,18 +57,18 @@ func run() error {
 		return errors.New("-account is required")
 	}
 	client := &http.Client{Timeout: time.Minute}
-	grant, err := gmail.Consent(ctx, client, clientID, clientSecret, *account, os.Stderr)
+	grant, err := consent.Interactive(ctx, client, clientID, clientSecret, *account, os.Stderr)
 	if err != nil {
 		return err
 	}
-	granted, err := gmail.Address(ctx, client, grant.AccessToken)
+	granted, err := consent.Address(ctx, client, grant.AccessToken)
 	if err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(os.Stderr, "The grant belongs to %s.\n", granted); err != nil {
 		return err
 	}
-	if err := gmail.RequireAccount(granted, *account); err != nil {
+	if err := consent.RequireAccount(granted, *account); err != nil {
 		return fmt.Errorf("%w, so no refresh token is printed", err)
 	}
 	_, err = fmt.Println(grant.RefreshToken)

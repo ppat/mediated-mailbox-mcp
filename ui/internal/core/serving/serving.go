@@ -3,7 +3,10 @@
 // where it is declared.
 package serving
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // Config is the UI's values apart from its database section (docs/UI.md section 18.1). The intervals
 // are in nanoseconds, a time.Duration's own unit, because a pure core imports no time package.
@@ -25,11 +28,15 @@ type Config struct {
 	AttentionMaskCount    int64
 	AttentionServeFactor  float64
 	AttentionGapDays      int64
+	// ConsentRedirect is the loopback address a consent redirects the browser to (docs/UI.md section
+	// 8.12).
+	ConsentRedirect string
 }
 
 // Validate refuses an empty listen or probe_listen, plain HTTP in a binary built without the devloop
 // build tag, TLS without both its files, an interval that is not positive, a default theme
-// other than system, dark or light, and a negative worth-a-look threshold. devLoop is whether
+// other than system, dark or light, a negative worth-a-look threshold, and a consent redirect that is
+// not a loopback address with an explicit port. devLoop is whether
 // the binary was built with the tag. No image build sets it, so a deployed UI serves TLS only
 // (docs/UI.md section 18).
 func Validate(c Config, devLoop bool) error {
@@ -62,8 +69,59 @@ func Validate(c Config, devLoop bool) error {
 		return refusal("attention_serve_factor is negative")
 	case c.AttentionGapDays < 0:
 		return refusal("attention_gap_days is negative")
+	case !LoopbackRedirect(c.ConsentRedirect):
+		return refusal("consent_redirect is not an http address on a loopback IP literal with an explicit port")
 	}
 	return nil
+}
+
+// LoopbackRedirect reports whether s can be a consent's redirect address, where nothing listens. It
+// is http, its host a loopback IP literal, 127.0.0.0/8 or [::1], with an explicit port from 1 to
+// 65535, and it carries no user, no path but /, no query and no fragment (docs/UI.md section 18.1).
+// A name such as localhost is refused, since what it resolves to is not the configuration's to say.
+func LoopbackRedirect(s string) bool {
+	rest, ok := strings.CutPrefix(s, "http://")
+	if !ok || strings.ContainsAny(rest, "?#@") {
+		return false
+	}
+	authority, path, _ := strings.Cut(rest, "/")
+	if path != "" {
+		return false
+	}
+	var host, port string
+	if strings.HasPrefix(authority, "[") {
+		h, p, found := strings.Cut(authority, "]:")
+		if !found || h != "[::1" {
+			return false
+		}
+		host, port = "::1", p
+	} else {
+		i := strings.LastIndex(authority, ":")
+		if i < 0 {
+			return false
+		}
+		host, port = authority[:i], authority[i+1:]
+		if !loopbackIPv4(host) {
+			return false
+		}
+	}
+	n, err := strconv.Atoi(port)
+	return host != "" && err == nil && n >= 1 && n <= 65535 && strconv.Itoa(n) == port
+}
+
+// loopbackIPv4 reports whether s is a dotted IPv4 literal in 127.0.0.0/8.
+func loopbackIPv4(s string) bool {
+	parts := strings.Split(s, ".")
+	if len(parts) != 4 || parts[0] != "127" {
+		return false
+	}
+	for _, p := range parts {
+		n, err := strconv.Atoi(p)
+		if err != nil || n < 0 || n > 255 || strconv.Itoa(n) != p {
+			return false
+		}
+	}
+	return true
 }
 
 // Refusal is a configuration the UI refuses to start with.

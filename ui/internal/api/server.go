@@ -14,6 +14,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
@@ -53,11 +55,29 @@ type Options struct {
 	StreamInterval time.Duration
 	// Browser is the configuration the entry document hands the browser.
 	Browser Browser
+	// TokenKey is the key behind the request token and the consent attempt's seal, at least
+	// MinTokenKey bytes, generated at the process's start or read from token_key_file (ADR-0061,
+	// ADR-0111).
+	TokenKey []byte
+	// Seal is the public key the UI seals each client's secret and each credential to. It holds no key
+	// that opens one (ADR-0081).
+	Seal seal.PublicKey
+	// Consents are the consents of the providers whose accounts connect through an OAuth client, by
+	// provider, which the setups check clients and connect accounts through (ADR-0106, ADR-0107).
+	Consents map[string]mail.Consent[context.Context]
+	// ClientSecrets hands a code exchange its client's secret.
+	ClientSecrets ClientSecrets
 }
 
 // Server is the UI's server.
 type Server struct {
-	opts        Options
+	opts Options
+	keys keys
+	// reserved are the words the UI's own top-level paths use, which no account identifier may be
+	// (docs/UI.md section 8.12).
+	reserved []string
+	// between is the fault a test injects between a setup's writes, nil otherwise.
+	between     func(at string) error
 	descriptors []lens.Descriptor
 	metrics     *metrics
 	handler     http.Handler
@@ -119,19 +139,42 @@ func New(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("registering the metrics: %w", err)
 	}
-	s := &Server{opts: opts, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
-	a, err := newApp(opts.Bundle, opts.Browser)
+	k, err := newKeys(opts.TokenKey)
+	if err != nil {
+		return nil, err
+	}
+	reserved, err := Reserved(opts.Bundle)
+	if err != nil {
+		return nil, err
+	}
+	if opts.ClientSecrets == nil {
+		opts.ClientSecrets = noSecrets{}
+	}
+	s := &Server{opts: opts, keys: k, reserved: reserved, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
+	a, err := newApp(opts.Bundle, opts.Browser, k)
 	if err != nil {
 		return nil, err
 	}
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
-		"getLens":      s.lens,
-		"listAccounts": s.listAccounts,
-		"getSystem":    s.getSystem,
-		"getAttention": s.getAttention,
-		"getJobs":      s.getJobs,
-		"getRun":       s.getRun,
-		"streamEvents": s.streamEvents,
+		"getLens":           s.lens,
+		"listAccounts":      s.listAccounts,
+		"getSystem":         s.getSystem,
+		"getAttention":      s.getAttention,
+		"getJobs":           s.getJobs,
+		"getRun":            s.getRun,
+		"streamEvents":      s.streamEvents,
+		"getInstallation":   s.getInstallation,
+		"addClient":         s.addClient,
+		"replaceClient":     s.replaceClient,
+		"removeClient":      s.removeClient,
+		"startConnect":      s.startConnect,
+		"getConnect":        s.getConnect,
+		"finishConnect":     s.finishConnect,
+		"getAccount":        s.getAccount,
+		"setTarget":         s.setTarget,
+		"startReauthorize":  s.startReauthorize,
+		"getReauthorize":    s.getReauthorize,
+		"finishReauthorize": s.finishReauthorize,
 	}
 	for _, d := range opts.Datasets {
 		if d.Detail != nil {
@@ -145,16 +188,17 @@ func New(opts Options) (*Server, error) {
 			return nil, fmt.Errorf("the route %s has no handler for %s", route.Pattern, route.Operation)
 		}
 		delete(handlers, route.Operation)
+		pattern := route.Verb() + " " + route.Pattern
 		switch {
 		case route.Registry:
 			// The dataset endpoint and the row-detail routes admit their account themselves, after the
 			// pure core has read the request, so a request the registry does not declare is refused
 			// before any statement runs.
-			mux.Handle("GET "+route.Pattern, named(route.Pattern, h))
+			mux.Handle(pattern, named(route.Pattern, h))
 		case route.Scoped:
-			mux.Handle("GET "+route.Pattern, s.scoped(route.Pattern, h))
+			mux.Handle(pattern, s.scoped(route.Pattern, h))
 		default:
-			mux.Handle("GET "+route.Pattern, named(route.Pattern, h))
+			mux.Handle(pattern, named(route.Pattern, h))
 		}
 	}
 	if len(handlers) > 0 {
@@ -165,7 +209,9 @@ func New(opts Options) (*Server, error) {
 	}))
 	mux.Handle("/", a)
 	s.uiMux = mux
-	s.handler = observe(opts.Logger, withPolicy(mux))
+	// Every request is given its session, and every request whose method is not GET or HEAD is refused
+	// before it is routed unless it carries the session's request token (ADR-0061).
+	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
 
 	probes := &recordingMux{mux: http.NewServeMux()}
 	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,20 @@
+control: a state-changing request is accepted only with the request token of the session that loaded the page
+removes: the token is the same for every session, so one page's token passes from any other session
+packages: ./ui/internal/api
+tests: TestAStateChangingRequestWithoutItsTokenIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/session.go b/ui/internal/api/session.go
+index 56bb9534..f9a26314 100644
+--- a/ui/internal/api/session.go
++++ b/ui/internal/api/session.go
+@@ -57,7 +57,7 @@ func newKeys(material []byte) (keys, error) {
+ // requestToken is the token for a session, an HMAC of its identifier under the token's key.
+ func (k keys) requestToken(session string) string {
+ 	mac := hmac.New(sha256.New, k.token)
+-	mac.Write([]byte(session))
++	mac.Write([]byte("every session"))
+ 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+ }
+ 

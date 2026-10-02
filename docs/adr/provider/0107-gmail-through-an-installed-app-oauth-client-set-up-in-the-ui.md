@@ -52,7 +52,9 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
   production and unverified, the person clicks through Google's unverified-app warning once per
   consent ([unverified apps](https://support.google.com/cloud/answer/7454865)).
 - **Connecting an account runs the consent from the UI.** The UI sends the person to Google's
-  consent page with a loopback redirect to `127.0.0.1`, where nothing listens. The browser lands on
+  consent page with a loopback redirect, to the loopback address and port the UI's configuration
+  names, `127.0.0.1` by default ([docs/UI.md section 18.1](../../UI.md#181-the-configuration-the-ui-declares)),
+  where nothing listens. The browser lands on
   a page that fails to load, and the person pastes that page's address, which carries the
   authorization code, back into the UI. The UI exchanges the code with PKCE, checks the state it
   issued, and refuses a grant for a mailbox other than the one the person named. Loopback redirects

@@ -1,0 +1,19 @@
+control: the consent's redirect address is the configured loopback address, read by every use
+removes: a redirect without an explicit port is admitted
+packages: ./ui/internal/core/serving
+tests: TestTheConsentRedirectIsALoopbackAddressWithAPort
+scheduled-count: no
+
+diff --git a/ui/internal/core/serving/serving.go b/ui/internal/core/serving/serving.go
+index a1243f55..8dc5c6d7 100644
+--- a/ui/internal/core/serving/serving.go
++++ b/ui/internal/core/serving/serving.go
+@@ -98,7 +98,7 @@ func LoopbackRedirect(s string) bool {
+ 	} else {
+ 		i := strings.LastIndex(authority, ":")
+ 		if i < 0 {
+-			return false
++			return loopbackIPv4(authority)
+ 		}
+ 		host, port = authority[:i], authority[i+1:]
+ 		if !loopbackIPv4(host) {

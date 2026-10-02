@@ -5,6 +5,7 @@ package check_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -205,22 +206,34 @@ func TestNoRuntimeRoleCanAlterTheAuditLog(t *testing.T) {
 	}
 }
 
-// uiUpdates and uiInserts are the UI's whole write grant (ADR-0021). The test states them rather than
-// reading them from the chain, because they are what it checks the chain against.
+// uiUpdates, uiInserts and uiDeletes are the UI's whole write grant, its two verbs' columns, the rule
+// a confirmation inserts, and the columns its OAuth client setup and account setup write with the
+// delete of an unused client (ADR-0084). uiInserts maps a table to the columns an insert may name, nil
+// for every column. The test states them rather than reading them from the chain, because they are
+// what it checks the chain against.
 var (
 	uiUpdates = map[string][]string{
 		"reorg_plans":       {"status", "approved_at", "approved_by"},
 		"policy_candidates": {"status", "reviewed_at", "reviewed_by"},
+		"oauth_clients":     {"client_id", "client_secret", "project_id"},
+		"accounts":          {"oauth_client"},
+		"account_state":     {"credential", "mailbox", "lowered_target_rate", "last_auth_at", "last_auth_outcome"},
 	}
-	uiInserts = []string{"policy_rules"}
+	uiInserts = map[string][]string{
+		"policy_rules":  nil,
+		"oauth_clients": {"name", "provider", "client_id", "client_secret", "project_id"},
+		"accounts":      {"account_id", "provider", "oauth_client"},
+		"account_state": {"account_id", "credential", "mailbox", "lowered_target_rate"},
+	}
+	uiDeletes = []string{"oauth_clients"}
 )
 
 // TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules attempts every write under the UI's role, an
-// insert into every table, an update of every column, a delete from every table and a truncation of
-// every table, reading the tables and columns from the database so a table or column added later is
-// covered. Each write outside the grant must be refused for want of a grant. The two verbs' own
-// writes must succeed, so the refusals are the grant's doing rather than a role that can write
-// nothing.
+// insert into every table, an insert naming each column outside a table's insert grant, an update of
+// every column, a delete from every table and a truncation of every table, reading the tables and
+// columns from the database so a table or column added later is covered. Each write outside the grant
+// must be refused for want of a grant. The two verbs' own writes and the setups' writes must succeed,
+// so the refusals are the grant's doing rather than a role that can write nothing.
 func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -272,14 +285,56 @@ func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 		}
 	})
 
+	t.Run("set up a client, connect an account and re-authorize it", func(t *testing.T) {
+		// Each write builds on the one before, so all run in one savepoint, in a transaction set to the
+		// new account. The client's table has no account column, so the setting does not reach it.
+		err := asRole(ctx, tx, uiRole, "acct-new", func(sp pgx.Tx) error {
+			for _, sql := range []string{
+				"INSERT INTO oauth_clients (name, provider, client_id, client_secret, project_id) VALUES ('household', 'gmail', 'id', 's', 'household')",
+				"UPDATE oauth_clients SET client_id = 'id-2', client_secret = 's-2', project_id = NULL WHERE name = 'household'",
+				"INSERT INTO accounts (account_id, provider, oauth_client) VALUES ('acct-new', 'gmail', 'household')",
+				"INSERT INTO account_state (account_id, credential, mailbox, lowered_target_rate) VALUES ('acct-new', 'c', 'jo@gmail.com', 0.3)",
+				"UPDATE account_state SET credential = 'd', mailbox = coalesce(mailbox, 'x'), lowered_target_rate = NULL, " +
+					"last_auth_at = now(), last_auth_outcome = 'succeeded' WHERE account_id = 'acct-new'",
+				"UPDATE accounts SET oauth_client = NULL WHERE account_id = 'acct-new'",
+				"DELETE FROM oauth_clients WHERE name = 'household'",
+			} {
+				tag, err := sp.Exec(ctx, sql)
+				if err != nil {
+					return fmt.Errorf("%s: %w", sql, err)
+				}
+				if tag.RowsAffected() != 1 {
+					return fmt.Errorf("%s wrote %d rows, want 1", sql, tag.RowsAffected())
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
 	for _, table := range slices.Sorted(maps.Keys(columns)) {
 		quoted := pgx.Identifier{table}.Sanitize()
 		writes := map[string]string{
-			"delete":   "DELETE FROM " + quoted,
 			"truncate": "TRUNCATE " + quoted,
 		}
-		if !slices.Contains(uiInserts, table) {
+		if !slices.Contains(uiDeletes, table) {
+			writes["delete"] = "DELETE FROM " + quoted
+		}
+		insertable, granted := uiInserts[table]
+		switch {
+		case !granted:
 			writes["insert"] = "INSERT INTO " + quoted + " DEFAULT VALUES"
+		case insertable != nil:
+			// An insert naming only the columns a table's insert grant names may pass the grant, so each
+			// column outside it is named on its own.
+			for _, column := range columns[table] {
+				if !slices.Contains(insertable, column) && !generated[table+"."+column] {
+					c := pgx.Identifier{column}.Sanitize()
+					writes["insert "+column] = "INSERT INTO " + quoted + " (" + c + ") VALUES (DEFAULT)"
+				}
+			}
 		}
 		for _, column := range columns[table] {
 			if !slices.Contains(uiUpdates[table], column) {

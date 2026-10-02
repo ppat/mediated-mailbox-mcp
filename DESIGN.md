@@ -323,7 +323,8 @@ depend on the network position of the deployment.
 
 The mediation layer holds full mailbox credentials, in every one of its processes that calls a
 provider. The UI joins them for the moment it completes a consent, because it holds the fresh grant
-in plaintext until it seals it. If any of those processes is compromised, redaction is moot,
+in plaintext until it seals it, and it holds the private key that opens a stored credential, which
+only its code confines to opening an OAuth client's secret. If any of those processes is compromised, redaction is moot,
 because the attacker calls the provider directly. The design does not pretend otherwise. The
 stance is that this anchor is hardened, its blast radius is understood, and evidence of its
 compromise survives outside its own reach.
@@ -372,7 +373,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | A single chokepoint concentrates correctness, so a gate bug is a bug everywhere | Built first and proven offline, via the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in [docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0093) |
-| The approval surface is itself a target | ADR-0084 (two decision verbs, OAuth client setup, account setup and policy management, scoped role, seals credentials it cannot open), with every policy change recorded where no runtime role can rewrite it (ADR-0102) |
+| The approval surface is itself a target | ADR-0084 (two decision verbs, OAuth client setup, account setup and policy management, scoped role, seals credentials its code never opens), with every policy change recorded where no runtime role can rewrite it (ADR-0102) |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
@@ -435,8 +436,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   plans.
 - **The UI** (directory `ui/`) — the read-mostly reporting and approval surface, and where the
   installation's OAuth clients are set up and accounts are connected and repaired. Separate
-  deployment, separate identity, and no key that opens a stored credential. Carries the approval
-  verbs no client has. Its design is [docs/UI.md](./docs/UI.md).
+  deployment, separate identity, and a database role that never reads a stored credential. It holds
+  the private key, and one isolated part of it opens an OAuth client's secret and nothing else.
+  Carries the approval verbs no client has. Its design is [docs/UI.md](./docs/UI.md).
 - **The shared pure library** — the pure-core-only library every deployable may
   import. Impure shared needs live in narrow, named exception libraries instead (rule in
   ADR-0050, via the [decision-record index](./docs/adr/README.md)).
@@ -528,15 +530,16 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Account context** — the per-account bundle of provider clients, credentials, policy overlay,
   and rate state. Nothing about an account is ambient. Every operation names one.
 - **Sealed credential** — an account's provider credential as the database stores it, encrypted so
-  that only the deployables that call a provider can open it (ADR-0081 and its construction in
+  that only code that calls a provider opens it (ADR-0081 and its construction in
   ADR-0088, via the [decision-record index](./docs/adr/README.md)).
 - **Sealed value** — the bytes a sealed credential or an OAuth client's sealed secret is stored
   as, a header naming its key followed by the ciphertext (format in ADR-0088, via the
   [decision-record index](./docs/adr/README.md)).
 - **Key identifier** — the name a sealed value's header gives the public key it was sealed to,
   derived from that key (rule in ADR-0088, via the [decision-record index](./docs/adr/README.md)).
-- **Keyring** — the set of private keys a deployable that opens credentials holds, looked up by the
-  key a sealed value names (rule in ADR-0092, via the [decision-record index](./docs/adr/README.md)).
+- **Keyring** — the set of private keys a deployable that opens credentials, or the UI, holds,
+  looked up by the key a sealed value names (rule in ADR-0092, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Account snapshot** — the immutable copy of its accounts, each paired with the OAuth client it
   connects through where its provider has one, and their opened credentials that a deployable
   calling a provider works from (rule in ADR-0090, via the

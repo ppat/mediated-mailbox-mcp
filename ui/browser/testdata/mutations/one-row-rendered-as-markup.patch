@@ -6,10 +6,10 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/screens/system.tsx b/ui/browser/src/screens/system.tsx
-index afcda5a..c5992de 100644
+index 7655606b..33387238 100644
 --- a/ui/browser/src/screens/system.tsx
 +++ b/ui/browser/src/screens/system.tsx
-@@ -145,13 +145,21 @@ function authentication(outcome: string | null, at: string | null): Value {
+@@ -152,13 +152,21 @@ function authentication(account: string, outcome: string | null, at: string | nu
  export function Values(props: { label: string; values: readonly Value[] }) {
    return (
      <dl class="values" aria-label={props.label}>
@@ -34,4 +34,4 @@ index afcda5a..c5992de 100644
 +            )}
            </Linked>
            {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
-           {v.progress === undefined ? null : (
+           {v.also === undefined ? null : (

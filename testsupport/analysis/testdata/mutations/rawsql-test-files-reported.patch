@@ -1,0 +1,19 @@
+control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+removes: test files are no longer exempt
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index 2fea906c..fa89c039 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -51,7 +51,7 @@ func runRawSQL(pass *analysis.Pass) (any, error) {
+ 	for _, file := range pass.Files {
+ 		// A file not named .go is one the go command generates, such as a test binary's main.
+ 		base := filepath.Base(pass.Fset.File(file.Pos()).Name())
+-		if !strings.HasSuffix(base, ".go") || strings.HasSuffix(base, "_test.go") {
++		if !strings.HasSuffix(base, ".go") {
+ 			continue
+ 		}
+ 		ast.Inspect(file, func(n ast.Node) bool {

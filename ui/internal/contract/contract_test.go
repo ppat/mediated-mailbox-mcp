@@ -48,7 +48,12 @@ func generate(datasets []registry.Dataset, bespoke []api.Route) (*openapi3.T, er
 		return nil, err
 	}
 	for _, route := range bespoke {
-		g.doc.Paths.Set(route.Pattern, &openapi3.PathItem{Get: g.bespokeOperation(route)})
+		item := g.doc.Paths.Value(route.Pattern)
+		if item == nil {
+			item = &openapi3.PathItem{}
+			g.doc.Paths.Set(route.Pattern, item)
+		}
+		item.SetOperation(route.Verb(), g.bespokeOperation(route))
 	}
 	if g.err != nil {
 		return nil, g.err
@@ -62,9 +67,19 @@ type generator struct {
 	err        error
 }
 
-// errorResponses are the error contract's statuses (docs/UI.md section 17.3).
+// errorResponses are the error contract's statuses a read answers with (docs/UI.md section 17.3).
 func (g *generator) errorResponses(op *openapi3.Operation) {
-	for _, status := range []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError, http.StatusServiceUnavailable} {
+	g.errorStatuses(op, http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError, http.StatusServiceUnavailable)
+}
+
+// changeResponses are the statuses a state-changing request answers with besides a read's, a refused
+// request token, a conflict, and a provider that did not answer (docs/UI.md section 17.3).
+func (g *generator) changeResponses(op *openapi3.Operation) {
+	g.errorStatuses(op, http.StatusForbidden, http.StatusConflict, http.StatusBadGateway)
+}
+
+func (g *generator) errorStatuses(op *openapi3.Operation, statuses ...int) {
+	for _, status := range statuses {
 		op.AddResponse(status, openapi3.NewResponse().
 			WithDescription(http.StatusText(status)).
 			WithJSONSchemaRef(openapi3.NewSchemaRef("#/components/schemas/Error", g.doc.Components.Schemas["Error"].Value)))
@@ -80,8 +95,22 @@ func (g *generator) bespokeOperation(route api.Route) *openapi3.Operation {
 	op := openapi3.NewOperation()
 	op.OperationID = route.Operation
 	op.Summary = route.Summary
-	if route.Scoped {
-		op.Parameters = append(op.Parameters, accountParameter())
+	for _, segment := range strings.Split(route.Pattern, "/") {
+		name, ok := strings.CutPrefix(segment, "{")
+		if !ok {
+			continue
+		}
+		name = strings.TrimSuffix(name, "}")
+		if name == "account" {
+			op.Parameters = append(op.Parameters, accountParameter())
+			continue
+		}
+		op.Parameters = append(op.Parameters, &openapi3.ParameterRef{Value: openapi3.NewPathParameter(name).
+			WithSchema(openapi3.NewStringSchema()).WithDescription("The " + name + " the path names")})
+	}
+	if route.Request != nil {
+		op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithRequired(true).
+			WithContent(openapi3.NewContentWithJSONSchemaRef(g.schema(*route.Request)))}
 	}
 	ok := openapi3.NewResponse().WithDescription("OK")
 	if route.Stream() {
@@ -103,6 +132,9 @@ func (g *generator) bespokeOperation(route api.Route) *openapi3.Operation {
 	}
 	op.AddResponse(http.StatusOK, ok)
 	g.errorResponses(op)
+	if route.Verb() != http.MethodGet {
+		g.changeResponses(op)
+	}
 	return op
 }
 
@@ -395,7 +427,7 @@ func newServer(t *testing.T) *api.Server {
 	t.Helper()
 	s, err := api.New(api.Options{
 		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(), Logger: slog.New(slog.DiscardHandler),
-		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second,
+		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -1,0 +1,11 @@
+{
+  "attempt": {
+    "account": "mmfieldmarker-account",
+    "attempt": "recorded-attempt",
+    "client": "household-mail",
+    "consent_address": "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&client_id=household-id.apps.example&code_challenge=recorded-challenge&code_challenge_method=S256&login_hint=mmfieldmarker-mailbox%40gmail.com&prompt=consent&redirect_uri=http%3A%2F%2F127.0.0.1%3A47823%2F&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify&state=recorded-attempt",
+    "expires_at": "2026-09-10T10:31:04Z",
+    "kind": "connect",
+    "mailbox": "mmfieldmarker-mailbox@gmail.com"
+  }
+}

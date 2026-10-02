@@ -35,8 +35,9 @@ an image, because only test files and the tooling programs import it. Its packag
   signatures, and that exactly the named methods of an interface return a given type, with exactly
   the results named.
 - `analysis`, the `go vet` analysers, for ADR-0069's placement rules, ADR-0071's rules against
-  package-level state in a pure core and against a route the UI registers other than through its
-  recording mux, ADR-0078's rule against reading the environment outside a deployable's composition
+  package-level state in a pure core, against a route the UI registers other than through its
+  recording mux and against a statement the UI runs other than through the data-access library,
+  ADR-0078's rule against reading the environment outside a deployable's composition
   root and ADR-0047's rule that every generated data-access function runs inside the transaction
   helper.
 - `livecontract`, the guard a contract run against a real provider calls first, which skips the

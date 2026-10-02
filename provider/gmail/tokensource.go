@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 )
 
 // expiryMargin is how long before an access token's stated expiry it is refreshed, so a request
@@ -79,7 +80,7 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
 	if token, ok := s.cached(now); ok {
 		return token, nil
 	}
-	body, err := postForm(ctx, s.client, s.refreshForm())
+	body, err := consent.PostForm(ctx, s.client, s.refreshForm())
 	if err == nil {
 		err = s.receive(body, now)
 	}
@@ -97,7 +98,7 @@ func (s *TokenSource) attempted(ctx context.Context, now time.Time, err error) {
 	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
 		return
 	}
-	s.attempt = mail.AuthAttempt{At: mail.UnixMilli(now.UnixMilli()), Outcome: outcome(err)}
+	s.attempt = mail.AuthAttempt{At: mail.UnixMilli(now.UnixMilli()), Outcome: consent.Outcome(err)}
 }
 
 // cached returns the held access token while it has more than expiryMargin left at now.
@@ -121,7 +122,7 @@ func (s *TokenSource) refreshForm() url.Values {
 
 // receive takes the body of a successful refresh response.
 func (s *TokenSource) receive(body []byte, now time.Time) error {
-	resp, err := parseTokenResponse(body)
+	resp, err := consent.ParseTokenResponse(body)
 	if err != nil {
 		return err
 	}
@@ -130,7 +131,7 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {
 }
 
 // accept takes a successful token response, holding the access token and a rotated refresh token.
-func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
+func (s *TokenSource) accept(resp consent.TokenResponse, now time.Time) {
 	s.access, s.expiry = resp.AccessToken, now.Add(resp.ExpiresIn)
 	if rotated(s.creds.RefreshToken, resp.RefreshToken) {
 		s.creds.RefreshToken = resp.RefreshToken

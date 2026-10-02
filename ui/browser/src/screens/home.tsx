@@ -21,7 +21,7 @@ import {
 import type { Deps } from "../app/deps.ts";
 import { useDeps } from "../app/deps.ts";
 import { age, count, duration, local, rate, share, utc } from "../app/format.ts";
-import { existingScreen, indexing, ListedAccount, numberIn } from "../app/frame.tsx";
+import { existingScreen, indexing, ListedAccount, numberIn, settingsPath } from "../app/frame.tsx";
 import { LiveProgress, LiveText, type Stream } from "../app/live.tsx";
 import { Region } from "../app/region.tsx";
 import { apiQuery, canonicalize, parse } from "../app/url.ts";
@@ -573,7 +573,7 @@ export function operationalValues(system: System, now: number): Value[] {
       label: "Last authentication",
       text: op.last_auth_outcome ?? "none recorded",
       note: op.last_auth_at === null ? undefined : utc(op.last_auth_at),
-      href: `/${encodeURIComponent(system.account)}/system`,
+      href: settingsPath(system.account),
     },
   ];
 }

@@ -339,9 +339,11 @@ The properties the shape enforces:
     through, and is read in full by the roles that list accounts, while its writes stay confined
     ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
   - `oauth_clients` belongs to no account and carries no account column, so grants alone decide
-    who reaches it. The four roles that call a provider read it in full. The UI's role reads its
-    `name`, `provider`, `client_id` and `project_id`, since it runs the consent with a client, sets
-    a client up again and shows where each client lives, and never reads its `client_secret`. Only
+    who reaches it. The four roles that call a provider read it in full. The UI's role reads it in
+    full too, its `name`, `provider`, `client_id` and `project_id` since it runs the consent with a
+    client, sets a client up again and shows where each client lives, and its sealed
+    `client_secret` for the one part of the UI that opens it, for a consent's code exchange
+    ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). Only
     the UI's role, when a client is set up, and delta sync's, when it re-seals a secret, write it
     ([ADR-0080](./0080-accounts-and-credentials-live-in-the-database.md),
     [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md),

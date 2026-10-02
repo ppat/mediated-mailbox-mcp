@@ -6,10 +6,10 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/screens/system.tsx b/ui/browser/src/screens/system.tsx
-index afcda5a..f7b18a9 100644
+index 7655606b..4d4ae6b8 100644
 --- a/ui/browser/src/screens/system.tsx
 +++ b/ui/browser/src/screens/system.tsx
-@@ -149,9 +149,11 @@ export function Values(props: { label: string; values: readonly Value[] }) {
+@@ -156,9 +156,11 @@ export function Values(props: { label: string; values: readonly Value[] }) {
          <dt key={`${v.key}-label`}>{v.label}</dt>,
          <dd key={`${v.key}-value`}>
            <Linked href={v.href}>
@@ -23,4 +23,4 @@ index afcda5a..f7b18a9 100644
 +            />
            </Linked>
            {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
-           {v.progress === undefined ? null : (
+           {v.also === undefined ? null : (

@@ -1,18 +1,18 @@
-control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients and delta sync's re-seal of a client secret
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret and the UI's client setup
 removes: delta sync's re-seal of a client secret is no longer exempt, so its write outside an account's transaction is reported
 packages: ./testsupport/analysis
 tests: TestTxHelper
 scheduled-count: no
 
 diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
-index de3f03a..4f702f7 100644
+index 06a69d61..7223c288 100644
 --- a/testsupport/analysis/txhelper.go
 +++ b/testsupport/analysis/txhelper.go
-@@ -56,7 +56,6 @@ const txPath = modulePath + "/db/tx"
- var txHelperExceptions = map[string]string{
- 	modulePath + "/db/accounts":            "Accounts",
- 	modulePath + "/db/oauthclients":        "OAuthClients",
--	modulePath + "/db/oauthclients/secret": "ReplaceSealedClient",
+@@ -58,7 +58,6 @@ const txPath = modulePath + "/db/tx"
+ var txHelperExceptions = map[string][]string{
+ 	modulePath + "/db/accounts":            {"Accounts"},
+ 	modulePath + "/db/oauthclients":        {"OAuthClients"},
+-	modulePath + "/db/oauthclients/secret": {"ReplaceSealedClient"},
+ 	modulePath + "/db/oauthclients/setup":  {"SetupClients", "AddClient", "ReplaceClient", "RemoveClient"},
  }
  
- const (

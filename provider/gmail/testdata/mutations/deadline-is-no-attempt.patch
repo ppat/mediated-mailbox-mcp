@@ -5,10 +5,10 @@ tests: TestARefreshPastItsDeadlineIsAFailedAttempt
 scheduled-count: no
 
 diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
-index 6d39641..fe0a522 100644
+index 8e6d63fe..33de610c 100644
 --- a/provider/gmail/tokensource.go
 +++ b/provider/gmail/tokensource.go
-@@ -94,7 +94,7 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
+@@ -95,7 +95,7 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
  // the caller cancelled it before it succeeded, since a cancelled request has no outcome. A refresh
  // whose deadline passed got no answer in time, so it failed (ADR-0097).
  func (s *TokenSource) attempted(ctx context.Context, now time.Time, err error) {
@@ -16,4 +16,4 @@ index 6d39641..fe0a522 100644
 +	if err != nil && (errors.Is(ctx.Err(), context.Canceled) || errors.Is(ctx.Err(), context.DeadlineExceeded)) {
  		return
  	}
- 	s.attempt = mail.AuthAttempt{At: mail.UnixMilli(now.UnixMilli()), Outcome: outcome(err)}
+ 	s.attempt = mail.AuthAttempt{At: mail.UnixMilli(now.UnixMilli()), Outcome: consent.Outcome(err)}

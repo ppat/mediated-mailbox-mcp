@@ -74,6 +74,9 @@ test("the top bar shows the account with its provider, and its menu lists every 
   expect(items.map((i) => [i.textContent, i.getAttribute("href")])).toEqual([
     ["othergmail", "/other"],
     ["personalgmail", "/personal"],
+    ["Account settings", "/personal/account"],
+    ["Connect an account", "/setup/connect"],
+    ["Installation", "/setup"],
   ]);
   expect(document.activeElement).toBe(items[0] ?? null);
   await act(() => {

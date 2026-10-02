@@ -48,7 +48,7 @@ ladder.
 - **Message-derived text renders as text only.** Subjects, display names, addresses, labels, and
   reasons are attacker-written text. No rendering path interprets them as markup.
 - ADR-0084's constraints are unchanged. Two decision verbs, OAuth client setup, account setup and
-  policy management by database grant, no key that opens a stored credential, never a body. The shape adds
+  policy management by database grant, code that never opens a stored credential, never a body. The shape adds
   legibility, not surface. The UI stays boring in ADR-0084's sense.
 
 ## Alternatives considered

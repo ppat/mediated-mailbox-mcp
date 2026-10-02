@@ -1,0 +1,19 @@
+control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+removes: parameters are compared by the names they are printed with, so a parameter spelled through an alias escapes
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index f9344bb0..64185a20 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -113,7 +113,7 @@ func matches(sig *types.Signature, sh shape) bool {
+ 		return false
+ 	}
+ 	for i, want := range sh.params {
+-		if unaliased(sig.Params().At(i).Type()) != want {
++		if types.TypeString(sig.Params().At(i).Type(), nil) != want {
+ 			return false
+ 		}
+ 	}

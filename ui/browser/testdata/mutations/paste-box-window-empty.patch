@@ -1,0 +1,20 @@
+control: a guide window holds only its page's own text and controls and nothing about any account
+removes: the paste box's small window holds no paste box
+packages: ./ui/browser/test/setup.test.tsx
+tests: the paste box's own window and its side window hold nothing about any account
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/connect.tsx b/ui/browser/src/screens/connect.tsx
+index 582ceddb..09b8fde3 100644
+--- a/ui/browser/src/screens/connect.tsx
++++ b/ui/browser/src/screens/connect.tsx
+@@ -768,7 +768,7 @@ function PipPasteBox(props: {
+           h(
+             "div",
+             { class: "guide" },
+-            h(PasteBox, { checks: props.checks, onAddress: props.onAddress }),
++            null,
+           ),
+         ),
+         target.document.body,

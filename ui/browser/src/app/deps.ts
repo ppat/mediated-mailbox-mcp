@@ -5,24 +5,32 @@
 import { createContext } from "preact";
 import { useContext } from "preact/hooks";
 import {
+  readAccount,
   readAccounts,
+  readAttempt,
+  readInstallation,
   readAttention,
   readFailure,
   readJobs,
   readLens,
   readRun,
   readSystem,
+  type AccountSettings,
   type Accounts,
+  type AttemptAnswer,
   type Attention,
   type FailureDetail,
   type Fetch,
+  type Installation,
   type Jobs,
   type LensAnswer,
+  type Post,
   type RunSummary,
   type System,
 } from "./api.ts";
 import { Cache } from "./cache.ts";
 import type { BrowserConfig } from "./config.ts";
+import type { Guides } from "./guide.ts";
 import { Streams, type Connect } from "./stream.ts";
 
 // Timing is when a region still loading says so, and when it shows its error card while the request
@@ -46,6 +54,10 @@ export const browserTimers: Timers = {
 
 export type Deps = {
   fetch: Fetch;
+  // post sends a state-changing request with the page's request token.
+  post: Post;
+  // guides opens the setup guide's windows and carries what the guide and the page tell each other.
+  guides: Guides;
   now: () => number;
   // storage holds what is kept per browser, the theme override and the account last used. It is
   // undefined where the browser refuses storage, and nothing is kept then.
@@ -64,10 +76,15 @@ export type Deps = {
   jobs: Cache<Jobs>;
   runs: Cache<RunSummary>;
   failures: Cache<FailureDetail>;
+  installation: Cache<Installation>;
+  attempts: Cache<AttemptAnswer>;
+  settings: Cache<AccountSettings>;
 };
 
 export function makeDeps(
   fetch: Fetch,
+  post: Post,
+  guides: Guides,
   now: () => number,
   storage: Storage | undefined,
   timing: Timing,
@@ -77,6 +94,8 @@ export function makeDeps(
 ): Deps {
   return {
     fetch,
+    post,
+    guides,
     now,
     storage,
     timing,
@@ -90,6 +109,9 @@ export function makeDeps(
     jobs: new Cache((path, signal) => readJobs(fetch, path, signal), now),
     runs: new Cache((path, signal) => readRun(fetch, path, signal), now),
     failures: new Cache((path, signal) => readFailure(fetch, path, signal), now),
+    installation: new Cache((path, signal) => readInstallation(fetch, path, signal), now),
+    attempts: new Cache((path, signal) => readAttempt(fetch, path, signal), now),
+    settings: new Cache((path, signal) => readAccount(fetch, path, signal), now),
   };
 }
 

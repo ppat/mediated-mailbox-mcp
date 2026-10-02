@@ -30,8 +30,9 @@ type library struct {
 	// libraryWide names the import lists that may admit the whole library, because none of them is a
 	// component's own list.
 	libraryWide []string
-	// crossCutting names the import lists that span components, such as the lists over every pure
-	// core or over files outside every component. None is a deployable's, so none runs a library's
+	// crossCutting names the import lists that cut across what the component lists govern, such as the
+	// lists over every pure core or over files outside every component, and the list holding the UI's
+	// shipped code to the cryptography packages it uses. None is a deployable's, so none runs a library's
 	// statements under a role, and admitting a library's code through one is not a deployable
 	// admitting the library.
 	crossCutting []string
@@ -54,7 +55,7 @@ var (
 		// The data-access library's own list, the test tooling lists over code that never ships, and the
 		// lists over all non-test code and all ordinary tests, which leave each component to its own list.
 		libraryWide:  []string{"db", "non-test-code", "ordinary-tests", "testsupport", "testsupport-without-rapid"},
-		crossCutting: []string{"provider-test-code", "pure-core", "pure-core-tests", "residual"},
+		crossCutting: []string{"provider-test-code", "pure-core", "pure-core-tests", "residual", "ui-shipped-crypto"},
 		root:         "../..",
 	}
 	testLibrary = library{

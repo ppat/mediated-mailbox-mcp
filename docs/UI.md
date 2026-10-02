@@ -287,7 +287,9 @@ per client, and an installation holds any number of clients for each provider th
 through one. Account setup connects an account through one of its provider's clients, shared with
 other accounts or its own, sets what the account's rows hold, and re-authorizes an account whose
 credential stopped working, through the same client or another of the provider's. The UI seals
-each client's secret and each credential it receives and cannot open a stored one (ADR-0081).
+each client's secret and each credential it receives, and its code never opens a stored
+credential. One isolated part of it opens a client's secret, for a consent's code exchange
+(ADR-0081).
 Their screens are [sections 8.10](#810-installation) to [8.13](#813-account-settings).
 
 **Growth slots the shape already fits**, each arriving as a registered dataset. Calendar events
@@ -1425,25 +1427,29 @@ until the third succeeds (ADR-0091). Not live.
    Google's warning says the app is being tested, stop: the client is still in Testing. Publish it
    (setup step 5) first, or this account is refused in 7 days." and then "Google may email a security
    alert that mediated mailbox was granted access. That is this connection." Then a picture of what
-   the browser shows at the end, a browser address bar reading
-   `http://127.0.0.1:{port}/?state=…&code=…` over a page that cannot be reached, captioned "Your
+   the browser shows at the end, a browser address bar reading the redirect address followed by
+   `?state=…&code=…` over a page that cannot be reached, captioned "Your
    browser cannot open this page. That is expected. If a page loads instead, something on your own
    computer answered; the address bar still works." The control "Open Google's consent page" is a
    plain link to the consent address the server returned when step 1 was confirmed, opening a new
    tab, so opening it is an ordinary navigation that no pop-up blocker stops. The consent request
    names the step 1 mailbox as Google's login hint, so Google offers that account first. Its
-   loopback redirect names `127.0.0.1` on a fixed high port rather than port 80, so a web server on
-   the operator's own computer is unlikely to answer. The attempt shows its age and the time left.
+   redirect address is the loopback address the configuration key `consent_redirect` names
+   ([section 18.1](#181-the-configuration-the-ui-declares)), never one written into the code, and
+   the code exchange, the check of the pasted address and the picture all read that one value. Its
+   default names `127.0.0.1` on a high port, 47823, rather than port 80, so a web server on the
+   operator's own computer is unlikely to answer, and an installation whose operators' computers
+   answer on that port names another. The attempt shows its age and the time left.
    An attempt lasts 15 minutes, this design's starting value.
 3. **Paste the address** from "the tab that says it can't reach the site". One field takes the
    whole address and reads its parts itself, with "Paste from clipboard" beside it, and plain paste
    still works. When the UI's tab becomes visible again after the consent page was opened, focus
-   moves to the field. Under it, before anything is sent, a line names what it found, the address
-   `127.0.0.1`, the state matching this attempt and a code present. The button reads "Connect
+   moves to the field. Under it, before anything is sent, a line names what it found, the redirect
+   address's host and port, the state matching this attempt and a code present. The button reads "Connect
    {identifier}", or "Re-authorize {identifier}", and `Enter` in the field submits.
 
 Step 2 holds a collapsed "Google showed an error instead?", for the mistakes that stop at a page of
-Google's and never reach `127.0.0.1`. Each line is worded on the code Google prints on its page.
+Google's and never reach the redirect address. Each line is worded on the code Google prints on its page.
 
 | Google shows | Cause | Fix shown |
 | --- | --- | --- |
@@ -1458,10 +1464,14 @@ Google's and never reach `127.0.0.1`. Each line is worded on the code Google pri
 Like that section's guide window, it holds nothing about any account, the identifier and the
 mailbox included.
 
-An attempt is held by the server for the session that started it. It survives which replica
-answers and a reload of the page, which restores the identifier, the mailbox and the countdown. A
-session holds one attempt, and a newer one replaces it, so a tab whose attempt was replaced shows,
-when it next has focus, that its attempt was replaced and offers to start again.
+An attempt is held by the server for the session that started it, in a cookie only the server can
+open, sealed under a key derived from the request token's and bound to the session (ADR-0111). It
+survives which replica answers and a reload of the page, which restores the identifier, the mailbox
+and the countdown. A session holds one attempt, and a newer one replaces it, so a tab whose attempt
+was replaced shows, when it next has focus, that its attempt was replaced and offers to start again.
+The tab tells by comparing its attempt with the one the server reads back. A refusal leaves the
+attempt in place until it expires, so opening the consent page again and pasting the new address
+finishes it, and a success ends it.
 
 The mailbox Google granted is compared with the one named ignoring case, and for `gmail.com` and
 `googlemail.com` ignoring dots and treating the two domains as one, as Google does.
@@ -1472,13 +1482,14 @@ A refusal names its cause and its fix in the status region under the field, and 
 | --- | --- |
 | the operator declined at Google | "You declined at Google. Open the consent page again." |
 | no code in the address | "This address carries no code. Copy the address of the page Google sent you to." |
-| not the `127.0.0.1` address | "This is not the address Google sent you to. Copy it from the tab that says it can't reach the site." |
+| not the redirect address | "This is not the address Google sent you to. Copy it from the tab that says it can't reach the site." |
 | another attempt's state | "This address belongs to another attempt. Use the latest tab, or start again." |
 | no attempt in this session | "No connection is in progress in this browser session. The browser was closed or the UI restarted. Start again from step 1." |
 | the attempt expired | "This attempt expired. Open the consent page again." |
 | Google refused the code | "Google refused the code. It may already have been used. Open the consent page again." |
 | Google did not answer | "Could not reach Google. Nothing was saved. Press Connect again. If Google then refuses the code, open the consent page again." |
 | a grant without the Gmail scope | "Google granted no access to Gmail. Tick the Gmail permission on Google's page." |
+| a grant holding any scope beside the Gmail scope | "Google granted more than the Gmail permission this system asks for, so nothing was saved. Open the consent page again." |
 | the Gmail API not enabled in the client's project | "The Gmail API is not enabled in project {id}. Enable it (OAuth client setup step 2), wait a minute, then open the consent page again.", {id} the client's stored project ID, or "the client's project" when none is stored |
 | a grant for another mailbox | "Google granted access to {granted}, not {named}. Sign in to {named} at Google." On a re-authorization it adds "If this mailbox's address changed, the account cannot be re-authorized. Connect it again under a new identifier." |
 | an account took the identifier after step 1 | "An account named {identifier} was connected while this one was in progress. Nothing was saved. Start again from step 1 with another identifier." |
@@ -1515,8 +1526,8 @@ new credential and uses it from its next call." Each workload takes it up withou
 refusal, through the signal of [F7](../ROADMAP.md#group-f--foundation). An account with no
 mailbox remembered, one with no state row or one stored before the mailbox was kept, is connected
 here too: step 1 then asks for the mailbox once, the grant is checked against it, and success
-writes the state row, or the credential and the mailbox into it, so the mailbox is remembered from
-then on (ADR-0080).
+writes the state row, or the credential and the mailbox into it, so the mailbox the consent
+confirmed is remembered from then on (ADR-0080).
 
 ### 8.13 Account settings
 
@@ -1885,11 +1896,17 @@ back to the next face in the stack.
 
 ## 15. Security of the UI itself
 
-The UI holds no key that opens a stored credential and never reads mail (ADR-0081, ADR-0084). It
+The UI's code never opens a stored credential and never reads mail (ADR-0081, ADR-0084). It
 sees a credential in plaintext only while it completes a connection or a re-authorization, seals
-it before storing it, and runs under the trust anchor's hardening for that reason (ADR-0028). What
-remains is the browser, the transport, the database connection, the two decisions, the two
-setups, and the policy writes.
+it before storing it, and runs under the trust anchor's hardening for that reason (ADR-0028). It
+holds the private key, because Google refuses a desktop client's code exchange without the
+client's secret, and one isolated package of its server, `ui/internal/clientsecret`, opens with it
+the secret of the client a consent was issued to and nothing else. Its import lists admit the
+opening half of the credential library there alone, its one operation takes a client's name and
+no sealing context, and the plaintext secret reaches no log line, no response and no cookie. A
+compromised UI process holds the key that opens every stored refresh token, while its database role
+reads none (ADR-0081). What remains is the browser, the transport, the database connection, the two
+decisions, the two setups, and the policy writes.
 
 - **TLS, and the same posture as the client surface** (ADR-0084). The UI serves TLS from the
   material its configuration declares ([section 18.1](#181-the-configuration-the-ui-declares)).
@@ -1917,7 +1934,10 @@ setups, and the policy writes.
   policy writes are the only state-changing requests. A consent attempt is held by the server for
   the session that started it, one per session, whichever replica answers, so a pasted address from
   another session's attempt, or from an attempt a newer one replaced, is refused
-  ([section 8.12](#812-connect-an-account-and-re-authorize)). A request whose token no longer
+  ([section 8.12](#812-connect-an-account-and-re-authorize), ADR-0111). The check refuses every
+  request whose method is not `GET` or `HEAD` before it is routed, so a state-changing route added
+  later cannot be mounted without it. A request with no token, and one whose token does not match
+  its session, are both refused with `stale_page`. A request whose token no longer
   matches, as a page older than the UI server's last restart sends, is refused with `stale_page`
   ([section 17.3](#173-the-error-contract)).
 - **The identity header is trusted only when the deployment declares it** (ADR-0084). With the
@@ -2212,19 +2232,19 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
 | `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |
-| `GET /api/setup` | the installation endpoint. Each OAuth client's name, provider, client identifier and project ID, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
-| `POST /api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, and 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier. Unscoped |
+| `GET /api/setup` | the installation endpoint. The providers whose accounts connect through an OAuth client, each OAuth client's name, provider, client identifier and project ID with the accounts connected through it, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
+| `POST /api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it or the identifier or the secret is empty, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, 400 `project_refused` for a project ID not shaped like one, 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier, and 404 `unknown_provider` for a provider that authenticates through no OAuth client. Unscoped |
 | `POST /api/setup/{provider}/clients/{client}` with `{ "client_id": "…", "client_secret": "…", "project_id": "…" }` | replaces the named client's identifier and secret, or with the stored `client_id` updates its secret alone, which keeps every grant ([section 8.11](#811-oauth-client-setup)). Answers as the add, and the client's 404 `unknown_client`. Unscoped |
 | `POST /api/setup/{provider}/clients/{client}/remove` | removes a client no account connects through. The client's 409 `client_in_use` with the accounts that do, and 404 `unknown_client`. Unscoped |
-| `POST /api/setup/connect` with `{ "account": "…", "client": "…", "mailbox": "…", "lowered_target": null }` | starts a consent attempt for the session through the named client after checking the identifier, replacing any attempt the session held ([section 8.12](#812-connect-an-account-and-re-authorize)), 400 `identifier_refused`, 409 `identifier_taken` or 404 `unknown_client` otherwise. The provider is the client's. 200 with the consent page's address and the attempt's expiry. Unscoped |
-| `GET /api/setup/connect` | the session's attempt, its identifier, mailbox and expiry, which a reload of the page restores, or none. Unscoped |
-| `POST /api/setup/connect/finish` with `{ "address": "…" }` | finishes the session's attempt from the pasted address and writes the account's two rows. 200 with the account, or the client's 400 with one code per cause of [section 8.12](#812-connect-an-account-and-re-authorize)'s refusals, `consent_declined`, `no_code`, `wrong_address`, `wrong_attempt`, `no_attempt`, `attempt_expired`, `code_refused`, `scope_missing`, `api_disabled`, `wrong_mailbox`, the client's 409 `identifier_taken` when an account took the identifier after the attempt started, 409 `client_changed` when the attempt's client was replaced or removed after it started, and the provider's 502 `provider_unreachable` when Google does not answer. Unscoped |
+| `POST /api/setup/connect` with `{ "account": "…", "client": "…", "mailbox": "…", "lowered_target": null }` | starts a consent attempt for the session through the named client after checking the identifier, replacing any attempt the session held ([section 8.12](#812-connect-an-account-and-re-authorize)), 400 `identifier_refused`, `mailbox_refused` for a mailbox with no local part or no domain, or `target_refused` for a target outside the range of [section 8.13](#813-account-settings), 409 `identifier_taken` or 404 `unknown_client` otherwise. The provider is the client's. 200 with the consent page's address and the attempt's expiry. Unscoped |
+| `GET /api/setup/connect` | the session's attempt, its identifier, mailbox, client, expiry and consent page's address, with its state as the attempt's name, which a reload of the page restores and a tab compares with its own to tell it was replaced, or none. Unscoped |
+| `POST /api/setup/connect/finish` with `{ "address": "…" }` | finishes the session's attempt from the pasted address and writes the account's two rows. 200 with the account, or the client's 400 with one code per cause of [section 8.12](#812-connect-an-account-and-re-authorize)'s refusals, `consent_declined`, `no_code`, `wrong_address`, `wrong_attempt`, `no_attempt`, `attempt_expired`, `code_refused`, `scope_missing`, `scope_refused`, `api_disabled`, `wrong_mailbox`, the client's 409 `identifier_taken` when an account took the identifier after the attempt started, 409 `client_changed` when the attempt's client was replaced or removed after it started, and the provider's 502 `provider_unreachable` when Google does not answer. Unscoped |
 | `GET /api/{account}/account` | the values of [section 8.13](#813-account-settings), the identifier, provider, the client it connects through and the provider's other clients, mailbox, whether a state row exists, the last authentication, the lowered target as a fraction, the current target from the rate state, the backfill flags and when the sync cursor was written. Never the credential |
-| `POST /api/{account}/account/reauthorize`, `GET /api/{account}/account/reauthorize` and `POST /api/{account}/account/reauthorize/finish` | as the connect requests, for the account in the path, checked against its remembered mailbox, and replacing its credential and recording the code exchange's attempt on success. The start request carries `{ "mailbox": "…" }` only when the account remembers none, and a mailbox in the request of an account that remembers one is refused with 400 `mailbox_remembered`. It carries `{ "client": "…" }` to move the account to another client of its provider, refused with 400 `client_wrong_provider` for a client of another provider, and success then writes the client and the credential in one transaction |
+| `POST /api/{account}/account/reauthorize`, `GET /api/{account}/account/reauthorize` and `POST /api/{account}/account/reauthorize/finish` | as the connect requests, for the account in the path, checked against its remembered mailbox, and replacing its credential and recording the code exchange's attempt on success. The start request carries `{ "mailbox": "…" }` only when the account remembers none, a mailbox in the request of an account that remembers one is refused with 400 `mailbox_remembered`, and a request naming none for an account that remembers none with 400 `mailbox_required`. It carries `{ "client": "…" }` to move the account to another client of its provider, refused with 400 `client_wrong_provider` for a client of another provider, and success then writes the client and the credential in one transaction |
 | `GET /api/setup/policy?search=…` | the base rules, each with its identifier, suffixes, source and created time and identity, and every account's identifier, which the base policy screen of [section 8.14](#814-base-policy) lists. No count of any account's senders or messages. Unscoped |
 | `GET /api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /api/setup` read with no account named, which is M8's open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)) |
 | `POST /api/setup/policy/rules`, `POST /api/setup/policy/rules/{rule-id}` and `POST /api/setup/policy/rules/{rule-id}/lift` | add, edit and lift a base rule with its history row, with the bodies and answers of the account's policy writes below, `scope` absent since it is always `base`, and a lift or a suffix removal always needing `confirmation`. Unscoped |
-| `POST /api/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 outside the range of [section 8.13](#813-account-settings) |
+| `POST /api/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 `target_refused` outside the range of [section 8.13](#813-account-settings), and the client's 409 `not_connected` for an account with no state row, which holds no target until it is connected |
 | `GET /api/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed |
 | `POST /api/{account}/policy/rules` with `{ "scope": "account", "rule_id": "…", "suffixes": ["…"] }` | adds a rule, `scope` being `account` or `base`, with its history row. 400 `rule_refused` with each problem, 409 `identifier_taken` |
 | `POST /api/{account}/policy/rules/{rule-id}` with `{ "scope": "account", "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
@@ -2246,7 +2266,8 @@ rule's row detail, as the senders the account's policy would no longer restrict 
 change.
 
 Every `POST` carries the `X-Request-Token` header of
-[section 15](#15-security-of-the-ui-itself). A decision's body never carries anything the server
+[section 15](#15-security-of-the-ui-itself), and a body that is not the JSON its request takes,
+a field it does not declare included, is refused with 400 `malformed_body`. A decision's body never carries anything the server
 does not already hold except the typed confirmation.
 
 ### 17.5 The stream's event shape
@@ -2281,6 +2302,8 @@ ui/
     api/                the server. The entry document, static files, the read API, the decisions, the stream,
                         the bespoke handlers, the error contract, the request token, identity
     contract/           builds the OpenAPI document from the registry and the handler list
+    clientsecret/       opens an OAuth client's sealed secret for a consent's code exchange, the one part
+                        of the UI that opens a stored value (ADR-0081)
     core/               pure-core packages private to the UI
     devloop/            whether the binary was built with the devloop build tag
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
@@ -2293,7 +2316,8 @@ ui/
       app/              routing, the URL grammar, the cache, theme, the stream client
       lens/             the ladder shell, chart, cohort table, rows table, row detail
       row/              the message row, the sender row, the audit row, the page row, badges
-      screens/          home, plan, plans, jobs, run, candidates, policy, system
+      screens/          home, plan, plans, jobs, run, candidates, policy, system, installation, client
+                        setup, connect and account settings
       fonts/            the vendored font files with their licence (section 14.3)
     test/               the browser tests, the DOM shim's preload, the fixture modules
     dist/               the bundle, embedded into the Go binary, not checked in except its placeholder
@@ -2338,11 +2362,14 @@ lands in the binary with the work that first reads it, and until then the binary
 refuses any key it does not declare (ADR-0078). Which keys the binary reads today is build state,
 tracked in [ROADMAP.md](../ROADMAP.md).
 
-Three keys are the browser's, `default_theme`, `stream_reconnect_max` and `stream_poll_interval`. The
-Go handler renders each into the entry document on every page load as a `meta` tag named
-`mediated-mailbox.` followed by the key, with the value as its content and a duration written in
-whole milliseconds. That is the placement ADR-0061 gives the request token. The browser's composition root, `main.ts`, is their one
-reader, and a tag it cannot read takes the record's default.
+Four keys are the browser's, `default_theme`, `stream_reconnect_max`, `stream_poll_interval` and
+`consent_redirect`. The Go handler renders each into the entry document on every page load as a
+`meta` tag named `mediated-mailbox.` followed by the key, with the value as its content and a
+duration written in whole milliseconds. The request token rides beside them as
+`mediated-mailbox.request_token`, the placement ADR-0061 gives it. The browser's composition root,
+`main.ts`, is their one reader, and a tag it cannot read takes the record's default, apart from
+`consent_redirect`, which the browser holds no copy of, so a page without it pictures no address
+and finds no pasted address to be the redirect's.
 
 | Key | Value | Required |
 | --- | --- | --- |
@@ -2351,10 +2378,12 @@ reader, and a tag it cannot read takes the record's default.
 | `probe_listen` | the address and port the health and readiness probes and the metrics endpoint serve on, in plain HTTP | no, defaults to `:8080`, as the mediator's does |
 | `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the mediator's are, so a renewed certificate needs no restart | yes, unless `insecure_http` |
 | `seal_public_key_file` | the path of the mounted public key the UI seals credentials to (ADR-0081) | yes |
+| `private_key_files` | the paths of every mounted private key, the keyring the deployables that call a provider hold, with which the UI's client-secret package opens a client's secret for a consent's code exchange (ADR-0081, ADR-0092). The start is refused unless the public key matches one of them | yes |
 | `insecure_http` | `true` serves plain HTTP, refused unless the binary is built with the `devloop` build tag ([section 18](#18-repository-and-build-layout)) | no |
 | `identity_header` | the header name an authenticating proxy forwards. When it is set, its value is recorded on decisions and a decision without it is refused | no |
 | `operator_name` | the identity recorded on decisions when no header is declared | yes when the header is unset |
-| `token_key_file` | the path of a mounted file holding the key behind the request token, replacing the per-process key when more than one replica runs | no |
+| `consent_redirect` | the loopback address a consent redirects the browser to, where nothing listens, which the consent request and the code exchange name, the pasted address is checked against, and the browser reads from the entry document to picture it and check a paste ([section 8.12](#812-connect-an-account-and-re-authorize)). The start is refused unless it is an `http` address whose host is a loopback IP literal, `127.0.0.1` or another in `127.0.0.0/8`, or `[::1]`, with an explicit port, and no path but `/`, no query, fragment or user. A desktop client accepts a loopback redirect on any port, so changing it needs nothing at Google | no, defaults to `http://127.0.0.1:47823/`, a high port a web server on the operator's computer is unlikely to answer on |
+| `token_key_file` | the path of a mounted file holding the key behind the request token and the consent attempt's seal (ADR-0111), at least 32 bytes, replacing the per-process key when more than one replica runs | no |
 | `max_plan_age` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
 | `sample_size` | the plan sample's size | no, defaults to 24 |
 | `sync_interval`, `heuristics_interval` | the intervals displayed on the jobs cards (ADR-0018's sync interval of 5 minutes, and the heuristics job's daily run of ADR-0022) | no, defaults to the records' values |
@@ -2384,8 +2413,8 @@ object in the data state. No global mutable store beyond these three. Which mech
 each is ADR-0063's decision.
 
 **What not to do.** Do not add a rendering path that interprets message-derived text. Do not add a
-decision, however small, without a record that widens ADR-0084's grant. Do not give the UI the
-key that opens a stored credential. Do not aggregate across accounts. Do not proxy anything
+decision, however small, without a record that widens ADR-0084's grant. Do not let any of the UI's
+code but `ui/internal/clientsecret` open a stored value. Do not aggregate across accounts. Do not proxy anything
 through the mediator. Do not fetch a corpus into the browser to
 group it there. Do not paint a fake status bar or keyboard in any layout. Do not introduce a
 color outside the token tables without re-running the palette derivation and, for a chart series,

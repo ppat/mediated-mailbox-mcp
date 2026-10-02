@@ -16,12 +16,13 @@ it" into "how expensive is it, how fast is it noticed, and what evidence survive
 
 Layered hardening, each layer answering one of those three questions:
 
-- **Raising the cost:** credentials sealed so that only the deployables calling a provider can
-  open them ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)). Each of those deployables
-  runs hardened and minimal, with no elevated privileges, an immutable filesystem, no shell, and
-  nothing beyond what it needs. The hardening is enforced by policy, and images are signed and
-  verified before they run. The UI runs under the same hardening, because it holds a fresh grant
-  while it completes a consent
+- **Raising the cost:** credentials sealed so that only code calling a provider opens an account's
+  credential, the UI's one opening part opening an OAuth client's secret and nothing else
+  ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)). Each of those deployables runs
+  hardened and minimal, with no elevated privileges, an immutable filesystem, no shell, and nothing
+  beyond what it needs. The hardening is enforced by policy, and images are signed and verified
+  before they run. The UI runs under the same hardening, because it holds a fresh grant while it
+  completes a consent and holds the private key
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - **Audit trail is maintained:** A record of changes is maintained in state store and significant
   events or changes are logged at a corresponding log level.

@@ -1,0 +1,19 @@
+control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+removes: the lower-level connection's own methods are matched by their full names, so an interface or wrapper the UI declares with their names and parameters escapes
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index f9344bb0..dc4ae6a8 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -101,7 +101,7 @@ func statementRunner(fn *types.Func) bool {
+ 		return false
+ 	}
+ 	for _, sh := range statementRunners[fn.Name()] {
+-		if matches(sig, sh) {
++		if matches(sig, sh) && (!map[string]bool{"ExecParams": true, "ExecBatch": true, "CopyTo": true, "StartPipeline": true}[fn.Name()] || strings.HasPrefix(fn.FullName(), "(*"+pgconnPath+".PgConn).")) {
+ 			return true
+ 		}
+ 	}

@@ -60,8 +60,8 @@ extend to the artifact layer or quietly stop at the process boundary.
   default-until-reality-bites heuristic; switching the cut later is a packaging change, not a
   redesign.
 - Packaging isolation is never asked to carry credential isolation: which process can open a stored
-  credential stays a property of which deployables receive the private key's file
-  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)), whatever the images look
-  like.
+  credential stays a property of which deployables receive the private key's file, and within the
+  UI of its code ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)), whatever
+  the images look like.
 - Assumptions about other components: the build-and-publish machinery is parameterized per
   deployable; the deployment artifact consumes every image at the same lockstep version.

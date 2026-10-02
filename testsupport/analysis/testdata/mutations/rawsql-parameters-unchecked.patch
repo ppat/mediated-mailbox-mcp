@@ -1,0 +1,21 @@
+control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+removes: every method named like a statement runner is reported, whatever its parameters
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index f9344bb0..30544e43 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -109,6 +109,10 @@ func statementRunner(fn *types.Func) bool {
+ }
+ 
+ func matches(sig *types.Signature, sh shape) bool {
++	return true
++}
++
++func matchesUnused(sig *types.Signature, sh shape) bool {
+ 	if sig.Params().Len() < len(sh.params) {
+ 		return false
+ 	}

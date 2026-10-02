@@ -1,0 +1,20 @@
+control: a client's name reaches one client, and one client is never stored twice
+removes: a client identifier another client holds is refused as a name taken, so the screen cannot name the client holding it
+packages: ./ui/internal/api
+tests: TestAClientsNameReachesOneClient
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/setup.go b/ui/internal/api/setup.go
+index 53c0b68b..f7b0abd4 100644
+--- a/ui/internal/api/setup.go
++++ b/ui/internal/api/setup.go
+@@ -230,7 +230,7 @@ func (s *Server) addClient(w http.ResponseWriter, r *http.Request) {
+ 			return
+ 		}
+ 		if c.Provider == provider && c.ClientID == body.ClientID {
+-			writeFailure(w, r, clientFault(http.StatusConflict, "client_exists", "this client is already set up as "+c.ClientName))
++			writeFailure(w, r, clientFault(http.StatusConflict, "name_taken", "another client holds this name"))
+ 			return
+ 		}
+ 	}

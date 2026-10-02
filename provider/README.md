@@ -32,14 +32,29 @@ Against a real provider it adds its messages to a test account it does not contr
 that run's, and checks and reports only those, never assuming or touching the account's other mail
 ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)). The Gmail consent for the test account's
 token runs from `gmail/cmd/consent`, a developer's command that no deployable runs and no image
-ships
+ships, over the same `gmail/consent` package the UI runs
 ([ADR-0107](../docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)).
 It takes the address of the account the grant is meant for and refuses a grant that belongs to
 another account or holds any scope but the modify scope.
 
+Google's consent sits apart from the adapter, in `gmail/consent`, a package holding no Provider
+Port code, so the UI links it without linking the adapter, whose import the UI's list refuses
+([ADR-0107](../docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)).
+It holds the consent page's address with its PKCE challenge and state, the code exchange with its
+check that the grant is the modify scope alone, the read of the profile that names the mailbox a
+grant belongs to, the comparison of that mailbox with the one named, which ignores case and, for
+`gmail.com` and `googlemail.com`, dots and the choice between the two domains, the reading of the
+loopback address the operator pastes back, and the check of a client's identifier and secret
+against Google's token endpoint. It also holds the requests to the token endpoint and the reading
+of its answers, which the adapter's token source sends its refreshes through. The UI reaches it
+through the consent interface of `core/mail`, which `fake` implements too, so the UI's setups are
+tested over the fake. A new package beside the adapter was chosen over a narrow library of its own,
+which would put Google's grant outside this library and argue a case of its own, and over admitting
+the adapter to the UI's list, which would let the UI link the code that reads a mailbox.
+
 The Gmail adapter also holds the handling of Google's grant, which every deployable that calls
-Google shares, the Google Calendar adapter included. That is the one-time installed-app consent
-and the token source. The token source is built from the OAuth client the account connects
+Google shares, the Google Calendar adapter included. That is the token source, and the consent
+command beside it. The token source is built from the OAuth client the account connects
 through and the account's refresh token, which the deployable opened from the database, and reads
 no credential from anywhere else
 ([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).

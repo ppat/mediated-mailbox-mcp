@@ -5,6 +5,7 @@
 import { signal, type Signal } from "@preact/signals";
 import { configDefaults } from "../src/app/config.ts";
 import { makeDeps, regionTiming, type Deps, type Timers } from "../src/app/deps.ts";
+import type { Channel, GuideMessage, Guides } from "../src/app/guide.ts";
 import type { LiveObjects } from "../src/app/stream.ts";
 import type { LiveStatus } from "../src/app/transport.ts";
 import { attentionPath, jobsPath } from "../src/app/api.ts";
@@ -59,20 +60,99 @@ export class ManualTimers implements Timers {
   }
 }
 
+// Hub is the guide's channel under a test, delivering what one document posts to every other channel
+// of the hub, as a BroadcastChannel of one origin does.
+export class Hub {
+  readonly #listeners = new Set<{ from: number; on: (m: GuideMessage) => void }>();
+  readonly sent: GuideMessage[] = [];
+  #next = 0;
+
+  // channel is one document's end of the hub.
+  channel(): Channel {
+    this.#next += 1;
+    const me = this.#next;
+    return {
+      post: (message) => {
+        this.sent.push(message);
+        for (const l of this.#listeners) {
+          if (l.from !== me) {
+            l.on(message);
+          }
+        }
+      },
+      listen: (on) => {
+        const l = { from: me, on };
+        this.#listeners.add(l);
+        return () => this.#listeners.delete(l);
+      },
+    };
+  }
+}
+
+// TestGuides records what the app asked of the browser's windows and clipboard. pip, when given, opens
+// a document the test reads, standing in for the small window that stays on top.
+export class TestGuides {
+  readonly opened: { url: string; name: string }[] = [];
+  readonly copied: string[] = [];
+  readonly consoles: string[] = [];
+  readonly windows: Document[] = [];
+  clipboard = "";
+  blockWindows = false;
+
+  constructor(
+    readonly hub: Hub = new Hub(),
+    readonly withPip = false,
+  ) {}
+
+  guides(): Guides {
+    return {
+      channel: this.hub.channel(),
+      pip: this.withPip
+        ? async () => {
+            const doc = document.implementation.createHTMLDocument("guide");
+            this.windows.push(doc);
+            const fake: unknown = {
+              document: doc,
+              addEventListener: () => undefined,
+              removeEventListener: () => undefined,
+            };
+            // The small window is a Window to the app, and the test reads only its document.
+            return fake as Window; // oxlint-disable-line typescript/no-unsafe-type-assertion -- a test's stand-in for the browser's window
+          }
+        : undefined,
+      open: (url, name) => {
+        this.opened.push({ url, name });
+        return this.blockWindows ? null : window;
+      },
+      copy: async (text) => {
+        this.copied.push(text);
+      },
+      paste: async () => this.clipboard,
+      console: (url) => {
+        this.consoles.push(url);
+      },
+    };
+  }
+}
+
 export function testDeps(
   server: Recorded,
   connections: Connection[] = [],
   now = () => Date.parse("2026-09-10T10:16:04Z"),
   timers: Timers = new ManualTimers(),
+  guides: Guides = new TestGuides().guides(),
 ): Deps {
   localStorage.clear();
   return makeDeps(
     server.fetch,
+    server.post,
+    guides,
     now,
     localStorage,
     regionTiming,
     timers,
-    configDefaults,
+    // The entry document's consent redirect, as the server renders it from its configuration.
+    { ...configDefaults, consentRedirect: "http://127.0.0.1:47823/" },
     (account, objects, refetch) => {
       const connection: Connection = {
         account,
