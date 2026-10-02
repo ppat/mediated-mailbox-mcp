@@ -11,12 +11,17 @@ import (
 // refused, so a page never continues a different listing than the one it came from.
 
 // position is what a cursor carries. Listing names the operation, Account and Filter the call it
-// continues, and At and Key the last row returned, its time and its identity.
+// continues, and the rest the last row returned. Key is its identity. At is its time, Text the text it
+// sorted by and Count the number of messages it counted, whichever the listing orders by, and Null
+// marks a group whose key is null.
 type position struct {
 	Listing string `json:"l"`
 	Account string `json:"a"`
 	Filter  string `json:"f,omitempty"`
-	At      string `json:"t"`
+	At      string `json:"t,omitempty"`
+	Text    string `json:"s,omitempty"`
+	Count   int64  `json:"n,omitempty"`
+	Null    bool   `json:"z,omitempty"`
 	Key     string `json:"k"`
 }
 
@@ -41,7 +46,7 @@ func decodeCursor(cursor, listing, account, filter string) (position, bool, erro
 		return position{}, false, Refuse("cursor is not a cursor this listing returned")
 	}
 	var p position
-	if err := json.Unmarshal(text, &p); err != nil || p.At == "" {
+	if err := json.Unmarshal(text, &p); err != nil {
 		return position{}, false, Refuse("cursor is not a cursor this listing returned")
 	}
 	if p.Listing != listing || p.Account != account || p.Filter != filter {

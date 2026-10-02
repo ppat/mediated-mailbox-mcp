@@ -257,6 +257,16 @@ sql:
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
+  queries: senders/statistics
+  gen:
+    go:
+      package: statistics
+      out: senders/statistics
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
   queries: messages/scan
   gen:
     go:

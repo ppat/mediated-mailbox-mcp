@@ -23,6 +23,26 @@ type Beginner interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
+// BeginnerWithOptions opens a transaction with options. A pool and a connection are each one, and a
+// transaction is not, since pgx.Tx has no BeginTx.
+type BeginnerWithOptions interface {
+	BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error)
+}
+
+// Snapshot returns db as a Beginner whose every transaction is repeatable read and read-only. Every
+// statement a Run over it makes reads the one snapshot its first statement took, and none can write.
+// A unit whose statements must agree on the state they read, such as a read whose classification
+// feeds the statements after it, runs over it. Run's default is the database's, read committed, where
+// each statement reads what was committed when it starts. db is never a transaction, so the wrapper
+// cannot hide one from Run's refusal of a nested transaction.
+func Snapshot(db BeginnerWithOptions) Beginner { return snapshot{db: db} }
+
+type snapshot struct{ db BeginnerWithOptions }
+
+func (s snapshot) Begin(ctx context.Context) (pgx.Tx, error) {
+	return s.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+}
+
 // ErrInsideTransaction is returned when db is itself a transaction. Begin would open a savepoint,
 // and a transaction-local setting survives the savepoint's release, so the outer transaction would go
 // on under this unit's account after Run returned. One unit of data access is one transaction for

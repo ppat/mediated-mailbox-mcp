@@ -1,0 +1,20 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: a search's cursor is bound to its sort and order but not its query, so a cursor another query returned is taken
+packages: ./mediate/internal/service
+tests: TestAnIndexReadPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
+index 4676f33..bd54c8c 100644
+--- a/mediate/internal/service/index.go
++++ b/mediate/internal/service/index.go
+@@ -124,7 +124,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
+ 	if !slices.Contains(orders, order) {
+ 		return nil, Refuse("order must be descending or ascending")
+ 	}
+-	filter := sel.text + " sort=" + sortBy + " order=" + order
++	filter := " sort=" + sortBy + " order=" + order
+ 	from, found, err := decodeCursor(args.Cursor, "search_messages", account, filter)
+ 	if err != nil {
+ 		return nil, err

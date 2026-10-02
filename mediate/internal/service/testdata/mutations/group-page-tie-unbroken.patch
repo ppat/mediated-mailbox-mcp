@@ -1,0 +1,20 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: a page of the groups the service layer pages starts after the last group's count alone, so a group tied with it is skipped
+packages: ./mediate/internal/service
+tests: TestAnIndexReadPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
+index 4676f33..93706df 100644
+--- a/mediate/internal/service/index.go
++++ b/mediate/internal/service/index.go
+@@ -434,7 +434,7 @@ func pageOf(groups []group, from position, found bool) []group {
+ 		}
+ 		start = len(groups)
+ 		for i, g := range groups {
+-			if compareGroups(last, g) < 0 {
++			if g.Messages < last.Messages {
+ 				start = i
+ 				break
+ 			}

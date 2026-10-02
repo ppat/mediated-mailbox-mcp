@@ -1,0 +1,31 @@
+control: A message whose body is denied stays in every count, group and search result of the index reads
+removes: the groups by label leave out the messages carrying a content flag
+packages: ./mediate/internal/service
+tests: TestEveryMessageStaysInEveryIndexRead
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index c369b93..b131c7a 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -227,6 +227,7 @@ FROM messages AS m
+ CROSS JOIN LATERAL unnest(m.labels) AS l (label)
+ WHERE
+     m.account_id = @account_id
++    AND cardinality(m.content_flags) = 0
+     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
+     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
+     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index e052b44..d15d996 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -24,6 +24,7 @@ FROM messages AS m
+ CROSS JOIN LATERAL unnest(m.labels) AS l (label)
+ WHERE
+     m.account_id = $1
++    AND cardinality(m.content_flags) = 0
+     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
+     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
+     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))

@@ -15,7 +15,7 @@ type Effect uint8
 const (
 	// Read is a read whose arguments are all scalars.
 	Read Effect = iota + 1
-	// StructuredRead is a read that takes structured input, as search takes the canonical query.
+	// StructuredRead is a read that takes structured input, as search takes the index query.
 	StructuredRead
 	// Create adds a resource to a collection.
 	Create

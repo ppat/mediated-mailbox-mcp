@@ -286,6 +286,275 @@
         }
       }
     },
+    "/api/accounts/{account_id}/message-counts:search": {
+      "post": {
+        "description": "Counts the account's messages the query selects, from the whole index, and groups them. query selects messages by every term it holds, and an absent query or term selects every message. after and before are UTC timestamps ending in Z, after inclusive and before exclusive, and any other offset is refused. from is a sender address and from_domain a sender domain, both compared ignoring case. labels keeps the messages carrying every label it lists, excluded_labels those carrying none of them, and labels_within those all of whose labels it lists, so an empty labels_within keeps the messages with no label. Labels are the values list_labels returns. subject keeps the messages whose subject, as served and masked, contains it, ignoring case. unread, starred and has_attachments keep the messages whose state equals the value given, and a message not marked read is unread. sender_class keeps the messages whose sender the policy in force classifies as normal or restricted. A message whose body is denied is selected like any other. summary counts the whole selection, its messages, their threads, the unread among them and those with attachments, with the dates of the oldest and the newest, which are null when nothing is selected. group_by groups the selection by sender address, sender_domain, label, sender_class or the UTC month a message was sent in, and each group carries the same counts under its key. A message counts in the group of every label it carries, and the messages with no label form one group whose key is null, listed first. A month's key is the UTC instant it starts. Groups come one page at a time, the group with the most messages first and ties by key. Pass the next_cursor a page returned as cursor, with the same query and group_by, to read the next page. next_cursor is null on the last page and without group_by.",
+        "operationId": "count_messages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "cursor": {
+                    "type": "string"
+                  },
+                  "group_by": {
+                    "enum": [
+                      "sender",
+                      "sender_domain",
+                      "label",
+                      "sender_class",
+                      "month"
+                    ],
+                    "type": "string"
+                  },
+                  "query": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "after": {
+                        "format": "date-time",
+                        "pattern": "Z$",
+                        "type": "string"
+                      },
+                      "before": {
+                        "format": "date-time",
+                        "pattern": "Z$",
+                        "type": "string"
+                      },
+                      "excluded_labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "from": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "from_domain": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "has_attachments": {
+                        "type": "boolean"
+                      },
+                      "labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "labels_within": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "sender_class": {
+                        "enum": [
+                          "normal",
+                          "restricted"
+                        ],
+                        "type": "string"
+                      },
+                      "starred": {
+                        "type": "boolean"
+                      },
+                      "subject": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "unread": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "group_by": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "groups": {
+                      "items": {
+                        "properties": {
+                          "key": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "messages": {
+                            "type": "integer"
+                          },
+                          "newest_at": {
+                            "format": "date-time",
+                            "pattern": "Z$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "oldest_at": {
+                            "format": "date-time",
+                            "pattern": "Z$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "threads": {
+                            "type": "integer"
+                          },
+                          "unread": {
+                            "type": "integer"
+                          },
+                          "with_attachments": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "messages",
+                          "threads",
+                          "unread",
+                          "with_attachments",
+                          "oldest_at",
+                          "newest_at"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "summary": {
+                      "properties": {
+                        "key": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "messages": {
+                          "type": "integer"
+                        },
+                        "newest_at": {
+                          "format": "date-time",
+                          "pattern": "Z$",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "oldest_at": {
+                          "format": "date-time",
+                          "pattern": "Z$",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "threads": {
+                          "type": "integer"
+                        },
+                        "unread": {
+                          "type": "integer"
+                        },
+                        "with_attachments": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "messages",
+                        "threads",
+                        "unread",
+                        "with_attachments",
+                        "oldest_at",
+                        "newest_at"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "summary",
+                    "group_by",
+                    "groups",
+                    "next_cursor"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The operation's result."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        },
+                        "origin": {
+                          "enum": [
+                            "client",
+                            "mediator",
+                            "provider"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "origin",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A failure of the operation call, naming its origin: client with a 400, or a 405 for HEAD, mediator with a 500, provider with a 502. A path or method the root does not route is answered by its router, outside this shape."
+          }
+        }
+      }
+    },
     "/api/accounts/{account_id}/messages": {
       "get": {
         "description": "Lists the account's messages, newest first, one page at a time, with each message's metadata as the redaction matrix allows it. Pass the next_cursor a page returned as cursor to read the next page. next_cursor is null on the last page.",
@@ -756,6 +1025,444 @@
                     "body",
                     "snippet",
                     "attachment_names"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The operation's result."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        },
+                        "origin": {
+                          "enum": [
+                            "client",
+                            "mediator",
+                            "provider"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "origin",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A failure of the operation call, naming its origin: client with a 400, or a 405 for HEAD, mediator with a 500, provider with a 502. A path or method the root does not route is answered by its router, outside this shape."
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/messages:search": {
+      "post": {
+        "description": "Searches the account's messages, from the whole index rather than a recent window, and returns one page of the messages the query selects, each with its metadata as the redaction matrix allows it. query selects messages by every term it holds, and an absent query or term selects every message. after and before are UTC timestamps ending in Z, after inclusive and before exclusive, and any other offset is refused. from is a sender address and from_domain a sender domain, both compared ignoring case. labels keeps the messages carrying every label it lists, excluded_labels those carrying none of them, and labels_within those all of whose labels it lists, so an empty labels_within keeps the messages with no label. Labels are the values list_labels returns. subject keeps the messages whose subject, as served and masked, contains it, ignoring case. unread, starred and has_attachments keep the messages whose state equals the value given, and a message not marked read is unread. sender_class keeps the messages whose sender the policy in force classifies as normal or restricted. A message whose body is denied is selected like any other. sort orders the page by date, sender or subject, date by default, and order is descending, the default, or ascending. Messages tied on the sort value follow their message_id. Pass the next_cursor a page returned as cursor, with the same query, sort and order, to read the next page. next_cursor is null on the last page.",
+        "operationId": "search_messages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "cursor": {
+                    "type": "string"
+                  },
+                  "order": {
+                    "enum": [
+                      "descending",
+                      "ascending"
+                    ],
+                    "type": "string"
+                  },
+                  "query": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "after": {
+                        "format": "date-time",
+                        "pattern": "Z$",
+                        "type": "string"
+                      },
+                      "before": {
+                        "format": "date-time",
+                        "pattern": "Z$",
+                        "type": "string"
+                      },
+                      "excluded_labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "from": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "from_domain": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "has_attachments": {
+                        "type": "boolean"
+                      },
+                      "labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "labels_within": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "sender_class": {
+                        "enum": [
+                          "normal",
+                          "restricted"
+                        ],
+                        "type": "string"
+                      },
+                      "starred": {
+                        "type": "boolean"
+                      },
+                      "subject": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "unread": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "sort": {
+                    "enum": [
+                      "date",
+                      "sender",
+                      "subject"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "messages": {
+                      "items": {
+                        "properties": {
+                          "account_id": {
+                            "type": "string"
+                          },
+                          "attachment_types": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "body_available": {
+                            "type": "boolean"
+                          },
+                          "date": {
+                            "format": "date-time",
+                            "pattern": "Z$",
+                            "type": "string"
+                          },
+                          "flags": {
+                            "type": "object"
+                          },
+                          "from": {
+                            "properties": {
+                              "display_name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "email": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "email",
+                              "display_name"
+                            ],
+                            "type": "object"
+                          },
+                          "has_attachments": {
+                            "type": "boolean"
+                          },
+                          "labels": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "message_id": {
+                            "type": "string"
+                          },
+                          "sensitivity": {
+                            "properties": {
+                              "content_flags": {
+                                "items": {
+                                  "enum": [
+                                    "mfa_code",
+                                    "login_link"
+                                  ],
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "scan_state": {
+                                "enum": [
+                                  "pending",
+                                  "scanned",
+                                  "skipped_gate",
+                                  "skipped_restricted"
+                                ],
+                                "type": "string"
+                              },
+                              "sender_class": {
+                                "enum": [
+                                  "normal",
+                                  "restricted"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "sender_class",
+                              "content_flags",
+                              "scan_state"
+                            ],
+                            "type": "object"
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "thread_id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "account_id",
+                          "message_id",
+                          "thread_id",
+                          "subject",
+                          "from",
+                          "date",
+                          "labels",
+                          "flags",
+                          "has_attachments",
+                          "attachment_types",
+                          "sensitivity",
+                          "body_available"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "messages",
+                    "next_cursor"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The operation's result."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        },
+                        "origin": {
+                          "enum": [
+                            "client",
+                            "mediator",
+                            "provider"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "origin",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A failure of the operation call, naming its origin: client with a 400, or a 405 for HEAD, mediator with a 500, provider with a 502. A path or method the root does not route is answered by its router, outside this shape."
+          }
+        }
+      }
+    },
+    "/api/accounts/{account_id}/senders": {
+      "get": {
+        "description": "Lists the account's sender statistics, one per sender domain, built from the whole history, the sender with the most messages first, one page at a time. Each carries its sender class under the policy in force, its number of messages, its first and last message, the share of its messages carrying a List-Id, how many of its messages carry each label, and samples of its display names and address local parts. Pass the next_cursor a page returned as cursor to read the next page. next_cursor is null on the last page.",
+        "operationId": "list_senders",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "senders": {
+                      "items": {
+                        "properties": {
+                          "display_names": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "domain": {
+                            "type": "string"
+                          },
+                          "first_seen": {
+                            "format": "date-time",
+                            "pattern": "Z$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "label_distribution": {
+                            "additionalProperties": {
+                              "type": "integer"
+                            },
+                            "type": "object"
+                          },
+                          "last_seen": {
+                            "format": "date-time",
+                            "pattern": "Z$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "list_id_share": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "local_part_sample": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "messages": {
+                            "type": "integer"
+                          },
+                          "sender_class": {
+                            "enum": [
+                              "normal",
+                              "restricted"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "domain",
+                          "sender_class",
+                          "messages",
+                          "first_seen",
+                          "last_seen",
+                          "list_id_share",
+                          "label_distribution",
+                          "display_names",
+                          "local_part_sample"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "senders",
+                    "next_cursor"
                   ],
                   "type": "object"
                 }

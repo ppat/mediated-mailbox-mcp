@@ -1,0 +1,20 @@
+control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
+removes: the sender class term is never resolved to the addresses classified normal, so it selects every message
+packages: ./mediate/internal/service
+tests: TestTheIndexReadsClassifySendersUnderThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
+index c5cd2ae..ec24de4 100644
+--- a/mediate/internal/service/query.go
++++ b/mediate/internal/service/query.go
+@@ -201,7 +201,7 @@ func classifySenders(rows []messages.SenderAddressesRow, p policy.Composed, l cl
+ // classifies normal.
+ func (s selection) resolve(c classes) messages.SearchSummaryParams {
+ 	p := s.params
+-	if s.class != nil {
++	if s.class != nil && false {
+ 		p.Restricted = []bool{*s.class == "restricted"}
+ 		p.NormalSenders = c.normal
+ 	}

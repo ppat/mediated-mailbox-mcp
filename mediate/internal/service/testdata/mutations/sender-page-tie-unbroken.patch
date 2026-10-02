@@ -1,0 +1,33 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: the sender listing's next page starts after the last sender's count alone, so a sender tied with it is skipped
+packages: ./mediate/internal/service
+tests: TestAnIndexReadPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/senders/listing.sql b/db/senders/listing.sql
+index 5495d65..dd05e7f 100644
+--- a/db/senders/listing.sql
++++ b/db/senders/listing.sql
+@@ -18,7 +18,7 @@ WHERE
+     AND (
+         @first_page::boolean
+         OR s.message_count < @after_count::bigint
+-        OR (s.message_count = @after_count::bigint AND s.domain > @after_domain::citext)
++        OR (s.message_count = @after_count::bigint AND s.domain > @after_domain::citext AND FALSE)
+     )
+ ORDER BY s.message_count DESC, s.domain ASC
+ LIMIT @page_size;
+diff --git a/db/senders/listing.sql.go b/db/senders/listing.sql.go
+index fe5f7e0..a9bba6e 100644
+--- a/db/senders/listing.sql.go
++++ b/db/senders/listing.sql.go
+@@ -27,7 +27,7 @@ WHERE
+     AND (
+         $2::boolean
+         OR s.message_count < $3::bigint
+-        OR (s.message_count = $3::bigint AND s.domain > $4::citext)
++        OR (s.message_count = $3::bigint AND s.domain > $4::citext AND FALSE)
+     )
+ ORDER BY s.message_count DESC, s.domain ASC
+ LIMIT $5

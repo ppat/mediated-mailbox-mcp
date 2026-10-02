@@ -12,8 +12,9 @@ decision. [ADR-0053](../engineering/0053-parity-by-construction.md) generates bo
 operation registry. Every operation takes the account explicitly, with no implicit current account
 ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)). Every
 identifier a caller supplies comes from a read on the same surface
-([ADR-0035](./0035-required-identifiers-are-discoverable.md)). Search takes a canonical query, never
-a provider's query string ([ADR-0010](../provider/0010-one-provider-port.md)). Approval is in no
+([ADR-0035](./0035-required-identifiers-are-discoverable.md)). Search takes a structured query, never
+a provider's query string ([ADR-0010](../provider/0010-one-provider-port.md)), and the index reads'
+query is [ADR-0108](./0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)'s. Approval is in no
 client's vocabulary ([DESIGN.md](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary)).
 What is left to choose is how each operation appears on the wire. That is its HTTP method and
 path, how its arguments and its account travel, and what the MCP tool declares about its behaviour.
@@ -66,7 +67,7 @@ passes the gates once each design adds the mechanism named below, so they break 
   | Disposal | `POST` to a `:verb` collection route | false | true | true | false |
 
   A read whose arguments are all scalars is Read. A read that takes structured input, as search
-  takes the canonical query, is Structured read. A change the operator can undo, such as labelling,
+  takes a structured query, is Structured read. A change the operator can undo, such as labelling,
   unlabelling, moving, archiving, marking read or starring, is Reversible. Trash and spam are
   Disposal. The protocol's schema sets destructive apart from additive
   ([schema.ts](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2026-07-28/schema.ts)),

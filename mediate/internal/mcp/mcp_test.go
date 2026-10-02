@@ -453,3 +453,7 @@ type unreachable struct{}
 func (unreachable) Begin(context.Context) (pgx.Tx, error) {
 	return nil, errors.New("the test reaches no database")
 }
+
+func (unreachable) BeginTx(context.Context, pgx.TxOptions) (pgx.Tx, error) {
+	return nil, errors.New("the test reaches no database")
+}

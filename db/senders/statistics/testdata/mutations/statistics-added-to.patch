@@ -5,9 +5,9 @@ tests: TestAPassStartedOverCountsNothingTwice
 scheduled-count: no
 integration: yes
 
-diff --git a/db/senders/statistics.sql.go b/db/senders/statistics.sql.go
---- a/db/senders/statistics.sql.go
-+++ b/db/senders/statistics.sql.go
+diff --git a/db/senders/statistics/statistics.sql.go b/db/senders/statistics/statistics.sql.go
+--- a/db/senders/statistics/statistics.sql.go
++++ b/db/senders/statistics/statistics.sql.go
 @@ -51,7 +51,7 @@ ON CONFLICT (account_id, domain) DO UPDATE
      SET
          local_part_sample = excluded.local_part_sample,

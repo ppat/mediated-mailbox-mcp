@@ -14,6 +14,22 @@ type Querier interface {
 	// the content rules that set the flags, which the request's audit row names. Never the stored sender
 	// class. No row means the account holds no such message.
 	BodyGate(ctx context.Context, arg BodyGateParams) ([]BodyGateRow, error)
+	// Every group the query's labelled messages form by label, the group with the most messages first and
+	// ties by label. A message counts in the group of each label it carries. The messages with no label
+	// are counted by SearchSummary with labels_within set to the empty list. The groups are as many as the
+	// account's labels, so the service layer pages them rather than the statement.
+	CountByLabel(ctx context.Context, arg CountByLabelParams) ([]CountByLabelRow, error)
+	// Every group the query's messages form by the UTC calendar month they were sent in, keyed by the
+	// instant the month starts, the group with the most messages first and ties by month. The groups are as
+	// many as the months the account's mail spans, so the service layer pages them rather than the
+	// statement.
+	CountByMonth(ctx context.Context, arg CountByMonthParams) ([]CountByMonthRow, error)
+	// One page of the groups the query's messages form by sender address, the group with the most
+	// messages first and ties by address, after the position a cursor names or from the start.
+	CountBySender(ctx context.Context, arg CountBySenderParams) ([]CountBySenderRow, error)
+	// One page of the groups the query's messages form by sender domain, ordered and continued as the
+	// groups by sender address are.
+	CountBySenderDomain(ctx context.Context, arg CountBySenderDomainParams) ([]CountBySenderDomainRow, error)
 	// Every distinct value the account's messages hold in their labels, in order. These are the values the
 	// other operations take as a label.
 	Labels(ctx context.Context, accountID string) ([]string, error)
@@ -28,6 +44,17 @@ type Querier interface {
 	// How many of the account's messages wait for their content scan, the scan backlog the system status
 	// exposes (ADR-0034, docs/UI.md section 8.8).
 	ScanBacklog(ctx context.Context, accountID string) (int64, error)
+	// One page of the messages the query selects, in the order sort_by and descending name, after the
+	// position a cursor names or from the start when it names none. Ties within one sort value are
+	// broken by the message identifier, ascending, so the order is total.
+	SearchPage(ctx context.Context, arg SearchPageParams) ([]SearchPageRow, error)
+	// The number of messages the query selects, of their threads, of the unread among them and of those
+	// with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
+	// was read counts as unread.
+	SearchSummary(ctx context.Context, arg SearchSummaryParams) (SearchSummaryRow, error)
+	// Every distinct sender address the account's messages hold, with its domain, which the service layer
+	// classifies under the policy in force before a read that filters, groups or lists by sender class.
+	SenderAddresses(ctx context.Context, accountID string) ([]SenderAddressesRow, error)
 	// Every message of one of the account's threads, oldest first, with the same columns as a page. No
 	// row means the account holds no such thread.
 	ThreadMessages(ctx context.Context, arg ThreadMessagesParams) ([]ThreadMessagesRow, error)

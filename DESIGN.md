@@ -514,7 +514,12 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Adapter** — a per-provider implementation of the port, and the only code that knows provider
   concepts. Adapters are deliberately dumb. Full data in, no redaction responsibility.
 - **Canonical model** — the provider-neutral representation of messages, threads, labels, queries,
-  and changes that everything above the port speaks.
+  and changes that everything above the port speaks. Its query is the search language the port takes
+  and each adapter compiles, the one query a provider ever receives.
+- **Index query** — the provider-neutral selection the client surface makes over the index, by the
+  canonical metadata it serves, which the index reads take. No provider receives it and no adapter
+  compiles it, so it is distinct from the canonical model's query (terms and rules in ADR-0108, via
+  the [decision-record index](./docs/adr/README.md)).
 - **Enumeration total** — the optional count a page of the port's full enumeration carries, the
   messages a full enumeration returns as the provider counts them, with the **page limit**, the
   most items any page of the listing holds. Backfill's pass 1 turns the two into the pages its

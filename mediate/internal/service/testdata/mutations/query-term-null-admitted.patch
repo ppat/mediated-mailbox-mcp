@@ -1,0 +1,20 @@
+control: A served operation takes only the arguments its input schema declares, in exactly that case, and never as null
+removes: a null index query term is decoded as absent
+packages: ./mediate/internal/service
+tests: TestAnIndexReadTakesOnlyTheTermsItDeclares
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
+index a0acaad..4380a1d 100644
+--- a/mediate/internal/service/query.go
++++ b/mediate/internal/service/query.go
+@@ -150,7 +150,7 @@ func strictObject(raw json.RawMessage, v any, name string, names ...string) erro
+ 		if !slices.Contains(names, key) {
+ 			return Refuse(name + " holds a term the operation does not take")
+ 		}
+-		if strings.TrimSpace(string(value)) == "null" {
++		if strings.TrimSpace(string(value)) == "null" && false {
+ 			return Refuse(name + "." + key + " may not be null")
+ 		}
+ 	}

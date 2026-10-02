@@ -18,7 +18,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
 	maskingrecord "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record"
 	messageingest "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
-	"github.com/ppat/mediated-mailbox-mcp/db/senders"
+	"github.com/ppat/mediated-mailbox-mcp/db/senders/statistics"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
 
@@ -168,7 +168,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
 			}
 		}
 		for _, domain := range p.Domains {
-			err := senders.New(t).RebuildSender(ctx, senders.RebuildSenderParams{AccountID: account, Domain: domain})
+			err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: domain})
 			if err != nil {
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", domain, err)
 			}

@@ -1,0 +1,20 @@
+control: Enumeration and counting reach the whole corpus, not a recent window
+removes: the search's next cursor names its page's first row, so the next page serves the same messages again
+packages: ./mediate/internal/service
+tests: TestEnumerationReachesTheWholeCorpus
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
+index 4676f33..77c3393 100644
+--- a/mediate/internal/service/index.go
++++ b/mediate/internal/service/index.go
+@@ -166,7 +166,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
+ 	}
+ 	var next *string
+ 	if len(rows) == pageSize {
+-		last := rows[len(rows)-1]
++		last := rows[0]
+ 		pos := position{Listing: "search_messages", Account: account, Filter: filter, Key: last.MessageID}
+ 		switch sortBy {
+ 		case "date":

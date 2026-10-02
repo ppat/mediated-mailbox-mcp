@@ -1,0 +1,20 @@
+control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
+removes: a grouping by sender class counts both classes whatever class the query selects, so a group holds messages outside the selection
+packages: ./mediate/internal/service
+tests: TestTheIndexReadsClassifySendersUnderThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
+index a34b0d8..34ccacf 100644
+--- a/mediate/internal/service/index.go
++++ b/mediate/internal/service/index.go
+@@ -382,7 +382,7 @@ func (s Sources) wholeGroups(ctx context.Context, q *messages.Queries, by string
+ 		}
+ 	default:
+ 		for _, class := range []string{"normal", "restricted"} {
+-			if sel.class != nil && *sel.class != class {
++			if false && sel.class != nil && *sel.class != class {
+ 				continue
+ 			}
+ 			one := f
