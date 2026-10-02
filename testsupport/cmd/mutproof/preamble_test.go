@@ -85,8 +85,8 @@ func TestIntegrationRunsUnderPgrunWithTheTag(t *testing.T) {
 		p    preamble
 		want []string
 	}{
-		{"plain", plain, []string{"go", "test", "-json", "-count=1", "-trimpath", "./p", "./q"}},
-		{"integration", integration, []string{"go", "tool", "pgrun", "-host", "127.0.0.1", "-port", "55432", "--", "go", "test", "-json", "-count=1", "-trimpath", "-tags", "integration", "./p", "./q"}},
+		{"plain", plain, []string{"go", "test", "-json", "-count=1", "./p", "./q"}},
+		{"integration", integration, []string{"go", "tool", "pgrun", "-host", "127.0.0.1", "-port", "55432", "--", "go", "test", "-json", "-count=1", "-tags", "integration", "./p", "./q"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -94,6 +94,16 @@ func TestIntegrationRunsUnderPgrunWithTheTag(t *testing.T) {
 				t.Errorf("command (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// TestGoEnvGivesEveryGoCommandTrimpath holds the environment a go test run gets. It is the runner's
+// own environment, go's work directory, and GOFLAGS=-trimpath, which go test and every go command
+// its tests start read.
+func TestGoEnvGivesEveryGoCommandTrimpath(t *testing.T) {
+	want := []string{"PATH=/bin", "RAPID_SEED=7", "GOTMPDIR=/copy/.gotmp", "GOFLAGS=-trimpath"}
+	if diff := cmp.Diff(want, goEnv([]string{"PATH=/bin", "RAPID_SEED=7"}, "/copy/.gotmp"), compare.Options); diff != "" {
+		t.Errorf("environment (-want +got):\n%s", diff)
 	}
 }
 

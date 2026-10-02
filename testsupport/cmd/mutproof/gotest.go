@@ -83,18 +83,25 @@ type testEvent struct {
 	FailedBuild string
 }
 
-// testCommand is the command a demonstration's runs use, go test -json -count=1 -trimpath over the
-// patch's packages. -trimpath keeps the copy's directory out of the cache key of every package go
-// test compiles (main.go). A patch whose tests are integration tests runs them with the integration
-// tag under pgrun, given the flags in pgrun. pgrun runs from the copy's root, so it prepares the
-// database from the copy's own bootstrap and migration chain, which the patch may have changed.
+// testCommand is the command a demonstration's runs use, go test -json -count=1 over the patch's
+// packages. Its -trimpath comes from goEnv, so the go commands its tests start get it too. A patch
+// whose tests are integration tests runs them with the integration tag under pgrun, given the flags
+// in pgrun. pgrun runs from the copy's root, so it prepares the database from the copy's own
+// bootstrap and migration chain, which the patch may have changed.
 func testCommand(p preamble, pgrun []string) []string {
-	test := []string{"go", "test", "-json", "-count=1", "-trimpath"}
+	test := []string{"go", "test", "-json", "-count=1"}
 	if !p.integration {
 		return append(test, p.packages...)
 	}
 	test = append(append(test, "-tags", "integration"), p.packages...)
 	return slices.Concat([]string{"go", "tool", "pgrun"}, pgrun, []string{"--"}, test)
+}
+
+// goEnv is the environment of a go test run, env with go's work directory under gotmp and
+// GOFLAGS=-trimpath, which go test and every go command its tests start read (main.go). env holds no
+// GOFLAGS, since testEnv refuses one.
+func goEnv(env []string, gotmp string) []string {
+	return append(slices.Clone(env), "GOTMPDIR="+gotmp, "GOFLAGS=-trimpath")
 }
 
 // goTest runs command, a go test -json run from testCommand, from root with the given environment.
@@ -112,7 +119,7 @@ func goTest(ctx context.Context, root string, env, command []string) (testRun, e
 	if err := os.Mkdir(gotmp, 0o750); err != nil {
 		return testRun{}, err
 	}
-	cmd.Env = append(slices.Clone(env), "GOTMPDIR="+gotmp)
+	cmd.Env = goEnv(env, gotmp)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	stop, grace := syscall.SIGKILL, 5*time.Second
 	if slices.Contains(command, "pgrun") {

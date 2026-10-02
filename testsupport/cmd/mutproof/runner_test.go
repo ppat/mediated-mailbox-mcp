@@ -372,6 +372,20 @@ func TestSeedIsChosenAndRecorded(t *testing.T) {
 	}
 }
 
+// TestAGoCommandATestStartsGetsTrimpath runs, through goTest, a fixture test that starts a go command
+// and passes only when that command reads -trimpath, so what such a command compiles in a copy
+// shares its cache key with every other copy.
+func TestAGoCommandATestStartsGetsTrimpath(t *testing.T) {
+	root := fixtureRoot(t)
+	run, err := goTest(t.Context(), root, fixtureEnv(), testCommand(preamble{packages: []string{"./child"}}, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]string{"pass"}, run.outcomes("TestAStartedGoCommandGetsTrimpath"), compare.Options); diff != "" {
+		t.Errorf("the fixture test's outcomes (-want +got):\n%s\n%s", diff, run.describeRed())
+	}
+}
+
 func TestSeedFromTheEnvironmentIsKept(t *testing.T) {
 	_, seed, checks, err := testEnv(fixtureEnv("RAPID_SEED=77", "RAPID_CHECKS=300"), false)
 	if err != nil {

@@ -36,13 +36,15 @@
 // output is not. Both copies of a demonstration are taken before any of its tests run, the second
 // from the first, so the two runs see the same files apart from the patch even when the checkout
 // changes meanwhile. A copy is removed on every path out of the demonstration. Go's build and
-// module caches live outside the copies, and go test runs with -trimpath, so a package the patch
-// leaves unchanged compiles to the same cache entry from every copy and a copy costs little.
-// Without the flag the go command keys each compile by the package's absolute directory, so every
-// copy would compile every package its tests reach again, under keys no later run hits. A go
-// command a test starts itself, such as the package loading in testsupport/mustnotcompile, and the
-// build of pgrun do not get the flag, so what they compile is still keyed by the copy's directory.
-// For each patch the runner does two things.
+// module caches live outside the copies, and the runner sets GOFLAGS=-trimpath in the environment
+// it gives go test, so go test and every go command a test starts, such as the package loading in
+// testsupport/mustnotcompile, compile with -trimpath. A package the patch leaves unchanged then
+// compiles to the same cache entry from every copy, and a copy costs little. Without the flag the
+// go command keys each compile by the package's absolute directory, so every copy would compile
+// every package its tests reach again, under keys no later run hits. Two kinds of compile still key
+// on the copy's directory. One is the build of pgrun, since go tool takes no -trimpath. The other
+// is any compile of a go command a test starts with a GOFLAGS of its own, as
+// testsupport/property's tests do. For each patch the runner does two things.
 //
 //  1. In the first copy it runs the packages' tests unpatched and requires them green, and requires
 //     every named test to have passed there, so a red in the next step is the patch's doing and a
@@ -61,19 +63,22 @@
 // runner prints no row and says the control's demonstration is incomplete. The evidence pointer is
 // left to the author.
 //
-// -trimpath is the one build flag a demonstration's go test adds to the gating run's. The file
-// paths it compiles into a test binary start with the module path, as import paths do, instead of
-// the absolute directory they were compiled from, so a test that reads one, through runtime.Caller
-// or a stack trace, would see another path than in the gating run, and no test in this module reads
-// one. The gating invocation sets RAPID_NOFAILFILE=true (ADR-0069, row 6 of its ordinary-path
-// table), so every run sets it too.
-// RAPID_CHECKS passes through from the environment, and -short is never passed, since it divides
-// rapid's case count by five. The runner refuses to run while GOFLAGS is set, in the environment or
-// through go env -w, because go test reads its flags from there and any of them, such as -run or
-// -short, changes which tests run or how. A patch with scheduled-count yes runs with RAPID_CHECKS
-// set from RAPID_SCHEDULED_CHECKS, which the author sets to the count the deep-tests workflow
-// runs, because a rare failure can be reached at the gating count only by luck
-// (ADR-0069). The runner refuses such a patch when RAPID_SCHEDULED_CHECKS is not a positive number.
+// -trimpath is the one build flag a demonstration's go commands get that the gating run's do not.
+// The file paths it compiles in start with the module path, as import paths do, instead of the
+// absolute directory they were compiled from. A test that reads one, through runtime.Caller or a
+// stack trace, would see another path than in the gating run, and no test in this module reads one.
+// Nothing a test reads from a go command it starts changes either. The type errors and type strings
+// testsupport/mustnotcompile reads, go test's output and go list's fields carry no compiled-in path.
+// The gating invocation sets RAPID_NOFAILFILE=true (ADR-0069, row 6 of its ordinary-path table),
+// so every run sets it too. RAPID_CHECKS passes through from the environment, and -short is never
+// passed, since it divides rapid's case count by five. The runner refuses to run while GOFLAGS is
+// set, in the environment or through go env -w, because go test reads its flags from there and any
+// of them, such as -run or -short, changes which tests run or how. The GOFLAGS=-trimpath it sets
+// itself is applied after that check and changes neither which tests run nor what they assert. A
+// patch with scheduled-count yes runs with RAPID_CHECKS set from RAPID_SCHEDULED_CHECKS, which the
+// author sets to the count the deep-tests workflow runs, because a rare failure can be reached at
+// the gating count only by luck (ADR-0069). The runner refuses such a patch when
+// RAPID_SCHEDULED_CHECKS is not a positive number.
 // RAPID_SEED passes through when it is set and non-zero. Otherwise the runner picks a seed. Both
 // runs of a patch use the same seed, and the report records the seed and the case count, so a
 // property demonstration can be repeated.
