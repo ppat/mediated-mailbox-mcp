@@ -380,6 +380,7 @@ test("while backfill pass 1 runs, the corpus counts are counts so far", async ()
       ...system.operational,
       backfill_pass1_complete: false,
       backfill_pass1_run: { ...pass2, pass: "pass1" },
+      backfill_pass1_succeeded_at: null,
     },
   };
   expect(corpusValues(indexing).map((v) => v.text)).toEqual([
@@ -393,6 +394,22 @@ test("while backfill pass 1 runs, the corpus counts are counts so far", async ()
     "1 so far",
     "22 so far",
     "1 so far",
+  ]);
+});
+
+test("while a re-opened backfill pass 1 runs, the corpus counts are not counts so far", async () => {
+  const reopened: System = await recording("system-reopened.json");
+  expect(corpusValues(reopened).map((v) => v.text)).toEqual([
+    "1",
+    "1",
+    "0",
+    "0",
+    "5",
+    "4",
+    "3 (60.0%)",
+    "1",
+    "22",
+    "1",
   ]);
 });
 

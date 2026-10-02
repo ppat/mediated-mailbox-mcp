@@ -578,8 +578,8 @@ export function operationalValues(system: System, now: number): Value[] {
   ];
 }
 
-// corpusValues are the System column's corpus rows, each a count so far while backfill pass 1 runs
-// (section 12). None links yet, since the lenses they link to do not exist.
+// corpusValues are the System column's corpus rows, each a count so far while a first backfill pass 1
+// runs (section 12). None links yet, since the lenses they link to do not exist.
 export function corpusValues(system: System): Value[] {
   const c = system.corpus;
   const sofar = indexing(system) ? " so far" : "";

@@ -39,21 +39,24 @@ type systemResponse struct {
 	Decisions   decisionsBlock   `json:"decisions"`
 }
 
-// operationalBlock is the values ADR-0034 exposes to clients, one to one, each pass's latest run for
-// its progress, and the rate state. Connected is false for an account with no state row, whose flags
-// then read false and whose times read null (ADR-0091).
+// operationalBlock carries the values ADR-0034 exposes to clients, one to one, and beside them each
+// pass's latest run for its progress, the rate state, and the finish of pass 1's latest succeeded run.
+// Connected is false for an account with no state row, whose flags then read false and whose times
+// read null (ADR-0091). BackfillPass1SucceededAt tells the partial-index banner a pass 1 a change of
+// scanner re-opened from a first one (docs/UI.md section 12, ADR-0096).
 type operationalBlock struct {
-	Connected             bool       `json:"connected"`
-	BackfillPass1Complete bool       `json:"backfill_pass1_complete"`
-	BackfillPass1Run      *run       `json:"backfill_pass1_run"`
-	BackfillPass2Complete bool       `json:"backfill_pass2_complete"`
-	BackfillPass2Run      *run       `json:"backfill_pass2_run"`
-	PendingScan           int64      `json:"pending_scan"`
-	SyncCursorAt          *string    `json:"sync_cursor_at"`
-	LastSuccessfulTickAt  *string    `json:"last_successful_tick_at"`
-	Rate                  *rateBlock `json:"rate"`
-	LastAuthAt            *string    `json:"last_auth_at"`
-	LastAuthOutcome       *string    `json:"last_auth_outcome"`
+	Connected                bool       `json:"connected"`
+	BackfillPass1Complete    bool       `json:"backfill_pass1_complete"`
+	BackfillPass1Run         *run       `json:"backfill_pass1_run"`
+	BackfillPass1SucceededAt *string    `json:"backfill_pass1_succeeded_at"`
+	BackfillPass2Complete    bool       `json:"backfill_pass2_complete"`
+	BackfillPass2Run         *run       `json:"backfill_pass2_run"`
+	PendingScan              int64      `json:"pending_scan"`
+	SyncCursorAt             *string    `json:"sync_cursor_at"`
+	LastSuccessfulTickAt     *string    `json:"last_successful_tick_at"`
+	Rate                     *rateBlock `json:"rate"`
+	LastAuthAt               *string    `json:"last_auth_at"`
+	LastAuthOutcome          *string    `json:"last_auth_outcome"`
 }
 
 // corpusBlock is Home's at-a-glance figures. Audit24h counts the audit rows of the last 24 hours by
@@ -86,6 +89,7 @@ func systemType() schema.Type {
 			schema.F("connected", schema.Bool()),
 			schema.F("backfill_pass1_complete", schema.Bool()),
 			schema.F("backfill_pass1_run", nullRun),
+			schema.F("backfill_pass1_succeeded_at", nullTime),
 			schema.F("backfill_pass2_complete", schema.Bool()),
 			schema.F("backfill_pass2_run", nullRun),
 			schema.F("pending_scan", schema.Int()),
@@ -201,6 +205,13 @@ func (s *Server) system(ctx context.Context, q systemQueries, account string, no
 	}
 	if tick != nil {
 		op.LastSuccessfulTickAt = tick.FinishedAt
+	}
+	pass1, err := finished(ctx, runs, account, "backfill", "pass1", "succeeded")
+	if err != nil {
+		return err
+	}
+	if pass1 != nil {
+		op.BackfillPass1SucceededAt = pass1.FinishedAt
 	}
 
 	if op.PendingScan, err = q.messages.ScanBacklog(ctx, account); err != nil {

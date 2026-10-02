@@ -46,15 +46,16 @@ type LensProps<Row> = {
   panelOpen: boolean;
 };
 
-// countsSoFar reports whether the strip's figures are counts so far, while backfill pass 1 runs.
-// Without an answer from the system read the index counts as partial, so no count reads as final while
-// the read is missing or failed.
+// countsSoFar reports whether the strip's figures are counts so far, while a first backfill pass 1
+// runs, and not while a re-opened one does. Without an answer from the system read the index counts
+// as partial, so no count reads as final while the read is missing or failed.
 export function countsSoFar(system: State<System>): boolean {
   return system.status !== "ok" || indexing(system.answer);
 }
 
-// SummaryStrip is the strip with its figures counted so far while backfill pass 1 runs. It reads the
-// system endpoint itself, so a new answer there redraws the strip alone and not the lens around it.
+// SummaryStrip is the strip with its figures counted so far while a first backfill pass 1 runs. It
+// reads the system endpoint itself, so a new answer there redraws the strip alone and not the lens
+// around it.
 function SummaryStrip(props: { account: string; summary: LensFigures }) {
   const { system } = useDeps();
   const soFar = countsSoFar(system.read(systemPath(props.account)).value);

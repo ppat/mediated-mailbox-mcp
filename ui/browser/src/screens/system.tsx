@@ -1,7 +1,8 @@
 // The system screen of docs/UI.md section 8.8, read-only. It shows the account's identifier and
-// provider and the system endpoint's operational block, one row per value. A row links where Home's
-// operational row links once the screen it links to exists, and until then renders unlinked, so the
-// rows UI.md sends to Jobs link there and the two it sends to the corpus lens do not yet. It is not a
+// provider and, from the system endpoint's operational block, the values ADR-0034 exposes, one row
+// per value. A row links where Home's operational row links once the screen it links to exists, and
+// until then renders unlinked, so the rows UI.md sends to Jobs link there and the two it sends to the
+// corpus lens do not yet. It is not a
 // live surface. It reads the system endpoint through the same cached
 // read as the chrome's partial-index banner, so a page load sends one request, and while the banner
 // follows the stream the values here move with it.

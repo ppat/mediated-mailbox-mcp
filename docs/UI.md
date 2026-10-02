@@ -591,8 +591,10 @@ column keeps its height. With backfill pass 1 not started, which is pass 1 neith
 with a run, the strip shows the workload as not started, and the partial-index banner of
 [section 12](#12-empty-loading-partial-and-error-patterns) says indexing has not started, so the
 corpus rows' counts read as counts so far and an empty index never reads as final. While a pass
-runs, the banner sits above the columns and the corpus rows show counts so far. A failed read on
-one region shows that region's error card and leaves the others alone.
+runs, the banner sits above the columns. While pass 1 runs with no earlier run of it succeeded, the
+corpus rows show counts so far, and while a re-opened pass 1 runs they do not, since the index
+already holds the whole mailbox ([section 12](#12-empty-loading-partial-and-error-patterns)). A
+failed read on one region shows that region's error card and leaves the others alone.
 
 ### 8.2 Plan reviewer
 
@@ -1086,7 +1088,7 @@ rule no longer exists, so its identifier renders without a link, and its row car
 
 ### 8.8 System
 
-`/{account}/system`. The account's identifier and provider, then the system endpoint's
+`/{account}/system`. The account's identifier and provider, then, from the system endpoint's
 operational block, the values ADR-0034 exposes to clients, one to one. Backfill pass 1 and pass 2
 flags with progress where a pass runs, sync cursor age and last successful tick, scan backlog
 depth, rate controller state (current of target, cap, backoff wording, last throttle), and the last
@@ -1667,7 +1669,8 @@ vocabularies are ADR-0016's.
 
 | Situation | Pattern |
 | --- | --- |
-| Backfill pass 1 running | A partial-index banner under the chrome on every screen, saying which pass is running and how far (pages of pages, percent), with a link to Jobs. Counts on every lens carry "so far" |
+| Backfill pass 1 running, with no earlier run of it succeeded | A partial-index banner under the chrome on every screen, saying which pass is running and how far (pages of pages, percent), with a link to Jobs. Counts on every lens carry "so far" |
+| Backfill pass 1 running again, after an earlier run of it succeeded | A change of scanner re-opens pass 1, which enumerates the whole mailbox again to mask every stored subject again under the scanner now in force ([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)). The banner reads "Backfill pass 1 is running again, page {page} of {of} ({share}), to mask every subject again under the scanner now in force. It last completed at {time}, so the index holds the whole mailbox and no count here is a count so far. A subject it has not reached yet keeps its earlier masks.", without the page clause while the run's checkpoint holds no page, with {time} the finish of pass 1's latest succeeded run as an absolute time ([section 11](#11-rendering-and-formatting-rules)), and with a link to Jobs. Counts on every lens carry no "so far". The UI tells this case from the one above by that succeeded run alone, read from the system endpoint ([section 17.4](#174-the-bespoke-endpoints)), so a re-opened pass 1 resumed after a failure still reads as re-opened, and a first pass 1 resumed after a failure still reads as a first. The banner shows because the subjects' masks are what is in flux, so a subject on any lens may change while the operator reads it. Hiding the banner was the alternative, and it would hide that |
 | Backfill pass 2 running | The banner names pass 2 and the pending count, says pending messages deny their bodies until scanned, and links to Jobs as pass 1's does. With both passes running, one banner names both |
 | No backfill run yet for an account | While the system endpoint reads backfill pass 1 as not started ([section 8.8](#88-system)), the partial-index banner reads "Indexing has not started yet for {account}. It starts once backfill picks up the account." Counts on every lens carry "so far", so an empty index never reads as final. Backfill picks up a newly connected account with no manual step ([section 8.12](#812-connect-an-account-and-re-authorize)) |
 | The backfill state unknown | When the system endpoint's read fails for an account the accounts endpoint lists, the banner says the index's backfill state is unknown, so every count may be a count so far, and counts on every lens carry "so far" while that read is loading or failed. A banner that vanishes on a failed read was the alternative, and it would let a partial index's counts read as final. The banner shows only for a listed account, since for any other the body already says no such account is served. While no banner shows, the banner does not follow the stream, so a pass that starts later appears only when something next reads the system endpoint, at the latest on the next page load |
@@ -2125,7 +2128,7 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/jobs` | one block per workload with its derived workload state and the card fields of [section 8.3](#83-jobs), the rate block (current, target, cap, backoff, last throttle, and reserved and used per class), and the cadences from configuration |
 | `GET /api/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
 | `GET /api/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
-| `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
+| `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |
 | `GET /api/setup` | the installation endpoint. Each OAuth client's name, provider, client identifier and project ID, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
 | `POST /api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, and 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier. Unscoped |

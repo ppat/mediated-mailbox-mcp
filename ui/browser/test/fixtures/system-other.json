@@ -21,6 +21,7 @@
       "counters": {},
       "last_error": "mmfieldmarker-other"
     },
+    "backfill_pass1_succeeded_at": null,
     "backfill_pass2_complete": false,
     "backfill_pass2_run": null,
     "pending_scan": 1,

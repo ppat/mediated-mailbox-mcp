@@ -505,9 +505,17 @@ test("the strip counts so far while pass 1 runs or while the system read has no 
       ...system.operational,
       backfill_pass1_complete: false,
       backfill_pass1_run: { ...pass2, pass: "pass1" },
+      backfill_pass1_succeeded_at: null,
     },
   };
   expect(countsSoFar({ status: "ok", answer: running, at: 0 })).toBe(true);
+});
+
+test("the strip's figures are not counts so far while a re-opened pass 1 runs", async () => {
+  const reopened: System = JSON.parse(
+    await Bun.file(new URL("fixtures/system-reopened.json", import.meta.url)).text(),
+  );
+  expect(countsSoFar({ status: "ok", answer: reopened, at: 0 })).toBe(false);
 });
 
 test("a figure is a count, a time in UTC, or none for a time with nothing to show", async () => {

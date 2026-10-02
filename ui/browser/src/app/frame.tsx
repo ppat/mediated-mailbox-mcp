@@ -8,7 +8,7 @@ import { useLocation } from "preact-iso";
 import { accountsPath, systemPath, type Account, type System } from "./api.ts";
 import type { State } from "./cache.ts";
 import { useDeps } from "./deps.ts";
-import { count, share } from "./format.ts";
+import { count, share, utc } from "./format.ts";
 import { bindings, ignoresKeys } from "./keys.ts";
 import { Menu } from "./menu.tsx";
 import { keepLastAccount, switchAccount } from "./routes.ts";
@@ -245,17 +245,26 @@ function AddressLine() {
 }
 
 // partialIndex is the banner's text while a backfill pass runs, naming each running pass, or undefined
-// when neither runs.
+// when neither runs. A pass 1 running after an earlier run of it succeeded was re-opened by a change of
+// scanner to mask every subject again (ADR-0096). The index already holds the whole mailbox then, so
+// the banner says so and no count is a count so far (docs/UI.md section 12).
 export function partialIndex(system: System): string | undefined {
   const op = system.operational;
   const sentences: string[] = [];
   if (!op.backfill_pass1_complete && op.backfill_pass1_run?.state === "running") {
     const page = numberIn(op.backfill_pass1_run.checkpoint, "page");
     const of = numberIn(op.backfill_pass1_run.checkpoint, "of");
-    sentences.push(
+    const progress =
       page === undefined || of === undefined
-        ? "Backfill pass 1 is running, so every count here is a count so far."
-        : `Backfill pass 1 is running, page ${count(page)} of ${count(of)} (${share(page, of)}), so every count here is a count so far.`,
+        ? ""
+        : `, page ${count(page)} of ${count(of)} (${share(page, of)})`;
+    const completed = op.backfill_pass1_succeeded_at;
+    sentences.push(
+      completed === null
+        ? `Backfill pass 1 is running${progress}, so every count here is a count so far.`
+        : `Backfill pass 1 is running again${progress}, to mask every subject again under the scanner now in force. ` +
+            `It last completed at ${utc(completed)}, so the index holds the whole mailbox and no count here is a count so far. ` +
+            "A subject it has not reached yet keeps its earlier masks.",
     );
   }
   if (!op.backfill_pass2_complete && op.backfill_pass2_run?.state === "running") {
@@ -266,11 +275,17 @@ export function partialIndex(system: System): string | undefined {
   return sentences.length === 0 ? undefined : sentences.join(" ");
 }
 
-// indexing reports whether backfill pass 1 is running, when every count on a lens is a count so far.
-// A caller without an answer from the system read counts the index as partial.
+// indexing reports whether backfill pass 1 runs with no earlier run of it succeeded, when every count
+// on a lens is a count so far. A re-opened pass 1 runs over an index that already holds the whole
+// mailbox, so it is not indexing. A caller without an answer from the system read counts the index as
+// partial.
 export function indexing(system: System): boolean {
   const op = system.operational;
-  return !op.backfill_pass1_complete && op.backfill_pass1_run?.state === "running";
+  return (
+    !op.backfill_pass1_complete &&
+    op.backfill_pass1_run?.state === "running" &&
+    op.backfill_pass1_succeeded_at === null
+  );
 }
 
 // numberIn reads a number from a free-form JSON object the contract leaves untyped, such as a run's

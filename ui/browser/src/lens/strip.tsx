@@ -1,6 +1,7 @@
 // The summary strip, level 0 of the zoom ladder (docs/UI.md section 4). It shows the lens's named
 // figures from the registry's summary query and the time the read began, so a stale tab is visibly
-// stale. It stays above every level, and while backfill pass 1 runs each figure is a count so far.
+// stale. It stays above every level, and while a first backfill pass 1 runs each figure is a count so
+// far.
 import type { Figure, LensFigures } from "../app/api.ts";
 import { count, local, utc } from "../app/format.ts";
 

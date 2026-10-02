@@ -148,6 +148,7 @@ test("the banner names pass 1 with its page and share, and both passes in one ba
       ...answer.operational,
       backfill_pass1_complete: false,
       backfill_pass1_run: { ...pass2, pass: "pass1", checkpoint },
+      backfill_pass1_succeeded_at: null,
     },
   };
   expect(partialIndex(both)).toBe(
@@ -159,6 +160,43 @@ test("the banner names pass 1 with its page and share, and both passes in one ba
     operational: { ...answer.operational, backfill_pass2_complete: true },
   };
   expect(partialIndex(neither)).toBeUndefined();
+});
+
+test("while a re-opened backfill pass 1 runs, the banner says the index is whole", async () => {
+  server = recorded({
+    [accountsPath()]: ok("accounts.json"),
+    [systemPath("personal")]: ok("system-reopened.json"),
+    [systemPath("other")]: ok("system-other.json"),
+    ...homeAnswers("personal"),
+    ...homeAnswers("other"),
+  });
+  at("/personal");
+  mounted = mount(<App deps={testDeps(server)} />);
+  await settle();
+  const banner = mounted.root.querySelector('[role="status"].banner');
+  expect(banner?.textContent).toBe(
+    "Backfill pass 1 is running again, page 842 of 3,368 (25.0%), to mask every subject again under the scanner now in force. " +
+      "It last completed at 2026-09-02 10:16Z, so the index holds the whole mailbox and no count here is a count so far. " +
+      "A subject it has not reached yet keeps its earlier masks. See Jobs",
+  );
+  expect(banner?.querySelector("a")?.getAttribute("href")).toBe("/personal/jobs");
+});
+
+test("a re-opened pass 1 without a checkpoint page leaves out the page clause", async () => {
+  const reopened: System = await recording("system-reopened.json");
+  const run = reopened.operational.backfill_pass1_run;
+  if (run === null) {
+    throw new Error("the recording holds no pass 1 run");
+  }
+  const started: System = {
+    ...reopened,
+    operational: { ...reopened.operational, backfill_pass1_run: { ...run, checkpoint: null } },
+  };
+  expect(partialIndex(started)).toBe(
+    "Backfill pass 1 is running again, to mask every subject again under the scanner now in force. " +
+      "It last completed at 2026-09-02 10:16Z, so the index holds the whole mailbox and no count here is a count so far. " +
+      "A subject it has not reached yet keeps its earlier masks.",
+  );
 });
 
 test("an account the server does not list is named once in the body", async () => {
