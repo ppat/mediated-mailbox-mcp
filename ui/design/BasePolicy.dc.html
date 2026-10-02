@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    .page { width: 1440px; min-height: 900px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box; display: flex; flex-direction: column; position: relative; }
+    .note { font-family: 'Patrick Hand', cursive; color: #9c9890; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: #9c9890; }
+    .faint { color: #6c6863; }
+    .bar { display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .sel { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; }
+    .nav { display: flex; gap: 16px; color: #9c9890; }
+    .nav a { color: #9c9890; text-decoration: none; }
+    .panel { background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px; font-weight: 500; background: #1f1c1a; }
+    .btn-action { background: #ed9c55; border-color: #ed9c55; color: #161311; }
+    .th { font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #9c9890; }
+    .tr { display: grid; grid-template-columns: 230px minmax(0, 1fr) 70px 190px; gap: 12px; align-items: center; padding: 0 16px; height: 36px; border-bottom: 1px solid #292623; font-size: 12px; }
+    .chip { display: inline-block; padding: 0 6px; border: 1px solid #3b3734; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+    .field { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #161311; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  </style>
+</helmet>
+<div class="page">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div class="note" style="font-size: 18px;">ui · Base policy · /setup/policy/new</div>
+    <div class="note" style="font-size: 15px;">dark palette · sample data · adding a base rule, one suffix a public suffix</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5V7M8 13.5V7M12 13.5V7M2 6l6-3.5L14 6"></path></svg>
+      <span style="font-weight: 500;">Installation</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div class="mono" style="font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div class="nav">
+      <a href="#">Setup</a><a href="#" style="color: #e1ddd7; box-shadow: inset 0 -2px 0 #ed9c55;">Base policy</a>
+    </div>
+    <div class="muted" style="margin-left: auto;">settings</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
+    <a href="#" class="muted" style="text-decoration: none;">Installation</a><span class="faint">›</span><span>Base policy</span>
+    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/setup/policy/new</span>
+  </div>
+
+  <div style="padding: 12px 500px 24px 20px; display: flex; flex-direction: column; gap: 12px; opacity: 0.55;">
+    <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
+      <div style="font-size: 20px; font-weight: 600;">Base policy</div>
+      <div class="muted">These rules restrict senders in every account, those connected later included.</div>
+      <div style="display: flex; gap: 10px; font-size: 12px;"><span class="muted">Accounts today</span><a href="#" class="mono">family</a><a href="#" class="mono">personal</a><a href="#" class="mono">work</a></div>
+    </div>
+    <div class="panel" style="display: flex; gap: 28px; align-items: baseline; padding: 10px 16px; font-size: 12px;">
+      <div><span class="mono" style="font-size: 15px; font-weight: 500;">3</span> <span class="muted">base rules</span></div>
+      <div><span class="muted">last change</span> <span class="mono">2026-09-09 21:40Z</span> <a href="#">history</a></div>
+      <div class="muted" style="margin-left: auto;">as of 10:16Z</div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="#" class="btn btn-action">Add a base rule</a>
+      <a href="#" class="btn">History</a>
+      <span class="field" style="margin-left: auto; width: 260px; color: #6c6863;">search rules and domains…</span>
+    </div>
+    <div class="panel">
+      <div class="tr" style="height: 30px;"><div class="th">rule</div><div class="th">domain suffixes</div><div class="th">source</div><div class="th">created</div></div>
+      <div class="tr"><a href="#" class="mono" style="text-decoration: none;">financial.brokerage.fidelity</a><div style="display: flex; gap: 4px;"><span class="chip">fidelity.com</span><span class="chip">fidelity.co.uk</span><span class="chip">fmr.com</span></div><div class="muted">operator</div><div class="mono muted">2026-09-04 18:02Z · pat</div></div>
+      <div class="tr"><a href="#" class="mono" style="text-decoration: none;">gov.federal.irs</a><div style="display: flex; gap: 4px;"><span class="chip">irs.gov</span></div><div class="muted">operator</div><div class="mono muted">2026-09-04 18:05Z · pat</div></div>
+      <div class="tr" style="border-bottom: none;"><a href="#" class="mono" style="text-decoration: none;">infra.vendor.cloudflare</a><div style="display: flex; gap: 4px;"><span class="chip">cloudflare.com</span><span class="chip">cloudflareclient.com</span></div><div class="muted">operator</div><div class="mono muted">2026-09-04 18:07Z · pat</div></div>
+    </div>
+  </div>
+
+  <div role="dialog" aria-label="Add a base rule" class="panel" style="position: absolute; top: 130px; right: 0; width: 480px; bottom: 0; border-radius: 0; border-right: none; border-top: none; border-bottom: none; box-shadow: -12px 0 32px rgba(0,0,0,0.45); display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #3b3734;">
+      <div style="font-size: 15px; font-weight: 600;">Add a base rule</div>
+      <span class="muted" style="font-size: 12px;">Esc closes</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px 18px;">
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Rule identifier</div>
+        <div class="field">operator.schwab.com</div>
+        <div class="muted" style="font-size: 12px;">Cannot change after adding. It follows the first suffix until you edit it.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Domain suffixes</div>
+        <div style="border: 1px solid #3b3734; border-radius: 4px; background: #161311;">
+          <div style="display: grid; grid-template-columns: 22px 110px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; border-bottom: 1px solid #292623;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg>
+            <span class="mono">schwab.com</span>
+            <span></span>
+          </div>
+          <div style="display: grid; grid-template-columns: 22px 110px minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 10px; border-bottom: 1px solid #292623;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#f47b74" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px;"><path d="M8 2l6.5 11.5h-13z"></path><path d="M8 6.5v3M8 11.6v.1"></path></svg>
+            <span class="mono">co.uk</span>
+            <span style="font-size: 12px; color: #f47b74;">This is a public suffix. It restricts every sender under it.</span>
+          </div>
+          <div style="padding: 7px 10px;" class="faint mono">add a suffix…</div>
+        </div>
+        <div class="muted" style="font-size: 12px;">A suffix matches itself and every subdomain, so schwab.com covers alerts.schwab.com.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Class</div>
+        <div>restricted <span class="muted">· the only class. Bodies denied, and organize only.</span></div>
+      </div>
+
+      <div class="muted" style="padding: 10px 12px; border: 1px solid #3b3734; border-radius: 4px; background: #161311;">Match counts are per account. Each account's policy screen shows what this would restrict there.</div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid #3b3734;">
+        <div>Restricts these domains in every account. From each process's next policy reload their bodies are denied.</div>
+        <div style="display: flex; gap: 8px;"><a href="#" class="btn btn-action">Add rule</a><a href="#" class="btn">Cancel</a></div>
+        <div class="faint" style="font-size: 12px;">Adding only adds restriction, so it asks no confirmation. It is recorded in the base policy's history as yours.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="position: absolute; left: 40px; bottom: 30px; width: 860px; font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px; background: #161311;">
+    an installation screen (section 8.14): it shows nothing of any account but its identifier, so no column, strip or panel line carries a count of senders or messages. each account identifier links to that account's policy screen, where its numbers are. the public-suffix line warns and refuses nothing, so Add stays enabled.<br>
+    a base rule's screen, /setup/policy/{rule-id}: identifier in mono, scope base, class, source, created time and identity, its suffixes, its history. Edit domains, and Lift restriction set apart on the right. under the header: "Only for one account? Open that account's policy and use Change where this applies…"<br>
+    its lift dialog: "Lift the restriction on {suffix or rule}", then "Every account loses this restriction: family, personal, work." each linking to that account's policy, the consequence paragraph, the identifier typed to enable, focus on Cancel. with no account: "No account is connected, so nothing is released now."<br>
+    with no rule the table reads "No base rules yet. A base rule names one institution's mail domains and restricts its senders in every account." with Add a base rule.
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

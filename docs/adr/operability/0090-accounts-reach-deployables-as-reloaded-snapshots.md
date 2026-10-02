@@ -20,9 +20,11 @@ immutable snapshot that a process reloads and that a unit of work takes once
 
 ## Decision
 
-- **Each deployable that calls a provider holds its accounts, the installation's OAuth client for
-  each of their providers that has one, and the opened credentials as one immutable account
+- **Each deployable that calls a provider holds its accounts, each paired with the OAuth client it
+  connects through where its provider has one, and the opened credentials as one immutable account
   snapshot.** An account whose provider authenticates without an OAuth client loads without one.
+  An account's token source is built from its own client and from no other
+  ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   The shared library [`accountload/`](../../../accountload/README.md) builds the snapshot. It
   loads the snapshot at start. A process that runs until stopped, as the mediator does, reloads it
   on a schedule its configuration sets

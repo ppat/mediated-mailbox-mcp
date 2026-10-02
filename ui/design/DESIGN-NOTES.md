@@ -23,11 +23,14 @@ are ADR-0056 (the shape, with A and B as alternatives) and ADR-0057 (the engine)
 
 ## The canvas
 
-Published at <https://claude.ai/code/artifact/b2faa4f1-a76c-400e-a74e-8edc04f984b9>. Two pages.
+Published at <https://claude.ai/code/artifact/b2faa4f1-a76c-400e-a74e-8edc04f984b9>. Three pages.
+The new boards are also in the Claude Design project
+<https://claude.ai/design/p/84927722-55b1-4e9e-ac23-efe7c30b2125>.
 
 | Page | Boards | What they are |
 | --- | --- | --- |
 | `ui` | `Main` (home), `PlanReview`, `Jobs`, `JobRun`, `Palette` | the deliverable, dark palette |
+| `setup and policy` | `Installation`, `OAuthClient`, `OAuthClientGuide`, `ConnectAccount`, `Account`, `BasePolicy`, `Policy`, `PolicyRule`, `PolicyPick`, `PolicyHistory` | the installation screens, connecting and re-authorizing an account, the account settings, the base policy, and the policy writes, sender picker and history, dark palette |
 | `Directions explored` | `Foundation`, `ConsoleHome`, `ConsolePlan`, `ExplorerHome`, `ExplorerPlan`, `DeskHome`, `DeskPlan` | the shared foundation and the three directions as light sketches. `DeskHome` and `DeskPlan` are what the deliverable was rebuilt from |
 
 The canvas is a rendering of the files in this directory. When they disagree, the files are the
@@ -37,8 +40,10 @@ can differ from the published one in those glyphs only.
 ## Mockup conventions
 
 - Every board is a static Design Components artboard (`.dc.html`), one screen each, root element
-  1440 px wide, height flowing. No logic script. Inline styles, flex and grid with gaps, inline
-  stroke SVG icons only, no emoji, no gradients.
+  1440 px wide, height flowing. No logic script. Inline styles, or classes in the board's own
+  `<helmet>` style block, flex and grid with gaps, inline stroke SVG icons only, no emoji, no
+  gradients. A `<details>` element renders collapsed on the canvas whatever its `open` attribute
+  says, so an expanded disclosure is drawn as static rows.
 - The tokens are inlined as literal hex from docs/UI.md §14. The dark boards use only the dark
   tokens plus the six categorical series. `Palette` shows both palettes and is exempt.
 - Fonts load from Google Fonts on the boards for convenience. The product self-hosts them. The
@@ -47,8 +52,16 @@ can differ from the published one in those glyphs only.
 - Every number is sample data from one consistent set, so boards can be compared. The set is in
   the session brief that produced them (account `personal`, 84,212 messages, one DRAFT plan of
   12,480 messages at 14.8% of corpus, four candidates, run r-0913 with 141 failures, and so on).
-  Nothing on a board is a specification. docs/UI.md §8 is.
-- Account selector always visible, `personal` selected, `work (not configured)` in the menu, no
+  Nothing on a board is a specification. docs/UI.md §8 is. The setup and policy boards add to the
+  set: two Gmail clients, `mediated-mailbox-482113` (client `384102735566-k3m9…`, project
+  `mediated-mailbox-482113`, the name its project ID proposed) with the accounts `family` and
+  `personal`, and `acme-mailbox` (client `771920448310-p2r7…`, project `acme-mailbox-prod-7731`, the
+  name edited from the proposal) with `work`, `personal`'s mailbox `alex.rivera@gmail.com`, a target lowered to 30% (3.0 units/s), the base rules
+  `financial.brokerage.fidelity`, `gov.federal.irs` and `infra.vendor.cloudflare`, the overlay rule
+  `candidate.personal.chasealerts.com`, and the senders `chase.com` (612) and `e.chase.com` (28).
+- Account selector always visible, `personal` selected. The first boards show `work (not
+  configured)` in the menu, and the setup and policy boards `family · Gmail` and `work · Gmail`, since the menu shows
+  only each account's identifier and provider (docs/UI.md §6). No
   "all accounts" anywhere. Timestamps carry `Z`.
 - The `canvas.json` layout leaves 80 px between boards in a row and 120 px between rows. Frame
   heights are set with slack. A frame paints its ground beyond the content and clipping is the
@@ -78,9 +91,11 @@ chart series, and update docs/UI.md §14 from the report. ADR-0059 records the d
 
 ## What must not change without a record
 
-- The two decision verbs, OAuth client setup and account setup, and their database grant
-  (ADR-0084). No third verb, no "retry", no "rollback", no policy editing, however small.
-- Per account, never aggregated across accounts (the operator's ruling, ADR-0056).
+- The two decision verbs, OAuth client setup, account setup and policy management, and their
+  database grant (ADR-0084). No third verb, no "retry", no "rollback", however small.
+- Per account, never aggregated across accounts (the operator's ruling, ADR-0056). The
+  installation screens show no account's state (ADR-0056).
+- Every policy write appends its history row (ADR-0102).
 - Never a body, never a snippet, never a preview (ADR-0016, ADR-0084).
 - The lens model and the zoom ladder as the structure of every analytical view (ADR-0056).
 - The dataset endpoint behind a registry as the engine (ADR-0057).
@@ -119,6 +134,11 @@ third pass none remains.
 | 2026-09-10 | policy in the database, with import and export to a file | docs/UI.md §8.7; ADR-0004, ADR-0041, ADR-0016 |
 | 2026-09-10 | the framework requirements documented explicitly | docs/UI.md §16 |
 | 2026-09-10 | the implementer reads docs/UI.md and the records only; the design session reads ui/design/ in addition | docs/UI.md preamble; this file |
+| 2026-10-01 | a full history of policy changes, append-only like the audit log, shown on the policy screen | docs/UI.md §8.7; ADR-0102 |
+| 2026-10-01 | re-authorizing an account can never switch it to another mailbox, and the account shows its mailbox | docs/UI.md §8.12, §8.13; ADR-0080 |
+| 2026-10-01 | importing and exporting the policy designed apart from the policy writes | docs/UI.md §20; ROADMAP.md's open decisions |
+| 2026-10-01 | a connected account, a replaced credential and a policy edit reach the workloads with no manual step | docs/UI.md §8.7, §8.12, §20; ROADMAP.md's unit F7 |
+| 2026-10-01 | a refused credential is shown in the UI only, with no alerting rule of its own | docs/UI.md §8.13, §12 |
 
 **Requirements the design work surfaced.**
 
@@ -146,3 +166,14 @@ third pass none remains.
 | the plan reviewer as the framework's proving screen | docs/UI.md §16 |
 | the database additions the UI implies | ADR-0016, ADR-0020, ADR-0022 |
 | data freshness visible on every screen | docs/UI.md §4 (the as-of time), §9 |
+| screens that belong to no account, showing no account's state | docs/UI.md §8.10; ADR-0056 |
+| a guided setup whose full instructions open one step at a time and follow the operator to Google's tab, beside it or on top of it | docs/UI.md §8.11 |
+| a consent whose failed loopback page is shown before it happens, and a paste read whole | docs/UI.md §8.12 |
+| a refused credential visible on every screen of its account | docs/UI.md §8.13, §12 |
+| friction that follows what a policy change lifts, not what it touches | docs/UI.md §8.7, §10 |
+| no UI write fails the policy snapshot's validation | docs/UI.md §8.7; its row in docs/VERIFICATIONS.md |
+| account identifiers that cannot shadow the UI's own paths | docs/UI.md §5, §8.12; its row in docs/VERIFICATIONS.md |
+| every error Google shows on its own page at consent named with its cause and its fix | docs/UI.md §8.12 |
+| a first run that says what it costs, flows from the client to the first account, and never shows an empty index as final | docs/UI.md §8.10, §8.11, §12 |
+| a policy write reachable from where the need for it arises, and a lift that can be put back at once | docs/UI.md §7.1, §7.2, §8.5, §8.7 |
+| the policy writes' focus, labels and announcements stated for keyboard and screen-reader use | docs/UI.md §8.7 |

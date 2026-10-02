@@ -6,9 +6,10 @@ or it is a library like this one that argues its own case
 conventions it shares with every component are
 [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
-The mediator, backfill, delta sync and the reorg workload each hold their accounts, the
-installation's OAuth client for each provider that has one, and the opened credentials as one
-account snapshot
+The mediator, backfill, delta sync and the reorg workload each hold their accounts, each paired
+with the OAuth client it connects through where its provider has one
+([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
+and the opened credentials as one account snapshot
 ([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 Each writes a rotated credential back by compare-and-set on the bytes it last knew
 ([ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)), and delta

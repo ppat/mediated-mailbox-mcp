@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    .page { width: 1440px; min-height: 900px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box; display: flex; flex-direction: column; }
+    .note { font-family: 'Patrick Hand', cursive; color: #9c9890; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: #9c9890; }
+    .faint { color: #6c6863; }
+    .bar { display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .sel { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; }
+    .nav { display: flex; gap: 16px; color: #9c9890; }
+    .nav a { color: #9c9890; text-decoration: none; }
+    .panel { background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #3b3734; }
+    .title { font-size: 15px; font-weight: 600; }
+    .label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890; }
+    .th { font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #9c9890; }
+    .row { display: grid; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #3b3734; }
+    .cl { display: grid; grid-template-columns: 210px minmax(0, 1fr) 190px; gap: 12px; align-items: start; }
+    .ar { display: grid; grid-template-columns: 150px 90px minmax(0, 1fr) 80px; gap: 12px; align-items: center; padding: 0 16px; height: 38px; border-bottom: 1px solid #292623; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px; font-weight: 500; white-space: nowrap; }
+    .btn-action { background: #ed9c55; border-color: #ed9c55; color: #161311; }
+    .btn-off { color: #6c6863; border-color: #3b3734; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border: 1px solid; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  </style>
+</helmet>
+<div class="page">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div class="note" style="font-size: 18px;">ui · Installation · /setup</div>
+    <div class="note" style="font-size: 15px;">dark palette · sample data · two Gmail clients, three accounts, and below it the same screen at first run</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5V7M8 13.5V7M12 13.5V7M2 6l6-3.5L14 6"></path></svg>
+      <span style="font-weight: 500;">Installation</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div class="mono" style="font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div class="nav">
+      <a href="#" style="color: #e1ddd7; box-shadow: inset 0 -2px 0 #ed9c55;">Setup</a><a href="#">Base policy</a>
+    </div>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;" class="muted">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2.2"></circle><path d="M8 1.8v1.8M8 12.4v1.8M1.8 8h1.8M12.4 8h1.8M3.6 3.6l1.3 1.3M11.1 11.1l1.3 1.3M3.6 12.4l1.3-1.3M11.1 4.9l1.3-1.3"></path></svg>
+      settings
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
+    <span>Installation</span>
+    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/setup</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 12px 20px 24px 20px;">
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0 4px 0;">
+        <div style="font-size: 20px; font-weight: 600;">Installation</div>
+        <div class="muted" style="max-width: 760px;">What belongs to no account lives here, which is the OAuth clients accounts connect through, the list of accounts, and the base policy every account inherits. Nothing on this screen shows an account's data. Each account's own screens do that.</div>
+      </div>
+
+      <div class="panel">
+        <div class="head">
+          <div class="title">OAuth clients</div>
+          <div class="muted" style="font-size: 12px;">for providers that authenticate through an OAuth client</div>
+        </div>
+        <div class="muted" style="padding: 10px 16px; border-bottom: 1px solid #3b3734; font-size: 12px;">Accounts can share a client, or each use their own. A client set up in an organization's own Cloud project may choose the Internal audience, and then serves only that organization's mailboxes.</div>
+
+        <div style="display: flex; align-items: baseline; gap: 10px; padding: 10px 16px 6px 16px;">
+          <div style="font-weight: 600;">Gmail</div>
+          <div class="muted" style="font-size: 12px;">2 clients</div>
+        </div>
+        <div class="cl" style="padding: 0 16px 6px 16px; border-bottom: 1px solid #292623;">
+          <div class="th">name</div><div class="th">client and project</div><div class="th">accounts on it</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #292623;">
+          <div class="cl">
+            <a href="#" class="mono" style="font-weight: 500; text-decoration: none;">mediated-mailbox-482113</a>
+            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
+              <div class="mono" title="384102735566-k3m9q2v8rlp0d7b5u1n4e6c8t2a9f0hs.apps.googleusercontent.com">384102735566-k3m9q2v8…apps.googleusercontent.com</div>
+              <div><span class="muted">project </span><span class="mono">mediated-mailbox-482113</span></div>
+            </div>
+            <div class="mono" style="display: flex; gap: 10px; font-size: 12px;"><a href="#">family</a><a href="#">personal</a></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="#" class="btn">Open in Google Cloud console ↗</a>
+            <a href="#" class="btn">Replace</a>
+            <span class="btn btn-off" aria-disabled="true">Remove</span>
+            <span class="faint" style="font-size: 12px; flex: 1; min-width: 0;">2 accounts connect through this client. Move them to another client from their settings first.</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #292623;">
+          <div class="cl">
+            <a href="#" class="mono" style="font-weight: 500; text-decoration: none;">acme-mailbox</a>
+            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
+              <div class="mono" title="771920448310-p2r7c4x9mjt1e6w0b3k8s5n2q4d7v1za.apps.googleusercontent.com">771920448310-p2r7c4x9…apps.googleusercontent.com</div>
+              <div><span class="muted">project </span><span class="mono">acme-mailbox-prod-7731</span></div>
+            </div>
+            <div class="mono" style="display: flex; gap: 10px; font-size: 12px;"><a href="#">work</a></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="#" class="btn">Open in Google Cloud console ↗</a>
+            <a href="#" class="btn">Replace</a>
+            <span class="btn btn-off" aria-disabled="true">Remove</span>
+            <span class="faint" style="font-size: 12px; flex: 1; min-width: 0;">1 account connects through this client. Move it to another client from its settings first.</span>
+          </div>
+        </div>
+
+        <div style="padding: 12px 16px;"><a href="#" class="btn">Add a Gmail client</a></div>
+      </div>
+
+      <div class="panel">
+        <div class="head">
+          <div class="title">Accounts</div>
+          <div class="muted" style="font-size: 12px;">identifier, provider and client only · each account's state is on its own screen</div>
+        </div>
+        <div class="ar" style="height: 30px;"><div class="th">account</div><div class="th">provider</div><div class="th">connects through</div><div></div></div>
+        <div class="ar"><a href="#" class="mono" style="text-decoration: none;">family</a><span>Gmail</span><span class="mono">mediated-mailbox-482113</span><a href="#" style="font-size: 12px; text-align: right;">settings</a></div>
+        <div class="ar"><a href="#" class="mono" style="text-decoration: none;">personal</a><span>Gmail</span><span class="mono">mediated-mailbox-482113</span><a href="#" style="font-size: 12px; text-align: right;">settings</a></div>
+        <div class="ar"><a href="#" class="mono" style="text-decoration: none;">work</a><span>Gmail</span><span class="mono">acme-mailbox</span><a href="#" style="font-size: 12px; text-align: right;">settings</a></div>
+        <div style="padding: 12px 16px;"><a href="#" class="btn btn-action">Connect an account</a></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px; border: 1px dashed #6c6863; border-radius: 4px;">
+        <div class="note" style="font-size: 17px;">the same screen at first run: one client set up, 3 base rules written, no account yet. Getting started sits above OAuth clients, which keep the sharing sentence and "Add a Gmail client" as in the screen above</div>
+
+        <div class="panel">
+          <div class="head">
+            <div class="title">Getting started</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-bottom: 1px solid #3b3734; font-size: 12px;">
+            <div style="font-weight: 500; font-size: 13px;">Before you start</div>
+            <div class="muted">About 15 minutes. You need a Google account allowed to create Cloud projects, which need not be the mailbox, and the Gmail address to connect. Chrome or Edge keeps the guide on top of Google's console. Google warns that the app is unverified, which is expected.</div>
+          </div>
+          <div class="row" style="grid-template-columns: 28px minmax(0, 1fr) 240px;">
+            <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#6fc082"></circle><path d="M6.2 10.2l2.6 2.6 5-5.2" fill="none" stroke="#161311" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <a href="#" style="font-weight: 500; font-size: 14px; text-decoration: none;">Set up a Gmail OAuth client</a>
+              <div class="muted" style="font-size: 12px;">An account connects through one client. Accounts can share it, or each use their own.</div>
+            </div>
+            <div style="color: #6fc082; font-size: 12px; text-align: right;">done</div>
+          </div>
+          <div class="row" style="grid-template-columns: 28px minmax(0, 1fr) 240px;">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#9c9890" stroke-width="1.6"><circle cx="10" cy="10" r="8"></circle></svg>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <a href="#" style="font-weight: 500; font-size: 14px; text-decoration: none;">Review the base policy</a>
+              <div class="muted" style="font-size: 12px;">A rule in place before the first account connects classifies its senders from its first backfill.</div>
+            </div>
+            <div class="muted" style="font-size: 12px; text-align: right;">3 base rules · optional</div>
+          </div>
+          <div class="row" style="grid-template-columns: 28px minmax(0, 1fr) 240px; background: #292623; box-shadow: inset 2px 0 0 #ed9c55; border-bottom: none;">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#e1ddd7" stroke-width="1.6"><circle cx="10" cy="10" r="8"></circle></svg>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <a href="#" style="font-weight: 500; font-size: 14px; text-decoration: none;">Connect an account</a>
+              <div class="muted" style="font-size: 12px;">Name it, choose its client, grant access at Google, paste back the address Google sends you to.</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;"><span style="font-size: 12px;">not started</span><a href="#" class="btn btn-action">Connect an account</a></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><div class="title">OAuth clients</div></div>
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 16px;">
+            <div class="cl">
+              <a href="#" class="mono" style="font-weight: 500; text-decoration: none;">mediated-mailbox-482113</a>
+              <div style="font-size: 12px;"><span class="mono">384102735566-k3m9q2v8…</span> <span class="muted">· project </span><span class="mono">mediated-mailbox-482113</span></div>
+              <div class="muted" style="font-size: 12px;">no account yet</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="#" class="btn">Open in Google Cloud console ↗</a>
+              <a href="#" class="btn">Replace</a>
+              <a href="#" class="btn">Remove</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><div class="title">Accounts</div></div>
+          <div class="muted" style="padding: 14px 16px;">No account is connected yet.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 52px;">
+      <div class="note" style="font-size: 16px; line-height: 1.3; color: #9c9890; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        the installation scope<br>
+        routes outside /{account}: /setup, /setup/gmail/new, /setup/gmail/{client}, /setup/connect, /setup/policy. its own navigation, Setup · Base policy. no search, range or group-by, which belong to an account.<br>
+        shows only installation records: each client's name, provider, client id and project id, each account's identifier, provider and client, and the base rules. never an account's state or counts, so nothing aggregates across accounts.<br><br>
+        / with no account lands here.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; color: #9c9890; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        a client's row<br>
+        name in mono, links to its setup at /setup/gmail/{name}. client id shortened, the full value on hover. accounts on it link to their Home, or "no account yet".<br>
+        Remove is enabled only while no account connects through the client. it confirms: "Remove the client {name}? Its sealed secret is deleted here. The client itself stays in Google Cloud console, where you can delete it." and removes nothing else.<br>
+        a provider with no client reads "No Gmail client yet", with Add a Gmail client.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; color: #9c9890; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        other states<br>
+        · nothing set up: item 1 is current. Connect reads cannot start yet, a dashed circle in faint text with no link, and the Accounts region carries no Connect control while Getting started shows. the base policy item stays optional, its title a live link.<br>
+        · no base rule: item 2's status reads "No base rules yet · optional".<br>
+        · once an account exists: Getting started is gone, and Accounts gains its own Connect an account, as above.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; color: #9c9890; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        status is text plus a glyph: a filled check done, an open circle not started, an open circle in muted text optional, a dashed circle in faint text cannot start yet.
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

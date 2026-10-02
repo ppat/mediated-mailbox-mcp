@@ -14,15 +14,35 @@ no cross-account reads) schema-level facts rather than application-level habits.
 ## Decision
 
 ```sql
+CREATE TABLE oauth_clients (             -- the installation's OAuth clients, any number for a provider that has them (ADR-0080, ADR-0106, ADR-0107); statements in db/oauthclients
+  name              text PRIMARY KEY,    -- given by the person running the installation, unique in it (ADR-0106)
+  provider          text NOT NULL,
+  client_id         text NOT NULL,
+  client_secret     bytea NOT NULL,      -- sealed (ADR-0081, ADR-0088)
+  project_id        text,                -- the provider's project the client belongs to, Google Cloud's
+                                         -- project ID for Gmail, written by OAuth client setup;
+                                         -- NULL when the setup was given none. Not secret
+  UNIQUE (name, provider),               -- what an account's reference names, so it carries the provider
+  UNIQUE (provider, client_id)
+);
+-- a provider that authenticates without an OAuth client has no row, and no account refers to one
+
 CREATE TABLE accounts (                  -- what every listing needs, readable in full (ADR-0091)
   account_id        text PRIMARY KEY,
-  provider          text NOT NULL
+  provider          text NOT NULL,
+  oauth_client      text,                -- the client the account connects through, NULL for a provider
+                                         -- without one (ADR-0106)
+  FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider)
 );
+-- the reference carries the provider, so an account cannot name another provider's client, and a
+-- client an account connects through cannot be removed (ADR-0106)
 
 CREATE TABLE account_state (             -- everything else an account carries (ADR-0091)
   account_id        text PRIMARY KEY REFERENCES accounts,
   credential        bytea,               -- sealed (ADR-0081, ADR-0088); opaque, its meaning the provider adapter's
                                          -- (an OAuth refresh token for Gmail, an API token for Fastmail, ADR-0012)
+  mailbox           text,                -- the mailbox address the account remembers; re-authorization
+                                         -- refuses a credential for any other (ADR-0080)
   lowered_target_rate real,              -- a lower target the operator set, a fraction of the provider's
                                          -- declared ceiling, NULL for none (ADR-0024)
   backfill_pass1_complete boolean NOT NULL DEFAULT false,
@@ -34,15 +54,8 @@ CREATE TABLE account_state (             -- everything else an account carries (
   last_auth_outcome text                   -- succeeded | refused | failed, exposed by ADR-0034
 );
 -- sync_cursor_at is written by delta sync, last_auth_* by each provider-calling deployable from
--- what its provider adapter reports, as ADR-0097 decides; an account's policy overlay is its rows
--- in policy_rules
-
-CREATE TABLE oauth_clients (             -- an installation's OAuth client, for a provider that has one (ADR-0080, ADR-0083); statements in db/oauthclients
-  provider          text PRIMARY KEY,
-  client_id         text NOT NULL,
-  client_secret     bytea NOT NULL       -- sealed (ADR-0081, ADR-0088)
-);
--- a provider that authenticates without an OAuth client has no row, and no account refers to one
+-- what its provider adapter reports, and by the UI from the code exchange of a consent it
+-- completes, as ADR-0097 decides; an account's policy overlay is its rows in policy_rules
 
 CREATE TABLE rate_state (                 -- cross-process rate coordination (ADR-0025)
   account_id       text PRIMARY KEY REFERENCES accounts,
@@ -176,6 +189,19 @@ CREATE TABLE policy_rules (               -- the sender policy as rows (ADR-0004
 );
 CREATE INDEX ON policy_rules (account_id);
 
+CREATE TABLE policy_changes (             -- every change to policy_rules, appended in the same transaction (ADR-0102)
+  id             bigserial PRIMARY KEY,
+  account_id     text REFERENCES accounts, -- NULL for a base rule's change; an overlay rule's names its account
+  ts             timestamptz NOT NULL DEFAULT now(),
+  actor          text NOT NULL,           -- the operator identity (ADR-0084)
+  action         text NOT NULL,           -- added | edited | lifted | confirmed
+  rule_id        text NOT NULL,
+  suffixes_before text[] NOT NULL DEFAULT '{}',  -- empty for added and confirmed
+  suffixes_after  text[] NOT NULL DEFAULT '{}'   -- empty for lifted
+);
+CREATE INDEX ON policy_changes (account_id, ts DESC);
+-- No runtime role holds UPDATE or DELETE here, as on audit_log.
+
 CREATE TABLE masking_events (
   id          bigserial PRIMARY KEY,
   account_id  text NOT NULL,             -- indexed below with masked_at
@@ -306,20 +332,23 @@ The properties the shape enforces:
   third, independent layer. The policies read the transaction-local setting `app.account`, which
   every process sets before reading, by an ordinary statement and never by database-resident code
   ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). Four exceptions are stated.
-  - `accounts` holds only each account's identifier and provider and is read in full by the roles
-    that list accounts, while its writes stay confined
+  - `accounts` holds only each account's identifier, provider and the OAuth client it connects
+    through, and is read in full by the roles that list accounts, while its writes stay confined
     ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
   - `oauth_clients` belongs to no account and carries no account column, so grants alone decide
     who reaches it. The four roles that call a provider read it in full. The UI's role reads its
-    `provider` and `client_id`, since it runs the consent with the client and sets a client up
-    again, and never reads its `client_secret`. Only the UI's role, when a client is set up, and
-    delta sync's, when it re-seals a secret, write it
+    `name`, `provider`, `client_id` and `project_id`, since it runs the consent with a client, sets
+    a client up again and shows where each client lives, and never reads its `client_secret`. Only
+    the UI's role, when a client is set up, and delta sync's, when it re-seals a secret, write it
     ([ADR-0080](./0080-accounts-and-credentials-live-in-the-database.md),
-    [ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md),
+    [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md),
+    [ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md),
     [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md),
     [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)).
   - `policy_rules` rows with a null account are the base policy every account inherits
-    ([ADR-0004](../classification/0004-sender-list-decides.md)).
+    ([ADR-0004](../classification/0004-sender-list-decides.md)), and `policy_changes` rows with a
+    null account are the changes to it
+    ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
   - `reorg_op_log` carries no account column at all and is scoped through its plan, by a policy
     whose predicate reaches the plan's account. That policy's parent lookup is evaluated once per
     statement rather than once per row, so scoping it costs materially less than the foreign key
@@ -361,6 +390,9 @@ The properties the shape enforces:
 - **Masked subjects are stored masked** — the index never holds a live code.
 - **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
   (`scan_state = 'pending'`) directly.
+- **The policy history is append-only to every runtime role**, for the same reason as the audit
+  log below, so who lifted a restriction and when survives the UI's compromise
+  ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
 - **The audit log is append-only to every runtime role.** No runtime role holds update or delete
   on it, whichever component writes it. This is a property of the table's grants rather than of
   any one role, so it keeps holding as components are added, and it is what makes evidence written

@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    .page { width: 1440px; min-height: 900px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box; display: flex; flex-direction: column; }
+    .note { font-family: 'Patrick Hand', cursive; color: #9c9890; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: #9c9890; }
+    .faint { color: #6c6863; }
+    .bar { display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .sel { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; }
+    .panel { background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px; font-weight: 500; background: #1f1c1a; white-space: nowrap; }
+    .btn-action { background: #ed9c55; border-color: #ed9c55; color: #161311; }
+    .row { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 20px; border-bottom: 1px solid #3b3734; }
+    .num { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #3b3734; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9c9890; }
+    .num-done { border-color: #6fc082; color: #6fc082; }
+    .num-now { border-color: #ed9c55; color: #ed9c55; }
+    .rail a { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; text-decoration: none; border-radius: 4px; color: #9c9890; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; border: 1px solid #3b3734; border-radius: 4px; background: #161311; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #e1ddd7; }
+    .cp { color: #9c9890; font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; }
+    .act { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; padding: 6px 0; border-bottom: 1px solid #292623; }
+    .act-n { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9c9890; }
+    .warn { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; padding: 9px 12px; border: 1px solid #f47b74; border-radius: 4px; }
+    .field { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #161311; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  </style>
+</helmet>
+<div class="page">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div class="note" style="font-size: 18px;">ui · OAuth client setup · /setup/gmail/new?step=3</div>
+    <div class="note" style="font-size: 15px;">dark palette · sample data · the first Gmail client, steps 1 and 2 done, step 3 open with its instructions</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5V7M8 13.5V7M12 13.5V7M2 6l6-3.5L14 6"></path></svg>
+      <span style="font-weight: 500;">Installation</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div class="mono" style="font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div style="display: flex; gap: 16px;"><a href="#" style="color: #e1ddd7; text-decoration: none; box-shadow: inset 0 -2px 0 #ed9c55;">Setup</a><a href="#" style="color: #9c9890; text-decoration: none;">Base policy</a></div>
+    <div class="muted" style="margin-left: auto;">settings</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
+    <a href="#" class="muted" style="text-decoration: none;">Installation</a><span class="faint">›</span><span>New Gmail OAuth client</span>
+    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/setup/gmail/new?step=3</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; gap: 20px; padding: 16px 20px 24px 20px; align-items: start;">
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="label" style="padding: 0 10px;">Seven steps</div>
+      <div class="rail" style="display: flex; flex-direction: column; gap: 2px;">
+        <a href="#"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#6fc082" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="8"></circle><path d="M6.5 10.2l2.4 2.4 4.7-4.9"></path></svg><span>1 · Create the project</span></a>
+        <a href="#"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#6fc082" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="8"></circle><path d="M6.5 10.2l2.4 2.4 4.7-4.9"></path></svg><span>2 · Enable the Gmail API</span></a>
+        <a href="#" style="background: #292623; box-shadow: inset 2px 0 0 #ed9c55; color: #e1ddd7;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#ed9c55" stroke-width="1.8"><circle cx="10" cy="10" r="8"></circle></svg><span>3 · Set up Google Auth Platform</span></a>
+        <a href="#"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#9c9890" stroke-width="1.8"><circle cx="10" cy="10" r="8"></circle></svg><span>4 · Add the Gmail scope</span></a>
+        <a href="#"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#9c9890" stroke-width="1.8"><circle cx="10" cy="10" r="8"></circle></svg><span>5 · Publish to production</span></a>
+        <a href="#"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#9c9890" stroke-width="1.8"><circle cx="10" cy="10" r="8"></circle></svg><span>6 · Create the desktop client</span></a>
+        <a href="#"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#9c9890" stroke-width="1.8"><circle cx="10" cy="10" r="8"></circle></svg><span>7 · Bring the client back</span></a>
+      </div>
+      <div class="muted" style="font-size: 12px; padding: 0 10px;">Marks 1 to 6 are yours, kept in this browser. Nothing here can check them. Mark 7 is Google's answer.</div>
+    </div>
+
+    <div class="panel">
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; border-bottom: 1px solid #3b3734;">
+        <div style="font-size: 20px; font-weight: 600;">Set up a Gmail OAuth client</div>
+        <div class="muted" style="max-width: 680px;">All in Google Cloud console. Each step opens its console page and tells you exactly what to press and type there. Accounts can share this client, or each use their own, and each account's grant is its own.</div>
+        <div><a href="#" class="btn">Guide me on top of Google's console</a></div>
+      </div>
+
+      <div class="row"><div class="num num-done">1</div><div>Create the project <span class="muted">· project </span><span class="mono">mediated-mailbox-482113</span></div><span class="muted" style="font-size: 12px;">done</span></div>
+      <div class="row"><div class="num num-done">2</div><div>Enable the Gmail API</div><span class="muted" style="font-size: 12px;">done</span></div>
+
+      <div style="display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; padding: 16px 20px; border-bottom: 1px solid #3b3734; background: #292623; box-shadow: inset 2px 0 0 #ed9c55;">
+        <div class="num num-now">3</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 15px; font-weight: 600;">Set up Google Auth Platform</div>
+            <span style="margin-left: auto; display: flex; gap: 8px;">
+              <a href="#" class="btn btn-action">Open in Google Cloud console ↗</a>
+              <a href="#" class="btn">Keep the steps on top</a>
+            </span>
+          </div>
+          <div class="muted">This names the app Google shows at each consent and sets who may use it. A new project must do it before it can have a client.</div>
+          <div style="display: flex; flex-direction: column;">
+            <div class="act"><span class="act-n">1</span><span>Check the project picker at the top shows <span class="mono">mediated-mailbox-482113</span>. Press <b>Get started</b>.</span></div>
+            <div class="act"><span class="act-n">2</span><span>Under <b>App Information</b>, enter <b>App name</b> <span class="chip">mediated mailbox <span class="cp">copy</span></span>.</span></div>
+            <div class="act"><span class="act-n">3</span><span>Choose your address as <b>User support email</b>. Press <b>Next</b>.</span></div>
+            <div class="act"><span class="act-n">4</span><span>Under <b>Audience</b>, choose <b>External</b>. Press <b>Next</b>.</span></div>
+            <div class="act"><span class="act-n">5</span><span>Under <b>Contact Information</b>, enter your address. Press <b>Next</b>.</span></div>
+            <div class="act" style="border-bottom: none;"><span class="act-n">6</span><span>Under <b>Finish</b>, tick the agreement to Google's user data policy. Press <b>Continue</b>, then <b>Create</b>.</span></div>
+          </div>
+          <div class="warn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#f47b74" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l6.5 11.5h-13z"></path><path d="M8 6.5v3M8 11.6v.1"></path></svg>
+            <div>Internal is offered only to an organization. With a personal Google account, choose External. Internal works only if every mailbox that connects through this client is in this organization. External always works.</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 12px; font-size: 12px;">
+            <span class="muted">Done when you see</span><span>Branding, Audience, Data Access and Clients reachable in Google Auth Platform's menu</span>
+            <span class="muted">▸ Looks different?</span><span class="muted">menu path and the one value that matters</span>
+          </div>
+          <div style="display: flex; gap: 8px;"><a href="#" class="btn">Done, open step 4 ↗</a><a href="#" class="btn">Mark done</a></div>
+        </div>
+      </div>
+
+      <div class="row"><div class="num">4</div><div>Add the Gmail scope</div><span class="muted" style="font-size: 12px;">not started</span></div>
+      <div class="row"><div class="num">5</div><div>Publish to production</div><span class="muted" style="font-size: 12px;">not started</span></div>
+      <div class="row"><div class="num">6</div><div>Create the desktop client</div><span class="muted" style="font-size: 12px;">not started</span></div>
+      <div class="row" style="border-bottom: none;"><div class="num">7</div><div>Bring the client back <span class="muted">· and name it</span></div><span class="muted" style="font-size: 12px;">not started · takes a file or a paste at any time</span></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        one step open at a time<br>
+        the open step holds its full instructions: Google's own button names in bold, values as chips with copy, what you see when it's done, and a menu path for when Google has moved a page. the rest stay one line each.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        the instructions follow you to Google's tab<br>
+        "Guide me on top of Google's console" is offered once at the top, and "Keep the steps on top" again on each step. it floats the step over every window (Chrome, Edge). other browsers get "Open the steps in a side window", opened at the screen's right edge. see the OAuthClientGuide board.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        one console tab<br>
+        every console link opens in one named tab, reused by every step. "Done, open step 4" marks this step and opens step 4's page in that tab.
+      </div>
+      <div class="note" style="font-size: 16px;">a client already set up opens like this, at /setup/gmail/mediated-mailbox-482113</div>
+      <div class="panel" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 14px;">
+        <div style="font-size: 15px; font-weight: 600;"><span class="mono">mediated-mailbox-482113</span> · client <span class="mono" style="font-weight: 400;" title="384102735566-k3m9q2v8rlp0d7b5u1n4e6c8t2a9f0hs.apps.googleusercontent.com">384102735566-k3m9…</span></div>
+        <div style="font-size: 12px;"><span class="muted">accounts on it </span><a href="#" class="mono">family</a> <a href="#" class="mono">personal</a></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid #3b3734;">
+          <div style="font-size: 12px; font-weight: 600;">7 · Replace mediated-mailbox-482113</div>
+          <div style="font-size: 12px;"><a href="#">Lost the secret? Add a new one to the same client</a></div>
+          <div><span class="btn">Replace</span></div>
+        </div>
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        a second client<br>
+        a new client may use a set-up client's project: step 1 then offers "Use the project of mediated-mailbox-482113", which fills the project ID and marks steps 1 to 5 done, leaving 6 and 7. step 7 names every new client, in mono, proposed from the project ID, editable, never changed once saved. the name new is refused.
+      </div>
+      <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
+        no command line anywhere<br>
+        every step is done in the console you need open anyway.
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

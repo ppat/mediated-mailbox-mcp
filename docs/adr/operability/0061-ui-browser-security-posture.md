@@ -5,11 +5,11 @@
 
 ## Context
 
-The UI carries the two decisions no client may reach, OAuth client setup and account setup
-([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), and in its first version
-has no authentication of its own. A page on another origin, opened in the operator's browser, could
-otherwise submit a decision or replace a client or an account's credential with the operator's
-cookies. The operator delegated the UI's design to the designing session on 2026-09-09, and this
+The UI carries the two decisions no client may reach, and OAuth client setup, account setup and
+policy management ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), and in
+its first version has no authentication of its own. A page on another origin, opened in the
+operator's browser, could otherwise submit a decision, replace a client or an account's
+credential, or lift a policy rule with the operator's cookies. The operator delegated the UI's design to the designing session on 2026-09-09, and this
 is the mechanism that session chose, recorded so the control resting on it has a decision behind
 it.
 
@@ -24,7 +24,8 @@ it.
   else the UI serves is static.
 - **Every state-changing request sends the token in a header, and the server checks it against the
   cookie.** A request without a matching token is refused before any write. The requests of the
-  decisions, OAuth client setup and account setup are the only state-changing requests.
+  decisions, OAuth client setup, account setup and policy management are the only state-changing
+  requests.
 
 ## Alternatives considered
 

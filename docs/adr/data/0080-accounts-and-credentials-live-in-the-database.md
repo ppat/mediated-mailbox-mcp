@@ -27,16 +27,26 @@ flow in the UI rather than a set of manual steps that are hard to follow.
   from configuration or from a mounted file.
 - **The credential is stored encrypted**, sealed as
   [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md) decides.
-- **Where a provider authenticates through an OAuth client, the client an installation connects
-  through is not part of any account.** It is set up once, through a flow of its own apart from
+- **Where a provider authenticates through an OAuth client, the clients an installation connects
+  through are not part of any account.** Each is set up once, through a flow of its own apart from
   connecting an account, and stored apart from the accounts, its secret sealed like a credential
-  ([ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md)). Every account of
-  that provider connects through it, each with its own grant. A provider that authenticates
-  otherwise has no client, and nothing requires one.
+  ([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)).
+  Every account of that provider connects through one of them, each with its own grant
+  ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
+  A provider that authenticates otherwise has no client, and nothing requires one.
 - **The UI repairs an account.** When a credential stops working, the operator re-authorizes the
   account through the UI, which replaces the stored credential.
-- **The deployables that call a provider read their accounts, the installation's OAuth client for
-  each provider that has one, and the credentials from the database.**
+- **An account remembers its mailbox, and re-authorizing it cannot change the mailbox.** The
+  connection that first stores an account's credential stores with it the mailbox address the
+  provider confirmed. Re-authorizing an account names that remembered mailbox, so the operator never
+  types it again, and a credential for any other mailbox is refused. Otherwise an account
+  re-authorized against another mailbox would keep the index, policy overlay and history of the
+  first one while every workload read the second. An account with no mailbox remembered, one with
+  no state row or one stored before the mailbox was kept, is connected through its re-authorization,
+  which asks for the mailbox once and remembers it from then on. How a provider's connection
+  confirms the mailbox is the provider's own record's.
+- **The deployables that call a provider read their accounts, the installation's OAuth clients for
+  each provider that has them, and the credentials from the database.**
   A provider rotating a credential is written back there, as
   [ADR-0082](../operability/0082-rotation-writeback-to-the-database.md) decides.
 - **No provider credential ever crosses the client boundary.** Clients authenticate to the mediator
@@ -45,6 +55,9 @@ flow in the UI rather than a set of manual steps that are hard to follow.
 
 ## Alternatives considered
 
+- **Typing the mailbox again at each re-authorization.** For it, nothing more is stored for an
+  account. Against it, the check then compares the credential with whatever was typed, so an
+  account can be pointed at another mailbox by mistake. The operator chose to remember the mailbox.
 - **Accounts in configuration, credentials as mounted files** (the superseded design). For it, an
   account is declared alongside the rest of a deployment and applied the same way, and no process
   outside the provider-calling deployables ever handles a credential. Against it, connecting a

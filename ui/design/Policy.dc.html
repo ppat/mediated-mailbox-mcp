@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    .page { width: 1440px; min-height: 900px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box; display: flex; flex-direction: column; position: relative; }
+    .note { font-family: 'Patrick Hand', cursive; color: #9c9890; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: #9c9890; }
+    .faint { color: #6c6863; }
+    .bar { display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .sel { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; }
+    .nav { display: flex; gap: 16px; color: #9c9890; }
+    .nav a { color: #9c9890; text-decoration: none; }
+    .panel { background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px; font-weight: 500; background: #1f1c1a; }
+    .btn-action { background: #ed9c55; border-color: #ed9c55; color: #161311; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border: 1px solid; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .th { font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #9c9890; }
+    .tr { display: grid; grid-template-columns: 250px 70px minmax(0, 1fr) 70px 100px 56px; gap: 12px; align-items: center; padding: 0 16px; height: 36px; border-bottom: 1px solid #292623; font-size: 12px; }
+    .chip { display: inline-block; padding: 0 6px; border: 1px solid #3b3734; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+    .num { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+    .field { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #161311; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+    .radio { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #9c9890; display: inline-flex; align-items: center; justify-content: center; }
+  </style>
+</helmet>
+<div class="page">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div class="note" style="font-size: 18px;">ui · Policy · /personal/policy/new</div>
+    <div class="note" style="font-size: 15px;">dark palette · sample data · adding a rule for this account, one line refused</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel">
+      <span class="muted">account</span>
+      <span class="mono" style="font-weight: 500;">personal</span>
+      <span class="muted">· Gmail</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div class="mono" style="font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div class="nav">
+      <a href="#">Home</a><a href="#">Plans</a><a href="#">Jobs</a><a href="#">Corpus</a><a href="#">Masking</a><a href="#">Gate</a><a href="#">Audit</a><a href="#">Review queue</a><a href="#" style="color: #e1ddd7; box-shadow: inset 0 -2px 0 #ed9c55;">Policy</a><a href="#">System</a>
+    </div>
+    <div class="muted" style="margin-left: auto;">search · settings</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
+    <span>Policy</span>
+    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/personal/policy/new</span>
+  </div>
+
+  <div style="padding: 12px 500px 24px 20px; display: flex; flex-direction: column; gap: 12px; opacity: 0.55;">
+    <div class="panel" style="display: flex; gap: 28px; align-items: baseline; padding: 10px 16px; font-size: 12px;">
+      <div><span class="mono" style="font-size: 15px; font-weight: 500;">3</span> <span class="muted">base rules</span></div>
+      <div><span class="mono" style="font-size: 15px; font-weight: 500;">1</span> <span class="muted">personal's rules</span></div>
+      <div><span class="mono" style="font-size: 15px; font-weight: 500;">7</span> <span class="muted">senders restricted in personal</span></div>
+      <div><span class="muted">last change</span> <span class="mono">2026-09-10 08:11Z</span> <a href="#">history</a></div>
+      <div class="muted" style="margin-left: auto;">as of 10:16Z</div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="#" class="btn btn-action">Add a rule</a>
+      <a href="#" class="btn">Restrict senders from the index…</a>
+      <a href="#" class="btn">History</a>
+      <span class="field" style="margin-left: auto; width: 260px; color: #6c6863;">search rules and domains…</span>
+    </div>
+    <div class="panel">
+      <div class="tr" style="height: 30px;"><div class="th">rule</div><div class="th">applies to</div><div class="th">domain suffixes</div><div class="th">source</div><div class="th" style="text-align: right;" title="Bodies are denied from each process's next policy reload. This counts the senders whose stored class reads restricted.">index updated</div><div class="th" style="text-align: right;">created</div></div>
+      <div class="tr"><a href="#" class="mono" style="text-decoration: none;">financial.brokerage.fidelity</a><div><span class="badge" style="border-color: #3b3734; color: #9c9890;">base</span></div><div style="display: flex; gap: 4px;"><span class="chip">fidelity.com</span><span class="chip">fidelity.co.uk</span><span class="chip">fmr.com</span></div><div class="muted">operator</div><div class="num">3 of 3</div><div class="num muted">09-04</div></div>
+      <div class="tr"><a href="#" class="mono" style="text-decoration: none;">gov.federal.irs</a><div><span class="badge" style="border-color: #3b3734; color: #9c9890;">base</span></div><div style="display: flex; gap: 4px;"><span class="chip">irs.gov</span></div><div class="muted">operator</div><div class="num">1 of 1</div><div class="num muted">09-04</div></div>
+      <div class="tr"><a href="#" class="mono" style="text-decoration: none;">infra.vendor.cloudflare</a><div><span class="badge" style="border-color: #3b3734; color: #9c9890;">base</span></div><div style="display: flex; gap: 4px;"><span class="chip">cloudflare.com</span><span class="chip">cloudflareclient.com</span></div><div class="muted">operator</div><div class="num">2 of 2</div><div class="num muted">09-04</div></div>
+      <div class="tr" style="border-bottom: none;"><a href="#" class="mono" style="text-decoration: none;">candidate.personal.chasealerts.com</a><div><span class="badge" style="border-color: #ed9c55; color: #ed9c55;">personal</span></div><div style="display: flex; gap: 4px;"><span class="chip">chasealerts.com</span></div><div class="muted">candidate</div><div class="num">1 of 1</div><div class="num muted">09-09</div></div>
+    </div>
+  </div>
+
+  <div class="panel" style="position: absolute; top: 130px; right: 0; width: 480px; bottom: 0; border-radius: 0; border-right: none; border-top: none; border-bottom: none; box-shadow: -12px 0 32px rgba(0,0,0,0.45); display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #3b3734;">
+      <div style="font-size: 15px; font-weight: 600;">Add a rule</div>
+      <span class="muted" style="font-size: 12px;">Esc closes</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px 18px;">
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Applies to</div>
+        <div class="radio"><span class="dot" style="border-color: #ed9c55;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #ed9c55; display: inline-block;"></span></span><span>this account, <span class="mono">personal</span></span></div>
+        <div class="radio"><span class="dot"></span><span>every account <span class="muted">(the base policy)</span></span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Rule identifier</div>
+        <div class="field">operator.personal.chase.com</div>
+        <div class="muted" style="font-size: 12px;">Cannot change after adding. Name it for the institution if you like, such as financial.bank.chase. It follows the scope chosen until you edit it.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Domain suffixes</div>
+        <div style="border: 1px solid #3b3734; border-radius: 4px; background: #161311;">
+          <div style="display: grid; grid-template-columns: 22px 110px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; border-bottom: 1px solid #292623;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg>
+            <span class="mono">chase.com</span>
+            <span class="muted" style="font-size: 12px;">matches 2 senders · 640 messages in personal</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 22px 110px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; border-bottom: 1px solid #292623;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6fc082" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg>
+            <span class="mono">jpmorgan.com</span>
+            <span class="muted" style="font-size: 12px;">matches 1 sender · 18 messages in personal</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 22px 110px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; border-bottom: 1px solid #292623;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#f47b74" stroke-width="2" stroke-linecap="round"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"></path></svg>
+            <span class="mono">chase .com</span>
+            <span style="font-size: 12px; color: #f47b74;">not a domain name, so it could never match a sender</span>
+          </div>
+          <div style="padding: 7px 10px;" class="faint mono">add a suffix…</div>
+        </div>
+        <div class="muted" style="font-size: 12px;">A suffix matches itself and every subdomain, so chase.com covers alerts.chase.com. One that another rule already covers is allowed and says which rule.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9c9890;">Class</div>
+        <div>restricted <span class="muted">· the only class. Bodies denied, and organize only.</span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid #3b3734;">
+        <div>Restricts <span class="mono">3</span> senders and <span class="mono">658</span> stored messages in personal. From each process's next policy reload their bodies are denied.</div>
+        <div style="display: flex; gap: 8px;"><span class="btn" style="color: #6c6863;">Add rule</span><a href="#" class="btn">Cancel</a></div>
+        <div class="faint" style="font-size: 12px;">Add stays disabled while a line is refused. Adding only adds restriction, so it asks no confirmation. It is recorded in the policy history as yours.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="position: absolute; left: 40px; bottom: 30px; width: 820px; font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px; background: #161311;">
+    the rules table (section 8.7) gains "applies to" (base or the account), "index updated, k of n" (matched senders whose stored class reads restricted, of all it matches, with the hover shown on the header), the three actions and a search over identifiers and suffixes. base rules are written from here too, with the scope chosen explicitly. every count is personal's, and a base write says so. nothing is ever summed across accounts.<br>
+    a suffix that is a public suffix, or matches a large share of personal's senders, gets a warning on its line, "This matches 41% of personal's senders. It is likely broader than one institution.", and nothing is refused. opened from the sender picker, Cancel and Esc return to the picker.
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

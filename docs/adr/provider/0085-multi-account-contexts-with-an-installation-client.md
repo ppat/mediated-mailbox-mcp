@@ -1,4 +1,4 @@
-# 0085. Multi-account is one process holding N account contexts, isolated by construction, each account its own grant, through the installation's OAuth client where its provider uses one
+# 0085. Multi-account is one process holding N account contexts, isolated by construction, each account its own grant, through an OAuth client of the installation where its provider uses one
 
 **Status:** Accepted (supersedes [ADR-0026](./0026-multi-account-contexts.md)) ·
 **Pillar:** [Accounts are isolated by structure, not convention](../../../DESIGN.md#accounts-are-isolated-by-structure-not-convention) ·
@@ -10,10 +10,10 @@ The system is multi-account by architecture with a single account deployed today
 span organizations, a personal Gmail and a work mailbox with no common administrator, so nothing
 may assume a shared tenant, grant, or admin. The deployment-shape question (one pod holding all
 accounts versus one pod per account) is separate from the isolation property, which must hold under
-either. Where a provider authenticates through an OAuth client, an installation connects its
-accounts of that provider through one client of its own
-([ADR-0083](./0083-gmail-through-an-installation-oauth-client.md)), set up apart from the accounts
-([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).
+either. Where a provider authenticates through an OAuth client, an installation connects each of
+its accounts of that provider through one of its own clients for that provider
+([ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)), set up
+apart from the accounts ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).
 
 ## Decision
 
@@ -52,8 +52,9 @@ The rules that keep accounts from bleeding:
   overlay can over-restrict, never under-restrict.
 - **No shared grant, no domain-wide delegation, no assumed common admin.** Each account is an
   independent grant, its own credential, revocable alone. Where the provider authenticates
-  through an OAuth client, the accounts of that provider in one installation connect through that
-  installation's one client, which is shared, while no grant is.
+  through an OAuth client, each account of that provider connects through one of the
+  installation's clients for it, which several accounts may share, while no grant is shared
+  ([ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
 
 Because only one account exists today, adding the second is scheduled as a deliberate
 architectural test. If anything above the provider port needs changing to support it, the account
@@ -70,16 +71,18 @@ carries the unit).
   concurrency is the recipe for acting on the wrong account, and explicitness is enforced by
   making the parameter mandatory everywhere.
 - **Domain-wide delegation across accounts.** Rejected in
-  [ADR-0083](./0083-gmail-through-an-installation-oauth-client.md), and restated here because the
-  account model is where it would have crept back in.
+  [ADR-0107](./0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md), and restated
+  here because the account model is where it would have crept back in.
 - **An OAuth client per account** (the superseded rule, which forbade a shared client). For it, no
   two accounts share anything at the provider. Against it, the person running the system repeats
   the whole client setup for every mailbox, and a shared client does not share a grant, which is
-  what isolation needs.
+  what isolation needs. An account may still have a client of its own
+  ([ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
 
 ## Consequences
 
 - Horizontal growth needs no redesign, because a new account is a new context and a new grant
   rather than new machinery.
-- The accounts of one installation draw on the one Cloud project their client belongs to, so the
-  provider's per-project limits are shared across them.
+- The accounts that share a client draw on the one Cloud project it belongs to, so the provider's
+  per-project limits are shared across them, as
+  [ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) states.

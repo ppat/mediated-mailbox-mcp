@@ -5,6 +5,10 @@
       "name": "ui"
     },
     {
+      "id": "page-3",
+      "name": "setup and policy"
+    },
+    {
       "id": "page-2",
       "name": "Directions explored"
     }
@@ -54,6 +58,96 @@
       "w": 1440,
       "h": 1080,
       "page": "page-1"
+    },
+    {
+      "file": "Installation.dc.html",
+      "title": "Installation · clients and accounts, and first run",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1700,
+      "page": "page-3"
+    },
+    {
+      "file": "OAuthClient.dc.html",
+      "title": "OAuth client setup · Gmail",
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 1300,
+      "page": "page-3"
+    },
+    {
+      "file": "OAuthClientGuide.dc.html",
+      "title": "OAuth client setup · guide on top, and bringing the client back",
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 1060,
+      "page": "page-3"
+    },
+    {
+      "file": "ConnectAccount.dc.html",
+      "title": "Connect an account · paste back",
+      "x": 0,
+      "y": 1820,
+      "w": 1440,
+      "h": 1520,
+      "page": "page-3"
+    },
+    {
+      "file": "Account.dc.html",
+      "title": "Account settings · credential refused",
+      "x": 1520,
+      "y": 1820,
+      "w": 1440,
+      "h": 1260,
+      "page": "page-3"
+    },
+    {
+      "file": "Policy.dc.html",
+      "title": "Policy · add a rule",
+      "x": 0,
+      "y": 3460,
+      "w": 1440,
+      "h": 1100,
+      "page": "page-3"
+    },
+    {
+      "file": "PolicyRule.dc.html",
+      "title": "Policy rule · lifting a restriction",
+      "x": 1520,
+      "y": 3460,
+      "w": 1440,
+      "h": 1100,
+      "page": "page-3"
+    },
+    {
+      "file": "BasePolicy.dc.html",
+      "title": "Base policy · add a base rule",
+      "x": 3040,
+      "y": 3460,
+      "w": 1440,
+      "h": 1100,
+      "page": "page-3"
+    },
+    {
+      "file": "PolicyPick.dc.html",
+      "title": "Restrict senders from the index",
+      "x": 0,
+      "y": 4680,
+      "w": 1440,
+      "h": 1100,
+      "page": "page-3"
+    },
+    {
+      "file": "PolicyHistory.dc.html",
+      "title": "Policy history",
+      "x": 1520,
+      "y": 4680,
+      "w": 1440,
+      "h": 900,
+      "page": "page-3"
     },
     {
       "file": "Foundation.dc.html",
@@ -127,6 +221,14 @@
       "w": 420,
       "page": "page-1",
       "text": "The chosen direction, in the dark palette.\n\nHome: decisions first, then what is worth a look, then system health, with a live strip for running work.\nPlan reviewer: code-review shaped, the zoom ladder inside one plan.\nJobs: every batch workload live, the rate budget by priority class, recent runs.\nFailed run: a run is a dataset whose rows are its failures; drill from error class to one item and what it means.\n\nAll numbers are sample data. The decisions, assumptions, and the database additions this implies are in the session notes."
+    },
+    {
+      "id": "setup-and-policy",
+      "x": 4560,
+      "y": 0,
+      "w": 420,
+      "page": "page-3",
+      "text": "What belongs to no account, and the policy writes.\n\nInstallation: the OAuth clients, any number per provider, each named, and the list of accounts with the client each connects through, on screens whose URL names no account. They show no account's state, so nothing aggregates across accounts. Its own navigation is Setup and Base policy.\nOAuth client setup: seven steps done in Google's console, each with its full instructions in the UI, one step expanded at a time, and a guide window that floats over Google's tab where the browser allows. The client file Google offers is dropped back in, or the ID and secret pasted, the client named, and checked with Google.\nConnect and re-authorize: the client to connect through chosen when there are several, the failed loopback page shown before it happens, then the whole address pasted back and read. Re-authorizing can move an account to another client.\nAccount settings: the client it connects through, the credential's health, the rate target, and what the account's rows hold.\nBase policy: the rules every account inherits, written with no account needed and showing no account's counts.\nPolicy: adding restricts at once; lifting a restriction states its consequence, and on a base rule asks for the rule typed. Every change lands in the policy history.\n\nAll numbers are sample data. docs/UI.md sections 8.7 and 8.10 to 8.14 are the specification."
     },
     {
       "id": "foundation",

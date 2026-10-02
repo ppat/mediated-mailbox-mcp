@@ -1,4 +1,4 @@
-# 0084. The UI is a separate surface that writes the database directly, for two decisions, OAuth client setup and account setup, and seals credentials it can never open
+# 0084. The UI is a separate surface that writes the database directly, for two decisions, OAuth client setup, account setup and policy management, and seals credentials it can never open
 
 **Status:** Accepted (supersedes [ADR-0021](./0021-approval-surface.md)) ·
 **Pillar:** [Approval is not in any client's vocabulary](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary) ·
@@ -10,8 +10,9 @@ Two human workflows need a surface no client can reach, approving reorganization
 ([ADR-0020](./0020-reorg-plan-approve-apply-rollback.md)) and confirming sensitive-sender
 candidates ([ADR-0004](../classification/0004-sender-list-decides.md)). The same surface is where
 the operator reads what the system is doing, since the audits and measurements the design keeps
-insisting on are only real if a human can see them. An installation's OAuth client is set up
-through the UI ([ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md)), and
+insisting on are only real if a human can see them. An installation's OAuth clients are set up
+through the UI
+([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)), and
 accounts are connected and repaired through it
 ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)), so the UI also writes
 both.
@@ -19,7 +20,7 @@ both.
 ## Decision
 
 **A read-mostly web UI, deployed and privileged separately from the mediator. Its writes are two
-decision verbs, OAuth client setup and account setup.**
+decision verbs, OAuth client setup, account setup and policy management.**
 
 | View | Purpose |
 | --- | --- |
@@ -31,8 +32,9 @@ decision verbs, OAuth client setup and account setup.**
 | **Audit log** | Every body served, every denial, every mutation |
 | **Jobs** | Every batch workload live, its progress, the rate budget by priority class, recent runs |
 | **A run** | One run, and a failed one down to its individual failures |
-| **OAuth client setup** | Setting up the installation's OAuth client for a provider through the guided flow, once, apart from any account |
-| **Account setup** | Connecting an account through that client, setting what the account's rows hold, and re-authorizing an account whose credential stopped working |
+| **OAuth client setup** | Setting up each of the installation's OAuth clients for a provider through the guided flow, once per client, apart from any account |
+| **Account setup** | Connecting an account through one of its provider's clients, setting what the account's rows hold, and re-authorizing an account whose credential stopped working |
+| **Policy management** | Importing, adding, editing and removing rules, on each account's policy screen and on the base policy screen, an installation screen that writes the base rules every account inherits with no account named |
 
 The screens themselves, how they are organized, and what they read are the UI's design in
 [docs/UI.md](../../UI.md).
@@ -47,8 +49,15 @@ Constraints that keep it safe to exist:
   approved_by)` and `policy_candidates(status, reviewed_at, reviewed_by)`, insert on
   `policy_rules` for the one row confirming a candidate emits
   ([ADR-0004](../classification/0004-sender-list-decides.md)), and the columns OAuth client setup
-  and account setup write, and the writes on `policy_rules` that policy management makes, which is
-  importing, adding and editing rules (ADR-0004), and nothing else. The setup columns are named
+  and account setup write, among them the two last-authentication columns of `account_state`, where
+  the UI records the attempt its own code exchange made while completing a consent
+  ([ADR-0097](../operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)),
+  delete on `oauth_clients` for removing a client no account connects through
+  ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
+  the writes on `policy_rules` that policy management makes, which is
+  importing, adding, editing and removing rules (ADR-0004), and insert on `policy_changes` for the
+  history row each policy write appends
+  ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), and nothing else. The setup columns are named
   where the tables holding the client and the account are designed, and the policy writes where
   policy management is built, and each is added to this grant then. The limit is enforced by
   database permissions, so a UI bug cannot become a mailbox mutation. A write is made by the UI's own code in one transaction, with no
@@ -57,8 +66,8 @@ Constraints that keep it safe to exist:
   proxy sets, else a configured operator name.
 - **It seals credentials and can never open one.** The UI runs a provider's consent exchange when
   an account is connected or re-authorized
-  ([ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md)), seals the grant and
-  the client's secret to the public key, and stores them. It holds no private key
+  ([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)),
+  seals the grant and the client's secret to the public key, and stores them. It holds no private key
   ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). It calls a provider only
   to check a client, complete a consent, and confirm which mailbox granted it.
 - **While it completes a consent it is part of the trust anchor.** It holds a full-mailbox grant in
@@ -73,7 +82,7 @@ Constraints that keep it safe to exist:
   come later.
 
 The shape is a small single-page app over a thin read API. Its value is legibility, two decisions,
-and connecting accounts. Its design is [docs/UI.md](../../UI.md).
+connecting accounts and keeping the policy. Its design is [docs/UI.md](../../UI.md).
 
 ## Alternatives considered
 
@@ -93,10 +102,13 @@ and connecting accounts. Its design is [docs/UI.md](../../UI.md).
 
 ## Consequences
 
-- Compromise of the UI yields two decision verbs, OAuth client setup and account setup. An
-  approved plan is still constrained by the Mutation Authorizer at apply time. A confirmed
-  candidate's rule insert can only add a restriction, and invalid rules never take effect
-  ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). Setup lets it replace a
+- Compromise of the UI yields two decision verbs, OAuth client setup, account setup and policy
+  management. An approved plan is still constrained by the Mutation Authorizer at apply time. A
+  confirmed candidate's rule insert can only add a restriction, and invalid rules never take effect
+  ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). Policy management can lift
+  restrictions, every account's included, and each lift is recorded in a history no runtime role
+  can rewrite ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), so the
+  evidence of it survives. Setup lets it replace a
   client or an account's credential, or capture a grant while a connection or re-authorization is
   under way. It cannot open a stored credential, serve a body, or mutate mail directly.
 - With no authentication in the first version, anyone who reaches the UI can set up a client,

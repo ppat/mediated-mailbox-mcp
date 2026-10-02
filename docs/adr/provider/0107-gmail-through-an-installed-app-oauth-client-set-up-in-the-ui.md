@@ -1,8 +1,7 @@
-# 0083. Each installation connects Gmail through an installed-app OAuth client of its own, set up once through a guided flow in the UI, with `gmail.modify`
+# 0107. Gmail connects through an installed-app OAuth client in the installation owner's own Cloud project, set up through a guided flow in the UI, with `gmail.modify`
 
-**Status:** Superseded (supersedes [ADR-0011](./0011-gmail-auth-installed-app-oauth.md)) — **Superseded by:**
-[ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) and
-[ADR-0107](./0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md) ·
+**Status:** Accepted (supersedes [ADR-0083](./0083-gmail-through-an-installation-oauth-client.md),
+jointly with [ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)) ·
 **Pillar:** [Accounts are isolated by structure, not convention](../../../DESIGN.md#accounts-are-isolated-by-structure-not-convention) ·
 **Serves:** [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released), [A2](../../../USE_CASES.md#a2--no-destructive-action-on-sensitive-mail), [P3](../../../USE_CASES.md#p3--multi-account), [O6](../../../USE_CASES.md#o6--deployable)
 
@@ -33,15 +32,18 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
 | Service account with domain-wide delegation | **Rejected.** A Workspace-wide skeleton key, and incoherent with accounts spanning organizations |
 | Service account without delegation | Non-viable. It cannot access user mailboxes at all |
 
-- **Each installation owns one installed-app OAuth client, in a Cloud project of the person
-  running it.** The client serves only its owner's own installation, so it stays inside Google's
-  personal-use exception and needs no verification. Every Gmail account the installation connects
-  uses that one client, and each account's grant is its own refresh token, revocable alone.
+- **Each Gmail client is an installed-app OAuth client in a Cloud project of the person running
+  the installation.** A client serves only its owner's own installation, so it stays inside
+  Google's personal-use exception and needs no verification. Each account's grant is its own
+  refresh token, revocable alone. How many clients an installation holds, and which accounts
+  connect through each, is
+  [ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)'s.
 - **Setting up the client is its own step, apart from connecting an account.** The UI guides it
-  once per installation. It links straight to each console page it needs and states the exact value
-  to enter at each step, and it offers the commands that create the project and enable the Gmail
-  API for anyone who prefers a terminal. The person pastes the client's identifier and secret into
-  the UI, which checks them against Google at once and stores the secret sealed
+  once per client, entirely in Google Cloud console. It links straight to each console page
+  it needs, gives each step's instructions in the UI, and states the exact value to enter. It
+  offers no command-line route, because the two steps a script can do are trivial in the console
+  the person must open anyway for the rest. The person brings the client's identifier and secret
+  into the UI, which checks them against Google at once and stores the secret sealed
   ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)).
 - **The client's project is published "In production", never left in "Testing".** A project in
   "Testing" issues refresh tokens that expire after 7 days
@@ -56,6 +58,9 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
   issued, and refuses a grant for a mailbox other than the one the person named. Loopback redirects
   remain Google's recommended method for desktop clients
   ([OAuth 2.0 for installed apps](https://developers.google.com/identity/protocols/oauth2/native-app)).
+- **On re-authorization, the mailbox named is the one the account remembers.** The consent's
+  mailbox check compares the grant with the mailbox the account remembers
+  ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).
 - **`gmail.modify` is the scope.** Label mutation is the point, and `gmail.readonly` with
   `gmail.labels` does not permit applying labels to messages. `gmail.settings.*` and
   `https://mail.google.com/` are never requested. The latter grants IMAP access and permanent
@@ -75,11 +80,12 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
   ([IAP deprecations](https://docs.cloud.google.com/iap/docs/deprecations)) and never made a client
   a personal account could use, and GAM's own project command prints a console walkthrough for the
   client and waits for its identifier and secret to be pasted back
-  ([GAM](https://github.com/GAM-team/GAM)). The part that can be scripted is offered inside the
-  guided flow.
-- **A client per account.** For it, no two accounts share a client. Against it, the person repeats
-  the whole client setup for every mailbox they connect, and a shared client does not share a
-  grant.
+  ([GAM](https://github.com/GAM-team/GAM)).
+- **Offering the scriptable part as commands beside the guided flow.** For it, a person at ease in
+  a terminal creates the project and enables the Gmail API without the console. Against it, the
+  operator ruled on 2026-10-01 that installing, configuring and authenticating the Cloud CLI is
+  busy work for the two most trivial steps, done more easily in the console the person must be in
+  anyway for the steps that matter.
 - **A web-application client redirecting to the UI.** For it, no address is pasted. Against it,
   a web client's redirect must be an HTTPS address registered on the client, and a bare IP address
   is refused
@@ -97,8 +103,8 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
 ## Consequences
 
 - Each account is an independent grant. Revoking one revokes one, and no organization-level
-  administration is assumed anywhere. The accounts of one installation share its client, not a
-  grant.
+  administration is assumed anywhere. Accounts that connect through one client share that
+  client, never a grant.
 - The token can never permanently delete mail, regardless of any code bug. The client surface's
   half of that guarantee is [ADR-0019](../mutation/0019-asymmetric-mutation.md).
 - Google discontinued its manual copy-and-paste redirect

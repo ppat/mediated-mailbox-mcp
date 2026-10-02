@@ -14,7 +14,11 @@ only code that knows a provider's concepts ([ADR-0010](../provider/0010-one-prov
 deployables that call a provider hold a database role and already read what the adapter holds at
 the end of each unit of work, to write back a rotated credential
 ([ADR-0082](./0082-rotation-writeback-to-the-database.md)). Up to four deployables call a provider
-for the same account, so they all record the same two columns.
+for the same account, so they all record the same two columns. The UI is a deployable too, and
+calls the provider's token endpoint while it completes a consent, exchanging the consent's code for
+the credential it stores
+([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md),
+[ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 
 ## Decision
 
@@ -27,8 +31,8 @@ for the same account, so they all record the same two columns.
     endpoint is the 400 or 401 that
     [RFC 6749 section 5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) gives an
     error response. It needs the operator to act, re-authorizing the account or, for a refused
-    client, replacing the installation's OAuth client
-    ([ADR-0083](../provider/0083-gmail-through-an-installation-oauth-client.md)).
+    client, replacing the OAuth client the account connects through
+    ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   - `failed` is an attempt that got no answer the adapter could read as either, such as a
     transport error, a server error, a body it could not parse, or no answer before the caller's
     deadline passed. It is transient and needs no operator action.
@@ -39,6 +43,12 @@ for the same account, so they all record the same two columns.
 - **The deployable records what the adapter holds at the end of each unit of work**, beside the
   rotation hand-over of [ADR-0082](./0082-rotation-writeback-to-the-database.md), a unit that failed
   included. An adapter that has made no attempt records nothing.
+- **The UI records the attempt its own code exchange made** when it completes a consent, connecting
+  or re-authorizing an account, with the same statement, in the transaction that stores the
+  credential. A completed consent's exchange is an attempt the provider answered with a credential,
+  so it records `succeeded`, and a re-authorization's success replaces a `refused` outcome a
+  workload recorded earlier. An exchange that fails stores nothing, as every refused consent does,
+  so the UI records no other outcome.
 - **The latest attempt wins.** The statement writes the row only when it holds no attempt or an
   older one, so a deployable recording an attempt older than one another deployable recorded
   changes nothing.
@@ -68,7 +78,10 @@ for the same account, so they all record the same two columns.
   which for Gmail is within the hour, since a refused API request is not an attempt.
 - "Latest" is by the recording processes' clocks, so it assumes their clocks agree to within the
   time between two attempts.
+- A refused credential's outcome clears as soon as the operator re-authorizes the account, rather
+  than when a workload next makes an attempt with the new credential.
 - Assumptions about other components. Each deployable that calls a provider reads its adapter's
-  latest attempt at the end of each unit of work. The database, not the deployable, decides which
-  attempt is the latest, through the statement's predicate. Row-level security scopes the write to
-  the account the transaction set.
+  latest attempt at the end of each unit of work. The UI's role holds the write grant on the two
+  columns ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)). The database,
+  not the deployable, decides which attempt is the latest, through the statement's predicate.
+  Row-level security scopes the write to the account the transaction set.

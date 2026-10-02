@@ -93,9 +93,11 @@ moves it. Records themselves link freely and deep, into
 | 0012 | [Fastmail auth: scoped API tokens per protocol category](./provider/0012-fastmail-scoped-jmap-tokens.md) | Accepted |
 | 0026 | [Multi-account: one process, N account contexts, isolation by construction](./provider/0026-multi-account-contexts.md) | **Superseded** |
 | 0027 | [Calendar sensitivity keys on any participant, not organizer-only; Fastmail speaks CalDAV](./provider/0027-calendar-classification.md) | Accepted |
-| 0083 | [Each installation connects Gmail through an installed-app OAuth client of its own, set up through the UI, with `gmail.modify`](./provider/0083-gmail-through-an-installation-oauth-client.md) | Accepted |
-| 0085 | [Multi-account: one process, N account contexts, each account its own grant, through the installation's OAuth client where its provider uses one](./provider/0085-multi-account-contexts-with-an-installation-client.md) | Accepted |
+| 0083 | [Each installation connects Gmail through an installed-app OAuth client of its own, set up through the UI, with `gmail.modify`](./provider/0083-gmail-through-an-installation-oauth-client.md) | **Superseded** |
+| 0085 | [Multi-account: one process, N account contexts, each account its own grant, through an OAuth client of the installation where its provider uses one](./provider/0085-multi-account-contexts-with-an-installation-client.md) | Accepted |
 | 0095 | [Every page of an enumeration carries the total and the page limit together, as one optional field of the port's page](./provider/0095-enumeration-total-on-every-page.md) | Accepted |
+| 0106 | [An installation holds any number of OAuth clients for a provider, and each account connects through one of them, shared or its own](./provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) | Accepted |
+| 0107 | [Gmail connects through an installed-app OAuth client in the installation owner's own Cloud project, set up through the UI, with `gmail.modify`](./provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md) | Accepted |
 
 ## Data — `data/`
 
@@ -123,7 +125,8 @@ moves it. Records themselves link freely and deep, into
 | 0021 | [The approval surface writes the database directly: two verbs, no credentials](./mutation/0021-approval-surface.md) | **Superseded** |
 | 0031 | [Every mutating operation is dry-runnable — a preflight that writes nothing](./mutation/0031-dry-run-on-mutating-operations.md) | Accepted |
 | 0032 | [All validation precedes the first write; saved plans validate at creation, re-validate at apply, and expire](./mutation/0032-whole-batch-validation.md) | Accepted |
-| 0084 | [The UI writes the database directly for two decisions, OAuth client setup and account setup, and seals credentials it can never open](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
+| 0084 | [The UI writes the database directly for two decisions, OAuth client setup, account setup and policy management, and seals credentials it can never open](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
+| 0102 | [Every change to the policy is appended to a history no runtime role can rewrite](./mutation/0102-policy-changes-recorded-in-an-append-only-history.md) | Accepted |
 
 ## Operability — `operability/`
 
