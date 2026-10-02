@@ -1,0 +1,23 @@
+control: A credential the provider refuses is read again from the account's row before the refusal is reported, and a replaced one is used for the call it refused
+removes: the re-read's adoption stamp is made the account's holding but its new source is not, so the hand-over writes the refused credential over the one the operator stored
+packages: ./backfill
+tests: TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 31cb3c5..6dfda1f 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -285,8 +285,9 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 		}
+ 		c := creds[account]
+ 		c.RefreshToken = string(stored)
+-		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), adoption: reread.Adoption()}
+-		return sources[account].source, nil
++		source := gmail.NewTokenSource(http.DefaultClient, c)
++		sources[account] = holding{source: sources[account].source, adoption: reread.Adoption()}
++		return source, nil
+ 	}})
+ }
+ 

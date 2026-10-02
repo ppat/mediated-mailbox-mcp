@@ -59,11 +59,13 @@ rule holds per account.
 - A deployable whose loader has already adopted the operator's value, through a reload or a re-read
   while a unit of work ran, would see the compare-and-set land against those adopted bytes. So
   each time the loader adopts a value from an account's row that it did not write itself, it gives
-  that account's credential a new adoption stamp. A unit of work hands over the account's adoption
-  stamp as it stood when the unit started beside the credential it holds now, and the loader
-  discards the hand-over only when that account's stamp has changed. The process's own earlier
-  write-back leaves the stamp as it is, so two units that overlap and each see a rotation both
-  land, the later by compare-and-set against the earlier's bytes.
+  that account's credential a new adoption stamp. A unit of work hands over, beside the credential
+  it holds now, the adoption stamp the loader gave with the credential that one was built from. That
+  is the stamp the account had when that credential was taken, from the snapshot or from a re-read
+  the unit went on with. The loader discards the hand-over only when that account's stamp has
+  changed since. The process's own earlier write-back leaves the stamp as it is, so two units that
+  overlap and each see a rotation both land, the later by compare-and-set against the earlier's
+  bytes.
 - A provider that rotates refresh tokens and revokes a grant when an old one is reused cannot be
   repaired by a compare-and-set after the fact. Such a provider needs the advisory lock above, and
   the kill window it leaves open is recorded against it then.

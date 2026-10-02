@@ -202,10 +202,19 @@ func serveProbes(ln net.Listener, registry *prometheus.Registry, logger *slog.Lo
 	}
 }
 
+// holding is what a run holds for one account it serves: the token source the account's calls go
+// through, and the adoption stamp of the credential that source was built over, which the hand-over
+// names (ADR-0089). The two are replaced together, so a source never hands over another's stamp.
+type holding struct {
+	source   *gmail.TokenSource
+	adoption uint64
+}
+
 // served is what a run serves, taken at its start.
 type served struct {
-	// sources are the token sources of the accounts the run serves, keyed on the account.
-	sources map[string]*gmail.TokenSource
+	// sources hold the token source of each account the run serves with its adoption stamp, keyed on
+	// the account.
+	sources map[string]holding
 	// policy is the policy of every listed account, loaded once at the start of the run.
 	policy policyload.Snapshot
 	// handOver hands over what an account's source holds, its current refresh token and its latest
@@ -214,7 +223,8 @@ type served struct {
 	handOver func(ctx context.Context, account string) error
 	// reauthorize reads the account's credential again from its state row after the provider refused
 	// the one its source holds (ADR-0090). When the row holds another credential, it makes a source
-	// holding that one the account's source, so handOver reads it from then on, and returns it. It
+	// holding that one, with the re-read's adoption stamp, the account's holding, so handOver reads
+	// both from then on, and returns the source. It
 	// returns nil when the row holds the credential the source holds, which is the one refused, or the
 	// account is no longer connected, so the refusal stands.
 	reauthorize func(ctx context.Context, account string) (*gmail.TokenSource, error)
@@ -251,31 +261,32 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 		return fmt.Errorf("loading the policy: %w", err)
 	}
 	logger.Info("policy loaded", "accounts", len(ids))
-	sources := map[string]*gmail.TokenSource{}
+	sources := map[string]holding{}
 	creds := credentials(snapshot, logger)
 	for account, c := range creds {
-		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
+		a, _ := snapshot.Account(account)
+		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), adoption: a.Adoption()}
 	}
 	return work(ctx, served{sources: sources, policy: policies.Snapshot(), handOver: func(ctx context.Context, account string) error {
-		source := sources[account]
+		held := sources[account]
 		var attempt mail.AuthAttempt
-		if source != nil {
-			attempt = source.LastAttempt()
+		if held.source != nil {
+			attempt = held.source.LastAttempt()
 		}
-		return errors.Join(handOver(ctx, loader, account, source), recordAttempt(ctx, pool, account, attempt))
+		return errors.Join(handOver(ctx, loader, account, held), recordAttempt(ctx, pool, account, attempt))
 	}, reauthorize: func(ctx context.Context, account string) (*gmail.TokenSource, error) {
 		reread, err := loader.Reread(ctx, account)
 		if err != nil {
 			return nil, err
 		}
 		stored := reread.Credential()
-		if stored == nil || string(stored) == sources[account].RefreshToken() {
+		if stored == nil || string(stored) == sources[account].source.RefreshToken() {
 			return nil, nil
 		}
 		c := creds[account]
 		c.RefreshToken = string(stored)
-		sources[account] = gmail.NewTokenSource(http.DefaultClient, c)
-		return sources[account], nil
+		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), adoption: reread.Adoption()}
+		return sources[account].source, nil
 	}})
 }
 
@@ -310,14 +321,15 @@ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string
 }
 
 // handOver hands the account's source's current refresh token to the loader at the end of a unit of
-// work. The loader writes a rotated one back by compare-and-set and writes an unchanged one nowhere,
-// and logs a write-back that fails (ADR-0082, ADR-0089). The credential Persist returns is not handed
-// back to the source, which already holds it.
-func handOver(ctx context.Context, loader *accountload.Loader, account string, source *gmail.TokenSource) error {
-	if source == nil {
+// work, with the adoption stamp of the credential the source was built over. The loader discards it
+// when the stamp has moved since, because the loader adopted a value someone else stored that the
+// source does not hold, and otherwise writes a rotated one back by compare-and-set and an unchanged
+// one nowhere, and logs a write-back that fails (ADR-0082, ADR-0089).
+func handOver(ctx context.Context, loader *accountload.Loader, account string, held holding) error {
+	if held.source == nil {
 		return nil
 	}
-	_, err := loader.Persist(ctx, account, []byte(source.RefreshToken()))
+	_, err := loader.HandOver(ctx, account, held.adoption, []byte(held.source.RefreshToken()))
 	return err
 }
 
@@ -444,7 +456,7 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 		}
 		var failures []error
 		for _, account := range accounts {
-			port, err := connect(account, s.sources[account])
+			port, err := connect(account, s.sources[account].source)
 			if err != nil {
 				return err
 			}

@@ -291,6 +291,28 @@ func TestAFailedSnapshotReadStopsTheRun(t *testing.T) {
 // idle is a unit of work that does nothing.
 func idle(context.Context, served) error { return nil }
 
+// called returns h with its source replaced by after, a source holding what calls made over h's
+// source would leave it holding, a rotated refresh token or an authentication attempt. Neither changes
+// which stored value the source was built over, so the adoption stamp stays h's.
+func called(h holding, after *gmail.TokenSource) holding {
+	return holding{source: after, adoption: h.adoption}
+}
+
+// adopted returns what the run would hold for the account after building its source over the
+// credential the loader holds for it: the source, holding token, with the account's adoption stamp
+// in the loader's snapshot.
+func adopted(t *testing.T, loader *accountload.Loader, account, token string) holding {
+	t.Helper()
+	a, ok := loader.Snapshot().Account(account)
+	if !ok {
+		t.Fatalf("the loader holds no account %s", account)
+	}
+	return holding{
+		source:   gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{ClientID: "id", ClientSecret: "secret", RefreshToken: token}),
+		adoption: a.Adoption(),
+	}
+}
+
 // loaded returns a loader that has loaded the snapshot.
 func loaded(t *testing.T, ring *open.Keyring, log *slog.Logger) *accountload.Loader {
 	t.Helper()
@@ -341,11 +363,11 @@ func TestARunHandsEachAccountOverWhenItsUnitEnds(t *testing.T) {
 	failed := errors.New("the unit of work failed")
 	held := map[string]string{}
 	rotate := func(ctx context.Context, s served) error {
-		for account, source := range s.sources {
-			held[account] = source.RefreshToken()
-			s.sources[account] = gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{
+		for account, h := range s.sources {
+			held[account] = h.source.RefreshToken()
+			s.sources[account] = called(h, gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{
 				ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: account + "-rotated",
-			})
+			}))
 			if err := s.handOver(ctx, account); err != nil {
 				return err
 			}
@@ -383,13 +405,13 @@ func TestTheSourcesRefreshTokenIsHandedOver(t *testing.T) {
 	account(t, conn, "unchanged", gmailProvider, sealed(t, public, "same-token", seal.AccountCredential("unchanged")), false)
 	unchanged := storedCredential(t, conn, "unchanged")
 	loader := loaded(t, ring, slog.New(slog.DiscardHandler))
-	sources := map[string]*gmail.TokenSource{
-		"rotated":   gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{ClientID: "id", ClientSecret: "secret", RefreshToken: "second-token"}),
-		"unchanged": gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{ClientID: "id", ClientSecret: "secret", RefreshToken: "same-token"}),
+	sources := map[string]holding{
+		"rotated":   adopted(t, loader, "rotated", "second-token"),
+		"unchanged": adopted(t, loader, "unchanged", "same-token"),
 	}
 
-	for account, source := range sources {
-		if err := handOver(t.Context(), loader, account, source); err != nil {
+	for account, h := range sources {
+		if err := handOver(t.Context(), loader, account, h); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -416,9 +438,9 @@ func TestAFailedWriteBackEndsTheRunInError(t *testing.T) {
 	var log logBuffer
 	loader := loaded(t, ring, log.logger())
 	revoke(t, conn, "UPDATE (credential) ON account_state")
-	sources := map[string]*gmail.TokenSource{
-		"personal": gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{ClientID: "id", ClientSecret: "secret", RefreshToken: "second-token"}),
-		"work":     gmail.NewTokenSource(http.DefaultClient, gmail.Credentials{ClientID: "id", ClientSecret: "secret", RefreshToken: "work-token"}),
+	sources := map[string]holding{
+		"personal": adopted(t, loader, "personal", "second-token"),
+		"work":     adopted(t, loader, "work", "work-token"),
 	}
 
 	err := handOver(t.Context(), loader, "personal", sources["personal"])
@@ -756,8 +778,8 @@ func TestARunRecordsEachAccountsAttemptWhenItsUnitEnds(t *testing.T) {
 	failed := errors.New("the unit of work failed")
 	var attempt mail.AuthAttempt
 	work := func(ctx context.Context, s served) error {
-		s.sources["personal"] = attempted(t)
-		attempt = s.sources["personal"].LastAttempt()
+		s.sources["personal"] = called(s.sources["personal"], attempted(t))
+		attempt = s.sources["personal"].source.LastAttempt()
 		for _, account := range []string{"personal", "work"} {
 			if err := s.handOver(ctx, account); err != nil {
 				return err
@@ -882,7 +904,7 @@ func TestTheRunsHandOverReturnsAFailedRecording(t *testing.T) {
 		gmailProvider, "client-id", sealed(t, public, "client-secret", seal.ClientSecret(gmailProvider)))
 	revoke(t, conn, "UPDATE (last_auth_at, last_auth_outcome) ON account_state")
 	work := func(ctx context.Context, s served) error {
-		s.sources["personal"] = attempted(t)
+		s.sources["personal"] = called(s.sources["personal"], attempted(t))
 		return s.handOver(ctx, "personal")
 	}
 

@@ -1,0 +1,20 @@
+control: A hand-over from a unit of work that started before the loader adopted a value someone else stored is discarded
+removes: backfill hands its token over with no adoption stamp, so a unit of work that took its source before the loader adopted the operator's credential writes its own over it
+packages: ./backfill
+tests: TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 31cb3c5..3a15c4b 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -329,7 +329,7 @@ func handOver(ctx context.Context, loader *accountload.Loader, account string, h
+ 	if held.source == nil {
+ 		return nil
+ 	}
+-	_, err := loader.HandOver(ctx, account, held.adoption, []byte(held.source.RefreshToken()))
++	_, err := loader.Persist(ctx, account, []byte(held.source.RefreshToken()))
+ 	return err
+ }
+ 
