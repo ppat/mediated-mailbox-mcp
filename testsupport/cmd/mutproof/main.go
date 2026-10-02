@@ -36,8 +36,13 @@
 // output is not. Both copies of a demonstration are taken before any of its tests run, the second
 // from the first, so the two runs see the same files apart from the patch even when the checkout
 // changes meanwhile. A copy is removed on every path out of the demonstration. Go's build and
-// module caches live outside the copies, so a copy costs little. For each patch the runner does two
-// things.
+// module caches live outside the copies, and go test runs with -trimpath, so a package the patch
+// leaves unchanged compiles to the same cache entry from every copy and a copy costs little.
+// Without the flag the go command keys each compile by the package's absolute directory, so every
+// copy would compile every package its tests reach again, under keys no later run hits. A go
+// command a test starts itself, such as the package loading in testsupport/mustnotcompile, and the
+// build of pgrun do not get the flag, so what they compile is still keyed by the copy's directory.
+// For each patch the runner does two things.
 //
 //  1. In the first copy it runs the packages' tests unpatched and requires them green, and requires
 //     every named test to have passed there, so a red in the next step is the patch's doing and a
@@ -56,8 +61,12 @@
 // runner prints no row and says the control's demonstration is incomplete. The evidence pointer is
 // left to the author.
 //
-// A demonstration runs the tests the way the gating run does, and the gating invocation sets
-// RAPID_NOFAILFILE=true (ADR-0069, row 6 of its ordinary-path table), so every run sets it too.
+// -trimpath is the one build flag a demonstration's go test adds to the gating run's. The file
+// paths it compiles into a test binary start with the module path, as import paths do, instead of
+// the absolute directory they were compiled from, so a test that reads one, through runtime.Caller
+// or a stack trace, would see another path than in the gating run, and no test in this module reads
+// one. The gating invocation sets RAPID_NOFAILFILE=true (ADR-0069, row 6 of its ordinary-path
+// table), so every run sets it too.
 // RAPID_CHECKS passes through from the environment, and -short is never passed, since it divides
 // rapid's case count by five. The runner refuses to run while GOFLAGS is set, in the environment or
 // through go env -w, because go test reads its flags from there and any of them, such as -run or
