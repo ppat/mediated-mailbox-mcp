@@ -4,6 +4,7 @@ package accountload_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -18,15 +19,16 @@ import (
 )
 
 // VERIFICATIONS' row for an OAuth client being optional per provider. An account whose provider has
-// no row in oauth_clients loads without a client, and one whose provider has a row loads with it
-// (ADR-0080, ADR-0090).
+// no row in oauth_clients loads without a client, and one that connects through a client loads with
+// it (ADR-0080, ADR-0090).
 func TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	keys := generate(t)
+	client(t, conn, "household", "gmail", "client-id", sealed(t, keys, "client-secret", seal.ClientSecret("household")))
 	account(t, conn, "personal", "gmail", sealed(t, keys, "gmail-token", seal.AccountCredential("personal")))
+	through(t, conn, "personal", "household")
 	account(t, conn, "work", "fastmail", sealed(t, keys, "fastmail-token", seal.AccountCredential("work")))
-	client(t, conn, "gmail", "client-id", sealed(t, keys, "client-secret", seal.ClientSecret("gmail")))
 	var log logBuffer
 
 	s := load(t, keyring(t, keys), &log).Snapshot()
@@ -35,15 +37,175 @@ func TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne(t *testing.T) {
 	if diff := cmp.Diff(want, credentials(s), compare.Options); diff != "" {
 		t.Errorf("credentials (-want +got):\n%s", diff)
 	}
-	c, ok := s.Client("gmail")
-	if !ok || c.ID() != "client-id" || string(c.Secret()) != "client-secret" {
-		t.Errorf("gmail's client: %v, %q, %q, want client-id and its secret", ok, c.ID(), c.Secret())
-	}
-	if _, ok := s.Client("fastmail"); ok {
-		t.Error("fastmail, which has no row in oauth_clients, has a client")
+	wantClients := map[string]string{"personal": "household gmail client-id client-secret", "work": "no client"}
+	if diff := cmp.Diff(wantClients, clients(s), compare.Options); diff != "" {
+		t.Errorf("clients (-want +got):\n%s", diff)
 	}
 	if got := log.errors(t); len(got) != 0 {
 		t.Errorf("error records %v", got)
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account's token source built from its own client. Two
+// accounts of one provider that connect through two different clients each load with their own, a
+// third that shares one of them loads with it, and an account of that provider naming no client
+// loads with none, though the provider has clients. A third client carries its provider's name, as
+// the client the migration to named clients kept does, so a fallback to a client found by the
+// provider would hand it over (ADR-0106, ADR-0090).
+func TestEachAccountIsLoadedWithTheClientItNamesAndNoOther(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	keys := generate(t)
+	client(t, conn, "household", "gmail", "household-id", sealed(t, keys, "household-secret", seal.ClientSecret("household")))
+	client(t, conn, "employer", "gmail", "employer-id", sealed(t, keys, "employer-secret", seal.ClientSecret("employer")))
+	client(t, conn, "gmail", "gmail", "migrated-id", sealed(t, keys, "migrated-secret", seal.ClientSecret("gmail")))
+	for _, id := range []string{"personal", "family", "work", "unpaired"} {
+		account(t, conn, id, "gmail", sealed(t, keys, id+"-token", seal.AccountCredential(id)))
+	}
+	through(t, conn, "personal", "household")
+	through(t, conn, "family", "household")
+	through(t, conn, "work", "employer")
+	var log logBuffer
+
+	s := load(t, keyring(t, keys), &log).Snapshot()
+
+	want := map[string]string{
+		"personal": "household gmail household-id household-secret",
+		"family":   "household gmail household-id household-secret",
+		"work":     "employer gmail employer-id employer-secret",
+		"unpaired": "no client",
+	}
+	if diff := cmp.Diff(want, clients(s), compare.Options); diff != "" {
+		t.Errorf("clients (-want +got):\n%s", diff)
+	}
+	if got := log.errors(t); len(got) != 0 {
+		t.Errorf("error records %v", got)
+	}
+}
+
+// VERIFICATIONS' row for an account of a provider that authenticates through an OAuth client served
+// without its client. Told that Gmail authenticates through a client, the loader connects a Gmail
+// account through the client it names, and connects neither a Gmail account naming no client nor one
+// whose client's secret does not open, though another Gmail client opened. A Fastmail account needs
+// no client and is connected. Told no provider authenticates through a client, the same accounts are
+// all connected, so the refusal comes from what the deployable names (ADR-0106, ADR-0090).
+func TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	keys := generate(t)
+	client(t, conn, "household", "gmail", "household-id", sealed(t, keys, "household-secret", seal.ClientSecret("household")))
+	client(t, conn, "broken", "gmail", "broken-id", sealed(t, keys, "broken-secret", seal.ClientSecret("another-row")))
+	for _, id := range []string{"paired", "unpaired", "unopened"} {
+		account(t, conn, id, "gmail", sealed(t, keys, id+"-token", seal.AccountCredential(id)))
+	}
+	account(t, conn, "mail", "fastmail", sealed(t, keys, "mail-token", seal.AccountCredential("mail")))
+	through(t, conn, "paired", "household")
+	through(t, conn, "unopened", "broken")
+
+	var log logBuffer
+	s := loadWith(t, keyring(t, keys), &log, []string{"gmail"}).Snapshot()
+
+	want := map[string]string{"paired": "paired-token", "unpaired": "not connected", "unopened": "not connected", "mail": "mail-token"}
+	if diff := cmp.Diff(want, credentials(s), compare.Options); diff != "" {
+		t.Errorf("credentials with Gmail named (-want +got):\n%s", diff)
+	}
+	if !strings.Contains(log.String(), `"account":"unpaired"`) || !strings.Contains(log.String(), `"account":"unopened"`) {
+		t.Errorf("the accounts left not connected are not logged: %s", log.String())
+	}
+
+	s = load(t, keyring(t, keys), &log).Snapshot()
+
+	want = map[string]string{"paired": "paired-token", "unpaired": "unpaired-token", "unopened": "unopened-token", "mail": "mail-token"}
+	if diff := cmp.Diff(want, credentials(s), compare.Options); diff != "" {
+		t.Errorf("credentials with no provider named (-want +got):\n%s", diff)
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account's own client, for a credential read again. An account
+// moved to another client has its new client and its new credential written in one transaction
+// (ADR-0106), and a re-read after a refusal returns the account paired with the client it now names,
+// a client stored after the last load included, and publishes that pair. Moved to a client whose
+// secret does not open, the account is returned and published not connected (ADR-0090).
+func TestARereadPairsTheCredentialWithTheClientTheAccountMovedTo(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	keys := generate(t)
+	client(t, conn, "household", "gmail", "household-id", sealed(t, keys, "household-secret", seal.ClientSecret("household")))
+	account(t, conn, "personal", "gmail", sealed(t, keys, "first-token", seal.AccountCredential("personal")))
+	through(t, conn, "personal", "household")
+	var log logBuffer
+	l := loadWith(t, keyring(t, keys), &log, []string{"gmail"})
+	client(t, conn, "employer", "gmail", "employer-id", sealed(t, keys, "employer-secret", seal.ClientSecret("employer")))
+	move := func(to, token string) {
+		t.Helper()
+		tx, err := conn.Begin(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tx.Exec(t.Context(), "UPDATE accounts SET oauth_client = $1 WHERE account_id = 'personal'", to); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tx.Exec(t.Context(), "UPDATE account_state SET credential = $1 WHERE account_id = 'personal'",
+			sealed(t, keys, token, seal.AccountCredential("personal"))); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	move("employer", "moved-token")
+	got, err := l.Reread(t.Context(), "personal")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c, ok := got.Client()
+	if !got.Connected() || string(got.Credential()) != "moved-token" || !ok || c.Name() != "employer" || c.ID() != "employer-id" || string(c.Secret()) != "employer-secret" {
+		t.Errorf("the re-read returned %q through %v %q %q %q, want moved-token through employer", got.Credential(), ok, c.Name(), c.ID(), c.Secret())
+	}
+	if diff := cmp.Diff(map[string]string{"personal": "employer gmail employer-id employer-secret"}, clients(l.Snapshot()), compare.Options); diff != "" {
+		t.Errorf("the published client (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(map[string]string{"personal": "moved-token"}, credentials(l.Snapshot()), compare.Options); diff != "" {
+		t.Errorf("the published credential (-want +got):\n%s", diff)
+	}
+
+	client(t, conn, "broken", "gmail", "broken-id", sealed(t, keys, "broken-secret", seal.ClientSecret("another-row")))
+	move("broken", "broken-token")
+	got, err = l.Reread(t.Context(), "personal")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.Connected() || got.Credential() != nil {
+		t.Errorf("an account moved to a client that does not open is connected with %q", got.Credential())
+	}
+	if diff := cmp.Diff(map[string]string{"personal": "not connected"}, credentials(l.Snapshot()), compare.Options); diff != "" {
+		t.Errorf("the published account after a move to a client that does not open (-want +got):\n%s", diff)
+	}
+}
+
+// F6's part of VERIFICATIONS' row for an account served without its client, for a client read again.
+// When delta sync's re-seal loses to a client secret someone replaced and the replacement does not
+// open, the accounts naming the client are published not connected rather than connected with no
+// client (ADR-0106, ADR-0089).
+func TestAClientReadAgainThatDoesNotOpenLeavesItsAccountsNotConnected(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	current, old := generate(t), generate(t)
+	client(t, conn, "household", "gmail", "household-id", sealed(t, old, "household-secret", seal.ClientSecret("household")))
+	account(t, conn, "personal", "gmail", sealed(t, current, "personal-token", seal.AccountCredential("personal")))
+	through(t, conn, "personal", "household")
+	var log logBuffer
+	l := loadWith(t, keyring(t, current, old), &log, []string{"gmail"})
+	lost := func(context.Context, string, []byte, []byte) (bool, error) { return false, nil }
+
+	must(t, conn, "UPDATE oauth_clients SET client_secret = $1 WHERE name = 'household'", sealed(t, old, "replaced-secret", seal.ClientSecret("another-row")))
+	l.ResealClients(t.Context(), lost)
+
+	if diff := cmp.Diff(map[string]string{"personal": "not connected"}, credentials(l.Snapshot()), compare.Options); diff != "" {
+		t.Errorf("after a replacement that does not open (-want +got):\n%s", diff)
 	}
 }
 
@@ -98,7 +260,7 @@ func TestAReloadServesWhatItReadAndKeepsTheLastGoodSnapshotOnAFailedRead(t *test
 	}
 
 	must(t, conn, "REVOKE SELECT ON oauth_clients FROM "+role)
-	restoreOnCleanup(t, "GRANT SELECT (provider, client_id, client_secret) ON oauth_clients TO "+role)
+	restoreOnCleanup(t, "GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients TO "+role)
 	account(t, conn, "later", "gmail", sealed(t, keys, "later-token", seal.AccountCredential("later")))
 	if err := l.Load(t.Context()); !errors.Is(err, accountload.ErrUntrustedRead) {
 		t.Errorf("a load whose read failed: %v, want ErrUntrustedRead", err)
@@ -109,7 +271,7 @@ func TestAReloadServesWhatItReadAndKeepsTheLastGoodSnapshotOnAFailedRead(t *test
 	if got := log.errors(t); len(got) != 1 || !strings.Contains(got[0]["msg"], "previous one stays") {
 		t.Errorf("error records %v, want one naming the failed reload", got)
 	}
-	must(t, conn, "GRANT SELECT (provider, client_id, client_secret) ON oauth_clients TO "+role)
+	must(t, conn, "GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients TO "+role)
 
 	reset(t, conn)
 	if err := l.Load(t.Context()); err != nil {
@@ -366,8 +528,8 @@ func TestAStoredCredentialSomeoneElseReplacedWins(t *testing.T) {
 // F6's part of VERIFICATIONS' row for re-sealing to the current key. A credential sealed to an old key
 // is sealed again to the current one and written by compare-and-set, and the scan reads true for it
 // before and false after. An account whose credential cannot be opened reads true, and one with no
-// state row reads false. Every row of oauth_clients has an entry, and a provider with none has no
-// entry (ADR-0092).
+// state row reads false. Every row of oauth_clients has an entry keyed on the client's name, two
+// clients of one provider included, and a provider with none has no entry (ADR-0092, ADR-0106).
 func TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -376,13 +538,14 @@ func TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows(t *testing.T)
 	account(t, conn, "on-current", "gmail", sealed(t, current, "current-token", seal.AccountCredential("on-current")))
 	account(t, conn, "unopenable", "gmail", sealed(t, lost, "lost-token", seal.AccountCredential("unopenable")))
 	listedOnly(t, conn, "no-state", "fastmail")
-	client(t, conn, "gmail", "client-id", sealed(t, old, "client-secret", seal.ClientSecret("gmail")))
+	client(t, conn, "household", "gmail", "household-id", sealed(t, old, "household-secret", seal.ClientSecret("household")))
+	client(t, conn, "employer", "gmail", "employer-id", sealed(t, current, "employer-secret", seal.ClientSecret("employer")))
 	var log logBuffer
 	l := load(t, keyring(t, current, old), &log)
 
 	before := accountload.Scan{
 		Accounts: map[string]bool{"on-old": true, "on-current": false, "unopenable": true, "no-state": false},
-		Clients:  map[string]bool{"gmail": true},
+		Clients:  map[string]bool{"household": true, "employer": false},
 	}
 	if diff := cmp.Diff(before, l.Scan(), compare.Options); diff != "" {
 		t.Errorf("the scan after loading (-want +got):\n%s", diff)
@@ -393,7 +556,7 @@ func TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows(t *testing.T)
 
 	want := accountload.Scan{
 		Accounts: map[string]bool{"on-old": false, "on-current": false, "unopenable": true, "no-state": false},
-		Clients:  map[string]bool{"gmail": true},
+		Clients:  map[string]bool{"household": true, "employer": false},
 	}
 	if diff := cmp.Diff(want, after, compare.Options); diff != "" {
 		t.Errorf("the scan after re-sealing (-want +got):\n%s", diff)
@@ -439,8 +602,8 @@ func TestAStaleReSealIsRefused(t *testing.T) {
 // VERIFICATIONS' row for copying a sealed credential. A credential copied from one account's state row
 // to another's, and a client secret stored as an account's credential, do not open there, so the
 // account loads as not connected. An account credential stored as a client's secret does not open
-// either, so the provider has no client. Each refusal is logged without the value (ADR-0088,
-// ADR-0091).
+// either, so the account that connects through the client has none. Each refusal is logged without
+// the value (ADR-0088, ADR-0091).
 func TestAValueCopiedToAnotherRowOrPurposeDoesNotOpen(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -448,25 +611,28 @@ func TestAValueCopiedToAnotherRowOrPurposeDoesNotOpen(t *testing.T) {
 	personal := sealed(t, keys, "personal-token", seal.AccountCredential("personal"))
 	account(t, conn, "personal", "gmail", personal)
 	account(t, conn, "copied", "gmail", personal)
-	account(t, conn, "gmail", "gmail", sealed(t, keys, "client-secret", seal.ClientSecret("gmail")))
-	client(t, conn, "gmail", "client-id", sealed(t, keys, "account-token", seal.AccountCredential("gmail")))
+	account(t, conn, "household", "gmail", sealed(t, keys, "client-secret", seal.ClientSecret("household")))
+	client(t, conn, "household", "gmail", "client-id", sealed(t, keys, "account-token", seal.AccountCredential("household")))
+	through(t, conn, "personal", "household")
 	var log logBuffer
 
 	s := load(t, keyring(t, keys), &log).Snapshot()
 
-	want := map[string]string{"personal": "personal-token", "copied": "not connected", "gmail": "not connected"}
+	want := map[string]string{"personal": "personal-token", "copied": "not connected", "household": "not connected"}
 	if diff := cmp.Diff(want, credentials(s), compare.Options); diff != "" {
 		t.Errorf("credentials (-want +got):\n%s", diff)
 	}
-	if _, ok := s.Client("gmail"); ok {
-		t.Error("a client whose secret is an account credential has a client")
+	if c, ok := s.Account("personal"); !ok {
+		t.Error("personal is not served")
+	} else if _, ok := c.Client(); ok {
+		t.Error("an account connecting through a client whose secret is an account credential has a client")
 	}
 	var refused []string
 	for _, r := range log.errors(t) {
-		refused = append(refused, r["account"]+r["provider"])
+		refused = append(refused, r["account"]+r["client"])
 	}
-	if diff := cmp.Diff([]string{"copied", "gmail", "gmail"}, refused, compare.Options); diff != "" {
-		t.Errorf("accounts and providers logged as not opening (-want +got):\n%s", diff)
+	if diff := cmp.Diff([]string{"household", "copied", "household"}, refused, compare.Options); diff != "" {
+		t.Errorf("clients and accounts logged as not opening (-want +got):\n%s", diff)
 	}
 	for _, value := range []string{"personal-token", "client-secret", "account-token"} {
 		if strings.Contains(log.String(), value) {

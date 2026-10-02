@@ -1,24 +1,21 @@
-control: An OAuth client is loaded for a provider that has one, and only for it
-removes: a provider with no row in oauth_clients is handed another provider's client
+control: An account is loaded with the OAuth client it names, and an account that names none with none
+removes: an account that names no client is handed any client that opened, another provider's included
 packages: ./accountload
-tests: TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne
+tests: TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne TestEachAccountIsLoadedWithTheClientItNamesAndNoOther
 scheduled-count: no
 integration: yes
 
 diff --git a/accountload/load.go b/accountload/load.go
-index 1736aee..2ec8fda 100644
+index 88f41d1d..8b7d97cb 100644
 --- a/accountload/load.go
 +++ b/accountload/load.go
-@@ -103,8 +103,10 @@ func (s *Snapshot) Account(id string) (Account, bool) {
- // Client returns the OAuth client of the provider, and whether the provider has one that opened. A
- // provider that authenticates without an OAuth client has none, and nothing looks for one.
- func (s *Snapshot) Client(provider string) (Client, bool) {
--	c, ok := s.clients[provider]
--	return c, ok
-+	for _, c := range s.clients {
-+		return c, true
-+	}
-+	return Client{}, false
- }
- 
- // held is what the loader last knew of one stored sealed value and the plaintext it holds for it.
+@@ -284,6 +284,9 @@ func (l *Loader) openClient(c oauthclients.OAuthClientsRow) (Client, bool) {
+ // their names. An account that names none has none.
+ func pair(name string, opened map[string]Client) (Client, bool) {
+ 	if name == "" {
++		for _, c := range opened {
++			return c, true
++		}
+ 		return Client{}, false
+ 	}
+ 	c, ok := opened[name]

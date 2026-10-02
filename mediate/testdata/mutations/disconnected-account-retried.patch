@@ -1,0 +1,22 @@
+control: A refused credential is read again from its row before the refusal is reported
+removes: an account the re-read finds not connected has the call made again over a source built from empty credentials
+packages: ./mediate
+tests: TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 78009489..c1810fff 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -901,8 +901,8 @@ func retried[T any](ctx context.Context, s *session, call func(context.Context,
+ 	}
+ 	held := s.creds
+ 	held.RefreshToken = s.source.RefreshToken()
+-	creds, ok := sourceCredentials(reread)
+-	if !ok || creds == held {
++	creds, _ := sourceCredentials(reread)
++	if creds == held {
+ 		return out, err
+ 	}
+ 	s.p.mu.Lock()

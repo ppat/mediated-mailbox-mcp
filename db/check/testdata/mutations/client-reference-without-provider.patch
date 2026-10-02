@@ -1,0 +1,20 @@
+control: An account cannot name another provider's OAuth client
+removes: the account's reference names the client alone, so the client's provider is never compared with the account's
+packages: ./db/check
+tests: TestAnAccountCannotNameAnotherProvidersClient
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00021_oauth_clients_by_name.sql b/db/migrations/00021_oauth_clients_by_name.sql
+index d5bbbce0..964f5647 100644
+--- a/db/migrations/00021_oauth_clients_by_name.sql
++++ b/db/migrations/00021_oauth_clients_by_name.sql
+@@ -25,7 +25,7 @@ ALTER TABLE oauth_clients ADD UNIQUE (provider, client_id);
+ ALTER TABLE accounts ADD COLUMN oauth_client text;
+ UPDATE accounts SET oauth_client = provider
+ WHERE provider IN (SELECT name FROM oauth_clients);
+-ALTER TABLE accounts ADD FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider);
++ALTER TABLE accounts ADD FOREIGN KEY (oauth_client) REFERENCES oauth_clients (name);
+ 
+ -- The account snapshot's statements in db/accounts and db/oauthclients read the client each account
+ -- names and each client's name, under the role of each deployable that calls a provider, whose list

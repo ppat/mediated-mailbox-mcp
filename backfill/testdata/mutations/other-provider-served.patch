@@ -1,4 +1,4 @@
-control: A run serves only a connected account whose provider it has an adapter and an OAuth client for
+control: A run serves only a connected account whose provider it has an adapter for and that connects through an OAuth client
 removes: an account of a provider backfill has no adapter for is served through the Gmail adapter
 packages: ./backfill
 tests: TestARunTakesItsAccountsFromTheDatabase
@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 56154bd..4a918c6 100644
+index b9eac691..1642ef4d 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -154,10 +154,6 @@ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) map[string
+@@ -309,10 +309,6 @@ func credentials(snapshot *accountload.Snapshot, logger *slog.Logger) (map[strin
  			logger.Warn("an account is not connected, so it is skipped", "account", a.ID())
  			continue
  		}
@@ -17,6 +17,6 @@ index 56154bd..4a918c6 100644
 -			logger.Warn("backfill has no adapter for an account's provider, so it is skipped", "account", a.ID(), "provider", a.Provider())
 -			continue
 -		}
- 		c, ok := snapshot.Client(gmailProvider)
+ 		c, ok := sourceCredentials(a)
  		if !ok {
- 			logger.Warn("an account's provider has no OAuth client, so it is skipped", "account", a.ID(), "provider", a.Provider())
+ 			return nil, fmt.Errorf("account %s: connected without the OAuth client its provider authenticates through", a.ID())

@@ -1,0 +1,20 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: an account of a provider that authenticates through a client and names none is connected
+packages: ./accountload
+tests: TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/load.go b/accountload/load.go
+index f17d95a0..081dec5c 100644
+--- a/accountload/load.go
++++ b/accountload/load.go
+@@ -295,7 +295,7 @@ func (l *Loader) Load(ctx context.Context) error {
+ // withoutClient reports whether the account's provider authenticates through an OAuth client while
+ // the account has none whose secret opened, and logs each such account.
+ func (l *Loader) withoutClient(a Account) bool {
+-	if !l.throughClient[a.provider] || a.hasClient {
++	if !l.throughClient[a.provider] || a.hasClient || a.clientName == "" {
+ 		return false
+ 	}
+ 	l.log.Warn("an account's provider authenticates through an OAuth client and the account has none that opened, so it is not connected",

@@ -6,15 +6,17 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/main.go b/backfill/main.go
-index 31cb3c5..d6da6a2 100644
+index b9eac691..22e44c5b 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -280,7 +280,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
- 			return nil, err
+@@ -287,8 +287,8 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
  		}
- 		stored := reread.Credential()
--		if stored == nil || string(stored) == sources[account].source.RefreshToken() {
-+		if string(stored) == sources[account].source.RefreshToken() {
+ 		held := sources[account].built
+ 		held.RefreshToken = sources[account].source.RefreshToken()
+-		c, ok := sourceCredentials(reread)
+-		if !ok || c == held {
++		c, _ := sourceCredentials(reread)
++		if c == held {
  			return nil, nil
  		}
- 		c := creds[account]
+ 		sources[account] = holding{source: gmail.NewTokenSource(http.DefaultClient, c), built: c, adoption: reread.Adoption()}

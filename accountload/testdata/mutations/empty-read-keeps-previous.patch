@@ -6,16 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/accountload/load.go b/accountload/load.go
-index 690e57c..ed36b06 100644
+index 88f41d1d..118bbbb5 100644
 --- a/accountload/load.go
 +++ b/accountload/load.go
-@@ -217,6 +217,9 @@ func (l *Loader) Load(ctx context.Context) error {
+@@ -237,6 +237,9 @@ func (l *Loader) Load(ctx context.Context) error {
  		l.log.Error("the account snapshot was not reloaded, so the previous one stays", slog.Any("error", err))
  		return fmt.Errorf("%w: %w", ErrUntrustedRead, err)
  	}
 +	if len(rows) == 0 {
 +		return nil
 +	}
- 	next := &Snapshot{clients: map[string]Client{}}
+ 	next := &Snapshot{}
  	known := map[string]held{}
- 	sealedClients := map[string][]byte{}
+ 	opened := map[string]Client{}

@@ -6,14 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/accountload/reseal.go b/accountload/reseal.go
-index 94fbfaa..04efb16 100644
+index 44084b4b..d0c2de56 100644
 --- a/accountload/reseal.go
 +++ b/accountload/reseal.go
-@@ -112,6 +112,7 @@ func (l *Loader) ResealClients(ctx context.Context, write ClientWriter) Scan {
+@@ -113,6 +113,7 @@ func (l *Loader) ResealClients(ctx context.Context, write ClientWriter) Scan {
  		}
  		if err != nil {
- 			l.log.Error("an OAuth client's secret was not re-sealed to the current key", slog.String("provider", provider), slog.Any("error", err))
-+			l.scan.Clients[provider] = false
+ 			l.log.Error("an OAuth client's secret was not re-sealed to the current key", slog.String("client", name), slog.Any("error", err))
++			l.scan.Clients[name] = false
  			continue
  		}
- 		l.scan.Clients[provider] = l.onOldKey(l.clients[provider])
+ 		l.scan.Clients[name] = l.onOldKey(l.clients[name])

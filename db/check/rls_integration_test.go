@@ -367,20 +367,20 @@ func TestTheProviderCallingRolesReadOnlyTheirAccountsState(t *testing.T) {
 
 // TestOnlyTheProviderCallingRolesReadTheOAuthClients holds oauth_clients' grants, the only barrier
 // around a table that belongs to no account (ADR-0016). The four roles that call a provider read every
-// row. Delta sync's role writes a client's secret, which its re-seal does, and nothing else of the
+// row, each client's name included (ADR-0106). Delta sync's role writes a client's secret, which its re-seal does, and nothing else of the
 // table. The UI's read of the client's identity and its write arrive with M7's statements, so today no
 // other role reads it and no other role writes it (ADR-0084, ADR-0092).
 func TestOnlyTheProviderCallingRolesReadTheOAuthClients(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
-	if _, err := tx.Exec(ctx, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ('gmail', 'id', 's'), ('other', 'id', 's')"); err != nil {
+	if _, err := tx.Exec(ctx, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('household', 'gmail', 'id', 's'), ('other', 'other', 'id', 's')"); err != nil {
 		t.Fatal(err)
 	}
 	for _, role := range providerRoles {
 		t.Run(role+"/reads every client", func(t *testing.T) {
 			var n int
 			err := asRole(ctx, tx, role, accountA, func(sp pgx.Tx) error {
-				return sp.QueryRow(ctx, "SELECT count(client_secret) FROM oauth_clients").Scan(&n)
+				return sp.QueryRow(ctx, "SELECT count(*) FROM (SELECT name, provider, client_id, client_secret FROM oauth_clients) AS c").Scan(&n)
 			})
 			if err != nil || n != 2 {
 				t.Errorf("read %d clients with error %v, want both and no error", n, err)
@@ -389,14 +389,17 @@ func TestOnlyTheProviderCallingRolesReadTheOAuthClients(t *testing.T) {
 	}
 	for _, role := range []string{uiRole, "mediated_mailbox_propose"} {
 		t.Run(role+"/reads a client", func(t *testing.T) {
-			if _, err := as(ctx, tx, role, accountA, "SELECT provider, client_id FROM oauth_clients"); !refusedByGrant(err) {
-				t.Errorf("got %v, want the grant to refuse it", err)
+			// Each column is read on its own, so a grant of any one of them is caught.
+			for _, column := range []string{"name", "provider", "client_id", "client_secret"} {
+				if _, err := as(ctx, tx, role, accountA, "SELECT "+column+" FROM oauth_clients"); !refusedByGrant(err) {
+					t.Errorf("reading %s: got %v, want the grant to refuse it", column, err)
+				}
 			}
 		})
 	}
 	for _, role := range runtimeRoles {
 		t.Run(role+"/writes a client", func(t *testing.T) {
-			_, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_secret = client_secret")
+			_, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_secret = client_secret WHERE name = 'household'")
 			switch {
 			case role == syncRole && err != nil:
 				t.Errorf("updating the secret: got %v, want delta sync's re-seal to write it", err)
@@ -406,7 +409,7 @@ func TestOnlyTheProviderCallingRolesReadTheOAuthClients(t *testing.T) {
 			if _, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_id = client_id"); !refusedByGrant(err) {
 				t.Errorf("updating the identifier: got %v, want the grant to refuse it", err)
 			}
-			if _, err := as(ctx, tx, role, accountA, "INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ('new', 'id', 's')"); !refusedByGrant(err) {
+			if _, err := as(ctx, tx, role, accountA, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('new', 'gmail', 'new-id', 's')"); !refusedByGrant(err) {
 				t.Errorf("inserting: got %v, want the grant to refuse it", err)
 			}
 			if _, err := as(ctx, tx, role, accountA, "DELETE FROM oauth_clients"); !refusedByGrant(err) {

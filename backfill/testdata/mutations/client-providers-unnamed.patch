@@ -1,0 +1,20 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: backfill names no provider as authenticating through a client, so the loader connects a Gmail account that names none
+packages: ./backfill
+tests: TestAnAccountWithoutAClientIsSkipped
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index b9eac691..9244b691 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -246,7 +246,7 @@ type unitOfWork func(ctx context.Context, s served) error
+ // again from its row through the loader, the one way a running unit of work sees a credential the
+ // operator replaced after the snapshot was taken (ADR-0090).
+ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logger *slog.Logger, registry prometheus.Registerer, work unitOfWork) error {
+-	loader := accountload.New(pool, keys, logger, []string{gmailProvider})
++	loader := accountload.New(pool, keys, logger, nil)
+ 	if err := loader.Load(ctx); err != nil {
+ 		return fmt.Errorf("loading the accounts: %w", err)
+ 	}

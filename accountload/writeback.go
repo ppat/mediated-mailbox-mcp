@@ -10,7 +10,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential"
+	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
 
@@ -112,11 +114,14 @@ func (l *Loader) replace(ctx context.Context, account string, known, sealed []by
 	return changed == 1, err
 }
 
-// Reread reads the account's stored credential again, as a deployable does when the provider refuses
-// the credential it holds, before it reports the refusal (ADR-0090). It returns the account as the
-// loader then holds it, whose credential is the one to use, the one the operator stored when it
-// changed, and whose Adoption a unit of work that goes on with it hands over. An account no longer
-// connected is returned not connected.
+// Reread reads the account's stored credential again, with the OAuth client its row names, as a
+// deployable does when the provider refuses the credential it holds, before it reports the refusal
+// (ADR-0090). It returns the account as the loader then holds it, whose credential is the one to use,
+// the one the operator stored when it changed, paired with the client the account now connects
+// through, since moving an account to another client writes the client and the credential together
+// (ADR-0106). A unit of work that goes on with it builds its source from both and hands over its
+// Adoption. An account no longer connected, or left without the client its provider authenticates
+// through, is returned not connected.
 func (l *Loader) Reread(ctx context.Context, account string) (Account, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -126,13 +131,72 @@ func (l *Loader) Reread(ctx context.Context, account string) (Account, error) {
 	}
 	a, _ := l.active.Load().Account(account)
 	a.id = account
+	listed, clients, err := l.readClientOf(ctx, account)
+	if err != nil {
+		return Account{}, err
+	}
+	name := a.clientName
+	if listed != nil {
+		a.provider, name = listed.AccountProvider, listed.OauthClient.String
+	}
+	opened := map[string]Client{}
+	for _, c := range clients {
+		if c.ClientName == name {
+			if client, ok := l.openClient(c); ok {
+				opened[name] = client
+			}
+			break
+		}
+	}
+	a = l.paired(a, name, opened)
 	if l.reread(account, stored) == nil {
 		a.credential, a.adoption = nil, 0
-		return a, nil
+	} else {
+		h := l.accounts[account]
+		a.credential, a.adoption = h.plaintext, h.adoption
 	}
-	h := l.accounts[account]
-	a.credential, a.adoption = h.plaintext, h.adoption
+	l.publishClient(a)
 	return a, nil
+}
+
+// readClientOf reads the account's row of the listing and the stored OAuth clients, outside the
+// account's transaction since neither belongs to it (ADR-0091). An account the listing no longer
+// holds reads as nil.
+func (l *Loader) readClientOf(ctx context.Context, account string) (*accounts.AccountsRow, []oauthclients.OAuthClientsRow, error) {
+	var listed []accounts.AccountsRow
+	var clients []oauthclients.OAuthClientsRow
+	err := pgx.BeginFunc(ctx, l.db, func(t pgx.Tx) error {
+		var err error
+		if listed, err = accounts.New(t).Accounts(ctx); err != nil {
+			return fmt.Errorf("listing the accounts again: %w", err)
+		}
+		if clients, err = oauthclients.New(t).OAuthClients(ctx); err != nil {
+			return fmt.Errorf("reading the OAuth clients again: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := range listed {
+		if listed[i].AccountID == account {
+			return &listed[i], clients, nil
+		}
+	}
+	return nil, clients, nil
+}
+
+// publishClient stores a snapshot equal to the active one but for the account's client.
+func (l *Loader) publishClient(a Account) {
+	current := l.active.Load()
+	next := &Snapshot{accounts: slices.Clone(current.accounts)}
+	for i := range next.accounts {
+		if next.accounts[i].id == a.id {
+			next.accounts[i].clientName, next.accounts[i].client = a.clientName, a.client
+			next.accounts[i].hasClient, next.accounts[i].withoutClient = a.hasClient, a.withoutClient
+		}
+	}
+	l.active.Store(next)
 }
 
 // reread adopts a value just read from the account's row and publishes it in a new snapshot.
@@ -157,7 +221,7 @@ func (l *Loader) hold(account string, h held) {
 // publish stores a snapshot equal to the active one but for the account's credential and adoption.
 func (l *Loader) publish(account string, h held) {
 	current := l.active.Load()
-	next := &Snapshot{accounts: slices.Clone(current.accounts), clients: current.clients}
+	next := &Snapshot{accounts: slices.Clone(current.accounts)}
 	for i := range next.accounts {
 		if next.accounts[i].id == account {
 			next.accounts[i].credential, next.accounts[i].adoption = h.plaintext, h.adoption

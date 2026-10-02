@@ -11,21 +11,24 @@ import (
 
 const oAuthClients = `-- name: OAuthClients :many
 SELECT
+    name AS client_name,
     provider,
     client_id,
     client_secret AS sealed_client_secret
 FROM oauth_clients
-ORDER BY provider
+ORDER BY name
 `
 
 type OAuthClientsRow struct {
+	ClientName         string
 	Provider           string
 	ClientID           string
 	SealedClientSecret []byte
 }
 
-// Every stored OAuth client, one for each provider that authenticates through one (ADR-0080,
-// ADR-0083). The table belongs to no account.
+// Every stored OAuth client, any number for each provider that authenticates through one, keyed on
+// the name the person running the installation gave it (ADR-0080, ADR-0106). The table belongs to no
+// account.
 func (q *Queries) OAuthClients(ctx context.Context) ([]OAuthClientsRow, error) {
 	rows, err := q.db.Query(ctx, oAuthClients)
 	if err != nil {
@@ -35,7 +38,12 @@ func (q *Queries) OAuthClients(ctx context.Context) ([]OAuthClientsRow, error) {
 	var items []OAuthClientsRow
 	for rows.Next() {
 		var i OAuthClientsRow
-		if err := rows.Scan(&i.Provider, &i.ClientID, &i.SealedClientSecret); err != nil {
+		if err := rows.Scan(
+			&i.ClientName,
+			&i.Provider,
+			&i.ClientID,
+			&i.SealedClientSecret,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

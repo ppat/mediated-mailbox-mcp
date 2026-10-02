@@ -1,0 +1,20 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: a client read again that does not open is taken from its accounts without leaving them not connected
+packages: ./accountload
+tests: TestAClientReadAgainThatDoesNotOpenLeavesItsAccountsNotConnected
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/reseal.go b/accountload/reseal.go
+index 7878c544..44084b4b 100644
+--- a/accountload/reseal.go
++++ b/accountload/reseal.go
+@@ -153,7 +153,7 @@ func (l *Loader) rereadClient(ctx context.Context, name string) error {
+ 	next := &Snapshot{accounts: slices.Clone(l.active.Load().accounts)}
+ 	for i, a := range next.accounts {
+ 		if a.clientName == name {
+-			next.accounts[i] = l.paired(a, name, opened)
++			next.accounts[i].client, next.accounts[i].hasClient = pair(name, opened)
+ 		}
+ 	}
+ 	l.active.Store(next)

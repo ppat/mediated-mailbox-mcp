@@ -74,10 +74,11 @@ never spans providers.
   `accounts` names each account's client. The account snapshot pairs each account with its own
   client ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 - A client's sealed secret is bound to its row
-  ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)), so the change of the
-  table's key from the provider to the name re-seals the stored secret once. A name never changes,
-  so nothing re-seals it again. The UI's role gains delete on `oauth_clients` for removing an
-  unused client ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
+  ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)), so when the table's key
+  moves from the provider to the name, the client already stored takes its provider's value as its
+  name, and its sealed secret stays bound to its row with no re-seal. A name never changes, so
+  nothing re-seals a secret for its row's sake. The UI's role gains delete on `oauth_clients` for
+  removing an unused client ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - Assumptions about other components. The provider refuses a credential presented with a client
   other than the one it was issued to, so an account paired with the wrong client fails to
   authenticate rather than acting through it.

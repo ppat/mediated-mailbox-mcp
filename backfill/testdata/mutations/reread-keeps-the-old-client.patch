@@ -1,0 +1,19 @@
+control: A served account's token source is built from the OAuth client the account connects through and the account's own refresh token
+removes: backfill's re-read after a refusal keeps the client the source was built with
+packages: ./backfill
+tests: TestARereadAfterAMoveBuildsTheSourceFromTheNewClient
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+index b9eac691..2baf3334 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -288,6 +288,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 		held := sources[account].built
+ 		held.RefreshToken = sources[account].source.RefreshToken()
+ 		c, ok := sourceCredentials(reread)
++		c.ClientID, c.ClientSecret = held.ClientID, held.ClientSecret
+ 		if !ok || c == held {
+ 			return nil, nil
+ 		}
