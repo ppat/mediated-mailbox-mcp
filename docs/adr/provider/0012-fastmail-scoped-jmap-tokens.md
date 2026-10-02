@@ -16,8 +16,8 @@ categories, which is scoping worth exploiting.
   neither.
 - **Separate tokens for Mail and for Calendar**, so a calendar-path bug cannot read mail. Same
   principle as scope minimalism on Gmail
-  ([ADR-0083](./0083-gmail-through-an-installation-oauth-client.md)): capability absent from a
-  credential is a guarantee, not a configuration.
+  ([ADR-0107](./0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)): capability
+  absent from a credential is a guarantee, not a configuration.
 - The adapter reads `.well-known/jmap` for session discovery rather than hardcoding endpoints.
 
 ## Alternatives considered

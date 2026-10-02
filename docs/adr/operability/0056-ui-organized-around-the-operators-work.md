@@ -7,9 +7,9 @@
 ## Context
 
 [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) fixes what the UI is
-(read-mostly, two decision verbs, OAuth client setup and account setup, a separate deployment,
-never a body) and lists its views, but not how those views are organized or how the UI grows past
-them. The operator asked for a UI structured to take on views not yet described, with drill-down,
+(read-mostly, two decision verbs, OAuth client setup, account setup and policy management, a
+separate deployment, never a body) and lists its views, but not how those views are organized or
+how the UI grows past them. The operator asked for a UI structured to take on views not yet described, with drill-down,
 zoom in and out, and aggregate views over plans and any other element as if analyzing a data set or
 a proposed change. Three directions were sketched and compared on one canvas, differing only in
 what the UI is organized around. The shared foundation under all three is stated in
@@ -32,10 +32,23 @@ ladder.
   rows are its failures.
 - **Every view is per account.** The account is chosen explicitly, is always visible, rides in
   the URL, and nothing aggregates across accounts.
+- **What belongs to no account has installation screens of its own.** The installation's OAuth
+  clients, the base policy, the list of accounts with connecting one, and the first run, before
+  any account exists, sit on screens whose URL names no account. Of what is stored, an installation
+  screen shows only each OAuth client's name, provider, client identifier and project ID, each
+  account's identifier, provider and the client it connects through, and the base policy's rules
+  and their history, the three kinds of record that belong to no account's own rows
+  ([ADR-0016](../data/0016-schema.md), [ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md),
+  [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md),
+  [ADR-0004](../classification/0004-sender-list-decides.md),
+  [ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
+  It reads and shows no stored account's state, counts or rows, so the per-account rule above holds
+  for every view of an account's data and nothing aggregates across accounts. The one account it
+  handles values of is the one being connected, whose rows it writes alone.
 - **Message-derived text renders as text only.** Subjects, display names, addresses, labels, and
   reasons are attacker-written text. No rendering path interprets them as markup.
-- ADR-0084's constraints are unchanged. Two decision verbs, OAuth client setup and account setup
-  by database grant, no key that opens a stored credential, never a body. The shape adds
+- ADR-0084's constraints are unchanged. Two decision verbs, OAuth client setup, account setup and
+  policy management by database grant, no key that opens a stored credential, never a body. The shape adds
   legibility, not surface. The UI stays boring in ADR-0084's sense.
 
 ## Alternatives considered
@@ -71,7 +84,7 @@ case best.
 - Assumptions about other components: analysis views read through the dataset endpoint of
   [ADR-0057](./0057-one-dataset-endpoint-behind-a-registry.md). The plan's status set includes
   the rejected and refused states the reviewer displays ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)).
-  The decision verbs, OAuth client setup and account setup remain the only writes
-  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
+  The decision verbs, OAuth client setup, account setup and policy management remain the only
+  writes ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - The rendering rule and the per-account rule are controls. Their violation injections are
   catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

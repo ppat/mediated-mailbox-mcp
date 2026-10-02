@@ -32,26 +32,29 @@ Against a real provider it adds its messages to a test account it does not contr
 that run's, and checks and reports only those, never assuming or touching the account's other mail
 ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)). The Gmail consent for the test account's
 token runs from `gmail/cmd/consent`, a developer's command that no deployable runs and no image
-ships ([ADR-0083](../docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). It
-takes the address of the account the grant is meant for and refuses a grant that belongs to
+ships
+([ADR-0107](../docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)).
+It takes the address of the account the grant is meant for and refuses a grant that belongs to
 another account or holds any scope but the modify scope.
 
 The Gmail adapter also holds the handling of Google's grant, which every deployable that calls
 Google shares, the Google Calendar adapter included. That is the one-time installed-app consent
-and the token source. The token source is built from the installation's OAuth client and the
-account's refresh token, which the deployable opened from the database, and reads no credential
-from anywhere else. A Gmail account's stored credential is the refresh token itself, the one the
-account setup stored from the grant. When Google rotates the refresh token, the source holds the
-new one and hands it over as its current refresh token. The source writes nothing. The deployable
-reads that token at the end of each unit of work and writes a rotated one back to the account's
-state row through `accountload/`
+and the token source. The token source is built from the OAuth client the account connects
+through and the account's refresh token, which the deployable opened from the database, and reads
+no credential from anywhere else
+([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
+A Gmail account's stored credential is the refresh token itself, the one the account setup stored
+from the grant. When Google rotates the refresh token, the source holds the new one and hands it
+over as its current refresh token. The source writes nothing. The deployable reads that token at
+the end of each unit of work and writes a rotated one back to the account's state row through
+`accountload/`
 ([ADR-0080](../docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
 [ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md),
-[ADR-0083](../docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). The source
-also holds its latest request to Google's token endpoint with its outcome, succeeded, refused for
-a 400 or a 401, or failed for anything else, a passed deadline included, and holds nothing for a
-request its caller cancelled or for an access token it already held. The deployable records that
-attempt on the account's state row at the end of each unit of work
+[ADR-0107](../docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)).
+The source also holds its latest request to Google's token endpoint with its outcome, succeeded,
+refused for a 400 or a 401, or failed for anything else, a passed deadline included, and holds
+nothing for a request its caller cancelled or for an access token it already held. The deployable
+records that attempt on the account's state row at the end of each unit of work
 ([ADR-0097](../docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
 A port call that could not obtain an access token returns the error that reading names, a refused
 credential for a refusal and the provider failing the request for any other failure, apart from a

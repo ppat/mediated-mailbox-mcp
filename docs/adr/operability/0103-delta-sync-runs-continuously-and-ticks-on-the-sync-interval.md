@@ -46,9 +46,10 @@ cannot know the platform's scrape interval or reach a push gateway the platform 
 - **The key-scan series are two gauges.** `mediated_mailbox_sync_credential_on_old_key` carries one
   series per account `accounts` lists, labelled by the account, and
   `mediated_mailbox_sync_client_secret_on_old_key` one series per row of `oauth_clients`, labelled by
-  the provider. Each reads 1 while its value is sealed to a key other than the current one or cannot
+  the client's name, since a provider may have several clients
+  ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)). Each reads 1 while its value is sealed to a key other than the current one or cannot
   be opened, and 0 once it is sealed to the current key or when there is no value to seal. A series
-  whose account or provider a later tick no longer lists is removed.
+  whose account or client a later tick no longer lists is removed.
 
 The deciding argument. A process that stays up keeps its counters and gauges in every scrape, so the
 runaway rule and the key-retirement gate read delta sync the way they read the mediator, with no

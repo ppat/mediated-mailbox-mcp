@@ -15,11 +15,12 @@ kind needs to read it.
 
 ## Decision
 
-- **The credential is sealed with public-key encryption**, and so is the secret of an
-  installation's OAuth client, for a provider that has one. The UI holds only the public key. It seals a credential or a client
-  secret when it stores one and cannot open a stored one. The deployables that call a provider hold
-  the private key to open them, and the public key to seal a rotated credential before writing it
-  back ([ADR-0082](./0082-rotation-writeback-to-the-database.md)).
+- **The credential is sealed with public-key encryption**, and so is the secret of each of the
+  installation's OAuth clients, for a provider that has them. The UI holds only the public key. It
+  seals a credential or a client secret when it stores one and cannot open a stored one. The
+  deployables that call a provider hold the private key to open them, and the public key to seal a
+  rotated credential before writing it back
+  ([ADR-0082](./0082-rotation-writeback-to-the-database.md)).
 - **The construction is an authenticated one, as standard practice has it**, so an altered sealed
   credential is refused rather than opened.
 - **The keys are secrets delivered as mounted files**

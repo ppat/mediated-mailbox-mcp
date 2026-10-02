@@ -262,7 +262,7 @@ perfected up front.
   staying as a developer's tool for the test account's token
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
   [ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md),
-  [ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)).
+  [ADR-0107](./docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)).
 - [x] **F3 — Rate limiter + Gmail cost profile** → [O1](./USE_CASES.md#o1--rate-limited-politely) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at tested
   Delivered by pull requests [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156) and
@@ -302,13 +302,17 @@ perfected up front.
   accounts. Everything else an account carries lives in `account_state` under the per-account
   row-level security policy, the sealed credential and the rate target an operator may lower
   included ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md),
-  [ADR-0016](./docs/adr/data/0016-schema.md)). For a provider that authenticates through one, the
-  installation's OAuth client is stored in `oauth_clients`, keyed on the provider and apart from
-  every account, its secret sealed the same way. A provider without one has no row, and no account
-  refers to one
-  ([ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). The
-  columns the UI's two setups write in `accounts`, `account_state` and `oauth_clients` are named in
-  ADR-0016's schema, and each grant on them arrives with the statement that uses it
+  [ADR-0016](./docs/adr/data/0016-schema.md)). For a provider that authenticates through one, F6
+  stores one OAuth client for the installation in `oauth_clients`, keyed on the provider and apart
+  from every account, its secret sealed the same way. A provider without one has no row, and no
+  account refers to one. That is the one client per provider that the superseded
+  [ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md) decided. Any
+  number of clients per provider, with each account naming the one it connects through
+  ([ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
+  is not yet built, and is ticket
+  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244)'s. The columns the UI's two
+  setups write in `accounts`, `account_state` and `oauth_clients` are named in ADR-0016's schema,
+  and each grant on them arrives with the statement that uses it
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). The three
   tables' statements sit in `db/accounts`, `db/accountstate` and `db/oauthclients`, with the
   statements that read and write an account's sealed credential in `db/accountstate/credential`
@@ -661,7 +665,7 @@ redesign after agent workflows exist.
 
 **Units:** [D3](#group-d--data-flows) · [D4](#delivered-mapped-to-outcomes) ·
 [M3](#group-m--mutation-and-approval) · [M7](#group-m--mutation-and-approval) ·
-[M8](#group-m--mutation-and-approval) · [R1](#group-r--packaging), then
+[M8](#group-m--mutation-and-approval) · [F7](#group-f--foundation) · [R1](#group-r--packaging), then
 [production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
 the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
 invariant proven against a live adversary (the operator deliberately trying to talk the real agent
@@ -722,8 +726,8 @@ holds, with an entry naming the point.
   [F3](#delivered-mapped-to-outcomes) · [F6](#delivered-mapped-to-outcomes) · [D1](#delivered-mapped-to-outcomes) ·
   [D2](#delivered-mapped-to-outcomes) · [D3](#group-d--data-flows) · [D4](#delivered-mapped-to-outcomes) ·
   [M3](#group-m--mutation-and-approval) · [M7](#group-m--mutation-and-approval) ·
-  [M8](#group-m--mutation-and-approval) · [R1](#group-r--packaging), the end of
-  [V3](#v3--the-agent-arrives-read-only).
+  [M8](#group-m--mutation-and-approval) · [F7](#group-f--foundation) · [R1](#group-r--packaging),
+  the end of [V3](#v3--the-agent-arrives-read-only).
 - **Supplied there:**
   - PostgreSQL with the superuser bootstrap, the migration role, and the credentials of the runtime
     roles the mediator, backfill, delta sync and the UI connect as
@@ -739,7 +743,7 @@ holds, with an entry naming the point.
     ([ADR-0079](./docs/adr/operability/0079-secrets-arrive-as-mounted-files.md),
     [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). The Gmail OAuth
     client is set up and the mailbox connected through the UI once the system runs
-    ([ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)), so no
+    ([ADR-0107](./docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)), so no
     account credential is supplied at deployment.
   - The UI's TLS material, and whether an authenticating proxy forwards an identity header
     ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)).
@@ -748,8 +752,8 @@ holds, with an entry naming the point.
   - The credential-rotation runbook
     ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)), written on the deploying
     side.
-- **Proven only there:** setting up the installation's Gmail OAuth client and connecting the real
-  mailbox through the UI's guided flows
+- **Proven only there:** setting up a Gmail OAuth client and connecting the real mailbox through
+  the UI's guided flows
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), rotation
   write-back to the database against the real provider
   ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)), backfill
@@ -853,9 +857,24 @@ What everything runs on. The tooling, the store, the adapter, the budget, and wh
 their credentials are kept. F1 is retired. Its application half lives in
 [F5](#delivered-mapped-to-outcomes) and its platform half at [production
 point 1](#production-point-1--the-read-path). F4, F2, F5, F3 and F6 are delivered and sit in the
-[delivered register](#delivered-mapped-to-outcomes), so no unit of this group remains. F5 also
+[delivered register](#delivered-mapped-to-outcomes), and F7 remains. F5 also
 carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the scope
 that excludes permanent delete, because the grant is the adapter's.
+
+- [ ] **F7 — Signals between deployables** → [O6](./USE_CASES.md#o6--deployable) ·
+  [V3](#v3--the-agent-arrives-read-only) · finishes at image
+  A way for one deployable to tell the others that something they hold has changed, so a change
+  the operator makes in the UI reaches the workloads with no manual step and no restart. The
+  operator asked for it on 2026-10-01, before [production point 1](#production-point-1--the-read-path),
+  and named the changes it carries at least: an account newly connected, which backfill and the
+  other workloads then start serving, a credential replaced by re-authorization, which the
+  workloads take up, and a policy edit, which each process loads. How a signal travels, which
+  deployables send and receive it, and which other changes use it are decided where it is built.
+  The UI's designs assume it for those three changes
+  ([docs/UI.md sections 8.7 and 8.12](./docs/UI.md#812-connect-an-account-and-re-authorize)). It
+  changes the composition roots of the deployables that send or receive a signal, so it finishes
+  at image. *Criteria:* each of the three changes reaches every deployable that acts on it with no
+  manual step and no restart.
 
 ### Group D — data flows
 
@@ -1062,7 +1081,7 @@ classifications already stored in the index.
   ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
   *Criteria:* message-derived text renders inert, the dataset registry refuses what it does not
   declare, no account-scoped route or dataset answers without an account, the account list being
-  the one unscoped read
+  the one unscoped read this unit adds
   ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md),
   [ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md)), and the
   content security policy holds
@@ -1122,11 +1141,14 @@ classifications already stored in the index.
   [M7](#group-m--mutation-and-approval) builds
   ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)), and the declared
   identity, each one transaction written by the UI's own code
-  ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). One integration test drives
-  a fixture plan from DRAFT to APPROVED through the real server. It adds handlers and screens inside
+  ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). A confirmation writes its
+  rule's row in the policy history in the same transaction
+  ([ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md)). One
+  integration test drives a fixture plan from DRAFT to APPROVED through the real server. It adds
+  handlers and screens inside
   the UI's server and browser app and touches no composition root, so it finishes at tested.
   *Criteria:* a verb without its request token or its declared identity is refused. No path writes a
-  decision's status without its companion columns and, on confirm, its rule row
+  decision's status without its companion columns and, on confirm, its rule row and its history row
   ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). Decision outcomes are counted
   as metrics ([docs/UI.md](./docs/UI.md#182-the-uis-own-observability)).
 - [ ] **M6 — The UI's plans, analysis lenses and review queue screens** →
@@ -1154,18 +1176,30 @@ classifications already stored in the index.
   the UI's configuration carries that value as its default.
 - [ ] **M7 — The UI's OAuth client setup and account setup** → [O6](./USE_CASES.md#o6--deployable)
   · [V3](#v3--the-agent-arrives-read-only) · finishes at image
-  Designing the screens first, since the mockups do not cover them, then building them on
-  [M3](#group-m--mutation-and-approval)'s server and browser app. OAuth client setup and account
-  setup are separate flows over separate stored records
+  Building the installation, OAuth client setup, connecting and re-authorizing an account, and
+  account settings screens [docs/UI.md sections 8.10 to 8.13](./docs/UI.md#810-installation)
+  design, on [M3](#group-m--mutation-and-approval)'s server and browser app. OAuth client setup and
+  account setup are separate flows over separate stored records
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
-  [ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
-  [docs/UI.md](./docs/UI.md#20-what-remains-open)). OAuth client setup runs once per installation
-  for each provider that authenticates through an OAuth client. It links straight to each Google
-  Cloud console page, states the exact value to enter at each step, offers the commands that create
-  the project and enable the Gmail API, and checks the pasted
-  identifier and secret against Google before storing them sealed
-  ([ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md)). Account
-  setup is first run with no account, connecting an account through that client with the redirected
+  [ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)), and the screens
+  that belong to no account show no stored account's state
+  ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md)). Around those
+  screens it also builds the installation frame, `/` sending the browser to the installation screen
+  when no account exists, the account selector's links to account settings, connecting and the
+  installation, the `g a` key, the refused-credential banner on every screen of the account, and
+  the last authentication rows of Home's System column and the System screen linking to account
+  settings ([docs/UI.md sections 6, 8.1, 8.8, 12 and 13](./docs/UI.md#6-global-chrome)). OAuth
+  client setup runs once per client, and an installation holds any number of clients for each
+  provider that authenticates through one, each account connecting through one of them, shared or
+  its own ([ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
+  The stored model and the account snapshot that allow it are F6's discovery
+  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244), which lands first, and this unit
+  builds adding, replacing and removing a client, choosing one when connecting, and moving an
+  account to another. Setup links straight to each Google
+  Cloud console page, gives each step's instructions with the exact value to enter, and checks the
+  identifier and secret brought back against Google before storing them sealed
+  ([ADR-0107](./docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)). Account
+  setup is first run with no account, connecting an account through its chosen client with the redirected
   address pasted back into the UI, what an account's rows hold, the credential's health, and
   re-authorizing an account whose credential stopped working, with the modify scope and the PKCE,
   state and wrong-mailbox checks the consent command carries today. Account setup writes an
@@ -1177,7 +1211,10 @@ classifications already stored in the index.
   same refusal as a `CHECK` on `accounts.account_id`, because the mediator's API root cannot
   address such an identifier as a path segment
   ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)).
-  The UI seals through [F6](#delivered-mapped-to-outcomes)'s library and never holds the private key
+  It also refuses an identifier equal to a top-level path segment the UI serves, so every account's
+  screens can be reached. The account remembers its mailbox, and re-authorizing it refuses a
+  grant for any other
+  ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)). The UI seals through [F6](#delivered-mapped-to-outcomes)'s library and never holds the private key
   ([ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), and it runs
   under the trust anchor's hardening
   ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)). The request token that
@@ -1185,42 +1222,62 @@ classifications already stored in the index.
   change state before production point 1
   ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)), and
   [M5](#group-m--mutation-and-approval)'s decisions reuse it. The UI's role gains exactly the
-  columns the two setups write, and a read of `oauth_clients`' `provider` and `client_id`, never
-  its `client_secret`, with the statements that use them
+  columns the two setups write, the two last-authentication columns of `account_state` and the
+  client an account connects through among them, the removal of an unused client, and a read of
+  `oauth_clients`' name, `provider`, `client_id` and `project_id`, never its `client_secret`, with
+  the statements that use them, and a migration adds `project_id`
   ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md),
-  [ADR-0016](./docs/adr/data/0016-schema.md)). How the per-account rule
-  of [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md) holds for
-  the screens that belong to no account, and where the consent code lives so the UI links it
-  without the Gmail adapter, are [open decisions](#open-decisions) settled here. *Criteria:* a
-  setup request without its request token is refused, a client Google rejects is not stored, a grant for a mailbox other
-  than the one named is refused, what the UI stores opens only with the private key, and the UI's
-  import list admits no code that opens a credential. Setting up the client and connecting the real
-  mailbox are proven at [production point 1](#production-point-1--the-read-path). It changes the
-  UI's composition root to read the public key and reach the provider, so it finishes at image.
+  [ADR-0016](./docs/adr/data/0016-schema.md)). Where the consent code lives so the UI links it
+  without the Gmail adapter is an [open decision](#open-decisions) settled here. *Criteria:* a
+  setup request without its request token is refused, a client Google rejects is not stored, a
+  grant for a mailbox other than the one named, or on re-authorization the one the account
+  remembers, is refused, an identifier equal to a top-level path segment the UI serves is refused,
+  a client an account connects through is not removed, a move to another client writes the client
+  and the credential together or neither,
+  what the UI stores opens only with the private key, the UI's import list admits no code that
+  opens a credential, and the OAuth client setup's instructions are checked step by step against
+  the live Google Cloud console. That live check also settles the Google behaviours the screens'
+  wording rests on, which are whether a grant to a client in Testing carries
+  `refresh_token_expires_in`, how long a new client takes to become active, whether a
+  token-endpoint check accepts a Web application client, whether consent works without declaring
+  the scope at step 4, the error wordings Google prints at consent, how the fixed high loopback
+  port behaves, and whether restoring a deleted client keeps its grants. Setting up the client and
+  connecting the real mailbox are proven at
+  [production point 1](#production-point-1--the-read-path). It changes the UI's composition root
+  to read the public key and reach the provider, so it finishes at image.
 - [ ] **M8 — The UI's policy management** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
   [V3](#v3--the-agent-arrives-read-only) · finishes at tested
-  Designing the write and search screens first, with the operator, onto the read view
-  [docs/UI.md section 8.7](./docs/UI.md#87-policy) already designs, then building them on
+  Building the policy writes and sender search [docs/UI.md section 8.7](./docs/UI.md#87-policy)
+  designs, and the base policy's installation screen of
+  [section 8.14](./docs/UI.md#814-base-policy), which writes base rules with no account connected,
+  and designing then building the import and export, on
   [M3](#group-m--mutation-and-approval)'s server and browser app. Policy lives in the database and
   every change to it is made through the UI
   ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)). The unit carries the policy
   screen of [docs/UI.md section 8.7](./docs/UI.md#87-policy), importing the policy from a file into
-  the tables and exporting it to one, adding and editing rules, and searching the stored senders
+  the tables and exporting it to one, adding, editing and lifting rules, the policy history, and
+  searching the stored senders
   and picking them as sensitive senders into the policy. Its requests change state, so each is
   bound to the session's request token [M7](#group-m--mutation-and-approval) builds
   ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)), and each is one
   transaction written by the UI's own code
-  ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). The UI's role gains exactly
-  the writes on the policy rules these requests make
-  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). A removed rule
+  ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). Each also appends its row
+  to the policy history in that transaction, which no runtime role can rewrite, and the policy
+  screen shows it ([ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
+  The UI's role gains exactly the writes on the policy rules these requests make and insert on the
+  history ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). A removed rule
   reaches the delisting transition [D2](#delivered-mapped-to-outcomes) builds. A published edit takes effect
   at each process's next reload, which validates it through the policy snapshot validation
   [S1](#delivered-mapped-to-outcomes) landed, and an edit that fails validation stays unapplied
-  ([ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). How policy editing
-  behaves, including the file's format, and how a newly added policy rule changes the
-  classifications already stored in the index, are [open decisions](#open-decisions) settled here.
-  *Criteria:* a policy request without its request token is refused. Importing the real policy is
+  ([ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). How importing and
+  exporting the policy behave, including the file's format, how a newly added policy rule changes
+  the classifications already stored in the index, how the UI writes base rules and their history
+  rows, and whether a base-rule edit landing between two accounts' reads should page, are
+  [open decisions](#open-decisions) settled here. *Criteria:* a policy request without its request token is refused, a write the
+  policy snapshot's validation would refuse is refused before it is written, every policy
+  write leaves its history row or nothing, and the base policy's installation screen reads no
+  account's state. Importing the real policy is
   proven at [production point 1](#production-point-1--the-read-path). It adds handlers and screens
   inside the UI's server and browser app and touches no composition root, so it finishes at tested.
 
@@ -1391,7 +1448,7 @@ about its cluster.
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | No dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Rides D3 as criteria, flagged in Group D's preamble. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
-| [O6](./USE_CASES.md#o6--deployable) deployable | M7 · R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment is M7's |
+| [O6](./USE_CASES.md#o6--deployable) deployable | M7 · F7 · R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment is M7's, and the workloads taking up what the UI changes with no manual step is F7's |
 
 ## Dependencies
 
@@ -1411,7 +1468,9 @@ lands in is the [value path](#the-value-path)'s.
 | F6 → M3 | The accounts table every role reads in full, which the UI's account selector lists ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)) |
 | F6 → D4 | The keyring and the re-seal delta sync runs, and the scan of what is sealed to an old key ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)) |
 | F6 → D1, F6 → D3 | The accounts, their state rows and the sealed credentials the first provider-calling deployables read, the library that opens them, and `accountload/`, which builds the account snapshot from them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
-| F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, and the UI's server and browser app its screens live in |
+| F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, the several clients per provider F6's discovery [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244) lands first, and the UI's server and browser app its screens live in |
+| M7 → F7, M8 → F7, D4 → F7 | The changes the UI makes that F7 carries, a connected account and a replaced credential (M7) and a policy edit (M8), and delta sync, the last read-path workload to receive them |
+| F7 → R1 | Whatever the signals need from the deployment, which the chart packages |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
 | F2 → every later unit that holds a database role | The runtime database roles, created with the schema, that each unit's component connects to the database as |
 | S1 → M3, S1 → F5 | The marker text and synthetic fixtures the UI's recorded fixtures, the provider fake and the adapter's tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
@@ -1428,7 +1487,7 @@ lands in is the [value path](#the-value-path)'s.
 | F5 → M2 | The provider fake, the contract suite, and its run against the real provider, which any addition to the port for renaming and deleting labels must pass |
 | D3 → M1 | The surface the mutating operations live on |
 | M1 → M2, D3 → M2, D1 → M2 | The authorized batch mutation path apply runs through, the surface the two read-only plan tools live on, the crash harness with its operation sampler, the policy loader, the configuration library and the reading of accounts from the database, and how the last authentication outcome is recorded |
-| M8 → M4, M8 → M5 | How a newly added policy rule changes the classifications already stored in the index. The UI's policy management decides it, and a confirmed candidate's rule follows it |
+| M8 → M4, M8 → M5 | How a newly added policy rule changes the classifications already stored in the index. The UI's policy management decides it, and a confirmed candidate's rule follows it. For M5 also the policy history table and the UI's insert on it, which a confirmation writes its rule's row into ([ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md)) |
 | D1 → M4 | The sender statistics the heuristics read, and the policy loader and the configuration library the heuristics workload uses |
 | D1 → X2, D3 → X2, D4 → X2, F5 → X2, M1 → X2 | The surface, the workloads and the Google grant calendar joins, the dry-run and authorized mutation path calendar mutations run through, the provider fake, and the convention for running the contract suite against the real provider. Calendar also follows how a running deployable learns of a new account or a replaced credential ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)), and the answers on recording the authentication outcome and on denying a newly deny-listed domain on the next call |
 | F3 → D2, F3 → D3, F3 → D4, F3 → M1, F3 → M2, F3 → X2 | The rate budget each spends from ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), and for D3 the collector of each account's rate-state series its metrics endpoint carries ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
@@ -1477,7 +1536,8 @@ supplies, including edges another edge implies.
 | M2 | M1 |
 | X3 | M2 · M4 · X2 |
 | X4 | M2 · X2 |
-| R1 | D4 · M8 |
+| F7 | D4 · M8 |
+| R1 | F7 |
 | M4 | M8 |
 | M6 | M3 · M2 |
 | M5 | M6 · M8 |
@@ -1503,7 +1563,8 @@ flowchart LR
     M3 --> M7
     M7 --> M8
     D2 --> M8
-    M8 --> R1
+    M8 --> F7
+    F7 --> R1
     S2 --> D1
     F3 --> D1
     F6 --> D1
@@ -1522,7 +1583,7 @@ flowchart LR
     M2 --> X3
     M4 --> X3
     X2 --> X3
-    D4 --> R1
+    D4 --> F7
     M2 --> R2
     X2 --> R2
     M4 --> R2
@@ -1568,15 +1629,16 @@ index](./docs/adr/README.md).
 | Tier-3 model choice and training setup | X1 | Deliberately open. [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) defers it until real labeled data exists |
 | Whether the tier-3 model's weights ship in the binary or beside it in the image | X1 | [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lets a final stage copy runtime artifacts and [CLAUDE.md](./CLAUDE.md#images) says a Go deployable's image copies only its binary. No record decides which the model is, and beside the binary would need that convention to admit a second artifact |
 | The feedback verb on masking and gate events | X1 | [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) takes its confirmed examples from corrections the operator makes in the UI's masking-events view, and [docs/UI.md](./docs/UI.md#20-what-remains-open) leaves that verb to a record that does not exist yet. No unit produces a confirmed example until the verb exists, so X1 builds the verb and writes its record first. Training waits for the examples the verb then produces |
-| How policy editing in the UI behaves, including the file format import and export use | M8 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database, with a file form for import and export, and every change to it made through the UI. The operator said on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file, and on 2026-09-26 that this is done through the UI, which also adds and updates rules, including by searching the stored senders and selecting them as sensitive senders. The first thing that needs it is supplying the policy at [production point 1](#production-point-1--the-read-path), so M8 decides how an import meets the rules already stored, the file's format, and the writes the UI's role gains ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). The row-level security policy on the policy rules lets a writer name only its own account, never the base policy's null one, so M8 also decides how the UI writes base rules |
+| How importing and exporting the policy behave in the UI, including the file format they use | M8 | [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md) keeps the policy in the database, with a file form for import and export, and every change to it made through the UI. The operator said on 2026-09-17 that the policy lives in the database and can be imported from or exported to a file, and on 2026-09-26 that this is done through the UI, which also adds and updates rules, including by searching the stored senders and selecting them as sensitive senders. Adding, editing and lifting rules and picking stored senders are designed in [docs/UI.md section 8.7](./docs/UI.md#87-policy), and the operator set the import and export apart on 2026-10-01 to be designed on their own. The first thing that needs them is supplying the policy at [production point 1](#production-point-1--the-read-path), so M8 decides how an import meets the rules already stored, the file's format, and the writes the UI's role gains ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)) |
+| How the UI writes base rules and their policy history rows, and reads the base policy with no account named | M8 | [docs/UI.md section 8.7](./docs/UI.md#87-policy) writes base rules, adding, editing and lifting them, from an account's policy screen, and [section 8.14](./docs/UI.md#814-base-policy) from the base policy's installation screen, in a request that names no account and may come before any account exists, and [ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md) appends a history row for each, with no account for a base rule's. The row-level security policy on the policy rules lets a writer name only its own account, never the base policy's null one, which a proven row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) holds ("written by none"), so no role can write a base rule today. The base policy's installation screen and the installation endpoint also read the base rules and the base policy's history with no account named, and the transaction helper of [ADR-0016](./docs/adr/data/0016-schema.md) fails a transaction whose account is unset, as a proven row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) holds, so no such read runs today either. The UI's policy management is the first work that writes a base rule or reads one with no account, so it decides how, and those rows are revisited with the answer |
 | How the audit of every applied and refused mutation is guaranteed | M1 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the violation to refuse, a mutation reaching the provider with no audit row. It has no injection for it until a record decides between two mechanisms, writing the audit row before the provider call, or a structural check that refuses any path without an audit row. M1 writes the first audited mutation, so it decides, and M2's apply follows the same answer |
 | Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value has not been chosen. The UI reads the same value from configuration ([docs/UI.md](./docs/UI.md)), and the value settled here is also that key's default, so the plans screens M6 builds follow this answer |
 | How an approved plan starts applying, and how a rollback is requested | M2 | [ADR-0022](./docs/adr/operability/0022-four-workloads.md) starts apply on human approval and [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) rolls back by replaying the op log, and neither says what starts either one. The UI only writes the plan's status and never calls the mediator ([docs/UI.md](./docs/UI.md)). The reorg workload's composition root depends on the answer, so it is decided where that root is built |
 | Whether R3 keeps any work or is retired | X4, R3 | R3 packaged the inputs a second account and the Fastmail backend needed. Accounts and their credentials are now connected through the UI ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), which leaves it no input named anywhere. Whether X4 adds anything to the chart is known once the JMAP adapter is built, so it is decided there |
 | Which pull request closes a packaging ticket whose proof needs a release published after it merges | R1 | An R unit is proven by running the chainsaw suite against the images published for a release ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), and that release is only cut after the pull request that changes the chart has merged. [CLAUDE.md](./CLAUDE.md#repository-process) says a ticket is closed by the pull request that meets its part of the unit's acceptance. Nothing says which pull request closes a packaging ticket in that case, or who starts the chainsaw run. It is decided where the first packaging unit is built, and R2 and R3 follow it |
-| How the per-account rule holds for the screens that belong to no account | M7 | [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md) makes every view per account, with the account in the URL, and [docs/UI.md](./docs/UI.md) names policy as the one exception. A first run and the screen that connects an account have no account yet, and OAuth client setup belongs to the whole installation, not to any account. The setup screens are the first work that needs the answer, so it is decided in their design |
-| Where the consent code lives so the UI links it without the Gmail adapter | M7 | [ADR-0083](./docs/adr/provider/0083-gmail-through-an-installation-oauth-client.md) has the UI run the consent with the PKCE, state and wrong-mailbox checks, which sit in the Gmail adapter's package today beside the code that calls the mailbox. The UI's import list refuses provider adapters, proven by its row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the developer's consent command shares the same code. The UI's Gmail connection is the first work that needs the answer, so it is decided there |
-| How a newly added policy rule changes the classifications already stored in the index | M8 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) says policy edits reclassify senders, and [docs/UI.md](./docs/UI.md) shows a confirmed rule as in effect, but nothing says how a new rule changes classifications already stored. The UI's policy management adds rules to a filled index, so it is the first work that needs the answer and it is decided there. M4 and M5 come after M8 and follow the same answer |
+| Where the consent code lives so the UI links it without the Gmail adapter | M7 | [ADR-0107](./docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md) has the UI run the consent with the PKCE, state and wrong-mailbox checks, which sit in the Gmail adapter's package today beside the code that calls the mailbox. The UI's import list refuses provider adapters, proven by its row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the developer's consent command shares the same code. The UI's Gmail connection is the first work that needs the answer, so it is decided there |
+| Where a consent attempt is held so it survives which replica answers and a reload of the page | M7 | [docs/UI.md section 8.12](./docs/UI.md#812-connect-an-account-and-re-authorize) holds an attempt for the session that started it, across a reload and whichever replica answers, and the UI may run more than one replica (its `token_key_file` exists for that). An attempt held in one process's memory would be lost to the other replica, and a store shared between replicas is a write [ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)'s closed grant does not name. The UI's account setup is the first work that holds an attempt, so it is decided there |
+| How a newly added policy rule changes the classifications already stored in the index | M8 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) says policy edits reclassify senders, and [docs/UI.md](./docs/UI.md) shows how far the index's stored classes have caught up with a rule, but nothing says how a new rule changes classifications already stored. The UI's policy management adds rules to a filled index, so it is the first work that needs the answer and it is decided there. M4 and M5 come after M8 and follow the same answer |
 | What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet |
 | How a reorganization renames and deletes a label at the provider | M2 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) plans creating, renaming and deleting labels, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md)'s port has `ensure_label` and `mutate` and nothing to rename or delete a label. It is decided where apply is built, together with any addition to the port, the provider fake and the contract suite |
 | Whether a plan touching exactly a quarter of the corpus needs the second confirmation | M5 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) requires it for a plan touching more than a quarter, and [docs/UI.md](./docs/UI.md#82-plan-reviewer) for a plan touching a quarter or more. It is decided where approve, and the server's recalculation of the plan's share, are built |
@@ -1588,7 +1650,7 @@ index](./docs/adr/README.md).
 | Which credentials the contract suite's run against a real provider holds | X2, X4 | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) runs it on an account set aside for testing, never the real mailbox, assuming nothing about what the account holds and deleting nothing, and [TESTING.md](./TESTING.md#when-tests-run) says where its credentials are held. For Gmail the operator ruled that nothing deletes mail, the test harness included, and supplies an old, unused account whose contents the run must not assume. So the run holds the adapter's modify grant alone and adds its messages by insertion, which that grant permits. The operator also ruled that the run may move a message it added to the trash and leave it there for Gmail to purge. Each later adapter unit settles its own provider |
 | Whether a Fastmail mail token can be issued without the ability to permanently delete mail | X4 | [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) requires that the granted token cannot permanently delete, [ADR-0012](./docs/adr/provider/0012-fastmail-scoped-jmap-tokens.md) scopes Fastmail tokens by protocol, and [DESIGN.md](./DESIGN.md) treats a capability missing from a credential as a guarantee wherever the provider allows it. No record says whether a Fastmail mail token can leave out permanent delete, or what takes its place if it cannot. The JMAP adapter is the first work that holds that token, so it is decided there, and its run against Fastmail is followed by a delete attempted by hand |
 | How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
-| How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md) has the accounts of one installation share its OAuth client and so its Cloud project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
+| How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) lets accounts share an OAuth client and so its Cloud project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
 | Whether the rate may rise above the target so a ceiling above the declared one can be found | X4 | [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md) keeps the rate between the floor and the target, which is half the declared ceiling, so the controller can find only a lower real ceiling. [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) has the controller discover JMAP's budget from a conservative guess, which needs finding a higher one, and [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)'s own alternatives count discovery as the only way to find JMAP's. ADR-0024's token bucket and one-second window are sized from the hard cap, which the answer does not move. Gmail publishes its ceiling, so only the JMAP adapter depends on the answer, and it is decided there |
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
 | How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which row-level security confines to one account, so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role joins ADR-0091's list of roles |

@@ -11,8 +11,9 @@ directory carries its own notes.
 The decisions behind this design that had alternatives live as decision records, indexed at
 [docs/adr/README.md](./adr/README.md), and are cited here by number. The outcome the UI serves is
 [O4](../USE_CASES.md#o4--the-operator-can-see-and-steer). The rules that bound it are ADR-0084's,
-via the [decision-record index](./adr/README.md). The UI carries two decisions, OAuth client setup
-and account setup as its only writes, is read-mostly, and never displays a message body. Build
+via the [decision-record index](./adr/README.md). The UI carries two decisions, OAuth client setup,
+account setup and policy management as its only writes, is read-mostly, and never displays a
+message body. Build
 state lives in [ROADMAP.md](../ROADMAP.md), never here. Vocabulary is defined in
 [DESIGN.md's Glossary](../DESIGN.md#glossary), never here.
 
@@ -38,6 +39,9 @@ needs a decision, see what is worth a look, decide, and leave.
 Every view is per account. The account is chosen explicitly, is always visible, and nothing is ever
 aggregated across accounts. This is the operator's ruling, not a consequence of
 [P3](../USE_CASES.md#p3--multi-account), whose isolation binds clients and credentials.
+What belongs to no account, the installation's OAuth clients, the base policy, the list of
+accounts and the first run before any account exists, has installation screens of its own, which
+show no account's data ([section 8.10](#810-installation), ADR-0056).
 
 The UI has no authentication of its own in the first version. A deployment may place it behind
 an ingress that forwards to an authenticating proxy and passes the identity in a declared header,
@@ -66,8 +70,9 @@ to start. Any record cited in a section and not listed here is read when that se
    the browser framework, the browser's tests, and the contract pipeline are what they are, and
    what was rejected.
 5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0093, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
-   ADR-0022, ADR-0025, ADR-0018, for the mechanisms the screens display. Read each when building
-   the screen that shows it.
+   ADR-0022, ADR-0025, ADR-0018, for the mechanisms the screens display, and ADR-0080, ADR-0081,
+   ADR-0106, ADR-0107, ADR-0091, ADR-0097, ADR-0024, ADR-0037, ADR-0041 and ADR-0102 for the setups, the
+   account settings and the policy writes. Read each when building the screen that shows it.
 6. [TESTING.md](../TESTING.md), ADR-0043, ADR-0044, and the UI's rows in
    [docs/VERIFICATIONS.md](./VERIFICATIONS.md), before writing a test.
 7. [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) and
@@ -138,9 +143,9 @@ The navigation rules that make this analysis rather than page-hopping:
 
 | Scope | Rule |
 | --- | --- |
-| account | mandatory, the first path segment, never implicit, never `all` |
+| account | mandatory, the first path segment, never implicit, never `all`, on every route but the installation screens' of [section 8.10](#810-installation), which belong to no account |
 | time range | `range=` with the grammar below. UTC on the wire and in the display, with the `Z` suffix, local time on hover |
-| search | a filter named `search` on the `messages` dataset only, declared in the registry as a filter-only entry of kind text, legal at every level. A case-insensitive substring match over the masked subject through the index's trigram index. The search box submits `/{account}/messages?level=3&search=…`. Sender and label search are the ordinary `sender` and `label` filters |
+| search | a filter named `search`, declared in the registry as a filter-only entry of kind text, legal at every level, on three datasets. On `messages` it is a case-insensitive substring match over the masked subject through the index's trigram index, and the search box submits `/{account}/messages?level=3&search=…`. On `senders` it is a case-insensitive substring match over the domain, the sender picker's search of [section 8.7](#87-policy). On `rules` it is a case-insensitive substring match over the rule identifiers and the domain suffixes, the search box above the policy screen's table. Sender and label search on messages are the ordinary `sender` and `label` filters |
 
 **The route table.** The entry route first, then the fixed screens, the object screens, and the
 lens routes, which exist only for the five analysis datasets. The URL is the view state. The
@@ -150,8 +155,16 @@ every dataset the default-range table gives a range.
 
 | Route | Screen |
 | --- | --- |
-| `/` | redirects to `/{account}` for the account last used in this browser, else the first account by identifier |
+| `/` | redirects to `/{account}` for the account last used in this browser, else the first account by identifier, else to `/setup` when no account exists |
+| `/setup` | Installation ([8.10](#810-installation)) |
+| `/setup/{provider}/new?step=N` and `/setup/{provider}/{client}?step=N` | OAuth client setup ([8.11](#811-oauth-client-setup)), for a new client and for the client named `{client}`, `{provider}` one that authenticates through an OAuth client, `gmail` today, `step` the step in view, and `&guide=side` the compact layout of its side window |
+| `/setup/connect?client=…` | Connect an account ([8.12](#812-connect-an-account-and-re-authorize)), `client=` the client chosen to connect through |
+| `/setup/policy` and `/setup/policy/{rule-id}` | Base policy and one base rule ([8.14](#814-base-policy)) |
+| `/setup/policy/new?suffix=…&id=…` | Add a base rule, the panel over the base policy screen, `id=` the identifier a restore fills in ([8.14](#814-base-policy)) |
+| `/setup/policy/history?…` | The base policy's history, the `policy_changes` dataset's base rows ([8.14](#814-base-policy)) |
 | `/{account}` | Home ([8.1](#81-home)) |
+| `/{account}/account` | Account settings ([8.13](#813-account-settings)) |
+| `/{account}/account/reauthorize?client=…` | Re-authorize the account ([8.12](#812-connect-an-account-and-re-authorize)), `client=` another client to move the account to |
 | `/{account}/plans` | Plans ([8.9](#89-plans)) |
 | `/{account}/plans/{plan-id}?section=…` | Plan reviewer ([8.2](#82-plan-reviewer)) |
 | `/{account}/plans/{plan-id}/ops?…` | the plan's operations ladder, the `ops` dataset with `plan` as its parent, shown inside the reviewer's Flows section |
@@ -162,13 +175,22 @@ every dataset the default-range table gives a range.
 | `/{account}/jobs` | Jobs ([8.3](#83-jobs)) |
 | `/{account}/jobs/{run-id}?…` | Run ([8.4](#84-run)), whose ladder is the `failures` dataset with `run` as its parent |
 | `/{account}/jobs/{run-id}/failures/{seq}` | one failure, the panel over the run's L3 |
-| `/{account}/policy` and `/{account}/policy/{rule-id}` | Policy ([8.7](#87-policy)) |
+| `/{account}/policy` and `/{account}/policy/{rule-id}?suffix=…` | Policy and one rule, `suffix=` opening Edit domains with those suffixes added ([8.7](#87-policy)) |
+| `/{account}/policy/new?suffix=…&scope=…&id=…` | Add a rule, the panel over the policy screen, `suffix=` or `search=` carrying the senders picked into it, and `scope=` and `id=` the scope and identifier a restore or a change of scope fills in ([8.7](#87-policy)) |
+| `/{account}/policy/pick?search=…&pick=…` | Restrict senders from the index, the `senders` dataset at L3, `pick=` the selected domains, or `pick=all` for every sender the search matches ([8.7](#87-policy)) |
+| `/{account}/policy/history?…` | Policy history, the `policy_changes` dataset ([8.7](#87-policy)) |
 | `/{account}/system` | System ([8.8](#88-system)) |
 | `/{account}/{dataset}?group=a&level=N&range=…&{dimension}={value}…` | an analysis lens ([8.5](#85-the-analysis-lenses)), `{dataset}` one of `messages`, `senders`, `masking`, `gate`, `audit` |
 | `/{account}/{dataset}/{row-id}` | one row, the panel over the lens's L3. Not for `senders`, which has no row detail; its rows link out to `messages?sender=` |
 
-The fixed and object routes are matched before the lens route, so `plans`, `candidates`, `jobs`,
-`policy`, and `system` are never read as dataset names. Switching account from an object route
+The installation routes are matched before every account route, and the fixed and object routes
+before the lens route, so `setup` is never read as an account and `plans`, `candidates`, `jobs`,
+`policy`, `account`, and `system` are never read as dataset names. Account setup refuses an account
+identifier equal to a top-level path segment the UI serves, OAuth client setup a client name equal
+to `new` or not shaped like a project ID, and the policy screens a rule identifier equal to one of
+their own route words, exactly `.` or `..`, or holding a `/`, so no account, client or rule is
+unreachable ([sections 8.12](#812-connect-an-account-and-re-authorize),
+[8.11](#811-oauth-client-setup) and [8.7](#87-policy)). Switching account from an object route
 goes to that object's list under the new account (a plan to the plans list, a candidate to the
 queue, a run to Jobs, a row detail to its lens).
 
@@ -195,6 +217,7 @@ that carries no filter at all was the alternative, and it would leave a hand-wri
 | Dataset | Default range |
 | --- | --- |
 | messages, senders, candidates, plans, rules | all time |
+| policy_changes | last 30 days |
 | masking, gate, runs | last 7 days |
 | audit | last 24 hours |
 | ops, failures | bounded by their parent, no range |
@@ -215,10 +238,11 @@ is a dataset.
 | `runs` | job runs | none | no |
 | `failures` | a run's item failures | `run`, required | yes |
 | `rules` | policy rules | none | no |
+| `policy_changes` | the policy history, one row per change to a rule (ADR-0102) | none | no |
 
 The op log, the accounts table, and the rate state are read by the bespoke endpoints of
 [section 17.4](#174-the-bespoke-endpoints), never as datasets. Row detail exists for `messages`,
-`masking`, `gate`, `audit`, `ops`, `failures`, and `rules`. `senders` has none. `plans`,
+`masking`, `gate`, `audit`, `ops`, `failures`, and `rules`. `senders` and `policy_changes` have none. `plans`,
 `candidates` and `runs` have none as datasets, because their row paths belong to the bespoke
 screens.
 
@@ -233,18 +257,21 @@ its own over the run's failures, with its own row detail, which a 480 px panel c
 | --- | --- | --- |
 | Corpus | messages, senders | |
 | Sensitivity | masking, gate | |
-| Policy | candidates, rules | |
+| Policy | candidates, rules, policy_changes | the match counts behind adding a rule |
 | Change | plans, ops | the op log, through the plan endpoint |
 | Audit | audit | |
 | Jobs | runs, failures | the jobs summary, the run summary |
-| System | | accounts, rate state, the system summary |
+| System | | accounts, rate state, the system summary, the account |
+| Installation | | the installation summary |
 
 **Policy is the one exception to per-account rows.** Policy lives in the database, as ADR-0004's
 base policy shared by every account and ADR-0085's per-account overlays, so it is not one
 account's data. `/{account}/policy` shows the base rules, marked "base", and the account's overlay
-rules (ADR-0004). No row of another account's data is shown, so the per-account rule of
-[section 1](#1-what-the-ui-is-for) is not breached. Nothing else on any screen shows a row outside
-the account in the path.
+rules (ADR-0004), and base rules are written from it as well as the account's own
+([section 8.7](#87-policy)). The base policy alone also has an installation screen, which needs no
+account to exist ([section 8.14](#814-base-policy)). No row of another account's data is shown, so
+the per-account rule of [section 1](#1-what-the-ui-is-for) is not breached. Nothing else on an account's screens shows a row
+outside the account in the path.
 
 **Decisions.** Two, each with two outcomes. A plan is approved or rejected, a candidate is
 confirmed or dismissed. Four requests carry them, all by database grant (ADR-0084), which calls
@@ -252,12 +279,13 @@ them its two decision verbs. No request exists for retrying a job, triggering a 
 editing policy other than through the policy management of [section 8.7](#87-policy).
 
 **OAuth client setup and account setup.** Two separate flows over two separate stored records
-are the UI's other writes (ADR-0080, ADR-0083, ADR-0084). OAuth client setup runs once per
-installation for each provider that authenticates through an OAuth client, and sets up the client
-every account of that provider connects through. Account setup connects an account through that
-client, sets what the account's rows hold, and re-authorizes an account whose credential stopped
-working. The UI seals the client's secret and each credential it receives and cannot open a stored
-one (ADR-0081). The screens of both are not yet designed ([section 20](#20-what-remains-open)).
+are the UI's other writes (ADR-0080, ADR-0084, ADR-0106, ADR-0107). OAuth client setup runs once
+per client, and an installation holds any number of clients for each provider that authenticates
+through one. Account setup connects an account through one of its provider's clients, shared with
+other accounts or its own, sets what the account's rows hold, and re-authorizes an account whose
+credential stopped working, through the same client or another of the provider's. The UI seals
+each client's secret and each credential it receives and cannot open a stored one (ADR-0081).
+Their screens are [sections 8.10](#810-installation) to [8.13](#813-account-settings).
 
 **Growth slots the shape already fits**, each arriving as a registered dataset. Calendar events
 (restriction on any participant, per ADR-0027), the second account (the scope selector earns its
@@ -273,12 +301,17 @@ Every screen shares one frame, top to bottom.
 
 | Region | Content, in order | Notes |
 | --- | --- | --- |
-| Top bar | the account selector, then the primary navigation (Home · Plans · Jobs · Corpus · Masking · Gate · Audit · Review queue · Policy · System), then search, then the settings menu, then the live indicator on live surfaces | The account selector shows the account identifier and its provider. Its menu lists every account from the accounts endpoint, each with its provider, and nothing else. Switching accounts keeps a lens's dataset and level and drops its filters, and follows [section 5](#5-information-architecture-and-the-url)'s rule from an object route. The settings menu holds the theme override (system, dark, light) and the keyboard map |
+| Top bar | the account selector, then the primary navigation (Home · Plans · Jobs · Corpus · Masking · Gate · Audit · Review queue · Policy · System), then search, then the settings menu, then the live indicator on live surfaces | The account selector shows the account identifier and its provider. Its menu lists every account from the accounts endpoint, each with its provider and no other value of it, then three links, Account settings for the account in view ([section 8.13](#813-account-settings)), Connect an account and Installation ([section 8.10](#810-installation)). Switching accounts keeps a lens's dataset and level and drops its filters, and follows [section 5](#5-information-architecture-and-the-url)'s rule from an object route. The settings menu holds the theme override (system, dark, light) and the keyboard map |
 | Address line | the URL of the current view, as text, selectable | It is the share handle. It updates on every navigation |
 | Breadcrumb | the applied filter chips in the order applied, each removable, preceded by the lens or object name | Absent on Home. On a plan or a run it starts with the object |
 | Range control | on every dataset with a range, the presets (last 24 hours, 7 days, 30 days, 90 days, all time) and a custom UTC range with a start and an end, writing `range=` | Sits at the right of the breadcrumb line |
 | Group-by control | the dataset's groupable dimensions, in the registry's order, writing `group=` | Sits beside the range control, on levels 1 and 2 |
 | Body | the screen | |
+
+An installation screen ([section 8.10](#810-installation)) has the same frame with no account in
+view. The account selector reads "Installation". The primary navigation is the installation's
+own, Setup · Base policy, and search, the range control and the group-by control are absent, since
+each of them belongs to an account. The breadcrumb starts with "Installation".
 
 The primary navigation marks the current screen. Review queue shows the count of pending
 candidates and Jobs shows a running mark when any workload is running, both read from the system
@@ -354,15 +387,22 @@ the shape the index used to have. It lost because a reader could not tell which 
 axis. When no rule set the class (ADR-0016 names when), its rule shows as "none", as an empty list
 of rule ids that fired does, never as an empty cell.
 
-### 7.2 The sender row, the audit row, and the page row
+The rule id that set the sender class links to that rule's screen, `/{account}/policy/{rule-id}`. A
+sender class read `normal` carries the control "Restrict {domain}…", which opens Add a rule at
+`/{account}/policy/new?suffix={domain}` ([section 8.7](#87-policy)), so a restriction starts where
+the need to make one arises. Both follow the rule above, that the UI links only to screens that
+exist.
 
-Three more row types exist, each with the same rendering rules as the message row.
+### 7.2 The sender row, the audit row, the page row, and the policy change row
+
+Four more row types exist, each with the same rendering rules as the message row.
 
 | Row | Fields, in order | Where |
 | --- | --- | --- |
-| sender row | domain (mono, links to `messages?sender=` this domain), sender class badge, message count, first seen, last seen, list-id ratio as a percent, scan hits | the `senders` dataset at L3, the review queue's sender statistics |
-| audit row | time, actor (mono), action wording, then the message row's fields when the row has a message and nothing when it does not | the `audit` dataset at L3, the row detail's audit list |
+| sender row | domain (mono, links to `messages?sender=` this domain), sender class badge, message count, first seen, last seen, list-id ratio as a percent, scan hits, and for a `normal` sender the control "Restrict {domain}…" of [section 7.1](#71-the-message-row) | the `senders` dataset at L3, the review queue's sender statistics |
+| audit row | time, actor (mono), action wording, then the message row's fields when the row has a message and nothing when it does not. The detail of a body served whose sender is `normal` carries "Restrict {domain}…" as the message row's detail does | the `audit` dataset at L3, the row detail's audit list |
 | page row | page number, error class, attempts, last error time, disposition, and the recovering run where recovered | a run's failures whose item is a page rather than a message |
+| policy change row | time, identity (mono), the action's wording, the rule identifier (mono, linking to the rule while it exists), the scope as a badge (`base`, or the account), and the change as suffix chips, `+domain` in the ok color for a suffix an edit added and `−domain` in the restricted color for one an edit or a lift removed, and the rule's suffixes unmarked for a change that created the rule, added or confirmed. A lift, and an edit that removed suffixes, end with "Restore" ([section 8.7](#87-policy)) | the `policy_changes` dataset at L3, a rule's history |
 
 The dimension `sender` is the domain (`from_domain`) everywhere. The filter `from` is the address.
 
@@ -529,7 +569,7 @@ one row per value, each a link.
 | operational | backfill pass 2, percent and pending count | the corpus lens with `scan_state=pending` |
 | operational | sync cursor age and last successful tick | Jobs |
 | operational | rate, current of target, cap, backoff wording | Jobs |
-| operational | last provider authentication outcome and time | System |
+| operational | last provider authentication outcome and time | Account settings ([section 8.13](#813-account-settings)) |
 | corpus | audit last 24 hours, one row per action (body served, body denied, mutation applied, mutation refused) | the audit lens at L3 with `action=` that value and `range=24h` |
 | corpus | messages | the corpus lens at L1 |
 | corpus | threads | the corpus lens at L1 |
@@ -548,11 +588,11 @@ masking lens's count, which counts only the masks of each subject as it now stan
 
 States. With no plans and no candidates, the inbox says "Nothing awaits your decision" and the
 column keeps its height. With backfill pass 1 not started, which is pass 1 neither complete nor
-with a run, the strip shows the workload as not started and the corpus rows say the index is
-empty. While a pass runs, the partial-index banner
-of [section 12](#12-empty-loading-partial-and-error-patterns) sits above the columns and the corpus
-rows show counts so far. A failed read on one region shows that region's error card and leaves
-the others alone.
+with a run, the strip shows the workload as not started, and the partial-index banner of
+[section 12](#12-empty-loading-partial-and-error-patterns) says indexing has not started, so the
+corpus rows' counts read as counts so far and an empty index never reads as final. While a pass
+runs, the banner sits above the columns and the corpus rows show counts so far. A failed read on
+one region shows that region's error card and leaves the others alone.
 
 ### 8.2 Plan reviewer
 
@@ -814,17 +854,19 @@ Messages and Senders, each a route.
 | Lens | L0 figures | Default view | Dimensions offered | Row |
 | --- | --- | --- | --- | --- |
 | Corpus, Messages tab (`messages`) | messages, threads, unfiled with percent, restricted messages, pending scan | L1 by sender, all time | sender, label, sender class, scan state, content flag, month | the message row |
-| Corpus, Senders tab (`senders`) | senders, restricted senders, senders with scan hits | L3 by message count | sender class, month of first seen | the sender row |
+| Corpus, Senders tab (`senders`) | senders, restricted senders, senders with scan hits | L3 by message count | sender class, month of first seen | the sender row, with "Restrict {domain}…" on each `normal` sender |
 | Masking (`masking`) | events, rules that fired, senders | L1 by rule, last 7 days | rule, tier, sender, day | the message row plus rule and tier |
 | Gate (`gate`) | decisions, scans, skips, and pending backlog, which is unranged and labelled "now" | L1 by decision, last 7 days | decision, reason, sender, day | the message row plus decision and reason |
 | Audit (`audit`) | body served, body denied, mutation applied, mutation refused, and the body-serve count against its median over the seven whole UTC days before the range's start | L1 by action, last 24 hours | action, actor, sender class, rule, hour | the audit row |
 
 The corpus lens's label grouping shows unfiled as its own group. A sender row's domain links to
-`messages?sender=` that domain. Audit rows without a message fall into the `none` group of the
-message-derived dimensions and count as neither restricted nor flagged. After a change of scanner
-every subject is masked again, and the masking events of the maskings it replaced stay in the table,
-so the masking lens and home's masking rule count a message's current masks by reading only the
-events whose scanner version and revision equal those its subject was masked under
+`messages?sender=` that domain. The Senders tab also offers "Restrict senders…", which carries its
+`search=` to the sender picker at `/{account}/policy/pick` ([section 8.7](#87-policy)). Audit rows
+without a message fall into the `none` group of the message-derived dimensions and count as
+neither restricted nor flagged. After a change of scanner every subject is masked again, and the
+masking events of the maskings it replaced stay in the table, so the masking lens and home's
+masking rule count a message's current masks by reading only the events whose scanner version and
+revision equal those its subject was masked under
 ([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)).
 
 ### 8.6 Review queue
@@ -867,37 +909,180 @@ signal shows "no signal recorded".
 | Sender statistics | the sender row's fields, then display names seen, sampled local parts, the label distribution as label and count pairs, and the current sender class |
 | Messages | the sender's messages as message rows, L3, newest first |
 
-Above the outcomes, one sentence: "Confirming makes {domain} a restricted sender. Its bodies deny
-from the next classification and its messages become organize-only." Dismiss writes the candidate's
-status, reviewed time, and reviewer, the columns ADR-0084 grants. Confirm writes the same three and,
-in the same transaction, inserts the policy rule row the confirmation emits (ADR-0004), with rule id
-`candidate.{account}.{domain}`, the candidate's account as its account (an overlay rule, never the
-base policy), the candidate's domain as its suffix, the restricted class, the source `candidate`,
-and the operator identity as its creator. Both are one transaction written by the UI's own code,
-with no database-resident code (ADR-0060). The request carries the domain and the status the screen
-shows, pending or dismissed, so a dismissed candidate may be confirmed later. A confirmed candidate
-cannot be dismissed from the UI. Undoing a confirmation is a policy edit this screen does not
-make. After either outcome the row stays in place with its new status until the operator
+Above the outcomes, one sentence: "Confirming makes {domain} a restricted sender. From each
+process's next policy reload its bodies are denied and its messages become organize-only."
+Dismiss writes the candidate's status, reviewed time, and reviewer, the columns ADR-0084 grants.
+Confirm writes the same three and, in the same transaction, inserts the policy rule row the
+confirmation emits (ADR-0004), with rule id `candidate.{account}.{domain}`, the candidate's
+account as its account (an overlay rule, never the base policy), the candidate's domain as its
+suffix, the restricted class, the source `candidate`, and the operator identity as its creator,
+and the rule's row in the policy history (ADR-0102). Both are one transaction written by the UI's
+own code, with no database-resident code (ADR-0060). The request carries the domain and the status
+the screen shows, pending or dismissed, so a dismissed candidate may be confirmed later. A
+confirmed candidate cannot be dismissed from the UI. Undoing a confirmation is a policy edit this
+screen does not make. After either outcome the row stays in place with its new status until the operator
 navigates, the pending count in the navigation updates from the response, and focus stays where it
-was. A confirmed row shows "confirmed, not yet in effect" until the index's sender class for the
-domain reads restricted, then "in effect".
+was. A confirmed row shows "confirmed, index not yet updated" until the index's sender class for
+the domain reads restricted, then "confirmed, index updated", the measure the policy screen's
+"index updated" column takes ([section 8.7](#87-policy)).
+
+A confirmed candidate whose signal names a listed domain, as the display-name and clustering
+signals do, also shows "Also add to {rule}…", where {rule} is the rule that lists that domain. It
+opens Edit domains on that rule with the candidate's domain added
+([section 8.7](#87-policy)), so the institution's own rule can learn its domain. Confirm itself is
+unchanged.
 
 ### 8.7 Policy
 
-`/{account}/policy`. Read-only, the `rules` dataset. Rows sorted by rule id, the base rules
-marked "base" and the account's overlay rules after them, each with rule id, class, domain
-suffixes, source (operator, or the candidate it came from), created time and identity, and the
-count of senders in the index it matched. A rule opens to the senders it matched as sender rows.
-A sender matches a rule when its domain, normalized as ADR-0004 states, ends with one of the
-rule's suffixes at a label boundary, and a sender counts under every rule it matches. Policy is
-held as rows and snapshotted by every process (ADR-0004, ADR-0041), and this screen is the one
-exception to per-account rows stated in [section 5](#5-information-architecture-and-the-url).
+`/{account}/policy`, the `rules` dataset. Rows sorted by rule id, the base rules marked "base" and
+the account's overlay rules after them, each with rule id, scope (a badge, `base` or the
+account), domain suffixes, source (operator, or the candidate it came from), created time
+and identity, the count of senders in the index it matched, and "index updated, {k} of {n}", the
+matched senders whose stored sender class reads restricted of all it matches. Its hover reads
+"Bodies are denied from each process's next policy reload. This counts the senders whose stored
+class reads restricted." A
+sender matches a rule when its domain, normalized as ADR-0004 states, ends with one of the rule's
+suffixes at a label boundary, and a sender counts under every rule it matches. Policy is held as
+rows and snapshotted by every process (ADR-0004, ADR-0041), and this screen is the one exception
+to per-account rows stated in [section 5](#5-information-architecture-and-the-url). The L0 strip
+counts the base rules, the account's rules and the senders restricted in the account, and shows
+the time of the latest change with a link to the history. Above the table sit three actions, Add a
+rule, Restrict senders from the index and History, and a search box, the `rules` dataset's
+`search` filter ([section 5](#5-information-architecture-and-the-url)), which answers which rule
+holds a domain. With no overlay rule, the account's part of the table reads "No rules for
+{account} alone. The base rules above apply to every account."
 
-Every change to policy is made through the UI (ADR-0004). That is importing the policy from a
-file and exporting it to one, adding and editing rules, and searching the stored senders and
-picking them as sensitive senders into the policy. Their requests and screens are designed where
-they are built, together with the writes they add to the UI's grant (ADR-0084), and this section
-describes the read-only screen until then.
+A policy edit reaches every process with no manual step and no restart, through the signal between
+deployables of ROADMAP's unit [F7](../ROADMAP.md#group-f--foundation), and each process then loads
+the policy. This screen's sentences about a process's next policy reload rest on that.
+
+Every change to policy is made through the UI (ADR-0004), and every change is recorded in the
+policy history (ADR-0102). This section designs adding, editing and lifting rules and picking
+stored senders into the policy. Importing the policy from a file and exporting it to one are
+designed apart, with their file format ([section 20](#20-what-remains-open)).
+
+**A rule.** `/{account}/policy/{rule-id}` shows the rule's header (identifier in mono, scope,
+class, source, created time and identity), its domain suffixes, each with the senders and messages
+it matches in the account, the senders it matches as sender rows, and its history as policy
+change rows, the changes recorded under its identifier and its scope. Three actions, Edit domains,
+Change where this applies…, and set apart from them on the right, Lift restriction.
+
+**What a write may hold.** Every rule's class is restricted, the one class, shown on the rule's
+screen and never chosen. A rule is refused when its identifier is empty, carries surrounding space
+or is taken by any rule, or when it has no domain suffix or a suffix not shaped like a domain name.
+These are the checks the policy snapshot's validation makes when a process loads the policy
+(ADR-0041), and the UI makes them before it writes, so no write the UI makes fails that validation.
+A base edit landing while a process reloads can still fail that one reload, which is a separate
+open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)). Two refusals are the
+UI's own. An identifier that is one of this screen's route words, `new`, `pick` and `history`, or is
+exactly `.` or `..`, or holds a `/`, is refused so every rule can be reached, and so is one the account's policy history already records,
+so a rule's history is never another rule's, unless the identifier's latest history row in the same
+scope is a lift. That identifier may be added again, and its history then reads added, lifted,
+added, for one rule. An identifier a rule holds reads "This identifier is taken" and does not say
+where, since the rule holding it may be another account's. An identifier refused for its history
+alone reads "A rule lifted on {date} used this identifier." A suffix another rule already matches
+is allowed, and says which rule. The scope and the identifier cannot change once a rule is added. A
+rule moves scope through Change where this applies…, below.
+
+**Scope is chosen on every add.** "This account, {account}", the default, writes an overlay rule.
+"Every account (the base policy)" writes a base rule. The base policy also has an installation
+screen of its own, reachable with no account ([section 8.14](#814-base-policy)), and a base rule's
+screen here links to it. A base write carries the sentence "Applies
+to every account. The counts shown are {account}'s." Every count the screen shows is the account
+in view's alone, and nothing is summed across accounts.
+
+**Friction follows what a change lifts** ([section 10](#10-decisions-and-their-friction)).
+
+| Change | It | Asks |
+| --- | --- | --- |
+| Add a rule, or add a suffix to one | adds restriction only | no confirmation |
+| Lift an overlay rule, or remove a suffix from it | lifts a restriction in the account | the lift dialog |
+| Lift a base rule, or remove a suffix from it | lifts a restriction in every account | the lift dialog and the rule identifier typed |
+
+- **Add a rule** is the panel `/{account}/policy/new`, 480 px over the policy screen like a row
+  detail. Applies to, the rule identifier prefilled `operator.{account}.{first suffix}` for an
+  overlay rule or `operator.{first suffix}` for a base rule and editable, the domain suffixes one per
+  line, each checked as it is typed and shown with what it matches ("matches {n} senders ·
+  {m} messages in {account}"), and the class. The prefilled identifier follows the scope chosen
+  only until the operator edits it. The sentence above the button reads "Restricts {n} senders and
+  {m} stored messages in {account}. From each process's next policy reload their bodies are
+  denied." Add rule stays disabled while any line is refused. A suffix that is itself a public
+  suffix, or that matches more than a share of the account's senders, carries a warning on its
+  line, "This matches {share} of {account}'s senders. It is likely broader than one institution.",
+  which refuses nothing and asks no confirmation. Add a rule opened from the sender picker returns
+  to the picker, with its search and selection, on Cancel and on `Escape`.
+- **Edit domains** that only adds suffixes saves at once. An edit that removes any suffix shows the
+  change as a diff, `+` for each suffix added and `−` for each removed, and saving goes through the
+  lift dialog for the removed ones. An edit that would remove every suffix is not an edit, since a
+  rule needs one, and the screen offers Lift restriction instead.
+- **The lift dialog** is titled "Lift the restriction on {suffix or rule}". It states "In {account},
+  {n} senders and {m} stored messages are restricted by this {rule or suffix} and by no other rule.
+  From each process's next policy reload, their bodies are no longer denied for their sender. A
+  message scanned before the rule existed, or skipped by the scan gate, can then be released to the
+  agent at once. A message held as restricted goes back to pending scan when a scanning workload
+  next compares the index with the policy, and is released once a scan finds no code or link in
+  it. A body already released cannot be recalled." (ADR-0002, ADR-0037). The counts are the senders the account's policy without the change would no longer
+  restrict. For a base rule it adds "This is a base rule. These counts
+  are {account}'s. Each account's policy screen shows its own.", then "Every account loses it:
+  {identifiers}.", the account identifiers alone with no count, and asks for the rule identifier
+  typed before the button enables. Focus starts on Cancel. The button names the effect, "Lift
+  restriction on {suffix or rule}", outlined in the restricted color.
+- **Putting a lift back.** After any lift, the screen the operator lands on shows "Lifted {suffix
+  or rule}. Put it back", which adds back exactly what was lifted, under the same scope, with no
+  confirmation, since it only adds restriction. Bodies released before it lands stay released, so
+  the sooner it is put back the less is exposed. A history row whose action is lifted, or an edit
+  that removed suffixes, carries "Restore", which opens Add a rule
+  prefilled with the removed suffixes, the row's scope and its identifier
+  (`/{account}/policy/new?suffix=…&scope=…&id=…`), or Edit domains with the suffixes added when the
+  rule still exists.
+- **Change where this applies…** moves a rule between scopes, offering "Only {account}" on a base
+  rule and "Every account" on an overlay rule. It opens Add a rule prefilled with the rule's
+  suffixes, the other scope and a proposed new identifier. Once the add succeeds, it continues to
+  the old rule's lift dialog, whose counts are then 0 in the account in view, and which reads
+  "Nothing in {account} loses its restriction, since {new rule} covers every suffix." A base rule's
+  lift still asks for the identifier typed, since other accounts lose it. The move is two
+  transactions, the add and then the lift, each with its history row, and the add always comes
+  first, so the account in view never goes without the restriction between the two writes.
+
+What happens to the classifications the index has already stored when a rule is added is decided
+where policy management is built ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)), so
+the screen claims only what fetch-time re-evaluation guarantees, that bodies are denied from the
+next policy reload (ADR-0002), and shows the stored classes it reads through "index updated".
+
+**Restrict senders from the index.** `/{account}/policy/pick?search=…` is the `senders` dataset at
+L3 with its `search` filter, the sender row's fields, a selection box at the left, and for a
+restricted sender the rule restricting it. The row cursor and the selection are separate. `x`
+toggles the row under the cursor, and so does `Enter`, which here never opens the row, so a key
+cannot leave the picker and drop the selection. Opening the corpus stays on the domain's link.
+`Shift` with `j` or `k` extends, `Ctrl` or `Cmd` with `a` selects every sender the search matches
+across its pages, and `Escape` clears the selection before it closes anything. The selection rides
+in the address as `pick=` with the selected domains, or `pick=all` for every match, so Back and a
+reload keep it. A restricted sender cannot be selected. A bar at the bottom of the table appears
+on the first selection, reading "{n} senders · {m} messages selected", or "all {n} matching
+senders" when the selection spans pages, and offers Restrict as one rule, on `r` too, which opens
+Add a rule at `/{account}/policy/new?suffix=…` with the selected domains in the address as its
+suffixes, so the hand-off is a URL like every other view. A selection of every match hands over
+the search instead, as `?search=…`, and the panel lists the domains it matches. The selection makes
+one rule because a rule names one institution (ADR-0004), and a search for an institution's name
+finds its domains. The match count is announced as the search narrows. A search with no match
+reads "No senders match '{search}'".
+
+**History.** `/{account}/policy/history` is the `policy_changes` dataset, the base policy's
+changes and the account's own, newest first, at L3 by default with the range of
+[section 5](#5-information-architecture-and-the-url), groupable by action, scope and identity. Its L0
+figures are the changes in range, those that added restriction and those that lifted it. A lifted
+rule no longer exists, so its identifier renders without a link, and its row carries Restore.
+
+**Accessibility of the policy writes.** What the accessibility requirement of
+[section 16](#16-framework-requirements) means for these screens:
+
+| Element | Contract |
+| --- | --- |
+| Lift dialog | an `alertdialog`, labelled by its title and described by its consequence sentence and, for a base rule, its base sentences. Focus is trapped in it, starts on Cancel and returns to the control that opened it. The typed field states the expected value in its label, accepts paste, and compares after trimming surrounding space. The disabled Lift button says why, "Type the identifier to enable" |
+| Add a rule panel | the page behind it inert, as behind a row detail. Focus starts on Applies to, or on the Add button when the panel opens with suffixes from a hand-off. Each suffix line's verdict and match count is tied to its line as its description and announced politely once typing pauses, not on every key |
+| Sender picker | each selection box a checkbox labelled "Select {domain}". A restricted sender's box is disabled, described by "Already restricted by {rule}". The selection bar is a polite live region announcing "{n} senders, {m} messages selected", and the match count is announced as the search narrows |
+| Writes | each save, an add, an edit, a lift or the rate target of [section 8.13](#813-account-settings), announces its outcome in a status region, and a refusal moves focus to the refusal's text |
+| Selecting every match | `Ctrl` or `Cmd` with `a`, which selects rows on pages not in view, announces the count it selected |
 
 ### 8.8 System
 
@@ -906,7 +1091,7 @@ operational block, the values ADR-0034 exposes to clients, one to one. Backfill 
 flags with progress where a pass runs, sync cursor age and last successful tick, scan backlog
 depth, rate controller state (current of target, cap, backoff wording, last throttle), and the last
 provider authentication outcome with its time. Each links where Home's operational rows link, once
-the screen it links to exists.
+the screen it links to exists, and the rate row also links to the rate target it is changed at.
 
 The as-of time comes first, as in Home's System column, so a tab left open is visibly stale. Then
 one row per value, in this order.
@@ -914,15 +1099,15 @@ one row per value, in this order.
 | Row | Value | Links to |
 | --- | --- | --- |
 | account | the identifier in mono and the provider, and "not connected" when the account has no state row, which ADR-0091 reads as not connected | nothing |
-| backfill pass 1 | "complete", or while the pass's latest run is running "running, page {page} of {of} ({share})" with the progress bar of [section 7.3](#73-charts), else "not complete" | Jobs |
+| backfill pass 1 | "complete", or while the pass's latest run is running "running, page {page} of {of} ({share})" with the progress bar of [section 7.3](#73-charts), else "not started" while the pass has no run, else "not complete" | Jobs |
 | backfill pass 2 | as pass 1 | the corpus lens with `scan_state=pending`, once that lens exists |
 | sync cursor age | the age, with the UTC time on hover, or "no cursor yet" | Jobs |
 | last successful tick | the UTC time, or "none yet" | Jobs |
 | scan backlog | "{count} messages pending scan" | the corpus lens with `scan_state=pending`, once that lens exists |
-| rate | "{current} of {target} units/s, cap {cap} units/s", or "no rate state yet" for an account that has never spent | Jobs |
+| rate | "{current} of {target} units/s, cap {cap} units/s", or "no rate state yet" for an account that has never spent | Jobs, and the rate target of Account settings ([section 8.13](#813-account-settings)), where the target is changed |
 | backoff | the backoff wording of [section 11](#11-rendering-and-formatting-rules). A `backoff_until` already past reads "not in backoff" | Jobs |
 | last throttle | the UTC time, or "never" | Jobs |
-| last authentication | the outcome as recorded, then the UTC time, or "none recorded" | nothing, because Home's row links to this screen |
+| last authentication | the outcome as recorded, then the UTC time, or "none recorded" | Account settings ([section 8.13](#813-account-settings)), where a refused credential is re-authorized |
 
 A row whose screen does not exist yet renders its value unlinked and gains the link when that
 screen lands, since the UI links only to screens that exist. Linking ahead of the screen was the
@@ -954,6 +1139,408 @@ DRAFT. This screen is where APPLIED, ROLLED_BACK, REJECTED, and APPLY_REFUSED hi
 | outcome | applied with its run, rolled back with its run, refused with its reason, or blank |
 
 The L0 strip counts plans by status. A row opens the plan reviewer at its Summary section.
+
+### 8.10 Installation
+
+`/setup`, the first of the installation screens, which hold what belongs to no account (ADR-0056).
+They are this screen, OAuth client setup ([section 8.11](#811-oauth-client-setup)), connecting an
+account ([section 8.12](#812-connect-an-account-and-re-authorize)) and the base policy
+([section 8.14](#814-base-policy)). Of what is stored, an installation screen shows only three
+kinds of record, which belong to no account's own rows. They are each OAuth client's name,
+provider, client identifier and project ID, each account's identifier, provider and the client it
+connects through (ADR-0016, ADR-0091, ADR-0106), and the base policy's rules and their history
+(ADR-0004, ADR-0102). It reads and shows no stored account's state, counts or rows, so nothing
+aggregates across accounts, and an account's health is on its own Account settings
+([section 8.13](#813-account-settings)). The one account whose values an installation screen
+handles is the one being connected, whose identifier, mailbox and rate target the operator types,
+and connecting writes that account's rows alone, in a transaction set to it. Fed by the
+installation endpoint ([section 17.4](#174-the-bespoke-endpoints)). Not live.
+
+A title, "Installation", and one sentence saying what lives here. Then three regions.
+
+| Region | Content |
+| --- | --- |
+| Getting started | shown until an account exists. First a "Before you start" block. The whole setup takes about 15 minutes. It needs a Google account allowed to create Cloud projects, which need not be the mailbox, and the Gmail address to connect. Chrome or Edge keeps the guide on top of Google's console. Google warns that the app is unverified, which is expected. Then three items in order, "Set up a Gmail OAuth client", "Review the base policy" and "Connect an account", each with its status as text and a glyph, done (a filled check), not started (an open circle), optional (an open circle in muted text), or cannot start yet (a dashed circle in faint text, with no link). The base policy item is optional and never blocks the next, so it is never the current item. Its status reads "{n} base rules · optional", or "No base rules yet · optional", and its title links to the base policy, since a rule in place before the first account connects classifies that account's senders from its first backfill. Connecting reads cannot start yet until a client is set up. The current item carries its action |
+| OAuth clients | one row per client, grouped by provider, each with its name in mono, the client identifier in mono, shortened with the full value on hover, the project ID in mono when one is stored, and the accounts connected through it, their identifiers in mono, or "no account yet". Each row carries "Open in Google Cloud console", which opens the console's clients page for its project, Replace, linking to its setup, and Remove. Remove is enabled only while no account connects through the client, and otherwise says why, "{k} accounts connect through this client. Move them to another client from their settings first.", or for one account "1 account connects through this client. Move it to another client from its settings first." It asks a confirmation, "Remove the client {name}? Its sealed secret is deleted here. The client itself stays in Google Cloud console, where you can delete it.", and removes nothing else. Under each provider's rows, "Add a {provider} client" opens a new client's setup. A provider with no client shows its line "No {provider} client yet" with the same action |
+| Accounts | one row per account, the identifier in mono linking to the account's Home, the provider, the client it connects through in mono, and a "settings" link to its Account settings, then Connect an account, disabled with its reason while no provider an account can use has a client. While Getting started shows, this region carries no Connect control of its own, since Getting started holds it. With no account, one line, "No account is connected yet." |
+
+Whether accounts share one client or each has its own is the operator's choice
+(ADR-0106), and the screen says so once above the clients, "Accounts can share a client, or each use
+their own. A client set up in an organization's own Cloud project may choose the Internal
+audience, and then serves only that organization's mailboxes." Nothing recommends one over the
+other.
+
+`/` sends the browser here when no account exists ([section 5](#5-information-architecture-and-the-url)).
+
+### 8.11 OAuth client setup
+
+`/setup/{provider}/new` sets up a new client, and `/setup/{provider}/{client}` shows the client
+named `{client}`, for a provider that authenticates through an OAuth client, Gmail today (ADR-0106,
+ADR-0107). Each client is set up the same way, the first or any later one. Everything is done in
+Google Cloud console, with no command-line tool, and the UI carries the instructions for every
+step, so the operator never needs a guide from anywhere else. Not live.
+
+**The problem the layout answers.** The work happens in Google's tab, while the instructions live
+in the UI's. Instructions in full take more space than a step list can give, and an operator
+switching tabs to read the next click loses their place in both. So every step has two forms. A
+collapsed row of one line, and its full instructions, shown for one step at a time. The full
+instructions also go where the operator is looking: beside or over Google's tab.
+
+**The page.** A rail of the seven steps on the left, each with its status, and the steps as rows on
+the right, every step reachable in any order. The step in view is expanded and the others are one
+line each, its title and status. Opening a step, from the rail or its row, expands it and collapses
+the one before. The page opens on the first step not marked done.
+
+**A step expanded** holds, in order:
+
+1. One sentence of why, where the step needs one.
+2. "Open in Google Cloud console", which opens the step's console page and keeps this step
+   expanded. Every console link of every step opens in one named console tab, so the steps reuse
+   one tab rather than opening one each. From step 2 on, the link names the operator's project and
+   the step's first action is to check that the project picker at the top of the console shows it,
+   since a link may open in whichever project the console last had selected.
+3. Its instructions, a numbered list of at most seven actions, each naming the button or field as
+   Google labels it, in bold. A value to enter appears in the action as a mono chip with a copy
+   control.
+4. "Done when you see", one line naming what Google's page shows once the step is complete.
+5. "Looks different?", collapsed, giving the console menu path to the same page, since Google moves
+   and renames its console pages and its deep links are not documented as stable, and the one value
+   that matters on the step.
+6. "Done, open step {n+1}", which marks the step, opens the next step's console page in the console
+   tab and expands that step, and beside it a plain "Mark done", which marks the step and expands
+   the next without opening anything.
+
+**The guide beside Google's tab.** The page offers once, at its top, to put the instructions where
+the operator works, "Guide me on top of Google's console", and each expanded step offers it again.
+
+| Browser | Control | What opens |
+| --- | --- | --- |
+| one that supports Document Picture-in-Picture, as Chrome and Edge do | "Keep the steps on top" | a small window, about 340 by 520 pixels, that stays above every other window, Google's tab included. It shows the current step expanded, its "Open in Google Cloud console", its copy controls, "Done, open step {n+1}", Mark done and Back, and moves to the next step when one is marked done. Step 7's file drop and paste work inside it |
+| any other | "Open the steps in a side window" | a narrow window of the same page in a compact layout, opened sized and placed at the right edge of the screen where the browser allows, with the same controls as the small window |
+
+When the browser blocks the side window, the page says "Your browser blocked the window. Allow
+pop-ups for this site, or keep using this tab."
+
+The UI's tab follows the guide. A step marked done in either window opens the next step in both,
+and closing the small window leaves the page on the step the guide was at. The step in view rides
+in the address as `?step=N`, and the side window is the same address with `&guide=side`. The guide
+window holds only this page's own text, the step, its values and its controls, and nothing about
+any account. It loads the bundle's stylesheet by a link, since the content security policy refuses
+inline styles ([section 15](#15-security-of-the-ui-itself)).
+
+**The steps.** The labels and pages below are taken from Google's documentation, and the guide's
+wording is checked step by step against the live console when it is built. Where the console's
+answer is not documented, the done-state names what holds however the page draws it. The project
+identifier captured in step 1 fills the project of every later link.
+
+| Step | Console page (menu path) | Instructions | Done when you see |
+| --- | --- | --- | --- |
+| 1 Create the project | New project (Menu › IAM & Admin › Create a project) | Use any Google account you own. It does not need to be the mailbox you will connect. Enter **Project name** `mediated-mailbox`. Leave **Location** as **No organization** for a personal account. Press **Create**. Copy the **Project ID** shown under the name, and paste it into the field this step holds. If the console stays in another project, choose the new one in the project picker at the top | the new project's name in the project picker, and its ID pasted here |
+| 2 Enable the Gmail API | Gmail API in the API Library (Menu › APIs & Services › Library, search "Gmail API") | Check the project picker shows this project. Press **Enable** | the Gmail API's page no longer offering **Enable** |
+| 3 Set up Google Auth Platform | Google Auth Platform (Menu › Google Auth Platform › Overview) | Check the project picker. Press **Get started**. Under **App Information** enter **App name** `mediated mailbox` and choose your address as **User support email**, then **Next**. Under **Audience** choose **External**, then **Next**. Under **Contact Information** enter your address, then **Next**. Under **Finish** tick the agreement to Google's user data policy, then **Continue** and **Create** | Branding, Audience, Data Access and Clients reachable in Google Auth Platform's menu |
+| 4 Add the Gmail scope | Data Access (Menu › Google Auth Platform › Data Access) | Check the project picker. Press **Add or remove scopes**. Filter by `gmail.modify` and tick `https://www.googleapis.com/auth/gmail.modify`, or, only once step 2 is done, paste it into the box for adding scopes by hand. Press **Update**, and save the page if it offers to. Add no other scope | `gmail.modify` listed among the project's scopes |
+| 5 Publish to production | Audience (Menu › Google Auth Platform › Audience) | Check the project picker. Under **Publishing status**, press **Publish app**, and confirm. Google then marks the app as needing verification, which this client does not need, so leave it | **Publishing status** reading **In production** |
+| 6 Create the desktop client | Clients (Menu › Google Auth Platform › Clients) | Check the project picker. Press **Create client**. Choose **Application type** **Desktop app**. Enter **Name** `mediated mailbox`. Press **Create**. In the dialog, press **Download JSON**, or copy the **Client ID** and **Client secret** before closing it | the dialog "OAuth client created" |
+| 7 Bring the client back | none | Drop or choose the downloaded file, or paste the client ID and the client secret | Google's answer below |
+
+Each step carries its warnings in the restricted color with a glyph where the step can go quietly
+wrong.
+
+- **Step 2.** Google lists the Gmail scope in step 4 only once the API is enabled.
+- **Step 3.** Internal is offered only to an organization, and a personal account chooses External.
+  "Internal works only if every mailbox that connects through this client is in this organization.
+  External always works."
+- **Step 4.** The scope lets the system label and move mail and cannot permanently delete anything.
+  Google marks it restricted, which is expected.
+- **Step 5.** A client left in Testing has every grant expire after 7 days, so each account is
+  refused a week after it connects, and nothing here can see the setting. Google shows each consent
+  an unverified-app warning, which is expected for a client only its owner uses, and an unverified
+  app may have at most 100 users, far more than one installation connects. "Google may email you
+  asking to verify the app. Nothing needs doing."
+- **Step 6.** Choose Desktop app, never Web application. Google shows the secret only in that
+  dialog, and the downloaded file keeps it. A secret lost before it is brought back is replaced
+  from the client's page by **Add secret**. "Google deletes a client unused for 6 months, after
+  emailing the project's contacts 30 days before."
+
+**The project ID.** Step 1's field takes the project ID, 6 to 30 lowercase letters, digits and
+hyphens, starting with a letter. An all-digit value is refused with "That is the project number",
+and a value with spaces or capitals with "That is the project name". With no mark in this browser,
+step 1 opens with "Started before, in another browser? Paste the project ID, then check each step's
+'Done when you see' in the console." For a client already set up, its stored project ID fills the
+field. A new client may use the project of a client already set up, and step 1 then offers "Use the
+project of {client}", which fills the field and marks steps 1 to 5 done, since they belong to the
+project, leaving steps 6 and 7.
+
+**Bringing the client back.** Step 7 takes the file Google offers at step 6, dropped on the step
+or chosen with a file control. The file is read in the browser for its client identifier and
+secret, the `installed` entry of a desktop client's file, and a file of any other kind is refused
+with a line naming what it holds, so a web application's client is caught before it is sent. Or
+the operator pastes the client identifier, and the client secret into a password field with a
+show control. Paste is never blocked. Step 7 accepts a file or a paste whatever the marks of steps
+1 to 6 say. When the file names a project and step 1 holds a project ID that differs, the step says
+so before saving, "This client belongs to project {file's project}, but steps 2 to 5 were done in
+{step 1's project}. Check the Gmail API and the publishing status in {file's project}." A new
+client is also named at step 7, in mono, the project ID proposed as its name and editable. The
+name is how every screen and every account refers to the client, and it cannot change once saved.
+It is refused when another client holds it, when it is `new`, or when it is not 6 to 30 lowercase
+letters, digits and hyphens starting with a letter, the shape of a project ID, so it is always one
+path segment. "Check with Google and save" sends the name, the identifier, the
+secret and the project ID, taken from step 1 or else the file, and the answer shows in a status
+region beside the button. A client identifier another client of the provider already holds is
+refused with "This client is already set up as {name}", linking to it.
+
+Steps 1 to 6 carry a mark the operator sets, done or not done, because nothing here can check
+them. The marks are kept per browser and per client, a new client's under `new` until it is
+saved, as the theme override is kept, and nothing about them is stored by the server. The project
+ID is kept the same way until the client is saved, and is then stored with the client
+([ADR-0016](./adr/data/0016-schema.md)). Step 7's mark is Google's answer.
+
+| Answer | Shown | Stored |
+| --- | --- | --- |
+| accepted | "Google accepted this client. Saved as {name}, its secret sealed." The primary button is then "Connect your first account", or "Connect an account through {name}" once an account exists, and goes to [section 8.12](#812-connect-an-account-and-re-authorize) with this client chosen | the name, the provider, the client identifier, the project ID and the secret sealed (ADR-0081) |
+| refused | "Google does not recognise this client identifier and secret. Nothing was saved.", with its causes, first "A client created in the last few minutes may not be active yet. Wait five minutes and press Check again.", then a space copied with the secret and a client of another type | nothing |
+| no answer | "Could not reach Google. Nothing was saved. Try again." | nothing |
+
+**A client already set up.** The screen opens with "{name} · client {client_id}" and the accounts
+connected through it, and step 7 reads Replace {name}, with "Lost the secret? Add a new one to
+the same client" above the Replace button. When the client identifier brought back equals the
+stored one, the action is "Update the secret". It asks no confirmation and says "Every account on
+{name} keeps its grant. Disable the old secret in the console once this is saved." Only when the
+identifier differs does replacing ask for confirmation, with the sentence "The grants of the
+accounts on {name} were issued to its current client. After replacing it, each of these {n}
+accounts is refused at its next token refresh and needs re-authorizing: {identifiers}.", {n} and
+the identifiers read from the accounts list, and with none on the client, "No account connects
+through {name}." Accounts on other clients are untouched, and the dialog says so when any exist.
+After such a replace, the success line lists each affected account's identifier with its
+Re-authorize link ([section 8.12](#812-connect-an-account-and-re-authorize)). The secret is never
+read back or shown once saved.
+
+### 8.12 Connect an account and re-authorize
+
+`/setup/connect`, an installation screen, and `/{account}/account/reauthorize`, an account's
+screen, are one page of three steps, each enabled once the step above is done. Nothing is stored
+until the third succeeds (ADR-0091). Not live.
+
+1. **Name the account.** The mailbox address being connected comes first. The identifier, in mono,
+   is then proposed from the mailbox's local part, lowercased, with characters an identifier cannot
+   hold replaced and a suffix added when an account already holds it, and the operator may edit it.
+   Then "Connect through", the client the consent is issued to (ADR-0106). With one client set up,
+   it shows as a fact, "Gmail, through {name}", with "Set up another client" beside it. With
+   several, it is a list of the clients by provider, each with its name in mono, its project ID
+   and the accounts already on it, nothing preselected unless the address carries `client=`, and the
+   step does not confirm until one is chosen. The list closes with "Set up another client", which
+   opens a new client's setup ([section 8.11](#811-oauth-client-setup)). The provider is the chosen
+   client's. A collapsed "Lower this account's rate target" holds the field of
+   [section 8.13](#813-account-settings). The identifier is refused when it is exactly `.`, `..` or
+   `/` (ADR-0087), when it equals a word the UI's own top-level paths use, which is the router's
+   `setup`, the read API's `api`, and the name of every file or directory at the top of the built
+   bundle, such as `main.js` and `main.css`, or when an account already holds it. The page
+   says the identifier cannot change once connected, since every record of the account is keyed on
+   it, and that the mailbox is remembered. Confirming the step starts the consent attempt, so an
+   identifier refusal shows here, before anything happens at Google.
+2. **Grant access at Google.** One sentence of what Google asks next: to pick the account, past its
+   unverified-app warning by Advanced and the link to continue, which is expected, and to allow
+   Gmail access, leaving the Gmail permission ticked. The same sentence, never collapsed, adds "If
+   Google's warning says the app is being tested, stop: the client is still in Testing. Publish it
+   (setup step 5) first, or this account is refused in 7 days." and then "Google may email a security
+   alert that mediated mailbox was granted access. That is this connection." Then a picture of what
+   the browser shows at the end, a browser address bar reading
+   `http://127.0.0.1:{port}/?state=…&code=…` over a page that cannot be reached, captioned "Your
+   browser cannot open this page. That is expected. If a page loads instead, something on your own
+   computer answered; the address bar still works." The control "Open Google's consent page" is a
+   plain link to the consent address the server returned when step 1 was confirmed, opening a new
+   tab, so opening it is an ordinary navigation that no pop-up blocker stops. The consent request
+   names the step 1 mailbox as Google's login hint, so Google offers that account first. Its
+   loopback redirect names `127.0.0.1` on a fixed high port rather than port 80, so a web server on
+   the operator's own computer is unlikely to answer. The attempt shows its age and the time left.
+   An attempt lasts 15 minutes, this design's starting value.
+3. **Paste the address** from "the tab that says it can't reach the site". One field takes the
+   whole address and reads its parts itself, with "Paste from clipboard" beside it, and plain paste
+   still works. When the UI's tab becomes visible again after the consent page was opened, focus
+   moves to the field. Under it, before anything is sent, a line names what it found, the address
+   `127.0.0.1`, the state matching this attempt and a code present. The button reads "Connect
+   {identifier}", or "Re-authorize {identifier}", and `Enter` in the field submits.
+
+Step 2 holds a collapsed "Google showed an error instead?", for the mistakes that stop at a page of
+Google's and never reach `127.0.0.1`. Each line is worded on the code Google prints on its page.
+
+| Google shows | Cause | Fix shown |
+| --- | --- | --- |
+| `redirect_uri_mismatch` | the client is a Web application | create a Desktop app client at OAuth client setup step 6, then Replace the account's client ([section 8.11](#811-oauth-client-setup)) |
+| `deleted_client` or `invalid_client` | the client was deleted, or its secret disabled | restore it within 30 days from the console's deleted credentials, or set the client up again |
+| `access_denied`, naming testing or verification | the app is in Testing and this mailbox is not a test user | publish the app at OAuth client setup step 5 |
+| `admin_policy_enforced`, or an organization's block | an organization's administrator blocks the app | ask the administrator to trust the client identifier, shown in mono with a copy control, or connect this mailbox through a client set up in the organization's own Cloud project, through "Set up another client" |
+| anything else | | open the consent page again, and if Google shows the same page, check each step of OAuth client setup |
+
+"Keep the paste box on top", offered beside step 3, opens a guide window as
+[section 8.11](#811-oauth-client-setup)'s does, holding only the paste field and its three checks.
+Like that section's guide window, it holds nothing about any account, the identifier and the
+mailbox included.
+
+An attempt is held by the server for the session that started it. It survives which replica
+answers and a reload of the page, which restores the identifier, the mailbox and the countdown. A
+session holds one attempt, and a newer one replaces it, so a tab whose attempt was replaced shows,
+when it next has focus, that its attempt was replaced and offers to start again.
+
+The mailbox Google granted is compared with the one named ignoring case, and for `gmail.com` and
+`googlemail.com` ignoring dots and treating the two domains as one, as Google does.
+
+A refusal names its cause and its fix in the status region under the field, and stores nothing.
+
+| Cause | Wording |
+| --- | --- |
+| the operator declined at Google | "You declined at Google. Open the consent page again." |
+| no code in the address | "This address carries no code. Copy the address of the page Google sent you to." |
+| not the `127.0.0.1` address | "This is not the address Google sent you to. Copy it from the tab that says it can't reach the site." |
+| another attempt's state | "This address belongs to another attempt. Use the latest tab, or start again." |
+| no attempt in this session | "No connection is in progress in this browser session. The browser was closed or the UI restarted. Start again from step 1." |
+| the attempt expired | "This attempt expired. Open the consent page again." |
+| Google refused the code | "Google refused the code. It may already have been used. Open the consent page again." |
+| Google did not answer | "Could not reach Google. Nothing was saved. Press Connect again. If Google then refuses the code, open the consent page again." |
+| a grant without the Gmail scope | "Google granted no access to Gmail. Tick the Gmail permission on Google's page." |
+| the Gmail API not enabled in the client's project | "The Gmail API is not enabled in project {id}. Enable it (OAuth client setup step 2), wait a minute, then open the consent page again.", {id} the client's stored project ID, or "the client's project" when none is stored |
+| a grant for another mailbox | "Google granted access to {granted}, not {named}. Sign in to {named} at Google." On a re-authorization it adds "If this mailbox's address changed, the account cannot be re-authorized. Connect it again under a new identifier." |
+| an account took the identifier after step 1 | "An account named {identifier} was connected while this one was in progress. Nothing was saved. Start again from step 1 with another identifier." |
+| the chosen client was replaced or removed after step 1 | "The client {name} changed while this was in progress. Nothing was saved. Start again from step 1." |
+
+On success, connecting writes the account's two rows in one transaction (ADR-0091), the client it
+connects through (ADR-0106), its credential sealed (ADR-0081), the mailbox the consent confirmed
+(ADR-0080), and the code exchange's
+authentication attempt as the account's latest (ADR-0097). The page reads "Connected
+{identifier} ({mailbox})." and says what comes next, "Every workload is told of {identifier} and
+serves it, and backfill starts indexing it. Nothing more needs doing." Each workload learns of the
+account with no manual step through the signal between deployables of ROADMAP's unit
+[F7](../ROADMAP.md#group-f--foundation). The page then adds "The base policy's {n} rules apply to
+{identifier} from the start. Rules made for one account do not. Review {identifier}'s policy.",
+linking to the account's policy ([section 8.7](#87-policy)), {n} the count of base rules, which
+belongs to no account. It links to the account's Home.
+
+**Re-authorizing** is the same page with step 1 as a read-only summary of the identifier, the
+provider, the client the account connects through and the mailbox the account remembers. The grant
+is checked against that mailbox and the mailbox is never asked for (ADR-0080, ADR-0107).
+
+**Moving to another client.** Step 1's summary carries "Connect through another client", offered
+when the provider has another client, which opens Connect through's list without the account's
+current client and sets `client=`. The consent is then issued to the chosen client, and step 3's
+button reads "Move {identifier} to {name}". Success writes the new client and the new credential
+together in one transaction, since a grant works only with the client it was issued to (ADR-0106),
+and reads "Moved {identifier} to {name}." A move that fails leaves the account on its old client
+with its old credential.
+
+A re-authorization's success, a move's included, replaces the stored credential, records the code
+exchange's authentication attempt as the account's latest (ADR-0097), so a refused
+credential's banner clears, and reads "Re-authorized {identifier}. Every workload is told of the
+new credential and uses it from its next call." Each workload takes it up without waiting for a
+refusal, through the signal of [F7](../ROADMAP.md#group-f--foundation). An account with no
+mailbox remembered, one with no state row or one stored before the mailbox was kept, is connected
+here too: step 1 then asks for the mailbox once, the grant is checked against it, and success
+writes the state row, or the credential and the mailbox into it, so the mailbox is remembered from
+then on (ADR-0080).
+
+### 8.13 Account settings
+
+`/{account}/account`, reached from the account selector's menu and from the last authentication
+rows of Home's System column and the System screen. The refused-credential banner of
+[section 12](#12-empty-loading-partial-and-error-patterns) goes straight to re-authorization
+([section 8.12](#812-connect-an-account-and-re-authorize)). Fed by the account endpoint
+([section 17.4](#174-the-bespoke-endpoints)). Not live. The identifier in mono and the provider as
+the title, the mailbox address under it, and "through {name}", the client the account connects
+through in mono, linking to its setup ([section 8.11](#811-oauth-client-setup)), with "Move to
+another client" when the provider has another, which opens the account's re-authorization with the
+client list ([section 8.12](#812-connect-an-account-and-re-authorize)). Then three regions.
+
+**Credential.** Its health is the latest authentication any workload, or the UI's own consent,
+recorded (ADR-0097), as a badge and a sentence, with the time.
+
+| Recorded | Badge | Sentence | Re-authorize |
+| --- | --- | --- | --- |
+| `succeeded` | accepted, in the ok color | "Gmail accepted the credential at {time}." | an outlined control |
+| `refused` | refused, in the restricted color | "Gmail refused the credential. Every workload that calls Gmail fails for this account until it is re-authorized." with the usual causes, access revoked in the Google account, a password change, a client left in Testing, and the account's client, {name}, deleted or replaced, which links to the client's setup ([section 8.11](#811-oauth-client-setup)) | the primary control, in the action color |
+| `failed` | no answer, in muted text | "The last attempt got no answer Gmail could read. Workloads retry on their own, so nothing is needed unless this persists. If this lasts past an hour, check that the deployment reaches Google's token endpoint." | an outlined control |
+| none recorded | not used yet, in muted text | "No workload has authenticated yet." | an outlined control |
+| no state row | not connected, in muted text | "This account is not connected." (ADR-0091) | Connect, in the action color, which opens the account's re-authorization with the mailbox asked for once ([section 8.12](#812-connect-an-account-and-re-authorize)) |
+
+**Rate target.** "Default, half of {provider}'s declared ceiling", or "Lowered to {p}% of
+{provider}'s declared ceiling", with the current target in units per second from the rate state
+once the account has spent. A percent field, refused unless above 5% and at most 50%, the range
+ADR-0024 allows, saved by its Save button, and Reset to default, which clears the lowered target.
+While the operator types, the field shows the percent alone, with no preview in units per second.
+The target in units per second shows only as the rate state reports it after a save, since the UI
+does not compute ADR-0024's fractions. Each workload uses it from its next account reload.
+Lowering asks no confirmation, since a lower target only slows the account's work.
+
+**What this account's rows hold.** A two-column list of what the UI reads of the account's two
+rows: identifier, provider, client, mailbox, whether it is connected, the last authentication,
+the rate target, the two backfill passes' flags and when the sync cursor was written. It never shows
+the credential, which the UI cannot read (ADR-0084). A link goes to System for the live view.
+
+### 8.14 Base policy
+
+`/setup/policy`, an installation screen ([section 8.10](#810-installation)), holds the base policy,
+the rules every account inherits (ADR-0004). It needs no account to exist, so the base policy can
+be written before the first account connects, and a rule in place then classifies that account's
+senders from its first backfill. Base rules are also written from each account's policy screen
+([section 8.7](#87-policy)), which shows what a rule matches in that account. This screen shows
+nothing of any account but its identifier, so it carries no count of senders or messages. Fed by
+the base policy endpoints ([section 17.4](#174-the-bespoke-endpoints)). Not live.
+
+**The list.** A title, "Base policy", and the sentence "These rules restrict senders in every
+account, those connected later included." followed by the accounts today, their identifiers in
+mono, each linking to that account's policy screen, where its numbers are, or "No account is
+connected yet." An L0 strip counts the base rules and shows the time of the latest change with a
+link to the history. Above the table sit Add a base rule and History, and a search box over the
+rule identifiers and the domain suffixes. The table's rows are the base rules sorted by rule id,
+each with rule id, domain suffixes, source (operator, or the candidate it came from) and created
+time and identity, each row opening its rule. With no rule, the table reads "No base rules yet. A
+base rule names one institution's mail domains and restricts its senders in every account." with
+Add a base rule.
+
+**What a write may hold** is [section 8.7](#87-policy)'s, with the base policy's history in place
+of the account's. An identifier is refused when it is empty, carries surrounding space, is taken
+by any rule, is `new` or `history`, is exactly `.` or `..`, holds a `/`, or is one the base policy's history records unless its latest
+row there is a lift. A suffix is refused when it is not shaped like a domain name. Every rule's
+class is restricted. Each write is recorded in the policy history in the same transaction
+(ADR-0102). How the UI writes a base rule and its history row, and reads the base policy with no
+account named, as this screen and the installation endpoint do, is an open decision of M8
+([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)).
+
+**Add a base rule** is the panel `/setup/policy/new?suffix=…`, 480 px over the list. The rule
+identifier, prefilled `operator.{first suffix}` until the operator edits it, the domain suffixes one
+per line, each checked for its shape as it is typed, and the class. A suffix that is itself a
+public suffix carries "This is a public suffix. It restricts every sender under it." on its line,
+which refuses nothing. The panel says "Match counts are per account. Each account's policy screen
+shows what this would restrict there." The sentence above the button reads "Restricts these domains
+in every account. From each process's next policy reload their bodies are denied." Adding asks no
+confirmation, since it only adds restriction.
+
+**A base rule.** `/setup/policy/{rule-id}` shows the rule's header (identifier in mono, the scope
+`base`, class, source, created time and identity), its domain suffixes, and its history as policy
+change rows. Two actions, Edit domains, and set apart from it on the right, Lift restriction. A
+line under the header reads "Only for one account? Open that account's policy and use Change where
+this applies…", since moving a rule to one account's overlay names an account.
+
+- **Edit domains** that only adds suffixes saves at once. An edit that removes any suffix shows the
+  diff and saves through the lift dialog for the removed ones, as in
+  [section 8.7](#87-policy).
+- **The lift dialog** is titled "Lift the restriction on {suffix or rule}". It states "Every
+  account loses this restriction: {identifiers}." with each identifier linking to that account's
+  policy screen, then "From each process's next policy reload, the senders it alone restricted no
+  longer have their bodies denied. A message scanned before the rule existed, or skipped by the scan
+  gate, can then be released to the agent at once. A message held as restricted goes back to
+  pending scan when a scanning workload next compares the index with the policy, and is released
+  once a scan finds no code or link in it. A body already released cannot be recalled." (ADR-0002,
+  ADR-0037). With no account connected it states "No account is connected, so nothing is released
+  now." It asks for the rule identifier typed before the button enables, focus starts on Cancel,
+  and the button reads "Lift restriction on {suffix or rule}", outlined in the restricted color.
+- **Putting a lift back** is [section 8.7](#87-policy)'s, "Lifted {suffix or rule}. Put it back",
+  adding back exactly what was lifted with no confirmation.
+
+**History.** `/setup/policy/history` lists the base policy's changes alone, newest first, as policy
+change rows with the range of [section 5](#5-information-architecture-and-the-url), a lifted rule's
+row carrying Restore, which opens Add a base rule prefilled with its suffixes and identifier.
+
+The keys and the accessibility contract of the policy writes in [section 8.7](#87-policy) hold
+here, the lift dialog's base sentences being this section's.
 
 ## 9. Live surfaces
 
@@ -1007,7 +1594,20 @@ decision records who made it in the decided row's own columns, the identity comi
 declared header or the configured operator name (ADR-0084). The plans list and the review queue
 show decisions from those rows. No audit row is written for a decision. The audit log holds bodies
 served or denied and mailbox mutations, and applying an approved plan is audited by the engine as
-the mutation it is.
+the mutation it is. Confirming a candidate inserts a policy rule, so it also writes that rule's row
+in the policy history (ADR-0102).
+
+The policy writes follow the same rule, and their direction decides their weight. Adding
+restriction can only deny more, so it asks nothing. Lifting a restriction lets a sensitive
+sender's bodies be released, at once for mail already scanned and after a scan for the rest, which
+cannot be recalled, so it states its consequence with the account's numbers, and on a base rule,
+which every account loses, asks for the rule's identifier typed ([section 8.7](#87-policy)). The setups weigh what they replace.
+Replacing a client's identifier breaks the grant of every account connected through that client
+until each is re-authorized, so it asks for confirmation naming those accounts, while a new secret
+for the same client breaks no grant and asks nothing ([section 8.11](#811-oauth-client-setup)).
+Removing a client no account connects through deletes only its sealed secret, so it asks a plain
+confirmation. Connecting, re-authorizing or moving an account to another client replaces nothing
+the operator would miss, so it asks nothing beyond the consent itself.
 
 ## 11. Rendering and formatting rules
 
@@ -1042,7 +1642,7 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | Vocabulary | Stored value | Wording |
 | --- | --- | --- |
 | plan status | DRAFT · APPROVED · APPLYING · APPLIED · ROLLED_BACK · REJECTED · APPLY_REFUSED | Awaiting approval · Approved, waiting to apply · Applying · Applied · Rolled back · Rejected · Apply refused |
-| candidate status | pending · confirmed · dismissed | Awaiting review · Confirmed, not yet in effect (then In effect) · Dismissed |
+| candidate status | pending · confirmed · dismissed | Awaiting review · Confirmed, index not yet updated (then Confirmed, index updated) · Dismissed |
 | scan state | scanned · skipped_restricted · skipped_gate · pending | in cells `scanned` · `restricted` · `gate skip` · `pending`; on hover and in L4 "scanned" · "not scanned, restricted sender" · "released unscanned, gate skip" · "pending content scan" |
 | sender class | normal · restricted | normal · restricted |
 | content flag | mfa_code · login_link | mfa · link |
@@ -1055,6 +1655,9 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | error class | throttled · provider_error · gone · scanner_timeout · validation · authentication | provider throttled · provider error · not found at provider · scanner timeout · validation · authentication |
 | disposition | recovered · pending · gone · abandoned | recovered (with the run) · pending · not found · abandoned |
 | failure item kind | page · message · op | page · message · operation |
+| authentication outcome (ADR-0097) | succeeded · refused · failed · none recorded | accepted · refused · no answer · not used yet |
+| policy change action (ADR-0102) | added · edited · lifted · confirmed | added · edited · lifted · confirmed from a candidate |
+| policy rule scope | a null account · an account | base · the account's identifier |
 
 The scan-state wording for pending is the denial envelope's own phrase (ADR-0002, ADR-0093), so
 the operator and the agent read the same words. The plan statuses are ADR-0020's and the three job
@@ -1066,6 +1669,7 @@ vocabularies are ADR-0016's.
 | --- | --- |
 | Backfill pass 1 running | A partial-index banner under the chrome on every screen, saying which pass is running and how far (pages of pages, percent), with a link to Jobs. Counts on every lens carry "so far" |
 | Backfill pass 2 running | The banner names pass 2 and the pending count, says pending messages deny their bodies until scanned, and links to Jobs as pass 1's does. With both passes running, one banner names both |
+| No backfill run yet for an account | While the system endpoint reads backfill pass 1 as not started ([section 8.8](#88-system)), the partial-index banner reads "Indexing has not started yet for {account}. It starts once backfill picks up the account." Counts on every lens carry "so far", so an empty index never reads as final. Backfill picks up a newly connected account with no manual step ([section 8.12](#812-connect-an-account-and-re-authorize)) |
 | The backfill state unknown | When the system endpoint's read fails for an account the accounts endpoint lists, the banner says the index's backfill state is unknown, so every count may be a count so far, and counts on every lens carry "so far" while that read is loading or failed. A banner that vanishes on a failed read was the alternative, and it would let a partial index's counts read as final. The banner shows only for a listed account, since for any other the body already says no such account is served. While no banner shows, the banner does not follow the stream, so a pass that starts later appears only when something next reads the system endpoint, at the latest on the next page load |
 | A lens with zero rows | The L0 strip with zeros and one line, "No {rows} match", with the chips still shown so the operator can remove one |
 | First load of a region | A skeleton of the region's shape (bars for a chart, lines for a table). After one second the skeleton gains the words "still loading". After ten seconds the region shows the error card, "No answer came in time", with a retry link, and the request stays open, so an answer that arrives later still replaces the card. Retry abandons that request and sends a new one. Abandoning the request at ten seconds was the alternative, and it would make any read slower than that impossible to show. A region that moves to another read while one is loading, after a filter, a group or the account changes, starts its second and its ten seconds again for the new read. Never a spinner over the whole page |
@@ -1073,6 +1677,8 @@ vocabularies are ADR-0016's.
 | A failed read | An error card in the region's place with the origin from the error contract of [section 17.3](#173-the-error-contract). "This request was refused" for the client's fault (with the message), "The UI server failed" for its own, "The database did not answer" for the database, each with the request id and a retry link. Other regions stay |
 | A decision refused | The footer or outcome area shows the refusal inline, with the origin and message, and the object reloads on a conflict. A missing declared identity reads "No identity was forwarded, so the decision was not recorded" |
 | Search with no result | The corpus lens at L3 with the chip and "No messages match" |
+| An account's credential refused | While the account's latest authentication reads `refused` (ADR-0097), a banner under the chrome on every screen of the account, in the partial-index banner's place and above it when both show: "{provider} refused {account}'s credential at {time}. Workloads that call {provider} fail for this account until it is re-authorized.", with a Re-authorize link to [section 8.12](#812-connect-an-account-and-re-authorize). It reads the system endpoint's operational block the partial-index banner already reads, and follows the stream and the polls as that banner does. A `failed` outcome raises no banner, since workloads retry it |
+| No account exists | `/` goes to the installation screen ([section 8.10](#810-installation)), whose getting-started list is the whole first run |
 
 ## 13. Keyboard map
 
@@ -1083,10 +1689,14 @@ menu and on `?`.
 | Key | Action |
 | --- | --- |
 | `j` / `k` | move the row cursor down / up in the table that holds it |
-| `Enter` | open the row under the cursor (descend, or open the detail at L3) |
-| `Escape` | close the detail panel, or remove the last chip (ascend) |
+| `Enter` | open the row under the cursor (descend, or open the detail at L3). In the sender picker of [section 8.7](#87-policy) it toggles the row's selection as `x` does |
+| `Escape` | clear a selection, else close the detail panel or dialog, else remove the last chip (ascend) |
 | `/` | focus search |
-| `g` then `h` `p` `r` `j` `c` `m` `t` `u` `o` `s` | go to Home, Plans, Review queue, Jobs, Corpus, Masking, Gate, Audit, Policy, System |
+| `g` then `h` `p` `r` `j` `c` `m` `t` `u` `o` `s` `a` | go to Home, Plans, Review queue, Jobs, Corpus, Masking, Gate, Audit, Policy, System, Account settings. On an installation screen, which has no account, they do nothing |
+| `x` | toggle the selection of the row under the cursor, in a table that selects ([section 8.7](#87-policy)'s sender picker) |
+| `Shift`+`j` / `Shift`+`k` | extend the selection down / up |
+| `Ctrl`+`a` or `Cmd`+`a` | in a table that selects, while it holds the row cursor, select every row the search matches, across its pages |
+| `r` | in the sender picker, while a selection exists, Restrict as one rule |
 | `[` / `]` | previous / next page |
 | `a` in a plan or candidate | focus the approve or confirm control (never submits) |
 | `?` | show the map |
@@ -1094,6 +1704,10 @@ menu and on `?`.
 One table on a screen holds the row cursor, the table of the level in view. On the run screen it is
 the failed items, so the group table beside the bars takes no key. Letting every table answer was the
 alternative, and one key would then move two cursors and Enter open two rows.
+
+While a text field has focus, such as search or the sender picker's search, every key goes to the
+field, apart from `Escape`, which leaves it. So `Ctrl`+`a` selects the field's text there and
+selects rows only once the table holds the cursor.
 
 Focus is visible everywhere (the focus ring token). Nothing submits a decision from the keyboard
 without the control being focused and activated.
@@ -1143,6 +1757,9 @@ colors and the neutral fill, never the categorical slots.
 | chip | border outline; an applied filter chip is action outline with action text |
 | badge | outline in its semantic color with the same color text, never filled |
 | decision button | action fill for approve and confirm; border outline with text color for reject and dismiss |
+| lift control (removing a restriction) | restricted outline with restricted text, never filled, set apart from the add controls |
+| selection box | border outline when clear; action fill with a ground-colored check when selected; faint border and not selectable for a row the action cannot take |
+| setup step status | text with a glyph: a filled check in ok for done, an open circle in muted for not started, a dashed circle in faint for cannot start yet |
 
 **Theme switching.** The OS preference selects the palette by default. The override in the
 settings menu (system, dark, light) is stored per browser and wins over the OS setting. Every
@@ -1186,8 +1803,8 @@ back to the next face in the stack.
 The UI holds no key that opens a stored credential and never reads mail (ADR-0081, ADR-0084). It
 sees a credential in plaintext only while it completes a connection or a re-authorization, seals
 it before storing it, and runs under the trust anchor's hardening for that reason (ADR-0028). What
-remains is the browser, the transport, the database connection, the two decisions, and the two
-setups.
+remains is the browser, the transport, the database connection, the two decisions, the two
+setups, and the policy writes.
 
 - **TLS, and the same posture as the client surface** (ADR-0084). The UI serves TLS from the
   material its configuration declares ([section 18.1](#181-the-configuration-the-ui-declares)).
@@ -1197,7 +1814,9 @@ setups.
 - **Content security policy** (ADR-0062). `default-src 'self'`, `script-src 'self'`,
   `style-src 'self'`, `img-src 'self' data:`, `font-src 'self'`, `connect-src 'self'`,
   `frame-ancestors 'none'`. No inline script, no external origin at runtime, fonts self-hosted.
-  The mockups' Google Fonts link is a mockup convenience and is not product.
+  The mockups' Google Fonts link is a mockup convenience and is not product. The setup guide's
+  window ([section 8.11](#811-oauth-client-setup)) is a document of the same origin under the same
+  policy, so it takes its styles by a link to the bundle's stylesheet, never as inline styles.
 - **The entry document, the session, and the request token** (ADR-0061). The browser bundle is
   static (ADR-0042), and the one exception is the entry document, which a Go handler renders on
   every page load to place the request token in a `meta` tag. The policy allows it because it is not
@@ -1209,19 +1828,26 @@ setups.
   one replica runs, and its lifetime is the session's. Every state-changing request sends it in the
   `X-Request-Token` header, and the server checks it against the cookie, so a request forged from
   another origin fails. The four decision requests are `POST` and carry the status the screen shows
-  for conflict detection. They and the requests of OAuth client setup and account setup are the
-  only state-changing requests.
+  for conflict detection. They, the requests of OAuth client setup and account setup, and the
+  policy writes are the only state-changing requests. A consent attempt is held by the server for
+  the session that started it, one per session, whichever replica answers, so a pasted address from
+  another session's attempt, or from an attempt a newer one replaced, is refused
+  ([section 8.12](#812-connect-an-account-and-re-authorize)). A request whose token no longer
+  matches, as a page older than the UI server's last restart sends, is refused with `stale_page`
+  ([section 17.3](#173-the-error-contract)).
 - **The identity header is trusted only when the deployment declares it** (ADR-0084). With the
   identity header name configured ([section 18.1](#181-the-configuration-the-ui-declares)), the
-  UI records that header's value on decisions and refuses a decision when the header is absent (403,
+  UI records that header's value on decisions and policy writes and refuses either when the header
+  is absent (403,
   `identity_missing`, [section 17.3](#173-the-error-contract)). Unset, the UI records the
   configured operator name and trusts nothing from the request.
 - **The database connection carries the account.** Per request the UI opens a transaction and
   sets the transaction-local setting `app.account`, which the row-level security policies of
   ADR-0016's third layer read, by an ordinary statement like every other process.
 - **A decision is one transaction, written by the UI's own code.** The status, the decision time,
-  and the identity are written together, and a confirmation also inserts its policy rule row in
-  the same transaction (ADR-0084). No code runs inside the database to complete a decision
+  and the identity are written together, and a confirmation also inserts its policy rule row and
+  that rule's policy history row in the same transaction (ADR-0084, ADR-0102). A policy write is
+  one transaction the same way, its rule change and its history row together. No code runs inside the database to complete a decision
   (ADR-0060). A failure anywhere in the transaction fails the decision whole, reported with the
   database origin, and nothing is recorded. The guarantee that no path writes one row without the
   others is carried by the tests of [section 18](#18-repository-and-build-layout).
@@ -1229,7 +1855,7 @@ setups.
 - **The UI never calls the mediator.** It has no route to it and no credential for it. Every read
   is the UI's own database role against the tables ADR-0084 grants. The only outside endpoints it
   calls are a provider's, to check a client, complete a consent, and confirm which mailbox granted
-  it (ADR-0083).
+  it (ADR-0107).
 - The dependency tree is small, pinned, and enumerated in a roster (ADR-0063), and the browser
   bundle ships as static files inside the Go binary (ADR-0042), so the runtime has one origin and
   one process.
@@ -1269,8 +1895,13 @@ marker text, served under the policy of [section 15](#15-security-of-the-ui-itse
 The UI's Go server exposes one read API to its own browser app, under `/api/{account}/…`, and
 nothing else calls it. Every path carries the account, and the account is a path segment passed
 to every data-access function (ADR-0047). A request without it does not route (404). `all` or an
-unknown account is a client error (400). Exactly one endpoint is unscoped, `GET /api/accounts`,
-because the accounts list is what the account selector and the entry redirect are built from. The
+unknown account is a client error (400). The unscoped endpoints are the installation's, `GET
+/api/accounts`, because the accounts list is what the account selector and the entry redirect are
+built from, and those under `/api/setup/`, which serve the installation screens of
+[section 8.10](#810-installation) and read no stored account's state rows. The one write among them
+into an account's rows, finishing a connection, writes the new account's two rows in a transaction
+set to that account. The base policy's writes among them write base rules and their history rows,
+which belong to no account. The
 shapes below are design and are generated into the contract document the browser's types are
 built from (ADR-0042, ADR-0057).
 
@@ -1351,7 +1982,7 @@ statement.
 | Sortable | `created_at` | `score`, `created_at` |
 | Range | over `created_at`, default all time | over `created_at`, default all time |
 | Default | L3, `sort=created_at,desc`, no filter | L3, `sort=score,desc`, `status=pending` |
-| L0 figures | one per status, worded as [section 11](#11-rendering-and-formatting-rules) words the status, each linking to the plans screen with that status | one per status, worded as section 11 words the status apart from `confirmed`, worded Confirmed because the count holds candidates in effect and not yet, each linking to the review queue with that status |
+| L0 figures | one per status, worded as [section 11](#11-rendering-and-formatting-rules) words the status, each linking to the plans screen with that status | one per status, worded as section 11 words the status apart from `confirmed`, worded Confirmed because the count holds candidates whose index is updated and those whose index is not yet, each linking to the review queue with that status |
 | Row | plan id, description, status, proposer, created time, decision time and identity, refusal reason, message count, and the latest apply run and rollback run found by their plan reference | domain, score, the recorded signals, status, created time, reviewed time and identity, and the sender's message count and first-seen time from its sender statistics |
 
 A candidate's recorded signals reach the browser typed, as a list of entries each carrying
@@ -1399,6 +2030,23 @@ filter `run={id}`.
 | Row | the run as the jobs endpoint sends it, with its plan's description and status, and its count of item failures | `seq`, the item's kind and identifier, the message-row fields of the item's message, `null` for a page item or a message the index no longer holds, the page, the error class, attempts, first and last error time, the disposition and the recovering run |
 
 A page item counts as neither restricted nor flagged.
+
+`policy_changes` is the policy history of [section 8.7](#87-policy), `senders` gains the
+`search` filter the sender picker reads, and `rules` gains the `search` filter the policy screen's
+search box reads, a substring match over identifiers and suffixes.
+
+| | `policy_changes` |
+| --- | --- |
+| Filterable | `action`, with the actions of [section 11](#11-rendering-and-formatting-rules), `scope`, `base` or the account, `actor`, and `rule` |
+| Groupable | `action`, `scope`, `actor`, `day` |
+| Sortable | `ts` |
+| Range | over `ts`, default the last 30 days |
+| Default | L3, `sort=ts,desc` |
+| L0 figures | changes, those that added restriction (added, confirmed, and edits that only added suffixes) and those that lifted it (lifted, and edits that removed a suffix), each linking to the history with that filter |
+| Row | the policy change row of [section 7.2](#72-the-sender-row-the-audit-row-the-page-row-and-the-policy-change-row), with `id` as its identity |
+
+The account's history is its own rows and the base policy's, as row-level security confines it
+(ADR-0102). A row carries no account other than the one in the path or none.
 
 `GET /api/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset, and no other
 parameter) returns one row with its provenance for L4, including the message's audit rows, for the
@@ -1456,8 +2104,10 @@ Every failure is one shape, and the origin mirrors
 | --- | --- | --- |
 | `client` | 400, 404, 409 | the request was malformed, named something undeclared, or carried a stale status (409 conflict) |
 | `client` | 403, code `identity_missing` | the deployment declares an identity header and the request carries none |
+| `client` | 403, code `stale_page` | the request token does not match the session, as on a page older than the UI server's last restart. The status region reads "This page is older than the UI server's last restart. Reload, then try again." and the values typed stay in their fields |
 | `ui` | 500 | the UI server failed on its own |
 | `database` | 503 | the database did not answer, refused, or a decision's transaction failed |
+| `provider` | 502 | the provider did not answer a setup request, checking a client or exchanging a consent's code |
 
 401 is unused. The UI has no authentication of its own.
 
@@ -1477,10 +2127,35 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
 | `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |
+| `GET /api/setup` | the installation endpoint. Each OAuth client's name, provider, client identifier and project ID, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
+| `POST /api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, and 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier. Unscoped |
+| `POST /api/setup/{provider}/clients/{client}` with `{ "client_id": "…", "client_secret": "…", "project_id": "…" }` | replaces the named client's identifier and secret, or with the stored `client_id` updates its secret alone, which keeps every grant ([section 8.11](#811-oauth-client-setup)). Answers as the add, and the client's 404 `unknown_client`. Unscoped |
+| `POST /api/setup/{provider}/clients/{client}/remove` | removes a client no account connects through. The client's 409 `client_in_use` with the accounts that do, and 404 `unknown_client`. Unscoped |
+| `POST /api/setup/connect` with `{ "account": "…", "client": "…", "mailbox": "…", "lowered_target": null }` | starts a consent attempt for the session through the named client after checking the identifier, replacing any attempt the session held ([section 8.12](#812-connect-an-account-and-re-authorize)), 400 `identifier_refused`, 409 `identifier_taken` or 404 `unknown_client` otherwise. The provider is the client's. 200 with the consent page's address and the attempt's expiry. Unscoped |
+| `GET /api/setup/connect` | the session's attempt, its identifier, mailbox and expiry, which a reload of the page restores, or none. Unscoped |
+| `POST /api/setup/connect/finish` with `{ "address": "…" }` | finishes the session's attempt from the pasted address and writes the account's two rows. 200 with the account, or the client's 400 with one code per cause of [section 8.12](#812-connect-an-account-and-re-authorize)'s refusals, `consent_declined`, `no_code`, `wrong_address`, `wrong_attempt`, `no_attempt`, `attempt_expired`, `code_refused`, `scope_missing`, `api_disabled`, `wrong_mailbox`, the client's 409 `identifier_taken` when an account took the identifier after the attempt started, 409 `client_changed` when the attempt's client was replaced or removed after it started, and the provider's 502 `provider_unreachable` when Google does not answer. Unscoped |
+| `GET /api/{account}/account` | the values of [section 8.13](#813-account-settings), the identifier, provider, the client it connects through and the provider's other clients, mailbox, whether a state row exists, the last authentication, the lowered target as a fraction, the current target from the rate state, the backfill flags and when the sync cursor was written. Never the credential |
+| `POST /api/{account}/account/reauthorize`, `GET /api/{account}/account/reauthorize` and `POST /api/{account}/account/reauthorize/finish` | as the connect requests, for the account in the path, checked against its remembered mailbox, and replacing its credential and recording the code exchange's attempt on success. The start request carries `{ "mailbox": "…" }` only when the account remembers none, and a mailbox in the request of an account that remembers one is refused with 400 `mailbox_remembered`. It carries `{ "client": "…" }` to move the account to another client of its provider, refused with 400 `client_wrong_provider` for a client of another provider, and success then writes the client and the credential in one transaction |
+| `GET /api/setup/policy?search=…` | the base rules, each with its identifier, suffixes, source and created time and identity, and every account's identifier, which the base policy screen of [section 8.14](#814-base-policy) lists. No count of any account's senders or messages. Unscoped |
+| `GET /api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /api/setup` read with no account named, which is M8's open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)) |
+| `POST /api/setup/policy/rules`, `POST /api/setup/policy/rules/{rule-id}` and `POST /api/setup/policy/rules/{rule-id}/lift` | add, edit and lift a base rule with its history row, with the bodies and answers of the account's policy writes below, `scope` absent since it is always `base`, and a lift or a suffix removal always needing `confirmation`. Unscoped |
+| `POST /api/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 outside the range of [section 8.13](#813-account-settings) |
+| `GET /api/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed |
+| `POST /api/{account}/policy/rules` with `{ "scope": "account", "rule_id": "…", "suffixes": ["…"] }` | adds a rule, `scope` being `account` or `base`, with its history row. 400 `rule_refused` with each problem, 409 `identifier_taken` |
+| `POST /api/{account}/policy/rules/{rule-id}` with `{ "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
+| `POST /api/{account}/policy/rules/{rule-id}/lift` with `{ "suffixes_before": ["…"], "confirmation": null }` | removes the rule with its history row. 404 and 409 as edit, and `confirmation` as edit for a base rule |
 
 The plans and candidates lists are read through the dataset endpoint's `plans` and `candidates`
-datasets ([section 17.1](#171-the-dataset-endpoint)). The bespoke endpoints above serve one plan,
-its sample, and the decisions on plans and candidates.
+datasets ([section 17.1](#171-the-dataset-endpoint)), and the rules and the policy history through
+its `rules` and `policy_changes` datasets. The bespoke endpoints above serve one plan, its sample,
+the decisions on plans and candidates, the installation, the setups, an account's settings, and
+the policy writes.
+
+Every policy write records the identity of [section 15](#15-security-of-the-ui-itself) as a
+decision does, and is refused with `identity_missing` as a decision is. A policy write refused by the checks of
+[section 8.7](#87-policy) writes nothing. The lift counts the dialog states are read with the
+rule's row detail, as the senders the account's policy would no longer restrict without the
+change.
 
 Every `POST` carries the `X-Request-Token` header of
 [section 15](#15-security-of-the-ui-itself). A decision's body never carries anything the server
@@ -1627,7 +2302,9 @@ through the mediator. Do not fetch a corpus into the browser to
 group it there. Do not paint a fake status bar or keyboard in any layout. Do not introduce a
 color outside the token tables without re-running the palette derivation and, for a chart series,
 its validator. Do not read a header for identity unless the deployment declared it. Do not keep
-view state outside the URL. Do not put a trigger, a procedure, or a function in the database for
+view state outside the URL. What is kept per browser is none of it view state: the theme override,
+the account last used, and the OAuth client setup's marks and project identifier, per client, of
+[section 8.11](#811-oauth-client-setup). Do not put a trigger, a procedure, or a function in the database for
 anything (ADR-0060).
 
 **Tests the UI owes.** Every control the UI carries is dispositioned in
@@ -1644,7 +2321,9 @@ used. What is still open, and where it is tracked:
 | --- | --- |
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
-| The screens of ADR-0084's two setups, which the mockups do not cover. OAuth client setup's guided steps, and account setup's first run with no account, connecting an account, what an account's rows hold, credential health, and re-authorization | [ROADMAP.md](../ROADMAP.md), the unit that builds them |
+| Importing the policy from a file and exporting it to one, how an import meets the rules already stored, and the file's format, which [section 8.7](#87-policy) leaves out | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds policy management |
+| How a newly connected account, a credential replaced by re-authorization and a policy edit reach the workloads with no manual step and no restart, which [sections 8.7](#87-policy) and [8.12](#812-connect-an-account-and-re-authorize) assume | ROADMAP.md's unit [F7](../ROADMAP.md#group-f--foundation), the signals between deployables |
+| What happens to the classifications the index has already stored when a rule is added, which [section 8.7](#87-policy)'s "index updated" reads but does not decide | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 
 ## 21. The mockups

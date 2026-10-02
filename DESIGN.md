@@ -289,9 +289,9 @@ the start costs little while retrofitting it later costs a redesign.
 
 Known limit, stated rather than hidden: like the port abstraction, isolation is proven only when
 the second account exists. Until then it is enforced structure awaiting its test. One table is
-read across accounts by design, the accounts table, which holds each account's identifier and
-provider and nothing an account carries (ADR-0091, via the
-[decision-record index](./docs/adr/README.md)). The OAuth clients belong to no account, so the
+read across accounts by design, the accounts table, which holds each account's identifier,
+provider and the OAuth client it connects through, and nothing an account carries (ADR-0091, via
+the [decision-record index](./docs/adr/README.md)). The OAuth clients belong to no account, so the
 roles that call a provider read them whatever the account (ADR-0016).
 
 ### An accepted risk that is not measured is an unmeasured risk
@@ -372,7 +372,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | A single chokepoint concentrates correctness, so a gate bug is a bug everywhere | Built first and proven offline, via the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in [docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0093) |
-| The approval surface is itself a target | ADR-0084 (two decision verbs, OAuth client setup and account setup, scoped role, seals credentials it cannot open) |
+| The approval surface is itself a target | ADR-0084 (two decision verbs, OAuth client setup, account setup and policy management, scoped role, seals credentials it cannot open), with every policy change recorded where no runtime role can rewrite it (ADR-0102) |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
@@ -434,7 +434,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **The operator** — the single human who owns the infrastructure, edits policy, and approves
   plans.
 - **The UI** (directory `ui/`) — the read-mostly reporting and approval surface, and where the
-  installation's OAuth client is set up and accounts are connected and repaired. Separate
+  installation's OAuth clients are set up and accounts are connected and repaired. Separate
   deployment, separate identity, and no key that opens a stored credential. Carries the approval
   verbs no client has. Its design is [docs/UI.md](./docs/UI.md).
 - **The shared pure library** — the pure-core-only library every deployable may
@@ -496,6 +496,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Policy snapshot** — the immutable, atomically-swapped copy of the policy that one request or
   unit of batch work decides against (rule in ADR-0041, via the
   [decision-record index](./docs/adr/README.md)).
+- **Policy history** — the append-only record of every change to the policy list, who made it,
+  when, and what it added or lifted (rule in ADR-0102, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Heuristics Job** — the batch workload that proposes sensitive-sender candidates from observed
   traffic. Proposes only. Nothing it emits takes effect without operator confirmation.
 - **Review queue** — where heuristic candidates wait, ranked with their evidence, for the operator
@@ -529,9 +532,10 @@ top-level documents, a decision record, or a ticket from here without guessing.
   derived from that key (rule in ADR-0088, via the [decision-record index](./docs/adr/README.md)).
 - **Keyring** — the set of private keys a deployable that opens credentials holds, looked up by the
   key a sealed value names (rule in ADR-0092, via the [decision-record index](./docs/adr/README.md)).
-- **Account snapshot** — the immutable copy of its accounts, the installation's OAuth client for
-  each of their providers that has one, and their opened credentials that a deployable calling a
-  provider works from (rule in ADR-0090, via the [decision-record index](./docs/adr/README.md)).
+- **Account snapshot** — the immutable copy of its accounts, each paired with the OAuth client it
+  connects through where its provider has one, and their opened credentials that a deployable
+  calling a provider works from (rule in ADR-0090, via the
+  [decision-record index](./docs/adr/README.md)).
 
 ### Data paths and mutation
 
@@ -654,6 +658,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [docs/UI.md](./docs/UI.md#3-the-lens-model)).
 - **Zoom ladder** — the five levels a lens is viewed at, from summary to row detail, and the
   navigation rules between them (levels in [docs/UI.md](./docs/UI.md#4-the-zoom-ladder)).
+- **Installation screen** — a screen of the UI that belongs to no account, for the installation's
+  OAuth clients, its list of accounts, the base policy and the first run. It shows no stored
+  account's state or rows (rule
+  in ADR-0056, via the [decision-record index](./docs/adr/README.md), screens in
+  [docs/UI.md](./docs/UI.md#810-installation)).
 - **Dataset registry** — the UI's single declaration of what its read API can be asked, per
   dataset (rule in ADR-0057, via the [decision-record index](./docs/adr/README.md)). Distinct
   from the client surface's operation registry of ADR-0053, which it mirrors in mechanism.

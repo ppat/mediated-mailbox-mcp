@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    .page { width: 1440px; min-height: 760px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box; display: flex; flex-direction: column; position: relative; }
+    .note { font-family: 'Patrick Hand', cursive; color: #9c9890; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: #9c9890; }
+    .faint { color: #6c6863; }
+    .bar { display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .sel { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; }
+    .nav { display: flex; gap: 16px; color: #9c9890; }
+    .nav a { color: #9c9890; text-decoration: none; }
+    .panel { background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border: 1px solid; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .th { font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #9c9890; }
+    .tr { display: grid; grid-template-columns: 150px 90px 100px 280px 100px minmax(0, 1fr); gap: 12px; align-items: center; padding: 0 16px; height: 36px; border-bottom: 1px solid #292623; font-size: 12px; }
+    .chip { display: inline-block; padding: 0 6px; border: 1px solid #3b3734; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+    .add { border-color: #6fc082; color: #6fc082; }
+    .lift { border-color: #f47b74; color: #f47b74; }
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border: 1px solid #3b3734; border-radius: 10px; font-size: 12px; color: #9c9890; }
+  </style>
+</helmet>
+<div class="page">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div class="note" style="font-size: 18px;">ui · Policy history · /personal/policy/history?range=30d</div>
+    <div class="note" style="font-size: 15px;">dark palette · sample data · the policy_changes dataset at L3</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel">
+      <span class="muted">account</span>
+      <span class="mono" style="font-weight: 500;">personal</span>
+      <span class="muted">· Gmail</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div class="mono" style="font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div class="nav">
+      <a href="#">Home</a><a href="#">Plans</a><a href="#">Jobs</a><a href="#">Corpus</a><a href="#">Masking</a><a href="#">Gate</a><a href="#">Audit</a><a href="#">Review queue</a><a href="#" style="color: #e1ddd7; box-shadow: inset 0 -2px 0 #ed9c55;">Policy</a><a href="#">System</a>
+    </div>
+    <div class="muted" style="margin-left: auto;">search · settings</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
+    <a href="#" class="muted" style="text-decoration: none;">Policy</a><span class="faint">›</span><span>History</span>
+    <span style="margin-left: auto; display: flex; gap: 6px;"><span class="pill">24h</span><span class="pill">7d</span><span class="pill" style="border-color: #ed9c55; color: #ed9c55;">30d</span><span class="pill">90d</span><span class="pill">all</span></span>
+  </div>
+
+  <div style="padding: 12px 20px 24px 20px; display: flex; flex-direction: column; gap: 12px;">
+    <div class="panel" style="display: flex; gap: 28px; align-items: baseline; padding: 10px 16px; font-size: 12px;">
+      <div><span class="mono" style="font-size: 15px; font-weight: 500;">4</span> <span class="muted">changes</span></div>
+      <div><span class="mono" style="font-size: 15px; font-weight: 500;">3</span> <span class="muted">added restriction</span></div>
+      <div><span class="mono" style="font-size: 15px; font-weight: 500; color: #f47b74;">1</span> <span class="muted">lifted restriction</span></div>
+      <div class="muted" style="margin-left: auto;">the base policy's changes and personal's own · as of 10:16Z</div>
+    </div>
+
+    <div class="panel">
+      <div class="tr" style="height: 30px;"><div class="th">when</div><div class="th">who</div><div class="th">what</div><div class="th">rule</div><div class="th">applies to</div><div class="th">change</div></div>
+      <div class="tr"><span class="mono muted">2026-09-10 08:11Z</span><span class="mono">pat</span><span style="color: #f47b74;">lifted</span><span class="mono">infra.vendor.github</span><span><span class="badge" style="border-color: #ed9c55; color: #ed9c55;">personal</span></span><span style="display: flex; gap: 4px;"><span class="chip lift">−github.com</span><span class="muted" style="font-size: 11px;">rule removed</span><a href="#" style="margin-left: auto; font-size: 12px;">Restore</a></span></div>
+      <div class="tr"><span class="mono muted">2026-09-09 21:40Z</span><span class="mono">pat</span><span>edited</span><a href="#" class="mono" style="text-decoration: none;">financial.brokerage.fidelity</a><span><span class="badge" style="border-color: #3b3734; color: #9c9890;">base</span></span><span style="display: flex; gap: 4px;"><span class="chip add">+fmr.com</span></span></div>
+      <div class="tr"><span class="mono muted">2026-09-09 18:03Z</span><span class="mono">pat</span><span>confirmed</span><a href="#" class="mono" style="text-decoration: none;">candidate.personal.chasealerts.com</a><span><span class="badge" style="border-color: #ed9c55; color: #ed9c55;">personal</span></span><span style="display: flex; gap: 4px;"><span class="chip">chasealerts.com</span></span></div>
+      <div class="tr" style="border-bottom: none;"><span class="mono muted">2026-09-04 18:02Z</span><span class="mono">pat</span><span>added</span><a href="#" class="mono" style="text-decoration: none;">financial.brokerage.fidelity</a><span><span class="badge" style="border-color: #3b3734; color: #9c9890;">base</span></span><span style="display: flex; gap: 4px;"><span class="chip">fidelity.com</span><span class="chip">fidelity.co.uk</span></span></div>
+    </div>
+  </div>
+
+  <div class="note" style="position: absolute; right: 40px; bottom: 30px; width: 520px; font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px; background: #161311;">
+    every policy write appends one entry in its own transaction, and no runtime role can rewrite one. it answers "who lifted the restriction on github.com, and when". a lifted rule no longer exists, so its identifier is not a link. a lift, or an edit that removed suffixes, carries Restore, which opens Add a rule prefilled with the removed suffixes, the scope and the identifier. the identifier may be reused, so the history then reads added, lifted, added. groupable by action, scope and who (L1), like any lens.
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

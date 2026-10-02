@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #161311; }
+    a { color: #e1ddd7; text-decoration: underline; text-decoration-color: #6c6863; text-underline-offset: 2px; }
+    a:hover { color: #ed9c55; text-decoration-color: #ed9c55; }
+    .page { width: 1440px; min-height: 900px; background: #161311; color: #e1ddd7; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box; display: flex; flex-direction: column; position: relative; }
+    .note { font-family: 'Patrick Hand', cursive; color: #9c9890; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: #9c9890; }
+    .faint { color: #6c6863; }
+    .bar { display: flex; align-items: center; gap: 20px; padding: 10px 20px; margin: 0 20px; background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .sel { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #3b3734; border-radius: 4px; background: #292623; }
+    .nav { display: flex; gap: 16px; color: #9c9890; }
+    .nav a { color: #9c9890; text-decoration: none; }
+    .panel { background: #1f1c1a; border: 1px solid #3b3734; border-radius: 4px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #3b3734; border-radius: 4px; color: #e1ddd7; text-decoration: none; font-size: 12px; font-weight: 500; background: #1f1c1a; }
+    .btn-action { background: #ed9c55; border-color: #ed9c55; color: #161311; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border: 1px solid; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .th { font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: #9c9890; }
+    .tr { display: grid; grid-template-columns: 28px 240px 90px 100px 100px 100px 80px 60px minmax(0, 1fr); gap: 12px; align-items: center; padding: 0 16px; height: 36px; border-bottom: 1px solid #292623; font-size: 12px; }
+    .num { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+    .box { width: 14px; height: 14px; border: 1px solid #9c9890; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; }
+    .box-on { background: #ed9c55; border-color: #ed9c55; }
+    .kbd { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 0 5px; border: 1px solid #3b3734; border-radius: 3px; color: #9c9890; }
+  </style>
+</helmet>
+<div class="page">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
+    <div class="note" style="font-size: 18px;">ui · Restrict senders from the index · /personal/policy/pick?search=chase</div>
+    <div class="note" style="font-size: 15px;">dark palette · sample data · two of five matches selected</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel">
+      <span class="muted">account</span>
+      <span class="mono" style="font-weight: 500;">personal</span>
+      <span class="muted">· Gmail</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+    </div>
+    <div class="mono" style="font-weight: 500; font-size: 14px;">mediated mailbox</div>
+    <div class="nav">
+      <a href="#">Home</a><a href="#">Plans</a><a href="#">Jobs</a><a href="#">Corpus</a><a href="#">Masking</a><a href="#">Gate</a><a href="#">Audit</a><a href="#">Review queue</a><a href="#" style="color: #e1ddd7; box-shadow: inset 0 -2px 0 #ed9c55;">Policy</a><a href="#">System</a>
+    </div>
+    <div class="muted" style="margin-left: auto;">search · settings</div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
+    <a href="#" class="muted" style="text-decoration: none;">Policy</a><span class="faint">›</span><span>Restrict senders</span>
+    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border: 1px solid #ed9c55; border-radius: 10px; color: #ed9c55;">search: chase <span>×</span></span>
+    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/personal/policy/pick?search=chase&amp;pick=chase.com,e.chase.com</span>
+  </div>
+
+  <div style="padding: 12px 20px 24px 20px; display: flex; flex-direction: column; gap: 12px;">
+
+    <div style="display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 16px; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #ed9c55; border-radius: 4px; background: #161311;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9c9890" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+        <span class="mono">chase</span>
+        <span class="muted" style="margin-left: auto; font-size: 12px;">sender domains in personal</span>
+      </div>
+      <div role="status" class="muted" style="font-size: 12px;">5 senders match · 1 already restricted · <span class="kbd">x</span> or <span class="kbd">enter</span> select · <span class="kbd">shift j/k</span> extend · <span class="kbd">ctrl a</span> all matches · <span class="kbd">r</span> restrict · <span class="kbd">esc</span> clear</div>
+    </div>
+
+    <div class="panel">
+      <div class="tr" style="height: 30px;"><div></div><div class="th">domain</div><div class="th">class</div><div class="th" style="text-align: right;">messages</div><div class="th">first seen</div><div class="th">last seen</div><div class="th" style="text-align: right;">list-id</div><div class="th" style="text-align: right;">hits</div><div class="th">restricted by</div></div>
+      <div class="tr" style="background: #292623; box-shadow: inset 2px 0 0 #ed9c55;"><span class="box box-on"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#161311" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg></span><span class="mono">chase.com</span><span class="muted">normal</span><span class="num">612</span><span class="mono muted">2016-04</span><span class="mono muted">2026-09-08</span><span class="num muted">4%</span><span class="num muted">0</span><span></span></div>
+      <div class="tr" style="background: #292623;"><span class="box box-on"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#161311" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"></path></svg></span><span class="mono">e.chase.com</span><span class="muted">normal</span><span class="num">28</span><span class="mono muted">2023-01</span><span class="mono muted">2026-08-29</span><span class="num muted">96%</span><span class="num muted">0</span><span></span></div>
+      <div class="tr"><span class="box"></span><span class="mono">chaseoutdoors.net</span><span class="muted">normal</span><span class="num">9</span><span class="mono muted">2024-05</span><span class="mono muted">2025-12-01</span><span class="num muted">100%</span><span class="num muted">0</span><span></span></div>
+      <div class="tr"><span class="box"></span><span class="mono">purchase-receipts.io</span><span class="muted">normal</span><span class="num">3</span><span class="mono muted">2026-02</span><span class="mono muted">2026-06-14</span><span class="num muted">0%</span><span class="num muted">1</span><span></span></div>
+      <div class="tr" style="border-bottom: none;"><span class="box" style="border-color: #3b3734;"></span><span class="mono">chasealerts.com</span><span><span class="badge" style="border-color: #f47b74; color: #f47b74;">restricted</span></span><span class="num">220</span><span class="mono muted">2024-03</span><span class="mono muted">2026-09-07</span><span class="num muted">0%</span><span class="num muted">0</span><a href="#" class="mono" style="font-size: 11px;">candidate.personal.chasealerts.com</a></div>
+    </div>
+
+    <div class="muted" style="font-size: 12px;">A sender already restricted shows the rule that restricts it and cannot be selected.</div>
+  </div>
+
+  <div class="panel" style="position: absolute; left: 40px; right: 40px; bottom: 24px; display: flex; align-items: center; gap: 16px; padding: 10px 16px; box-shadow: 0 -8px 24px rgba(0,0,0,0.45); border-color: #ed9c55;">
+    <div><span class="mono" style="font-weight: 500;">2</span> senders · <span class="mono">640</span> messages selected</div>
+    <div class="muted" style="font-size: 12px;">chase.com, e.chase.com</div>
+    <a href="#" class="muted" style="font-size: 12px; margin-left: auto;">Clear</a>
+    <a href="#" class="btn btn-action">Restrict as one rule… <span class="kbd">r</span></a>
+  </div>
+
+  <div class="note" style="position: absolute; right: 40px; top: 470px; width: 330px; font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px; background: #161311;">
+    the senders dataset at L3 with a domain search. the row cursor and the selection are separate, as in the other tables. the selection rides in the address as pick=, so Back and a reload keep it, and Enter toggles like x instead of leaving. the bar, or r, opens Add a rule with the picked domains as its suffixes, because a rule names one institution, and its Cancel returns here. ctrl a selects all matches across pages (pick=all), and the bar then says "all 5 matching senders".
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
