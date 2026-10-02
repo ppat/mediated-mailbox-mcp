@@ -411,6 +411,48 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 		"candidates-rows-pending-other-empty.json":        "/api/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
 		"candidates-rows-pending-oldest-other-empty.json": "/api/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
 	})
+	// The banner of a pass 1 a change of scanner re-opened is recorded once the personal account's
+	// pass 1, which succeeded, runs again (docs/UI.md section 12).
+	reopenPass1(t)
+	record(t, s, doc, map[string]string{"system-reopened.json": "/api/personal/system"})
+}
+
+// reopenPass1 moves the personal account on as a backfill run that finds the first pass due again
+// would (ADR-0096). Pass 2's running run succeeds, the next run clears both passes' completion and
+// starts pass 1 again, and that run has recorded a page.
+func reopenPass1(t *testing.T) {
+	t.Helper()
+	conn, err := pgx.Connect(t.Context(), postgres.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := conn.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	}()
+	for _, st := range []struct {
+		sql  string
+		args []any
+	}{
+		{
+			`UPDATE job_runs SET state = 'succeeded', finished_at = $2 WHERE account_id = $1 AND run_id = 'r-0918'`,
+			[]any{personal, now.Add(-8 * time.Second)},
+		},
+		{
+			`UPDATE account_state SET backfill_pass1_complete = false, backfill_pass2_complete = false WHERE account_id = $1`,
+			[]any{personal},
+		},
+		{
+			`INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at, heartbeat_at, checkpoint, counters) VALUES
+			($1, 'r-0919', 'backfill', 'pass1', 'running', $2, $2, '{"page": 842, "of": 3368}', '{}')`,
+			[]any{personal, now.Add(-6 * time.Second)},
+		},
+	} {
+		if _, err := conn.Exec(t.Context(), st.sql, st.args...); err != nil {
+			t.Fatalf("re-opening pass 1: %v\n%s", err, st.sql)
+		}
+	}
 }
 
 // emptyOther removes every row the other account holds apart from the account itself, so it reads as an

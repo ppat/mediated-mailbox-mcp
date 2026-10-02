@@ -1309,6 +1309,13 @@
               }
             ]
           },
+          "backfill_pass1_succeeded_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "backfill_pass2_complete": {
             "type": "boolean"
           },
@@ -1370,6 +1377,7 @@
           "connected",
           "backfill_pass1_complete",
           "backfill_pass1_run",
+          "backfill_pass1_succeeded_at",
           "backfill_pass2_complete",
           "backfill_pass2_run",
           "pending_scan",

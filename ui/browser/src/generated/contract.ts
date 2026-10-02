@@ -453,6 +453,8 @@ export interface components {
         Operational: {
             backfill_pass1_complete: boolean;
             backfill_pass1_run: components["schemas"]["Run"] | null;
+            /** Format: date-time */
+            backfill_pass1_succeeded_at: string | null;
             backfill_pass2_complete: boolean;
             backfill_pass2_run: components["schemas"]["Run"] | null;
             connected: boolean;

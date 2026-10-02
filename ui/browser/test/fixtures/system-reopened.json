@@ -4,54 +4,42 @@
   "as_of": "2026-09-10T10:16:04Z",
   "operational": {
     "connected": true,
-    "backfill_pass1_complete": true,
+    "backfill_pass1_complete": false,
     "backfill_pass1_run": {
-      "run_id": "r-0901",
+      "run_id": "r-0919",
       "workload": "backfill",
       "pass": "pass1",
-      "state": "succeeded",
+      "state": "running",
       "plan_id": null,
       "plan_description": null,
       "plan_status": null,
       "resumed_from": null,
-      "started_at": "2026-09-01T10:16:04Z",
-      "finished_at": "2026-09-02T10:16:04Z",
-      "heartbeat_at": "2026-09-02T10:16:04Z",
+      "started_at": "2026-09-10T10:15:58Z",
+      "finished_at": null,
+      "heartbeat_at": "2026-09-10T10:15:58Z",
       "checkpoint": {
         "of": 3368,
-        "page": 3368
+        "page": 842
       },
-      "counters": {
-        "pages": 3368,
-        "messages": 84212
-      },
+      "counters": {},
       "last_error": null
     },
     "backfill_pass1_succeeded_at": "2026-09-02T10:16:04Z",
     "backfill_pass2_complete": false,
     "backfill_pass2_run": {
-      "run_id": "r-0913",
+      "run_id": "r-0918",
       "workload": "backfill",
       "pass": "pass2",
-      "state": "running",
+      "state": "succeeded",
       "plan_id": null,
       "plan_description": null,
       "plan_status": null,
-      "resumed_from": "r-0912",
-      "started_at": "2026-09-10T09:36:04Z",
-      "finished_at": null,
-      "heartbeat_at": "2026-09-10T10:15:04Z",
-      "checkpoint": {
-        "of": 3368,
-        "page": 3065
-      },
-      "counters": {
-        "pages": 3065,
-        "decided": 76610,
-        "pending": 7602,
-        "scanned": 70100,
-        "skipped": 6510
-      },
+      "resumed_from": "r-0913",
+      "started_at": "2026-09-10T10:15:54Z",
+      "finished_at": "2026-09-10T10:15:56Z",
+      "heartbeat_at": "2026-09-10T10:15:54Z",
+      "checkpoint": {},
+      "counters": {},
       "last_error": null
     },
     "pending_scan": 1,
@@ -98,6 +86,6 @@
   "decisions": {
     "plans_draft": 1,
     "candidates_pending": 6,
-    "workloads_running": 2
+    "workloads_running": 3
   }
 }
