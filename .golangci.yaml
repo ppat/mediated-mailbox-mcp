@@ -524,8 +524,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           # The two passes' statements and the recording of the last authentication attempt. The writes sit
-          # in the subsections only backfill's list admits, and the lowered target's read in db/accountstate
-          # (ADR-0075, ADR-0066, ADR-0097).
+          # in subsections the readers' lists do not admit, which backfill shares with delta sync apart from
+          # the completion flags, and the lowered target's read in db/accountstate (ADR-0075, ADR-0066,
+          # ADR-0097).
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion$"
@@ -672,17 +673,52 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/accountload$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
+          # A tick's statements. It adds and masks mail and records its runs as backfill's first pass does,
+          # decides and scans what waits as its second pass does, and records the last authentication
+          # attempt, through the subsections it shares with backfill. The change cursor, a change's labels,
+          # flags and removals, and the re-seal of a client secret sit in subsections only this list admits.
+          # The account's progress and lowered target are read in db/accountstate (ADR-0075, ADR-0066,
+          # ADR-0104, ADR-0092).
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/cursor$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/change$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          # A tick converts a body's HTML as backfill's second pass and release do (ADR-0104, ADR-0036).
+          - "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/prometheus/client_golang/prometheus$"
+          # The metrics endpoint the composition root serves (ADR-0051, ADR-0103).
+          - "github.com/prometheus/client_golang/prometheus/promhttp$"
+          # The sender classifier's domain functions, which the composition root passes a tick.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
 
         # Deployable ui, every file. A deployable imports its own code and the shared libraries, never another

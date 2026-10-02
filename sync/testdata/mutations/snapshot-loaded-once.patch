@@ -1,0 +1,21 @@
+control: Each tick takes the account snapshot again
+removes: only the first tick loads the account snapshot, so an account connected afterwards is never ticked
+packages: ./sync
+tests: TestEachTickLoadsTheAccountSnapshot
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/main.go b/sync/main.go
+index f76bc15..7dc6d6d 100644
+--- a/sync/main.go
++++ b/sync/main.go
+@@ -307,7 +307,8 @@ func (s *syncer) every(ctx context.Context, interval time.Duration) error {
+ // and its latest authentication attempt recorded (ADR-0082, ADR-0097). An account whose tick fails
+ // leaves the others to tick, and the tick ends in an error naming it.
+ func (s *syncer) tick(ctx context.Context) error {
+-	if err := s.loader.Load(ctx); err != nil && ctx.Err() != nil {
++	if s.served != nil {
++	} else if err := s.loader.Load(ctx); err != nil && ctx.Err() != nil {
+ 		return err
+ 	}
+ 	s.loader.Reseal(ctx)

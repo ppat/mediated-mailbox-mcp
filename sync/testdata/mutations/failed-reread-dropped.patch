@@ -1,0 +1,20 @@
+control: A credential the provider refuses is read again from its row before the refusal is reported
+removes: a failed read of the refused credential is dropped and the refusal returned alone
+packages: ./sync
+tests: TestAFailedReadOfTheRefusedCredentialIsReported
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/main.go b/sync/main.go
+index ef58805..4d13029 100644
+--- a/sync/main.go
++++ b/sync/main.go
+@@ -448,7 +448,7 @@ func retried[T any](ctx context.Context, r *reauthorizing, call func(context.Con
+ 	}
+ 	reread, rerr := r.syncer.loader.Reread(ctx, r.account)
+ 	if rerr != nil {
+-		return out, errors.Join(err, fmt.Errorf("reading the refused credential again: %w", rerr))
++		return out, err
+ 	}
+ 	stored := reread.Credential()
+ 	if stored == nil || string(stored) == r.source.RefreshToken() {

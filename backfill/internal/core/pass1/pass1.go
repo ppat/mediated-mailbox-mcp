@@ -3,9 +3,8 @@
 //
 // Begin decides how a run starts from what the index holds, a fresh pass, a resumed one or none at
 // all, and Under starts an enumeration made under another scanner over. OnFailure decides what a run
-// does after an attempt at a page fails. Decide turns one page of metadata into the rows the index
-// stores, each sender classified against the account's policy and each subject masked by the scanner,
-// a restricted sender's included (ADR-0003, ADR-0004). Advance moves the checkpoint past a page once
+// does after an attempt at a page fails. What a page adds to the index is core/index's Decide, which
+// delta sync shares (ADR-0003, ADR-0004). Advance moves the checkpoint past a page once
 // the page is durable. Unfound masks whole the stored subjects an enumeration that ended did not find
 // (ADR-0096).
 //
@@ -16,28 +15,11 @@
 package pass1
 
 import (
-	"errors"
-	"slices"
-	"strings"
-
-	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 )
-
-// Stamp is the scanner version and configuration revision a subject's masking or a body's scan is
-// made under (ADR-0009, ADR-0096).
-type Stamp struct {
-	Version  int
-	Revision string
-}
-
-// StampOf returns the stamp of what s decides. A scanner nobody built has a stamp no built one has.
-func StampOf(s scan.Scanner) Stamp {
-	return Stamp{Version: s.Version(), Revision: s.Revision()}
-}
 
 // Checkpoint is where a pass stands.
 type Checkpoint struct {
@@ -50,7 +32,7 @@ type Checkpoint struct {
 	// with the page made durable, and zero when it reported none (ADR-0095).
 	Of int
 	// Stamp is the scanner the enumeration masks under.
-	Stamp Stamp
+	Stamp index.Stamp
 }
 
 // Ended reports whether the enumeration the checkpoint follows has ended.
@@ -134,7 +116,7 @@ func Begin[P any](ended, due bool, latest Latest[P]) Start[P] {
 // its enumeration over. An enumeration made under another scanner starts over from the first page,
 // counters carrying on, so an enumeration that ends was made under one scanner from its first page
 // and every message it found was masked under that scanner (ADR-0096).
-func Under(start Start[Progress], s Stamp) (Start[Progress], bool) {
+func Under(start Start[Progress], s index.Stamp) (Start[Progress], bool) {
 	if start.Skip {
 		return start, false
 	}
@@ -185,105 +167,6 @@ func pagesOf(page int, next mail.PageToken, total *mail.Total) int {
 	}
 }
 
-// Class is a sender's class as the index stores it.
-type Class string
-
-const (
-	// Normal is a sender no rule lists.
-	Normal Class = "normal"
-	// Restricted is a sender a rule lists, or one that cannot be classified (ADR-0004).
-	Restricted Class = "restricted"
-)
-
-// Message is one message's row as the index stores it. It holds no body, snippet or attachment name
-// (ADR-0016).
-type Message struct {
-	ID, ThreadID string
-	From         mail.Address
-	// Domain is the sender's domain in lower case, the part of the address after its last @, or
-	// empty for an address without one.
-	Domain string
-	// Subject is the subject masked at rest (ADR-0003).
-	Subject        string
-	SubjectMasked  bool
-	Date           mail.UnixMilli
-	Labels         []string
-	Flags          mail.Flags
-	HasAttachments bool
-	ListID         string
-	SizeBytes      int64
-	AuthResults    mail.AuthResults
-	Class          Class
-	// ClassRule is the identifier of the policy rule that set the class, empty when no rule set it,
-	// which is a sender no rule lists, a classification made while no policy has loaded and an
-	// address that cannot be classified (ADR-0016).
-	ClassRule string
-	// Unclassified is set when the classifier could not classify the sender, which classifies it
-	// restricted.
-	Unclassified bool
-	// Masks are the masks applied to the subject, one per detection.
-	Masks []Mask
-	// Stamp is the scanner the subject was masked under (ADR-0096).
-	Stamp Stamp
-}
-
-// Mask is one mask applied to a subject, naming the rule and tier that detected what was masked and
-// never the text (ADR-0003).
-type Mask struct {
-	Rule string
-	Tier int
-}
-
-// Page is what one page of the enumeration adds to the index.
-type Page struct {
-	Messages []Message
-	// Domains are the senders' domains the page holds, each once, sorted, whose statistics the shell
-	// rebuilds.
-	Domains []string
-}
-
-// Decide returns the rows one page of metadata adds to the index, each sender classified under the
-// account's policy p and each subject masked by s under subject masking's tuning and stamped with s. A
-// policy that never loaded restricts every sender, and a scanner nobody built masks every subject
-// whole, so neither fails open.
-func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l classify.Lookups) Page {
-	var out Page
-	for _, m := range items {
-		verdict := classify.Classify(p, m.From.Email, l)
-		masked := redact.MaskSubject(s, m.Subject)
-		msg := Message{
-			ID:             m.ID,
-			ThreadID:       m.ThreadID,
-			From:           m.From,
-			Domain:         domain(m.From.Email),
-			Subject:        masked.Subject(),
-			Date:           m.Date,
-			Labels:         slices.Clone(m.Labels),
-			Flags:          m.Flags,
-			HasAttachments: m.HasAttachments,
-			ListID:         m.ListID,
-			SizeBytes:      m.SizeBytes,
-			AuthResults:    m.AuthResults,
-			Stamp:          StampOf(s),
-			Class:          Normal,
-			ClassRule:      verdict.Rule(),
-			Unclassified:   verdict.Reason() == classify.Unclassifiable,
-		}
-		if verdict.Class().Restricted() {
-			msg.Class = Restricted
-		}
-		for _, e := range masked.Events() {
-			msg.Masks = append(msg.Masks, Mask{Rule: e.Rule(), Tier: e.Tier()})
-		}
-		msg.SubjectMasked = len(msg.Masks) > 0
-		out.Messages = append(out.Messages, msg)
-		out.Domains = append(out.Domains, msg.Domain)
-	}
-	slices.Sort(out.Domains)
-	out.Domains = slices.Compact(out.Domains)
-	return out
-}
-
 // Stored is a message's subject as the index stores it.
 type Stored struct {
 	ID, Subject string
@@ -293,13 +176,13 @@ type Stored struct {
 // cannot decide masks a subject, each with the one event of a whole subject. They are the messages an
 // enumeration made under s from its first page did not find, so the provider no longer has them and
 // their subjects cannot be masked again from what it returns (ADR-0096, ADR-0003).
-func Unfound(stored []Stored, s Stamp) []Message {
-	var out []Message
+func Unfound(stored []Stored, s index.Stamp) []index.Message {
+	var out []index.Message
 	for _, m := range stored {
 		masked := redact.MaskSubject(scan.Scanner{}, m.Subject)
-		msg := Message{ID: m.ID, Subject: masked.Subject(), Stamp: s}
+		msg := index.Message{ID: m.ID, Subject: masked.Subject(), Stamp: s}
 		for _, e := range masked.Events() {
-			msg.Masks = append(msg.Masks, Mask{Rule: e.Rule(), Tier: e.Tier()})
+			msg.Masks = append(msg.Masks, index.Mask{Rule: e.Rule(), Tier: e.Tier()})
 		}
 		msg.SubjectMasked = len(msg.Masks) > 0
 		out = append(out, msg)
@@ -307,54 +190,13 @@ func Unfound(stored []Stored, s Stamp) []Message {
 	return out
 }
 
-// domain returns the part of address after its last @, lower-cased, or empty when there is none.
-func domain(address string) string {
-	at := strings.LastIndexByte(address, '@')
-	if at < 0 {
-		return ""
-	}
-	return strings.ToLower(address[at+1:])
-}
-
 // MaxAttempts is how many times a page the provider throttles or fails is asked for before the run
 // fails. The rate limiter paces every attempt, and a later run resumes from the same page.
 const MaxAttempts = 5
 
-// ErrorClass is a failure's error class, as a run's failed items record it (ADR-0016).
-type ErrorClass string
-
-// The error classes of a failure the provider reported, and NotProvider for one it did not.
-const (
-	NotProvider    ErrorClass = ""
-	Throttled      ErrorClass = "throttled"
-	ProviderError  ErrorClass = "provider_error"
-	Authentication ErrorClass = "authentication"
-	Gone           ErrorClass = "gone"
-	Validation     ErrorClass = "validation"
-)
-
-// ClassOf returns the error class of a failure the provider reported, by the Provider Port's error it
-// wraps, and NotProvider for any other failure, such as the rate limiter failing to record a call.
-func ClassOf(err error) ErrorClass {
-	switch {
-	case errors.Is(err, mail.ErrThrottled):
-		return Throttled
-	case errors.Is(err, mail.ErrProvider):
-		return ProviderError
-	case errors.Is(err, mail.ErrAuthentication):
-		return Authentication
-	case errors.Is(err, mail.ErrNotFound):
-		return Gone
-	case errors.Is(err, mail.ErrInvalid):
-		return Validation
-	default:
-		return NotProvider
-	}
-}
-
 // Attempt is what a run knows when an attempt at a page fails.
 type Attempt struct {
-	Class ErrorClass
+	Class index.ErrorClass
 	// Attempts counts the attempts at the page, the one that failed included.
 	Attempts int
 	// ResumedToken is set when the token the page was asked with is the one the run resumed from,
@@ -390,13 +232,13 @@ const (
 // run and records no failed page.
 func OnFailure(f Attempt) Next {
 	switch {
-	case f.Class == NotProvider:
+	case f.Class == index.NotProvider:
 		return FailRun
-	case f.Class == Validation && f.ResumedToken && !f.Restarted:
+	case f.Class == index.Validation && f.ResumedToken && !f.Restarted:
 		return StartOver
-	case f.Class == Throttled && f.Attempts < MaxAttempts:
+	case f.Class == index.Throttled && f.Attempts < MaxAttempts:
 		return Backoff
-	case f.Class == ProviderError && f.Attempts < MaxAttempts:
+	case f.Class == index.ProviderError && f.Attempts < MaxAttempts:
 		return Retry
 	default:
 		return Abandon

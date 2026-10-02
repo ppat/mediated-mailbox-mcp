@@ -138,14 +138,16 @@ type Loader struct {
 	// adoptions counts the values adopted from a row that the loader did not write, across every
 	// account, so an account dropped and connected again never reuses a count.
 	adoptions uint64
-	scan      Scan
-	active    atomic.Pointer[Snapshot]
+	// clients holds, per provider whose client secret opened, the sealed bytes last read or written.
+	clients map[string][]byte
+	scan    Scan
+	active  atomic.Pointer[Snapshot]
 }
 
 // New returns a Loader reading from db and opening with keys. Its snapshot serves no account until a
 // load succeeds.
 func New(db DB, keys *open.Keyring, log *slog.Logger) *Loader {
-	l := &Loader{db: db, keys: keys, log: log, accounts: map[string]held{}, scan: newScan()}
+	l := &Loader{db: db, keys: keys, log: log, accounts: map[string]held{}, clients: map[string][]byte{}, scan: newScan()}
 	l.active.Store(&Snapshot{})
 	return l
 }
@@ -228,6 +230,7 @@ func (l *Loader) Load(ctx context.Context) error {
 	}
 	next := &Snapshot{clients: map[string]Client{}}
 	known := map[string]held{}
+	sealedClients := map[string][]byte{}
 	scan := newScan()
 	for _, r := range rows {
 		a := Account{id: r.id, provider: r.provider}
@@ -247,8 +250,10 @@ func (l *Loader) Load(ctx context.Context) error {
 			continue
 		}
 		next.clients[c.Provider] = Client{provider: c.Provider, id: c.ClientID, secret: secret}
+		sealedClients[c.Provider] = c.SealedClientSecret
 	}
 	l.accounts = known
+	l.clients = sealedClients
 	l.scan = scan
 	l.active.Store(next)
 	return nil

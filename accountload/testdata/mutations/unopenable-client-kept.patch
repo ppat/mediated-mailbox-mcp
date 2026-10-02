@@ -6,14 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/accountload/load.go b/accountload/load.go
-index ec429e0..99c2cfe 100644
+index 690e57c..b07c016 100644
 --- a/accountload/load.go
 +++ b/accountload/load.go
-@@ -231,7 +231,6 @@ func (l *Loader) Load(ctx context.Context) error {
+@@ -236,7 +236,6 @@ func (l *Loader) Load(ctx context.Context) error {
  		scan.Clients[c.Provider] = err != nil || l.onOldKey(c.SealedClientSecret)
  		if err != nil {
  			l.log.Error("an OAuth client's secret did not open, so its provider has no client", slog.String("provider", c.Provider), slog.Any("error", err))
 -			continue
  		}
  		next.clients[c.Provider] = Client{provider: c.Provider, id: c.ClientID, secret: secret}
- 	}
+ 		sealedClients[c.Provider] = c.SealedClientSecret

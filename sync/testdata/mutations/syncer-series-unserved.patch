@@ -1,0 +1,20 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: the syncer registers its series on a registry the metrics endpoint does not serve
+packages: ./sync
+tests: TestTheProbesServeEverySeriesBetweenTicks
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/main.go b/sync/main.go
+index 86ddcc1..bc95d05 100644
+--- a/sync/main.go
++++ b/sync/main.go
+@@ -193,7 +193,7 @@ func assemble(ln net.Listener, pool *pgxpool.Pool, keys *open.Keyring, scanner s
+ 	if err != nil {
+ 		return nil, nil, err
+ 	}
+-	s, err := newSyncer(pool, keys, scanner, c, registry, logger, gmailPorts(gmailMetrics, client))
++	s, err := newSyncer(pool, keys, scanner, c, prometheus.NewRegistry(), logger, gmailPorts(gmailMetrics, client))
+ 	if err != nil {
+ 		return nil, nil, err
+ 	}

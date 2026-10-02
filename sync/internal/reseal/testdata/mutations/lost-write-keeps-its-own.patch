@@ -1,0 +1,20 @@
+control: Delta sync's re-seal of a client secret never puts back a value someone else replaced
+removes: a re-seal that lost to a replaced secret keeps the secret it held instead of reading the stored one again
+packages: ./sync/internal/reseal
+tests: TestAReSealNeverPutsBackAReplacedSecret
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/reseal.go b/accountload/reseal.go
+index 94fbfaa..bcd7c86 100644
+--- a/accountload/reseal.go
++++ b/accountload/reseal.go
+@@ -101,7 +101,7 @@ func (l *Loader) ResealClients(ctx context.Context, write ClientWriter) Scan {
+ 		if err == nil && changed {
+ 			var landed bool
+ 			if landed, err = write(ctx, provider, known, resealed); err == nil && !landed {
+-				err = l.rereadClient(ctx, provider)
++				err = nil
+ 				if err == nil {
+ 					continue
+ 				}

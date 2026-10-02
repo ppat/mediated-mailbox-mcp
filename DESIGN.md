@@ -540,7 +540,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   scanner or of the scan gate's thresholds, to mask and scan again what an earlier scanner decided
   and decide again the skips earlier thresholds made (rules in ADR-0096 and ADR-0098, via the
   [decision-record index](./docs/adr/README.md)).
-- **Delta sync** — the recurring job that keeps the index current against provider change feeds.
+- **Delta sync** — the workload that runs until stopped and keeps the index current against
+  provider change feeds, one tick every sync interval.
 - **Sync interval** — the delta-sync polling cadence that bounds index freshness (rule and
   value in ADR-0018, via the [decision-record index](./docs/adr/README.md)).
 - **Reorg plan** — a proposed bulk reorganization, stored as data (label operations, per-message

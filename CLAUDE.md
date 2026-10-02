@@ -69,7 +69,7 @@ carries the bare word.
 | Directory | Kind | Published as | Holds |
 | --- | --- | --- | --- |
 | `accountload/` | Library | `mediated-mailbox-accountload` | The loading of a deployable's accounts, the installation's OAuth clients and their opened credentials into one account snapshot, the compare-and-set write-back of a rotated credential, and delta sync's re-seal, argued in [accountload/README.md](./accountload/README.md) |
-| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `plan`, `policy`, and `mail` (the canonical model, the Provider Port interface, the canonical query, the rate profile types and the hard-cap fraction) |
+| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `index` (the decisions every workload that writes the index makes about a message), `plan`, `policy`, and `mail` (the canonical model, the Provider Port interface, the canonical query, the rate profile types and the hard-cap fraction) |
 | `credential/` | Library | `mediated-mailbox-credential` | The sealing and opening of an account's provider credential, the loading of its keys, and the configuration section naming the key files with its validation, in `credential/core`, argued in [credential/README.md](./credential/README.md) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
 | `dbconnect/` | Library | `mediated-mailbox-dbconnect` | A deployable's database section of its configuration and the connection built from it, argued in [dbconnect/README.md](./dbconnect/README.md) |
@@ -168,8 +168,8 @@ file's import target described under Violation files.
   used as a value and a declared function passed to `tx.Run`
   ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)). A subsection is recognised by its
   type, a package under `db/` whose `New` returns its own `Queries`. It covers every package, test
-  files included, and exempts the accounts listing and the read of `oauth_clients`, each written as
-  one chained call, which are not account-scoped. The one gap it leaves is a query value built
+  files included, and exempts the accounts listing, the read of `oauth_clients` and delta sync's
+  re-seal of a client secret, each written as one chained call, which are not account-scoped. The one gap it leaves is a query value built
   inside the literal that escapes it and is used after `tx.Run` returns, which its package comment
   states. The routes analyser refuses a route registered on a mux in the UI other than through its
   recording mux, as any use of `(*http.ServeMux).Handle`, `(*http.ServeMux).HandleFunc`,

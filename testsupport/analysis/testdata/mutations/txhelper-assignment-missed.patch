@@ -1,4 +1,4 @@
-control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients and delta sync's re-seal of a client secret
 removes: an assignment to the transaction parameter is not reported
 packages: ./testsupport/analysis
 tests: TestTxHelper

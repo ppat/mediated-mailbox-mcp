@@ -10,6 +10,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential"
 	"github.com/ppat/mediated-mailbox-mcp/db/lookalike"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
+	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/other/queries"
 )
@@ -48,12 +49,18 @@ func Outside(ctx context.Context, p pool) error {
 	return tx.Run(ctx, p, "a", func(pgx.Tx) error { return nil })
 }
 
-// Exceptions runs the two exempt statements on any handle, and nothing else.
+// Exceptions runs the three exempt statements on any handle, and nothing else.
 func Exceptions(ctx context.Context, p pool) error {
 	if err := accounts.New(p).Accounts(ctx); err != nil {
 		return err
 	}
 	if err := oauthclients.New(p).OAuthClients(ctx); err != nil {
+		return err
+	}
+	if err := secret.New(p).ReplaceSealedClient(ctx); err != nil {
+		return err
+	}
+	if err := secret.New(p).Other(ctx); err != nil { // want `calls secret.New outside a function literal passed to tx.Run`
 		return err
 	}
 	if err := accounts.New(p).Other(ctx); err != nil { // want `calls accounts.New outside a function literal passed to tx.Run`

@@ -14,6 +14,7 @@ import (
 
 	core "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -113,7 +114,7 @@ func TestAPassIndexesTheWholeMailbox(t *testing.T) {
 		t.Errorf("the run's timeline (-want +got):\n%s", diff)
 	}
 	s := w.inspect(t)
-	wantProgress := core.Progress{Checkpoint: core.Checkpoint{Page: 3, Stamp: core.Stamp{Version: 1, Revision: "revision-0"}}, Counters: core.Counters{Pages: 3, Messages: 7}}
+	wantProgress := core.Progress{Checkpoint: core.Checkpoint{Page: 3, Stamp: index.Stamp{Version: 1, Revision: "revision-0"}}, Counters: core.Counters{Pages: 3, Messages: 7}}
 	latest, _ := s.latest()
 	if diff := cmp.Diff(wantProgress, latest.Progress, compare.Options); diff != "" {
 		t.Errorf("the run's last checkpoint and counters (-want +got):\n%s", diff)

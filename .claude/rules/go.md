@@ -27,7 +27,7 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, stay
   allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
-  txhelper analyser enforces it, by the rules and the two exempt statements CLAUDE.md states under
+  txhelper analyser enforces it, by the rules and the three exempt statements CLAUDE.md states under
   Static analysis and formatting (ADR-0047).
 - **The UI registers a route only through its recording mux.** In a non-test file under `ui/`, the
   `go vet` routes analyser refuses a use of a mux's `Handle` or `HandleFunc`, of `http.Handle` or

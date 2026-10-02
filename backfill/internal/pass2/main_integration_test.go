@@ -23,11 +23,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -369,7 +371,7 @@ type memory struct {
 }
 
 type memoryMessage struct {
-	in core.Message
+	in index.Waiting
 	st stored
 	// subject is the scanner revision the first pass masked the subject under.
 	subject string
@@ -385,11 +387,11 @@ func newMemory(t tb, messages []fake.Message) *memory {
 	for _, m := range messages {
 		metadata = append(metadata, m.Metadata)
 	}
-	page := pass1core.Decide(metadata, policyListing(t, false).For("personal"), scanner(t), lookups)
+	page := index.Decide(metadata, policyListing(t, false).For("personal"), scanner(t), lookups)
 	m := &memory{messages: map[string]*memoryMessage{}, volume: map[string]int64{}, hits: map[string]int64{}, items: map[string][]string{}}
 	for _, d := range page.Messages {
 		m.messages[d.ID] = &memoryMessage{
-			in:      core.Message{ID: d.ID, From: d.From.Email, Domain: d.Domain, SubjectMasked: d.SubjectMasked, ListID: d.ListID != "", SizeBytes: d.SizeBytes, SentAt: d.Date},
+			in:      index.Waiting{ID: d.ID, From: d.From.Email, Domain: d.Domain, SubjectMasked: d.SubjectMasked, ListID: d.ListID != "", SizeBytes: d.SizeBytes, SentAt: d.Date},
 			st:      stored{Domain: d.Domain, Class: string(d.Class), State: "pending", Flags: []string{}, Rules: []string{}},
 			subject: d.Stamp.Revision,
 		}
@@ -438,7 +440,7 @@ func (m *memory) Start(ctx context.Context, _, runID string, start pass1core.Sta
 	return nil
 }
 
-func (m *memory) Reopen(ctx context.Context, _ string, s pass1core.Stamp, overturned func([]core.Message) []string) (pass2.Reopened, error) {
+func (m *memory) Reopen(ctx context.Context, _ string, s index.Stamp, overturned func([]index.Waiting) []string) (pass2.Reopened, error) {
 	if err := ctx.Err(); err != nil {
 		return pass2.Reopened{}, err
 	}
@@ -458,7 +460,7 @@ func (m *memory) Reopen(ctx context.Context, _ string, s pass1core.Stamp, overtu
 			}
 		}
 	}
-	var skips []core.Message
+	var skips []index.Waiting
 	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
 		if msg := m.messages[id]; msg.st.State == "skipped_gate" {
 			c := msg.in
@@ -516,11 +518,11 @@ func (m *memory) Delist(ctx context.Context, _, runID string, delisted func([]st
 	return marked, nil
 }
 
-func (m *memory) Pending(ctx context.Context, _, after string, n int) ([]core.Message, error) {
+func (m *memory) Pending(ctx context.Context, _, after string, n int) ([]index.Waiting, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	var out []core.Message
+	var out []index.Waiting
 	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
 		msg := m.messages[id]
 		if id > after && msg.st.State == "pending" && len(out) < n {
@@ -564,7 +566,7 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, items
 }
 
 // flagNames returns a scan's content flags as the index stores them.
-func flagNames(s *core.Scanned) []string {
+func flagNames(s *index.Scanned) []string {
 	out := []string{}
 	if s.Flags.MFACode() {
 		out = append(out, "mfa_code")
@@ -1028,7 +1030,7 @@ func realWorldOf(t testing.TB, pageSize int, messages []fake.Message) *world {
 	return newWorld(t, s, account, messages, pass2.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
 		func(p mail.Port[context.Context]) pass2.Body {
 			return func(ctx context.Context, id string) (mail.MessageBody, error) {
-				return pass1.Call(ctx, limiter, p, account, mail.OpGetMessageBody, func(ctx context.Context) (mail.MessageBody, error) {
+				return lease.Call(ctx, limiter, p, account, ratecore.Batch, mail.ProviderOp{Operation: mail.OpGetMessageBody}, func(ctx context.Context) (mail.MessageBody, error) {
 					return p.GetMessageBody(ctx, id)
 				})
 			}

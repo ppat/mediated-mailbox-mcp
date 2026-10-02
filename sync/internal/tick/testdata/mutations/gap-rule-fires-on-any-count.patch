@@ -1,0 +1,21 @@
+control: A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
+removes: the cursor gap rule fires while any gap was ever counted, so it never clears
+packages: ./sync/internal/tick
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+index ca2d76e..41d1c3e 100644
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -108,9 +108,7 @@ groups:
+   # which the increase reads as a reset rather than a gap. The sums by account join the two clauses on one label set.
+   - alert: MediatedMailboxSyncCursorGap
+     expr: |
+-      sum by (account) (increase(mediated_mailbox_sync_cursor_gaps_total[1h])) > 0
+-      or sum by (account) (mediated_mailbox_sync_cursor_gaps_total
+-      unless mediated_mailbox_sync_cursor_gaps_total offset 1h) > 0
++      sum by (account) (mediated_mailbox_sync_cursor_gaps_total) > 0
+     labels:
+       severity: warning
+     annotations:

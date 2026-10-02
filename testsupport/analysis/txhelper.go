@@ -33,11 +33,12 @@ import (
 //   - (*Queries).WithTx is reported everywhere, since it rebinds queries to any transaction.
 //   - A subsection's New used other than by calling it, as a value, is reported.
 //
-// Two statements are exempt, because they are not account-scoped and run outside the transaction
-// helper: the accounts listing and the read of oauth_clients (ADR-0091). Each is exempt only when
-// written as one chained call, accounts.New(h).Accounts(ctx) and oauthclients.New(h).OAuthClients(ctx),
-// with any handle h. Any other use of those packages' New follows the rules above, so a statement
-// later added to either package is not exempt.
+// Three statements are exempt, because they are not account-scoped and run outside the transaction
+// helper: the accounts listing, the read of oauth_clients (ADR-0091) and delta sync's re-seal of a
+// client secret (ADR-0092). Each is exempt only when written as one chained call,
+// accounts.New(h).Accounts(ctx), oauthclients.New(h).OAuthClients(ctx) and
+// secret.New(h).ReplaceSealedClient(ctx, arg), with any handle h. Any other use of those packages' New
+// follows the rules above, so a statement later added to any of them is not exempt.
 //
 // The check is lexical and has one known gap. A Queries value built correctly inside the literal
 // can escape it, stored in a field, sent on a channel or returned, and be used after db/tx.Run has
@@ -53,8 +54,9 @@ const txPath = modulePath + "/db/tx"
 
 // txHelperExceptions maps each exempt subsection to its one exempt statement.
 var txHelperExceptions = map[string]string{
-	modulePath + "/db/accounts":     "Accounts",
-	modulePath + "/db/oauthclients": "OAuthClients",
+	modulePath + "/db/accounts":            "Accounts",
+	modulePath + "/db/oauthclients":        "OAuthClients",
+	modulePath + "/db/oauthclients/secret": "ReplaceSealedClient",
 }
 
 const (

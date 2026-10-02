@@ -1,0 +1,20 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: the rate limiter's series are registered on a registry the metrics endpoint does not serve
+packages: ./sync
+tests: TestTheProbesServeEverySeriesBetweenTicks
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/main.go b/sync/main.go
+index 86ddcc1..d0802a0 100644
+--- a/sync/main.go
++++ b/sync/main.go
+@@ -285,7 +285,7 @@ func newSyncer(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, c C
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	leases, err := lease.NewMetrics(registry)
++	leases, err := lease.NewMetrics(prometheus.NewRegistry())
+ 	if err != nil {
+ 		return nil, err
+ 	}

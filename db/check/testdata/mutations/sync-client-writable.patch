@@ -1,0 +1,20 @@
+control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
+removes: delta sync's role writes a client's identifier as well as its secret, with no statement that uses the grant
+packages: ./db/check
+tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_sync/writes_a_client
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00019_delta_sync.sql b/db/migrations/00019_delta_sync.sql
+index fb1cbc6..26087ff 100644
+--- a/db/migrations/00019_delta_sync.sql
++++ b/db/migrations/00019_delta_sync.sql
+@@ -161,7 +161,7 @@ TO mediated_mailbox_sync;
+ 
+ -- Delta sync re-seals an OAuth client's secret by compare-and-set on the stored bytes, the one write
+ -- of oauth_clients beside the UI's setup (ADR-0089, ADR-0092, ADR-0016).
+-GRANT UPDATE (client_secret) ON oauth_clients TO mediated_mailbox_sync;
++GRANT UPDATE (client_secret, client_id) ON oauth_clients TO mediated_mailbox_sync;
+ 
+ -- Delta sync loads policy through the shared policy loader, as backfill and the mediator do.
+ GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules TO mediated_mailbox_sync;

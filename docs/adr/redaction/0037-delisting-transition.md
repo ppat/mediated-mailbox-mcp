@@ -71,6 +71,9 @@ deny-on-hit — and does not count as scan clearance. This transition is the rea
   every workload that scans compares the messages stored as restricted or skipped as restricted
   with the policy it loaded, since that comparison is how a removal is observed. Between a removal and the next such comparison, the
   messages keep their skip state, which denies their bodies.
+- Once backfill's second pass has ended, delta sync is the workload that scans, so each of its ticks
+  makes the comparison before it decides what waits for a scan
+  ([ADR-0104](./0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md)).
 - The comparison reads the index and the policy as they stand, so it is idempotent. A process
   stopped between the marking and the scan loses nothing, and the next comparison finds nothing
   more to mark.

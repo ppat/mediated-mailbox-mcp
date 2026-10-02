@@ -5,11 +5,16 @@
 FROM golang:1.27.1-trixie@sha256:9baa6b4187bbb98d240372a8a235ac0bb6b5ddd52bba1431dc2f7c0705862728 AS server
 WORKDIR /src
 COPY go.mod go.sum ./
+COPY accountload accountload
 COPY core core
+COPY credential credential
 COPY db db
+COPY dbconnect dbconnect
+COPY policyload policyload
 COPY provider provider
 COPY ratelimit ratelimit
 COPY sanitize sanitize
+COPY settings settings
 COPY sync/main.go sync/main.go
 COPY sync/internal sync/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-sync ./sync

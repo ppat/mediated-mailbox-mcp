@@ -31,11 +31,10 @@ credential and each stored client secret each time it loads its accounts
   for each row of `oauth_clients`. A provider with no OAuth client has no row and no series. A
   series reads 1 while its value is sealed to a key other than the current one or cannot be opened,
   and 0 once it is sealed to the current key or when there is no value to seal, for an account
-  that is not connected. How
-  delta sync's series reach the metrics scrape when a run ends between scrapes is D4's open
-  decision, and the gate below waits on its answer
-  ([ROADMAP.md](../../../ROADMAP.md#open-decisions)). The UI logs the key identifier it seals to at
-  start.
+  that is not connected. Delta sync runs until stopped and serves its metrics between ticks, so its
+  series stay in every scrape, and
+  [ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md) names them. The
+  UI logs the key identifier it seals to at start.
 - **A key is replaced in this order.**
   1. A new key pair is generated with the key-generation binary attached to the release
      ([ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)).
@@ -71,5 +70,5 @@ credential and each stored client secret each time it loads its accounts
 - Delta sync's role writes the client secrets as well as the credential
   ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)). The shared library
   [`accountload/`](../../../accountload/README.md) carries the re-seal.
-- Assumptions about other components. Delta sync runs for every account on its schedule. The
+- Assumptions about other components. Delta sync ticks every account on its sync interval. The
   platform can mount two private key files at once and restarts a deployable when told to.

@@ -1,0 +1,20 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: a tick never compares the stored restricted senders with its policy, so a delisted sender's messages stay skipped
+packages: ./sync/internal/tick
+tests: TestATickScansADelistedSendersMessages
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index b5e0a1d..3c2a275 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -279,7 +279,7 @@ func window(start, end mail.UnixMilli) *Window {
+ // (ADR-0037, ADR-0104).
+ func (t *ticker) scanning(ctx context.Context) error {
+ 	marked, err := t.deps.Store.Delist(ctx, t.account, t.run, func(restricted []string) []string {
+-		return index.Delisted(t.deps.Policy, t.deps.Lookups, restricted)
++		return nil
+ 	})
+ 	if err != nil {
+ 		return fmt.Errorf("running the delisting transition: %w", err)

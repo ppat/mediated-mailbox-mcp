@@ -1,15 +1,15 @@
 control: The messages whose sender could not be classified are counted per account
 removes: no message is marked as having an unclassified sender
-packages: ./backfill/internal/core/pass1 ./backfill
-tests: TestDecide TestEachPageIsAUnitOfWork
+packages: ./core/index ./backfill ./sync/internal/tick
+tests: TestDecide TestEachPageIsAUnitOfWork TestATickAppliesTheChangesSinceItsCursor
 scheduled-count: no
 integration: yes
 
-diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
-index 2e9f426..81a6981 100644
---- a/backfill/internal/core/pass1/pass1.go
-+++ b/backfill/internal/core/pass1/pass1.go
-@@ -243,7 +243,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+diff --git a/core/index/index.go b/core/index/index.go
+index f1f7b2f..57c1e83 100644
+--- a/core/index/index.go
++++ b/core/index/index.go
+@@ -116,7 +116,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
  			Stamp:          StampOf(s),
  			Class:          Normal,
  			ClassRule:      verdict.Rule(),

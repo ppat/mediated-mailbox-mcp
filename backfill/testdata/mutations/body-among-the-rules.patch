@@ -1,14 +1,15 @@
 control: No body text reaches the index or the workload's logs
 removes: a scan records the body's text part among its content rules
-packages: ./backfill
+packages: ./backfill ./sync
 tests: TestNoBodyTextReachesTheIndexOrTheLogs
 scheduled-count: no
 integration: yes
 
-diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
---- a/backfill/internal/core/pass2/pass2.go
-+++ b/backfill/internal/core/pass2/pass2.go
-@@ -132,7 +132,7 @@ type Scanned struct {
+diff --git a/core/index/scan.go b/core/index/scan.go
+index 5e07cbf..250ede1 100644
+--- a/core/index/scan.go
++++ b/core/index/scan.go
+@@ -78,7 +78,7 @@ type Scanned struct {
  // does.
  func Scan(s scan.Scanner, markdown, text string) Scanned {
  	a, b := s.Scan(markdown), s.Scan(text)

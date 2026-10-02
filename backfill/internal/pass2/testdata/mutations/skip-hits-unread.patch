@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
-index 86c762e..60774be 100644
+index 4e445fc..2cb43d3 100644
 --- a/backfill/internal/pass2/postgres.go
 +++ b/backfill/internal/pass2/postgres.go
-@@ -224,7 +224,7 @@ func requeueOverturned(ctx context.Context, q *scan.Queries, account string, ove
+@@ -225,7 +225,7 @@ func requeueOverturned(ctx context.Context, q *scan.Queries, account string, ove
  	for _, r := range rows {
- 		skips = append(skips, core.Message{
+ 		skips = append(skips, index.Waiting{
  			ID: r.MessageID, From: r.FromEmail, Domain: r.FromDomain, SubjectMasked: r.SubjectMasked, ListID: r.HasListID,
 -			SizeBytes: r.SizeBytes, SentAt: mail.UnixMilli(r.SentAt.Time.UnixMilli()), SenderVolume: r.SenderVolume, SenderHits: r.SenderHits,
 +			SizeBytes: r.SizeBytes, SentAt: mail.UnixMilli(r.SentAt.Time.UnixMilli()), SenderVolume: r.SenderVolume,

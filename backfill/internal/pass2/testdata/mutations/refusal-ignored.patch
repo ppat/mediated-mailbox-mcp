@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/pass2.go b/backfill/internal/pass2/pass2.go
+index 1fcf569..954f8ab 100644
 --- a/backfill/internal/pass2/pass2.go
 +++ b/backfill/internal/pass2/pass2.go
-@@ -193,7 +193,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*core.Scanned,
+@@ -245,7 +245,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
  	var md string
  	if body.HTML != "" {
  		converted, cerr := markdown.Convert(body.HTML)
@@ -16,4 +17,4 @@ diff --git a/backfill/internal/pass2/pass2.go b/backfill/internal/pass2/pass2.go
 +		if cerr != nil && false {
  			now := p.deps.Now().UTC()
  			refused := &pass1.Item{
- 				Kind: "message", ID: id, Page: number, Class: string(pass1core.Validation),
+ 				Kind: "message", ID: id, Page: number, Class: string(index.Validation),

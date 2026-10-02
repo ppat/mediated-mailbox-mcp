@@ -23,6 +23,7 @@ import (
 	core "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -52,13 +53,13 @@ type Store interface {
 	// another scanner so the first pass is due again, it records the pass as not ended and marks it to
 	// start over. It writes to no run's record. It is one transaction, which a backfill run makes
 	// before the first pass (ADR-0096, ADR-0098). It returns how many messages of each kind it marked.
-	Reopen(ctx context.Context, account string, s pass1core.Stamp, overturned func(skips []core.Message) []string) (Reopened, error)
+	Reopen(ctx context.Context, account string, s index.Stamp, overturned func(skips []index.Waiting) []string) (Reopened, error)
 	// RequeueSkips returns to pending scan each message the gate skipped whose subject is masked, with
 	// an event when it marked any, in one transaction (ADR-0096). It returns how many it marked.
 	RequeueSkips(ctx context.Context, account, runID string) (int, error)
 	// Pending returns up to n of the account's messages waiting for a scan after the message
 	// identified by after, in the order of their identifiers.
-	Pending(ctx context.Context, account, after string, n int) ([]core.Message, error)
+	Pending(ctx context.Context, account, after string, n int) ([]index.Waiting, error)
 	// Commit makes one page durable. It records the gate's decision on each message the gate decided,
 	// the verdict of each message scanned and the state of each skipped, adds the page's hits to its
 	// senders' prior hits, records the page's failed items, and records the progress at with a
@@ -128,7 +129,7 @@ type Reopened struct {
 // backfill run calls it before the first pass (ADR-0096, ADR-0098).
 func Reopen(ctx context.Context, deps Deps, account string) (Reopened, error) {
 	now := mail.UnixMilli(deps.Now().UnixMilli())
-	r, err := deps.Store.Reopen(ctx, account, pass1core.StampOf(deps.Scanner), func(skips []core.Message) []string {
+	r, err := deps.Store.Reopen(ctx, account, index.StampOf(deps.Scanner), func(skips []index.Waiting) []string {
 		return core.Overturned(deps.Policy, deps.Lookups, deps.Gate, now, skips)
 	})
 	if err != nil {
@@ -163,7 +164,7 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
 	}
 	restart := core.Restart(p.at)
 	marked, err := deps.Store.Delist(ctx, account, p.run, func(restricted []string) []string {
-		return core.Delisted(deps.Policy, deps.Lookups, restricted)
+		return index.Delisted(deps.Policy, deps.Lookups, restricted)
 	}, restart)
 	if err != nil {
 		return nil, p.failed(ctx, fmt.Errorf("running the delisting transition: %w", err))
@@ -207,7 +208,7 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
 	hits := map[string]int64{}
 	var items []pass1.Item
 	for _, m := range messages {
-		o := core.Outcome{ID: m.ID, Domain: m.Domain, Verdict: core.Gate(p.deps.Policy, p.deps.Lookups, p.deps.Gate, now, m, hits[m.Domain])}
+		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(p.deps.Policy, p.deps.Lookups, p.deps.Gate, now, m, hits[m.Domain])}
 		if o.Verdict.Scans() {
 			scanned, item, err := p.scan(ctx, m.ID, number)
 			if err != nil {
@@ -236,7 +237,7 @@ func (p *Pass) Next(ctx context.Context) (Step, error) {
 // scan fetches the message's body, converts its HTML part and scans both parts. It returns what the
 // scan records, or the failed item that leaves the message waiting, or with neither the error that
 // ends the run. The body is dropped when it returns.
-func (p *Pass) scan(ctx context.Context, id string, number int) (*core.Scanned, *pass1.Item, error) {
+func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned, *pass1.Item, error) {
 	body, item, err := p.fetch(ctx, id, number)
 	if err != nil || item != nil && item.Disposition != "recovered" {
 		return nil, item, err
@@ -247,7 +248,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*core.Scanned, 
 		if cerr != nil {
 			now := p.deps.Now().UTC()
 			refused := &pass1.Item{
-				Kind: "message", ID: id, Page: number, Class: string(pass1core.Validation),
+				Kind: "message", ID: id, Page: number, Class: string(index.Validation),
 				Summary: "the conversion refused the body: " + cerr.Error(), Attempts: 1, First: now, Last: now, Disposition: "abandoned",
 			}
 			if item != nil {
@@ -257,7 +258,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*core.Scanned, 
 		}
 		md = converted
 	}
-	scanned := core.Scan(p.deps.Scanner, md, body.Text)
+	scanned := index.Scan(p.deps.Scanner, md, body.Text)
 	return &scanned, item, nil
 }
 
@@ -279,7 +280,7 @@ func (p *Pass) fetch(ctx context.Context, id string, number int) (mail.MessageBo
 		if ctx.Err() != nil {
 			return mail.MessageBody{}, nil, ctx.Err()
 		}
-		class := pass1core.ClassOf(err)
+		class := index.ClassOf(err)
 		now := p.deps.Now().UTC()
 		if item == nil {
 			item = &pass1.Item{Kind: "message", ID: id, Page: number, First: now}

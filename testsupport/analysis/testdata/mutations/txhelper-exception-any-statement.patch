@@ -1,5 +1,5 @@
-control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing and the read of oauth_clients
-removes: the exception covers every statement of the two exempt subsections, not only the listing and the client read
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients and delta sync's re-seal of a client secret
+removes: the exception covers every statement of the three exempt subsections, not only the listing, the client read and the client secret's re-seal
 packages: ./testsupport/analysis
 tests: TestTxHelper
 scheduled-count: no

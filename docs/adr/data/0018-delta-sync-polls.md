@@ -19,7 +19,7 @@ changes_since(cursor) → ChangeSet{added, modified, removed}
   ├─ classify added senders
   ├─ mask subjects
   ├─ scan gate → scan or skip
-  ├─ apply label/flag changes to the index
+  ├─ apply label/flag changes and removals to the index
   └─ advance cursor; on gap → bounded re-enumeration + alert
 ```
 
@@ -52,5 +52,13 @@ one.
 
 - Freshness is bounded by the cadence: a new message may be up to one tick stale before it is
   classified and visible. Accepted.
+- A message the change feed reports removed is removed from the index, with its sender's
+  statistics rebuilt, since the index tracks the live mailbox
+  ([G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)). Its masking events and gate
+  decision stay as history. A gap's recovery removes the same way a message removed during the gap
+  and dated in its window, which the feed never reports.
+- How a gap's window is chosen, and how an account with no cursor starts, is
+  [ADR-0105](./0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md). Delta sync's
+  process form is [ADR-0103](../operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md).
 - Gap recovery plus idempotency make the sync job safe to run alongside backfill; reconciling
   counts against the provider during early operation is the drift check.

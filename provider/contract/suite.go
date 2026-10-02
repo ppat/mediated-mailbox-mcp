@@ -121,6 +121,7 @@ func Run(t *testing.T, cfg Config) {
 		{"a thread comes back with every message, oldest first", seeded, threadHoldsEveryMessage, false},
 		{"an unknown thread is not found", empty, unknownThreadNotFound, false},
 		{"a query selects exactly the threads it names", scoped, querySelectsThreads, false},
+		{"the trash and spam are listed and read like any other mail", scoped, trashAndSpamListed, false},
 		{"a query no constructor completed is refused", empty, invalidQueriesRefused, false},
 		{"a body comes back exactly as seeded", seeded, bodyAsSeeded, false},
 		{"an unknown message's body is not found", empty, unknownBodyNotFound, false},
@@ -538,7 +539,7 @@ func spread(n int) []int {
 func (s *subject) threadPages(t *testing.T, q mail.Query, page mail.PageToken) ([][]string, []mail.PageToken) {
 	t.Helper()
 	members := map[string][]string{}
-	for _, key := range mailboxKeys() {
+	for _, key := range sortedKeys(s.messages) {
 		thread := s.messages[key].Metadata.ThreadID
 		members[thread] = append(members[thread], key)
 	}
@@ -698,6 +699,49 @@ func querySelectsThreads(t *testing.T, s *subject) {
 				t.Errorf("ListThreads (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// trashAndSpamListed delivers one message into the trash and one marked as spam, and requires the
+// thread listing to return both, over every message and after an instant, and the metadata read to
+// return both as seeded, since a message there is still in the mailbox and delta sync's gap recovery
+// would read one left out as removed (ADR-0010, ADR-0105).
+func trashAndSpamListed(t *testing.T, s *subject) {
+	var ids []string
+	for _, m := range []Message{discarded(s.mark, s.base), junk(s.mark, s.base)} {
+		if s.scope != "" {
+			m.Metadata.Labels = append(slices.Clone(m.Metadata.Labels), s.scope)
+		}
+		ids = append(ids, s.deliver(t, m))
+	}
+	if s.impl.Searchable != nil {
+		if err := s.impl.Searchable(ids); err != nil {
+			t.Fatalf("waiting for the provider's search to find the case's messages: %v", err)
+		}
+	}
+	every := []string{"alpha", "bank", "code", "discarded", "junk", "link", "newsletter", "receipt"}
+	if diff := cmp.Diff(every, s.listThreads(t, mail.All()), compare.Options); diff != "" {
+		t.Errorf("ListThreads over every message (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"discarded", "junk"}, s.listThreads(t, mail.After(s.base+7*step-margin)), compare.Options); diff != "" {
+		t.Errorf("ListThreads after an instant (-want +got):\n%s", diff)
+	}
+	got, err := s.port.GetMessageMetadata(t.Context(), ids)
+	if err != nil {
+		t.Fatalf("GetMessageMetadata: %v", err)
+	}
+	observed := map[string]mail.MessageMetadata{}
+	for _, m := range got {
+		if key, ok := s.key(t, m); ok {
+			observed[key] = seededFields(m)
+		}
+	}
+	want := map[string]mail.MessageMetadata{
+		"discarded": seededFields(s.seededAs(t, "discarded")),
+		"junk":      seededFields(s.seededAs(t, "junk")),
+	}
+	if diff := cmp.Diff(want, observed, compare.Options); diff != "" {
+		t.Errorf("GetMessageMetadata (-seeded +got):\n%s", diff)
 	}
 }
 

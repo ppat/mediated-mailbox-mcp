@@ -1,0 +1,20 @@
+control: The contract suite fails an implementation that breaks a promise of the port
+removes: the fake's thread listing leaves out a thread holding a message marked as spam
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract/the_trash_and_spam_are_listed_and_read_like_any_other_mail
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index 247cd2f..1faff25 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -196,7 +196,8 @@ func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToke
+ 	var out mail.Page[mail.ThreadMetadata]
+ 	for _, th := range f.threads() {
+ 		first := th[0].seq
+-		if first < start || !slices.ContainsFunc(th, func(s *stored) bool { return matches(q, s.meta) }) {
++		if first < start || !slices.ContainsFunc(th, func(s *stored) bool { return matches(q, s.meta) }) ||
++			slices.ContainsFunc(th, func(s *stored) bool { return slices.Contains(s.meta.Labels, mail.Spam) }) {
+ 			continue
+ 		}
+ 		if len(out.Items) == f.pageSize {

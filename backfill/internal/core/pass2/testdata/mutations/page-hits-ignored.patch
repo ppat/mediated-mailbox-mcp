@@ -1,14 +1,15 @@
 control: A sender's first scan hit reaches the gate's decision on its next message, and no other sender's
 removes: the gate reads only the prior hits stored before the page, so a hit earlier on the page does not count
-packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2
+packages: ./core/index ./backfill/internal/pass2
 tests: TestGate TestASendersFirstHitReachesItsNextMessage TestAPassDecidesAndRecordsEveryWaitingMessage
 scheduled-count: no
 integration: yes
 
-diff --git a/backfill/internal/core/pass2/pass2.go b/backfill/internal/core/pass2/pass2.go
---- a/backfill/internal/core/pass2/pass2.go
-+++ b/backfill/internal/core/pass2/pass2.go
-@@ -113,7 +113,7 @@ func Gate(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.Uni
+diff --git a/core/index/scan.go b/core/index/scan.go
+index 5e07cbf..777269b 100644
+--- a/core/index/scan.go
++++ b/core/index/scan.go
+@@ -59,7 +59,7 @@ func Gate(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.Uni
  		SizeBytes:     m.SizeBytes,
  		SentAt:        m.SentAt,
  		SenderVolume:  m.SenderVolume,

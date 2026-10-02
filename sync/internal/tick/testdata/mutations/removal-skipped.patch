@@ -1,0 +1,20 @@
+control: A gap recovery removes a stored message dated in its window once a complete listing left it out and the provider no longer returns it by its identifier
+removes: a gap recovery removes nothing it found missing from its listing
+packages: ./sync/internal/tick
+tests: TestARecoveryRemovesWhatTheProviderNoLongerHolds
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index 3237b9b..d42c9e3 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -288,7 +288,7 @@ func (t *ticker) removeGone(ctx context.Context, run string, start mail.UnixMill
+ 		return 0, fmt.Errorf("reading the stored messages of the window: %w", err)
+ 	}
+ 	unlisted := core.Unlisted(stored, listed)
+-	if len(unlisted) == 0 {
++	if len(unlisted) >= 0 {
+ 		return 0, nil
+ 	}
+ 	held, err := t.deps.Provider.GetMessageMetadata(ctx, unlisted)

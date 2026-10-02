@@ -16,7 +16,7 @@ worker process or run as separate Kubernetes workloads.
 | | Backfill | Delta sync | Reorg apply | Heuristics |
 | --- | --- | --- | --- | --- |
 | Runtime | minutes–hours | seconds | minutes | seconds |
-| Trigger | manual, once, then again after each change of scanner or of the scan gate's thresholds, started by the deployment with no manual step ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md), [ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md), [ADR-0051](../engineering/0051-environment-contract.md)) | every 5 min | human-approved | daily |
+| Trigger | manual, once, then again after each change of scanner or of the scan gate's thresholds, started by the deployment with no manual step ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md), [ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md), [ADR-0051](../engineering/0051-environment-contract.md)) | a tick every sync interval, five minutes by default, in one process that runs until stopped ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) | human-approved | daily |
 | Reversible | n/a (read-only) | n/a | **must be** | n/a |
 | Writes provider | no | no | **yes, bulk** | no |
 

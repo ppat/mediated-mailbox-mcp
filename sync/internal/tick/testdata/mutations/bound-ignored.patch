@@ -1,0 +1,22 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: a tick decides every waiting message whatever its bound
+packages: ./sync/internal/tick
+tests: TestATickDecidesABoundedNumberAndTheNextGoesOn
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
+index b5e0a1d..b04d619 100644
+--- a/sync/internal/tick/tick.go
++++ b/sync/internal/tick/tick.go
+@@ -288,8 +288,8 @@ func (t *ticker) scanning(ctx context.Context) error {
+ 		t.at.Checkpoint.After = ""
+ 	}
+ 	decided := 0
+-	for decided < t.deps.Decisions {
+-		waiting, err := t.deps.Store.Pending(ctx, t.account, t.at.Checkpoint.After, min(t.deps.PageSize, t.deps.Decisions-decided))
++	for decided < 1<<30 {
++		waiting, err := t.deps.Store.Pending(ctx, t.account, t.at.Checkpoint.After, t.deps.PageSize)
+ 		if err != nil {
+ 			return fmt.Errorf("reading the messages waiting for a scan: %w", err)
+ 		}
