@@ -22,7 +22,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/scan"
 	decisions "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record"
-	"github.com/ppat/mediated-mailbox-mcp/db/senders"
+	"github.com/ppat/mediated-mailbox-mcp/db/senders/statistics"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
 
@@ -178,7 +178,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
 			}
 		}
 		for _, d := range slices.Sorted(maps.Keys(touched)) {
-			if err := senders.New(t).RebuildSender(ctx, senders.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
+			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", d, err)
 			}
 			if _, err := changes.DropEmptySender(ctx, change.DropEmptySenderParams{AccountID: account, Domain: d}); err != nil {
@@ -323,7 +323,7 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 			if err != nil {
 				return fmt.Errorf("returning the messages of %q to pending scan: %w", d, err)
 			}
-			if err := senders.New(t).RebuildSender(ctx, senders.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
+			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", d, err)
 			}
 			marked += int(n)
@@ -371,7 +371,7 @@ func (s *Postgres) CommitScan(ctx context.Context, account, runID string, outcom
 		}
 		hits := index.Hits(outcomes)
 		for _, domain := range slices.Sorted(maps.Keys(hits)) {
-			n, err := senders.New(t).AddScanHits(ctx, senders.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
+			n, err := statistics.New(t).AddScanHits(ctx, statistics.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
 			if err != nil {
 				return fmt.Errorf("adding the prior hits of the sender at %q: %w", domain, err)
 			}

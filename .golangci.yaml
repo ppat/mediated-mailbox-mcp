@@ -535,7 +535,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
@@ -589,6 +589,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
+          # The sender statistics the sender listing reads, apart from their writes, which sit in
+          # db/senders/statistics and db/messages/change (ADR-0109).
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
@@ -695,7 +698,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
           - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret$"
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
@@ -838,6 +841,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
 
         # The API root's generator, which serves HTTP.

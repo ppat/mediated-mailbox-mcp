@@ -163,6 +163,8 @@ moves it. Records themselves link freely and deep, into
 | 0097 | [The adapter reports its latest authentication attempt, and the deployable records it at the end of each unit of work, the latest attempt winning](./operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md) | Accepted |
 | 0101 | [Every failure on the client surface names its origin, and a gated body denial is a result, not a failure](./operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md) | Accepted |
 | 0103 | [Delta sync runs until stopped, ticks on the sync interval, and serves its metrics between ticks](./operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md) | Accepted |
+| 0108 | [The index reads select messages by an index query of the client surface's own, never by the Provider Port's canonical query](./operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) | Accepted |
+| 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
 
 ## Engineering — `engineering/`
 

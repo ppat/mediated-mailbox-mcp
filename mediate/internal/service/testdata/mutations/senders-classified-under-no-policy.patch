@@ -1,0 +1,20 @@
+control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
+removes: the index reads classify the senders under no policy, which restricts every sender, instead of the policy the call took
+packages: ./mediate/internal/service
+tests: TestTheIndexReadsClassifySendersUnderThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
+index c5cd2ae..4dc78be 100644
+--- a/mediate/internal/service/query.go
++++ b/mediate/internal/service/query.go
+@@ -188,7 +188,7 @@ type classes struct {
+ func classifySenders(rows []messages.SenderAddressesRow, p policy.Composed, l classify.Lookups) classes {
+ 	c := classes{normal: []string{}, domains: map[string]bool{}}
+ 	for _, r := range rows {
+-		restricted := classify.Classify(p, r.FromEmail, l).Class().Restricted()
++		restricted := classify.Classify(policy.Composed{}, r.FromEmail, l).Class().Restricted()
+ 		if !restricted {
+ 			c.normal = append(c.normal, r.FromEmail)
+ 		}

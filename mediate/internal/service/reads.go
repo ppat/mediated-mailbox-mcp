@@ -33,8 +33,9 @@ type Account struct {
 // (ADR-0002, ADR-0034). The body operation alone reaches a provider, through Bodies, and only for a
 // message the Redaction Gate released.
 type Sources struct {
-	// DB is the mediator's pool. Every read runs in a transaction of its account through db/tx.
-	DB tx.Beginner
+	// DB is the mediator's pool. Every read runs in a transaction of its account through db/tx, and an
+	// index read in one snapshot of it, through tx.Snapshot.
+	DB Database
 	// Accounts returns the accounts the mediator serves, from the account snapshot in force.
 	Accounts func() []Account
 	// Policy returns the policy an account's messages are decided against, from the policy snapshot
@@ -48,15 +49,23 @@ type Sources struct {
 	Bodies Bodies
 }
 
+// Database is what the operations read through, a pool or a connection, which opens a transaction at
+// the database's default isolation level and with options.
+type Database interface {
+	tx.Beginner
+	tx.BeginnerWithOptions
+}
+
 // pageSize is how many rows one page of a listing holds.
 const pageSize = 100
 
 // Operations returns every operation the client surface serves, the complete set both roots are
 // generated from (ADR-0030). Every operation is a read, of the index, of the recorded state, or of a
 // body the Redaction Gate releases, and every identifier one takes comes from another (ADR-0035). A message's identifier comes from the message
-// listing or a thread, a thread's from the thread listing, and an account's from the accounts listing.
+// listing or a thread, a thread's from the thread listing, and an account's from the accounts listing. The index query's labels come from the
+// labels listing, its addresses from any served message, and its domains from the sender listing.
 func Operations(s Sources) []Operation {
-	return []Operation{
+	return append([]Operation{
 		{
 			Name:   "list_accounts",
 			Effect: Read,
@@ -147,7 +156,7 @@ func Operations(s Sources) []Operation {
 			Output: json.RawMessage(statusSchema),
 			Handle: s.getSystemStatus,
 		},
-	}
+	}, s.indexOperations()...)
 }
 
 // accountInput is the input schema of an operation on one account, whose properties are account_id
@@ -434,11 +443,20 @@ func (s Sources) after(cursor, listing, account, filter string) (time.Time, *pos
 	if err != nil || !found {
 		return time.Time{}, nil, err
 	}
-	at, err := time.Parse(time.RFC3339Nano, p.At)
+	at, err := parseCursorTime(p.At)
 	if err != nil {
-		return time.Time{}, nil, Refuse("cursor is not a cursor this listing returned")
+		return time.Time{}, nil, err
 	}
 	return at, &p, nil
+}
+
+// parseCursorTime reads the time a cursor's position carries, refusing a cursor that carries none.
+func parseCursorTime(at string) (time.Time, error) {
+	t, err := time.Parse(time.RFC3339Nano, at)
+	if err != nil {
+		return time.Time{}, Refuse("cursor is not a cursor this listing returned")
+	}
+	return t, nil
 }
 
 // fromRow returns a message row as the presentation reads it.

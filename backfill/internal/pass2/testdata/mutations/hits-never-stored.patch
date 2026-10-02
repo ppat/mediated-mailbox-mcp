@@ -15,5 +15,5 @@ diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postg
 -		hits := p.Hits()
 +		hits := map[string]int64{}
  		for _, domain := range slices.Sorted(maps.Keys(hits)) {
- 			n, err := senders.New(t).AddScanHits(ctx, senders.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
+ 			n, err := statistics.New(t).AddScanHits(ctx, statistics.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
  			if err != nil {

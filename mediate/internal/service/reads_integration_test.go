@@ -116,6 +116,13 @@ func orEmpty(s []string) []string {
 func reads(t *testing.T, accounts ...string) service.Registry {
 	t.Helper()
 	pool := mediator(t)
+	return readsOver(t, pool, pool, accounts...)
+}
+
+// readsOver returns the registry reads returns, with its operations reading through db and the policy
+// loaded through pool.
+func readsOver(t *testing.T, pool *pgxpool.Pool, db service.Database, accounts ...string) service.Registry {
+	t.Helper()
 	policies, err := policyload.New(pool, accounts, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatal(err)
@@ -128,7 +135,7 @@ func reads(t *testing.T, accounts ...string) service.Registry {
 		listed = append(listed, service.Account{ID: a, Provider: "gmail"})
 	}
 	reg, err := service.NewRegistry(accounts, service.Operations(service.Sources{
-		DB:       pool,
+		DB:       db,
 		Accounts: func() []service.Account { return listed },
 		Policy:   func(account string) policy.Composed { return policies.Snapshot().For(account) },
 		Lookups:  classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
@@ -285,6 +292,8 @@ func TestEveryTimestampServedIsUTC(t *testing.T) {
 	insert(t, conn, account, row{id: "m-2", thread: "t-1", from: news.FromAddress, subject: news.Subject, sentAt: "2026-07-21T08:30:00.25-05:30", scan: "scanned"})
 	must(t, conn, `INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at)
 		VALUES ($1, 'm-1', 'subject', 'content.mfa.subject_numeric_6', 1, '2026-07-21T20:05:00+02:00')`, account)
+	must(t, conn, `INSERT INTO senders (account_id, domain, message_count, first_seen, last_seen)
+		VALUES ($1, 'newsletter.example', 2, '2026-07-21T08:30:00.25-05:30', '2026-07-21T20:04:00+02:00')`, account)
 	reg := reads(t, account)
 
 	var dates []string
@@ -293,7 +302,20 @@ func TestEveryTimestampServedIsUTC(t *testing.T) {
 	}
 	dates = append(dates, read(t, reg, "list_threads", `{"account_id":"`+account+`"}`).Threads[0].LatestAt)
 	dates = append(dates, read(t, reg, "list_masking_events", `{"account_id":"`+account+`"}`).Events[0].MaskedAt)
-	want := []string{"2026-07-21T14:00:00.25Z", "2026-07-21T18:04:00Z", "2026-07-21T18:04:00Z", "2026-07-21T18:05:00Z"}
+	for _, m := range read(t, reg, "search_messages", `{"account_id":"`+account+`","order":"ascending"}`).Messages {
+		dates = append(dates, m.Date)
+	}
+	summary := count(t, reg, account, `{}`, "").Summary
+	month := count(t, reg, account, `{}`, "month").Groups[0]
+	dates = append(dates, *summary.OldestAt, *summary.NewestAt, *month.Key, *month.OldestAt, *month.NewestAt)
+	stats, _ := senderPage(t, reg, `{"account_id":"`+account+`"}`)
+	dates = append(dates, *stats[0].FirstSeen, *stats[0].LastSeen)
+	want := []string{
+		"2026-07-21T14:00:00.25Z", "2026-07-21T18:04:00Z", "2026-07-21T18:04:00Z", "2026-07-21T18:05:00Z",
+		"2026-07-21T14:00:00.25Z", "2026-07-21T18:04:00Z",
+		"2026-07-21T14:00:00.25Z", "2026-07-21T18:04:00Z", "2026-07-01T00:00:00Z", "2026-07-21T14:00:00.25Z", "2026-07-21T18:04:00Z",
+		"2026-07-21T14:00:00.25Z", "2026-07-21T18:04:00Z",
+	}
 	if diff := cmp.Diff(want, dates, compare.Options); diff != "" {
 		t.Errorf("the timestamps served (-want +got):\n%s", diff)
 	}
@@ -312,6 +334,23 @@ func TestANonUTCTimestampIsRefused(t *testing.T) {
 		var arg *service.ArgumentError
 		if !errors.As(err, &arg) || !strings.Contains(string(service.Failure(err)), "since") {
 			t.Errorf("since %q: %v, want a refusal naming since", since, err)
+		}
+	}
+	for _, at := range []string{"2026-07-21T20:00:00+02:00", "2026-07-21T18:00:00+00:00", "2026-07-21T18:00:00", "yesterday"} {
+		for _, op := range []string{"search_messages", "count_messages"} {
+			for _, term := range []string{"after", "before"} {
+				_, err := reg.Call(t.Context(), op, json.RawMessage(`{"account_id":"`+account+`","query":{"`+term+`":"`+at+`"}}`))
+				var arg *service.ArgumentError
+				if !errors.As(err, &arg) || !strings.Contains(string(service.Failure(err)), "query."+term) {
+					t.Errorf("%s with %s %q: %v, want a refusal naming query.%s", op, term, at, err, term)
+				}
+			}
+		}
+	}
+	insert(t, conn, account, row{id: "m-1", thread: "t-1", from: "a@news.example", subject: "s", sentAt: "2026-07-21T18:05:00Z", scan: "scanned"})
+	for query, n := range map[string]int64{`{"after":"2026-07-21T18:05:00Z"}`: 1, `{"after":"2026-07-21T18:05:00.000001Z"}`: 0, `{"before":"2026-07-21T18:05:00.000001Z"}`: 1, `{"before":"2026-07-21T18:05:00Z"}`: 0} {
+		if got := count(t, reg, account, query, "").Summary.Messages; got != n {
+			t.Errorf("count %s counted %d, want %d", query, got, n)
 		}
 	}
 	for since, n := range map[string]int{"2026-07-21T18:00:00Z": 1, "2026-07-21T18:05:00.000001Z": 0} {
@@ -425,13 +464,39 @@ func TestAListingPagesThroughEveryRowOnce(t *testing.T) {
 
 // Every identifier an operation takes comes from another operation's result (ADR-0035). An account
 // from the accounts listing, a message from the message listing and a thread from the thread listing
-// each reach the read that takes it, and the labels are the values the messages hold.
+// each reach the read that takes it, and the labels are the values the messages hold. The index query's
+// label, address and domain terms take a label from the labels listing, an address from a served
+// message and a domain from the sender listing, and each selects the message.
 func TestEveryIdentifierAnOperationTakesIsDiscoverable(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
 	news := fixture.Newsletter()
 	insert(t, conn, account, row{id: "m-1", thread: "t-1", from: news.FromAddress, subject: news.Subject, sentAt: "2026-07-21T18:04:00Z", labels: []string{"INBOX"}, scan: "scanned"})
+	domain := news.FromAddress[strings.LastIndexByte(news.FromAddress, '@')+1:]
+	must(t, conn, `INSERT INTO senders (account_id, domain, message_count) VALUES ($1, $2, 1)`, account, domain)
 	reg := reads(t, account)
+
+	var served struct {
+		Messages []struct {
+			From struct {
+				Email string `json:"email"`
+			} `json:"from"`
+		} `json:"messages"`
+	}
+	if err := json.Unmarshal(call(t, reg, "list_messages", `{"account_id":"`+account+`"}`), &served); err != nil {
+		t.Fatal(err)
+	}
+	stats, _ := senderPage(t, reg, `{"account_id":"`+account+`"}`)
+	label := read(t, reg, "list_labels", `{"account_id":"`+account+`"}`).Labels[0]
+	for _, term := range []string{
+		`"labels":["` + label + `"]`,
+		`"from":"` + served.Messages[0].From.Email + `"`,
+		`"from_domain":"` + stats[0].Domain + `"`,
+	} {
+		if got := ids(searched(t, reg, account, `{`+term+`}`, "")); !slices.Equal(got, []string{"m-1"}) {
+			t.Errorf("search by a discovered %s found %v, want m-1", term, got)
+		}
+	}
 
 	accounts := read(t, reg, "list_accounts", `{}`).Accounts
 	if diff := cmp.Diff([]service.Account{{ID: account, Provider: "gmail"}}, accounts, compare.Options); diff != "" {

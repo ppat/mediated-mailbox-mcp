@@ -9,19 +9,11 @@ import (
 )
 
 type Querier interface {
-	// Adds the messages whose scan verdict carried a content flag to the prior hits of the account's
-	// sender at domain, which the scan gate reads (ADR-0093).
-	AddScanHits(ctx context.Context, arg AddScanHitsParams) (int64, error)
-	// Rebuilds the statistics of the account's sender at domain from the messages the index holds for
-	// it, its volume, first and last message, List-Id share, label distribution, the first twenty of its
-	// local parts and display names in sorted order, and its class (ADR-0016, ADR-0017). A sender is
-	// restricted when any of its messages was classified restricted. The statistics are read from the
-	// stored messages rather than added to, so a page ingested twice leaves them as one ingestion does.
-	RebuildSender(ctx context.Context, arg RebuildSenderParams) error
-	// Counts the prior hits of the account's sender at domain again from the stored messages whose scan
-	// verdict carries a content flag, after messages of the sender returned to pending scan with their
-	// verdict cleared, so a message scanned again counts once (ADR-0096, ADR-0093).
-	RecountScanHits(ctx context.Context, arg RecountScanHitsParams) (int64, error)
+	// One page of the account's sender statistics, the sender with the most messages first, after the
+	// position a cursor names or from the start when it names none (ADR-0017). The stored sender class and
+	// the prior scan hits are not read. The class is decided again against the policy in force (ADR-0002),
+	// and the hits are a signal derived from bodies that no read serves.
+	SenderPage(ctx context.Context, arg SenderPageParams) ([]SenderPageRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

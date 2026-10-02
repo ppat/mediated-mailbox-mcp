@@ -10,9 +10,9 @@ index f3e6ddd..fe50c1a 100644
 --- a/mediate/internal/service/reads.go
 +++ b/mediate/internal/service/reads.go
 @@ -52,6 +52,15 @@ const pageSize = 100
- // listing or a thread, a thread's from the thread listing, and an account's from the accounts listing.
+ // labels listing, its addresses from any served message, and its domains from the sender listing.
  func Operations(s Sources) []Operation {
- 	return []Operation{
+ 	return append([]Operation{
 +		{
 +			Name:        "approve_plan",
 +			Effect:      Read,

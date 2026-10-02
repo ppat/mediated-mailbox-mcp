@@ -1,0 +1,20 @@
+control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
+removes: the transaction helper opens an index read's transaction at the default isolation level, so each statement reads the state committed when it starts
+packages: ./mediate/internal/service
+tests: TestAnIndexReadSeesOneStateOfTheIndex
+scheduled-count: no
+integration: yes
+
+diff --git a/db/tx/tx.go b/db/tx/tx.go
+index 9ddd701..dd9299a 100644
+--- a/db/tx/tx.go
++++ b/db/tx/tx.go
+@@ -40,7 +40,7 @@ func Snapshot(db BeginnerWithOptions) Beginner { return snapshot{db: db} }
+ type snapshot struct{ db BeginnerWithOptions }
+ 
+ func (s snapshot) Begin(ctx context.Context) (pgx.Tx, error) {
+-	return s.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
++	return s.db.BeginTx(ctx, pgx.TxOptions{})
+ }
+ 
+ // ErrInsideTransaction is returned when db is itself a transaction. Begin would open a savepoint,

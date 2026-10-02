@@ -1,0 +1,33 @@
+control: A message whose body is denied stays in every count, group and search result of the index reads
+removes: the summary counts as a selection's messages only those whose body could be released, scanned with no content flag
+packages: ./mediate/internal/service
+tests: TestEveryMessageStaysInEveryIndexRead
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index c369b93..2a4930c 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -93,7 +93,7 @@ LIMIT @page_size;
+ -- with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
+ -- was read counts as unread.
+ SELECT
+-    count(*) AS messages,
++    count(*) FILTER (WHERE m.scan_state = 'scanned' AND cardinality(m.content_flags) = 0) AS messages,
+     count(DISTINCT m.thread_id) AS threads,
+     count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+     count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index e052b44..a6041b9 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -675,7 +675,7 @@ func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]Searc
+ 
+ const searchSummary = `-- name: SearchSummary :one
+ SELECT
+-    count(*) AS messages,
++    count(*) FILTER (WHERE m.scan_state = 'scanned' AND cardinality(m.content_flags) = 0) AS messages,
+     count(DISTINCT m.thread_id) AS threads,
+     count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+     count(*) FILTER (WHERE m.has_attachments) AS with_attachments,

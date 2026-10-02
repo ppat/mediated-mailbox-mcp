@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: statistics.sql
 
-package senders
+package statistics
 
 import (
 	"context"

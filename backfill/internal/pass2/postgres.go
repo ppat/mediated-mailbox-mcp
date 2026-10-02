@@ -22,7 +22,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/scan"
 	decisions "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record"
-	"github.com/ppat/mediated-mailbox-mcp/db/senders"
+	"github.com/ppat/mediated-mailbox-mcp/db/senders/statistics"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
 
@@ -145,7 +145,7 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 			if err != nil {
 				return fmt.Errorf("returning the messages of %q to pending scan: %w", d, err)
 			}
-			if err := senders.New(t).RebuildSender(ctx, senders.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
+			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", d, err)
 			}
 			marked += int(n)
@@ -183,7 +183,7 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
 		}
 		slices.Sort(domains)
 		for _, d := range slices.Compact(slices.Clone(domains)) {
-			n, err := senders.New(t).RecountScanHits(ctx, senders.RecountScanHitsParams{AccountID: account, Domain: d})
+			n, err := statistics.New(t).RecountScanHits(ctx, statistics.RecountScanHitsParams{AccountID: account, Domain: d})
 			if err != nil {
 				return fmt.Errorf("counting the prior hits of the sender at %q again: %w", d, err)
 			}
@@ -297,7 +297,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 		}
 		hits := p.Hits()
 		for _, domain := range slices.Sorted(maps.Keys(hits)) {
-			n, err := senders.New(t).AddScanHits(ctx, senders.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
+			n, err := statistics.New(t).AddScanHits(ctx, statistics.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
 			if err != nil {
 				return fmt.Errorf("adding the prior hits of the sender at %q: %w", domain, err)
 			}

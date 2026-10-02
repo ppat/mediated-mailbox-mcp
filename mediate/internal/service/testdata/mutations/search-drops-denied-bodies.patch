@@ -1,0 +1,22 @@
+control: A message whose body is denied stays in every count, group and search result of the index reads
+removes: the search leaves out every message whose body the gate denies
+packages: ./mediate/internal/service
+tests: TestEveryMessageStaysInEveryIndexRead
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
+index 4676f33..09bdd5f 100644
+--- a/mediate/internal/service/index.go
++++ b/mediate/internal/service/index.go
+@@ -162,7 +162,9 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
+ 	}
+ 	out := make([]message, 0, len(rows))
+ 	for _, r := range rows {
+-		out = append(out, present(account, fromRow(messages.MessageRow(r)), p, s.Lookups))
++		if m := present(account, fromRow(messages.MessageRow(r)), p, s.Lookups); m.BodyAvailable {
++			out = append(out, m)
++		}
+ 	}
+ 	var next *string
+ 	if len(rows) == pageSize {
