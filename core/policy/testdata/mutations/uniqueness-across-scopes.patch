@@ -1,0 +1,19 @@
+control: A rule's identifier is unique within its scope, and the snapshot's validation refuses a repeat within one scope only
+removes: the validation keys identifiers without their scope, so a base rule and an account's rule of one identifier fail every reload
+packages: ./core/policy
+tests: TestAnIdentifierIsUniqueWithinItsScopeOnly
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index 6caf9f15..90877b0e 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -109,7 +109,7 @@ func load(rows []Row) (Snapshot, []string) {
+ 		if row.ID == "" || strings.TrimSpace(row.ID) != row.ID {
+ 			problems = append(problems, where+" has an empty identifier or one with surrounding space")
+ 		}
+-		key := scoped{account: row.Account, id: row.ID}
++		key := scoped{id: row.ID}
+ 		if seen[key] {
+ 			problems = append(problems, where+" repeats an identifier within its scope")
+ 		}

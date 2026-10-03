@@ -1,0 +1,26 @@
+control: The base policy is written only in a base-policy transaction
+removes: the base history's insert policy is dropped, so a base rule's change cannot be recorded and its write fails whole
+packages: ./db/check
+tests: TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_the_base_policy_in_a_base-policy_transaction
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
+index de58e776..32386984 100644
+--- a/db/migrations/00023_policy_management.sql
++++ b/db/migrations/00023_policy_management.sql
+@@ -54,13 +54,7 @@ WITH CHECK (
+     AND current_setting('app.base', TRUE) = 'on'
+     AND coalesce(current_setting('app.account', TRUE), '') = ''
+ );
+-CREATE POLICY policy_changes_base_write ON policy_changes FOR INSERT
+-TO mediated_mailbox_ui
+-WITH CHECK (
+-    account_id IS NULL
+-    AND current_setting('app.base', TRUE) = 'on'
+-    AND coalesce(current_setting('app.account', TRUE), '') = ''
+-);
++
+ 
+ -- Policy management adds, edits and lifts rules, and an import does all three (ADR-0084, ADR-0110).
+ -- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
