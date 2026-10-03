@@ -6,7 +6,7 @@
 import type { ComponentChild } from "preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { useLocation } from "preact-iso";
-import { ignoresKeys } from "../app/keys.ts";
+import { ignoresKeys, typing } from "../app/keys.ts";
 
 // Column is one column of a row type. cell renders the value, and title is its full text for the hover.
 export type Column<Row> = {
@@ -23,6 +23,23 @@ export type Column<Row> = {
 export type Span<Row> = {
   columns: number;
   cell: (row: Row) => ComponentChild | undefined;
+};
+
+// Selection makes a table one that selects, the sender picker's (docs/UI.md section 8.7). The row cursor
+// and the selection are separate. A box at each row's left shows and toggles its selection, x and Enter
+// toggle the row under the cursor, Shift with j or k extends the selection as the cursor moves, and Ctrl
+// or Cmd with a selects every row the table's search matches, across its pages, while no field has the
+// keys (docs/UI.md section 13).
+export type Selection<Row> = {
+  selected: (row: Row) => boolean;
+  // refused is why a row cannot be selected, or undefined when it can.
+  refused: (row: Row) => string | undefined;
+  // label names a row's box, "Select {domain}".
+  label: (row: Row) => string;
+  // set selects the rows, or with on false clears them.
+  set: (rows: readonly Row[], on: boolean) => void;
+  // all selects every row the search matches.
+  all: () => void;
 };
 
 type TableProps<Row> = {
@@ -45,11 +62,12 @@ type TableProps<Row> = {
   // keys false leaves the row cursor's keys to another table on the screen, since one table holds them
   // (docs/UI.md section 13).
   keys?: boolean;
+  selection?: Selection<Row>;
 };
 
 export function RowsTable<Row>(props: TableProps<Row>) {
   const { route } = useLocation();
-  const { rows, open, page, pages, pageHref, rowKey } = props;
+  const { rows, open, page, pages, pageHref, rowKey, selection } = props;
   const keys = props.keys !== false;
   // The cursor holds the identity of the row under it, its key where the table keys its rows, so it
   // stays on the operator's row when the rows move (docs/UI.md section 8.3). Without a key it is the
@@ -70,6 +88,16 @@ export function RowsTable<Row>(props: TableProps<Row>) {
       return undefined;
     }
     const onKey = (event: KeyboardEvent) => {
+      if (
+        selection !== undefined &&
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "a" &&
+        !typing(event)
+      ) {
+        event.preventDefault();
+        selection.all();
+        return;
+      }
       if (ignoresKeys(event)) {
         return;
       }
@@ -79,7 +107,19 @@ export function RowsTable<Row>(props: TableProps<Row>) {
           setSelected(identity(row, i));
         }
       };
-      if (event.key === "j") {
+      const pickable = (row: Row | undefined): row is Row =>
+        row !== undefined && selection?.refused(row) === undefined;
+      if (selection !== undefined && (event.key === "x" || event.key === "Enter")) {
+        const row = rows[cursor];
+        if (pickable(row)) {
+          selection.set([row], !selection.selected(row));
+        }
+      } else if (selection !== undefined && (event.key === "J" || event.key === "K")) {
+        const next =
+          event.key === "J" ? Math.min(rows.length - 1, cursor + 1) : Math.max(0, cursor - 1);
+        select(next);
+        selection.set([rows[cursor], rows[next]].filter(pickable), true);
+      } else if (event.key === "j") {
         select(Math.min(rows.length - 1, cursor + 1));
       } else if (event.key === "k") {
         select(Math.max(0, cursor - 1));
@@ -97,7 +137,7 @@ export function RowsTable<Row>(props: TableProps<Row>) {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [keys, rows, open, cursor, identity, page, pages, pageHref, route]);
+  }, [keys, rows, open, cursor, identity, page, pages, pageHref, route, selection]);
 
   // With a fixed table layout the table is never narrower than its columns' total, so the container
   // scrolls when the region is narrower than that.
@@ -106,12 +146,18 @@ export function RowsTable<Row>(props: TableProps<Row>) {
       <table class="rows">
         <caption class="label">{props.caption}</caption>
         <colgroup>
+          {selection === undefined ? null : <col width={40} />}
           {props.columns.map((c) => (
             <col key={c.key} width={c.width} />
           ))}
         </colgroup>
         <thead>
           <tr>
+            {selection === undefined ? null : (
+              <th scope="col">
+                <span class="visually-hidden">selected</span>
+              </th>
+            )}
             {props.columns.map((c) => (
               <th key={c.key} scope="col" class={c.numeric === true ? "numeric" : undefined}>
                 {c.header}
@@ -122,7 +168,9 @@ export function RowsTable<Row>(props: TableProps<Row>) {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={props.columns.length}>No {props.rowsName} match</td>
+              <td colSpan={props.columns.length + (selection === undefined ? 0 : 1)}>
+                No {props.rowsName} match
+              </td>
             </tr>
           ) : (
             rows.map((row, i) => (
@@ -133,6 +181,9 @@ export function RowsTable<Row>(props: TableProps<Row>) {
                   setSelected(identity(row, i));
                 }}
               >
+                {selection === undefined ? null : (
+                  <SelectBox row={row} index={i} selection={selection} />
+                )}
                 <Cells row={row} columns={props.columns} span={props.span} />
               </tr>
             ))
@@ -147,6 +198,31 @@ export function RowsTable<Row>(props: TableProps<Row>) {
         {page < pages ? <a href={pageHref(page + 1)}>Next page</a> : null}
       </nav>
     </div>
+  );
+}
+
+// SelectBox is a row's selection box, a checkbox labelled by its row. A row the selection refuses has
+// its box disabled and described by why (docs/UI.md section 8.7).
+function SelectBox<Row>(props: { row: Row; index: number; selection: Selection<Row> }) {
+  const { row, selection } = props;
+  const refused = selection.refused(row);
+  const id = `select-why-${props.index}`;
+  return (
+    <td class="select-box">
+      <input
+        type="checkbox"
+        checked={selection.selected(row)}
+        disabled={refused !== undefined}
+        aria-label={selection.label(row)}
+        aria-describedby={refused === undefined ? undefined : id}
+        onChange={(event) => selection.set([row], event.currentTarget.checked)}
+      />
+      {refused === undefined ? null : (
+        <span id={id} class="visually-hidden">
+          {refused}
+        </span>
+      )}
+    </td>
   );
 }
 

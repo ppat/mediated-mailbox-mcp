@@ -5,8 +5,9 @@
 //
 // A Pass is opened once per run and asked for its next page until it is done. Opening it is the
 // recovery path. It reads the account's latest run and resumes from its checkpoint, and it runs the
-// delisting transition and returns to pending each skip decided without its subject's signal before
-// the first page (ADR-0037, ADR-0096). Reopen, which a backfill run calls before the first pass,
+// delisting transition, restricts the stored classes a rule added since restricts, and returns to
+// pending each skip decided without its subject's signal before the first page (ADR-0037, ADR-0113,
+// ADR-0096). Reopen, which a backfill run calls before the first pass,
 // returns to pending every verdict made under another scanner and every stored gate skip the gate no
 // longer decides as the same skip (ADR-0096, ADR-0098). A restricted sender's body is never asked for
 // (ADR-0008). A body the gate selects is fetched under a lease in the batch class, converted and
@@ -46,6 +47,12 @@ type Store interface {
 	// message, records the run's progress as restart with an event, all in one transaction. It returns
 	// how many messages it marked.
 	Delist(ctx context.Context, account, runID string, delisted func(restricted []string) []string, restart core.Progress) (int, error)
+	// List restricts the stored classes a rule added since restricts. It reads the domains of the
+	// messages stored as normal, sets those messages of every domain listed names to the restricted
+	// class with the rule listed gives it, and rebuilds its sender's statistics, all in one
+	// transaction. It leaves every scan state as it is, so the run's progress stands. It returns how
+	// many messages it marked (ADR-0113).
+	List(ctx context.Context, account string, listed func(normal []string) []index.Listing) (int, error)
 	// Reopen returns to pending scan each scanned message whose verdict was made under another scanner
 	// than the one stamped s, its verdict cleared, and counts again the prior hits of their senders.
 	// It then reads every message the gate skipped with its gate inputs and returns to pending scan
@@ -139,8 +146,8 @@ func Reopen(ctx context.Context, deps Deps, account string) (Reopened, error) {
 }
 
 // Open starts a run of the pass over the account, resuming its latest run when that run stopped
-// before the pass ended, runs the delisting transition, and returns to pending each skip decided
-// without its subject's signal. A pass that has ended, or whose first pass has not, opens done and
+// before the pass ended, runs the delisting transition, restricts the stored classes a rule added
+// since restricts, and returns to pending each skip decided without its subject's signal. A pass that has ended, or whose first pass has not, opens done and
 // records no run. Reopen is what records the pass as not ended after a change of scanner or of what
 // the gate decides (ADR-0096, ADR-0098).
 func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
@@ -168,6 +175,11 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
 	}, restart)
 	if err != nil {
 		return nil, p.failed(ctx, fmt.Errorf("running the delisting transition: %w", err))
+	}
+	if _, err := deps.Store.List(ctx, account, func(normal []string) []index.Listing {
+		return index.Listed(deps.Policy, deps.Lookups, normal)
+	}); err != nil {
+		return nil, p.failed(ctx, fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err))
 	}
 	// A skip is returned to pending only after a re-mask, in a run Reopen already started from the first
 	// waiting message, so returning it needs no restart of its own.

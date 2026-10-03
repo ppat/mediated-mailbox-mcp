@@ -1,0 +1,20 @@
+control: A policy write records only a declared identity, never an empty one
+removes: an identity that resolves empty with no header declared is recorded, so a write under an operator name configured empty lands with no one named
+packages: ./ui/internal/api
+tests: TestAPolicyWriteWithAnEmptyIdentityIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/identity.go b/ui/internal/api/identity.go
+index 0206eab1..796ca2ab 100644
+--- a/ui/internal/api/identity.go
++++ b/ui/internal/api/identity.go
+@@ -24,7 +24,7 @@ func (s *Server) identity(w http.ResponseWriter, r *http.Request) (string, bool)
+ 	// A write always records who made it, so an identity that resolves empty, a missing header or an
+ 	// operator name configured empty, is refused rather than recorded.
+ 	v = strings.TrimSpace(v)
+-	if v == "" {
++	if v == "" && s.opts.Identity.Header != "" {
+ 		writeFailure(w, r, &failure{status: http.StatusForbidden, origin: originClient, code: "identity_missing", message: "No identity was forwarded, so the change was not recorded"})
+ 		return "", false
+ 	}

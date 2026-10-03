@@ -17,12 +17,19 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
+
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
+
+// lookups are the sender classifier's domain functions, as the composition root passes them.
+var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 // documentPath is the checked-in document, relative to this package's directory.
 var documentPath = filepath.Join("..", "..", "contract", "openapi.json")
@@ -108,11 +115,21 @@ func (g *generator) bespokeOperation(route api.Route) *openapi3.Operation {
 		op.Parameters = append(op.Parameters, &openapi3.ParameterRef{Value: openapi3.NewPathParameter(name).
 			WithSchema(openapi3.NewStringSchema()).WithDescription("The " + name + " the path names")})
 	}
+	for _, name := range route.Query {
+		op.Parameters = append(op.Parameters, &openapi3.ParameterRef{Value: openapi3.NewQueryParameter(name).
+			WithSchema(openapi3.NewStringSchema()).WithDescription("The " + name + " the read is narrowed by")})
+	}
 	if route.Request != nil {
 		op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithRequired(true).
 			WithContent(openapi3.NewContentWithJSONSchemaRef(g.schema(*route.Request)))}
 	}
 	ok := openapi3.NewResponse().WithDescription("OK")
+	if route.Download != "" {
+		ok.Content = openapi3.NewContentWithSchema(openapi3.NewStringSchema(), []string{route.Download})
+		op.AddResponse(http.StatusOK, ok)
+		g.errorResponses(op)
+		return op
+	}
 	if route.Stream() {
 		ok.Content = openapi3.NewContentWithSchema(openapi3.NewStringSchema(), []string{"text/event-stream"})
 		events := map[string]string{}
@@ -134,6 +151,12 @@ func (g *generator) bespokeOperation(route api.Route) *openapi3.Operation {
 	g.errorResponses(op)
 	if route.Verb() != http.MethodGet {
 		g.changeResponses(op)
+	}
+	if route.Refusal != nil {
+		// A refusal naming problems answers 400 with the error contract's shape and the problems beside
+		// it.
+		op.AddResponse(http.StatusBadRequest, openapi3.NewResponse().WithDescription(http.StatusText(http.StatusBadRequest)).
+			WithContent(openapi3.NewContentWithJSONSchemaRef(g.schema(*route.Refusal))))
 	}
 	return op
 }
@@ -229,6 +252,7 @@ type dimension struct {
 	NullWording string   `json:"null_wording,omitempty"`
 	Empty       bool     `json:"empty,omitempty"`
 	Values      []string `json:"values,omitempty"`
+	Search      bool     `json:"search,omitempty"`
 }
 
 type defaults struct {
@@ -249,7 +273,7 @@ func descriptors(datasets []registry.Dataset) []descriptor {
 		for _, dim := range d.Dimensions {
 			ds.Dimensions = append(ds.Dimensions, dimension{
 				Name: dim.Name, Storage: dim.Storage, Groupable: dim.Groupable, Filterable: dim.Filterable, Sortable: dim.Sortable,
-				Wording: dim.Wording, NullWording: dim.NullWording, Empty: dim.Empty, Values: dim.Values,
+				Wording: dim.Wording, NullWording: dim.NullWording, Empty: dim.Empty, Values: dim.Values, Search: dim.Search,
 			})
 		}
 		out = append(out, ds)
@@ -357,7 +381,7 @@ func render(t *testing.T, doc *openapi3.T) []byte {
 // compares it with the checked-in file, the first of the pipeline's three drift checks (ADR-0065). Run
 // with -update, it writes the file.
 func TestDocument(t *testing.T) {
-	doc, err := generate(registry.Datasets(), api.Bespoke())
+	doc, err := generate(registry.Datasets(lookups), api.Bespoke())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,13 +397,13 @@ func TestDocument(t *testing.T) {
 func TestAPathClaimedByBothSourcesIsRefused(t *testing.T) {
 	for _, path := range []string{registry.LensPath, registry.RowPath("failures")} {
 		claimed := append(api.Bespoke(), api.Route{Pattern: path, Operation: "claimsARegistryPath", Scoped: true, Response: schema.Obj("Claim")})
-		_, err := generate(registry.Datasets(), claimed)
+		_, err := generate(registry.Datasets(lookups), claimed)
 		if err == nil || !strings.Contains(err.Error(), "claimed by both the registry and the bespoke handler claimsARegistryPath") {
 			t.Fatalf("%s, which both sources claim, was not refused: %v", path, err)
 		}
 	}
 	twice := append(api.Bespoke(), api.Bespoke()[0])
-	if _, err := generate(registry.Datasets(), twice); err == nil || !strings.Contains(err.Error(), "claimed by two bespoke handlers") {
+	if _, err := generate(registry.Datasets(lookups), twice); err == nil || !strings.Contains(err.Error(), "claimed by two bespoke handlers") {
 		t.Fatalf("a path two bespoke handlers claim was not refused: %v", err)
 	}
 }
@@ -426,7 +450,7 @@ func TestTheProbesListenerServesOnlyTheProbes(t *testing.T) {
 func newServer(t *testing.T) *api.Server {
 	t.Helper()
 	s, err := api.New(api.Options{
-		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(), Logger: slog.New(slog.DiscardHandler),
+		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: slog.New(slog.DiscardHandler),
 		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
 	})
 	if err != nil {

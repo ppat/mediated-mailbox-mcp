@@ -1,0 +1,18 @@
+control: A base rule's lift asks for the rule identifier typed before its button enables
+removes: the typed confirmation is taken when it is any part of the expected value rather than the value itself
+packages: ./ui/browser/test/policy.test.tsx
+tests: a base rule's lift reads the base sentences and enables only once its identifier is typed
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policywrites.tsx b/ui/browser/src/screens/policywrites.tsx
+--- a/ui/browser/src/screens/policywrites.tsx
++++ b/ui/browser/src/screens/policywrites.tsx
+@@ -324,7 +324,7 @@
+ // confirmed reports whether a typed confirmation is the expected value, compared after trimming
+ // surrounding space, so a pasted value with a trailing space confirms (docs/UI.md section 8.7).
+ export function confirmed(typed: string, expected: string): boolean {
+-  return typed.trim() === expected;
++  return expected.includes(typed.trim());
+ }
+ 
+ // LiftDialog is the dialog every lift goes through, an alertdialog labelled by its title and described

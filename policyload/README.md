@@ -43,8 +43,10 @@ When a process reloads is its caller's, and so is which accounts it reads. A pro
 change between its account snapshots sets the new ones, and the next reload reads them
 ([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 The library loads when asked and swaps only on success. It reads each account's own rules and the
-base rules in one statement, and a reload whose accounts read different base rules is a read it
-cannot trust, so an edit to the base policy landing midway never composes accounts from two
-versions of it. A reload stopped because its caller cancelled it
+base rules in one statement, and a reload whose accounts read different base rules reads every
+account once more. Only when the second read's accounts disagree too is the read one it cannot
+trust, so an edit to the base policy landing midway never composes accounts from two versions of
+it, and pages only when edits keep landing through both reads
+([ADR-0114](../docs/adr/engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md)). A reload stopped because its caller cancelled it
 keeps the active policy and raises no alarm, and one that ran out of time is a failed read like any
 other.

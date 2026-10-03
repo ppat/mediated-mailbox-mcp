@@ -1,0 +1,23 @@
+control: An added rule reaches the stored sender classes by its effect
+removes: a run of the second pass makes no comparison for an added rule, so the stored classes stay as ingested
+packages: ./backfill/internal/pass2
+tests: TestAnAddedRuleRestrictsTheStoredClasses
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/pass2.go b/backfill/internal/pass2/pass2.go
+index 719ae76c..736b559a 100644
+--- a/backfill/internal/pass2/pass2.go
++++ b/backfill/internal/pass2/pass2.go
+@@ -176,11 +176,6 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+ 	if err != nil {
+ 		return nil, p.failed(ctx, fmt.Errorf("running the delisting transition: %w", err))
+ 	}
+-	if _, err := deps.Store.List(ctx, account, func(normal []string) []index.Listing {
+-		return index.Listed(deps.Policy, deps.Lookups, normal)
+-	}); err != nil {
+-		return nil, p.failed(ctx, fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err))
+-	}
+ 	// A skip is returned to pending only after a re-mask, in a run Reopen already started from the first
+ 	// waiting message, so returning it needs no restart of its own.
+ 	if _, err := deps.Store.RequeueSkips(ctx, account, p.run); err != nil {

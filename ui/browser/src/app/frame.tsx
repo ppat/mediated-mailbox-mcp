@@ -29,6 +29,7 @@ type FrameProps = {
 const screens = [
   { name: "Home", path: "", key: "h" },
   { name: "Jobs", path: "jobs", key: "j" },
+  { name: "Policy", path: "policy", key: "o" },
   { name: "System", path: "system", key: "s" },
 ] as const;
 
@@ -185,27 +186,43 @@ function AccountSelector(props: { account: string | undefined }) {
   );
 }
 
+// The installation's own navigation, Setup and Base policy (section 6). Base policy is current on every
+// base policy screen, its rules, history and import included.
+const installationScreens = [
+  { name: "Setup", path: "/setup", here: (path: string) => path === "/setup" },
+  {
+    name: "Base policy",
+    path: "/setup/policy",
+    here: (path: string) => path === "/setup/policy" || path.startsWith("/setup/policy/"),
+  },
+] as const;
+
 // InstallationFrame is the frame of an installation screen, which belongs to no account. The account
 // selector reads Installation, the primary navigation is the installation's own, and search, the
-// range control and the group-by control are absent (section 6). Base policy joins the navigation
-// when its screen lands.
-export function InstallationFrame(props: { children: ComponentChildren }) {
+// range control and the group-by control are absent (section 6). A panel a base policy route opens
+// over its list sits beside the frame, as an account's does.
+export function InstallationFrame(props: {
+  children: ComponentChildren;
+  panel?: ComponentChildren;
+}) {
   const [showMap, setShowMap] = useState(false);
   const openMap = useCallback(() => setShowMap(true), []);
   const { path } = useLocation();
   useGlobalKeys(undefined, openMap);
   return (
     <>
-      <div class="frame">
+      <div class="frame" inert={props.panel !== undefined}>
         <header class="topbar">
           <AccountSelector account={undefined} />
           <nav aria-label="Screens">
             <ul class="nav">
-              <li>
-                <a href="/setup" aria-current={path === "/setup" ? "page" : undefined}>
-                  Setup
-                </a>
-              </li>
+              {installationScreens.map((s) => (
+                <li key={s.path}>
+                  <a href={s.path} aria-current={s.here(path) ? "page" : undefined}>
+                    {s.name}
+                  </a>
+                </li>
+              ))}
             </ul>
           </nav>
           <div class="topbar-end">
@@ -215,6 +232,7 @@ export function InstallationFrame(props: { children: ComponentChildren }) {
         <AddressLine />
         <main class="body">{props.children}</main>
       </div>
+      {props.panel}
       {showMap ? <KeyboardMap close={() => setShowMap(false)} /> : null}
     </>
   );
@@ -247,7 +265,7 @@ function Navigation(props: { account: string }) {
 }
 
 // screenPath is a screen's path under an account.
-function screenPath(account: string, path: string): string {
+export function screenPath(account: string, path: string): string {
   return [`/${encodeURIComponent(account)}`, path].filter((part) => part !== "").join("/");
 }
 

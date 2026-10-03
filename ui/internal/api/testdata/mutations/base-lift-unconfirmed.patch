@@ -1,0 +1,21 @@
+control: A lift every account loses needs the rule's identifier typed, the server's check
+removes: a base rule is lifted with no confirmation
+packages: ./ui/internal/api
+tests: TestABaseLiftNeedsTheIdentifierTyped
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..aee066c9 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -390,9 +390,6 @@ func (s *Server) liftRule(ctx context.Context, account string, isBase bool, id s
+ 		if !slices.Equal(stored[i].Suffixes, req.SuffixesBefore) {
+ 			return errStaleRule
+ 		}
+-		if isBase && !confirms(req.Confirmation, id) {
+-			return errConfirmationRequired
+-		}
+ 		n, err := w.lift(ctx, id, stored[i].Suffixes)
+ 		if err != nil {
+ 			return err

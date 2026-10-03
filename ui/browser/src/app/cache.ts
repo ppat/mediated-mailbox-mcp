@@ -54,6 +54,15 @@ export class Cache<T> {
     return entry.inflight ?? this.#fetch(path, entry);
   }
 
+  // refreshWhere fetches again every path this cache has read whose path matches, for a policy write
+  // that changes what each of them answers (docs/UI.md section 8.7). A path read earlier and shown
+  // nowhere now is read again too, so no screen returned to shows an answer from before the write.
+  refreshWhere(matches: (path: string) => boolean): Promise<void> {
+    return Promise.all(
+      [...this.#entries.keys()].filter(matches).map((path) => this.refresh(path)),
+    ).then(() => undefined);
+  }
+
   // retry is the operator's retry. It abandons a request still in flight, which a region may have
   // waited on past its timeout, and sends a new one (docs/UI.md section 12).
   retry(path: string): Promise<void> {

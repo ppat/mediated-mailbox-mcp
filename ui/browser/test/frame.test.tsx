@@ -95,6 +95,7 @@ test("the navigation lists only the screens that exist and marks the current one
   ).toEqual([
     ["Home", "/personal", "page"],
     ["Jobs running", "/personal/jobs", null],
+    ["Policy", "/personal/policy", null],
     ["System", "/personal/system", null],
   ]);
 });

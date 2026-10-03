@@ -1,0 +1,20 @@
+control: A write row-level security empties is reported as a rule the account does not hold
+removes: an edit of a rule the account does not hold is reported as a stale conflict
+packages: ./ui/internal/api
+tests: TestAnotherAccountsRuleIsUnknown
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..ebfbb24c 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -347,7 +347,7 @@ func (s *Server) editRule(ctx context.Context, account string, isBase bool, id s
+ 		}
+ 		i := slices.IndexFunc(stored, func(r registry.StoredRule) bool { return r.ID == id })
+ 		if i < 0 {
+-			return errUnknownRule
++			return errStaleRule
+ 		}
+ 		if !slices.Equal(stored[i].Suffixes, req.SuffixesBefore) {
+ 			return errStaleRule

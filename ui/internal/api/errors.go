@@ -93,6 +93,17 @@ func writeJSON(w http.ResponseWriter, r *http.Request, v any) {
 	send(w, r, http.StatusOK, body)
 }
 
+// writeBody writes v as a response of status, or a UI fault when v does not encode.
+func writeBody(w http.ResponseWriter, r *http.Request, status int, v any) {
+	body, err := json.Marshal(v)
+	if err != nil {
+		requestInfo(r.Context()).err = err
+		writeFailure(w, r, uiFault())
+		return
+	}
+	send(w, r, status, body)
+}
+
 // send writes a JSON body. A failed write means the client went away, which the log line records.
 func send(w http.ResponseWriter, r *http.Request, status int, body []byte) {
 	w.Header().Set("Content-Type", "application/json")

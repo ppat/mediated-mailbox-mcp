@@ -1,0 +1,15 @@
+{
+  "suffixes": [
+    {
+      "public_suffix": false,
+      "rules": [
+        {
+          "rule_id": "base.bank",
+          "scope": "base"
+        }
+      ],
+      "suffix": "bank.example",
+      "valid": true
+    }
+  ]
+}

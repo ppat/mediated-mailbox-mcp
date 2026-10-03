@@ -1,0 +1,85 @@
+{
+  "account": "personal",
+  "as_of": "2026-09-10T10:16:04Z",
+  "dataset": "policy_changes",
+  "filters": {
+    "range": "30d"
+  },
+  "level": 3,
+  "page": 1,
+  "pages": 1,
+  "rows": [
+    {
+      "account": null,
+      "action": "lifted",
+      "actor": "operator",
+      "id": 6,
+      "rule_exists": false,
+      "rule_id": "base.old",
+      "suffixes_after": [],
+      "suffixes_before": [
+        "old.example"
+      ],
+      "ts": "2026-09-09T22:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "edited",
+      "actor": "operator",
+      "id": 5,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example"
+      ],
+      "suffixes_before": [
+        "lender.example",
+        "old.lender.example"
+      ],
+      "ts": "2026-09-09T10:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "lifted",
+      "actor": "operator",
+      "id": 4,
+      "rule_exists": false,
+      "rule_id": "operator.gone.example",
+      "suffixes_after": [],
+      "suffixes_before": [
+        "gone.example"
+      ],
+      "ts": "2026-09-08T10:16:04Z"
+    },
+    {
+      "account": null,
+      "action": "added",
+      "actor": "operator",
+      "id": 1,
+      "rule_exists": true,
+      "rule_id": "base.bank",
+      "suffixes_after": [
+        "bank.example"
+      ],
+      "suffixes_before": [],
+      "ts": "2026-09-07T10:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "added",
+      "actor": "operator",
+      "id": 2,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example"
+      ],
+      "suffixes_before": [],
+      "ts": "2026-09-07T10:16:04Z"
+    }
+  ],
+  "sort": "ts,desc",
+  "total": {
+    "count": 5
+  }
+}

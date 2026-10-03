@@ -1,0 +1,20 @@
+control: A policy file reaches the stored rules only whole and only of its form
+removes: a file's rules are not checked with a write's checks, so a bad rule reaches the preview and the stored rules
+packages: ./ui/internal/api
+tests: TestAFileIsCheckedWholeAndImportsIntoAnyScope
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/policyfile.go b/ui/internal/api/policyfile.go
+index fbbd2256..3ca1fd92 100644
+--- a/ui/internal/api/policyfile.go
++++ b/ui/internal/api/policyfile.go
+@@ -328,7 +328,7 @@ func readImport(w http.ResponseWriter, r *http.Request, scope string, preview bo
+ 		writeRefusal(w, r, "file_refused", "the file is not a policy file", []ProblemAnswer{a})
+ 		return ImportRequest{}, nil, false
+ 	}
+-	if problems := checkFile(scope, file); len(problems) > 0 {
++	if problems := checkFile(scope, file); false {
+ 		writeRefusal(w, r, "file_refused", "the file's rules fail the policy's checks", problems)
+ 		return ImportRequest{}, nil, false
+ 	}

@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "stale_preview",
+    "message": "The policy changed since this preview. Preview again.",
+    "origin": "client",
+    "request_id": "recorded"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "accounts": [],
+  "added": [
+    {
+      "rule_id": "operator.new.example",
+      "scope": "account",
+      "suffixes": [
+        "new.example"
+      ]
+    }
+  ],
+  "computed_against": "[{\"id\":\"operator.lender.example\",\"class\":\"restricted\",\"suffixes\":[\"lender.example\"]}]",
+  "edited": [],
+  "lifted": [],
+  "lifts": 0,
+  "released": {
+    "messages": 0,
+    "senders": 0
+  },
+  "unchanged": 1
+}

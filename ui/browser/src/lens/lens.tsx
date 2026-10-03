@@ -26,7 +26,7 @@ import { GroupBy } from "./groupby.tsx";
 import { GroupsView } from "./groups.tsx";
 import { RangeControl } from "./range.tsx";
 import { Strip } from "./strip.tsx";
-import { RowsTable, type Column } from "./table.tsx";
+import { RowsTable, type Column, type Selection } from "./table.tsx";
 
 type LensProps<Row> = {
   account: string;
@@ -42,8 +42,11 @@ type LensProps<Row> = {
   open?: (row: Row) => string;
   // rowKey is a row's identity, which keeps each row's cells with its row as the page changes.
   rowKey?: (row: Row) => string | number;
-  // panelOpen says a row's detail is open, which takes Escape from the breadcrumb.
+  // panelOpen says a row's detail is open, or a selection exists, either of which takes Escape from the
+  // breadcrumb.
   panelOpen: boolean;
+  // selection makes the rows table one that selects (table.tsx).
+  selection?: Selection<Row>;
 };
 
 // countsSoFar reports whether the strip's figures are counts so far, while a first backfill pass 1
@@ -158,6 +161,7 @@ export function Lens<Row>(props: LensProps<Row>) {
                 rows={rows}
                 open={props.open}
                 rowKey={props.rowKey}
+                selection={props.selection}
                 page={answer.page}
                 pages={answer.pages}
                 pageHref={(page) => href(account, withPage(view, page), screen)}

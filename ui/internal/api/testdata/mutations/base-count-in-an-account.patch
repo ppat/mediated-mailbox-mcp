@@ -1,0 +1,26 @@
+control: The base policy's installation screens read no account's state
+removes: the installation's count of base rules is read in the first account's transaction, counting that account's own rules
+packages: ./ui/internal/api
+tests: TestTheBasePolicyReadsNoAccountsState
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/basepolicy.go b/ui/internal/api/basepolicy.go
+index a582345e..e43ebcb9 100644
+--- a/ui/internal/api/basepolicy.go
++++ b/ui/internal/api/basepolicy.go
+@@ -206,8 +206,12 @@ func timestamptz(t *time.Time) pgtype.Timestamptz {
+ // installation endpoint (docs/UI.md section 8.10).
+ func (s *Server) baseRuleCount(ctx context.Context) (int, error) {
+ 	n := 0
+-	err := tx.RunBase(ctx, s.opts.Database, func(t pgx.Tx) error {
+-		stored, err := baseStored(ctx, base.New(t))
++	listed, err := s.listAccountIDs(ctx)
++	if err != nil || len(listed) == 0 {
++		return 0, err
++	}
++	err = tx.Run(ctx, s.opts.Database, listed[0], func(t pgx.Tx) error {
++		stored, err := registry.ComposedRules(ctx, manage.New(t), listed[0])
+ 		n = len(stored)
+ 		return err
+ 	})

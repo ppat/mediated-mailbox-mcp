@@ -1,0 +1,18 @@
+control: Message-derived text renders inert
+removes: the sender row hands its domain to the raw-markup escape hatch
+packages: ./ui/browser/test/policy.test.tsx
+tests: a sender domain carrying markup arrives as text in the picker's row, its box's label and its Restrict control | markup in a sender's domain arrives as text in the sender row
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/row/sender.tsx b/ui/browser/src/row/sender.tsx
+--- a/ui/browser/src/row/sender.tsx
++++ b/ui/browser/src/row/sender.tsx
+@@ -40,7 +40,7 @@
+       key: "domain",
+       header: "domain",
+       width: 240,
+-      cell: (row) => <span class="mono">{row.domain}</span>,
++      cell: (row) => <span class="mono" dangerouslySetInnerHTML={{ __html: row.domain }} />,
+       title: (row) => row.domain,
+     },
+     {

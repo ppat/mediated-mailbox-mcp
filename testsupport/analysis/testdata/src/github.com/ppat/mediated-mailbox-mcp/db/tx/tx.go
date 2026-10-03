@@ -12,3 +12,6 @@ type Beginner interface{}
 
 // Run runs fn in a transaction that set the account.
 func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error) error { return nil }
+
+// RunBase runs fn in a base-policy transaction, which names no account.
+func RunBase(ctx context.Context, db Beginner, fn func(pgx.Tx) error) error { return nil }

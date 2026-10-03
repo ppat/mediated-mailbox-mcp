@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "file_refused",
+    "message": "the file is not a policy file",
+    "origin": "client",
+    "request_id": "recorded"
+  },
+  "problems": [
+    {
+      "kind": "not_the_form",
+      "line": 1,
+      "rule_id": "",
+      "suffix": null
+    }
+  ]
+}

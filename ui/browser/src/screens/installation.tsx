@@ -1,8 +1,7 @@
 // The installation screen of docs/UI.md section 8.10, what belongs to no account. It reads the
 // installation endpoint alone, which carries each OAuth client's name, provider, identifier and
 // project ID and each account's identifier, provider and client, and nothing of any account's state
-// (ADR-0056). The base policy's item and its count join the getting-started list when the base policy
-// screen lands.
+// (ADR-0056). Of the base policy it reads only the count of base rules, which belongs to no account.
 import { useState } from "preact/hooks";
 import {
   installationPath,
@@ -13,6 +12,7 @@ import {
   type RemovedClient,
 } from "../app/api.ts";
 import { useDeps } from "../app/deps.ts";
+import { count } from "../app/format.ts";
 import { providerName } from "../app/frame.tsx";
 import { consoleTab } from "../app/guide.ts";
 import { Region } from "../app/region.tsx";
@@ -57,8 +57,19 @@ function hasClient(answer: Installation): boolean {
   return answer.clients.some((c) => answer.providers.includes(c.provider));
 }
 
+// baseRulesStatus is the base policy item's status, its count of base rules, optional either way.
+export function baseRulesStatus(n: number): string {
+  if (n === 0) {
+    return "No base rules yet · optional";
+  }
+  return `${count(n)} ${n === 1 ? "base rule" : "base rules"} · optional`;
+}
+
 // GettingStarted is the first run, shown until an account exists. Connecting cannot start until a
-// client is set up, and the current item carries its action (section 8.10).
+// client is set up, and the current item carries its action. Reviewing the base policy is optional and
+// never blocks the next item, so it is never the current one, and it links to the base policy, since a
+// rule in place before the first account connects classifies that account's senders from its first
+// backfill (section 8.10).
 function GettingStarted(props: { answer: Installation }) {
   const ready = hasClient(props.answer);
   return (
@@ -82,6 +93,12 @@ function GettingStarted(props: { answer: Installation }) {
               Start
             </a>
           )}
+        </li>
+        <li>
+          <span class="step-status" data-state="optional">
+            <span aria-hidden="true">○</span> {baseRulesStatus(props.answer.base_rules)}
+          </span>{" "}
+          <a href="/setup/policy">Review the base policy</a>
         </li>
         <li>
           <Status state={ready ? "current" : "blocked"} />{" "}

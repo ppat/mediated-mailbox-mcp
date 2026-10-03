@@ -21,7 +21,7 @@ import {
 } from "../app/api.ts";
 import { DepsContext, useDeps } from "../app/deps.ts";
 import { Frame, InstallationFrame, providerName } from "../app/frame.tsx";
-import { duration } from "../app/format.ts";
+import { count, duration } from "../app/format.ts";
 import {
   guideWindow,
   linkStylesheet,
@@ -869,6 +869,12 @@ function Success(props: { mode: Mode; connected: Connected; answer: Installation
         <p>
           Every workload is told of {connected.account} and serves it, and backfill starts indexing
           it. Nothing more needs doing.
+        </p>
+        <p>
+          The base policy&apos;s {count(props.answer.base_rules)}{" "}
+          {props.answer.base_rules === 1 ? "rule applies" : "rules apply"} to {connected.account}{" "}
+          from the start. Rules made for one account do not.{" "}
+          <a href={`${home}/policy`}>Review {connected.account}&apos;s policy.</a>
         </p>
         <a class="primary" href={home}>
           Go to {connected.account}

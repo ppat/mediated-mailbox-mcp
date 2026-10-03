@@ -1,0 +1,24 @@
+control: Message-derived text renders inert
+removes: the rule row hands the rule's identifier to the raw-markup escape hatch
+packages: ./ui/browser/test/policy.test.tsx
+tests: markup in a rule's identifier and suffixes arrives as text in its row, and nothing is built from it
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policy.tsx b/ui/browser/src/screens/policy.tsx
+--- a/ui/browser/src/screens/policy.tsx
++++ b/ui/browser/src/screens/policy.tsx
+@@ -27,9 +27,11 @@
+       header: "rule",
+       width: 220,
+       cell: (row) => (
+-        <a class="mono" href={ruleScreen(account, row.scope, row.rule_id)}>
+-          {row.rule_id}
+-        </a>
++        <a
++          class="mono"
++          href={ruleScreen(account, row.scope, row.rule_id)}
++          dangerouslySetInnerHTML={{ __html: row.rule_id }}
++        />
+       ),
+       title: (row) => row.rule_id,
+     },

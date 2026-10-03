@@ -179,9 +179,18 @@ func mailbox(s setup) []fake.Message {
 // policyListing returns the policy listing the bank, or listing nothing once delisted.
 func policyListing(t tb, delisted bool) policy.Snapshot {
 	t.Helper()
+	return policyAdding(t, delisted, nil)
+}
+
+// policyAdding returns policyListing's policy with a rule named rule.{domain} added for each of added.
+func policyAdding(t tb, delisted bool, added []string) policy.Snapshot {
+	t.Helper()
 	var rows []policy.Row
 	if !delisted {
 		rows = append(rows, policy.Row{ID: "rule.bank", Class: policy.Restricted, DomainSuffixes: []string{listedDomain}})
+	}
+	for _, d := range added {
+		rows = append(rows, policy.Row{ID: "rule." + d, Class: policy.Restricted, DomainSuffixes: []string{d}})
 	}
 	p, err := policy.Load(rows)
 	if err != nil {
@@ -518,6 +527,28 @@ func (m *memory) Delist(ctx context.Context, _, runID string, delisted func([]st
 	return marked, nil
 }
 
+func (m *memory) List(ctx context.Context, _ string, listed func([]string) []index.Listing) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	normal := map[string]bool{}
+	for _, msg := range m.messages {
+		if msg.st.Class == "normal" {
+			normal[msg.st.Domain] = true
+		}
+	}
+	marked := 0
+	for _, l := range listed(slices.Sorted(maps.Keys(normal))) {
+		for _, msg := range m.messages {
+			if msg.st.Domain == l.Domain && msg.st.Class == "normal" {
+				msg.st.Class = "restricted"
+				marked++
+			}
+		}
+	}
+	return marked, nil
+}
+
 func (m *memory) Pending(ctx context.Context, _, after string, n int) ([]index.Waiting, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -647,8 +678,10 @@ type world struct {
 	pass    *pass2.Pass
 	// messages is the mailbox the provider fake holds.
 	messages []fake.Message
-	// delisted removes the bank's rule from the policy the next process loads.
+	// delisted removes the bank's rule from the policy the next process loads, and added adds a rule
+	// for each of its domains to it.
 	delisted bool
+	added    []string
 	// throttle is how many body fetches the provider throttles next.
 	throttle int
 	// cut crashes the process inside the next page, once it has fetched a body and before its commit
@@ -783,7 +816,7 @@ func (w *world) restricted(id string) bool {
 // (ADR-0096, ADR-0098).
 func (w *world) open(t tb) {
 	t.Helper()
-	w.deps.Policy = policyListing(t, w.delisted).For(w.account)
+	w.deps.Policy = policyAdding(t, w.delisted, w.added).For(w.account)
 	before := w.inspect(t)
 	if _, err := pass2.Reopen(w.ctx, w.deps, w.account); err != nil {
 		t.Fatalf("returning the stale verdicts to pending: %v", err)

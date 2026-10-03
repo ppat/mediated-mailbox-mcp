@@ -164,6 +164,7 @@ test("the navigation marks System, and g then s goes to it", async () => {
   expect(links()).toEqual([
     ["Home", "/personal", "page"],
     ["Jobs running", "/personal/jobs", null],
+    ["Policy", "/personal/policy", null],
     ["System", "/personal/system", null],
   ]);
   for (const key of ["g", "s"]) {
@@ -176,6 +177,7 @@ test("the navigation marks System, and g then s goes to it", async () => {
   expect(links()).toEqual([
     ["Home", "/personal", null],
     ["Jobs running", "/personal/jobs", null],
+    ["Policy", "/personal/policy", null],
     ["System", "/personal/system", "page"],
   ]);
 });

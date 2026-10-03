@@ -1,0 +1,18 @@
+control: A rule changing where it applies is added under its new scope before the old one is lifted
+removes: Add a rule opened by a change of where a rule applies goes on to the old rule's lift when its add is refused
+packages: ./ui/browser/test/policy.test.tsx
+tests: a change of where a rule applies whose add fails never sends the lift
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/addrule.tsx b/ui/browser/src/screens/addrule.tsx
+--- a/ui/browser/src/screens/addrule.tsx
++++ b/ui/browser/src/screens/addrule.tsx
+@@ -252,7 +252,7 @@
+       rule: identifier,
+       suffixes,
+     });
+-    if (!result.ok) {
++    if (!result.ok && props.opener !== "move") {
+       setFailure(result.failure);
+       return;
+     }

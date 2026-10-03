@@ -28,7 +28,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
@@ -79,6 +82,11 @@ type Configuration struct {
 	// ConsentRedirect is the loopback address a consent redirects the browser to, where nothing
 	// listens (docs/UI.md sections 8.12 and 18.1).
 	ConsentRedirect string `yaml:"consent_redirect"`
+	// IdentityHeader names the header an authenticating proxy forwards the operator's identity in, and
+	// OperatorName the identity a decision or a policy write records when no header is declared
+	// (ADR-0084), so every write has one.
+	IdentityHeader string `yaml:"identity_header"`
+	OperatorName   string `yaml:"operator_name"`
 }
 
 // providerTimeout bounds one request to a provider, checking a client, exchanging a consent's code or
@@ -91,7 +99,8 @@ const providerTimeout = 30 * time.Second
 // every two seconds. The browser follows the OS theme, and its stream client backs off to 30 seconds
 // and polls every 5 seconds after its fallback (ADR-0058). The worth-a-look thresholds are section 8.1's
 // starting values. A consent redirects to 127.0.0.1 on a high port a web server on the operator's
-// computer is unlikely to answer on, which an installation may name otherwise (section 8.12).
+// computer is unlikely to answer on, which an installation may name otherwise (section 8.12). With no
+// identity header declared, a write records the operator name, operator unless configured otherwise.
 func defaults() Configuration {
 	return Configuration{
 		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full"},
@@ -108,6 +117,7 @@ func defaults() Configuration {
 		AttentionServeFactor:  2,
 		AttentionGapDays:      7,
 		ConsentRedirect:       "http://127.0.0.1:47823/",
+		OperatorName:          "operator",
 	}
 }
 
@@ -176,6 +186,9 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		return fmt.Errorf("configuring the database connection: %w", err)
 	}
 	defer pool.Close()
+	// The sender classifier's domain functions, which policy management matches senders against
+	// rules with, as the deployables that classify pass them (ADR-0004).
+	lookups := classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 	secrets, err := clientsecret.Load(c.SealPublicKeyFile, c.PrivateKeyFiles, pool)
 	if err != nil {
 		return fmt.Errorf("loading the keyring: %w", err)
@@ -183,7 +196,7 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	server, err := api.New(api.Options{
 		Bundle:         bundle,
 		Database:       pool,
-		Datasets:       registry.Datasets(),
+		Datasets:       registry.Datasets(lookups),
 		Logger:         logger,
 		Metrics:        prometheus.NewRegistry(),
 		Clock:          time.Now,
@@ -203,6 +216,8 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 			"gmail": consent.New(&http.Client{Timeout: providerTimeout}, c.ConsentRedirect),
 		},
 		ClientSecrets: secrets,
+		Lookups:       lookups,
+		Identity:      api.Identity{Header: c.IdentityHeader, Operator: c.OperatorName},
 	})
 	if err != nil {
 		return err

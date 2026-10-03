@@ -5,13 +5,13 @@ tests: TestTheConfigurationTypeIsPinned TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index c14cabca..9a372866 100644
+index 268be745..b03e5ced 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -79,6 +79,7 @@ type Configuration struct {
- 	// ConsentRedirect is the loopback address a consent redirects the browser to, where nothing
- 	// listens (docs/UI.md sections 8.12 and 18.1).
- 	ConsentRedirect string `yaml:"consent_redirect"`
+@@ -87,6 +87,7 @@ type Configuration struct {
+ 	// (ADR-0084), so every write has one.
+ 	IdentityHeader string `yaml:"identity_header"`
+ 	OperatorName   string `yaml:"operator_name"`
 +	AttemptLifetime time.Duration `yaml:"attempt_lifetime"`
  }
  

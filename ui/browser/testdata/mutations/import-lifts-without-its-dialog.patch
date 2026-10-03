@@ -1,0 +1,18 @@
+control: An import's lifts are confirmed in one dialog, typed as lift {k} for the base policy, and the request carries lift {k}
+removes: an import that lifts restrictions is applied on its button, with no dialog naming the lifts
+packages: ./ui/browser/test/policy.test.tsx
+tests: an import that lifts asks one dialog naming every lift, and Put back adds them back
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policyimport.tsx b/ui/browser/src/screens/policyimport.tsx
+--- a/ui/browser/src/screens/policyimport.tsx
++++ b/ui/browser/src/screens/policyimport.tsx
+@@ -124,7 +124,7 @@
+           dialog={dialog}
+           failure={failure}
+           onImport={() =>
+-            read.preview.lifts > 0 ? setDialog(true) : void apply(read.file, read.preview)
++            void apply(read.file, read.preview)
+           }
+           onConfirm={() => void apply(read.file, read.preview)}
+           onCancel={() => setDialog(false)}

@@ -43,6 +43,7 @@ var accountTables = map[string]accountTable{
 	"messages":            {"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ($1, $2, 't', 'a@example.com', 'example.com', now(), false, 'normal')", accountB},
 	"scan_gate_decisions": {"INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason) VALUES ($1, $2, 'SCAN', 'restricted')", accountB},
 	"policy_candidates":   {"INSERT INTO policy_candidates (account_id, domain, signals, score) VALUES ($1, $2, '[]', 0.5)", accountB},
+	"policy_changes":      {"INSERT INTO policy_changes (account_id, actor, action, rule_id) VALUES ($1, 'operator', 'added', $2)", accountB},
 	"policy_rules":        {"INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES ($1, $1 || '.' || $2, 'restricted', '{example.com}', 'operator', 'operator')", accountB},
 	"masking_events":      {"INSERT INTO masking_events (account_id, message_id, field, rule_id, tier) VALUES ($1, $2, 'subject', 'rule', 1)", accountB},
 	"reorg_plans":         {"INSERT INTO reorg_plans (plan_id, account_id, status, plan) VALUES (gen_random_uuid(), $1, 'DRAFT', jsonb_build_object('key', $2::text))", accountB},
@@ -161,8 +162,9 @@ func TestRowLevelSecurityScopesEveryAccountTable(t *testing.T) {
 }
 
 // TestAPolicyRuleWriteNamesTheTransactionsAccount writes base rules, which carry no account and bind
-// every account (ADR-0004). A runtime role reads them but writes only its own account's rules, so the
-// UI's insert grant reaches no further than the rule its account's confirmation emits (ADR-0021).
+// every account (ADR-0004), in an account's transaction. A runtime role reads them there but writes
+// only its own account's rules, so the UI's grant reaches the base rules only in a base-policy
+// transaction, which TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction covers (ADR-0112).
 func TestAPolicyRuleWriteNamesTheTransactionsAccount(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -199,6 +201,162 @@ func TestAPolicyRuleWriteNamesTheTransactionsAccount(t *testing.T) {
 		if n, err := as(ctx, tx, rowSecurityRole, accountA, "UPDATE policy_rules SET class = class WHERE account_id IS NULL"); err != nil || n != 0 {
 			t.Errorf("updated %d base rules with error %v, want none and no error", n, err)
 		}
+	})
+}
+
+// asBase runs fn as role in a savepoint of tx, set as the transaction helper's base-policy entry point
+// sets a transaction, the account empty and app.base on, with extra settings applied after them, and
+// rolls the savepoint back (ADR-0112).
+func asBase(ctx context.Context, tx pgx.Tx, role string, extra map[string]string, fn func(pgx.Tx) error) (err error) {
+	sp, err := tx.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if rollbackErr := sp.Rollback(context.Background()); err == nil {
+			err = rollbackErr
+		}
+	}()
+	for _, sql := range []string{
+		"SET LOCAL ROLE " + pgx.Identifier{role}.Sanitize(),
+		"SELECT set_config('app.account', '', true)",
+		"SELECT set_config('app.base', 'on', true)",
+	} {
+		if _, err := sp.Exec(ctx, sql); err != nil {
+			return err
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(extra)) {
+		if _, err := sp.Exec(ctx, "SELECT set_config($1, $2, true)", name, extra[name]); err != nil {
+			return err
+		}
+	}
+	return fn(sp)
+}
+
+// inBase runs one statement through asBase and returns the rows it affected.
+func inBase(ctx context.Context, tx pgx.Tx, role string, extra map[string]string, sql string, args ...any) (affected int64, err error) {
+	err = asBase(ctx, tx, role, extra, func(sp pgx.Tx) error {
+		tag, err := sp.Exec(ctx, sql, args...)
+		affected = tag.RowsAffected()
+		return err
+	})
+	return affected, err
+}
+
+// TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction is ADR-0112's scope rule. The UI's role
+// writes a base rule and its history row in a base-policy transaction, and nowhere else. In an
+// account's transaction it writes neither, in a base-policy transaction it reads and writes no
+// account's rule or history row, a transaction that set both an account and app.base writes no base
+// row, and no other role writes the base policy in any transaction. The successful writes come first
+// in each pairing, so each refusal is the policy's doing rather than a statement that reaches nothing.
+func TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction(t *testing.T) {
+	ctx := t.Context()
+	tx := seeded(t)
+	for _, sql := range []string{
+		"INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES (NULL, 'base.example.org', 'restricted', '{example.org}', 'operator', 'operator')",
+		"INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES ('" + accountA + "', 'own.example.net', 'restricted', '{example.net}', 'operator', 'operator')",
+		"INSERT INTO policy_changes (account_id, actor, action, rule_id) VALUES (NULL, 'operator', 'added', 'base.example.org')",
+		"INSERT INTO policy_changes (account_id, actor, action, rule_id) VALUES ('" + accountA + "', 'operator', 'added', 'own.example.net')",
+		"CREATE ROLE " + rowSecurityRole + " NOLOGIN",
+		"GRANT SELECT, INSERT, UPDATE, DELETE ON policy_rules, policy_changes TO " + rowSecurityRole,
+		"GRANT USAGE ON SEQUENCE policy_changes_id_seq TO " + rowSecurityRole,
+	} {
+		if _, err := tx.Exec(ctx, sql); err != nil {
+			t.Fatalf("%s: %v", sql, err)
+		}
+	}
+	const (
+		insertRule   = "INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES ($1, 'new.example.com', 'restricted', '{example.com}', 'operator', 'operator')"
+		insertChange = "INSERT INTO policy_changes (account_id, actor, action, rule_id) VALUES ($1, 'operator', 'added', 'new.example.com')"
+		editBase     = "UPDATE policy_rules SET domain_suffix = '{example.org,example.info}' WHERE account_id IS NULL"
+		liftBase     = "DELETE FROM policy_rules WHERE account_id IS NULL"
+		editOwn      = "UPDATE policy_rules SET domain_suffix = '{example.net,example.info}' WHERE account_id = '" + accountA + "'"
+		liftOwn      = "DELETE FROM policy_rules WHERE account_id = '" + accountA + "'"
+	)
+	written := func(t *testing.T, name string, n int64, err error) {
+		t.Helper()
+		if err != nil || n != 1 {
+			t.Errorf("%s wrote %d rows with error %v, want 1 and no error", name, n, err)
+		}
+	}
+	untouched := func(t *testing.T, name string, n int64, err error) {
+		t.Helper()
+		if err != nil || n != 0 {
+			t.Errorf("%s changed %d rows with error %v, want none and no error", name, n, err)
+		}
+	}
+	refused := func(t *testing.T, name string, err error) {
+		t.Helper()
+		if !refusedByPolicy(err) {
+			t.Errorf("%s: got %v, want the policy to refuse the row", name, err)
+		}
+	}
+	t.Run("the UI writes the base policy in a base-policy transaction", func(t *testing.T) {
+		n, err := inBase(ctx, tx, uiRole, nil, insertRule, nil)
+		written(t, "inserting a base rule", n, err)
+		n, err = inBase(ctx, tx, uiRole, nil, insertChange, nil)
+		written(t, "inserting a base history row", n, err)
+		n, err = inBase(ctx, tx, uiRole, nil, editBase)
+		written(t, "editing a base rule", n, err)
+		n, err = inBase(ctx, tx, uiRole, nil, liftBase)
+		written(t, "lifting a base rule", n, err)
+	})
+	t.Run("the UI writes no base row in an account's transaction", func(t *testing.T) {
+		_, err := as(ctx, tx, uiRole, accountA, insertRule, nil)
+		refused(t, "inserting a base rule", err)
+		_, err = as(ctx, tx, uiRole, accountA, insertChange, nil)
+		refused(t, "inserting a base history row", err)
+		n, err := as(ctx, tx, uiRole, accountA, editBase)
+		untouched(t, "editing a base rule", n, err)
+		n, err = as(ctx, tx, uiRole, accountA, liftBase)
+		untouched(t, "lifting a base rule", n, err)
+	})
+	t.Run("the UI writes its account's rule in its account's transaction", func(t *testing.T) {
+		n, err := as(ctx, tx, uiRole, accountA, editOwn)
+		written(t, "editing the account's rule", n, err)
+		n, err = as(ctx, tx, uiRole, accountA, liftOwn)
+		written(t, "lifting the account's rule", n, err)
+	})
+	t.Run("a base-policy transaction reaches no account's rows", func(t *testing.T) {
+		_, err := inBase(ctx, tx, uiRole, nil, insertRule, accountA)
+		refused(t, "inserting an account's rule", err)
+		_, err = inBase(ctx, tx, uiRole, nil, insertChange, accountA)
+		refused(t, "inserting an account's history row", err)
+		n, err := inBase(ctx, tx, uiRole, nil, editOwn)
+		untouched(t, "editing an account's rule", n, err)
+		n, err = inBase(ctx, tx, uiRole, nil, liftOwn)
+		untouched(t, "lifting an account's rule", n, err)
+		var rules, changes, base int
+		err = asBase(ctx, tx, uiRole, nil, func(sp pgx.Tx) error {
+			if err := sp.QueryRow(ctx, "SELECT count(*) FROM policy_rules WHERE account_id IS NOT NULL").Scan(&rules); err != nil {
+				return err
+			}
+			if err := sp.QueryRow(ctx, "SELECT count(*) FROM policy_changes WHERE account_id IS NOT NULL").Scan(&changes); err != nil {
+				return err
+			}
+			return sp.QueryRow(ctx, "SELECT count(*) FROM policy_rules WHERE account_id IS NULL").Scan(&base)
+		})
+		if err != nil || rules != 0 || changes != 0 || base != 1 {
+			t.Errorf("read %d account rules, %d account history rows and %d base rules with error %v, want 0, 0 and 1", rules, changes, base, err)
+		}
+	})
+	t.Run("a transaction naming an account and the base policy writes no base row", func(t *testing.T) {
+		both := map[string]string{"app.account": accountA}
+		_, err := inBase(ctx, tx, uiRole, both, insertRule, nil)
+		refused(t, "inserting a base rule", err)
+		n, err := inBase(ctx, tx, uiRole, both, editBase)
+		untouched(t, "editing a base rule", n, err)
+	})
+	t.Run("no other role writes the base policy", func(t *testing.T) {
+		_, err := inBase(ctx, tx, rowSecurityRole, nil, insertRule, nil)
+		refused(t, "inserting a base rule", err)
+		_, err = inBase(ctx, tx, rowSecurityRole, nil, insertChange, nil)
+		refused(t, "inserting a base history row", err)
+		n, err := inBase(ctx, tx, rowSecurityRole, nil, editBase)
+		untouched(t, "editing a base rule", n, err)
+		n, err = inBase(ctx, tx, rowSecurityRole, nil, liftBase)
+		untouched(t, "lifting a base rule", n, err)
 	})
 }
 

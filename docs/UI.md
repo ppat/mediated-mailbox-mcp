@@ -71,8 +71,8 @@ to start. Any record cited in a section and not listed here is read when that se
    what was rejected.
 5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0093, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
    ADR-0022, ADR-0025, ADR-0018, for the mechanisms the screens display, and ADR-0080, ADR-0081,
-   ADR-0106, ADR-0107, ADR-0091, ADR-0097, ADR-0024, ADR-0037, ADR-0041 and ADR-0102 for the setups, the
-   account settings and the policy writes. Read each when building the screen that shows it.
+   ADR-0106, ADR-0107, ADR-0091, ADR-0097, ADR-0024, ADR-0037, ADR-0041, ADR-0102, ADR-0110, ADR-0112,
+   ADR-0113 and ADR-0114 for the setups, the account settings and the policy writes. Read each when building the screen that shows it.
 6. [TESTING.md](../TESTING.md), ADR-0043, ADR-0044, and the UI's rows in
    [docs/VERIFICATIONS.md](./VERIFICATIONS.md), before writing a test.
 7. [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) and
@@ -145,7 +145,7 @@ The navigation rules that make this analysis rather than page-hopping:
 | --- | --- |
 | account | mandatory, the first path segment, never implicit, never `all`, on every route but the installation screens' of [section 8.10](#810-installation), which belong to no account |
 | time range | `range=` with the grammar below. UTC on the wire and in the display, with the `Z` suffix, local time on hover |
-| search | a filter named `search`, declared in the registry as a filter-only entry of kind text, legal at every level, on three datasets. On `messages` it is a case-insensitive substring match over the masked subject through the index's trigram index, and the search box submits `/{account}/messages?level=3&search=…`. On `senders` it is a case-insensitive substring match over the domain, the sender picker's search of [section 8.7](#87-policy). On `rules` it is a case-insensitive substring match over the rule identifiers and the domain suffixes, the search box above the policy screen's table. Sender and label search on messages are the ordinary `sender` and `label` filters |
+| search | a filter named `search`, declared in the registry as a filter-only entry of kind text, legal at every level, on three datasets. Its value is the text searched for, taken whole, so a comma or a leading `!` in it is part of the text and not the filter grammar's. On `messages` it is a case-insensitive substring match over the masked subject through the index's trigram index, and the search box submits `/{account}/messages?level=3&search=…`. On `senders` it is a case-insensitive substring match over the domain, the sender picker's search of [section 8.7](#87-policy). On `rules` it is a case-insensitive substring match over the rule identifiers and the domain suffixes, the search box above the policy screen's table. Sender and label search on messages are the ordinary `sender` and `label` filters |
 
 **The route table.** The entry route first, then the fixed screens, the object screens, and the
 lens routes, which exist only for the five analysis datasets. The URL is the view state. The
@@ -240,7 +240,7 @@ is a dataset.
 | `ops` | a plan's message operations | `plan`, required | yes |
 | `runs` | job runs | none | no |
 | `failures` | a run's item failures | `run`, required | yes |
-| `rules` | policy rules, the base rules and the account's own. Identity the scope and the rule identifier together, since both scopes may hold one identifier | none | no |
+| `rules` | policy rules, the base rules and the account's own. Identity the scope and the rule identifier together, since both scopes may hold one identifier, written `base:{id}` or `account:{id}` in the row-detail path, the scope word ending at the first colon | none | no |
 | `policy_changes` | the policy history, one row per change to a rule (ADR-0102) | none | no |
 
 The op log, the accounts table, and the rate state are read by the bespoke endpoints of
@@ -316,7 +316,9 @@ Every screen shares one frame, top to bottom.
 An installation screen ([section 8.10](#810-installation)) has the same frame with no account in
 view. The account selector reads "Installation". The primary navigation is the installation's
 own, Setup · Base policy, and search, the range control and the group-by control are absent, since
-each of them belongs to an account. The breadcrumb starts with "Installation".
+each of them belongs to an account. The breadcrumb starts with "Installation". Base policy reads as
+the current screen on every base policy screen, a rule, the history and import included, and a
+panel a base policy route opens makes the frame behind it inert, as an account's does.
 
 The primary navigation marks the current screen. Review queue shows the count of pending
 candidates and Jobs shows a running mark when any workload is running, both read from the system
@@ -983,6 +985,16 @@ it matches in the account, the senders it matches as sender rows, and its histor
 change rows, the changes recorded under its identifier and its scope. Three actions, Edit domains,
 Change where this applies…, and set apart from them on the right, Lift restriction.
 
+A rule is a panel over the policy screen, as a row detail is over its list
+([section 4](#4-the-zoom-ladder)), and so is Add a rule. The list behind either panel shows the
+`rules` dataset's default view, since the panel's address carries the panel's own parameters, such
+as `suffix=`, which the list would otherwise read as filters. `/{account}/policy/{rule-id}` reads
+the account's rule of that identifier, and on a refusal as no such row reads the base rule. A base
+rule's panel says "Every account inherits this rule." with a link to it on the base policy screen,
+and a rule whose identifier the other scope also holds links to that rule. Change where this
+applies… opens its one choice beside it rather than a menu, since a rule has only the other scope
+to move to.
+
 **What a write may hold.** Every rule's class is restricted, the one class, shown on the rule's
 screen and never chosen. A rule is refused when its identifier is empty, carries surrounding space
 or is taken by a rule of the same scope, or when it has no domain suffix or a suffix not shaped
@@ -991,8 +1003,8 @@ own rules, so the base policy and an account may each hold a rule of the same id
 may two accounts (ADR-0110).
 These are the checks the policy snapshot's validation makes when a process loads the policy
 (ADR-0041), and the UI makes them before it writes, so no write the UI makes fails that validation.
-A base edit landing while a process reloads can still fail that one reload, which is a separate
-open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)). One refusal is the
+A base edit landing while a process reloads makes that reload read the policy once more, and fails
+it only when another edit lands during the second read too (ADR-0114). One refusal is the
 UI's own. An identifier that is one of this screen's route words, `new`, `pick`, `history`,
 `import` and `base`, or is exactly `.` or `..`, or holds a `/`, is refused so every rule can be
 reached. A rule's history is the rows recorded under its identifier and its scope, so an
@@ -1028,10 +1040,41 @@ in view's alone, and nothing is summed across accounts.
   line, "This matches {share} of {account}'s senders. It is likely broader than one institution.",
   which refuses nothing and asks no confirmation. Add a rule opened from the sender picker returns
   to the picker, with its search and selection, on Cancel and on `Escape`.
+
+  The share is a tenth: a suffix matching more than 10% of the account's senders carries the
+  warning. One institution's domains are a small part of a mailbox's senders, and the warning only
+  advises, so warning early costs a sentence while warning late lets a broad suffix pass
+  unremarked. The quarter at which a plan asks a typed restatement was the alternative, and it would
+  let a suffix restricting a fifth of the senders through without a word. Each suffix is a field of
+  its own, a new empty field always following the last, and a paste of several lines fills one field
+  per line, so each verdict is tied to its own field as the accessibility contract below asks. One
+  text area was the alternative, and a verdict cannot be tied to one line of it. The lines are
+  checked together in one read of the match endpoint once typing pauses for 400 ms, and the
+  verdict lists the rules already matching the suffix, "Already matched by the base rule {id}." or
+  "Already matched by {account}'s rule {id}.". A line not shaped like a domain name reads "Not
+  shaped like a domain name." and is the refused line that keeps Add rule disabled. An identifier
+  the checks below refuse is refused here too, before anything is sent. The sentence above the
+  button counts the checked suffixes together, so a sender two of them match counts once, rather
+  than adding each line's numbers, which would count it twice.
+
+  What opened the panel, the sender picker or Change where this applies…, is recorded in the
+  browser's history entry, so a reload keeps it, and Cancel and `Escape` go Back to the picker
+  exactly as the operator left it. A parameter in the address was the alternative, and the route
+  table gives the panel's address none. Once the add succeeds the browser goes to the new rule,
+  whose status region reads "Added {id}.".
 - **Edit domains** that only adds suffixes saves at once. An edit that removes any suffix shows the
   change as a diff, `+` for each suffix added and `−` for each removed, and saving goes through the
   lift dialog for the removed ones. An edit that would remove every suffix is not an edit, since a
   rule needs one, and the screen offers Lift restriction instead.
+
+  The suffixes are edited one per line in one text area, each checked for its shape before Save
+  enables, with no match count, since the rule's screen above it already shows each suffix's
+  numbers. The lift dialog's numbers are read for the removed suffixes together, what keeping
+  only the rule's other suffixes would release in the account, so an edit removing several suffixes
+  states one sentence for the set, "restricted by these suffixes", and a sender that only the set
+  covers is counted. Adding each suffix's own numbers was the alternative, and it would miss a
+  sender two removed suffixes both cover. After a save the screen stays on the rule, whose status region
+  reads "Added {suffixes} to {rule}." or, after a removal, "Lifted {suffixes}. Put it back".
 - **The lift dialog** is titled "Lift the restriction on {suffix or rule}". It states "In {account},
   {n} senders and {m} stored messages are restricted by this {rule or suffix} and by no other rule.
   From each process's next policy reload, their bodies are no longer denied for their sender. A
@@ -1052,6 +1095,18 @@ in view's alone, and nothing is summed across accounts.
   prefilled with the removed suffixes, the row's scope and its identifier
   (`/{account}/policy/new?suffix=…&scope=…&id=…`), or Edit domains with the suffixes added when the
   rule still exists.
+
+  Put it back re-sends the writes that add. A rule lifted whole is added again with its suffixes,
+  under its identifier and scope, and a removal of suffixes is undone by an edit adding them back
+  onto the suffixes the rule holds after the removal. An import's Put back sends one such write per
+  rule it lifted and per rule it took suffixes from, in order, and stops at the first refusal,
+  which it shows. A request of its own for undoing a lift was the alternative. The add and edit
+  requests already carry exactly this, with their checks and history rows, so a new request would
+  only duplicate them. After a rule is lifted whole the browser goes to the scope's policy screen,
+  since the rule's screen no longer has a rule to show. Each write's outcome is announced in the
+  status region of the policy screen it belongs to, the account's or the base policy's, and stays
+  there while the tab is open until the next write from that screen replaces it, since a write
+  often ends on another screen than the one it was made from.
 - **Change where this applies…** moves a rule between scopes, offering "Only {account}" on a base
   rule and "Every account" on an overlay rule. It opens Add a rule prefilled with the rule's
   suffixes, the other scope and the rule's own identifier, which the other scope may also hold.
@@ -1062,10 +1117,11 @@ in view's alone, and nothing is summed across accounts.
   transactions, the add and then the lift, each with its history row, and the add always comes
   first, so the account in view never goes without the restriction between the two writes.
 
-What happens to the classifications the index has already stored when a rule is added is decided
-where policy management is built ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)), so
-the screen claims only what fetch-time re-evaluation guarantees, that bodies are denied from the
-next policy reload (ADR-0002), and shows the stored classes it reads through "index updated".
+A rule added restricts the classes the index has already stored once a scanning workload next
+compares the index with the policy, as a lift reaches the delisting transition (ADR-0113,
+ADR-0037). The screen claims only what fetch-time re-evaluation guarantees, that bodies are denied
+from the next policy reload (ADR-0002), and shows the stored classes catching up through "index
+updated".
 
 **Restrict senders from the index.** `/{account}/policy/pick?search=…` is the `senders` dataset at
 L3 with its `search` filter, the sender row's fields, a selection box at the left, and for a
@@ -1084,6 +1140,19 @@ the search instead, as `?search=…`, and the panel lists the domains it matches
 one rule because a rule names one institution (ADR-0004), and a search for an institution's name
 finds its domains. The match count is announced as the search narrows. A search with no match
 reads "No senders match '{search}'".
+
+A sender is restricted, its box disabled, when its stored class reads restricted or when a rule of
+the account's policy already restricts it before its stored class catches up, since a second rule
+would add nothing. Its row names that rule, linking to the account's policy searched for it, and
+carries no "Restrict {domain}…", which a sender no rule restricts carries. Picks made one at a time
+are of the page in view, so another page or another search starts with nothing picked, and a
+selection spans pages only as every match. The bar counts the messages of the senders picked from
+the rows in view, so keeping picks across pages was the alternative, and the bar could then not
+count their messages without a read per pick. With every match selected, clearing one row's box
+leaves the page's other senders picked. The bar is the live region, its text read as "{n} senders,
+{m} messages selected", or "Selected all {n} matching senders", which announces the count
+`Ctrl` or `Cmd` with `a` selected. Add a rule handed every match reads every page of the search
+and fills one line per sender no rule restricts.
 
 **History.** `/{account}/policy/history` is the `policy_changes` dataset, the base policy's
 changes and the account's own, newest first, at L3 by default with the range of
@@ -1154,6 +1223,13 @@ confirmation of every restriction it lifts.
   as every count line of this section does, and, when anything was lifted, "Put back
   the {k} lifted restrictions", which adds back exactly what the
   import lifted with no confirmation, as Put it back does for one lift.
+
+  A file is read and previewed as soon as it is chosen or dropped, and another file is previewed
+  afresh. {n} in "Import {n} changes" counts the rules added and the rules edited, one each, as the
+  preview groups them. A base import with no account connected says "No account is connected, so
+  nothing is released now." in place of the accounts that lose its restrictions, as a base lift
+  does on [section 8.14](#814-base-policy). Export is a link the browser downloads, named by the
+  server.
 
 **Accessibility of the policy writes.** What the accessibility requirement of
 [section 16](#16-framework-requirements) means for these screens:
@@ -1243,7 +1319,7 @@ A title, "Installation", and one sentence saying what lives here. Then three reg
 
 | Region | Content |
 | --- | --- |
-| Getting started | shown until an account exists. First a "Before you start" block. The whole setup takes about 15 minutes. It needs a Google account allowed to create Cloud projects, which need not be the mailbox, and the Gmail address to connect. Chrome or Edge keeps the guide on top of Google's console. Google warns that the app is unverified, which is expected. Then three items in order, "Set up a Gmail OAuth client", "Review the base policy" and "Connect an account", each with its status as text and a glyph, done (a filled check), not started (an open circle), optional (an open circle in muted text), or cannot start yet (a dashed circle in faint text, with no link). The base policy item is optional and never blocks the next, so it is never the current item. Its status reads "{n} base rules · optional", or "No base rules yet · optional", and its title links to the base policy, since a rule in place before the first account connects classifies that account's senders from its first backfill. Connecting reads cannot start yet until a client is set up. The current item carries its action |
+| Getting started | shown until an account exists. First a "Before you start" block. The whole setup takes about 15 minutes. It needs a Google account allowed to create Cloud projects, which need not be the mailbox, and the Gmail address to connect. Chrome or Edge keeps the guide on top of Google's console. Google warns that the app is unverified, which is expected. Then three items in order, "Set up a Gmail OAuth client", "Review the base policy" and "Connect an account", each with its status as text and a glyph, done (a filled check), not started (an open circle), optional (an open circle in muted text), or cannot start yet (a dashed circle in faint text, with no link). The base policy item is optional and never blocks the next, so it is never the current item. Its status reads "{n} base rules · optional", "1 base rule · optional" for one, or "No base rules yet · optional", and its title links to the base policy, since a rule in place before the first account connects classifies that account's senders from its first backfill. Connecting reads cannot start yet until a client is set up. The current item carries its action |
 | OAuth clients | one row per client, grouped by provider, each with its name in mono, the client identifier in mono, shortened with the full value on hover, the project ID in mono when one is stored, and the accounts connected through it, their identifiers in mono, or "no account yet". Each row carries "Open in Google Cloud console", which opens the console's clients page for its project, Replace, linking to its setup, and Remove. Remove is enabled only while no account connects through the client, and otherwise says why, "{k} accounts connect through this client. Move them to another client from their settings first.", or for one account "1 account connects through this client. Move it to another client from its settings first." It asks a confirmation, "Remove the client {name}? Its sealed secret is deleted here. The client itself stays in Google Cloud console, where you can delete it.", and removes nothing else. Under each provider's rows, "Add a {provider} client" opens a new client's setup. A provider with no client shows its line "No {provider} client yet" with the same action |
 | Accounts | one row per account, the identifier in mono linking to the account's Home, the provider, the client it connects through in mono, and a "settings" link to its Account settings, then Connect an account, disabled with its reason while no provider an account can use has a client. While Getting started shows, this region carries no Connect control of its own, since Getting started holds it. With no account, one line, "No account is connected yet." |
 
@@ -1593,9 +1669,9 @@ of the account's. An identifier is refused when it is empty, carries surrounding
 by a base rule, is `new`, `history` or `import`, is exactly `.` or `..`, or holds a `/`. An
 account's rule may hold the same identifier as a base rule (ADR-0110). A suffix is refused when it is not shaped like a domain name. Every rule's
 class is restricted. Each write is recorded in the policy history in the same transaction
-(ADR-0102). How the UI writes a base rule and its history row, and reads the base policy with no
-account named, as this screen and the installation endpoint do, is an open decision of M8
-([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)).
+(ADR-0102). This screen, the installation endpoint's count of base rules, and every base write
+from an account's policy screen read and write the base policy in a base-policy transaction, which
+names no account and reaches no account's rows (ADR-0112).
 
 **Add a base rule** is the panel `/setup/policy/new?suffix=…`, 480 px over the list. The rule
 identifier, prefilled `operator.{first suffix}` until the operator edits it, the domain suffixes one
@@ -1631,6 +1707,19 @@ this applies…", since moving a rule to one account's overlay names an account.
 **History.** `/setup/policy/history` lists the base policy's changes alone, newest first, as policy
 change rows with the range of [section 5](#5-information-architecture-and-the-url), a lifted rule's
 row carrying Restore, which opens Add a base rule prefilled with its suffixes and identifier.
+Its ranges are the presets as links in the screen's body, writing `range=`, since the frame's range
+control belongs to an account's screens ([section 6](#6-global-chrome)).
+
+A base rule and Add a base rule are panels over the list, as on an account's policy screen. A base
+rule's panel reads the base policy's list and its history narrowed to the rule over all time,
+since no base policy read answers one rule. Add a base rule checks the lines typed, once typing
+pauses, through the base policy's own match read, which names no account and counts nothing. It
+answers each suffix's shape, whether it is a public suffix, and the base rules already matching it,
+so a line reads "Not shaped like a domain name.", the public-suffix warning above, or "Already
+matched by the base rule {id}.", and only the first refuses. Focus starts on the identifier, the
+panel having no Applies to.
+After a lift or an import the browser returns to this list, whose status region carries Put it back
+as [section 8.7](#87-policy)'s does.
 
 The keys and the accessibility contract of the policy writes in [section 8.7](#87-policy) hold
 here, the lift dialog's base sentences being this section's.
@@ -1803,7 +1892,13 @@ alternative, and one key would then move two cursors and Enter open two rows.
 
 While a text field has focus, such as search or the sender picker's search, every key goes to the
 field, apart from `Escape`, which leaves it. So `Ctrl`+`a` selects the field's text there and
-selects rows only once the table holds the cursor.
+selects rows only once the table holds the cursor. A selection box or a radio takes no text, so the
+map's keys still work while one has focus, and the picker's keys work after a click on a row's box.
+
+In the sender picker, `x` and `Enter` on a restricted sender's row do nothing, since it cannot be
+selected. `Shift` with `j` or `k` moves the cursor and selects both the row it leaves and the row it
+reaches. `r` acts only while a selection exists, and `Escape` with a selection clears it and nothing
+else, so the next `Escape` removes the search's chip as on any lens.
 
 Focus is visible everywhere (the focus ring token). Nothing submits a decision from the keyboard
 without the control being focused and activated.
@@ -1943,9 +2038,10 @@ decisions, the two setups, and the policy writes.
 - **The identity header is trusted only when the deployment declares it** (ADR-0084). With the
   identity header name configured ([section 18.1](#181-the-configuration-the-ui-declares)), the
   UI records that header's value on decisions and policy writes and refuses either when the header
-  is absent (403,
-  `identity_missing`, [section 17.3](#173-the-error-contract)). Unset, the UI records the
-  configured operator name and trusts nothing from the request.
+  is absent (403, `identity_missing`, [section 17.3](#173-the-error-contract)). Unset, the UI
+  records the configured operator name and trusts nothing from the request. A policy write is
+  also refused with `identity_missing` when the operator name is configured empty, so no write is
+  recorded with no one named.
 - **The database connection carries the account.** Per request the UI opens a transaction and
   sets the transaction-local setting `app.account`, which the row-level security policies of
   ADR-0016's third layer read, by an ordinary statement like every other process.
@@ -2142,7 +2238,7 @@ search box reads, a substring match over identifiers and suffixes.
 
 | | `policy_changes` |
 | --- | --- |
-| Filterable | `action`, with the actions of [section 11](#11-rendering-and-formatting-rules), `scope`, `base` or the account, `actor`, and `rule` |
+| Filterable | `action`, with the actions of [section 11](#11-rendering-and-formatting-rules), `scope`, the account or the base policy's changes, which are the dimension's null group, written `none` in a filter and worded base, `actor`, `rule`, and `day` |
 | Groupable | `action`, `scope`, `actor`, `day` |
 | Sortable | `ts` |
 | Range | over `ts`, default the last 30 days |
@@ -2208,7 +2304,7 @@ Every failure is one shape, and the origin mirrors
 | Origin | Status | Meaning |
 | --- | --- | --- |
 | `client` | 400, 404, 409 | the request was malformed, named something undeclared, or carried a stale status (409 conflict) |
-| `client` | 403, code `identity_missing` | the deployment declares an identity header and the request carries none |
+| `client` | 403, code `identity_missing` | the deployment declares an identity header and the request carries none, or a policy write would record an empty identity |
 | `client` | 403, code `stale_page` | the request token does not match the session, as on a page older than the UI server's last restart. The status region reads "This page is older than the UI server's last restart. Reload, then try again." and the values typed stay in their fields |
 | `ui` | 500 | the UI server failed on its own |
 | `database` | 503 | the database did not answer, refused, or a decision's transaction failed |
@@ -2242,16 +2338,18 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/account` | the values of [section 8.13](#813-account-settings), the identifier, provider, the client it connects through and the provider's other clients, mailbox, whether a state row exists, the last authentication, the lowered target as a fraction, the current target from the rate state, the backfill flags and when the sync cursor was written. Never the credential |
 | `POST /api/{account}/account/reauthorize`, `GET /api/{account}/account/reauthorize` and `POST /api/{account}/account/reauthorize/finish` | as the connect requests, for the account in the path, checked against its remembered mailbox, and replacing its credential and recording the code exchange's attempt on success. The start request carries `{ "mailbox": "…" }` only when the account remembers none, a mailbox in the request of an account that remembers one is refused with 400 `mailbox_remembered`, and a request naming none for an account that remembers none with 400 `mailbox_required`. It carries `{ "client": "…" }` to move the account to another client of its provider, refused with 400 `client_wrong_provider` for a client of another provider, and success then writes the client and the credential in one transaction |
 | `GET /api/setup/policy?search=…` | the base rules, each with its identifier, suffixes, source and created time and identity, and every account's identifier, which the base policy screen of [section 8.14](#814-base-policy) lists. No count of any account's senders or messages. Unscoped |
-| `GET /api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /api/setup` read with no account named, which is M8's open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)) |
+| `GET /api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /api/setup` read in a base-policy transaction (ADR-0112) |
 | `POST /api/setup/policy/rules`, `POST /api/setup/policy/rules/{rule-id}` and `POST /api/setup/policy/rules/{rule-id}/lift` | add, edit and lift a base rule with its history row, with the bodies and answers of the account's policy writes below, `scope` absent since it is always `base`, and a lift or a suffix removal always needing `confirmation`. Unscoped |
 | `POST /api/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 `target_refused` outside the range of [section 8.13](#813-account-settings), and the client's 409 `not_connected` for an account with no state row, which holds no target until it is connected |
-| `GET /api/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed |
+| `GET /api/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, whether it is itself a public suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed, with `together`, the senders and messages every suffix matches counted together, a sender two of them match counting once, and the account's count of senders, which a share is taken of |
+| `GET /api/{account}/policy/release?scope=…&rule=…&keep=…` | the senders and messages keeping only the `keep` suffixes of the rule, or none for a whole lift, would release in the account, the senders its policy restricts now and would not after, which the lift dialog of an edit removing several suffixes reads, since a sender two removed suffixes both match is released only by removing both. The client's 404 `unknown_rule` for a rule the account's policy does not hold |
+| `GET /api/setup/policy/match?suffix=…` | for each suffix typed in Add a base rule, whether it is a valid domain suffix, whether it is itself a public suffix, and the base rules already matching it, with no count, since counts are each account's. Unscoped, and read in a base-policy transaction |
 | `POST /api/{account}/policy/rules` with `{ "scope": "account", "rule_id": "…", "suffixes": ["…"] }` | adds a rule, `scope` being `account` or `base`, with its history row. 400 `rule_refused` with each problem, 409 `identifier_taken` |
 | `POST /api/{account}/policy/rules/{rule-id}` with `{ "scope": "account", "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
 | `POST /api/{account}/policy/rules/{rule-id}/lift` with `{ "scope": "account", "suffixes_before": ["…"], "confirmation": null }` | removes the rule with its history row. 404 and 409 as edit, and `confirmation` as edit for a base rule |
-| `GET /api/{account}/policy/export` and `GET /api/setup/policy/export` | the scope's rules in the file form of [section 8.7](#87-policy), as a download. The base one is unscoped and reads with no account named, M8's open decision |
-| `POST /api/{account}/policy/import/preview` and `POST /api/setup/policy/import/preview` with the file | reads and checks the file and answers the four groups of the preview, the account's numbers for the account's scope, and the scope's stored rules it was computed against. 400 `file_refused` with each problem, its rule and its line. Writes nothing. The base one is unscoped and reads with no account named, M8's open decision |
-| `POST /api/{account}/policy/import` and `POST /api/setup/policy/import` with `{ "file": "…", "computed_against": "…", "confirmation": null }` | applies the file as one transaction, each change with its history row. 409 `stale_preview` when the scope's rules read in the import's transaction differ from `computed_against`. An import that lifts anything needs `confirmation`, `lift {k}` with {k} the count it lifts, which the dialog sends, typed by the operator for the base scope, refused with 400 `confirmation_required` otherwise. The base one is unscoped and reads and writes with no account named, M8's open decision |
+| `GET /api/{account}/policy/export` and `GET /api/setup/policy/export` | the scope's rules in the file form of [section 8.7](#87-policy), as a download. The base one is unscoped and reads in a base-policy transaction |
+| `POST /api/{account}/policy/import/preview` and `POST /api/setup/policy/import/preview` with the file | reads and checks the file and answers the four groups of the preview, the account's numbers for the account's scope, and the scope's stored rules it was computed against. 400 `file_refused` with each problem, its rule and its line. Writes nothing. The base one is unscoped and reads in a base-policy transaction |
+| `POST /api/{account}/policy/import` and `POST /api/setup/policy/import` with `{ "file": "…", "computed_against": "…", "confirmation": null }` | applies the file as one transaction, each change with its history row. 409 `stale_preview` when the scope's rules read in the import's transaction differ from `computed_against`. An import that lifts anything needs `confirmation`, `lift {k}` with {k} the count it lifts, which the dialog sends, typed by the operator for the base scope, refused with 400 `confirmation_required` otherwise. The base one is unscoped and reads and writes in a base-policy transaction |
 
 The plans and candidates lists are read through the dataset endpoint's `plans` and `candidates`
 datasets ([section 17.1](#171-the-dataset-endpoint)), and the rules and the policy history through
@@ -2260,10 +2358,17 @@ the decisions on plans and candidates, the installation, the setups, an account'
 the policy writes.
 
 Every policy write records the identity of [section 15](#15-security-of-the-ui-itself) as a
-decision does, and is refused with `identity_missing` as a decision is. A policy write refused by the checks of
-[section 8.7](#87-policy) writes nothing. The lift counts the dialog states are read with the
-rule's row detail, as the senders the account's policy would no longer restrict without the
-change.
+decision does, and is refused with `identity_missing` as a decision is, and also when the
+identity it would record is empty, as an operator name configured empty leaves it. A policy write refused by the checks of
+[section 8.7](#87-policy) writes nothing. Its `rule_refused`, and a file's `file_refused`, carry the
+error contract's shape and beside it `problems`, each with its kind, its rule's identifier, its line
+in a file and the suffix an invalid suffix names, so the screen names every problem at once.
+Answering the first problem alone was the alternative, and an operator fixing a file would then meet
+its problems one import at a time. The lift counts the dialog states are the senders the
+account's policy would no longer restrict without the change. A whole rule's lift and the removal
+of one suffix read them with the rule's row detail, and an edit removing several suffixes reads the
+set's together from the release endpoint, since a sender two removed suffixes both match is
+released only by removing both.
 
 Every `POST` carries the `X-Request-Token` header of
 [section 15](#15-security-of-the-ui-itself), and a body that is not the JSON its request takes,
@@ -2380,8 +2485,8 @@ and finds no pasted address to be the redirect's.
 | `seal_public_key_file` | the path of the mounted public key the UI seals credentials to (ADR-0081) | yes |
 | `private_key_files` | the paths of every mounted private key, the keyring the deployables that call a provider hold, with which the UI's client-secret package opens a client's secret for a consent's code exchange (ADR-0081, ADR-0092). The start is refused unless the public key matches one of them | yes |
 | `insecure_http` | `true` serves plain HTTP, refused unless the binary is built with the `devloop` build tag ([section 18](#18-repository-and-build-layout)) | no |
-| `identity_header` | the header name an authenticating proxy forwards. When it is set, its value is recorded on decisions and a decision without it is refused | no |
-| `operator_name` | the identity recorded on decisions when no header is declared | yes when the header is unset |
+| `identity_header` | the header name an authenticating proxy forwards. When it is set, its value is recorded on decisions and policy writes, and a decision or a policy write without it is refused | no |
+| `operator_name` | the identity recorded on decisions and policy writes when no header is declared | no, defaults to `operator` |
 | `consent_redirect` | the loopback address a consent redirects the browser to, where nothing listens, which the consent request and the code exchange name, the pasted address is checked against, and the browser reads from the entry document to picture it and check a paste ([section 8.12](#812-connect-an-account-and-re-authorize)). The start is refused unless it is an `http` address whose host is a loopback IP literal, `127.0.0.1` or another in `127.0.0.0/8`, or `[::1]`, with an explicit port, and no path but `/`, no query, fragment or user. A desktop client accepts a loopback redirect on any port, so changing it needs nothing at Google | no, defaults to `http://127.0.0.1:47823/`, a high port a web server on the operator's computer is unlikely to answer on |
 | `token_key_file` | the path of a mounted file holding the key behind the request token and the consent attempt's seal (ADR-0111), at least 32 bytes, replacing the per-process key when more than one replica runs | no |
 | `max_plan_age` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
@@ -2439,7 +2544,6 @@ used. What is still open, and where it is tracked:
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
 | How a newly connected account, a credential replaced by re-authorization and a policy edit reach the workloads with no manual step and no restart, which [sections 8.7](#87-policy) and [8.12](#812-connect-an-account-and-re-authorize) assume | ROADMAP.md's unit [F7](../ROADMAP.md#group-f--foundation), the signals between deployables |
-| What happens to the classifications the index has already stored when a rule is added, which [section 8.7](#87-policy)'s "index updated" reads but does not decide | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 
 ## 21. The mockups

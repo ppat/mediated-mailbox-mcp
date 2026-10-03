@@ -501,6 +501,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Policy history** — the append-only record of every change to the policy list, who made it,
   when, and what it added or lifted (rule in ADR-0102, via the
   [decision-record index](./docs/adr/README.md)).
+- **Base-policy transaction** — a unit of data access that names no account and reads and writes
+  only the base policy's rows of the policy tables, opened through the transaction helper's second
+  entry point (rule in ADR-0112, via the [decision-record index](./docs/adr/README.md)).
 - **Heuristics Job** — the batch workload that proposes sensitive-sender candidates from observed
   traffic. Proposes only. Nothing it emits takes effect without operator confirmation.
 - **Review queue** — where heuristic candidates wait, ranked with their evidence, for the operator

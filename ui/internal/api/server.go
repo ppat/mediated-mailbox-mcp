@@ -14,6 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
@@ -67,6 +68,11 @@ type Options struct {
 	Consents map[string]mail.Consent[context.Context]
 	// ClientSecrets hands a code exchange its client's secret.
 	ClientSecrets ClientSecrets
+	// Lookups are the functions the sender classifier normalizes domains with, which policy
+	// management matches senders against rules with (ADR-0004).
+	Lookups classify.Lookups
+	// Identity is who a policy write is recorded as made by (ADR-0084).
+	Identity Identity
 }
 
 // Server is the UI's server.
@@ -175,6 +181,23 @@ func New(opts Options) (*Server, error) {
 		"startReauthorize":  s.startReauthorize,
 		"getReauthorize":    s.getReauthorize,
 		"finishReauthorize": s.finishReauthorize,
+		"getPolicyMatch":    s.getMatch,
+		"getPolicyRelease":  s.getRelease,
+		"getBaseMatch":      s.getBaseMatch,
+		"addRule":           s.postAccountRule,
+		"editRule":          s.postAccountEdit,
+		"liftRule":          s.postAccountLift,
+		"exportPolicy":      s.getAccountExport,
+		"previewImport":     s.postAccountPreview,
+		"importPolicy":      s.postAccountImport,
+		"getBasePolicy":     s.getBasePolicy,
+		"getBaseHistory":    s.getBaseHistory,
+		"addBaseRule":       s.postBaseRule,
+		"editBaseRule":      s.postBaseEdit,
+		"liftBaseRule":      s.postBaseLift,
+		"exportBasePolicy":  s.getBaseExport,
+		"previewBaseImport": s.postBasePreview,
+		"importBasePolicy":  s.postBaseImport,
 	}
 	for _, d := range opts.Datasets {
 		if d.Detail != nil {

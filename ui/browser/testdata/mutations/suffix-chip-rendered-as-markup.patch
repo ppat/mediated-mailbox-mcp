@@ -1,0 +1,20 @@
+control: Message-derived text renders inert
+removes: a rule's suffix chips hand each suffix to the raw-markup escape hatch
+packages: ./ui/browser/test/policy.test.tsx
+tests: markup in a rule's identifier and suffixes arrives as text in its row, and nothing is built from it
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policy.tsx b/ui/browser/src/screens/policy.tsx
+--- a/ui/browser/src/screens/policy.tsx
++++ b/ui/browser/src/screens/policy.tsx
+@@ -86,9 +86,7 @@
+   return (
+     <>
+       {props.suffixes.map((s, i) => (
+-        <span key={i} class="suffix-chip mono">
+-          {s}
+-        </span>
++        <span key={i} class="suffix-chip mono" dangerouslySetInnerHTML={{ __html: s }} />
+       ))}
+     </>
+   );

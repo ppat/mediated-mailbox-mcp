@@ -1,0 +1,18 @@
+{
+  "range": "all",
+  "rows": [
+    {
+      "account": null,
+      "action": "added",
+      "actor": "operator",
+      "id": 1,
+      "rule_exists": true,
+      "rule_id": "base.bank",
+      "suffixes_after": [
+        "bank.example"
+      ],
+      "suffixes_before": [],
+      "ts": "2026-09-07T10:16:04Z"
+    }
+  ]
+}

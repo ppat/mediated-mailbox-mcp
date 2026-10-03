@@ -1,0 +1,18 @@
+control: A base rule's lift asks for the rule identifier typed before its button enables
+removes: the lift of a whole base rule asks for no identifier typed, so its button is enabled at once
+packages: ./ui/browser/test/policy.test.tsx ./ui/browser/test/basepolicy.test.tsx
+tests: a base rule's lift reads the base sentences and enables only once its identifier is typed | a base rule's lift names every account that loses it, needs its identifier typed, and offers Put it back
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/rule.tsx b/ui/browser/src/screens/rule.tsx
+--- a/ui/browser/src/screens/rule.tsx
++++ b/ui/browser/src/screens/rule.tsx
+@@ -154,7 +154,7 @@
+   const deps = useDeps();
+   const { route } = useLocation();
+   const [failure, setFailure] = useState<Failure | undefined>();
+-  const typed = props.scope === "base" ? typedIdentifier(props.rule) : undefined;
++  const typed = undefined;
+   const lift = async (confirmation: string | null) => {
+     setFailure(undefined);
+     const result = await sendWrite(deps.post, props.account, props.scope, {

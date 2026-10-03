@@ -1,0 +1,18 @@
+control: Message-derived text renders inert
+removes: a rule's panel hands each matched sender's domain to the raw-markup escape hatch
+packages: ./ui/browser/test/policy.test.tsx
+tests: markup in a rule's detail arrives as text in its panel and its lift dialog
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/rule.tsx b/ui/browser/src/screens/rule.tsx
+--- a/ui/browser/src/screens/rule.tsx
++++ b/ui/browser/src/screens/rule.tsx
+@@ -510,7 +510,7 @@
+           <ul class="matched">
+             {detail.matched.map((s) => (
+               <li key={s.domain}>
+-                <span class="mono">{s.domain}</span> <ClassBadge stored={s.sender_class} />{" "}
++                <span class="mono" dangerouslySetInnerHTML={{ __html: s.domain }} /> <ClassBadge stored={s.sender_class} />{" "}
+                 {counted(s.messages, "message")}
+               </li>
+             ))}

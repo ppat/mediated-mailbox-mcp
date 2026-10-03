@@ -1,0 +1,14 @@
+{
+  "added": [
+    {
+      "rule_id": "operator.new.example",
+      "scope": "account",
+      "suffixes": [
+        "new.example"
+      ]
+    }
+  ],
+  "edited": [],
+  "lifted": [],
+  "lifts": 0
+}

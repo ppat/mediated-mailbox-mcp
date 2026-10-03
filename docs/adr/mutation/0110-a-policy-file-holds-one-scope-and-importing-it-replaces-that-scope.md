@@ -92,6 +92,6 @@ into any account's policy.
 - A file round trip loses each rule's source, created time and history, which stay in the database.
 - A rule an import lifts reaches the delisting transition as any lift does (ADR-0037).
 - Assumptions about other components. The identity on each history row follows
-  [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)'s rule, as for every policy write. How
-  the UI writes and reads base rules with no account named is a roadmap open decision of the unit
-  that builds policy management.
+  [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)'s rule, as for every policy write. The
+  base scope is read and written with no account named, in a transaction of the base policy's own
+  ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).

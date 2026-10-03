@@ -1,0 +1,18 @@
+control: An import's lifts are confirmed in one dialog, typed as lift {k} for the base policy, and the request carries lift {k}
+removes: an import that lifts is sent with no confirmation, so the request no longer carries lift {k}
+packages: ./ui/browser/test/policy.test.tsx ./ui/browser/test/basepolicy.test.tsx
+tests: an import that lifts asks one dialog naming every lift, and Put back adds them back | a base import lifting a rule enables only once lift {k} is typed, and sends it
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policyimport.tsx b/ui/browser/src/screens/policyimport.tsx
+--- a/ui/browser/src/screens/policyimport.tsx
++++ b/ui/browser/src/screens/policyimport.tsx
+@@ -77,7 +77,7 @@
+     const result = await send<Imported>(deps.post, `${policyApi(account)}/import`, {
+       file,
+       computed_against: preview.computed_against,
+-      confirmation: preview.lifts > 0 ? confirmation(preview.lifts) : null,
++      confirmation: null,
+     });
+     if (!result.ok) {
+       setFailure(result.failure);

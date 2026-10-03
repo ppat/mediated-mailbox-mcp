@@ -16,6 +16,13 @@ import { AccountScreen } from "../screens/account.tsx";
 import { ClientSetupRoute } from "../screens/clientsetup.tsx";
 import { ConnectRoute, ReauthorizeRoute } from "../screens/connect.tsx";
 import { InstallationScreen } from "../screens/installation.tsx";
+import { AddRulePanel } from "../screens/addrule.tsx";
+import { BasePolicyScreen } from "../screens/basepolicy.tsx";
+import { PickerScreen } from "../screens/picker.tsx";
+import { PolicyScreen } from "../screens/policy.tsx";
+import { BaseHistoryScreen, PolicyHistoryScreen } from "../screens/policyhistory.tsx";
+import { ImportScreen } from "../screens/policyimport.tsx";
+import { BaseRulePanel, RulePanel } from "../screens/rule.tsx";
 import { Live, useStream } from "./live.tsx";
 import { Frame, InstallationFrame } from "./frame.tsx";
 import { Region } from "./region.tsx";
@@ -40,6 +47,11 @@ export function Routes() {
       <Route path="/" component={Entry} />
       <Route path="/setup" component={InstallationRoute} />
       <Route path="/setup/connect" component={ConnectScreenRoute} />
+      <Route path="/setup/policy" component={BasePolicyRoute} />
+      <Route path="/setup/policy/new" component={BaseAddRoute} />
+      <Route path="/setup/policy/history" component={BaseHistoryRoute} />
+      <Route path="/setup/policy/import" component={BaseImportRoute} />
+      <Route path="/setup/policy/:rule" component={BaseRuleRoute} />
       <Route path="/setup/:provider/:client" component={ClientSetupScreenRoute} />
       <Route path="/:account" component={AccountHomeScreen} />
       <Route path="/:account/account" component={AccountSettingsRoute} />
@@ -48,6 +60,13 @@ export function Routes() {
       <Route path="/:account/jobs" component={JobsScreenRoute} />
       <Route path="/:account/jobs/:run" component={RunScreenRoute} />
       <Route path="/:account/jobs/:run/failures/:seq" component={RunScreenRoute} />
+      <Route path="/:account/policy" component={PolicyListRoute} />
+      <Route path="/:account/policy/new" component={PolicyAddRoute} />
+      <Route path="/:account/policy/pick" component={PolicyPickRoute} />
+      <Route path="/:account/policy/history" component={PolicyHistoryRoute} />
+      <Route path="/:account/policy/import" component={PolicyImportRoute} />
+      <Route path="/:account/policy/base/:rule" component={PolicyBaseRuleRoute} />
+      <Route path="/:account/policy/:rule" component={PolicyRuleRoute} />
       <Route default component={NotFound} />
     </Router>
   );
@@ -89,6 +108,125 @@ const ClientSetupScreenRoute = screen(
   (p: { provider: string; client: string }) => `${p.provider}/${p.client}`,
 );
 const ReauthorizeScreenRoute = screen(ReauthorizeRoute, (p) => p.account);
+// The policy screens of docs/UI.md section 8.7. A rule and Add a rule are panels over the policy list,
+// so their routes are the list's screen with the panel open. The base policy's installation screens of
+// section 8.14 belong to no account, so their identity is the base policy.
+const PolicyListRoute = screen(PolicyList, (p) => p.account);
+const PolicyAddRoute = screen(
+  (p: { account: string }) => (
+    <PolicyUnder account={p.account} panel={<AddRulePanel account={p.account} />} />
+  ),
+  (p) => p.account,
+);
+const PolicyRuleRoute = screen(
+  (p: { account: string; rule: string }) => (
+    <PolicyUnder
+      account={p.account}
+      panel={<RulePanel account={p.account} scope={undefined} rule={p.rule} />}
+    />
+  ),
+  (p) => p.account,
+);
+const PolicyBaseRuleRoute = screen(
+  (p: { account: string; rule: string }) => (
+    <PolicyUnder
+      account={p.account}
+      panel={<RulePanel account={p.account} scope="base" rule={p.rule} />}
+    />
+  ),
+  (p) => p.account,
+);
+const PolicyPickRoute = screen(PolicyPick, (p) => p.account);
+const PolicyHistoryRoute = screen(PolicyHistory, (p) => p.account);
+const PolicyImportRoute = screen(
+  (p: { account: string }) => (
+    <Frame account={p.account}>
+      <ImportScreen account={p.account} />
+    </Frame>
+  ),
+  (p) => p.account,
+);
+const BasePolicyRoute = screen(
+  () => <BasePolicy />,
+  () => "setup/policy",
+);
+const BaseAddRoute = screen(
+  () => <BasePolicy panel={<AddRulePanel account={undefined} />} />,
+  () => "setup/policy",
+);
+const BaseRuleRoute = screen(
+  (p: { rule: string }) => <BasePolicy panel={<BaseRulePanel rule={p.rule} />} />,
+  () => "setup/policy",
+);
+const BaseHistoryRoute = screen(
+  () => (
+    <InstallationFrame>
+      <BaseHistoryScreen />
+    </InstallationFrame>
+  ),
+  () => "setup/policy",
+);
+const BaseImportRoute = screen(
+  () => (
+    <InstallationFrame>
+      <ImportScreen account={undefined} />
+    </InstallationFrame>
+  ),
+  () => "setup/policy",
+);
+
+// PolicyList is the account's policy screen, whose view is the address's (docs/UI.md section 8.7).
+function PolicyList(props: { account: string }) {
+  const view = useCanonicalView("rules");
+  return (
+    <Frame account={props.account}>
+      <PolicyScreen account={props.account} view={view} panelOpen={false} />
+    </Frame>
+  );
+}
+
+// PolicyUnder is the account's policy screen under a panel. The panel's address carries the panel's
+// own parameters, so the list behind it shows the rules dataset's default view and leaves the address
+// alone.
+function PolicyUnder(props: { account: string; panel: VNode }) {
+  return (
+    <Frame account={props.account} panel={props.panel}>
+      <PolicyScreen
+        account={props.account}
+        view={canonicalize(parse("rules", ""))}
+        panelOpen={true}
+      />
+    </Frame>
+  );
+}
+
+function PolicyPick(props: { account: string }) {
+  const view = useCanonicalView("senders");
+  return (
+    <Frame account={props.account}>
+      <PickerScreen account={props.account} view={view} />
+    </Frame>
+  );
+}
+
+function PolicyHistory(props: { account: string }) {
+  const view = useCanonicalView("policy_changes");
+  return (
+    <Frame account={props.account}>
+      <PolicyHistoryScreen account={props.account} view={view} />
+    </Frame>
+  );
+}
+
+// BasePolicy is the base policy's installation screen, with a panel over it when its route opens one
+// (docs/UI.md section 8.14).
+function BasePolicy(props: { panel?: VNode }) {
+  return (
+    <InstallationFrame panel={props.panel}>
+      <BasePolicyScreen />
+    </InstallationFrame>
+  );
+}
 
 // Installation is the installation screen, which belongs to no account (section 8.10).
 function Installation() {

@@ -24,6 +24,7 @@ func catalogue() []lens.Descriptor {
 				{Name: "page_number", Storage: "number", Groupable: true, Filterable: true, NullWording: "no page"},
 				{Name: "tier", Storage: "number", Filterable: true},
 				{Name: "domain", Storage: "text", Groupable: true, Filterable: true, NullWording: "no domain", Empty: true},
+				{Name: "search", Storage: "text", Filterable: true, Search: true},
 			},
 			Default: lens.Defaults{Group: "rule", Level: lens.Distribution, Range: "7d", Sort: lens.Sort{Column: "at", Descending: true}},
 		},
@@ -110,6 +111,14 @@ func TestParseAdmitsWhatTheEntryDeclares(t *testing.T) {
 			},
 		},
 		{
+			name:  "a search is taken whole, a comma, a leading ! and the null and empty words included",
+			query: query("dataset", "events", "level", "3", "search", "!none,empty"),
+			want: lens.Request{
+				Dataset: "events", Level: 3, Range: lens.Range{Preset: "7d"}, Sort: lens.Sort{Column: "at", Descending: true}, Page: 1,
+				Filters: []lens.Filter{{Dimension: "search", Values: []string{"!none,empty"}}},
+			},
+		},
+		{
 			name:  "a leap day is a date",
 			query: query("dataset", "events", "level", "3", "range", "2024-02-29,2024-02-29"),
 			want:  lens.Request{Dataset: "events", Level: 3, Range: lens.Range{From: "2024-02-29", To: "2024-02-29"}, Sort: lens.Sort{Column: "at", Descending: true}, Page: 1},
@@ -177,6 +186,7 @@ func TestParseRefusesWhatTheEntryDoesNotDeclare(t *testing.T) {
 		{"empty on a number dimension", query("dataset", "events", "tier", "empty"), "invalid_filter"},
 		{"a date filter holding a time", query("dataset", "events", "day", "2026-09-10T00:00:00Z"), "invalid_filter"},
 		{"a date filter past the month's end", query("dataset", "events", "day", "2026-02-30"), "invalid_filter"},
+		{"an empty search", query("dataset", "events", "search", ""), "invalid_filter"},
 		{"a date any-of with one bad member", query("dataset", "events", "day", "2026-09-10,yesterday"), "invalid_filter"},
 	}
 	for _, c := range cases {

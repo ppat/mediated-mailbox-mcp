@@ -5,6 +5,7 @@ package policyload_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -115,16 +116,21 @@ func TestAFailedReadNeverReplacesTheActivePolicy(t *testing.T) {
 		{name: "the second account's read fails before any row", breakRead: cut(1, 0)},
 		{name: "the second account's read fails after one row", breakRead: cut(1, 1)},
 		{
-			// A base rule written after the first account's read and before the second's would
-			// compose the two accounts from different base policies.
-			name: "a base rule is added between two accounts' reads",
+			// A base rule written after the first account's read and before the second's, in the read
+			// and again in the read made once more, would compose the two accounts from different base
+			// policies, so the reload fails after both reads (ADR-0114).
+			name: "a base rule is added between two accounts' reads, twice",
 			breakRead: func(t *testing.T, conn *pgx.Conn, db *faulty, accounts []string) func() int64 {
-				f := &fault{account: accounts[1], before: func() { addRule(t, conn, "", "base.late", "late.example") }}
+				n := 0
+				f := &fault{account: accounts[1], before: func() {
+					n++
+					addRule(t, conn, "", fmt.Sprintf("base.late%d", n), "late.example")
+				}}
 				db.fault.Store(f)
-				return f.fired.Load
+				return func() int64 { return f.fired.Load() - 1 }
 			},
 			mend: func(t *testing.T, conn *pgx.Conn, _ []string) {
-				must(t, conn, "DELETE FROM policy_rules WHERE rule_id = 'base.late'")
+				must(t, conn, "DELETE FROM policy_rules WHERE rule_id LIKE 'base.late%'")
 			},
 		},
 		{
@@ -195,6 +201,46 @@ func TestAFailedReadNeverReplacesTheActivePolicy(t *testing.T) {
 				t.Errorf("%s after a reload succeeded = %v, want 0", reloadFailedName, got)
 			}
 		})
+	}
+}
+
+// A base rule written after the first account's read and before the second's makes the reload read
+// every account once more, and the second read's rules are the policy, with no alarm (ADR-0114). The
+// edit lands once, so the second read's accounts agree.
+func TestABaseEditBetweenTwoAccountsReadsIsReadAgain(t *testing.T) {
+	conn := superuser(t)
+	accounts := newAccounts(t, conn, 2)
+	seed(t, conn, accounts)
+	db := &faulty{pool: backfill(t)}
+	l, reg := newLoader(t, db, accounts)
+	if err := l.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	landed := false
+	f := &fault{account: accounts[1], before: func() {
+		if !landed {
+			landed = true
+			addRule(t, conn, "", "base.late", "late.example")
+		}
+	}}
+	db.fault.Store(f)
+
+	if err := l.Reload(t.Context()); err != nil {
+		t.Fatalf("a reload over one base edit landing between two accounts' reads: %v", err)
+	}
+
+	if f.fired.Load() != 2 {
+		t.Errorf("the second account was read %d times, want 2, its read and the read made once more", f.fired.Load())
+	}
+	want := seeded(accounts)
+	for _, account := range accounts {
+		want[account].Rules["base.late"] = []string{"late.example"}
+	}
+	if diff := cmp.Diff(want, observe(l.Snapshot(), accounts...), compare.Options); diff != "" {
+		t.Errorf("the active policy after the read made once more (-want +got):\n%s", diff)
+	}
+	if got := reloadFailed(t, reg); got != 0 {
+		t.Errorf("%s after the read made once more = %v, want 0", reloadFailedName, got)
 	}
 }
 

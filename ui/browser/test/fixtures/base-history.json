@@ -1,0 +1,31 @@
+{
+  "range": "30d",
+  "rows": [
+    {
+      "account": null,
+      "action": "lifted",
+      "actor": "operator",
+      "id": 6,
+      "rule_exists": false,
+      "rule_id": "base.old",
+      "suffixes_after": [],
+      "suffixes_before": [
+        "old.example"
+      ],
+      "ts": "2026-09-09T22:16:04Z"
+    },
+    {
+      "account": null,
+      "action": "added",
+      "actor": "operator",
+      "id": 1,
+      "rule_exists": true,
+      "rule_id": "base.bank",
+      "suffixes_after": [
+        "bank.example"
+      ],
+      "suffixes_before": [],
+      "ts": "2026-09-07T10:16:04Z"
+    }
+  ]
+}

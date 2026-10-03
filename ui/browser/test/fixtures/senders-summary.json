@@ -1,0 +1,25 @@
+{
+  "account": "personal",
+  "as_of": "2026-09-10T10:16:04Z",
+  "dataset": "senders",
+  "figures": [
+    {
+      "at": null,
+      "key": "senders",
+      "link": "/personal/policy/pick",
+      "unit": null,
+      "value": 5,
+      "wording": "senders"
+    },
+    {
+      "at": null,
+      "key": "messages",
+      "link": "/personal/policy/pick",
+      "unit": null,
+      "value": 11,
+      "wording": "messages"
+    }
+  ],
+  "filters": {},
+  "level": 0
+}

@@ -1,0 +1,17 @@
+{
+  "accounts": [],
+  "latest": null,
+  "rules": [
+    {
+      "class": "restricted",
+      "created_at": "2026-09-07T10:16:04Z",
+      "created_by": "operator",
+      "rule_id": "base.bank",
+      "source": "operator",
+      "suffixes": [
+        "bank.example"
+      ]
+    }
+  ],
+  "total": 1
+}

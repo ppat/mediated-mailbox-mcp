@@ -12,6 +12,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup"
+	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/other/queries"
 )
@@ -152,3 +153,43 @@ func Nested(ctx context.Context, p pool) error {
 		})
 	})
 }
+
+// BaseInside builds the base policy's queries from the transaction RunBase hands its literal, and
+// another subsection's from an account's transaction inside it, which is the innermost literal there.
+func BaseInside(ctx context.Context, p pool) error {
+	return tx.RunBase(ctx, p, func(t pgx.Tx) error {
+		if err := base.New(t).BaseRules(ctx); err != nil {
+			return err
+		}
+		return tx.Run(ctx, p, "a", func(u pgx.Tx) error { return credential.New(u).Sealed(ctx) })
+	})
+}
+
+// BaseOutside builds the base policy's queries in an account's transaction, and another subsection's
+// in a base-policy transaction.
+func BaseOutside(ctx context.Context, p pool) error {
+	if err := tx.Run(ctx, p, "a", func(t pgx.Tx) error {
+		return base.New(t).BaseRules(ctx) // want `calls base.New in a transaction tx.Run opened for an account`
+	}); err != nil {
+		return err
+	}
+	return tx.RunBase(ctx, p, func(t pgx.Tx) error {
+		return credential.New(t).Sealed(ctx) // want `calls credential.New in a base-policy transaction`
+	})
+}
+
+// BaseHandles holds RunBase to the rules tx.Run is held to, a literal and its own transaction.
+func BaseHandles(ctx context.Context, p pool) error {
+	if err := tx.RunBase(ctx, p, baseNamed); err != nil { // want `passes tx.Run a function that is not a function literal`
+		return err
+	}
+	if err := base.New(p).BaseRules(ctx); err != nil { // want `calls base.New outside a function literal passed to tx.Run`
+		return err
+	}
+	return tx.RunBase(ctx, p, func(t pgx.Tx) error {
+		_ = t
+		return base.New(p).BaseRules(ctx) // want `calls base.New on a handle other than the transaction tx.Run hands the enclosing literal`
+	})
+}
+
+func baseNamed(pgx.Tx) error { return nil }

@@ -5,15 +5,15 @@ tests: TestClassify/a_listed_domain TestClassify/an_unlisted_domain
 scheduled-count: no
 
 diff --git a/core/classify/classify.go b/core/classify/classify.go
-index e163a55..e519713 100644
+index a2fdd670..cec56c02 100644
 --- a/core/classify/classify.go
 +++ b/core/classify/classify.go
-@@ -106,7 +106,7 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
+@@ -129,7 +129,7 @@ func SenderName(domain string, l Lookups) (Name, bool) {
  	if err != nil {
- 		return Verdict{}
+ 		return Name{}, false
  	}
 -	if _, err := l.Registrable(ascii); err != nil {
 +	if _, err := l.Registrable(ascii); err == nil {
- 		return Verdict{}
+ 		return Name{}, false
  	}
- 	for _, r := range p.Rules() {
+ 	return Name{form: n}, true

@@ -1,0 +1,19 @@
+control: A rule's identifier is unique within its scope, and the snapshot's validation refuses a repeat within one scope only
+removes: the validation stops refusing a repeated identifier, so one scope holding two rules of one identifier loads
+packages: ./core/policy
+tests: TestLoadRefusesInvalidRows/identifier_repeated_in_the_base_policy TestLoadRefusesInvalidRows/identifier_repeated_in_one_account's_rules
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index bf03ace6..62b2c62d 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -134,7 +134,7 @@ func Validate(rows []Row) []Problem {
+ 			problems = append(problems, Problem{Row: i, Kind: BlankIdentifier})
+ 		}
+ 		key := scoped{account: row.Account, id: row.ID}
+-		if seen[key] {
++		if false && seen[key] {
+ 			problems = append(problems, Problem{Row: i, Kind: RepeatedIdentifier})
+ 		}
+ 		seen[key] = true

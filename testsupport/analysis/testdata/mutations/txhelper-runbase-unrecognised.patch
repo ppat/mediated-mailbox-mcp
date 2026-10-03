@@ -1,0 +1,19 @@
+control: The txhelper analyser holds the base policy's subsection and tx.RunBase to each other
+removes: a literal passed to tx.RunBase is not a transaction literal, so every subsection built in one is reported as outside the helper
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 71dfa7e0..bfd513fd 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -138,7 +138,7 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
+ 				return true
+ 			}
+ 			callee := typeutil.StaticCallee(pass.TypesInfo, call)
+-			baseTx := isFunc(callee, txPath, "RunBase")
++			baseTx := false
+ 			if !baseTx && !isFunc(callee, txPath, "Run") {
+ 				return true
+ 			}

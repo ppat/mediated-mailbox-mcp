@@ -60,6 +60,9 @@ type rig struct {
 	publicFile, privateFile string
 	// log is everything the server logged.
 	log bytes.Buffer
+	// identity is who a policy write is recorded as made by, the operator name unless a test declares
+	// an identity header.
+	identity api.Identity
 }
 
 // defaultRedirect is the consent redirect the rig configures unless a test names another.
@@ -76,7 +79,7 @@ func newRigAt(t *testing.T, redirect string) *rig {
 	t.Helper()
 	seed(t)
 	r := &rig{
-		t: t, consent: fake.NewConsent(redirect), clock: now, redirect: redirect,
+		t: t, consent: fake.NewConsent(redirect), clock: now, redirect: redirect, identity: api.Identity{Operator: "operator"},
 		bundle: fstest.MapFS{"main.js": {Data: []byte("")}, "main.css": {Data: []byte("")}, "fonts/a.woff2": {Data: []byte("")}, ".gitkeep": {Data: []byte("")}},
 	}
 	r.consent.AddClient(householdID, householdSecret)
@@ -127,11 +130,12 @@ func (r *rig) server(key []byte) *api.Server {
 		r.t.Fatal(err)
 	}
 	s, err := api.New(api.Options{
-		Bundle: r.bundle, Database: pool, Datasets: registry.Datasets(),
+		Bundle: r.bundle, Database: pool, Datasets: registry.Datasets(lookups),
 		Logger: slog.New(slog.NewJSONHandler(&r.log, nil)), Metrics: prometheus.NewRegistry(),
 		Clock: func() time.Time { return r.clock }, StreamInterval: time.Second, TokenKey: key, Seal: r.public,
 		Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, ClientSecrets: secrets,
 		Browser: api.Browser{DefaultTheme: "system", StreamReconnectMax: time.Second, StreamPollInterval: time.Second, ConsentRedirect: r.redirect},
+		Lookups: lookups, Identity: r.identity,
 	})
 	if err != nil {
 		r.t.Fatal(err)
@@ -157,15 +161,17 @@ func (r *rig) count(sql string, args ...any) int {
 	return n
 }
 
-// stored is everything the setups write, read as the superuser, so a refused request is checked to
-// have written nothing anywhere.
+// stored is everything the setups and policy management write, read as the superuser, so a refused
+// request is checked to have written nothing anywhere.
 func (r *rig) stored() string {
 	r.t.Helper()
 	var out string
 	err := r.db.QueryRow(r.t.Context(), `SELECT concat_ws(' | ',
 		(SELECT string_agg(concat_ws(',', name, provider, client_id, encode(client_secret, 'hex'), project_id), ';' ORDER BY name) FROM oauth_clients),
 		(SELECT string_agg(concat_ws(',', account_id, provider, oauth_client), ';' ORDER BY account_id) FROM accounts),
-		(SELECT string_agg(concat_ws(',', account_id, encode(credential, 'hex'), mailbox, lowered_target_rate, last_auth_at, last_auth_outcome), ';' ORDER BY account_id) FROM account_state))`).Scan(&out)
+		(SELECT string_agg(concat_ws(',', account_id, encode(credential, 'hex'), mailbox, lowered_target_rate, last_auth_at, last_auth_outcome), ';' ORDER BY account_id) FROM account_state),
+		(SELECT string_agg(concat_ws(',', coalesce(account_id, '(base)'), rule_id, array_to_string(domain_suffix, ' '), source, created_by), ';' ORDER BY account_id NULLS FIRST, rule_id) FROM policy_rules),
+		(SELECT string_agg(concat_ws(',', id, coalesce(account_id, '(base)'), actor, action, rule_id, array_to_string(suffixes_before, ' '), array_to_string(suffixes_after, ' ')), ';' ORDER BY id) FROM policy_changes))`).Scan(&out)
 	if err != nil {
 		r.t.Fatal(err)
 	}
@@ -204,6 +210,8 @@ type browser struct {
 	h       http.Handler
 	cookies map[string]string
 	token   string
+	// header holds headers every request carries, as an authenticating proxy in front sets them.
+	header map[string]string
 }
 
 var tokenMeta = regexp.MustCompile(`<meta name="mediated-mailbox.request_token" content="([^"]*)">`)
@@ -242,6 +250,9 @@ func (b *browser) do(method, path string, body any) response {
 	}
 	if method != http.MethodGet && b.token != "" {
 		req.Header.Set("X-Request-Token", b.token)
+	}
+	for name, value := range b.header {
+		req.Header.Set(name, value)
 	}
 	rec := httptest.NewRecorder()
 	b.h.ServeHTTP(rec, req)

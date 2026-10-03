@@ -73,6 +73,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/setup/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The base rules and every account's identifier, reading no account's state */
+        get: operations["getBasePolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Downloads the base rules as a policy file */
+        get: operations["exportBasePolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The base policy's changes, newest first */
+        get: operations["getBaseHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Makes the base rules equal to a policy file, in one transaction */
+        post: operations["importBasePolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reads and checks a policy file and answers what importing it into the base policy would change */
+        post: operations["previewBaseImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether each suffix typed in Add a base rule is valid or a public suffix, and the base rules already matching it */
+        get: operations["getBaseMatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds a base rule, with its history row */
+        post: operations["addBaseRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/rules/{rule}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sets a base rule's suffixes, with its history row */
+        post: operations["editBaseRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/policy/rules/{rule}/lift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lifts a base rule, with its history row */
+        post: operations["liftBaseRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/setup/{provider}/clients": {
         parameters: {
             query?: never;
@@ -295,6 +448,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/{account}/policy/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Downloads the account's own rules as a policy file */
+        get: operations["exportPolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/policy/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Makes the account's own rules equal to a policy file, in one transaction */
+        post: operations["importPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/policy/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reads and checks a policy file and answers what importing it into the account's own rules would change */
+        post: operations["previewImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/policy/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What each suffix typed in Add a rule matches in the account, and the rules already matching it */
+        get: operations["getPolicyMatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/policy/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What keeping only some of a rule's suffixes, or none, would release in the account */
+        get: operations["getPolicyRelease"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/policy/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds a rule to the account's own rules or the base policy, with its history row */
+        post: operations["addRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/policy/rules/{rule}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sets a rule's suffixes, with its history row */
+        post: operations["editRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/policy/rules/{rule}/lift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lifts a rule, with its history row */
+        post: operations["liftRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/{account}/rules/{row}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One row of rules with its provenance, for one account */
+        get: operations["getRulesRow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/{account}/system": {
         parameters: {
             query?: never;
@@ -340,11 +646,21 @@ export interface components {
         Accounts: {
             accounts: components["schemas"]["Account"][];
         };
+        AddBaseRule: {
+            rule_id: string;
+            suffixes: string[];
+        };
         AddClient: {
             client_id: string;
             client_secret: string;
             name: string;
             project_id: string | null;
+        };
+        AddRule: {
+            rule_id: string;
+            /** @enum {string} */
+            scope: "account" | "base";
+            suffixes: string[];
         };
         ApplyBlock: {
             last: components["schemas"]["Run"] | null;
@@ -391,6 +707,35 @@ export interface components {
             eta_seconds: number | null;
             run: components["schemas"]["Run"] | null;
         };
+        BaseHistory: {
+            range: string;
+            rows: components["schemas"]["ChangeRow"][];
+        };
+        BaseMatchAnswer: {
+            suffixes: components["schemas"]["BaseSuffixMatch"][];
+        };
+        BasePolicy: {
+            accounts: string[];
+            /** Format: date-time */
+            latest: string | null;
+            rules: components["schemas"]["BaseRule"][];
+            total: number;
+        };
+        BaseRule: {
+            class: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by: string;
+            rule_id: string;
+            source: string;
+            suffixes: string[];
+        };
+        BaseSuffixMatch: {
+            public_suffix: boolean;
+            rules: components["schemas"]["RuleName"][];
+            suffix: string;
+            valid: boolean;
+        };
         CandidateRow: {
             /** Format: date-time */
             created_at: string;
@@ -421,6 +766,19 @@ export interface components {
             rows: components["schemas"]["CandidateRow"][];
             sort: string;
             total: components["schemas"]["Count"];
+        };
+        ChangeRow: {
+            account: string | null;
+            /** @enum {string} */
+            action: "added" | "edited" | "lifted" | "confirmed";
+            actor: string;
+            id: number;
+            rule_exists: boolean;
+            rule_id: string;
+            suffixes_after: string[];
+            suffixes_before: string[];
+            /** Format: date-time */
+            ts: string;
         };
         Client: {
             accounts: string[];
@@ -476,10 +834,38 @@ export interface components {
         Count: {
             count: number;
         };
+        Counts: {
+            messages: number;
+            senders: number;
+        };
         Decisions: {
             candidates_pending: number;
             plans_draft: number;
             workloads_running: number;
+        };
+        EditBaseRule: {
+            confirmation: string | null;
+            suffixes: string[];
+            suffixes_before: string[];
+        };
+        EditRule: {
+            confirmation: string | null;
+            /** @enum {string} */
+            scope: "account" | "base";
+            suffixes: string[];
+            suffixes_before: string[];
+        };
+        EditedRule: {
+            added: string[];
+            after: string[];
+            before: string[];
+            removed: components["schemas"]["RemovedSuffix"][];
+            rule_id: string;
+        };
+        ElsewhereScope: {
+            /** @enum {string} */
+            scope: "base" | "account";
+            suffixes: string[];
         };
         Error: {
             error: components["schemas"]["ErrorDetail"];
@@ -669,8 +1055,33 @@ export interface components {
             /** @enum {string} */
             state: "not_started" | "running" | "idle";
         };
+        ImportPreview: {
+            accounts: string[];
+            added: components["schemas"]["RuleAnswer"][];
+            computed_against: string;
+            edited: components["schemas"]["EditedRule"][];
+            lifted: components["schemas"]["LiftedRule"][];
+            lifts: number;
+            released: components["schemas"]["Counts"] | null;
+            unchanged: number;
+        };
+        ImportPreviewRequest: {
+            file: string;
+        };
+        ImportRequest: {
+            computed_against: string;
+            confirmation: string | null;
+            file: string;
+        };
+        Imported: {
+            added: components["schemas"]["RuleAnswer"][];
+            edited: components["schemas"]["EditedRule"][];
+            lifted: components["schemas"]["LiftedRule"][];
+            lifts: number;
+        };
         Installation: {
             accounts: components["schemas"]["InstallationAccount"][];
+            base_rules: number;
             clients: components["schemas"]["Client"][];
             providers: string[];
         };
@@ -694,12 +1105,32 @@ export interface components {
             /** Format: date-time */
             as_of: string;
             /** @enum {string} */
-            dataset: "plans" | "candidates" | "runs" | "failures";
+            dataset: "plans" | "candidates" | "runs" | "failures" | "rules" | "policy_changes" | "senders";
             figures: components["schemas"]["Figure"][];
             filters: {
                 [key: string]: string;
             };
             level: number;
+        };
+        LiftBaseRule: {
+            confirmation: string | null;
+            suffixes_before: string[];
+        };
+        LiftRule: {
+            confirmation: string | null;
+            /** @enum {string} */
+            scope: "account" | "base";
+            suffixes_before: string[];
+        };
+        LiftedRule: {
+            released: components["schemas"]["Counts"] | null;
+            rule_id: string;
+            suffixes: string[];
+        };
+        MatchAnswer: {
+            senders_total: number;
+            suffixes: components["schemas"]["SuffixMatch"][];
+            together: components["schemas"]["Counts"];
         };
         Operational: {
             backfill_pass1_complete: boolean;
@@ -759,6 +1190,117 @@ export interface components {
             sort: string;
             total: components["schemas"]["Count"];
         };
+        PolicyChangesByAction: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "policy_changes";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "action";
+            level: number;
+            rows: components["schemas"]["PolicyChangesByActionGroup"][];
+            total: components["schemas"]["Count"];
+        };
+        PolicyChangesByActionGroup: {
+            count: number;
+            key: components["schemas"]["PolicyChangesByActionKey"];
+        };
+        PolicyChangesByActionKey: {
+            action: string;
+        };
+        PolicyChangesByActor: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "policy_changes";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "actor";
+            level: number;
+            rows: components["schemas"]["PolicyChangesByActorGroup"][];
+            total: components["schemas"]["Count"];
+        };
+        PolicyChangesByActorGroup: {
+            count: number;
+            key: components["schemas"]["PolicyChangesByActorKey"];
+        };
+        PolicyChangesByActorKey: {
+            actor: string;
+        };
+        PolicyChangesByDay: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "policy_changes";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "day";
+            level: number;
+            rows: components["schemas"]["PolicyChangesByDayGroup"][];
+            total: components["schemas"]["Count"];
+        };
+        PolicyChangesByDayGroup: {
+            count: number;
+            key: components["schemas"]["PolicyChangesByDayKey"];
+        };
+        PolicyChangesByDayKey: {
+            day: string;
+        };
+        PolicyChangesByScope: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "policy_changes";
+            filters: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            group: "scope";
+            level: number;
+            rows: components["schemas"]["PolicyChangesByScopeGroup"][];
+            total: components["schemas"]["Count"];
+        };
+        PolicyChangesByScopeGroup: {
+            count: number;
+            key: components["schemas"]["PolicyChangesByScopeKey"];
+        };
+        PolicyChangesByScopeKey: {
+            scope: string | null;
+        };
+        PolicyChangesPage: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "policy_changes";
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+            page: number;
+            pages: number;
+            rows: components["schemas"]["ChangeRow"][];
+            sort: string;
+            total: components["schemas"]["Count"];
+        };
+        Problem: {
+            /** @enum {string} */
+            kind: "blank_identifier" | "repeated_identifier" | "no_suffix" | "invalid_suffix" | "other_class" | "reserved_identifier" | "not_the_form" | "too_large";
+            line: number | null;
+            rule_id: string;
+            suffix: string | null;
+        };
         Rate: {
             /** Format: date-time */
             backoff_until: string | null;
@@ -796,13 +1338,83 @@ export interface components {
             recovered: number;
             run_id: string;
         };
+        Refusal: {
+            error: components["schemas"]["ErrorDetail"];
+            problems: components["schemas"]["Problem"][];
+        };
         RemovedClient: {
             removed: string;
+        };
+        RemovedSuffix: {
+            released: components["schemas"]["Counts"] | null;
+            suffix: string;
         };
         ReplaceClient: {
             client_id: string;
             client_secret: string;
             project_id: string | null;
+        };
+        RuleAnswer: {
+            rule_id: string;
+            /** @enum {string} */
+            scope: "base" | "account";
+            suffixes: string[];
+        };
+        RuleDetail: {
+            accounts: string[];
+            class: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by: string;
+            elsewhere: components["schemas"]["ElsewhereScope"] | null;
+            history: components["schemas"]["ChangeRow"][];
+            matched: components["schemas"]["SenderMatch"][];
+            matched_total: number;
+            messages: number;
+            released: components["schemas"]["Counts"];
+            restricted: number;
+            rule_id: string;
+            /** @enum {string} */
+            scope: "base" | "account";
+            senders: number;
+            source: string;
+            suffix_details: components["schemas"]["SuffixDetail"][];
+            suffixes: string[];
+        };
+        RuleName: {
+            rule_id: string;
+            /** @enum {string} */
+            scope: "base" | "account";
+        };
+        RuleRow: {
+            class: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by: string;
+            messages: number;
+            restricted: number;
+            rule_id: string;
+            /** @enum {string} */
+            scope: "base" | "account";
+            senders: number;
+            source: string;
+            suffixes: string[];
+        };
+        RulesPage: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "rules";
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+            page: number;
+            pages: number;
+            rows: components["schemas"]["RuleRow"][];
+            sort: string;
+            total: components["schemas"]["Count"];
         };
         Run: {
             checkpoint: Record<string, never> | unknown[] | string | number | boolean | null;
@@ -975,6 +1587,39 @@ export interface components {
             sort: string;
             total: components["schemas"]["Count"];
         };
+        SenderMatch: {
+            domain: string;
+            messages: number;
+            sender_class: string;
+        };
+        SenderRow: {
+            domain: string;
+            /** Format: date-time */
+            first_seen: string | null;
+            /** Format: date-time */
+            last_seen: string | null;
+            list_id_ratio: number | null;
+            message_count: number;
+            restricted_by: string | null;
+            scan_hits: number;
+            sender_class: string;
+        };
+        SendersPage: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
+            /** @enum {string} */
+            dataset: "senders";
+            filters: {
+                [key: string]: string;
+            };
+            level: number;
+            page: number;
+            pages: number;
+            rows: components["schemas"]["SenderRow"][];
+            sort: string;
+            total: components["schemas"]["Count"];
+        };
         SensitiveCount: {
             count: number;
             flagged: number;
@@ -983,6 +1628,20 @@ export interface components {
         Signal: {
             evidence: components["schemas"]["Evidence"];
             heuristic: string;
+        };
+        SuffixDetail: {
+            messages: number;
+            released: components["schemas"]["Counts"];
+            senders: number;
+            suffix: string;
+        };
+        SuffixMatch: {
+            messages: number;
+            public_suffix: boolean;
+            rules: components["schemas"]["RuleName"][];
+            senders: number;
+            suffix: string;
+            valid: boolean;
         };
         SyncBlock: {
             cadence_seconds: number;
@@ -1300,6 +1959,682 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Connected"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBasePolicy: {
+        parameters: {
+            query?: {
+                /** @description The search the read is narrowed by */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BasePolicy"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    exportBasePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/yaml": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBaseHistory: {
+        parameters: {
+            query?: {
+                /** @description The range the read is narrowed by */
+                range?: string;
+                /** @description The rule the read is narrowed by */
+                rule?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseHistory"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    importBasePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Imported"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    previewBaseImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBaseMatch: {
+        parameters: {
+            query?: {
+                /** @description The suffix the read is narrowed by */
+                suffix?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseMatchAnswer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addBaseRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddBaseRule"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleAnswer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    editBaseRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The rule the path names */
+                rule: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditBaseRule"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleAnswer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    liftBaseRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The rule the path names */
+                rule: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiftBaseRule"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleAnswer"];
                 };
             };
             /** @description Bad Request */
@@ -2331,7 +3666,7 @@ export interface operations {
         parameters: {
             query: {
                 /** @description The registry's dataset */
-                dataset: "plans" | "candidates" | "runs" | "failures";
+                dataset: "plans" | "candidates" | "runs" | "failures" | "rules" | "policy_changes" | "senders";
                 /** @description 0 to 3 */
                 level?: number;
                 /** @description One groupable dimension, at levels 1 and 2 */
@@ -2343,6 +3678,10 @@ export interface operations {
                 /** @description The 1-based page of 50 rows */
                 page?: number;
                 /** @description A dimension filter, value, a,b or !value */
+                action?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                actor?: string;
+                /** @description A dimension filter, value, a,b or !value */
                 day?: string;
                 /** @description A dimension filter, value, a,b or !value */
                 disposition?: string;
@@ -2353,7 +3692,13 @@ export interface operations {
                 /** @description A dimension filter, value, a,b or !value */
                 pass?: string;
                 /** @description A dimension filter, value, a,b or !value */
+                rule?: string;
+                /** @description A dimension filter, value, a,b or !value */
                 run?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                scope?: string;
+                /** @description A dimension filter, value, a,b or !value */
+                search?: string;
                 /** @description A dimension filter, value, a,b or !value */
                 sender?: string;
                 /** @description A dimension filter, value, a,b or !value */
@@ -2378,7 +3723,709 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LensFigures"] | components["schemas"]["PlansPage"] | components["schemas"]["CandidatesPage"] | components["schemas"]["RunsPage"] | components["schemas"]["RunsByWorkload"] | components["schemas"]["RunsByState"] | components["schemas"]["RunsByDay"] | components["schemas"]["FailuresPage"] | components["schemas"]["FailuresByErrorClass"] | components["schemas"]["FailuresBySender"] | components["schemas"]["FailuresByPageNumber"] | components["schemas"]["FailuresByDisposition"];
+                    "application/json": components["schemas"]["LensFigures"] | components["schemas"]["PlansPage"] | components["schemas"]["CandidatesPage"] | components["schemas"]["RunsPage"] | components["schemas"]["RunsByWorkload"] | components["schemas"]["RunsByState"] | components["schemas"]["RunsByDay"] | components["schemas"]["FailuresPage"] | components["schemas"]["FailuresByErrorClass"] | components["schemas"]["FailuresBySender"] | components["schemas"]["FailuresByPageNumber"] | components["schemas"]["FailuresByDisposition"] | components["schemas"]["RulesPage"] | components["schemas"]["PolicyChangesPage"] | components["schemas"]["PolicyChangesByAction"] | components["schemas"]["PolicyChangesByScope"] | components["schemas"]["PolicyChangesByActor"] | components["schemas"]["PolicyChangesByDay"] | components["schemas"]["SendersPage"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    exportPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/yaml": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    importPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Imported"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    previewImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getPolicyMatch: {
+        parameters: {
+            query?: {
+                /** @description The suffix the read is narrowed by */
+                suffix?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchAnswer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getPolicyRelease: {
+        parameters: {
+            query?: {
+                /** @description The scope the read is narrowed by */
+                scope?: string;
+                /** @description The rule the read is narrowed by */
+                rule?: string;
+                /** @description The keep the read is narrowed by */
+                keep?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Counts"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddRule"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleAnswer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    editRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+                /** @description The rule the path names */
+                rule: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditRule"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleAnswer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    liftRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+                /** @description The rule the path names */
+                rule: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiftRule"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleAnswer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRulesRow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+                /** @description The row's rule */
+                row: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleDetail"];
                 };
             };
             /** @description Bad Request */

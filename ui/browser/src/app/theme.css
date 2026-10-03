@@ -1046,3 +1046,106 @@ button:disabled {
 body:has(> .guide) {
   min-width: 0;
 }
+
+/* Text read by assistive technology and not drawn, such as why a selection box is disabled. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The policy screens (docs/UI.md sections 8.7 and 8.14). */
+.step-status[data-state="optional"] {
+  color: var(--muted);
+}
+
+.policy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin: var(--space-3) 0;
+}
+
+.policy-file {
+  display: inline-flex;
+  gap: var(--space-3);
+  margin-left: var(--space-4);
+}
+
+.search {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.suffix-chip {
+  display: inline-block;
+  margin-right: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.suffix-chip[data-change="added"] {
+  color: var(--ok);
+}
+
+.suffix-chip[data-change="removed"] {
+  color: var(--restricted);
+}
+
+.diff {
+  margin: var(--space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The lift control removes a restriction, so it is outlined in the restricted color, never filled, and
+   set apart from the add controls (section 14.2). */
+button.lift {
+  margin-left: auto;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--restricted);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--restricted);
+}
+
+.rule-actions,
+.dialog-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: var(--space-3) 0;
+}
+
+.suffix-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.selection-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+  background: var(--raised);
+}
+
+.select-box input[type="checkbox"]:checked {
+  accent-color: var(--action);
+}
+
+.preview-group.lifts h3 {
+  color: var(--restricted);
+}

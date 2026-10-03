@@ -773,12 +773,20 @@ linters:
           # The OAuth client setup's statements, which read no secret, in ui/internal/api.
           - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policycandidates$"
+          # Policy management's statements, in ui/internal/api and ui/internal/registry. The history, the
+          # composed policy the screens classify senders against, the account's own rules and their writes,
+          # the base policy's statements, which run only in a base-policy transaction (ADR-0112), and the
+          # reads of the stored sender class the counts and the sender picker make.
+          - "github.com/ppat/mediated-mailbox-mcp/db/policychanges$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/policyrules/base$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage$"
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
           # The op log's row count the jobs endpoint shows beside an applied plan's rollback, in
           # ui/internal/api/jobs.go.
           - "github.com/ppat/mediated-mailbox-mcp/db/reorgoplog$"
           - "github.com/ppat/mediated-mailbox-mcp/db/reorgplans$"
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           # The composition root's configuration (ADR-0078) and its database section, in ui/main.go.
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
@@ -800,6 +808,13 @@ linters:
           # The read latency and stream subscriber metrics and the metrics endpoint, in ui/internal/api (ADR-0076).
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
+          # The policy file's YAML form, read and written by the policy import and export in ui/internal/api
+          # (ADR-0004, ADR-0110), the module the configuration library already reads YAML with.
+          - "go.yaml.in/yaml/v3$"
+          # The sender classifier's domain functions, which the composition root passes policy management to
+          # match senders against rules with (ADR-0004).
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
 
         # The one part of the UI that opens a stored value, an OAuth client's secret for a consent's code exchange,
@@ -849,6 +864,9 @@ linters:
           - "github.com/jackc/pgx/v5"
           - "github.com/ppat/mediated-mailbox-mcp/"
           - "github.com/prometheus/client_golang/"
+          - "go.yaml.in/yaml/v3$"
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid"
 
         # The mediator's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated

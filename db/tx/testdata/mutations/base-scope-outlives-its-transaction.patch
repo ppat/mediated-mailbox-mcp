@@ -1,0 +1,20 @@
+control: The base policy is written only in a base-policy transaction
+removes: RunBase sets app.base for the session rather than the transaction, so a later transaction on the connection that never named the base policy writes base rules
+packages: ./db/tx
+tests: TestTheBasePolicyEndsWithItsTransaction
+scheduled-count: no
+integration: yes
+
+diff --git a/db/tx/tx.go b/db/tx/tx.go
+index 4dfea7f0..fd0f0454 100644
+--- a/db/tx/tx.go
++++ b/db/tx/tx.go
+@@ -95,7 +95,7 @@ func RunBase(ctx context.Context, db Beginner, fn func(pgx.Tx) error) error {
+ 		return ErrInsideTransaction
+ 	}
+ 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
+-		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', '', true), set_config('app.base', 'on', true)"); err != nil {
++		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', '', true), set_config('app.base', 'on', false)"); err != nil {
+ 			return fmt.Errorf("setting the base policy's scope: %w", err)
+ 		}
+ 		var account, base string

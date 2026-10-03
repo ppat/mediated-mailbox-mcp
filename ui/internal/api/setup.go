@@ -44,12 +44,15 @@ func violated(err error, code string) (string, bool) {
 }
 
 // installationResponse is the installation endpoint, what the installation screens show of the
-// stored records. It reads no account's state, so nothing on those screens aggregates across accounts
+// stored records, and the count of base rules. It reads no account's state, so nothing on those screens aggregates across accounts
 // (docs/UI.md sections 8.10 and 17.4, ADR-0056).
 type installationResponse struct {
 	Providers []string         `json:"providers"`
 	Clients   []clientEntry    `json:"clients"`
 	Accounts  []installAccount `json:"accounts"`
+	// BaseRules counts the base policy's rules, which belong to no account, read in a base-policy
+	// transaction (ADR-0112).
+	BaseRules int `json:"base_rules"`
 }
 
 type clientEntry struct {
@@ -85,6 +88,7 @@ func installationType() schema.Type {
 			schema.F("provider", schema.Str()),
 			schema.F("oauth_client", schema.Null(schema.Str())),
 		))),
+		schema.F("base_rules", schema.Int()),
 	)
 }
 
@@ -120,6 +124,9 @@ func (s *Server) installation(ctx context.Context) (installationResponse, error)
 	}
 	for _, a := range listed {
 		out.Accounts = append(out.Accounts, installAccount{AccountID: a.AccountID, Provider: a.AccountProvider, OAuthClient: optionalText(a.OauthClient)})
+	}
+	if out.BaseRules, err = s.baseRuleCount(ctx); err != nil {
+		return installationResponse{}, err
 	}
 	return out, nil
 }

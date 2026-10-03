@@ -1,0 +1,117 @@
+{
+  "accounts": [],
+  "class": "restricted",
+  "created_at": "2026-09-07T10:16:04Z",
+  "created_by": "operator",
+  "elsewhere": null,
+  "history": [
+    {
+      "account": "personal",
+      "action": "edited",
+      "actor": "operator",
+      "id": 7,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example",
+        "newsletter.example",
+        "mail.newsletter.example"
+      ],
+      "suffixes_before": [
+        "lender.example"
+      ],
+      "ts": "2026-09-10T09:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "edited",
+      "actor": "operator",
+      "id": 5,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example"
+      ],
+      "suffixes_before": [
+        "lender.example",
+        "old.lender.example"
+      ],
+      "ts": "2026-09-09T10:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "added",
+      "actor": "operator",
+      "id": 2,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example"
+      ],
+      "suffixes_before": [],
+      "ts": "2026-09-07T10:16:04Z"
+    }
+  ],
+  "matched": [
+    {
+      "domain": "lender.example",
+      "messages": 4,
+      "sender_class": "normal"
+    },
+    {
+      "domain": "newsletter.example",
+      "messages": 3,
+      "sender_class": "normal"
+    },
+    {
+      "domain": "mail.newsletter.example",
+      "messages": 1,
+      "sender_class": "normal"
+    }
+  ],
+  "matched_total": 3,
+  "messages": 8,
+  "released": {
+    "messages": 8,
+    "senders": 3
+  },
+  "restricted": 0,
+  "rule_id": "operator.lender.example",
+  "scope": "account",
+  "senders": 3,
+  "source": "operator",
+  "suffix_details": [
+    {
+      "messages": 4,
+      "released": {
+        "messages": 4,
+        "senders": 1
+      },
+      "senders": 1,
+      "suffix": "lender.example"
+    },
+    {
+      "messages": 4,
+      "released": {
+        "messages": 3,
+        "senders": 1
+      },
+      "senders": 2,
+      "suffix": "newsletter.example"
+    },
+    {
+      "messages": 1,
+      "released": {
+        "messages": 0,
+        "senders": 0
+      },
+      "senders": 1,
+      "suffix": "mail.newsletter.example"
+    }
+  ],
+  "suffixes": [
+    "lender.example",
+    "newsletter.example",
+    "mail.newsletter.example"
+  ]
+}

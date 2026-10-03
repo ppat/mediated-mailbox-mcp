@@ -1,0 +1,43 @@
+{
+  "account": "personal",
+  "as_of": "2026-09-10T10:16:04Z",
+  "dataset": "rules",
+  "figures": [
+    {
+      "at": null,
+      "key": "base",
+      "link": "/personal/policy",
+      "unit": null,
+      "value": 1,
+      "wording": "base rules"
+    },
+    {
+      "at": null,
+      "key": "own",
+      "link": "/personal/policy",
+      "unit": null,
+      "value": 1,
+      "wording": "rules for this account"
+    },
+    {
+      "at": null,
+      "key": "restricted",
+      "link": "/personal/policy/pick",
+      "unit": null,
+      "value": 1,
+      "wording": "senders restricted"
+    },
+    {
+      "at": "2026-09-09T22:16:04Z",
+      "key": "latest",
+      "link": "/personal/policy/history",
+      "unit": null,
+      "value": null,
+      "wording": "latest change"
+    }
+  ],
+  "filters": {
+    "range": "all"
+  },
+  "level": 0
+}

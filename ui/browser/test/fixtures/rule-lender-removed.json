@@ -1,0 +1,102 @@
+{
+  "accounts": [],
+  "class": "restricted",
+  "created_at": "2026-09-07T10:16:04Z",
+  "created_by": "operator",
+  "elsewhere": null,
+  "history": [
+    {
+      "account": "personal",
+      "action": "edited",
+      "actor": "operator",
+      "id": 8,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example"
+      ],
+      "suffixes_before": [
+        "lender.example",
+        "lendermail.example"
+      ],
+      "ts": "2026-09-10T09:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "edited",
+      "actor": "operator",
+      "id": 7,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example",
+        "lendermail.example"
+      ],
+      "suffixes_before": [
+        "lender.example"
+      ],
+      "ts": "2026-09-10T09:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "edited",
+      "actor": "operator",
+      "id": 5,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example"
+      ],
+      "suffixes_before": [
+        "lender.example",
+        "old.lender.example"
+      ],
+      "ts": "2026-09-09T10:16:04Z"
+    },
+    {
+      "account": "personal",
+      "action": "added",
+      "actor": "operator",
+      "id": 2,
+      "rule_exists": true,
+      "rule_id": "operator.lender.example",
+      "suffixes_after": [
+        "lender.example"
+      ],
+      "suffixes_before": [],
+      "ts": "2026-09-07T10:16:04Z"
+    }
+  ],
+  "matched": [
+    {
+      "domain": "lender.example",
+      "messages": 4,
+      "sender_class": "normal"
+    }
+  ],
+  "matched_total": 1,
+  "messages": 4,
+  "released": {
+    "messages": 4,
+    "senders": 1
+  },
+  "restricted": 0,
+  "rule_id": "operator.lender.example",
+  "scope": "account",
+  "senders": 1,
+  "source": "operator",
+  "suffix_details": [
+    {
+      "messages": 4,
+      "released": {
+        "messages": 4,
+        "senders": 1
+      },
+      "senders": 1,
+      "suffix": "lender.example"
+    }
+  ],
+  "suffixes": [
+    "lender.example"
+  ]
+}
