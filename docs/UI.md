@@ -71,8 +71,8 @@ to start. Any record cited in a section and not listed here is read when that se
    what was rejected.
 5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0093, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
    ADR-0022, ADR-0025, ADR-0018, for the mechanisms the screens display, and ADR-0080, ADR-0081,
-   ADR-0106, ADR-0107, ADR-0091, ADR-0097, ADR-0024, ADR-0037, ADR-0041 and ADR-0102 for the setups, the
-   account settings and the policy writes. Read each when building the screen that shows it.
+   ADR-0106, ADR-0107, ADR-0091, ADR-0097, ADR-0024, ADR-0037, ADR-0041, ADR-0102, ADR-0110, ADR-0112,
+   ADR-0113 and ADR-0114 for the setups, the account settings and the policy writes. Read each when building the screen that shows it.
 6. [TESTING.md](../TESTING.md), ADR-0043, ADR-0044, and the UI's rows in
    [docs/VERIFICATIONS.md](./VERIFICATIONS.md), before writing a test.
 7. [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) and
@@ -991,8 +991,8 @@ own rules, so the base policy and an account may each hold a rule of the same id
 may two accounts (ADR-0110).
 These are the checks the policy snapshot's validation makes when a process loads the policy
 (ADR-0041), and the UI makes them before it writes, so no write the UI makes fails that validation.
-A base edit landing while a process reloads can still fail that one reload, which is a separate
-open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)). One refusal is the
+A base edit landing while a process reloads makes that reload read the policy once more, and fails
+it only when another edit lands during the second read too (ADR-0114). One refusal is the
 UI's own. An identifier that is one of this screen's route words, `new`, `pick`, `history`,
 `import` and `base`, or is exactly `.` or `..`, or holds a `/`, is refused so every rule can be
 reached. A rule's history is the rows recorded under its identifier and its scope, so an
@@ -1062,10 +1062,11 @@ in view's alone, and nothing is summed across accounts.
   transactions, the add and then the lift, each with its history row, and the add always comes
   first, so the account in view never goes without the restriction between the two writes.
 
-What happens to the classifications the index has already stored when a rule is added is decided
-where policy management is built ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)), so
-the screen claims only what fetch-time re-evaluation guarantees, that bodies are denied from the
-next policy reload (ADR-0002), and shows the stored classes it reads through "index updated".
+A rule added restricts the classes the index has already stored once a scanning workload next
+compares the index with the policy, as a lift reaches the delisting transition (ADR-0113,
+ADR-0037). The screen claims only what fetch-time re-evaluation guarantees, that bodies are denied
+from the next policy reload (ADR-0002), and shows the stored classes catching up through "index
+updated".
 
 **Restrict senders from the index.** `/{account}/policy/pick?search=…` is the `senders` dataset at
 L3 with its `search` filter, the sender row's fields, a selection box at the left, and for a
@@ -1593,9 +1594,9 @@ of the account's. An identifier is refused when it is empty, carries surrounding
 by a base rule, is `new`, `history` or `import`, is exactly `.` or `..`, or holds a `/`. An
 account's rule may hold the same identifier as a base rule (ADR-0110). A suffix is refused when it is not shaped like a domain name. Every rule's
 class is restricted. Each write is recorded in the policy history in the same transaction
-(ADR-0102). How the UI writes a base rule and its history row, and reads the base policy with no
-account named, as this screen and the installation endpoint do, is an open decision of M8
-([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)).
+(ADR-0102). This screen, the installation endpoint's count of base rules, and every base write
+from an account's policy screen read and write the base policy in a base-policy transaction, which
+names no account and reaches no account's rows (ADR-0112).
 
 **Add a base rule** is the panel `/setup/policy/new?suffix=…`, 480 px over the list. The rule
 identifier, prefilled `operator.{first suffix}` until the operator edits it, the domain suffixes one
@@ -2242,16 +2243,16 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/account` | the values of [section 8.13](#813-account-settings), the identifier, provider, the client it connects through and the provider's other clients, mailbox, whether a state row exists, the last authentication, the lowered target as a fraction, the current target from the rate state, the backfill flags and when the sync cursor was written. Never the credential |
 | `POST /api/{account}/account/reauthorize`, `GET /api/{account}/account/reauthorize` and `POST /api/{account}/account/reauthorize/finish` | as the connect requests, for the account in the path, checked against its remembered mailbox, and replacing its credential and recording the code exchange's attempt on success. The start request carries `{ "mailbox": "…" }` only when the account remembers none, a mailbox in the request of an account that remembers one is refused with 400 `mailbox_remembered`, and a request naming none for an account that remembers none with 400 `mailbox_required`. It carries `{ "client": "…" }` to move the account to another client of its provider, refused with 400 `client_wrong_provider` for a client of another provider, and success then writes the client and the credential in one transaction |
 | `GET /api/setup/policy?search=…` | the base rules, each with its identifier, suffixes, source and created time and identity, and every account's identifier, which the base policy screen of [section 8.14](#814-base-policy) lists. No count of any account's senders or messages. Unscoped |
-| `GET /api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /api/setup` read with no account named, which is M8's open decision ([ROADMAP.md's open decisions](../ROADMAP.md#open-decisions)) |
+| `GET /api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /api/setup` read in a base-policy transaction (ADR-0112) |
 | `POST /api/setup/policy/rules`, `POST /api/setup/policy/rules/{rule-id}` and `POST /api/setup/policy/rules/{rule-id}/lift` | add, edit and lift a base rule with its history row, with the bodies and answers of the account's policy writes below, `scope` absent since it is always `base`, and a lift or a suffix removal always needing `confirmation`. Unscoped |
 | `POST /api/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 `target_refused` outside the range of [section 8.13](#813-account-settings), and the client's 409 `not_connected` for an account with no state row, which holds no target until it is connected |
 | `GET /api/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed |
 | `POST /api/{account}/policy/rules` with `{ "scope": "account", "rule_id": "…", "suffixes": ["…"] }` | adds a rule, `scope` being `account` or `base`, with its history row. 400 `rule_refused` with each problem, 409 `identifier_taken` |
 | `POST /api/{account}/policy/rules/{rule-id}` with `{ "scope": "account", "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
 | `POST /api/{account}/policy/rules/{rule-id}/lift` with `{ "scope": "account", "suffixes_before": ["…"], "confirmation": null }` | removes the rule with its history row. 404 and 409 as edit, and `confirmation` as edit for a base rule |
-| `GET /api/{account}/policy/export` and `GET /api/setup/policy/export` | the scope's rules in the file form of [section 8.7](#87-policy), as a download. The base one is unscoped and reads with no account named, M8's open decision |
-| `POST /api/{account}/policy/import/preview` and `POST /api/setup/policy/import/preview` with the file | reads and checks the file and answers the four groups of the preview, the account's numbers for the account's scope, and the scope's stored rules it was computed against. 400 `file_refused` with each problem, its rule and its line. Writes nothing. The base one is unscoped and reads with no account named, M8's open decision |
-| `POST /api/{account}/policy/import` and `POST /api/setup/policy/import` with `{ "file": "…", "computed_against": "…", "confirmation": null }` | applies the file as one transaction, each change with its history row. 409 `stale_preview` when the scope's rules read in the import's transaction differ from `computed_against`. An import that lifts anything needs `confirmation`, `lift {k}` with {k} the count it lifts, which the dialog sends, typed by the operator for the base scope, refused with 400 `confirmation_required` otherwise. The base one is unscoped and reads and writes with no account named, M8's open decision |
+| `GET /api/{account}/policy/export` and `GET /api/setup/policy/export` | the scope's rules in the file form of [section 8.7](#87-policy), as a download. The base one is unscoped and reads in a base-policy transaction |
+| `POST /api/{account}/policy/import/preview` and `POST /api/setup/policy/import/preview` with the file | reads and checks the file and answers the four groups of the preview, the account's numbers for the account's scope, and the scope's stored rules it was computed against. 400 `file_refused` with each problem, its rule and its line. Writes nothing. The base one is unscoped and reads in a base-policy transaction |
+| `POST /api/{account}/policy/import` and `POST /api/setup/policy/import` with `{ "file": "…", "computed_against": "…", "confirmation": null }` | applies the file as one transaction, each change with its history row. 409 `stale_preview` when the scope's rules read in the import's transaction differ from `computed_against`. An import that lifts anything needs `confirmation`, `lift {k}` with {k} the count it lifts, which the dialog sends, typed by the operator for the base scope, refused with 400 `confirmation_required` otherwise. The base one is unscoped and reads and writes in a base-policy transaction |
 
 The plans and candidates lists are read through the dataset endpoint's `plans` and `candidates`
 datasets ([section 17.1](#171-the-dataset-endpoint)), and the rules and the policy history through
@@ -2439,7 +2440,6 @@ used. What is still open, and where it is tracked:
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
 | How a newly connected account, a credential replaced by re-authorization and a policy edit reach the workloads with no manual step and no restart, which [sections 8.7](#87-policy) and [8.12](#812-connect-an-account-and-re-authorize) assume | ROADMAP.md's unit [F7](../ROADMAP.md#group-f--foundation), the signals between deployables |
-| What happens to the classifications the index has already stored when a rule is added, which [section 8.7](#87-policy)'s "index updated" reads but does not decide | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 
 ## 21. The mockups

@@ -94,22 +94,26 @@ func Load(rows []Row) (Snapshot, error) {
 	return s, nil
 }
 
-// load validates rows. Every rule needs an identifier no other rule has, the restricted class, and at
-// least one domain suffix shaped like a domain name (validSuffix). The form a suffix is matched in,
-// and how either side is normalized, are the classifier's.
+// load validates rows. Every rule needs an identifier no other rule of its scope has, the restricted
+// class, and at least one domain suffix shaped like a domain name (validSuffix). A scope is the base
+// policy or one account's overlay, so the base policy and an account, or two accounts, may each hold a
+// rule of one identifier, as the policy table's key allows (ADR-0110). The form a suffix is matched
+// in, and how either side is normalized, are the classifier's.
 func load(rows []Row) (Snapshot, []string) {
 	var problems []string
-	seen := map[string]bool{}
+	type scoped struct{ account, id string }
+	seen := map[scoped]bool{}
 	s := Snapshot{loaded: true, overlays: map[string][]Rule{}}
 	for i, row := range rows {
 		where := "rule " + strconv.Itoa(i) + " (" + strconv.Quote(row.ID) + ")"
 		if row.ID == "" || strings.TrimSpace(row.ID) != row.ID {
 			problems = append(problems, where+" has an empty identifier or one with surrounding space")
 		}
-		if seen[row.ID] {
-			problems = append(problems, where+" repeats an identifier")
+		key := scoped{account: row.Account, id: row.ID}
+		if seen[key] {
+			problems = append(problems, where+" repeats an identifier within its scope")
 		}
-		seen[row.ID] = true
+		seen[key] = true
 		if row.Class != Restricted {
 			problems = append(problems, where+" has the class "+strconv.Quote(row.Class)+", and the only class is "+strconv.Quote(Restricted))
 		}

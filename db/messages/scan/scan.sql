@@ -62,6 +62,23 @@ WHERE
     AND from_domain = @domain
     AND (sender_class = 'restricted' OR scan_state = 'skipped_restricted');
 
+-- name: NormalDomains :many
+-- The sender domains of the account whose messages the index stores as normal, each once, which every
+-- scanning workload compares with the policy in force, so a rule added since restricts the stored
+-- classes (ADR-0113).
+SELECT DISTINCT m.from_domain
+FROM messages AS m
+WHERE m.account_id = @account_id AND m.sender_class = 'normal'
+ORDER BY m.from_domain;
+
+-- name: MarkListed :execrows
+-- Restricts the stored class of one domain the policy in force now restricts under a rule. Its
+-- messages stored as normal take the restricted class and the rule that sets it, and their scan state
+-- is left as it is (ADR-0113, ADR-0016).
+UPDATE messages
+SET sender_class = 'restricted', class_rule_id = @class_rule_id
+WHERE account_id = @account_id AND from_domain = @domain AND sender_class = 'normal';
+
 -- name: Backlog :one
 -- How many of the account's messages wait for their content scan, the scan backlog depth a scanning
 -- workload emits as a metric (ADR-0093).

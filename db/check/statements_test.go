@@ -63,6 +63,18 @@ func statementName(f sqlFile, raw *pg.RawStmt) string {
 	return ""
 }
 
+// baseSubsection is the directory name of the base policy's subsection, db/policyrules/base, whose
+// statements run only in a base-policy transaction, which names no account (ADR-0112). There a
+// reference to a table in nullAccountTables is scoped by the null account alone, an IS NULL test on its
+// account column, or the literal NULL in an insert, and an account parameter scopes nothing, so a base
+// statement never reaches an account's rows. Everywhere else a null test alone scopes nothing.
+const baseSubsection = "base"
+
+// base reports whether the statement sits in the base policy's subsection.
+func (c *statementCheck) base() bool {
+	return filepath.Base(filepath.Dir(c.file.path)) == baseSubsection
+}
+
 // exempt reports whether the statement is the one predicateExceptions names for the table.
 func (c *statementCheck) exempt(table string) bool {
 	e, ok := predicateExceptions[table]
@@ -406,7 +418,13 @@ func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node, reads bo
 			}
 			return
 		}
-		if eq, ok := c.accountOrNull(sc, n); ok && reads {
+		if r, ok := c.nullAccount(sc, n); ok && c.base() {
+			if inScope(sc, r) {
+				r.connected = true
+			}
+			return
+		}
+		if eq, ok := c.accountOrNull(sc, n); ok && reads && !c.base() {
 			equalities = append(equalities, eq)
 			return
 		}
@@ -425,11 +443,11 @@ func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node, reads bo
 			r, rParam := c.accountSide(sc, eq[1])
 			switch {
 			case l != nil && rParam:
-				if inScope(sc, l) && !l.connected {
+				if inScope(sc, l) && !l.connected && !c.base() {
 					l.connected, changed = true, true
 				}
 			case r != nil && lParam:
-				if inScope(sc, r) && !r.connected {
+				if inScope(sc, r) && !r.connected && !c.base() {
 					r.connected, changed = true, true
 				}
 			case l != nil && r != nil:
@@ -486,6 +504,23 @@ func (c *statementCheck) accountOrNull(sc *scope, n *pg.Node) ([2]*pg.Node, bool
 	return [2]*pg.Node{}, false
 }
 
+// nullAccount returns the reference whose account column n tests IS NULL, when that reference is a
+// table in nullAccountTables, the base policy's own scope predicate.
+func (c *statementCheck) nullAccount(sc *scope, n *pg.Node) (*rangeRef, bool) {
+	t := n.GetNullTest()
+	if t == nil || t.GetNulltesttype() != pg.NullTestType_IS_NULL {
+		return nil, false
+	}
+	r, param := c.accountSide(sc, t.GetArg())
+	if r == nil || param || r.table == nil {
+		return nil, false
+	}
+	if _, listed := nullAccountTables[r.name]; !listed {
+		return nil, false
+	}
+	return r, true
+}
+
 // accountSide returns the reference whose account column n names, or whether n is a parameter.
 func (c *statementCheck) accountSide(sc *scope, n *pg.Node) (*rangeRef, bool) {
 	if isParameter(n) || isCastParameter(n) {
@@ -517,6 +552,14 @@ func (c *statementCheck) insertAccount(sc *scope, target *rangeRef, ins *pg.Inse
 	if rows := sel.GetValuesLists(); len(rows) > 0 {
 		for _, row := range rows {
 			items := row.GetList().GetItems()
+			if c.base() {
+				// A base statement inserts the base policy's rows alone, whose account is the literal null.
+				_, listed := nullAccountTables[target.name]
+				if !listed || index >= len(items) || !items[index].GetAConst().GetIsnull() {
+					c.report(target.location, checkAccount, "an insert into %s from the base policy's subsection must take %s as the literal NULL", target.name, accountColumn)
+				}
+				continue
+			}
 			if index >= len(items) || !isParameter(items[index]) && !isCastParameter(items[index]) {
 				c.report(target.location, checkAccount, "an insert into account-keyed table %s must take %s from a parameter", target.name, accountColumn)
 			}

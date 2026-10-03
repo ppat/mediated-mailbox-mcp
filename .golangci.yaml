@@ -773,12 +773,20 @@ linters:
           # The OAuth client setup's statements, which read no secret, in ui/internal/api.
           - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policycandidates$"
+          # Policy management's statements, in ui/internal/api and ui/internal/registry. The history, the
+          # composed policy the screens classify senders against, the account's own rules and their writes,
+          # the base policy's statements, which run only in a base-policy transaction (ADR-0112), and the
+          # reads of the stored sender class the counts and the sender picker make.
+          - "github.com/ppat/mediated-mailbox-mcp/db/policychanges$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/policyrules/base$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage$"
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
           # The op log's row count the jobs endpoint shows beside an applied plan's rollback, in
           # ui/internal/api/jobs.go.
           - "github.com/ppat/mediated-mailbox-mcp/db/reorgoplog$"
           - "github.com/ppat/mediated-mailbox-mcp/db/reorgplans$"
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           # The composition root's configuration (ADR-0078) and its database section, in ui/main.go.
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
