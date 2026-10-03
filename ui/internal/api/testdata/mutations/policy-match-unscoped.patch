@@ -1,0 +1,20 @@
+control: Every account-scoped route refuses all and an unknown account
+removes: the add panel's match route admits any account, all and an unknown one included
+packages: ./ui/internal/api
+tests: TestThePolicyRoutesAreScoped
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index 129a5a0f..79f45efe 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -146,7 +146,7 @@ func Bespoke() []Route {
+ 			Request: ptr(finishType()), Response: finishAnswerType(),
+ 		},
+ 		{
+-			Pattern: "/api/{account}/policy/match", Operation: "getPolicyMatch", Scoped: true, Query: []string{"suffix"},
++			Pattern: "/api/{account}/policy/match", Operation: "getPolicyMatch", Query: []string{"suffix"},
+ 			Summary:  "What each suffix typed in Add a rule matches in the account, and the rules already matching it",
+ 			Response: matchAnswerType(),
+ 		},

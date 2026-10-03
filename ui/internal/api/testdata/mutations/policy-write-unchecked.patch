@@ -1,0 +1,22 @@
+control: A policy write the snapshot's validation or the UI's route words refuse is refused before it is written
+removes: a write is never checked, so a rule the snapshot's validation refuses is written and fails every reload
+packages: ./ui/internal/api
+tests: TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..d96a0d91 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -293,9 +293,7 @@ func checked(scope string, after []rules.Rule, i int) error {
+ 			mine = append(mine, p)
+ 		}
+ 	}
+-	if len(mine) > 0 {
+-		return &refusedRule{problems: mine}
+-	}
++	_ = mine
+ 	return nil
+ }
+ 

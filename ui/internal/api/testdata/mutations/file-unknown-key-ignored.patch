@@ -1,0 +1,19 @@
+control: A policy file reaches the stored rules only whole and only of its form
+removes: a key the file's form does not hold is ignored rather than refusing the file
+packages: ./ui/internal/api
+tests: TestAFileIsCheckedWholeAndImportsIntoAnyScope
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/policyfile.go b/ui/internal/api/policyfile.go
+index fbbd2256..6c759bce 100644
+--- a/ui/internal/api/policyfile.go
++++ b/ui/internal/api/policyfile.go
+@@ -92,7 +92,6 @@ func parseFile(text string) ([]fileRule, *fileProblem) {
+ 					r.rule.Suffixes = append(r.rule.Suffixes, suffix.Value)
+ 				}
+ 			default:
+-				return nil, &fileProblem{kind: kindNotTheForm, line: key.Line}
+ 			}
+ 		}
+ 		if !seen["id"] || !seen["class"] || !seen["domain_suffix"] {
