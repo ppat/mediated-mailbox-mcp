@@ -5,15 +5,15 @@ tests: TestAnIdentifierIsUniqueWithinItsScopeOnly
 scheduled-count: no
 
 diff --git a/core/policy/policy.go b/core/policy/policy.go
-index 6caf9f15..90877b0e 100644
+index bf03ace6..0a69d0bf 100644
 --- a/core/policy/policy.go
 +++ b/core/policy/policy.go
-@@ -109,7 +109,7 @@ func load(rows []Row) (Snapshot, []string) {
+@@ -133,7 +133,7 @@ func Validate(rows []Row) []Problem {
  		if row.ID == "" || strings.TrimSpace(row.ID) != row.ID {
- 			problems = append(problems, where+" has an empty identifier or one with surrounding space")
+ 			problems = append(problems, Problem{Row: i, Kind: BlankIdentifier})
  		}
 -		key := scoped{account: row.Account, id: row.ID}
 +		key := scoped{id: row.ID}
  		if seen[key] {
- 			problems = append(problems, where+" repeats an identifier within its scope")
+ 			problems = append(problems, Problem{Row: i, Kind: RepeatedIdentifier})
  		}

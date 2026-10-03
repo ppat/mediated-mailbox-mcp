@@ -5,15 +5,15 @@ tests: TestLoadRefusesInvalidRows/identifier_repeated_in_the_base_policy TestLoa
 scheduled-count: no
 
 diff --git a/core/policy/policy.go b/core/policy/policy.go
-index 6caf9f15..a03d8ae3 100644
+index bf03ace6..62b2c62d 100644
 --- a/core/policy/policy.go
 +++ b/core/policy/policy.go
-@@ -110,7 +110,7 @@ func load(rows []Row) (Snapshot, []string) {
- 			problems = append(problems, where+" has an empty identifier or one with surrounding space")
+@@ -134,7 +134,7 @@ func Validate(rows []Row) []Problem {
+ 			problems = append(problems, Problem{Row: i, Kind: BlankIdentifier})
  		}
  		key := scoped{account: row.Account, id: row.ID}
 -		if seen[key] {
 +		if false && seen[key] {
- 			problems = append(problems, where+" repeats an identifier within its scope")
+ 			problems = append(problems, Problem{Row: i, Kind: RepeatedIdentifier})
  		}
  		seen[key] = true
