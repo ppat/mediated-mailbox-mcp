@@ -31,12 +31,17 @@ type Config struct {
 	// ConsentRedirect is the loopback address a consent redirects the browser to (docs/UI.md section
 	// 8.12).
 	ConsentRedirect string
+	// IdentityHeader names the header an authenticating proxy forwards the identity in, and
+	// OperatorName the identity recorded when no header is declared (ADR-0084).
+	IdentityHeader string
+	OperatorName   string
 }
 
 // Validate refuses an empty listen or probe_listen, plain HTTP in a binary built without the devloop
 // build tag, TLS without both its files, an interval that is not positive, a default theme
-// other than system, dark or light, a negative worth-a-look threshold, and a consent redirect that is
-// not a loopback address with an explicit port. devLoop is whether
+// other than system, dark or light, a negative worth-a-look threshold, a consent redirect that is
+// not a loopback address with an explicit port, and no identity to record, neither an identity header
+// nor an operator name. devLoop is whether
 // the binary was built with the tag. No image build sets it, so a deployed UI serves TLS only
 // (docs/UI.md section 18).
 func Validate(c Config, devLoop bool) error {
@@ -71,6 +76,8 @@ func Validate(c Config, devLoop bool) error {
 		return refusal("attention_gap_days is negative")
 	case !LoopbackRedirect(c.ConsentRedirect):
 		return refusal("consent_redirect is not an http address on a loopback IP literal with an explicit port")
+	case strings.TrimSpace(c.IdentityHeader) == "" && strings.TrimSpace(c.OperatorName) == "":
+		return refusal("operator_name is required when identity_header is unset, since a policy write records who made it")
 	}
 	return nil
 }

@@ -51,7 +51,7 @@ WHERE
     c.account_id IS NULL
     AND ($1::timestamptz IS NULL OR c.ts >= $1::timestamptz)
     AND ($2::timestamptz IS NULL OR c.ts < $2::timestamptz)
-    AND ($3::text IS NULL OR c.rule_id = $3::text)
+    AND ($3::text = '' OR c.rule_id = $3::text)
 ORDER BY c.ts DESC, c.id DESC
 `
 
@@ -72,7 +72,7 @@ type BaseHistoryRow struct {
 }
 
 // The base policy's changes, newest first, under a range and narrowed to one rule's when a rule is
-// given (docs/UI.md sections 8.14 and 17.4). A null bound is no bound, and a null rule every rule.
+// given (docs/UI.md sections 8.14 and 17.4). A null bound is no bound, and an empty rule every rule.
 func (q *Queries) BaseHistory(ctx context.Context, arg BaseHistoryParams) ([]BaseHistoryRow, error) {
 	rows, err := q.db.Query(ctx, baseHistory, arg.RangeStart, arg.RangeEnd, arg.RuleID)
 	if err != nil {

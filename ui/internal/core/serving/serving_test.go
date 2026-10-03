@@ -11,7 +11,7 @@ func valid() serving.Config {
 		Listen: ":8443", ProbeListen: ":8080", TLSCert: "/tls/cert", TLSKey: "/tls/key",
 		SyncInterval: 1, HeuristicsInterval: 1, StreamInterval: 1,
 		DefaultTheme: "system", StreamReconnectMax: 1_000_000, StreamPollInterval: 1_000_000,
-		ConsentRedirect: "http://127.0.0.1:47823/",
+		ConsentRedirect: "http://127.0.0.1:47823/", OperatorName: "operator",
 	}
 }
 
@@ -40,6 +40,12 @@ func TestTheConfigurationIsValidated(t *testing.T) {
 	if err := serving.Validate(disabled, false); err != nil {
 		t.Fatalf("every worth-a-look rule disabled was refused: %v", err)
 	}
+	// A declared identity header records the proxy's identity, so no operator name is needed.
+	proxied := valid()
+	proxied.IdentityHeader, proxied.OperatorName = "X-Forwarded-User", ""
+	if err := serving.Validate(proxied, false); err != nil {
+		t.Fatalf("an identity header with no operator name was refused: %v", err)
+	}
 	cases := []struct {
 		name   string
 		change func(*serving.Config)
@@ -57,6 +63,7 @@ func TestTheConfigurationIsValidated(t *testing.T) {
 		{"a polling interval under a millisecond", func(c *serving.Config) { c.StreamPollInterval = 0 }, "stream_poll_interval is under a millisecond"},
 		{"a negative backlog share", func(c *serving.Config) { c.AttentionBacklogShare = -0.5 }, "attention_backlog_share is negative"},
 		{"a negative masking count", func(c *serving.Config) { c.AttentionMaskCount = -1 }, "attention_mask_count is negative"},
+		{"no identity header and no operator name", func(c *serving.Config) { c.OperatorName = " " }, "operator_name is required when identity_header is unset, since a policy write records who made it"},
 		{"a negative serve factor", func(c *serving.Config) { c.AttentionServeFactor = -2 }, "attention_serve_factor is negative"},
 		{"a negative gap window", func(c *serving.Config) { c.AttentionGapDays = -7 }, "attention_gap_days is negative"},
 	}

@@ -127,7 +127,7 @@ func (r *rig) server(key []byte) *api.Server {
 		r.t.Fatal(err)
 	}
 	s, err := api.New(api.Options{
-		Bundle: r.bundle, Database: pool, Datasets: registry.Datasets(),
+		Bundle: r.bundle, Database: pool, Datasets: registry.Datasets(lookups),
 		Logger: slog.New(slog.NewJSONHandler(&r.log, nil)), Metrics: prometheus.NewRegistry(),
 		Clock: func() time.Time { return r.clock }, StreamInterval: time.Second, TokenKey: key, Seal: r.public,
 		Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, ClientSecrets: secrets,

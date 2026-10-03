@@ -37,7 +37,7 @@ VALUES (NULL, @actor, @action, @rule_id, @suffixes_before, @suffixes_after);
 
 -- name: BaseHistory :many
 -- The base policy's changes, newest first, under a range and narrowed to one rule's when a rule is
--- given (docs/UI.md sections 8.14 and 17.4). A null bound is no bound, and a null rule every rule.
+-- given (docs/UI.md sections 8.14 and 17.4). A null bound is no bound, and an empty rule every rule.
 SELECT
     c.id,
     c.ts,
@@ -51,7 +51,7 @@ WHERE
     c.account_id IS NULL
     AND (@range_start::timestamptz IS NULL OR c.ts >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR c.ts < @range_end::timestamptz)
-    AND (@rule_id::text IS NULL OR c.rule_id = @rule_id::text)
+    AND (@rule_id::text = '' OR c.rule_id = @rule_id::text)
 ORDER BY c.ts DESC, c.id DESC;
 
 -- name: BaseLatestChange :one

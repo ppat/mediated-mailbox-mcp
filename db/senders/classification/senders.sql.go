@@ -57,7 +57,7 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = $1
-    AND ($2::text IS NULL OR strpos(lower(s.domain::text), lower($2::text)) > 0)
+    AND ($2::text = '' OR strpos(lower(s.domain::text), lower($2::text)) > 0)
 ORDER BY s.message_count DESC, s.domain ASC
 `
 
@@ -100,7 +100,7 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = $1
-    AND ($2::text IS NULL OR strpos(lower(s.domain::text), lower($2::text)) > 0)
+    AND ($2::text = '' OR strpos(lower(s.domain::text), lower($2::text)) > 0)
 `
 
 type SenderSearchFiguresParams struct {
@@ -135,7 +135,7 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = $1
-    AND ($2::text IS NULL OR strpos(lower(s.domain::text), lower($2::text)) > 0)
+    AND ($2::text = '' OR strpos(lower(s.domain::text), lower($2::text)) > 0)
 ORDER BY
     CASE WHEN $3::boolean THEN s.message_count END DESC,
     CASE WHEN NOT $3::boolean THEN s.message_count END ASC,

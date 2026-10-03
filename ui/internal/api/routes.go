@@ -29,6 +29,13 @@ type Route struct {
 	Response schema.Type
 	// Events are the event stream's data objects, one per event name, for a stream route.
 	Events map[string]schema.Type
+	// Query names the optional query parameters a read takes.
+	Query []string
+	// Download is the media type of a route that answers with a file to save rather than JSON.
+	Download string
+	// Refusal is the body a refused request's 400 carries when it names problems beyond the error
+	// contract's, as a refused policy write or file does.
+	Refusal *schema.Type
 }
 
 // Stream reports whether the route answers with an event stream.
@@ -137,6 +144,79 @@ func Bespoke() []Route {
 			Method: http.MethodPost, Pattern: "/api/{account}/account/reauthorize/finish", Operation: "finishReauthorize", Scoped: true,
 			Summary: "Finishes the session's attempt from the pasted address and replaces the account's credential",
 			Request: ptr(finishType()), Response: finishAnswerType(),
+		},
+		{
+			Pattern: "/api/{account}/policy/match", Operation: "getPolicyMatch", Scoped: true, Query: []string{"suffix"},
+			Summary:  "What each suffix typed in Add a rule matches in the account, and the rules already matching it",
+			Response: matchAnswerType(),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/{account}/policy/rules", Operation: "addRule", Scoped: true,
+			Summary: "Adds a rule to the account's own rules or the base policy, with its history row",
+			Request: ptr(ruleRequestType(true, "AddRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/{account}/policy/rules/{rule}", Operation: "editRule", Scoped: true,
+			Summary: "Sets a rule's suffixes, with its history row",
+			Request: ptr(editRequestType(true, "EditRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/{account}/policy/rules/{rule}/lift", Operation: "liftRule", Scoped: true,
+			Summary: "Lifts a rule, with its history row",
+			Request: ptr(liftRequestType(true, "LiftRule")), Response: ruleAnswerType(),
+		},
+		{
+			Pattern: "/api/{account}/policy/export", Operation: "exportPolicy", Scoped: true, Download: policyFileType,
+			Summary: "Downloads the account's own rules as a policy file",
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/{account}/policy/import/preview", Operation: "previewImport", Scoped: true,
+			Summary: "Reads and checks a policy file and answers what importing it into the account's own rules would change",
+			Request: ptr(previewRequestType()), Response: previewType(), Refusal: ptr(RefusalType()),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/{account}/policy/import", Operation: "importPolicy", Scoped: true,
+			Summary: "Makes the account's own rules equal to a policy file, in one transaction",
+			Request: ptr(importRequestType()), Response: importedType(), Refusal: ptr(RefusalType()),
+		},
+		{
+			Pattern: "/api/setup/policy", Operation: "getBasePolicy", Query: []string{"search"},
+			Summary:  "The base rules and every account's identifier, reading no account's state",
+			Response: basePolicyType(),
+		},
+		{
+			Pattern: "/api/setup/policy/history", Operation: "getBaseHistory", Query: []string{"range", "rule"},
+			Summary:  "The base policy's changes, newest first",
+			Response: baseHistoryType(),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/setup/policy/rules", Operation: "addBaseRule",
+			Summary: "Adds a base rule, with its history row",
+			Request: ptr(ruleRequestType(false, "AddBaseRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/setup/policy/rules/{rule}", Operation: "editBaseRule",
+			Summary: "Sets a base rule's suffixes, with its history row",
+			Request: ptr(editRequestType(false, "EditBaseRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/setup/policy/rules/{rule}/lift", Operation: "liftBaseRule",
+			Summary: "Lifts a base rule, with its history row",
+			Request: ptr(liftRequestType(false, "LiftBaseRule")), Response: ruleAnswerType(),
+		},
+		{
+			Pattern: "/api/setup/policy/export", Operation: "exportBasePolicy", Download: policyFileType,
+			Summary: "Downloads the base rules as a policy file",
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/setup/policy/import/preview", Operation: "previewBaseImport",
+			Summary: "Reads and checks a policy file and answers what importing it into the base policy would change",
+			Request: ptr(previewRequestType()), Response: previewType(), Refusal: ptr(RefusalType()),
+		},
+		{
+			Method: http.MethodPost, Pattern: "/api/setup/policy/import", Operation: "importBasePolicy",
+			Summary: "Makes the base rules equal to a policy file, in one transaction",
+			Request: ptr(importRequestType()), Response: importedType(), Refusal: ptr(RefusalType()),
 		},
 	}
 }

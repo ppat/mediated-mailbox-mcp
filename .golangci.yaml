@@ -808,6 +808,13 @@ linters:
           # The read latency and stream subscriber metrics and the metrics endpoint, in ui/internal/api (ADR-0076).
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
+          # The policy file's YAML form, read and written by the policy import and export in ui/internal/api
+          # (ADR-0004, ADR-0110), the module the configuration library already reads YAML with.
+          - "go.yaml.in/yaml/v3$"
+          # The sender classifier's domain functions, which the composition root passes policy management to
+          # match senders against rules with (ADR-0004).
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
 
         # The one part of the UI that opens a stored value, an OAuth client's secret for a consent's code exchange,
@@ -857,6 +864,9 @@ linters:
           - "github.com/jackc/pgx/v5"
           - "github.com/ppat/mediated-mailbox-mcp/"
           - "github.com/prometheus/client_golang/"
+          - "go.yaml.in/yaml/v3$"
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid"
 
         # The mediator's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated

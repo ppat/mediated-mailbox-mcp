@@ -27,6 +27,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
+
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -34,6 +38,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
+
+// lookups are the sender classifier's domain functions, as the composition root passes them.
+var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 // The UI's root configuration type is pinned field by field, so a new value is a visible change
 // (ADR-0078). The database section's own type is pinned in its package.
@@ -44,7 +51,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
 		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
 		"SealPublicKeyFile string", "PrivateKeyFiles []string", "TokenKeyFile string",
-		"ConsentRedirect string")
+		"ConsentRedirect string", "IdentityHeader string", "OperatorName string")
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -213,7 +220,7 @@ func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	c.Listen, c.ProbeListen = "127.0.0.1:0", "127.0.0.1:0"
 	c.TLSCert, c.TLSKey = filepath.Join(t.TempDir(), "absent.crt"), filepath.Join(t.TempDir(), "absent.key")
 	s, err := api.New(api.Options{
-		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(), Logger: discard(),
+		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: discard(),
 		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
 	})
 	if err != nil {
@@ -244,7 +251,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	err := run(bounded(t), []string{
 		"--database.host=db.example", "--database.password_file=" + passwordFile, "--tls_cert=/absent/tls.crt", "--tls_key=/absent/tls.key",
 		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--seal_public_key_file=" + publicKeyFile,
-		"--private_key_files=[" + privateKeyFile + "]",
+		"--private_key_files=[" + privateKeyFile + "]", "--operator_name=operator",
 	},
 		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
@@ -265,8 +272,10 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_ui`,
 		`level=INFO msg=configuration path=default_theme source=default value=system`,
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
+		`level=INFO msg=configuration path=identity_header source=default value=""`,
 		`level=INFO msg=configuration path=insecure_http source=default value=false`,
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
+		`level=INFO msg=configuration path=operator_name source="flag --operator_name" value=operator`,
 		`level=INFO msg=configuration path=private_key_files source="flag --private_key_files" value=[` + privateKeyFile + `]`,
 		`level=INFO msg=configuration path=probe_listen source="flag --probe_listen" value=127.0.0.1:0`,
 		`level=INFO msg=configuration path=seal_public_key_file source="flag --seal_public_key_file" value=` + publicKeyFile,
@@ -323,6 +332,20 @@ func bounded(t *testing.T) context.Context {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 	return ctx
+}
+
+// With no identity header declared, a start with no operator name is refused before it touches the
+// database, since every policy write records who made it (ADR-0084, docs/UI.md section 18.1).
+func TestNoIdentityRefusesTheStart(t *testing.T) {
+	args := []string{
+		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
+		"--tls_key=/tls/key", "--seal_public_key_file=/absent", "--private_key_files=[/absent]",
+	}
+	err := run(t.Context(), args, nil, discard())
+	want := "validating the configuration: operator_name is required when identity_header is unset, since a policy write records who made it"
+	if err == nil || err.Error() != want {
+		t.Errorf("run returned %v, want %q", err, want)
+	}
 }
 
 // A consent redirect that is not a loopback address with an explicit port refuses the start, before it

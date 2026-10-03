@@ -20,7 +20,7 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = @account_id
-    AND (@search::text IS NULL OR strpos(lower(s.domain::text), lower(@search::text)) > 0);
+    AND (@search::text = '' OR strpos(lower(s.domain::text), lower(@search::text)) > 0);
 
 -- name: SenderSearchRows :many
 -- One page of the senders dataset, fifty rows, under the same filter, with the sender row's fields
@@ -37,7 +37,7 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = @account_id
-    AND (@search::text IS NULL OR strpos(lower(s.domain::text), lower(@search::text)) > 0)
+    AND (@search::text = '' OR strpos(lower(s.domain::text), lower(@search::text)) > 0)
 ORDER BY
     CASE WHEN @descending::boolean THEN s.message_count END DESC,
     CASE WHEN NOT @descending::boolean THEN s.message_count END ASC,
@@ -53,5 +53,5 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = @account_id
-    AND (@search::text IS NULL OR strpos(lower(s.domain::text), lower(@search::text)) > 0)
+    AND (@search::text = '' OR strpos(lower(s.domain::text), lower(@search::text)) > 0)
 ORDER BY s.message_count DESC, s.domain ASC;
