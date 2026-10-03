@@ -190,6 +190,32 @@ func TestDelisted(t *testing.T) {
 	}
 }
 
+// An added rule reaches the domains the index stores as normal by its effect, each with the rule that
+// now restricts it, and a domain the classifier cannot read or a policy that never loaded lists nothing
+// (ADR-0113).
+func TestListed(t *testing.T) {
+	stored := []string{"bank.example", "mail.gov.example", "shop.example", ""}
+	cases := []struct {
+		name   string
+		policy policy.Composed
+		want   []index.Listing
+	}{
+		{"no rule", listing(t), nil},
+		{"a rule for the bank and one for a parent domain", listing(t, "bank.example", "gov.example"), []index.Listing{
+			{Domain: "bank.example", Rule: "rule.bank"},
+			{Domain: "mail.gov.example", Rule: "rule.gov.example"},
+		}},
+		{"a policy that never loaded", policy.Composed{}, nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if diff := cmp.Diff(c.want, index.Listed(c.policy, lookups, stored), compare.Options); diff != "" {
+				t.Errorf("Listed (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 // skipped is a message the high-volume rule skips under the thresholds below: a List-Id, a sender
 // above the high-volume mark with no prior hit, and nothing else asking for a scan.
 func skipped() index.Waiting {

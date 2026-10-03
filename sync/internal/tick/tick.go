@@ -3,10 +3,10 @@
 // the transaction that makes the change set durable, so the cursor never runs ahead of the index. A
 // cursor gap starts a recovery recorded as a run of its own, and an account with no cursor is
 // reconciled over the first window (ADR-0105). Once backfill's second pass has ended for the account,
-// the tick then runs the delisting comparison and decides and scans a bounded number of the messages
-// waiting for a scan (ADR-0104).
+// the tick then runs the delisting comparison and its counterpart for an added rule, and decides and
+// scans a bounded number of the messages waiting for a scan (ADR-0104, ADR-0113).
 //
-// What a message adds to the index, the delisting comparison, the gate and the scan are core/index's,
+// What a message adds to the index, the two comparisons, the gate and the scan are core/index's,
 // the decisions backfill makes the same way, and the tick's own decisions are
 // sync/internal/core/tick's. A body is fetched, converted and scanned in memory and dropped, so
 // nothing of it reaches the store or a log (ADR-0009).
@@ -312,10 +312,10 @@ func window(start, end mail.UnixMilli) *Window {
 	return &Window{Start: s, End: e}
 }
 
-// scanning runs the delisting comparison and then decides and scans the account's waiting messages
-// from where the last tick stopped, up to the tick's bound. Reaching the end of what waits, or
-// marking any message in the comparison, starts the next read from the first waiting message
-// (ADR-0037, ADR-0104).
+// scanning runs the delisting comparison and its counterpart for an added rule, and then decides and
+// scans the account's waiting messages from where the last tick stopped, up to the tick's bound.
+// Reaching the end of what waits, or marking any message in the delisting comparison, starts the next
+// read from the first waiting message (ADR-0037, ADR-0113, ADR-0104).
 func (t *ticker) scanning(ctx context.Context) error {
 	marked, err := t.deps.Store.Delist(ctx, t.account, t.run, func(restricted []string) []string {
 		return index.Delisted(t.deps.Policy, t.deps.Lookups, restricted)
@@ -325,6 +325,11 @@ func (t *ticker) scanning(ctx context.Context) error {
 	}
 	if marked > 0 {
 		t.at.Checkpoint.After = ""
+	}
+	if _, err := t.deps.Store.List(ctx, t.account, func(normal []string) []index.Listing {
+		return index.Listed(t.deps.Policy, t.deps.Lookups, normal)
+	}); err != nil {
+		return fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err)
 	}
 	decided := 0
 	for decided < t.deps.Decisions {
