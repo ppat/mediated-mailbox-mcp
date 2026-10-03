@@ -5,10 +5,11 @@
 //
 // Decide turns provider metadata into the rows the index stores, each sender classified against the
 // account's policy and each subject masked by the scanner, a restricted sender's included (ADR-0003,
-// ADR-0004). Delisted is the delisting transition's comparison (ADR-0037). Gate decides whether one
-// waiting message's body is scanned, from its own inputs and its sender's current ones (ADR-0093,
-// ADR-0094). Scan decides what a scanned body records. ClassOf names the error class a run records
-// for a failure the provider reported (ADR-0016).
+// ADR-0004). Delisted is the delisting transition's comparison (ADR-0037), and Listed its counterpart
+// for an added rule (ADR-0113). Gate decides whether one waiting message's body is scanned, from its
+// own inputs and its sender's current ones (ADR-0093, ADR-0094). Scan decides what a scanned body
+// records. ClassOf names the error class a run records for a failure the provider reported
+// (ADR-0016).
 package index
 
 import (

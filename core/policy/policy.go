@@ -94,33 +94,91 @@ func Load(rows []Row) (Snapshot, error) {
 	return s, nil
 }
 
-// load validates rows. Every rule needs an identifier no other rule has, the restricted class, and at
-// least one domain suffix shaped like a domain name (validSuffix). The form a suffix is matched in,
-// and how either side is normalized, are the classifier's.
-func load(rows []Row) (Snapshot, []string) {
-	var problems []string
-	seen := map[string]bool{}
-	s := Snapshot{loaded: true, overlays: map[string][]Rule{}}
+// ProblemKind names what is wrong with a row.
+type ProblemKind uint8
+
+const (
+	// BlankIdentifier is an empty identifier or one with surrounding space.
+	BlankIdentifier ProblemKind = iota + 1
+	// RepeatedIdentifier is an identifier another rule of the same scope holds.
+	RepeatedIdentifier
+	// OtherClass is a class other than Restricted.
+	OtherClass
+	// NoSuffix is a rule with no domain suffix.
+	NoSuffix
+	// InvalidSuffix is a domain suffix not shaped like a domain name.
+	InvalidSuffix
+)
+
+// Problem is one reason a row fails validation. Row indexes the rows validated, and Suffix is the
+// suffix an InvalidSuffix names.
+type Problem struct {
+	Row    int
+	Kind   ProblemKind
+	Suffix string
+}
+
+// Validate returns every problem with rows, in row order. Every rule needs an identifier no other rule
+// of its scope has, the restricted class, and at least one domain suffix shaped like a domain name
+// (validSuffix). A scope is the base policy or one account's overlay, so the base policy and an
+// account, or two accounts, may each hold a rule of one identifier, as the policy table's key allows
+// (ADR-0110). The form a suffix is matched in, and how either side is normalized, are the
+// classifier's. Validate is the snapshot's validation, so a writer that checks rows with it before it
+// writes them writes nothing a reload refuses.
+func Validate(rows []Row) []Problem {
+	var problems []Problem
+	type scoped struct{ account, id string }
+	seen := map[scoped]bool{}
 	for i, row := range rows {
-		where := "rule " + strconv.Itoa(i) + " (" + strconv.Quote(row.ID) + ")"
 		if row.ID == "" || strings.TrimSpace(row.ID) != row.ID {
-			problems = append(problems, where+" has an empty identifier or one with surrounding space")
+			problems = append(problems, Problem{Row: i, Kind: BlankIdentifier})
 		}
-		if seen[row.ID] {
-			problems = append(problems, where+" repeats an identifier")
+		key := scoped{account: row.Account, id: row.ID}
+		if seen[key] {
+			problems = append(problems, Problem{Row: i, Kind: RepeatedIdentifier})
 		}
-		seen[row.ID] = true
+		seen[key] = true
 		if row.Class != Restricted {
-			problems = append(problems, where+" has the class "+strconv.Quote(row.Class)+", and the only class is "+strconv.Quote(Restricted))
+			problems = append(problems, Problem{Row: i, Kind: OtherClass})
 		}
 		if len(row.DomainSuffixes) == 0 {
-			problems = append(problems, where+" has no domain suffix")
+			problems = append(problems, Problem{Row: i, Kind: NoSuffix})
 		}
 		for _, suffix := range row.DomainSuffixes {
 			if !validSuffix(suffix) {
-				problems = append(problems, where+" has the domain suffix "+strconv.Quote(suffix)+", which is not a domain name")
+				problems = append(problems, Problem{Row: i, Kind: InvalidSuffix, Suffix: suffix})
 			}
 		}
+	}
+	return problems
+}
+
+// describe words a problem with the row it is about.
+func describe(p Problem, row Row) string {
+	where := "rule " + strconv.Itoa(p.Row) + " (" + strconv.Quote(row.ID) + ")"
+	switch p.Kind {
+	case BlankIdentifier:
+		return where + " has an empty identifier or one with surrounding space"
+	case RepeatedIdentifier:
+		return where + " repeats an identifier within its scope"
+	case OtherClass:
+		return where + " has the class " + strconv.Quote(row.Class) + ", and the only class is " + strconv.Quote(Restricted)
+	case NoSuffix:
+		return where + " has no domain suffix"
+	case InvalidSuffix:
+		return where + " has the domain suffix " + strconv.Quote(p.Suffix) + ", which is not a domain name"
+	}
+	return where + " is not a valid rule"
+}
+
+// load validates rows with Validate and builds the snapshot they describe.
+func load(rows []Row) (Snapshot, []string) {
+	var problems []string
+	for _, p := range Validate(rows) {
+		problems = append(problems, describe(p, rows[p.Row]))
+	}
+	s := Snapshot{loaded: true, overlays: map[string][]Rule{}}
+	for _, row := range rows {
 		rule := Rule{id: row.ID, suffixes: slices.Clone(row.DomainSuffixes)}
 		if row.Account == "" {
 			s.base = append(s.base, rule)

@@ -75,6 +75,7 @@ moves it. Records themselves link freely and deep, into
 | 0098 | [Every backfill run decides each stored gate skip again, so a change of thresholds reaches the skips made under the earlier ones](./redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) | Accepted |
 | 0100 | [Message text with no HTML form is released as a fenced code block that shows it exactly](./redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md) | Accepted |
 | 0104 | [Once backfill's second pass has ended, each delta sync tick decides and scans what waits for a scan, a bounded number per tick](./redaction/0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md) | Accepted |
+| 0113 | [An added rule reaches the stored sender classes by its effect, through the comparison every scanning workload already makes](./redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md) | Accepted |
 
 ## Classification — `classification/`
 
@@ -115,6 +116,7 @@ moves it. Records themselves link freely and deep, into
 | 0080 | [Accounts and their provider credentials are created and repaired through the UI and live in the database](./data/0080-accounts-and-credentials-live-in-the-database.md) | Accepted |
 | 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
 | 0105 | [A cursor gap re-enumerates from an hour before the last cursor was written, with no cap, and an account with no cursor is reconciled over a first window](./data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md) | Accepted |
+| 0112 | [The base policy is read and written in a transaction of its own, which names no account and reaches only the base policy's rows](./data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -200,3 +202,4 @@ moves it. Records themselves link freely and deep, into
 | 0078 | [Configuration layers defaults, one optional YAML file, environment variables and flags, strictly, through a small project-owned library](./engineering/0078-configuration-layers-through-an-owned-library.md) | Accepted |
 | 0086 | [The MCP root speaks the protocol through the official Go SDK, stateless and tools only](./engineering/0086-mcp-root-on-the-official-go-sdk.md) | Accepted |
 | 0099 | [A body request loads the policy before it decides, sharing a load only with the requests that arrived before it started](./engineering/0099-a-body-request-loads-the-policy-before-it-decides.md) | Accepted |
+| 0114 | [A policy reload whose accounts read different base rules reads them all once more, and fails only if they still disagree](./engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md) | Accepted |

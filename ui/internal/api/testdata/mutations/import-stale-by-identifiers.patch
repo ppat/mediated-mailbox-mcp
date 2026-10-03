@@ -1,0 +1,20 @@
+control: An import is applied whole or not at all, against the stored rules its preview was computed against
+removes: the preview carries the stored rules' identifiers and classes without their suffixes, so an edit of a rule's suffixes since the preview goes unseen
+packages: ./ui/internal/api
+tests: TestAnImportIsAppliedWholeOrNotAtAll
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/policyfile.go b/ui/internal/api/policyfile.go
+index fbbd2256..ec30c1ac 100644
+--- a/ui/internal/api/policyfile.go
++++ b/ui/internal/api/policyfile.go
+@@ -185,7 +185,7 @@ func computedAgainst(stored []registry.StoredRule) string {
+ 	sorted := slices.SortedFunc(slices.Values(stored), func(a, b registry.StoredRule) int { return strings.Compare(a.ID, b.ID) })
+ 	out := make([]entry, len(sorted))
+ 	for i, r := range sorted {
+-		out[i] = entry{ID: r.ID, Class: r.Class, Suffixes: nonNil(r.Suffixes)}
++		out[i] = entry{ID: r.ID, Class: r.Class}
+ 	}
+ 	b, err := json.Marshal(out)
+ 	if err != nil {

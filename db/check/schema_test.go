@@ -47,7 +47,8 @@ func exemptTables() map[string]string {
 // ADR-0047 does, the account column equal to a parameter or null, and nothing looser. Every entry
 // must name an account-keyed table in the chain, as predicateExceptions' entries must.
 var nullAccountTables = map[string]string{
-	"policy_rules": "a base rule carries no account and every account inherits it (ADR-0004, ADR-0047)",
+	"policy_changes": "a base rule's change carries no account, and every account reads it with the base rules (ADR-0102, ADR-0112)",
+	"policy_rules":   "a base rule carries no account and every account inherits it (ADR-0004, ADR-0047)",
 }
 
 // column is one column of a table, as the migration chain declares it.
@@ -102,6 +103,12 @@ func readSchema(t *testing.T, files []sqlFile) schema {
 					}
 					if con := c.GetDef().GetConstraint(); c.GetSubtype() == pg.AlterTableType_AT_AddConstraint && con.GetContype() == pg.ConstrType_CONSTR_PRIMARY {
 						tb.primaryKey = names(con.GetKeys())
+					}
+					// A dropped primary key under PostgreSQL's default name leaves the table with no known
+					// key, as policy_rules has once it is keyed on its scope (ADR-0110), so no paged read is
+					// shown to end with a column that is no longer an identity.
+					if c.GetSubtype() == pg.AlterTableType_AT_DropConstraint && c.GetName() == a.GetRelation().GetRelname()+"_pkey" {
+						tb.primaryKey = nil
 					}
 				}
 			case n.GetRenameStmt() != nil:

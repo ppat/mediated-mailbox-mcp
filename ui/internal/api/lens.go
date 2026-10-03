@@ -9,11 +9,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
-	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
-	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -197,10 +192,7 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 		now := s.opts.Clock()
 		read := registry.Read{Account: account, Request: req, Bounds: bounds(req.Range, now), AsOf: now}
 		// The statements are built here, from the transaction that set the account (ADR-0047).
-		q := registry.Queries{
-			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-			Runs: jobruns.New(t), Failures: classification.New(t), Audit: auditlog.New(t),
-		}
+		q := queriesOf(t)
 		figures, total, err := dataset.Summary(r.Context(), q, read)
 		if err != nil {
 			return err
@@ -324,11 +316,7 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
 		var body any
 		err = tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
 			var err error
-			q := registry.Queries{
-				Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-				Runs: jobruns.New(t), Failures: classification.New(t), Audit: auditlog.New(t),
-			}
-			body, err = dataset.Detail(r.Context(), q, account, req, s.opts.Clock())
+			body, err = dataset.Detail(r.Context(), queriesOf(t), account, req, s.opts.Clock())
 			return err
 		})
 		s.metrics.readDuration.WithLabelValues(dataset.Name, "4").Observe(time.Since(started).Seconds())

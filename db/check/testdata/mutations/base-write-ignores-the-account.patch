@@ -1,0 +1,24 @@
+control: The base policy is written only in a base-policy transaction
+removes: the base rules' write policy stops requiring an empty account, so a transaction naming an account and the base policy writes base rules
+packages: ./db/check
+tests: TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/a_transaction_naming_an_account_and_the_base_policy_writes_no_base_row
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
+index de58e776..fc0e0b22 100644
+--- a/db/migrations/00023_policy_management.sql
++++ b/db/migrations/00023_policy_management.sql
+@@ -47,12 +47,10 @@ TO mediated_mailbox_ui
+ USING (
+     account_id IS NULL
+     AND current_setting('app.base', TRUE) = 'on'
+-    AND coalesce(current_setting('app.account', TRUE), '') = ''
+ )
+ WITH CHECK (
+     account_id IS NULL
+     AND current_setting('app.base', TRUE) = 'on'
+-    AND coalesce(current_setting('app.account', TRUE), '') = ''
+ );
+ CREATE POLICY policy_changes_base_write ON policy_changes FOR INSERT
+ TO mediated_mailbox_ui

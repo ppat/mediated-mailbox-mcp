@@ -1,0 +1,19 @@
+control: A policy write the snapshot's validation or the UI's route words refuse is refused before it is written
+removes: an identifier that is one of a scope's route words is admitted, so its rule cannot be reached at its own address
+packages: ./ui/internal/core/rules
+tests: TestCheck/an_account's_route_word TestCheck/base_is_an_account's_route_word TestCheck/the_base_policy's_route_word TestCheck/several_problems,_in_rule_order
+scheduled-count: no
+
+diff --git a/ui/internal/core/rules/rules.go b/ui/internal/core/rules/rules.go
+index 8eb91ad2..97a06fb8 100644
+--- a/ui/internal/core/rules/rules.go
++++ b/ui/internal/core/rules/rules.go
+@@ -43,7 +43,7 @@ func Reserved(scope string) []string {
+ // Unreachable reports whether a rule of scope with identifier id could not be reached at its own
+ // address, because it is one of the scope's route words, exactly . or .., or holds a /.
+ func Unreachable(id, scope string) bool {
+-	return slices.Contains(Reserved(scope), id) || id == "." || id == ".." || strings.Contains(id, "/")
++	return id == "." || id == ".." || strings.Contains(id, "/")
+ }
+ 
+ // Kind names what is wrong with one rule of a write.

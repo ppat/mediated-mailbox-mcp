@@ -5,15 +5,15 @@ tests: TestTxHelper
 scheduled-count: no
 
 diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
-index 87bf71f..433bc12 100644
+index 71dfa7e0..0ebaa42f 100644
 --- a/testsupport/analysis/txhelper.go
 +++ b/testsupport/analysis/txhelper.go
-@@ -202,7 +202,7 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
- 	if len(call.Args) == 1 {
+@@ -235,7 +235,7 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
  		if arg, ok := ast.Unparen(call.Args[0]).(*ast.Ident); ok {
  			if lit, ok := literals[pass.TypesInfo.Uses[arg]]; ok {
--				if lit.Body != innermost {
-+				if lit.Body == innermost {
+ 				switch base := fn.Pkg().Path() == txBasePath; {
+-				case lit.Body != innermost:
++				case lit.Body == innermost:
  					pass.Reportf(id.Pos(), txNestedMessage, name)
- 				}
- 				return
+ 				case bases[innermost] && !base:
+ 					pass.Reportf(id.Pos(), txBaseOtherMessage, name)

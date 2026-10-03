@@ -170,6 +170,31 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 	return marked, err
 }
 
+// List implements Store.
+func (s *Postgres) List(ctx context.Context, account string, listed func([]string) []index.Listing) (int, error) {
+	marked := 0
+	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+		marked = 0
+		q := scan.New(t)
+		normal, err := q.NormalDomains(ctx, account)
+		if err != nil {
+			return fmt.Errorf("reading the domains stored as normal: %w", err)
+		}
+		for _, l := range listed(normal) {
+			n, err := q.MarkListed(ctx, scan.MarkListedParams{AccountID: account, Domain: l.Domain, ClassRuleID: pgtype.Text{String: l.Rule, Valid: true}})
+			if err != nil {
+				return fmt.Errorf("restricting the stored class of %q: %w", l.Domain, err)
+			}
+			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: l.Domain}); err != nil {
+				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", l.Domain, err)
+			}
+			marked += int(n)
+		}
+		return nil
+	})
+	return marked, err
+}
+
 // Reopen implements Store.
 func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp, overturned func([]index.Waiting) []string) (Reopened, error) {
 	var marked Reopened

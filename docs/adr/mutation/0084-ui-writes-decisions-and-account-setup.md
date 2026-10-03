@@ -57,11 +57,13 @@ Constraints that keep it safe to exist:
   and a read of a client's sealed secret for the one part of the UI that opens it
   ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)),
   the writes on `policy_rules` that policy management makes, which is
-  importing, adding, editing and removing rules (ADR-0004), and insert on `policy_changes` for the
+  importing, adding, editing and removing rules (ADR-0004), as insert, update of `domain_suffix` and
+  delete, and insert on `policy_changes` for the
   history row each policy write appends
-  ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), and nothing else. The setup columns are named
-  where the tables holding the client and the account are designed, and the policy writes where
-  policy management is built, and each is added to this grant then. The limit is enforced by
+  ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), and nothing else. The
+  setup columns are named where the tables holding the client and the account are designed, and
+  added to this grant then. The base policy's rules and history rows are written only in a transaction of the base policy's own
+  ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). The limit is enforced by
   database permissions, so a UI bug cannot become a mailbox mutation. A write is made by the UI's own code in one transaction, with no
   database-resident code ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The
   identity a decision records is the value of a header the deployment declares an authenticating

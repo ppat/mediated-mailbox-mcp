@@ -1,0 +1,20 @@
+control: An import is applied whole or not at all, against the stored rules its preview was computed against
+removes: an import that fails after its first change commits what it wrote
+packages: ./ui/internal/api
+tests: TestAnImportIsAppliedWholeOrNotAtAll
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/policyfile.go b/ui/internal/api/policyfile.go
+index fbbd2256..86fa24bc 100644
+--- a/ui/internal/api/policyfile.go
++++ b/ui/internal/api/policyfile.go
+@@ -495,7 +495,7 @@ func (s *Server) writeImport(w http.ResponseWriter, r *http.Request, account str
+ 			}
+ 			out.Added = append(out.Added, RuleAnswer{Scope: scopeOf(isBase), RuleID: rule.ID, Suffixes: rule.Suffixes})
+ 			if err := step(); err != nil {
+-				return err
++				return nil
+ 			}
+ 		}
+ 		for _, e := range d.Edited {

@@ -26,6 +26,26 @@ func Delisted(p policy.Composed, l classify.Lookups, restricted []string) []stri
 	return out
 }
 
+// Listing is one domain the index stores as normal that the policy now restricts, with the rule that
+// restricts it.
+type Listing struct {
+	Domain, Rule string
+}
+
+// Listed returns the domains among normal, the sender domains of the messages stored as normal, that
+// the account policy p now restricts under a rule, each with that rule, in the order given (ADR-0113).
+// A domain the classifier cannot read, and every domain while no policy has loaded, are restricted
+// with no rule, so neither is listed.
+func Listed(p policy.Composed, l classify.Lookups, normal []string) []Listing {
+	var out []Listing
+	for _, d := range normal {
+		if v := classify.Classify(p, "@"+d, l); v.Reason() == classify.Listed {
+			out = append(out, Listing{Domain: d, Rule: v.Rule()})
+		}
+	}
+	return out
+}
+
 // Waiting is one message waiting for a scan, as a read of the waiting messages returns it, or one the
 // gate skipped, as the read of the stored gate skips returns it.
 type Waiting struct {

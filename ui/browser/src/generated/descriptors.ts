@@ -253,5 +253,128 @@ export const descriptors = {
       "level": 1,
       "sort": "last_at,desc"
     }
+  },
+  "rules": {
+    "name": "rules",
+    "ranged": true,
+    "range_column": "created_at",
+    "dimensions": [
+      {
+        "name": "search",
+        "storage": "text",
+        "groupable": false,
+        "filterable": true,
+        "sortable": false,
+        "wording": "search",
+        "search": true
+      },
+      {
+        "name": "rule_id",
+        "storage": "text",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "rule"
+      }
+    ],
+    "default": {
+      "level": 3,
+      "range": "all",
+      "sort": "rule_id,asc"
+    }
+  },
+  "policy_changes": {
+    "name": "policy_changes",
+    "ranged": true,
+    "range_column": "ts",
+    "dimensions": [
+      {
+        "name": "action",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "action",
+        "values": [
+          "added",
+          "edited",
+          "lifted",
+          "confirmed"
+        ]
+      },
+      {
+        "name": "scope",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "scope",
+        "null_wording": "base"
+      },
+      {
+        "name": "actor",
+        "storage": "text",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "identity"
+      },
+      {
+        "name": "day",
+        "storage": "date",
+        "groupable": true,
+        "filterable": true,
+        "sortable": false,
+        "wording": "day"
+      },
+      {
+        "name": "rule",
+        "storage": "text",
+        "groupable": false,
+        "filterable": true,
+        "sortable": false,
+        "wording": "rule"
+      },
+      {
+        "name": "ts",
+        "storage": "time",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "time"
+      }
+    ],
+    "default": {
+      "level": 3,
+      "range": "30d",
+      "sort": "ts,desc"
+    }
+  },
+  "senders": {
+    "name": "senders",
+    "ranged": false,
+    "dimensions": [
+      {
+        "name": "search",
+        "storage": "text",
+        "groupable": false,
+        "filterable": true,
+        "sortable": false,
+        "wording": "search",
+        "search": true
+      },
+      {
+        "name": "message_count",
+        "storage": "number",
+        "groupable": false,
+        "filterable": false,
+        "sortable": true,
+        "wording": "messages"
+      }
+    ],
+    "default": {
+      "level": 3,
+      "sort": "message_count,desc"
+    }
   }
 } as const;

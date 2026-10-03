@@ -1,0 +1,20 @@
+control: A lift every account loses needs the rule's identifier typed, the server's check
+removes: any typed text confirms a base lift, not the rule identifier
+packages: ./ui/internal/api
+tests: TestABaseLiftNeedsTheIdentifierTyped TestAnImportThatLiftsNeedsItsConfirmation
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..3c7aef73 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -410,7 +410,7 @@ func (s *Server) liftRule(ctx context.Context, account string, isBase bool, id s
+ // confirms reports whether a typed confirmation is want, compared after trimming surrounding space as
+ // the screen's field compares it (docs/UI.md section 8.7).
+ func confirms(confirmation *string, want string) bool {
+-	return confirmation != nil && strings.TrimSpace(*confirmation) == want
++	return confirmation != nil && strings.TrimSpace(*confirmation) != ""
+ }
+ 
+ func scopeOf(isBase bool) string {

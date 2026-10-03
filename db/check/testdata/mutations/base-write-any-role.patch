@@ -1,0 +1,19 @@
+control: The base policy is written only in a base-policy transaction
+removes: the base rules' write policy applies to every role rather than the UI's, so another runtime role writes base rules in a base-policy transaction
+packages: ./db/check
+tests: TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/no_other_role_writes_the_base_policy
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
+index de58e776..b5101ee9 100644
+--- a/db/migrations/00023_policy_management.sql
++++ b/db/migrations/00023_policy_management.sql
+@@ -43,7 +43,6 @@ USING (account_id IS NULL);
+ -- and a base-policy transaction's empty account matches no account's row, so it reads and writes none.
+ -- Neither setting is known on a connection that never set it, so both are read with missing_ok.
+ CREATE POLICY policy_rules_base_write ON policy_rules
+-TO mediated_mailbox_ui
+ USING (
+     account_id IS NULL
+     AND current_setting('app.base', TRUE) = 'on'

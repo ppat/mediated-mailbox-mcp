@@ -1,0 +1,28 @@
+control: The base policy's installation screens read no account's state
+removes: the base policy is read in the first account's transaction, so that account's own rules reach the installation screen
+packages: ./ui/internal/api
+tests: TestTheBasePolicyReadsNoAccountsState
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/basepolicy.go b/ui/internal/api/basepolicy.go
+index a582345e..0a3d9309 100644
+--- a/ui/internal/api/basepolicy.go
++++ b/ui/internal/api/basepolicy.go
+@@ -99,9 +99,14 @@ func basePolicyType() schema.Type {
+ func (s *Server) getBasePolicy(w http.ResponseWriter, r *http.Request) {
+ 	search := strings.ToLower(r.URL.Query().Get("search"))
+ 	out := BasePolicy{Rules: []BaseRule{}}
+-	err := tx.RunBase(r.Context(), s.opts.Database, func(t pgx.Tx) error {
++	listed, err := s.listAccountIDs(r.Context())
++	if err != nil {
++		s.databaseFailure(w, r, err)
++		return
++	}
++	err = tx.Run(r.Context(), s.opts.Database, listed[0], func(t pgx.Tx) error {
+ 		q := base.New(t)
+-		stored, err := baseStored(r.Context(), q)
++		stored, err := registry.ComposedRules(r.Context(), manage.New(t), listed[0])
+ 		if err != nil {
+ 			return err
+ 		}

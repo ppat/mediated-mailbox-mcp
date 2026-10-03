@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
+	coreindex "github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
@@ -463,6 +464,40 @@ func TestATickScansADelistedSendersMessages(t *testing.T) {
 	r := runs(t, conn, account)
 	if n := count(t, conn, "SELECT count(*) FROM job_run_events WHERE account_id = $1 AND run_id = $2 AND kind = 'retry' AND detail LIKE 'the delisting transition returned 1 messages%'", account, r[len(r)-1].ID); n != 1 {
 		t.Errorf("the tick recorded %d delisting events, want 1", n)
+	}
+}
+
+// Once backfill's second pass has ended, a tick restricts the stored class of a sender a rule added
+// since restricts, with the rule, and rebuilds its statistics, leaving the scan state it had. A tick
+// under the same policy then marks nothing more (ADR-0113).
+func TestATickRestrictsTheStoredClassOfAnAddedRulesSender(t *testing.T) {
+	conn := superuser(t)
+	account := newAccount(t, conn, true)
+	f := mailbox(t, account, waiting("m1", "orders@shop.example", false), waiting("m2", "news@news.example", false))
+	p := &direct{port: f}
+	mustTick(t, deps(t, syncPool(t), p, listing(t), account), account)
+	if s := index(t, conn, account)["m1"]; s.Class != "normal" || s.State != "scanned" {
+		t.Fatalf("the shop's message is %+v under no rule, want normal and scanned", s)
+	}
+	added := deps(t, syncPool(t), p, listing(t, "shop.example"), account)
+
+	mustTick(t, added, account)
+
+	stored := index(t, conn, account)
+	if s := stored["m1"]; s.Class != "restricted" || s.Rule != "rule.shop" || s.State != "scanned" {
+		t.Errorf("the shop's message is %+v, want restricted by rule.shop and still scanned", s)
+	}
+	if s := stored["m2"]; s.Class != "normal" || s.Rule != "" {
+		t.Errorf("the news sender's message is %+v, want normal with no rule", s)
+	}
+	if n := count(t, conn, "SELECT count(*) FROM senders WHERE account_id = $1 AND domain = 'shop.example' AND sender_class = 'restricted'", account); n != 1 {
+		t.Errorf("found %d restricted statistics for the shop, want 1", n)
+	}
+	marked, err := tick.NewPostgres(syncPool(t)).List(context.Background(), account, func(normal []string) []coreindex.Listing {
+		return coreindex.Listed(listing(t, "shop.example").For(account), lookups, normal)
+	})
+	if err != nil || marked != 0 {
+		t.Errorf("a second comparison marked %d messages with error %v, want none", marked, err)
 	}
 }
 

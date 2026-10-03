@@ -21,6 +21,14 @@ type Querier interface {
 	// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
 	// pending scan (ADR-0037, ADR-0016).
 	MarkDelisted(ctx context.Context, arg MarkDelistedParams) (int64, error)
+	// Restricts the stored class of one domain the policy in force now restricts under a rule. Its
+	// messages stored as normal take the restricted class and the rule that sets it, and their scan state
+	// is left as it is (ADR-0113, ADR-0016).
+	MarkListed(ctx context.Context, arg MarkListedParams) (int64, error)
+	// The sender domains of the account whose messages the index stores as normal, each once, which every
+	// scanning workload compares with the policy in force, so a rule added since restricts the stored
+	// classes (ADR-0113).
+	NormalDomains(ctx context.Context, accountID string) ([]string, error)
 	// The account's messages waiting for their content scan after the message identified by after, in
 	// the order of their identifiers, each with what the scan gate reads of it and of its sender, the
 	// sender's volume and prior hits (ADR-0093, ADR-0017). A message with no sender statistics reads a

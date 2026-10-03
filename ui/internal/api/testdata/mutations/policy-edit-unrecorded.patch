@@ -1,0 +1,20 @@
+control: Every policy write leaves its history row or nothing
+removes: an edit of a rule writes no history row
+packages: ./ui/internal/api
+tests: TestAPolicyWriteLeavesItsHistoryRowOrNothing
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..a3d9f981 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -371,7 +371,7 @@ func (s *Server) editRule(ctx context.Context, account string, isBase bool, id s
+ 		if err := s.fault("between a rule's write and its history row"); err != nil {
+ 			return err
+ 		}
+-		return w.record(ctx, actionEdited, id, stored[i].Suffixes, req.Suffixes, actor)
++		return nil
+ 	})
+ }
+ 

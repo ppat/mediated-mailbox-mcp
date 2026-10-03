@@ -1,0 +1,19 @@
+control: An added rule reaches the stored sender classes by its effect
+removes: a listed domain is stored with its own name as the rule rather than the rule that restricts it
+packages: ./core/index
+tests: TestListed TestListed/a_rule_for_the_bank_and_one_for_a_parent_domain
+scheduled-count: no
+
+diff --git a/core/index/scan.go b/core/index/scan.go
+index 4ed15846..ef3eca53 100644
+--- a/core/index/scan.go
++++ b/core/index/scan.go
+@@ -40,7 +40,7 @@ func Listed(p policy.Composed, l classify.Lookups, normal []string) []Listing {
+ 	var out []Listing
+ 	for _, d := range normal {
+ 		if v := classify.Classify(p, "@"+d, l); v.Reason() == classify.Listed {
+-			out = append(out, Listing{Domain: d, Rule: v.Rule()})
++			out = append(out, Listing{Domain: d, Rule: d})
+ 		}
+ 	}
+ 	return out

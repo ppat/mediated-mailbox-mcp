@@ -118,6 +118,25 @@
         ],
         "type": "object"
       },
+      "AddBaseRule": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rule_id",
+          "suffixes"
+        ],
+        "type": "object"
+      },
       "AddClient": {
         "additionalProperties": false,
         "properties": {
@@ -142,6 +161,33 @@
           "client_id",
           "client_secret",
           "project_id"
+        ],
+        "type": "object"
+      },
+      "AddRule": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "account",
+              "base"
+            ],
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scope",
+          "rule_id",
+          "suffixes"
         ],
         "type": "object"
       },
@@ -360,6 +406,95 @@
         ],
         "type": "object"
       },
+      "BaseHistory": {
+        "additionalProperties": false,
+        "properties": {
+          "range": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeRow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "range",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "BasePolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "latest": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/BaseRule"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rules",
+          "total",
+          "accounts",
+          "latest"
+        ],
+        "type": "object"
+      },
+      "BaseRule": {
+        "additionalProperties": false,
+        "properties": {
+          "class": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rule_id",
+          "class",
+          "suffixes",
+          "source",
+          "created_at",
+          "created_by"
+        ],
+        "type": "object"
+      },
       "CandidateRow": {
         "additionalProperties": false,
         "properties": {
@@ -482,6 +617,66 @@
           "pages",
           "total",
           "rows"
+        ],
+        "type": "object"
+      },
+      "ChangeRow": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "enum": [
+              "added",
+              "edited",
+              "lifted",
+              "confirmed"
+            ],
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "rule_exists": {
+            "type": "boolean"
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "suffixes_after": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "suffixes_before": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ts": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ts",
+          "account",
+          "actor",
+          "action",
+          "rule_id",
+          "suffixes_before",
+          "suffixes_after",
+          "rule_exists"
         ],
         "type": "object"
       },
@@ -707,6 +902,22 @@
         ],
         "type": "object"
       },
+      "Counts": {
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "type": "integer"
+          },
+          "senders": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "senders",
+          "messages"
+        ],
+        "type": "object"
+      },
       "Decisions": {
         "additionalProperties": false,
         "properties": {
@@ -724,6 +935,135 @@
           "plans_draft",
           "candidates_pending",
           "workloads_running"
+        ],
+        "type": "object"
+      },
+      "EditBaseRule": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "suffixes_before": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "suffixes_before",
+          "suffixes",
+          "confirmation"
+        ],
+        "type": "object"
+      },
+      "EditRule": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "account",
+              "base"
+            ],
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "suffixes_before": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scope",
+          "suffixes_before",
+          "suffixes",
+          "confirmation"
+        ],
+        "type": "object"
+      },
+      "EditedRule": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "after": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "before": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "removed": {
+            "items": {
+              "$ref": "#/components/schemas/RemovedSuffix"
+            },
+            "type": "array"
+          },
+          "rule_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_id",
+          "before",
+          "after",
+          "added",
+          "removed"
+        ],
+        "type": "object"
+      },
+      "ElsewhereScope": {
+        "additionalProperties": false,
+        "properties": {
+          "scope": {
+            "enum": [
+              "base",
+              "account"
+            ],
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scope",
+          "suffixes"
         ],
         "type": "object"
       },
@@ -1520,6 +1860,133 @@
         ],
         "type": "object"
       },
+      "ImportPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "added": {
+            "items": {
+              "$ref": "#/components/schemas/RuleAnswer"
+            },
+            "type": "array"
+          },
+          "computed_against": {
+            "type": "string"
+          },
+          "edited": {
+            "items": {
+              "$ref": "#/components/schemas/EditedRule"
+            },
+            "type": "array"
+          },
+          "lifted": {
+            "items": {
+              "$ref": "#/components/schemas/LiftedRule"
+            },
+            "type": "array"
+          },
+          "lifts": {
+            "type": "integer"
+          },
+          "released": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Counts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unchanged": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "edited",
+          "lifted",
+          "unchanged",
+          "lifts",
+          "released",
+          "accounts",
+          "computed_against"
+        ],
+        "type": "object"
+      },
+      "ImportPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "type": "object"
+      },
+      "ImportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "computed_against": {
+            "type": "string"
+          },
+          "confirmation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "computed_against",
+          "confirmation"
+        ],
+        "type": "object"
+      },
+      "Imported": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "items": {
+              "$ref": "#/components/schemas/RuleAnswer"
+            },
+            "type": "array"
+          },
+          "edited": {
+            "items": {
+              "$ref": "#/components/schemas/EditedRule"
+            },
+            "type": "array"
+          },
+          "lifted": {
+            "items": {
+              "$ref": "#/components/schemas/LiftedRule"
+            },
+            "type": "array"
+          },
+          "lifts": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "edited",
+          "lifted",
+          "lifts"
+        ],
+        "type": "object"
+      },
       "Installation": {
         "additionalProperties": false,
         "properties": {
@@ -1528,6 +1995,9 @@
               "$ref": "#/components/schemas/InstallationAccount"
             },
             "type": "array"
+          },
+          "base_rules": {
+            "type": "integer"
           },
           "clients": {
             "items": {
@@ -1545,7 +2015,8 @@
         "required": [
           "providers",
           "clients",
-          "accounts"
+          "accounts",
+          "base_rules"
         ],
         "type": "object"
       },
@@ -1631,7 +2102,10 @@
               "plans",
               "candidates",
               "runs",
-              "failures"
+              "failures",
+              "rules",
+              "policy_changes",
+              "senders"
             ],
             "type": "string"
           },
@@ -1658,6 +2132,107 @@
           "as_of",
           "filters",
           "figures"
+        ],
+        "type": "object"
+      },
+      "LiftBaseRule": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "suffixes_before": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "suffixes_before",
+          "confirmation"
+        ],
+        "type": "object"
+      },
+      "LiftRule": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "account",
+              "base"
+            ],
+            "type": "string"
+          },
+          "suffixes_before": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scope",
+          "suffixes_before",
+          "confirmation"
+        ],
+        "type": "object"
+      },
+      "LiftedRule": {
+        "additionalProperties": false,
+        "properties": {
+          "released": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Counts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rule_id",
+          "suffixes",
+          "released"
+        ],
+        "type": "object"
+      },
+      "MatchAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "senders_total": {
+            "type": "integer"
+          },
+          "suffixes": {
+            "items": {
+              "$ref": "#/components/schemas/SuffixMatch"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "senders_total",
+          "suffixes"
         ],
         "type": "object"
       },
@@ -1944,6 +2519,431 @@
         ],
         "type": "object"
       },
+      "PolicyChangesByAction": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "policy_changes"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "action"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyChangesByActionGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByActionGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/PolicyChangesByActionKey"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByActionKey": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByActor": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "policy_changes"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "actor"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyChangesByActorGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByActorGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/PolicyChangesByActorKey"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByActorKey": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "actor"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByDay": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "policy_changes"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "day"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyChangesByDayGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByDayGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/PolicyChangesByDayKey"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByDayKey": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "day"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByScope": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "policy_changes"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "group": {
+            "enum": [
+              "scope"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyChangesByScopeGroup"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "group",
+          "filters",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByScopeGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/PolicyChangesByScopeKey"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesByScopeKey": {
+        "additionalProperties": false,
+        "properties": {
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "scope"
+        ],
+        "type": "object"
+      },
+      "PolicyChangesPage": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "policy_changes"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeRow"
+            },
+            "type": "array"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "filters",
+          "sort",
+          "page",
+          "pages",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "Problem": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "blank_identifier",
+              "repeated_identifier",
+              "no_suffix",
+              "invalid_suffix",
+              "other_class",
+              "reserved_identifier",
+              "not_the_form",
+              "too_large"
+            ],
+            "type": "string"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "suffix": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "rule_id",
+          "line",
+          "suffix"
+        ],
+        "type": "object"
+      },
       "Rate": {
         "additionalProperties": false,
         "properties": {
@@ -2094,6 +3094,25 @@
         ],
         "type": "object"
       },
+      "Refusal": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "error",
+          "problems"
+        ],
+        "type": "object"
+      },
       "RemovedClient": {
         "additionalProperties": false,
         "properties": {
@@ -2103,6 +3122,29 @@
         },
         "required": [
           "removed"
+        ],
+        "type": "object"
+      },
+      "RemovedSuffix": {
+        "additionalProperties": false,
+        "properties": {
+          "released": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Counts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suffix": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "suffix",
+          "released"
         ],
         "type": "object"
       },
@@ -2126,6 +3168,270 @@
           "client_id",
           "client_secret",
           "project_id"
+        ],
+        "type": "object"
+      },
+      "RuleAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "base",
+              "account"
+            ],
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scope",
+          "rule_id",
+          "suffixes"
+        ],
+        "type": "object"
+      },
+      "RuleDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "class": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "elsewhere": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ElsewhereScope"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeRow"
+            },
+            "type": "array"
+          },
+          "matched": {
+            "items": {
+              "$ref": "#/components/schemas/SenderMatch"
+            },
+            "type": "array"
+          },
+          "matched_total": {
+            "type": "integer"
+          },
+          "messages": {
+            "type": "integer"
+          },
+          "released": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "restricted": {
+            "type": "integer"
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "base",
+              "account"
+            ],
+            "type": "string"
+          },
+          "senders": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "suffix_details": {
+            "items": {
+              "$ref": "#/components/schemas/SuffixDetail"
+            },
+            "type": "array"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scope",
+          "rule_id",
+          "class",
+          "suffixes",
+          "source",
+          "created_at",
+          "created_by",
+          "senders",
+          "restricted",
+          "messages",
+          "suffix_details",
+          "released",
+          "matched",
+          "matched_total",
+          "history",
+          "accounts",
+          "elsewhere"
+        ],
+        "type": "object"
+      },
+      "RuleName": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "base",
+              "account"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "rule_id"
+        ],
+        "type": "object"
+      },
+      "RuleRow": {
+        "additionalProperties": false,
+        "properties": {
+          "class": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "integer"
+          },
+          "restricted": {
+            "type": "integer"
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "base",
+              "account"
+            ],
+            "type": "string"
+          },
+          "senders": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "suffixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scope",
+          "rule_id",
+          "class",
+          "suffixes",
+          "source",
+          "created_at",
+          "created_by",
+          "senders",
+          "restricted",
+          "messages"
+        ],
+        "type": "object"
+      },
+      "RulesPage": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "rules"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RuleRow"
+            },
+            "type": "array"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "filters",
+          "sort",
+          "page",
+          "pages",
+          "total",
+          "rows"
         ],
         "type": "object"
       },
@@ -2907,6 +4213,138 @@
         ],
         "type": "object"
       },
+      "SenderMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "integer"
+          },
+          "sender_class": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "sender_class",
+          "messages"
+        ],
+        "type": "object"
+      },
+      "SenderRow": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_seen": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "list_id_ratio": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "message_count": {
+            "type": "integer"
+          },
+          "restricted_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scan_hits": {
+            "type": "integer"
+          },
+          "sender_class": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "sender_class",
+          "message_count",
+          "first_seen",
+          "last_seen",
+          "list_id_ratio",
+          "scan_hits",
+          "restricted_by"
+        ],
+        "type": "object"
+      },
+      "SendersPage": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataset": {
+            "enum": [
+              "senders"
+            ],
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/SenderRow"
+            },
+            "type": "array"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Count"
+          }
+        },
+        "required": [
+          "account",
+          "dataset",
+          "level",
+          "as_of",
+          "filters",
+          "sort",
+          "page",
+          "pages",
+          "total",
+          "rows"
+        ],
+        "type": "object"
+      },
       "SensitiveCount": {
         "additionalProperties": false,
         "properties": {
@@ -2940,6 +4378,65 @@
         "required": [
           "heuristic",
           "evidence"
+        ],
+        "type": "object"
+      },
+      "SuffixDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "type": "integer"
+          },
+          "released": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "senders": {
+            "type": "integer"
+          },
+          "suffix": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "suffix",
+          "senders",
+          "messages",
+          "released"
+        ],
+        "type": "object"
+      },
+      "SuffixMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "type": "integer"
+          },
+          "public_suffix": {
+            "type": "boolean"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleName"
+            },
+            "type": "array"
+          },
+          "senders": {
+            "type": "integer"
+          },
+          "suffix": {
+            "type": "string"
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "suffix",
+          "valid",
+          "public_suffix",
+          "senders",
+          "messages",
+          "rules"
         ],
         "type": "object"
       },
@@ -3466,6 +4963,720 @@
           }
         },
         "summary": "Finishes the session's attempt from the pasted address and writes the account's two rows"
+      }
+    },
+    "/api/setup/policy": {
+      "get": {
+        "operationId": "getBasePolicy",
+        "parameters": [
+          {
+            "description": "The search the read is narrowed by",
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasePolicy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "The base rules and every account's identifier, reading no account's state"
+      }
+    },
+    "/api/setup/policy/export": {
+      "get": {
+        "operationId": "exportBasePolicy",
+        "responses": {
+          "200": {
+            "content": {
+              "application/yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Downloads the base rules as a policy file"
+      }
+    },
+    "/api/setup/policy/history": {
+      "get": {
+        "operationId": "getBaseHistory",
+        "parameters": [
+          {
+            "description": "The range the read is narrowed by",
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The rule the read is narrowed by",
+            "in": "query",
+            "name": "rule",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseHistory"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "The base policy's changes, newest first"
+      }
+    },
+    "/api/setup/policy/import": {
+      "post": {
+        "operationId": "importBasePolicy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Imported"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Makes the base rules equal to a policy file, in one transaction"
+      }
+    },
+    "/api/setup/policy/import/preview": {
+      "post": {
+        "operationId": "previewBaseImport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Reads and checks a policy file and answers what importing it into the base policy would change"
+      }
+    },
+    "/api/setup/policy/rules": {
+      "post": {
+        "operationId": "addBaseRule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddBaseRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Adds a base rule, with its history row"
+      }
+    },
+    "/api/setup/policy/rules/{rule}": {
+      "post": {
+        "operationId": "editBaseRule",
+        "parameters": [
+          {
+            "description": "The rule the path names",
+            "in": "path",
+            "name": "rule",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditBaseRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Sets a base rule's suffixes, with its history row"
+      }
+    },
+    "/api/setup/policy/rules/{rule}/lift": {
+      "post": {
+        "operationId": "liftBaseRule",
+        "parameters": [
+          {
+            "description": "The rule the path names",
+            "in": "path",
+            "name": "rule",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiftBaseRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Lifts a base rule, with its history row"
       }
     },
     "/api/setup/{provider}/clients": {
@@ -4667,7 +6878,10 @@
                 "plans",
                 "candidates",
                 "runs",
-                "failures"
+                "failures",
+                "rules",
+                "policy_changes",
+                "senders"
               ],
               "type": "string"
             }
@@ -4718,6 +6932,22 @@
           {
             "description": "A dimension filter, value, a,b or !value",
             "in": "query",
+            "name": "action",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
             "name": "day",
             "schema": {
               "type": "string"
@@ -4758,7 +6988,31 @@
           {
             "description": "A dimension filter, value, a,b or !value",
             "in": "query",
+            "name": "rule",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
             "name": "run",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A dimension filter, value, a,b or !value",
+            "in": "query",
+            "name": "search",
             "schema": {
               "type": "string"
             }
@@ -4837,6 +7091,27 @@
                     },
                     {
                       "$ref": "#/components/schemas/FailuresByDisposition"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RulesPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PolicyChangesPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PolicyChangesByAction"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PolicyChangesByScope"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PolicyChangesByActor"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PolicyChangesByDay"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SendersPage"
                     }
                   ]
                 }
@@ -5138,8 +7413,918 @@
               "level": 1,
               "sort": "last_at,desc"
             }
+          },
+          {
+            "name": "rules",
+            "ranged": true,
+            "range_column": "created_at",
+            "dimensions": [
+              {
+                "name": "search",
+                "storage": "text",
+                "groupable": false,
+                "filterable": true,
+                "sortable": false,
+                "wording": "search",
+                "search": true
+              },
+              {
+                "name": "rule_id",
+                "storage": "text",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "rule"
+              }
+            ],
+            "default": {
+              "level": 3,
+              "range": "all",
+              "sort": "rule_id,asc"
+            }
+          },
+          {
+            "name": "policy_changes",
+            "ranged": true,
+            "range_column": "ts",
+            "dimensions": [
+              {
+                "name": "action",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "action",
+                "values": [
+                  "added",
+                  "edited",
+                  "lifted",
+                  "confirmed"
+                ]
+              },
+              {
+                "name": "scope",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "scope",
+                "null_wording": "base"
+              },
+              {
+                "name": "actor",
+                "storage": "text",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "identity"
+              },
+              {
+                "name": "day",
+                "storage": "date",
+                "groupable": true,
+                "filterable": true,
+                "sortable": false,
+                "wording": "day"
+              },
+              {
+                "name": "rule",
+                "storage": "text",
+                "groupable": false,
+                "filterable": true,
+                "sortable": false,
+                "wording": "rule"
+              },
+              {
+                "name": "ts",
+                "storage": "time",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "time"
+              }
+            ],
+            "default": {
+              "level": 3,
+              "range": "30d",
+              "sort": "ts,desc"
+            }
+          },
+          {
+            "name": "senders",
+            "ranged": false,
+            "dimensions": [
+              {
+                "name": "search",
+                "storage": "text",
+                "groupable": false,
+                "filterable": true,
+                "sortable": false,
+                "wording": "search",
+                "search": true
+              },
+              {
+                "name": "message_count",
+                "storage": "number",
+                "groupable": false,
+                "filterable": false,
+                "sortable": true,
+                "wording": "messages"
+              }
+            ],
+            "default": {
+              "level": 3,
+              "sort": "message_count,desc"
+            }
           }
         ]
+      }
+    },
+    "/api/{account}/policy/export": {
+      "get": {
+        "operationId": "exportPolicy",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Downloads the account's own rules as a policy file"
+      }
+    },
+    "/api/{account}/policy/import": {
+      "post": {
+        "operationId": "importPolicy",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Imported"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Makes the account's own rules equal to a policy file, in one transaction"
+      }
+    },
+    "/api/{account}/policy/import/preview": {
+      "post": {
+        "operationId": "previewImport",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Reads and checks a policy file and answers what importing it into the account's own rules would change"
+      }
+    },
+    "/api/{account}/policy/match": {
+      "get": {
+        "operationId": "getPolicyMatch",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The suffix the read is narrowed by",
+            "in": "query",
+            "name": "suffix",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "What each suffix typed in Add a rule matches in the account, and the rules already matching it"
+      }
+    },
+    "/api/{account}/policy/rules": {
+      "post": {
+        "operationId": "addRule",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Adds a rule to the account's own rules or the base policy, with its history row"
+      }
+    },
+    "/api/{account}/policy/rules/{rule}": {
+      "post": {
+        "operationId": "editRule",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The rule the path names",
+            "in": "path",
+            "name": "rule",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Sets a rule's suffixes, with its history row"
+      }
+    },
+    "/api/{account}/policy/rules/{rule}/lift": {
+      "post": {
+        "operationId": "liftRule",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The rule the path names",
+            "in": "path",
+            "name": "rule",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiftRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Lifts a rule, with its history row"
+      }
+    },
+    "/api/{account}/rules/{row}": {
+      "get": {
+        "operationId": "getRulesRow",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The row's rule",
+            "in": "path",
+            "name": "row",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "One row of rules with its provenance, for one account"
       }
     },
     "/api/{account}/system": {

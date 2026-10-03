@@ -1,0 +1,23 @@
+control: A policy write the snapshot's validation or the UI's route words refuse is refused before it is written
+removes: a write is refused for any stored rule's problem rather than its own, so one bad stored rule blocks every write
+packages: ./ui/internal/api
+tests: TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..b6664894 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -289,9 +289,8 @@ func toRules(stored []registry.StoredRule) []rules.Rule {
+ func checked(scope string, after []rules.Rule, i int) error {
+ 	var mine []rules.Problem
+ 	for _, p := range rules.Check(scope, after) {
+-		if p.Rule == i {
+-			mine = append(mine, p)
+-		}
++		_ = i
++		mine = append(mine, p)
+ 	}
+ 	if len(mine) > 0 {
+ 		return &refusedRule{problems: mine}
