@@ -5,15 +5,15 @@ tests: TestTxHelper
 scheduled-count: no
 
 diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
-index 87bf71f..c2dde3d 100644
+index 71dfa7e0..bd8e83c3 100644
 --- a/testsupport/analysis/txhelper.go
 +++ b/testsupport/analysis/txhelper.go
-@@ -148,8 +148,6 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
+@@ -180,8 +180,6 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
  				return true
  			}
  			switch {
 -			case isWithTx(fn):
 -				pass.Reportf(id.Pos(), txWithTxMessage, fn.Pkg().Name())
  			case isGeneratedNew(fn):
- 				checkNew(pass, fn, id, stack, literals, bodies, inside)
+ 				checkNew(pass, fn, id, stack, literals, bodies, bases, inside)
  			}

@@ -1,0 +1,19 @@
+control: The txhelper analyser holds the base policy's subsection and tx.RunBase to each other
+removes: another subsection built in a base-policy transaction is accepted
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 71dfa7e0..91665f91 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -237,8 +237,6 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
+ 				switch base := fn.Pkg().Path() == txBasePath; {
+ 				case lit.Body != innermost:
+ 					pass.Reportf(id.Pos(), txNestedMessage, name)
+-				case bases[innermost] && !base:
+-					pass.Reportf(id.Pos(), txBaseOtherMessage, name)
+ 				case !bases[innermost] && base:
+ 					pass.Reportf(id.Pos(), txBaseAccountMessage, name)
+ 				}
