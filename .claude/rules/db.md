@@ -18,7 +18,8 @@ tripwires:
   from the superuser bootstrap before the chain (ADR-0048).
 - **SQL lives only in statement files**, grouped by concern into data-access subsections, never as
   strings in a component (ADR-0047, ADR-0066). The one exception is the transaction helper's own
-  setting and reading back of the account, the `SET LOCAL` under the driver ADR-0066 names.
+  setting and reading back of the account, and of the base policy's scope (ADR-0112), the
+  `SET LOCAL` under the driver ADR-0066 names.
 - **Every statement meets ADR-0066's five constraints**, and the generator's suppression annotation
   appears in no statement file. The checks in `db/check` run over the real library and over their
   own test library.

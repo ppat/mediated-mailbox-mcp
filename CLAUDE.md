@@ -167,7 +167,11 @@ file's import target described under Violation files.
   function literal passed to `db/tx.Run`, built from the transaction of the innermost such literal
   around it, and refuses an assignment to that transaction or taking its address, `WithTx`, `New`
   used as a value and a declared function passed to `tx.Run`
-  ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)). A subsection is recognised by its
+  ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)). It holds a literal passed to
+  `db/tx.RunBase`, the base-policy transaction, to the same rules, and builds `db/policyrules/base`
+  only from such a literal and no other subsection from one
+  ([ADR-0112](./docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
+  A subsection is recognised by its
   type, a package under `db/` whose `New` returns its own `Queries`. It covers every package, test
   files included, and exempts the accounts listing, the read of `oauth_clients`, delta sync's
   re-seal of a client secret and the UI's OAuth client setup, listing each client's identity and

@@ -28,7 +28,8 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
   txhelper analyser enforces it, by the rules and the three exempt statements CLAUDE.md states under
-  Static analysis and formatting (ADR-0047).
+  Static analysis and formatting (ADR-0047). The base policy's statements run only in the helper's
+  base-policy transaction, and no other subsection's do (ADR-0112).
 - **The UI registers a route only through its recording mux.** In a non-test file under `ui/`, the
   `go vet` routes analyser refuses a use of a mux's `Handle` or `HandleFunc`, of `http.Handle` or
   `http.HandleFunc`, or of an interface's or type parameter's method of the same name and
