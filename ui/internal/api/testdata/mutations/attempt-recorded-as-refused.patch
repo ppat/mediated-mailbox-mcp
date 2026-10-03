@@ -1,0 +1,20 @@
+control: a completed consent records its code exchange's attempt as the account's latest
+removes: a completed consent records its attempt as refused
+packages: ./ui/internal/api
+tests: TestAConnectedAccountHoldsItsSealedGrant TestAReauthorizationRecordsItsAttemptAndAlwaysLands
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 073610d6..5f29b11a 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -481,7 +481,7 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
+ 	}
+ 	return auth.RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+ 		AttemptedAt: pgtype.Timestamptz{Time: started, Valid: true},
+-		Outcome:     pgtype.Text{String: string(mail.AuthSucceeded), Valid: true},
++		Outcome:     pgtype.Text{String: string(mail.AuthRefused), Valid: true},
+ 		AccountID:   a.Account,
+ 	})
+ }

@@ -1,0 +1,19 @@
+control: The consent accepts a grant of the modify scope alone
+removes: a grant naming no scope is accepted
+packages: ./provider/gmail/consent
+tests: TestTheExchangeAcceptsOnlyTheModifyScope
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/token.go b/provider/gmail/consent/token.go
+index 53066d7c..58e93196 100644
+--- a/provider/gmail/consent/token.go
++++ b/provider/gmail/consent/token.go
+@@ -97,7 +97,7 @@ func grantFrom(body []byte) (Grant, error) {
+ func onlyModify(scope string) error {
+ 	granted := strings.Fields(scope)
+ 	switch {
+-	case len(granted) == 1 && granted[0] == Scope:
++	case len(granted) == 0 || len(granted) == 1 && granted[0] == Scope:
+ 		return nil
+ 	case !slices.Contains(granted, Scope):
+ 		return fmt.Errorf("gmail: the consent granted the scopes %q, and only %s is accepted: %w", granted, Scope, mail.ErrScopeMissing)

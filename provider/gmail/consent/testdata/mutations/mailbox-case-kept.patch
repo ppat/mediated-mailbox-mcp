@@ -1,0 +1,19 @@
+control: the mailbox a grant belongs to is compared as Google identifies a mailbox
+removes: the mailboxes are compared with their case
+packages: ./provider/gmail/consent
+tests: TestSameMailbox
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/mailbox.go b/provider/gmail/consent/mailbox.go
+index dc823bf1..901aa987 100644
+--- a/provider/gmail/consent/mailbox.go
++++ b/provider/gmail/consent/mailbox.go
+@@ -103,7 +103,7 @@ func canonical(address string) (string, bool) {
+ 	if at <= 0 || at == len(address)-1 {
+ 		return "", false
+ 	}
+-	local, domain := strings.ToLower(address[:at]), strings.ToLower(address[at+1:])
++	local, domain := address[:at], address[at+1:]
+ 	if domain == "googlemail.com" {
+ 		domain = "gmail.com"
+ 	}

@@ -11,7 +11,7 @@ key ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md),
 [ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)). A key is replaced now and then, and
 every stored value then has to be sealed again to the new key before the old private key can go.
 Re-sealing needs the plaintext, so only a process holding the private key can do it, and only the
-four deployables that call a provider hold it
+four deployables that call a provider and the UI hold it
 ([ADR-0079](./0079-secrets-arrive-as-mounted-files.md)). Each of those processes serves every
 account ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)), and
 delta sync runs every five minutes ([ADR-0022](./0022-four-workloads.md)) and opens every account's
@@ -21,7 +21,9 @@ credential and each stored client secret each time it loads its accounts
 ## Decision
 
 - **The deployables that open credentials hold a keyring**, every private key mounted for them, and
-  look a value's key up by the identifier in its header. Every sealer, the UI and those
+  look a value's key up by the identifier in its header. So does the UI, whose one opening part
+  opens an OAuth client's secret with it
+  ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)). Every sealer, the UI and those
   deployables, seals to one current public key.
 - **Delta sync re-seals.** A value it opens with a key that is not the current one is sealed again
   to the current key and written through the compare-and-set of
@@ -38,14 +40,15 @@ credential and each stored client secret each time it loads its accounts
 - **A key is replaced in this order.**
   1. A new key pair is generated with the key-generation binary attached to the release
      ([ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)).
-  2. The new private key is mounted beside the old one in every deployable that opens credentials.
+  2. The new private key is mounted beside the old one in every deployable that opens credentials,
+     and in the UI.
   3. The public key is replaced in the UI and in those deployables.
   4. The UI and those deployables are restarted, because a key file is read at start.
   5. The operator waits until the UI logs the new identifier and delta sync reports a series for
      every listed account and for every row of `oauth_clients`, all reading 0. A missing series
      never counts as 0.
-  6. Only then is the old private key removed, and the deployables that open credentials are
-     restarted, so none holds it any longer.
+  6. Only then is the old private key removed, and the deployables that open credentials and the UI
+     are restarted, so none holds it any longer.
 
 ## Alternatives considered
 
@@ -54,7 +57,7 @@ credential and each stored client secret each time it loads its accounts
   write ADR-0082 grants, and delta sync already opens every value on each run.
 - **A command that re-seals every account under a role of its own.** For it, key replacement would
   not wait on a sync run. Against it, the command would need the private key that only the four
-  deployables hold, and a role reading every account, which
+  deployables and the UI hold, and a role reading every account, which
   [ADR-0075](../data/0075-one-runtime-role-per-deployable.md) gives no process that is not a
   deployable.
 - **Retire on silence, when no deployable reports an old key.** For it, no series per account.

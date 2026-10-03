@@ -18,11 +18,19 @@ function carry(values: Record<string, string>): void {
 }
 
 test("each key is read from its meta tag, durations in whole milliseconds", () => {
-  carry({ default_theme: "dark", stream_reconnect_max: "45000", stream_poll_interval: "2500" });
+  carry({
+    default_theme: "dark",
+    stream_reconnect_max: "45000",
+    stream_poll_interval: "2500",
+    request_token: "the-token",
+    consent_redirect: "http://[::1]:5000/",
+  });
   expect(readConfig(metaReader(document))).toEqual({
     defaultTheme: "dark",
     reconnectMax: 45_000,
     pollInterval: 2_500,
+    consentRedirect: "http://[::1]:5000/",
+    requestToken: "the-token",
   });
 });
 
@@ -31,11 +39,15 @@ test("an absent tag takes the record's default", () => {
     defaultTheme: "system",
     reconnectMax: 30_000,
     pollInterval: 5_000,
+    consentRedirect: "",
+    requestToken: "",
   });
   expect(configDefaults).toEqual({
     defaultTheme: "system",
     reconnectMax: 30_000,
     pollInterval: 5_000,
+    consentRedirect: "",
+    requestToken: "",
   });
 });
 
@@ -47,6 +59,12 @@ test("a tag the browser cannot read takes the record's default", () => {
     ["light ", "30s"],
   ] as const) {
     const config = readConfig((key) => (key === "default_theme" ? theme : duration));
-    expect(config).toEqual({ defaultTheme: "system", reconnectMax: 30_000, pollInterval: 5_000 });
+    expect(config).toEqual({
+      defaultTheme: "system",
+      reconnectMax: 30_000,
+      pollInterval: 5_000,
+      consentRedirect: duration,
+      requestToken: duration,
+    });
   }
 });

@@ -1,0 +1,20 @@
+control: an identifier checked free when an attempt started is checked again when it finishes
+removes: a finish refuses an identifier no account took meanwhile as taken
+packages: ./ui/internal/api
+tests: TestAConnectedAccountHoldsItsSealedGrant
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 073610d6..56990722 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -388,7 +388,7 @@ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bo
+ 			s.databaseFailure(w, r, err)
+ 			return false
+ 		}
+-		if slices.ContainsFunc(listed, func(l accounts.AccountsRow) bool { return l.AccountID == a.Account }) {
++		if !slices.ContainsFunc(listed, func(l accounts.AccountsRow) bool { return l.AccountID == a.Account }) {
+ 			writeFailure(w, r, clientFault(http.StatusConflict, "identifier_taken", "an account was connected under this identifier while this one was in progress"))
+ 			return false
+ 		}

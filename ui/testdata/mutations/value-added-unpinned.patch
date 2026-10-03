@@ -5,14 +5,14 @@ tests: TestTheConfigurationTypeIsPinned TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index 9ec85ac..c68dccd 100644
+index c14cabca..9a372866 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -62,6 +62,7 @@ type Configuration struct {
- 	AttentionMaskCount    int64   `yaml:"attention_mask_count"`
- 	AttentionServeFactor  float64 `yaml:"attention_serve_factor"`
- 	AttentionGapDays      int64   `yaml:"attention_gap_days"`
-+	SealPublicKeyFile     string  `yaml:"seal_public_key_file"`
+@@ -79,6 +79,7 @@ type Configuration struct {
+ 	// ConsentRedirect is the loopback address a consent redirects the browser to, where nothing
+ 	// listens (docs/UI.md sections 8.12 and 18.1).
+ 	ConsentRedirect string `yaml:"consent_redirect"`
++	AttemptLifetime time.Duration `yaml:"attempt_lifetime"`
  }
  
- // defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is
+ // providerTimeout bounds one request to a provider, checking a client, exchanging a consent's code or

@@ -1,0 +1,29 @@
+control: a client replaced or removed while an attempt runs fails its finish, and nothing is stored
+removes: a finish exchanges and stores through the client the attempt started with, whatever the client holds now
+packages: ./ui/internal/api
+tests: TestAClientReplacedMidAttemptFailsTheFinish
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 18348c97..c57144f8 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -392,7 +392,7 @@ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bo
+ 		return false
+ 	}
+ 	if !slices.ContainsFunc(stored, func(c clientsetup.SetupClientsRow) bool {
+-		return c.ClientName == a.Client && c.Provider == a.Provider && c.ClientID == a.ClientID
++		return c.ClientName == a.Client && c.Provider == a.Provider
+ 	}) {
+ 		writeFailure(w, r, clientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
+ 		return false
+@@ -429,7 +429,7 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
+ 	if err != nil {
+ 		return err
+ 	}
+-	if len(identity) != 1 || identity[0].Provider != a.Provider || identity[0].ClientID != a.ClientID {
++	if len(identity) != 1 || identity[0].Provider != a.Provider {
+ 		return errClientChanged
+ 	}
+ 	client := pgtype.Text{String: a.Client, Valid: true}

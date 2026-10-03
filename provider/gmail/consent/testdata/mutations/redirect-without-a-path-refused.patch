@@ -1,0 +1,19 @@
+control: only the consent's own redirect address finishes a consent
+removes: the consent's own address pasted without its path, as a browser shows it, is refused
+packages: ./provider/gmail/consent
+tests: TestParseRedirect
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/redirect.go b/provider/gmail/consent/redirect.go
+index 1db6437f..8f7a9ac3 100644
+--- a/provider/gmail/consent/redirect.go
++++ b/provider/gmail/consent/redirect.go
+@@ -32,8 +32,5 @@ func ParseRedirect(address, redirectURI string) (mail.Redirect, error) {
+ 
+ // samePath treats an empty path as the root, which a browser shows either way.
+ func samePath(got, want string) bool {
+-	if got == "" {
+-		got = "/"
+-	}
+ 	return got == want
+ }

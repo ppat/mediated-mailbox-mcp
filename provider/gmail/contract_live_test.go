@@ -26,6 +26,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/contract"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract"
 )
 
@@ -65,11 +66,11 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("obtaining an access token: %v", err)
 	}
-	granted, err := gmail.Address(t.Context(), client, access)
+	granted, err := consent.Address(t.Context(), client, access)
 	if err != nil {
 		t.Fatalf("reading the account the credential belongs to: %v", err)
 	}
-	if err := gmail.RequireAccount(granted, account); err != nil {
+	if err := consent.RequireAccount(granted, account); err != nil {
 		t.Fatalf("%v, the one GMAIL_TEST_ACCOUNT names, so the run adds nothing", err)
 	}
 	attemptsAgainstGoogle(t, client, creds, tokens, metrics)

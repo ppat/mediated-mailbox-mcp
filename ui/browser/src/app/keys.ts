@@ -12,6 +12,7 @@ export const bindings: readonly Binding[] = [
   { keys: "g then h", action: "go to Home" },
   { keys: "g then j", action: "go to Jobs" },
   { keys: "g then s", action: "go to System" },
+  { keys: "g then a", action: "go to Account settings" },
   { keys: "[ / ]", action: "previous / next page" },
   { keys: "?", action: "show this map" },
 ];

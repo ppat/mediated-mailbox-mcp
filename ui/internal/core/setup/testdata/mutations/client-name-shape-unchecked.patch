@@ -1,0 +1,19 @@
+control: a client's name reaches one client, and one client is never stored twice
+removes: a client's name of any shape is admitted, new included
+packages: ./ui/internal/core/setup
+tests: TestAClientNameIsShapedLikeAProjectID
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index 1f9234a9..4fb4a869 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -47,7 +47,7 @@ func ProjectShaped(s string) bool {
+ // segment of a new client's setup, since it is too short to be a project ID. A name another client
+ // holds is refused by the store.
+ func ClientName(name string) Refusal {
+-	if !ProjectShaped(name) {
++	if name == "" {
+ 		return NameRefused
+ 	}
+ 	return None

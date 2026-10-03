@@ -36,6 +36,7 @@ var componentRoles = map[string]string{
 	"organize":              "mediated_mailbox_organize",
 	"sync":                  "mediated_mailbox_sync",
 	"ui":                    "mediated_mailbox_ui",
+	"ui-clientsecret":       "mediated_mailbox_ui",
 }
 
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no

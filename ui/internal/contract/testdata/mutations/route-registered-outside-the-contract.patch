@@ -5,14 +5,14 @@ tests: TestTheServerServesExactlyTheDocumentsRoutes
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 626acce..5d74636 100644
+index a294fb54..b66e911b 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -153,6 +153,7 @@ func New(opts Options) (*Server, error) {
+@@ -207,6 +207,7 @@ func New(opts Options) (*Server, error) {
  	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
  		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
  	}))
 +	mux.Handle("GET /api/{account}/export", s.scoped("/api/{account}/export", s.getSystem))
  	mux.Handle("/", a)
  	s.uiMux = mux
- 	s.handler = observe(opts.Logger, withPolicy(mux))
+ 	// Every request is given its session, and every request whose method is not GET or HEAD is refused

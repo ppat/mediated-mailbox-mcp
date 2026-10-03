@@ -7,15 +7,16 @@
 ## Context
 
 [ADR-0081](./0081-credentials-sealed-to-a-public-key.md) settles that an account's credential and
-an OAuth client's secret are sealed to a public key the UI holds, that only the deployables that
-call a provider hold the private key, that the construction is authenticated, and that a sealed
+an OAuth client's secret are sealed to a public key, that the deployables that call a provider and
+the UI hold the private key, with the UI's code opening only an OAuth client's secret, that the
+construction is authenticated, and that a sealed
 value records the key it was sealed to. [ADR-0079](./0079-secrets-arrive-as-mounted-files.md)
 settles that both keys arrive as mounted files. What is left to choose is the construction, and the
 bytes a sealed value carries so its key can be found and a key can be replaced.
 
 Symmetric encryption and encryption inside PostgreSQL are ruled out by ADR-0081. ADR-0081 also has
-the UI seal with a public key and the deployables that call a provider open with a private key they
-hold as a mounted file, so the private key is in those processes and nowhere else. A key service
+the UI seal with a public key and the deployables that call a provider and the UI open with a
+private key they hold as a mounted file, so the private key is in those processes and nowhere else. A key service
 such as a cloud KMS or Vault, which holds the key itself and decrypts on request, is a different
 shape from that decision. The field is the public-key constructions a Go program can run in
 process.
@@ -36,7 +37,7 @@ than a preference.
 | R6 | A standard construction | Specified publicly with test vectors, so it is not the project's own cryptography | ADR-0081 |
 | R7 | Confidentiality against later decryption | A stolen database copy stays sealed against an attacker with a quantum computer | This record |
 | R8 | Keys from a standard tool | An operator can generate the key pair without project code | This record |
-| R9 | The sealing half importable alone | The UI links no code that opens a credential | ADR-0081, [credential/README.md](../../../credential/README.md) |
+| R9 | The sealing half importable alone | The UI's code outside its one opening part links no code that opens a value | ADR-0081, [credential/README.md](../../../credential/README.md) |
 | R10 | Maintained and current | Released and maintained today | This record |
 
 R1 is a gate. R2, R4, R5, R6 and R7 order the field. R7 orders it because of the lifetime argument
@@ -123,8 +124,8 @@ What an implementer would otherwise pay to discover:
 - OpenSSL generates ML-KEM and X25519 keys but has no encoder for an X-Wing key, so the key pair
   comes from the library's command.
 - A seal-only binary links no HPKE opening code, but it does link ML-KEM decapsulation primitives
-  through the standard library's self-test. That does not breach the rule that the UI links no
-  opening code, which concerns this project's opening subsection.
+  through the standard library's self-test. That does not breach the rule that the UI's code outside its
+  one opening part links no opening code, which concerns this project's opening subsection.
 - Base mode authenticates the value, not who sealed it. Anyone holding the public key and able to
   write a row can plant a validly sealed value for that row. ADR-0081 claims only that an altered
   value is refused, and that holds.
@@ -221,5 +222,5 @@ version byte and a re-seal, since the header, the key identifier and the key rep
   operator recovers as ADR-0081 states, by setting up each OAuth client again and re-authorizing
   each account.
 - Assumptions about other components. The deployables that open credentials pin a Go release with
-  `crypto/hpke`. The platform mounts the seed only into those deployables and the public key into
-  the UI and them.
+  `crypto/hpke`. The platform mounts the seed only into those deployables and the UI, and the public
+  key into the UI and them.

@@ -112,6 +112,15 @@ else broke ties.
     every component's files at once, admit the whole data-access library.
   - **The mediator's two protocol roots**, each admitting the service layer and nothing below it
     ([ADR-0030](../operability/0030-api-core-mcp-thin-adapter.md)).
+  - **The UI's non-test code outside its one opening part.** It admits the standard library and
+    names exactly the seven packages under `crypto/` that code uses, `crypto/aes`, `crypto/cipher`,
+    `crypto/hkdf`, `crypto/hmac`, `crypto/rand`, `crypto/sha256` and `crypto/tls`. Since each
+    import is compared with the entry sorted just before it, it refuses every other package under
+    `crypto/`, the public-key code an opening is built on, `crypto/hpke`, `crypto/mlkem` and
+    `crypto/ecdh`, among them
+    ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). The root `crypto`
+    package, which holds interfaces and the hash registry and no algorithm, stays admitted. Test files are
+    outside it, because a test opens what the UI sealed to check it and is never served.
   - **Non-test code everywhere.** It refuses the shared test support, the provider fake, the
     contract suite, the property-testing library and the comparison library, so none of them reaches
     code that ships.
@@ -179,6 +188,29 @@ else broke ties.
   exempt, since a route a test registers is never served. The rule sits in its own analyser, run by
   the same program, and honours no suppression comment. The mediator is outside its scope, for the
   reason the alternatives give.
+- **The UI runs a statement only through the data-access library, and the project's own `go vet`
+  analysers refuse the statements they can see.** The UI's role may read an OAuth client's sealed
+  secret for the UI's client-secret part alone
+  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). The import lists confine
+  that read to the part by the subsection it sits in, while they admit the database driver to every
+  package of the UI, so a statement written by hand would read around them. The raw SQL analyser
+  reports, in a non-test file of a package under `ui/`, every use of a method that runs a
+  statement, matched by its name and by how its parameters open, the driver's parameters for it.
+  They are `Query`, `QueryRow`, `Exec` and `ExecParams` given a `context.Context` and a
+  statement's text, `Prepare` given a context, a name and a statement's text, `SendBatch` and
+  `ExecBatch` given the driver's batches, `CopyFrom` given the driver's table identifier or a reader
+  and a statement, `CopyTo` given a writer and a statement, and `StartPipeline` returning the
+  driver's pipeline. That covers the driver's connection, pool and transaction and its lower-level
+  connection, `*pgconn.PgConn`. It reports the driver's own types, an interface such as a generated
+  subsection's `DBTX`, and any other type alike, so a wrapper or an interface declared in the UI is
+  no way around it, and a parameter spelled through an alias counts as the type it stands for. A call and a method
+  value are reported alike. The generated statements sit under `db/`, outside its scope, so the UI's
+  code reaches the database only through them. Three paths stay with review. One is a statement run
+  through reflection. Another is one written to the wire through the raw network connection or the
+  protocol frontend the lower-level connection hands out. The third is a method one of whose
+  parameter types is a type parameter. Test files are exempt, since a statement a test runs is never
+  served. The rule sits in its own analyser, run by the same program, and honours no suppression
+  comment.
 - **Every package the build of `./...` reaches is one `./...` lists, and the ban-proof script checks
   it.** The aggregator, the `go vet` analysers and the grant check of
   [ADR-0066](../data/0066-data-access-generated-from-sql.md) read only the packages `./...` lists,

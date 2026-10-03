@@ -1,0 +1,19 @@
+control: a lowered target is stored only within the range ADR-0024 allows
+removes: a target of exactly 50% is refused
+packages: ./ui/internal/core/setup
+tests: TestALoweredTargetStaysInItsRange
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index 92c01a57..d4c767d0 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -85,7 +85,7 @@ func Mailbox(address string) Refusal {
+ // Target refuses a lowered target outside the range ADR-0024 allows, above 5% and at most 50% of the
+ // provider's declared ceiling. None clears the target.
+ func Target(fraction *float64) Refusal {
+-	if fraction != nil && (!(*fraction > 0.05) || *fraction > 0.5) {
++	if fraction != nil && (!(*fraction > 0.05) || *fraction >= 0.5) {
+ 		return TargetRefused
+ 	}
+ 	return None

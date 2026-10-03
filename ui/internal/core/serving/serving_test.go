@@ -11,6 +11,7 @@ func valid() serving.Config {
 		Listen: ":8443", ProbeListen: ":8080", TLSCert: "/tls/cert", TLSKey: "/tls/key",
 		SyncInterval: 1, HeuristicsInterval: 1, StreamInterval: 1,
 		DefaultTheme: "system", StreamReconnectMax: 1_000_000, StreamPollInterval: 1_000_000,
+		ConsentRedirect: "http://127.0.0.1:47823/",
 	}
 }
 
@@ -67,5 +68,33 @@ func TestTheConfigurationIsValidated(t *testing.T) {
 				t.Fatalf("got %v, want %q", err, tc.want)
 			}
 		})
+	}
+}
+
+// TestTheConsentRedirectIsALoopbackAddressWithAPort admits an http address on a loopback IP literal with
+// an explicit port, and refuses a value of any other shape, so a consent never redirects anywhere
+// something could listen for its code (docs/UI.md section 18.1, VERIFICATIONS, the consent redirect
+// row).
+func TestTheConsentRedirectIsALoopbackAddressWithAPort(t *testing.T) {
+	for _, ok := range []string{"http://127.0.0.1:47823/", "http://127.0.0.1:47823", "http://127.4.5.6:1/", "http://[::1]:65535/"} {
+		c := valid()
+		c.ConsentRedirect = ok
+		if err := serving.Validate(c, false); err != nil {
+			t.Errorf("%q was refused: %v", ok, err)
+		}
+	}
+	for _, bad := range []string{
+		"", "https://127.0.0.1:47823/", "http://localhost:47823/", "http://127.0.0.1/", "http://127.0.0.1:/",
+		"http://10.0.0.1:47823/", "http://128.0.0.1:47823/", "http://127.0.0.1:0/", "http://127.0.0.1:65536/",
+		"http://127.0.0.1:047823/", "http://127.0.0.1:47823/callback", "http://127.0.0.1:47823/?x=1",
+		"http://127.0.0.1:47823/#f", "http://user@127.0.0.1:47823/", "http://[::2]:47823/", "http://[::1]/",
+		"http://127.0.0.01:47823/", "http://127.0.0:47823/", "127.0.0.1:47823",
+	} {
+		c := valid()
+		c.ConsentRedirect = bad
+		err := serving.Validate(c, false)
+		if err == nil || err.Error() != "consent_redirect is not an http address on a loopback IP literal with an explicit port" {
+			t.Errorf("%q gave %v", bad, err)
+		}
 	}
 }

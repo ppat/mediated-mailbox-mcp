@@ -1,0 +1,19 @@
+control: the mailbox a grant belongs to is compared as Google identifies a mailbox
+removes: the dots of every domain's local part are ignored, so another mailbox outside Gmail passes
+packages: ./provider/gmail/consent
+tests: TestSameMailbox
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/mailbox.go b/provider/gmail/consent/mailbox.go
+index dc823bf1..407adaa9 100644
+--- a/provider/gmail/consent/mailbox.go
++++ b/provider/gmail/consent/mailbox.go
+@@ -107,7 +107,7 @@ func canonical(address string) (string, bool) {
+ 	if domain == "googlemail.com" {
+ 		domain = "gmail.com"
+ 	}
+-	if domain == "gmail.com" {
++	if domain != "" {
+ 		local = strings.ReplaceAll(local, ".", "")
+ 	}
+ 	return local + "@" + domain, true

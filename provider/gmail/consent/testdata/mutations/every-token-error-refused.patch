@@ -1,0 +1,19 @@
+control: A token request the provider refuses is reported as refused, one that gets no answer as failed, and a cancelled request or a held access token as no attempt
+removes: every token endpoint answer other than success counts as a refusal, whatever its status
+packages: ./provider/gmail/consent
+tests: TestARefreshsOutcome
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/token.go b/provider/gmail/consent/token.go
+index 53066d7c..e97d1870 100644
+--- a/provider/gmail/consent/token.go
++++ b/provider/gmail/consent/token.go
+@@ -207,7 +207,7 @@ func Outcome(err error) mail.AuthOutcome {
+ 	switch {
+ 	case err == nil:
+ 		return mail.AuthSucceeded
+-	case errors.As(err, &answered) && (answered.code == http.StatusBadRequest || answered.code == http.StatusUnauthorized):
++	case errors.As(err, &answered):
+ 		return mail.AuthRefused
+ 	default:
+ 		return mail.AuthFailed

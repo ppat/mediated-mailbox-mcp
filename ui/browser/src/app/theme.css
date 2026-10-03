@@ -844,3 +844,205 @@ input:disabled {
 .attention p {
   margin: 0 0 var(--space-1);
 }
+
+/* The installation screens and account settings, docs/UI.md sections 8.10 to 8.13. */
+.banner-refused {
+  border-color: var(--restricted);
+}
+
+.setup section,
+.connect section,
+.account-settings section {
+  margin-bottom: var(--space-5);
+}
+
+a.primary,
+button.primary {
+  display: inline-block;
+  min-height: 28px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--action);
+  border-radius: var(--radius);
+  background: var(--action);
+  color: var(--on-action);
+  text-decoration: none;
+}
+
+a.outlined {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+button:disabled {
+  color: var(--faint);
+  cursor: not-allowed;
+}
+
+.faint {
+  color: var(--faint);
+}
+
+.checklist {
+  list-style: none;
+  padding: 0;
+}
+
+.checklist li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+}
+
+.step-status[data-state="done"] {
+  color: var(--ok);
+}
+
+.step-status[data-state="current"] {
+  color: var(--muted);
+}
+
+.step-status[data-state="blocked"] {
+  color: var(--faint);
+}
+
+.before-you-start {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.account-name + .account-name {
+  margin-left: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.setup-columns {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--space-4);
+}
+
+.rail {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rail button,
+.step-row {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  text-align: left;
+}
+
+.rail button[aria-current="step"] {
+  background: var(--raised);
+  box-shadow: inset 2px 0 0 var(--action);
+}
+
+.step {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.actions-list li {
+  margin-bottom: var(--space-2);
+}
+
+.value-chip {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+}
+
+.warning {
+  color: var(--restricted);
+}
+
+.refusal {
+  color: var(--restricted);
+}
+
+.step-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.field,
+.bring-back label,
+.connect-step label {
+  display: block;
+  margin: var(--space-2) 0;
+}
+
+.drop-zone {
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.status-region {
+  margin-top: var(--space-3);
+}
+
+.client-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.client-list label {
+  display: block;
+}
+
+.address-picture {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.paste {
+  width: 100%;
+}
+
+.paste-checks {
+  list-style: none;
+  padding: 0;
+}
+
+.paste-checks li[data-ok="true"] {
+  color: var(--ok);
+}
+
+.paste-checks li[data-ok="false"] {
+  color: var(--restricted);
+}
+
+/* A guide window, the compact layout of the setup's side window and the small window over Google's tab. */
+.guide {
+  min-width: 0;
+  padding: var(--space-3);
+}
+
+body:has(> .guide) {
+  min-width: 0;
+}

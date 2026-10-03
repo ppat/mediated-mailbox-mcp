@@ -1,0 +1,22 @@
+control: a connected account remembers the mailbox the provider confirmed
+removes: a re-authorization answers with the mailbox the provider confirmed in place of the one the account remembers
+packages: ./ui/internal/api
+tests: TestAReauthorizationRecordsItsAttemptAndAlwaysLands
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 073610d6..56f3dd8c 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -360,9 +360,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
+ 		return
+ 	}
+-	if !a.Remembered {
+-		a.Mailbox = grant.Mailbox
+-	}
++	a.Mailbox = grant.Mailbox
+ 	sealed, err := s.opts.Seal.Seal([]byte(grant.Credential), seal.AccountCredential(a.Account))
+ 	if err != nil {
+ 		s.uiFailure(w, r, err)

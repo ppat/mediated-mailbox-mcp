@@ -8,11 +8,13 @@ import (
 )
 
 // The error contract's origins (docs/UI.md section 17.3), mirroring O5's distinction for the client
-// surface. The client caused it, the UI server failed on its own, or the database did not answer.
+// surface. The client caused it, the UI server failed on its own, the database did not answer, or the
+// provider did not answer a setup request.
 const (
 	originClient   = "client"
 	originUI       = "ui"
 	originDatabase = "database"
+	originProvider = "provider"
 )
 
 // failure is one error the read API reports.
@@ -38,6 +40,12 @@ func databaseFault() *failure {
 	return &failure{status: http.StatusServiceUnavailable, origin: originDatabase, code: "database", message: "the database did not answer"}
 }
 
+// providerFault is the provider not answering a setup request, checking a client or exchanging a
+// consent's code (docs/UI.md section 17.3). Nothing was stored.
+func providerFault() *failure {
+	return &failure{status: http.StatusBadGateway, origin: originProvider, code: "provider_unreachable", message: "the provider did not answer"}
+}
+
 type errorBody struct {
 	Error errorDetail `json:"error"`
 }
@@ -52,7 +60,7 @@ type errorDetail struct {
 // ErrorType is the error contract's declaration.
 func ErrorType() schema.Type {
 	return schema.Obj("Error", schema.F("error", schema.Obj("ErrorDetail",
-		schema.F("origin", schema.Str(originClient, originUI, originDatabase)),
+		schema.F("origin", schema.Str(originClient, originUI, originDatabase, originProvider)),
 		schema.F("code", schema.Str()),
 		schema.F("message", schema.Str()),
 		schema.F("request_id", schema.Str()),

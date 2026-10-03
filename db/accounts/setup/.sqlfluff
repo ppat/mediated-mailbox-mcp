@@ -1,0 +1,12 @@
+# This file sets parameter values and nothing else. The placeholder templater renders a parameter with no
+# value as its bare name, and RF02 then reports it as an unqualified column in a statement that reads more
+# than one table. Such a statement here is account setup's read of the account's two rows. Every parameter
+# the statements here take is given a literal, so RF02 does not report a parameter here. The rule itself
+# stays on, as it is everywhere. A new parameter here needs a value too.
+[sqlfluff:templater:placeholder]
+account_id = 1
+credential = 1
+lowered_target = 1
+mailbox = 1
+oauth_client = 1
+provider = 1

@@ -5,16 +5,16 @@ tests: TestTheServerServesExactlyTheDocumentsRoutes
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 626acce..399a15d 100644
+index a294fb54..f71c61d9 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -135,6 +135,9 @@ func New(opts Options) (*Server, error) {
+@@ -188,6 +188,9 @@ func New(opts Options) (*Server, error) {
  			return nil, fmt.Errorf("the route %s has no handler for %s", route.Pattern, route.Operation)
  		}
  		delete(handlers, route.Operation)
 +		if route.Operation == "getJobs" {
 +			continue
 +		}
+ 		pattern := route.Verb() + " " + route.Pattern
  		switch {
  		case route.Registry:
- 			// The dataset endpoint and the row-detail routes admit their account themselves, after the

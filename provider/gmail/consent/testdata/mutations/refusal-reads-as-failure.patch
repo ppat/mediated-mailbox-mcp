@@ -1,0 +1,22 @@
+control: A token request the provider refuses is reported as refused, one that gets no answer as failed, and a cancelled request or a held access token as no attempt
+removes: the token endpoint's answer loses its status, so a refusal reads as an attempt that failed
+packages: ./provider/gmail/consent
+tests: TestARefreshsOutcome
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/token.go b/provider/gmail/consent/token.go
+index 53066d7c..9f595ea4 100644
+--- a/provider/gmail/consent/token.go
++++ b/provider/gmail/consent/token.go
+@@ -183,9 +183,9 @@ func Answer(code int, status string, body []byte) ([]byte, error) {
+ 		Description string `json:"error_description"`
+ 	}
+ 	if json.Unmarshal(body, &e) != nil {
+-		return nil, &answerError{code: code, text: fmt.Sprintf("gmail: the token endpoint answered %s", status)}
++		return nil, fmt.Errorf("gmail: the token endpoint answered %s", status)
+ 	}
+-	return nil, &answerError{code: code, reason: e.Error, text: fmt.Sprintf("gmail: the token endpoint answered %s: %s %s", status, e.Error, e.Description)}
++	return nil, fmt.Errorf("gmail: the token endpoint answered %s: %s %s", status, e.Error, e.Description)
+ }
+ 
+ // answerError is an answer from the token endpoint other than success, carrying its status code and

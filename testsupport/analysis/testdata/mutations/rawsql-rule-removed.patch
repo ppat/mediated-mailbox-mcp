@@ -1,0 +1,19 @@
+control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+removes: no statement is reported
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index f9344bb0..bed4d776 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -84,7 +84,7 @@ func runRawSQL(pass *analysis.Pass) (any, error) {
+ 			}
+ 			fn, ok := pass.TypesInfo.Uses[id].(*types.Func)
+ 			if ok && statementRunner(fn) {
+-				pass.Reportf(id.Pos(), rawSQLMessage, "The method "+fn.Name())
++				_ = rawSQLMessage
+ 			}
+ 			return true
+ 		})

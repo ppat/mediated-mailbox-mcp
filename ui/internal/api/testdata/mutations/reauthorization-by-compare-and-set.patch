@@ -1,0 +1,20 @@
+control: the operator's re-authorization replaces the stored credential whatever a deployable wrote
+removes: a re-authorization writes only where the account holds no credential, so a credential a deployable rewrote is never replaced
+packages: ./ui/internal/api
+tests: TestAReauthorizationRecordsItsAttemptAndAlwaysLands
+scheduled-count: no
+integration: yes
+
+diff --git a/db/accounts/setup/setup.sql.go b/db/accounts/setup/setup.sql.go
+index 7b5bf083..f073bd9b 100644
+--- a/db/accounts/setup/setup.sql.go
++++ b/db/accounts/setup/setup.sql.go
+@@ -130,7 +130,7 @@ UPDATE account_state
+ SET
+     credential = $1,
+     mailbox = coalesce(mailbox, $2::text)
+-WHERE account_id = $3
++WHERE account_id = $3 AND credential IS NULL
+ `
+ 
+ type ReauthorizeParams struct {

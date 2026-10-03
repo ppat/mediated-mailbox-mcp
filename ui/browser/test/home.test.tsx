@@ -352,7 +352,7 @@ test("the System column shows the operational and corpus blocks, linking where a
     ["Backfill pass 2", "91.0%, 1 pending", null, null],
     ["Sync cursor age", "4m", " · last successful tick 2026-09-10 10:15Z", "/personal/jobs"],
     ["Rate", "3.1 of 5.0 units/s, cap 8.0 units/s, not in backoff", null, "/personal/jobs"],
-    ["Last authentication", markup("authoutcome"), " · 2026-09-10 04:16Z", "/personal/system"],
+    ["Last authentication", markup("authoutcome"), " · 2026-09-10 04:16Z", "/personal/account"],
   ]);
   expect(values(root, "Corpus")).toEqual([
     ["body served, 24 hours", "1", null, null],

@@ -1,0 +1,22 @@
+control: an account's two rows, and a move's client and credential, are written together or not at all
+removes: a connection writes the account's listing row outside the transaction that writes its state row
+packages: ./ui/internal/api
+tests: TestAConnectionFailedBetweenItsWritesStoresNeitherRow
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 18348c97..c1638d1e 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -436,7 +436,9 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
+ 	mailbox := pgtype.Text{String: a.Mailbox, Valid: true}
+ 	switch a.Kind {
+ 	case attemptConnect:
+-		if err := q.AddAccount(ctx, accountsetup.AddAccountParams{AccountID: a.Account, Provider: a.Provider, OauthClient: client}); err != nil {
++		if err := tx.Run(context.WithoutCancel(ctx), s.opts.Database, a.Account, func(t pgx.Tx) error {
++			return accountsetup.New(t).AddAccount(ctx, accountsetup.AddAccountParams{AccountID: a.Account, Provider: a.Provider, OauthClient: client})
++		}); err != nil {
+ 			return err
+ 		}
+ 		if err := s.fault("between the account's two rows"); err != nil {

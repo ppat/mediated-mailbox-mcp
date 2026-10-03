@@ -1,0 +1,20 @@
+control: an account identifier no screen or path could reach is refused, and nothing is stored
+removes: the words the UI's top-level paths use are listed as setup and api alone rather than read from the bundle
+packages: ./ui/internal/api
+tests: TestAnIdentifierNoScreenCouldReachIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/entry.go b/ui/internal/api/entry.go
+index c7e39ee7..5ced192d 100644
+--- a/ui/internal/api/entry.go
++++ b/ui/internal/api/entry.go
+@@ -90,7 +90,7 @@ func Reserved(bundle fs.FS) ([]string, error) {
+ 	}
+ 	reserved := []string{"setup", "api"}
+ 	for _, e := range entries {
+-		if !strings.HasPrefix(e.Name(), ".") {
++		if !strings.HasPrefix(e.Name(), ".") && false {
+ 			reserved = append(reserved, e.Name())
+ 		}
+ 	}

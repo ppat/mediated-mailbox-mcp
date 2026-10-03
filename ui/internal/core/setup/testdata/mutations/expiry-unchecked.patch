@@ -1,0 +1,19 @@
+control: a consent attempt that expired finishes nothing
+removes: an attempt past its expiry finishes
+packages: ./ui/internal/core/setup
+tests: TestAnAttemptExpiresAtItsExpiry
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index 92c01a57..6b9119c9 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -95,7 +95,7 @@ func Target(fraction *float64) Refusal {
+ // decides it before it reads the pasted address, so an attempt past its expiry answers as expired
+ // whatever was pasted (ADR-0111).
+ func Expired(expires, now int64) Refusal {
+-	if now >= expires {
++	if false {
+ 		return AttemptExpired
+ 	}
+ 	return None

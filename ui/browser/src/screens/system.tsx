@@ -9,7 +9,7 @@
 import type { ComponentChildren } from "preact";
 import { systemPath, type Run, type System } from "../app/api.ts";
 import { useDeps } from "../app/deps.ts";
-import { ListedAccount, numberIn } from "../app/frame.tsx";
+import { ListedAccount, numberIn, settingsPath } from "../app/frame.tsx";
 import { age, count, local, rate, share, utc } from "../app/format.ts";
 import { Region } from "../app/region.tsx";
 import { ProgressBar } from "../lens/progress.tsx";
@@ -28,6 +28,8 @@ export type Value = {
   progress?: { part: number; whole: number };
   // href is the screen the value links to, where one exists.
   href?: string;
+  // also is a second link after the value, such as the rate target the rate row is changed at.
+  also?: { href: string; text: string };
 };
 
 // jobsHref is the jobs screen of an account, where the rows of the backfill run, delta sync and the
@@ -107,14 +109,17 @@ export function systemValues(system: System, now: number): Value[] {
       label: "Scan backlog",
       text: `${count(op.pending_scan)} ${op.pending_scan === 1 ? "message" : "messages"} pending scan`,
     },
-    toJobs({
-      key: "rate",
-      label: "Rate",
-      text:
-        r === null
-          ? "no rate state yet"
-          : `${rate(r.current, r.target)}, cap ${r.cap.toFixed(1)} units/s`,
-    }),
+    {
+      ...toJobs({
+        key: "rate",
+        label: "Rate",
+        text:
+          r === null
+            ? "no rate state yet"
+            : `${rate(r.current, r.target)}, cap ${r.cap.toFixed(1)} units/s`,
+      }),
+      also: { href: settingsPath(system.account), text: "rate target" },
+    },
     toJobs({ key: "backoff", label: "Backoff", text: backoff(r?.backoff_until, now) }),
     toJobs(
       r === null || r.last_throttle_at === null
@@ -126,17 +131,18 @@ export function systemValues(system: System, now: number): Value[] {
             title: local(r.last_throttle_at),
           },
     ),
-    authentication(op.last_auth_outcome, op.last_auth_at),
+    authentication(system.account, op.last_auth_outcome, op.last_auth_at),
   ];
 }
 
-// authentication is the last provider authentication, its outcome as recorded then its time. It never
-// links, because Home's row links to this screen.
-function authentication(outcome: string | null, at: string | null): Value {
+// authentication is the last provider authentication, its outcome as recorded then its time, linking to
+// account settings, where a refused credential is re-authorized (section 8.8).
+function authentication(account: string, outcome: string | null, at: string | null): Value {
   const value: Value = {
     key: "auth",
     label: "Last authentication",
     text: outcome ?? "none recorded",
+    href: settingsPath(account),
   };
   return at === null ? value : { ...value, note: utc(at), title: local(at) };
 }
@@ -155,6 +161,12 @@ export function Values(props: { label: string; values: readonly Value[] }) {
             </span>
           </Linked>
           {v.note === undefined ? null : <span class="muted"> · {v.note}</span>}
+          {v.also === undefined ? null : (
+            <>
+              {" · "}
+              <a href={v.also.href}>{v.also.text}</a>
+            </>
+          )}
           {v.progress === undefined ? null : (
             <ProgressBar
               part={v.progress.part}

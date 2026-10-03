@@ -29,6 +29,9 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
+// tokenKey is the key behind the request token in every test.
+var tokenKey = []byte("the request token key of the tests, 32 bytes at least")
+
 // now is the server's clock in every test, so as_of and every relative range are fixed and the
 // recorded fixtures do not move between runs.
 var now = time.Date(2026, 9, 10, 10, 16, 4, 0, time.UTC)
@@ -315,6 +318,7 @@ func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Threshold
 		Cadences:       api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour},
 		StreamInterval: 50 * time.Millisecond,
 		Attention:      thresholds,
+		TokenKey:       tokenKey,
 	})
 	if err != nil {
 		t.Fatal(err)

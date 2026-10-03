@@ -2,8 +2,10 @@
 // standard library's HTTP client, and it declares its rate profile.
 //
 // It also holds the account's installed-app OAuth grant through the OAuth client the account
-// connects through (ADR-0106, ADR-0107). That is the one-time consent, which requests only the modify scope, and the token
-// source, built from the client and the refresh token the deployable opened from the database. The
+// connects through (ADR-0106, ADR-0107). That is the token source, built from the client and the
+// refresh token the deployable opened from the database, which sends its refreshes through the
+// token endpoint code of the consent package beside the adapter. The one-time consent, which
+// requests only the modify scope, sits in that package, so the UI links it without the adapter. The
 // source holds a rotated refresh token and hands it to the deployable, which writes it back to the
 // account's state row (ADR-0080, ADR-0082). It also holds its latest request to the token endpoint
 // with its outcome, which the deployable records there (ADR-0097).

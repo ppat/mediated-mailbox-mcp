@@ -271,3 +271,21 @@ func TestTheStoredClientIsNamedAfterItsProviderAndItsAccountsPointAtIt(t *testin
 		t.Errorf("the clients the accounts name (-want +got):\n%s", diff)
 	}
 }
+
+// M7's row for an account identifier the mediator's API root cannot address. Storing an account whose
+// identifier is exactly ., .. or / is refused by the schema, whatever writes it, and an identifier
+// holding a dot among other characters is stored, so the refusal is the three identifiers' alone
+// (ADR-0087).
+func TestNoAccountIdentifierIsAPathSegmentThePathCannotHold(t *testing.T) {
+	tx := seeded(t)
+	for _, id := range []string{".", "..", "/"} {
+		if code := attempt(t, tx, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", id); code != "23514" {
+			t.Errorf("storing the account %q: %q, want 23514", id, code)
+		}
+	}
+	for _, id := range []string{"...", "jo.smith", "a/b"} {
+		if code := attempt(t, tx, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", id); code != "" {
+			t.Errorf("storing the account %q: %q, want it stored", id, code)
+		}
+	}
+}

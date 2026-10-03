@@ -1,0 +1,19 @@
+control: only the consent's own redirect address finishes a consent
+removes: a pasted address on any host is read as the redirect
+packages: ./provider/gmail/consent
+tests: TestParseRedirect
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/redirect.go b/provider/gmail/consent/redirect.go
+index b7c23b67..87583494 100644
+--- a/provider/gmail/consent/redirect.go
++++ b/provider/gmail/consent/redirect.go
+@@ -33,7 +33,7 @@ func ParseRedirect(address, redirectURI string) (mail.Redirect, error) {
+ 		text = "http://" + text
+ 	}
+ 	got, err := url.Parse(text)
+-	if err != nil || got.Scheme != want.Scheme || got.Host != want.Host || got.User != nil || !samePath(got.Path, want.Path) {
++	if err != nil || got.Scheme != want.Scheme || got.User != nil || !samePath(got.Path, want.Path) {
+ 		return mail.Redirect{}, fmt.Errorf("gmail: the pasted address is not %s: %w", redirectURI, mail.ErrWrongAddress)
+ 	}
+ 	q := got.Query()

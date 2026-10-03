@@ -1,0 +1,18 @@
+control: The Gmail grant requests only the modify scope
+removes: the consent requests no scope
+packages: ./provider/gmail/consent
+tests: TestTheConsentRequestsOnlyTheModifyScope TestTheConsentAsksForAnOfflineGrant
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/token.go b/provider/gmail/consent/token.go
+index 53066d7c..94c06807 100644
+--- a/provider/gmail/consent/token.go
++++ b/provider/gmail/consent/token.go
+@@ -48,7 +48,6 @@ func AuthorizationURL(clientID, redirectURI, state, verifier, loginHint string)
+ 		"prompt":                {"consent"},
+ 		"redirect_uri":          {redirectURI},
+ 		"response_type":         {"code"},
+-		"scope":                 {Scope},
+ 		"state":                 {state},
+ 	}
+ 	if loginHint != "" {

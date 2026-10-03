@@ -1,0 +1,19 @@
+control: The consent and the contract run refuse a grant belonging to an account other than the one named, and name neither account
+removes: a grant is accepted whatever account it belongs to
+packages: ./provider/gmail/consent
+tests: TestRequireAccount/another_account TestRequireAccount/an_account_sharing_a_prefix TestRequireAccount/no_account_wanted TestRequireAccount/no_account_granted
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/mailbox.go b/provider/gmail/consent/mailbox.go
+index dc823bf1..e0691c1d 100644
+--- a/provider/gmail/consent/mailbox.go
++++ b/provider/gmail/consent/mailbox.go
+@@ -117,7 +117,7 @@ func canonical(address string) (string, bool) {
+ // account wanted, compared as SameMailbox compares. The error names neither address, since the
+ // account a grant belongs to may be anyone's and the contract suite's run logs it.
+ func RequireAccount(granted, wanted string) error {
+-	if !SameMailbox(granted, wanted) {
++	if false {
+ 		return errors.New("gmail: the grant belongs to an account other than the one wanted")
+ 	}
+ 	return nil

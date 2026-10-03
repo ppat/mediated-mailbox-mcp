@@ -1,7 +1,8 @@
 // The global chrome of docs/UI.md section 6, the one frame every screen shares. Top to bottom it is the
-// top bar, the address line, the partial-index banner of section 12 while a backfill pass runs, and the
-// screen's body. A detail panel, when the route opens one, sits beside the frame, and everything behind
-// it is inert until it closes (section 4).
+// top bar, the address line, the refused-credential banner and the partial-index banner of section 12,
+// and the screen's body. A detail panel, when the route opens one, sits beside the frame, and
+// everything behind it is inert until it closes (section 4). An installation screen has the same frame
+// with no account in view (InstallationFrame).
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { useLocation } from "preact-iso";
@@ -31,6 +32,10 @@ const screens = [
   { name: "System", path: "system", key: "s" },
 ] as const;
 
+// Account settings is a screen of the account outside the primary navigation, reached from the account
+// selector's menu, its own g key and the last authentication rows (sections 6, 8.13 and 13).
+const settings = { name: "Account settings", path: "account", key: "a" } as const;
+
 // existingScreen is the name of the screen an app path under an account opens, when that screen exists,
 // and undefined for one that does not exist yet, which the UI does not link to (docs/UI.md section 8.8).
 export function existingScreen(href: string): string | undefined {
@@ -39,7 +44,12 @@ export function existingScreen(href: string): string | undefined {
       .split("?")[0]
       ?.split("/")
       .filter((s) => s !== "")[1] ?? "";
-  return screens.find((s) => s.path === segment)?.name;
+  return [...screens, settings].find((s) => s.path === segment)?.name;
+}
+
+// settingsPath is an account's settings screen.
+export function settingsPath(account: string): string {
+  return screenPath(account, settings.path);
 }
 
 export function Frame(props: FrameProps) {
@@ -61,6 +71,7 @@ export function Frame(props: FrameProps) {
         </header>
         <AddressLine />
         <ListedAccount account={props.account}>
+          <RefusedCredentialBanner account={props.account} />
           <PartialIndexBanner account={props.account} />
         </ListedAccount>
         <main class="body">
@@ -75,7 +86,8 @@ export function Frame(props: FrameProps) {
 
 // useGlobalKeys follows the bindings that work on every screen, ? for the map and g then a screen's key
 // for that screen.
-function useGlobalKeys(account: string, showMap: () => void) {
+// On an installation screen, which has no account, the g keys do nothing (section 13).
+function useGlobalKeys(account: string | undefined, showMap: () => void) {
   const { route } = useLocation();
   const { timers } = useDeps();
   useEffect(() => {
@@ -92,8 +104,8 @@ function useGlobalKeys(account: string, showMap: () => void) {
         timers.clear(expiry);
         expiry = timers.set(() => (pendingGo = false), 1_000);
         return;
-      } else if (pendingGo) {
-        const screen = screens.find((s) => s.key === event.key);
+      } else if (pendingGo && account !== undefined) {
+        const screen = [...screens, settings].find((s) => s.key === event.key);
         if (screen !== undefined) {
           route(screenPath(account, screen.path));
         }
@@ -108,39 +120,103 @@ function useGlobalKeys(account: string, showMap: () => void) {
   }, [account, route, showMap, timers]);
 }
 
-function AccountSelector(props: { account: string }) {
+// AccountSelector shows the account in view, or Installation on an installation screen, and its menu
+// lists every account with its provider, then Account settings for the account in view, Connect an
+// account and Installation (section 6). Switching from an installation screen goes to the account's Home.
+function AccountSelector(props: { account: string | undefined }) {
   const { accounts } = useDeps();
   const { path, url } = useLocation();
   const state = accounts.read(accountsPath()).value;
   const listed: readonly Account[] = state.status === "ok" ? state.answer.accounts : [];
   const provider = listed.find((a) => a.account_id === props.account)?.provider;
   const search = url.includes("?") ? url.slice(url.indexOf("?")) : "";
+  const { account } = props;
   return (
     <Menu
       label="Account"
       button={
-        <>
-          <span class="mono">{props.account}</span>
-          {provider === undefined ? null : <span class="muted"> · {provider}</span>}
-        </>
+        account === undefined ? (
+          "Installation"
+        ) : (
+          <>
+            <span class="mono">{account}</span>
+            {provider === undefined ? null : <span class="muted"> · {provider}</span>}
+          </>
+        )
       }
     >
-      {(close) =>
-        listed.map((a) => (
+      {(close) => [
+        ...listed.map((a) => (
           <li key={a.account_id} role="none">
             <a
               role="menuitem"
-              href={switchAccount(path, search, a.account_id)}
-              aria-current={a.account_id === props.account ? "true" : undefined}
+              href={
+                account === undefined
+                  ? `/${encodeURIComponent(a.account_id)}`
+                  : switchAccount(path, search, a.account_id)
+              }
+              aria-current={a.account_id === account ? "true" : undefined}
               onClick={close}
             >
               <span class="mono">{a.account_id}</span>
               <span class="muted">{a.provider}</span>
             </a>
           </li>
-        ))
-      }
+        )),
+        account === undefined ? null : (
+          <li key="settings" role="none">
+            <a role="menuitem" href={settingsPath(account)} onClick={close}>
+              Account settings
+            </a>
+          </li>
+        ),
+        <li key="connect" role="none">
+          <a role="menuitem" href="/setup/connect" onClick={close}>
+            Connect an account
+          </a>
+        </li>,
+        <li key="installation" role="none">
+          <a role="menuitem" href="/setup" onClick={close}>
+            Installation
+          </a>
+        </li>,
+      ]}
     </Menu>
+  );
+}
+
+// InstallationFrame is the frame of an installation screen, which belongs to no account. The account
+// selector reads Installation, the primary navigation is the installation's own, and search, the
+// range control and the group-by control are absent (section 6). Base policy joins the navigation
+// when its screen lands.
+export function InstallationFrame(props: { children: ComponentChildren }) {
+  const [showMap, setShowMap] = useState(false);
+  const openMap = useCallback(() => setShowMap(true), []);
+  const { path } = useLocation();
+  useGlobalKeys(undefined, openMap);
+  return (
+    <>
+      <div class="frame">
+        <header class="topbar">
+          <AccountSelector account={undefined} />
+          <nav aria-label="Screens">
+            <ul class="nav">
+              <li>
+                <a href="/setup" aria-current={path === "/setup" ? "page" : undefined}>
+                  Setup
+                </a>
+              </li>
+            </ul>
+          </nav>
+          <div class="topbar-end">
+            <SettingsMenu onShowMap={openMap} />
+          </div>
+        </header>
+        <AddressLine />
+        <main class="body">{props.children}</main>
+      </div>
+      {showMap ? <KeyboardMap close={() => setShowMap(false)} /> : null}
+    </>
   );
 }
 
@@ -241,6 +317,46 @@ function AddressLine() {
       value={`${location.origin}${url}`}
       onFocus={(event) => event.currentTarget.select()}
     />
+  );
+}
+
+// refusedCredential is the refused-credential banner's text while the account's latest authentication
+// reads refused (ADR-0097), and undefined otherwise. A failed attempt raises none, since workloads retry
+// it (section 12).
+export function refusedCredential(
+  system: System,
+  provider: string | undefined,
+): string | undefined {
+  const op = system.operational;
+  if (op.last_auth_outcome !== "refused") {
+    return undefined;
+  }
+  const who = provider === undefined ? "The provider" : providerName(provider);
+  const when = op.last_auth_at === null ? "" : ` at ${utc(op.last_auth_at)}`;
+  return `${who} refused ${system.account}'s credential${when}. Workloads that call ${who} fail for this account until it is re-authorized.`;
+}
+
+// providerName is how a provider is named in a sentence.
+export function providerName(provider: string): string {
+  return provider === "gmail" ? "Gmail" : provider;
+}
+
+// RefusedCredentialBanner reads the system endpoint's operational block the partial-index banner
+// reads, through the same cached read, so it follows the stream and the polls as that banner does, and
+// sits above it (section 12). Its Re-authorize link goes straight to the account's re-authorization.
+function RefusedCredentialBanner(props: { account: string }) {
+  const { system, accounts } = useDeps();
+  const state = system.read(systemPath(props.account)).value;
+  const listed = accounts.read(accountsPath()).value;
+  const provider =
+    listed.status === "ok"
+      ? listed.answer.accounts.find((a) => a.account_id === props.account)?.provider
+      : undefined;
+  const text = state.status === "ok" ? refusedCredential(state.answer, provider) : undefined;
+  return text === undefined ? null : (
+    <p class="banner banner-refused" role="alert">
+      {text} <a href={`${settingsPath(props.account)}/reauthorize`}>Re-authorize {props.account}</a>
+    </p>
   );
 }
 

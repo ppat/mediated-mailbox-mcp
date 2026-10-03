@@ -1,0 +1,21 @@
+control: a client is checked with the provider before it is stored
+removes: every client is stored without asking the provider
+packages: ./ui/internal/api
+tests: TestAClientIsCheckedBeforeItIsStored
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/setup.go b/ui/internal/api/setup.go
+index 53c0b68b..a8e07edf 100644
+--- a/ui/internal/api/setup.go
++++ b/ui/internal/api/setup.go
+@@ -359,7 +359,8 @@ func (s *Server) validClient(w http.ResponseWriter, r *http.Request, id, secret
+ // checkClient asks the provider whether it recognises the client, and answers the request when it
+ // does not or did not answer. Nothing is stored in either case.
+ func (s *Server) checkClient(w http.ResponseWriter, r *http.Request, consent mail.Consent[context.Context], id, secret string) bool {
+-	err := consent.CheckClient(r.Context(), mail.OAuthClient{ID: id, Secret: secret})
++	err := error(nil)
++	_ = consent
+ 	switch {
+ 	case err == nil:
+ 		return true

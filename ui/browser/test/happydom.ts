@@ -3,4 +3,9 @@
 // and no test imports it.
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
-GlobalRegistrator.register({ url: "https://ui.mediated-mailbox.test/" });
+// A stylesheet a test's document links is never fetched, since no server answers the origin, as the
+// guide's windows link the bundle's stylesheet.
+GlobalRegistrator.register({
+  url: "https://ui.mediated-mailbox.test/",
+  settings: { disableCSSFileLoading: true, handleDisabledFileLoadingAsSuccess: true },
+});

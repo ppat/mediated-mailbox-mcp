@@ -3,13 +3,21 @@
 // answers is kept in missing, which each test requires to be empty, so a test never passes on an
 // answer it did not name.
 import { readFileSync } from "node:fs";
-import type { Fetch } from "../../src/app/api.ts";
+import type { Fetch, Post } from "../../src/app/api.ts";
 
 // Answer is the recording that answers a path, a file in this directory, with the status the server
 // sent it with.
 export type Answer = { file: string; status: number };
 
-export type Recorded = { fetch: Fetch; calls: string[]; missing: string[] };
+// A state-changing request's answers are keyed by "POST " and the path, and each request it sent is
+// kept in posted with its body, so a test asserts what the app sent.
+export type Recorded = {
+  fetch: Fetch;
+  post: Post;
+  calls: string[];
+  posted: { path: string; body: unknown }[];
+  missing: string[];
+};
 
 // Loaded is an answer with its recording read.
 type Loaded = { body: string; status: number };
@@ -35,23 +43,32 @@ export function recorded(answers: Readonly<Record<string, Answer | readonly Answ
   }
   const calls: string[] = [];
   const missing: string[] = [];
+  const posted: { path: string; body: unknown }[] = [];
   const reads = new Map<string, number>();
-  const fetch: Fetch = async (path) => {
-    calls.push(path);
-    const n = reads.get(path) ?? 0;
-    reads.set(path, n + 1);
-    const given = loaded.get(path);
-    const answer = given?.[Math.min(n, given.length - 1)];
-    if (answer === undefined) {
-      missing.push(path);
+  const answer = (key: string): Response => {
+    const n = reads.get(key) ?? 0;
+    reads.set(key, n + 1);
+    const given = loaded.get(key);
+    const recording = given?.[Math.min(n, given.length - 1)];
+    if (recording === undefined) {
+      missing.push(key);
       return new Response("", { status: 599 });
     }
-    return new Response(answer.body, {
-      status: answer.status,
+    return new Response(recording.body, {
+      status: recording.status,
       headers: { "Content-Type": "application/json" },
     });
   };
-  return { fetch, calls, missing };
+  const fetch: Fetch = async (path) => {
+    calls.push(path);
+    return answer(path);
+  };
+  const post: Post = async (path, body) => {
+    calls.push(`POST ${path}`);
+    posted.push({ path, body });
+    return answer(`POST ${path}`);
+  };
+  return { fetch, post, calls, posted, missing };
 }
 
 export const ok = (file: string): Answer => ({ file, status: 200 });

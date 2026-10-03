@@ -9,12 +9,21 @@ export type BrowserConfig = {
   // interval, both in milliseconds (ADR-0058).
   reconnectMax: number;
   pollInterval: number;
+  // consentRedirect is the loopback address a consent redirects to, which the connect page pictures
+  // and checks a pasted address against (docs/UI.md section 8.12). The browser holds no copy of it, so
+  // a page without the tag pictures no address and finds no paste to be on it.
+  consentRedirect: string;
+  // requestToken is the session's request token, which every state-changing request carries
+  // (ADR-0061). An entry document without one sends requests the server refuses as a stale page.
+  requestToken: string;
 };
 
 export const configDefaults: BrowserConfig = {
   defaultTheme: "system",
   reconnectMax: 30_000,
   pollInterval: 5_000,
+  consentRedirect: "",
+  requestToken: "",
 };
 
 // readConfig reads each key through read, which returns a meta tag's content by key.
@@ -24,6 +33,8 @@ export function readConfig(read: (key: string) => string | undefined): BrowserCo
     defaultTheme: themes.find((t) => t === theme) ?? configDefaults.defaultTheme,
     reconnectMax: milliseconds(read("stream_reconnect_max")) ?? configDefaults.reconnectMax,
     pollInterval: milliseconds(read("stream_poll_interval")) ?? configDefaults.pollInterval,
+    consentRedirect: read("consent_redirect") ?? configDefaults.consentRedirect,
+    requestToken: read("request_token") ?? configDefaults.requestToken,
   };
 }
 

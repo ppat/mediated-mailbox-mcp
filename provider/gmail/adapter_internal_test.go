@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -208,7 +209,7 @@ func TestAPortCallWhoseTokenRequestWasRefusedIsARefusedCredential(t *testing.T) 
 		"revoked grant":  {400, "400 Bad Request", `{"error": "invalid_grant", "error_description": "Token has been expired or revoked."}`},
 		"unknown client": {401, "401 Unauthorized", `{"error": "invalid_client", "error_description": "The OAuth client was not found."}`},
 	} {
-		_, refusal := answer(c.code, c.status, []byte(c.body))
+		_, refusal := consent.Answer(c.code, c.status, []byte(c.body))
 		a, err := New(Config{Account: "you@example.com", Client: &http.Client{}, Tokens: failingTokens{refusal}, Metrics: metrics})
 		if err != nil {
 			t.Fatalf("New: %v", err)
@@ -225,9 +226,9 @@ func TestAPortCallWhoseTokenRequestWasRefusedIsARefusedCredential(t *testing.T) 
 // A refusal, a 400 or a 401, is a refused credential alone, and every other failure is the provider
 // failing the request alone (ADR-0097, RFC 6749 section 5.2).
 func TestATokenFailureIsThePortErrorItsOutcomeNames(t *testing.T) {
-	_, unusable := parseTokenResponse([]byte(`{"expires_in": 3599}`))
+	_, unusable := consent.ParseTokenResponse([]byte(`{"expires_in": 3599}`))
 	answered := func(code int, status, body string) error {
-		_, err := answer(code, status, []byte(body))
+		_, err := consent.Answer(code, status, []byte(body))
 		return err
 	}
 	for name, c := range map[string]struct {

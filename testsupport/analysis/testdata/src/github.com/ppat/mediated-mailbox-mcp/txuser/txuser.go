@@ -11,6 +11,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/lookalike"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret"
+	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/other/queries"
 )
@@ -49,7 +50,7 @@ func Outside(ctx context.Context, p pool) error {
 	return tx.Run(ctx, p, "a", func(pgx.Tx) error { return nil })
 }
 
-// Exceptions runs the three exempt statements on any handle, and nothing else.
+// Exceptions runs the exempt statements on any handle, and nothing else.
 func Exceptions(ctx context.Context, p pool) error {
 	if err := accounts.New(p).Accounts(ctx); err != nil {
 		return err
@@ -61,6 +62,26 @@ func Exceptions(ctx context.Context, p pool) error {
 		return err
 	}
 	if err := secret.New(p).Other(ctx); err != nil { // want `calls secret.New outside a function literal passed to tx.Run`
+		return err
+	}
+	for _, statement := range []func(context.Context) error{
+		setup.New(p).SetupClients, // want `calls setup.New outside a function literal passed to tx.Run`
+	} {
+		_ = statement
+	}
+	if err := setup.New(p).SetupClients(ctx); err != nil {
+		return err
+	}
+	if err := setup.New(p).AddClient(ctx); err != nil {
+		return err
+	}
+	if err := setup.New(p).ReplaceClient(ctx); err != nil {
+		return err
+	}
+	if err := setup.New(p).RemoveClient(ctx); err != nil {
+		return err
+	}
+	if err := setup.New(p).ClientIdentity(ctx); err != nil { // want `calls setup.New outside a function literal passed to tx.Run`
 		return err
 	}
 	if err := accounts.New(p).Other(ctx); err != nil { // want `calls accounts.New outside a function literal passed to tx.Run`

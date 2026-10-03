@@ -6,12 +6,12 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
-index 3cbb4ae..bceb92e 100644
+index bfcdf223..217f06ee 100644
 --- a/ui/browser/src/app/router.tsx
 +++ b/ui/browser/src/app/router.tsx
-@@ -35,7 +35,7 @@ export function Routes() {
-       <Route path="/" component={Entry} />
-       <Route path="/:account" component={AccountHomeScreen} />
+@@ -45,7 +45,7 @@ export function Routes() {
+       <Route path="/:account/account" component={AccountSettingsRoute} />
+       <Route path="/:account/account/reauthorize" component={ReauthorizeScreenRoute} />
        <Route path="/:account/system" component={SystemScreenRoute} />
 -      <Route path="/:account/jobs" component={JobsScreenRoute} />
 +      <Route path="/:account/jobs" component={JobsRoute} />

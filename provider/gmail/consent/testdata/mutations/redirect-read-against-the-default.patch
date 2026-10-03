@@ -1,0 +1,19 @@
+control: the consent's redirect address is the configured loopback address, read by every use
+removes: a pasted address is read against the default loopback address rather than the configured one
+packages: ./provider/gmail/consent
+tests: TestTheUIsConsentRedirectsToItsGivenAddress
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/google.go b/provider/gmail/consent/google.go
+index a91aae87..27ec2d73 100644
+--- a/provider/gmail/consent/google.go
++++ b/provider/gmail/consent/google.go
+@@ -36,7 +36,7 @@ func (g Google) ConsentAddress(clientID, state, verifier, mailbox string) string
+ 
+ // ReadRedirect implements mail.Consent.
+ func (g Google) ReadRedirect(address string) (mail.Redirect, error) {
+-	return ParseRedirect(address, g.redirect)
++	return ParseRedirect(address, "http://127.0.0.1:47823/")
+ }
+ 
+ // Finish implements mail.Consent. The grant's credential is the refresh token, and its mailbox is

@@ -5,14 +5,14 @@ tests: TestAHeldAccessTokenIsNoAttempt
 scheduled-count: no
 
 diff --git a/provider/gmail/tokensource.go b/provider/gmail/tokensource.go
-index 4e68dc3..68b93dc 100644
+index 8e6d63fe..279d7b5c 100644
 --- a/provider/gmail/tokensource.go
 +++ b/provider/gmail/tokensource.go
-@@ -75,6 +75,7 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
+@@ -78,6 +78,7 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
  	defer s.mu.Unlock()
  	now := time.Now()
  	if token, ok := s.cached(now); ok {
 +		s.attempted(ctx, now, nil)
  		return token, nil
  	}
- 	body, err := postForm(ctx, s.client, s.refreshForm())
+ 	body, err := consent.PostForm(ctx, s.client, s.refreshForm())

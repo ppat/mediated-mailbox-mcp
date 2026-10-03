@@ -1,0 +1,20 @@
+control: a client an account connects through is not removed
+removes: every removal is refused as a client in use, an unused client's included
+packages: ./ui/internal/api
+tests: TestAClientIsReplacedAndRemoved
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/setup.go b/ui/internal/api/setup.go
+index 53c0b68b..cd135868 100644
+--- a/ui/internal/api/setup.go
++++ b/ui/internal/api/setup.go
+@@ -328,7 +328,7 @@ func (s *Server) removeClient(w http.ResponseWriter, r *http.Request) {
+ 		return
+ 	}
+ 	n, err := clientsetup.New(s.opts.Database).RemoveClient(r.Context(), clientsetup.RemoveClientParams{ClientName: name, Provider: provider})
+-	if _, ok := violated(err, foreignKeyBlocked); ok {
++	if _, ok := violated(err, foreignKeyBlocked); ok || err == nil {
+ 		writeFailure(w, r, clientFault(http.StatusConflict, "client_in_use", "an account connects through this client"))
+ 		return
+ 	}

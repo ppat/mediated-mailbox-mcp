@@ -1,0 +1,21 @@
+control: a grant for a mailbox other than the one named, or on re-authorization the one the account remembers, is refused
+removes: a re-authorization takes the mailbox its request names over the one the account remembers
+packages: ./ui/internal/api
+tests: TestReauthorizingCannotChangeTheMailbox
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
+index 18348c97..7a82aece 100644
+--- a/ui/internal/api/connect.go
++++ b/ui/internal/api/connect.go
+@@ -193,8 +193,7 @@ func (s *Server) startReauthorize(w http.ResponseWriter, r *http.Request) {
+ 	mailbox := held.Mailbox.String
+ 	switch {
+ 	case held.Mailbox.Valid && body.Mailbox != nil:
+-		writeFailure(w, r, clientFault(http.StatusBadRequest, "mailbox_remembered", "the account remembers its mailbox, so the request names none"))
+-		return
++		mailbox = *body.Mailbox
+ 	case !held.Mailbox.Valid && body.Mailbox == nil:
+ 		writeFailure(w, r, clientFault(http.StatusBadRequest, "mailbox_required", "the account remembers no mailbox, so the request names it"))
+ 		return

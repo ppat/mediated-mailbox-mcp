@@ -1,0 +1,20 @@
+control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+removes: a batch sent or rows copied in are not reported
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index f9344bb0..43bc648e 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -59,9 +59,7 @@ var statementRunners = map[string][]shape{
+ 	"Exec":          {{params: []string{ctxType, "string"}}},
+ 	"Prepare":       {{params: []string{ctxType, "string", "string"}}},
+ 	"ExecParams":    {{params: []string{ctxType, "string"}}},
+-	"SendBatch":     {{params: []string{ctxType, "*" + pgxPath + ".Batch"}}},
+ 	"ExecBatch":     {{params: []string{ctxType, "*" + pgconnPath + ".Batch"}}},
+-	"CopyFrom":      {{params: []string{ctxType, pgxPath + ".Identifier"}}, {params: []string{ctxType, "io.Reader", "string"}}},
+ 	"CopyTo":        {{params: []string{ctxType, "io.Writer", "string"}}},
+ 	"StartPipeline": {{params: []string{ctxType}, result: "*" + pgconnPath + ".Pipeline"}},
+ }

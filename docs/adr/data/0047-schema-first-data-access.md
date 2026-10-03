@@ -54,10 +54,12 @@ decisions take everything as parameters
 - **Every unit of data access runs in a transaction that has set the account and has verified it
   is set.** The verification is not ceremony. [ADR-0016](./0016-schema.md) records why the
   database cannot raise here and why the resulting deny is silent, and this is where the
-  compensating assertion lives. The accounts listing, the read of `oauth_clients` and delta sync's
-  re-seal of a client secret are exempt, each written as one chained call, which are not
-  account-scoped ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md),
-  [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)).
+  compensating assertion lives. The accounts listing, the read of `oauth_clients`, delta sync's
+  re-seal of a client secret and the UI's OAuth client setup are exempt, each written as one
+  chained call, which are not account-scoped
+  ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md),
+  [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md),
+  [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
 - **One data-access library, produced from the one schema, serves every component** — so drift
   between the schema, the queries, and the result types is a build failure everywhere at once rather
   than a runtime discovery in one workload. The library is impure shared code, deliberately outside

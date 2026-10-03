@@ -11,7 +11,9 @@ An account's provider credential is stored in the database sealed to a public ke
 [ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). The UI seals a
 credential when an account is connected or re-authorized. Backfill, the mediator, delta sync and the
 reorg workload open it with the private key, and seal a rotated one before writing it back
-([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). This library is
+([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). The UI's
+`ui/internal/clientsecret` opens an OAuth client's secret with the same keys, for a consent's code
+exchange, and nothing else. This library is
 that sealing and opening, the loading of each key from its mounted file, and the configuration
 section naming those files with its validation, in `core`.
 
@@ -21,7 +23,7 @@ or sealed to the wrong key would do it silently, and five copies would drift. Wr
 construction and its refusals hold in every deployable that touches a credential.
 
 Its subsections are cut so an import list can admit the sealing half without the opening half, so
-the UI links no code that opens a credential. `seal` seals to the current public key. `open` holds
+the UI's code outside its one opening part links no code that opens a value. `seal` seals to the current public key. `open` holds
 the keyring of private keys and opens a value by the key its header names. `core` holds the
 configuration section naming the key files a deployable loads. `cmd/keygen` writes a key pair,
 since no standard tool writes X-Wing keys. The construction and the sealed value's bytes are

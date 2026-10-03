@@ -1,0 +1,20 @@
+control: a state-changing request is accepted only with the request token of the session that loaded the page
+removes: the check passes every request, whatever its token
+packages: ./ui/internal/api
+tests: TestAStateChangingRequestWithoutItsTokenIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/session.go b/ui/internal/api/session.go
+index 56bb9534..486fbc82 100644
+--- a/ui/internal/api/session.go
++++ b/ui/internal/api/session.go
+@@ -119,7 +119,7 @@ func validSession(v string) bool {
+ // answer a page older than the server's last restart gets (docs/UI.md sections 15 and 17.3).
+ func withToken(k keys, next http.Handler) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		if r.Method != http.MethodGet && r.Method != http.MethodHead {
++		if false {
+ 			s := sessionOf(r.Context())
+ 			got := r.Header.Get(tokenHeader)
+ 			if !s.carried || got == "" || !hmac.Equal([]byte(got), []byte(k.requestToken(s.id))) {

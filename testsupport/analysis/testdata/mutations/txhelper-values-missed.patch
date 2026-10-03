@@ -1,18 +1,18 @@
-control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients and delta sync's re-seal of a client secret
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret and the UI's client setup
 removes: New used as a value is not reported
 packages: ./testsupport/analysis
 tests: TestTxHelper
 scheduled-count: no
 
 diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
-index 87bf71f..f6540b4 100644
+index 06a69d61..b70f456b 100644
 --- a/testsupport/analysis/txhelper.go
 +++ b/testsupport/analysis/txhelper.go
-@@ -178,7 +178,6 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
+@@ -183,7 +183,6 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
  	}
  	call, ok := parent(level).(*ast.CallExpr)
  	if !ok || call.Fun != fun {
 -		pass.Reportf(id.Pos(), txValueMessage, name)
  		return
  	}
- 	if statement, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {
+ 	if statements, exempt := txHelperExceptions[fn.Pkg().Path()]; exempt {

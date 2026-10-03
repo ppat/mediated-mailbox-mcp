@@ -1,0 +1,18 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret and the UI's client setup
+removes: the UI's client setup statements lose their exception
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+index 06a69d61..8219f1fe 100644
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -59,7 +59,6 @@ var txHelperExceptions = map[string][]string{
+ 	modulePath + "/db/accounts":            {"Accounts"},
+ 	modulePath + "/db/oauthclients":        {"OAuthClients"},
+ 	modulePath + "/db/oauthclients/secret": {"ReplaceSealedClient"},
+-	modulePath + "/db/oauthclients/setup":  {"SetupClients", "AddClient", "ReplaceClient", "RemoveClient"},
+ }
+ 
+ const (

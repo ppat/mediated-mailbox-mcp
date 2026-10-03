@@ -1,0 +1,17 @@
+{
+  "account_id": "personal",
+  "backfill_pass1_complete": true,
+  "backfill_pass2_complete": false,
+  "connected": true,
+  "current_target": 5,
+  "last_auth_at": "2026-09-10T04:16:04Z",
+  "last_auth_outcome": "<script>mmfieldmarker-authoutcome</script>",
+  "lowered_target": 0.3,
+  "mailbox": "personal@gmail.com",
+  "oauth_client": "household-mail",
+  "other_clients": [
+    "spare-client"
+  ],
+  "provider": "gmail",
+  "sync_cursor_at": "2026-09-10T10:12:04Z"
+}

@@ -1,0 +1,15 @@
+{
+  "accounts": [],
+  "clients": [
+    {
+      "accounts": [],
+      "client_id": "household-id.apps.example",
+      "name": "household-mail",
+      "project_id": "household-mail",
+      "provider": "gmail"
+    }
+  ],
+  "providers": [
+    "gmail"
+  ]
+}

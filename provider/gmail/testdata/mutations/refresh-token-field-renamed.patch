@@ -1,14 +1,14 @@
 control: A rotated refresh token is held, sent on the next refresh and handed to the deployable
 removes: the token response's refresh token is read from a field Google does not send, so no rotation is ever seen
-packages: ./provider/gmail
+packages: ./provider/gmail ./provider/gmail/consent
 tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver TestParseTokenResponse/refresh_that_rotates
 scheduled-count: no
 
-diff --git a/provider/gmail/oauth.go b/provider/gmail/oauth.go
-index 61d2573..6b325ad 100644
---- a/provider/gmail/oauth.go
-+++ b/provider/gmail/oauth.go
-@@ -118,7 +118,7 @@ func parseTokenResponse(body []byte) (tokenResponse, error) {
+diff --git a/provider/gmail/consent/token.go b/provider/gmail/consent/token.go
+index 53066d7c..dd81ad57 100644
+--- a/provider/gmail/consent/token.go
++++ b/provider/gmail/consent/token.go
+@@ -133,7 +133,7 @@ func ParseTokenResponse(body []byte) (TokenResponse, error) {
  	var raw struct {
  		AccessToken  string `json:"access_token"`
  		ExpiresIn    int64  `json:"expires_in"`

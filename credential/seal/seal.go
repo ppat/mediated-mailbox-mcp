@@ -1,8 +1,9 @@
 // Package seal is the sealing half of the credential library. It seals an account's provider
 // credential or an OAuth client's secret to the current public key, and it defines the bytes a
 // sealed value carries (ADR-0081, ADR-0088). It holds nothing that opens a value, so an import list
-// can admit it without the opening half, and the UI links no code that opens a credential. The
-// opening half imports this one, so the compiler refuses an import of it from here as a cycle.
+// can admit it without the opening half, and no code of the UI but its client-secret package links
+// code that opens a value. The opening half imports this one, so the compiler refuses an import of
+// it from here as a cycle.
 //
 // A sealed value is a version byte naming the suite, the 16-byte identifier of the key it was
 // sealed to, the encapsulated key, and the ciphertext with its tag. The additional data binds that

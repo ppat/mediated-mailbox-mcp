@@ -1,0 +1,19 @@
+control: a client is checked with the provider before it is stored
+removes: every answer of the token endpoint to a client check reads as the client accepted
+packages: ./provider/gmail/consent
+tests: TestTheClientChecksAnswer
+scheduled-count: no
+
+diff --git a/provider/gmail/consent/client.go b/provider/gmail/consent/client.go
+index 8e4bed84..9dadcb06 100644
+--- a/provider/gmail/consent/client.go
++++ b/provider/gmail/consent/client.go
+@@ -39,7 +39,7 @@ func checkAnswer(err error) error {
+ 		return errors.New("gmail: the token endpoint exchanged a code no consent issued")
+ 	case !errors.As(err, &answered):
+ 		return err
+-	case answered.reason == "invalid_grant":
++	case true:
+ 		return nil
+ 	case answered.code == http.StatusBadRequest || answered.code == http.StatusUnauthorized:
+ 		return fmt.Errorf("%w: %w", mail.ErrClientRefused, err)

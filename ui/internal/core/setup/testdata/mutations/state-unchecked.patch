@@ -1,0 +1,19 @@
+control: a consent attempt opens only in the session that started it, and only its newest state finishes
+removes: a redirect carrying another attempt's state finishes this one
+packages: ./ui/internal/core/setup
+tests: TestARedirectFinishesOnlyItsOwnAttempt
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index 92c01a57..3fca2417 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -108,7 +108,7 @@ func Expired(expires, now int64) Refusal {
+ // was already found unexpired.
+ func Redirect(r mail.Redirect, state string) Refusal {
+ 	switch {
+-	case r.State != state && (r.Code != "" || r.Error != ""):
++	case false:
+ 		return WrongAttempt
+ 	case r.Error != "":
+ 		return ConsentDeclined

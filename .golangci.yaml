@@ -728,27 +728,39 @@ linters:
         # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
         # It names each data-access subsection it may use, which db/check tests against its role's grants.
         # It admits neither the provider adapters nor the rate limiter, because the UI holds no provider credential,
-        # cannot reach a mailbox and does not spend the rate budget (ADR-0038, ADR-0021, ADR-0025).
+        # cannot reach a mailbox and does not spend the rate budget (ADR-0038, ADR-0021, ADR-0025). Of the provider
+        # library it admits Gmail's consent alone, which holds no Provider Port code, and the provider fake for its
+        # tests. Of the credential library it admits the sealing half alone, so no code of the UI but its client-secret
+        # package, which the list below governs, links code that opens a value (ADR-0081, ADR-0107).
         ui:
           list-mode: strict
           files:
           - "${base-path}/ui/**.go"
+          - "!${base-path}/ui/internal/clientsecret/**"
           allow:
           - "$gostd"
           # The contract generator's document types. The generator is test code, and non-test-code refuses it.
           - "github.com/getkin/kin-openapi/openapi3$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
-          # The driver, its types and its pool, each exact, as the dbconnect list names its pool.
+          # The driver, its types and its pool, each exact, as the dbconnect list names its pool, and its error
+          # type, which tells the setups' refusals by the constraint they name.
           - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/pgconn$"
           - "github.com/jackc/pgx/v5/pgtype$"
           - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          # The sealing half, with which the setups seal a client's secret and an account's credential.
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           # The data-access subsections the read API's statements sit in, from ui/internal/registry and
           # ui/internal/api. Of account_state and rate_state only the parent subsections, so the UI's role is never
           # planned against a statement that touches a credential or the limiter's writes.
           - "github.com/ppat/mediated-mailbox-mcp/db/accounts$"
+          # The account setup's writes and reads, and the code exchange's authentication attempt, recorded by the
+          # latest-wins statement the deployables share (ADR-0084, ADR-0097), in ui/internal/api.
+          - "github.com/ppat/mediated-mailbox-mcp/db/accounts/setup$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
           - "github.com/ppat/mediated-mailbox-mcp/db/auditlog$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification$"
@@ -758,6 +770,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/classification$"
+          # The OAuth client setup's statements, which read no secret, in ui/internal/api.
+          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policycandidates$"
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
           # The op log's row count the jobs endpoint shows beside an applied plan's rollback, in
@@ -769,6 +783,10 @@ linters:
           # The composition root's configuration (ADR-0078) and its database section, in ui/main.go.
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
+          - "github.com/ppat/mediated-mailbox-mcp/provider/fake$"
+          # Gmail's consent, which the composition root hands the server.
+          - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent$"
           - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
@@ -783,6 +801,55 @@ linters:
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
           - "pgregory.net/rapid$"
+
+        # The one part of the UI that opens a stored value, an OAuth client's secret for a consent's code exchange,
+        # and nothing else (ADR-0081). It alone admits the credential library's opening half and the read of a
+        # client's sealed secret, which the UI's list refuses everywhere else in the component.
+        ui-clientsecret:
+          list-mode: strict
+          files:
+          - "${base-path}/ui/internal/clientsecret/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret$"
+
+        # The UI's shipped code outside its one opening part links none of the standard library's public-key code, so
+        # it opens no stored value by hand (ADR-0081). It names the cryptography packages that code uses, each exact,
+        # and admits the rest of the standard library and the modules the ui list admits, which that list confines.
+        # Under the sorted-neighbour comparison of ADR-0071 the exact crypto entries stop the crypto entry $gostd adds
+        # from admitting any other package under crypto/, crypto/hpke, crypto/mlkem and crypto/ecdh among them, while
+        # the root crypto package, interfaces and the hash registry, stays admitted. Test files
+        # are outside it, because the server's tests open what the setups sealed to check it, and a test is never
+        # served.
+        ui-shipped-crypto:
+          list-mode: strict
+          files:
+          - "${base-path}/ui/**.go"
+          - "!${base-path}/ui/internal/clientsecret/**"
+          - "!$test"
+          allow:
+          - "$gostd"
+          # The request token's and the consent attempt's keys and seal, and the server's TLS.
+          - "crypto/aes$"
+          - "crypto/cipher$"
+          - "crypto/hkdf$"
+          - "crypto/hmac$"
+          - "crypto/rand$"
+          - "crypto/sha256$"
+          - "crypto/tls$"
+          - "github.com/getkin/kin-openapi/"
+          - "github.com/google/go-cmp/"
+          - "github.com/jackc/pgx/v5"
+          - "github.com/ppat/mediated-mailbox-mcp/"
+          - "github.com/prometheus/client_golang/"
+          - "pgregory.net/rapid"
 
         # The mediator's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated
         # from the operation registry by one file, its generator, and only the generator imports the library its
@@ -910,6 +977,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/caldav$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gcal$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/jmap$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/sanitize/"
