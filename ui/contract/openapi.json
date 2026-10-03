@@ -7425,7 +7425,8 @@
                 "groupable": false,
                 "filterable": true,
                 "sortable": false,
-                "wording": "search"
+                "wording": "search",
+                "search": true
               },
               {
                 "name": "rule_id",
@@ -7519,7 +7520,8 @@
                 "groupable": false,
                 "filterable": true,
                 "sortable": false,
-                "wording": "search"
+                "wording": "search",
+                "search": true
               },
               {
                 "name": "message_count",

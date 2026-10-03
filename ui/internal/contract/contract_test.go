@@ -252,6 +252,7 @@ type dimension struct {
 	NullWording string   `json:"null_wording,omitempty"`
 	Empty       bool     `json:"empty,omitempty"`
 	Values      []string `json:"values,omitempty"`
+	Search      bool     `json:"search,omitempty"`
 }
 
 type defaults struct {
@@ -272,7 +273,7 @@ func descriptors(datasets []registry.Dataset) []descriptor {
 		for _, dim := range d.Dimensions {
 			ds.Dimensions = append(ds.Dimensions, dimension{
 				Name: dim.Name, Storage: dim.Storage, Groupable: dim.Groupable, Filterable: dim.Filterable, Sortable: dim.Sortable,
-				Wording: dim.Wording, NullWording: dim.NullWording, Empty: dim.Empty, Values: dim.Values,
+				Wording: dim.Wording, NullWording: dim.NullWording, Empty: dim.Empty, Values: dim.Values, Search: dim.Search,
 			})
 		}
 		out = append(out, ds)
