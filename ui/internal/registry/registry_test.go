@@ -7,14 +7,21 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
+
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
+// lookups are the sender classifier's domain functions, as the composition root passes them.
+var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
+
 // TestTheRegistryHasItsStatements is the statement-set check over the real registry, which must be
 // clean (ADR-0066).
 func TestTheRegistryHasItsStatements(t *testing.T) {
-	if problems := registry.Check(registry.Datasets()); len(problems) > 0 {
+	if problems := registry.Check(registry.Datasets(lookups)); len(problems) > 0 {
 		t.Fatalf("the registry's statements do not match its declarations:\n%v", problems)
 	}
 }

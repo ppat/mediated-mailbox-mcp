@@ -1,0 +1,17 @@
+{
+  "senders_total": 5,
+  "suffixes": [
+    {
+      "messages": 0,
+      "public_suffix": false,
+      "rules": [],
+      "senders": 0,
+      "suffix": "old.example",
+      "valid": true
+    }
+  ],
+  "together": {
+    "messages": 0,
+    "senders": 0
+  }
+}

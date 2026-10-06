@@ -160,6 +160,11 @@ type Store interface {
 	// sender class and pending scan with its sender's statistics rebuilt, with an event when it marked
 	// any, in one transaction (ADR-0037). It returns how many messages it marked.
 	Delist(ctx context.Context, account, runID string, delisted func(restricted []string) []string) (int, error)
+	// List restricts the stored classes a rule added since restricts. It reads the domains of the
+	// messages stored as normal, sets those messages of every domain listed names to the restricted
+	// class with the rule listed gives it, and rebuilds its sender's statistics, in one transaction
+	// (ADR-0113). It leaves every scan state as it is. It returns how many messages it marked.
+	List(ctx context.Context, account string, listed func(normal []string) []index.Listing) (int, error)
 	// Pending returns up to n of the account's messages waiting for a scan after the message
 	// identified by after, in the order of their identifiers.
 	Pending(ctx context.Context, account, after string, n int) ([]index.Waiting, error)

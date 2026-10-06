@@ -1,0 +1,22 @@
+{
+  "added": [
+    {
+      "rule_id": "operator.new.example",
+      "scope": "account",
+      "suffixes": [
+        "new.example"
+      ]
+    }
+  ],
+  "edited": [],
+  "lifted": [
+    {
+      "released": null,
+      "rule_id": "operator.lender.example",
+      "suffixes": [
+        "lender.example"
+      ]
+    }
+  ],
+  "lifts": 1
+}

@@ -114,6 +114,59 @@ func (q *Queries) MarkDelisted(ctx context.Context, arg MarkDelistedParams) (int
 	return result.RowsAffected(), nil
 }
 
+const markListed = `-- name: MarkListed :execrows
+UPDATE messages
+SET sender_class = 'restricted', class_rule_id = $1
+WHERE account_id = $2 AND from_domain = $3 AND sender_class = 'normal'
+`
+
+type MarkListedParams struct {
+	ClassRuleID pgtype.Text
+	AccountID   string
+	Domain      string
+}
+
+// Restricts the stored class of one domain the policy in force now restricts under a rule. Its
+// messages stored as normal take the restricted class and the rule that sets it, and their scan state
+// is left as it is (ADR-0113, ADR-0016).
+func (q *Queries) MarkListed(ctx context.Context, arg MarkListedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markListed, arg.ClassRuleID, arg.AccountID, arg.Domain)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const normalDomains = `-- name: NormalDomains :many
+SELECT DISTINCT m.from_domain
+FROM messages AS m
+WHERE m.account_id = $1 AND m.sender_class = 'normal'
+ORDER BY m.from_domain
+`
+
+// The sender domains of the account whose messages the index stores as normal, each once, which every
+// scanning workload compares with the policy in force, so a rule added since restricts the stored
+// classes (ADR-0113).
+func (q *Queries) NormalDomains(ctx context.Context, accountID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, normalDomains, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var from_domain string
+		if err := rows.Scan(&from_domain); err != nil {
+			return nil, err
+		}
+		items = append(items, from_domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const pendingPage = `-- name: PendingPage :many
 SELECT
     m.message_id,
@@ -343,8 +396,9 @@ ORDER BY m.from_domain
 
 // The sender domains of the account whose messages the index stores as restricted or holds skipped as
 // restricted, each once, which the delisting transition compares with the policy in force (ADR-0037).
-// A rule added after a message was stored leaves its stored class normal while the gate skips it as
-// restricted, so the skip state is read as well.
+// A rule added after a message was stored can leave its stored class normal while the gate skips it as
+// restricted, until the comparison for an added rule restricts the stored class (ADR-0113), so the
+// skip state is read as well.
 func (q *Queries) RestrictedDomains(ctx context.Context, accountID string) ([]string, error) {
 	rows, err := q.db.Query(ctx, restrictedDomains, accountID)
 	if err != nil {

@@ -8,6 +8,12 @@ export function count(n: number): string {
   return counts.format(n);
 }
 
+// counted writes a count with its noun, singular for one, 1 rule and 12,480 messages. plural is the
+// noun's plural where it is not the noun with an s.
+export function counted(n: number, noun: string, plural = `${noun}s`): string {
+  return `${count(n)} ${n === 1 ? noun : plural}`;
+}
+
 // share writes part of whole as a percent with one decimal, 14.8%. A share of nothing is 0.0%.
 export function share(part: number, whole: number): string {
   return `${(whole === 0 ? 0 : (part / whole) * 100).toFixed(1)}%`;

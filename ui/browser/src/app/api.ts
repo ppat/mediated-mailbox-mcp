@@ -43,6 +43,22 @@ export type AddClient = Schemas["AddClient"];
 export type ReplaceClient = Schemas["ReplaceClient"];
 export type ConnectRequest = Schemas["Connect"];
 export type ReauthorizeRequest = Schemas["Reauthorize"];
+export type RuleRow = Schemas["RuleRow"];
+export type RuleDetail = Schemas["RuleDetail"];
+export type ChangeRow = Schemas["ChangeRow"];
+export type SenderRow = Schemas["SenderRow"];
+export type MatchAnswer = Schemas["MatchAnswer"];
+export type SuffixMatch = Schemas["SuffixMatch"];
+export type RuleAnswer = Schemas["RuleAnswer"];
+export type Problem = Schemas["Problem"];
+export type BasePolicy = Schemas["BasePolicy"];
+export type BaseRule = Schemas["BaseRule"];
+export type BaseHistory = Schemas["BaseHistory"];
+export type ImportPreview = Schemas["ImportPreview"];
+export type Imported = Schemas["Imported"];
+export type Counts = Schemas["Counts"];
+export type BaseMatchAnswer = Schemas["BaseMatchAnswer"];
+export type BaseSuffixMatch = Schemas["BaseSuffixMatch"];
 export type LensAnswer = operations["getLens"]["responses"][200]["content"]["application/json"];
 // Groups is a level 1 or 2 answer, every group of one dimension.
 export type Groups = Extract<LensAnswer, { group: string }>;
@@ -59,8 +75,9 @@ export type Post = (path: string, body: unknown) => Promise<Response>;
 
 // Failure is a read that did not answer, in the error contract's shape (docs/UI.md section 17.3). A
 // server that could not be reached, or answered with something other than the contract's error, is
-// reported with the UI server as its origin, with the HTTP status 0 when there was no answer at all.
-export type Failure = Schemas["ErrorDetail"] & { status: number };
+// reported with the UI server as its origin, with the HTTP status 0 when there was no answer at all. A
+// refused policy write or file carries each problem the server named beside the envelope.
+export type Failure = Schemas["ErrorDetail"] & { status: number; problems?: Problem[] };
 
 export type Result<T> = { ok: true; value: T } | { ok: false; failure: Failure };
 
@@ -140,11 +157,54 @@ function failureOf(status: number, body: unknown): Failure {
           message: field(detail, "message") ?? "",
           request_id: field(detail, "request_id") ?? "",
           status,
+          ...problemsOf(body),
         };
       }
     }
   }
   return unanswered(status, `the UI server answered ${status} outside the error contract`);
+}
+
+// problemsOf reads the problems a refused policy write or file names beside the error envelope
+// (docs/UI.md section 17.4). Only the fields the contract declares are read from each.
+function problemsOf(body: object): { problems?: Problem[] } {
+  const listed: unknown = Reflect.get(body, "problems");
+  if (!Array.isArray(listed)) {
+    return {};
+  }
+  const problems: Problem[] = [];
+  for (const p of listed) {
+    if (typeof p !== "object" || p === null) {
+      continue;
+    }
+    const kind = problemKind(field(p, "kind"));
+    if (kind === undefined) {
+      continue;
+    }
+    const line: unknown = Reflect.get(p, "line");
+    problems.push({
+      kind,
+      rule_id: field(p, "rule_id") ?? "",
+      line: typeof line === "number" ? line : null,
+      suffix: field(p, "suffix") ?? null,
+    });
+  }
+  return { problems };
+}
+
+const problemKinds = [
+  "blank_identifier",
+  "repeated_identifier",
+  "no_suffix",
+  "invalid_suffix",
+  "other_class",
+  "reserved_identifier",
+  "not_the_form",
+  "too_large",
+] as const satisfies readonly Problem["kind"][];
+
+function problemKind(kind: string | undefined): Problem["kind"] | undefined {
+  return problemKinds.find((k) => k === kind);
 }
 
 function field(value: object, key: string): string | undefined {
@@ -207,6 +267,61 @@ export function clientsPath(provider: string): string {
 
 export function clientPath(provider: string, client: string): string {
   return `${clientsPath(provider)}/${encodeURIComponent(client)}`;
+}
+
+// rulePath is one rule's row detail in an account's policy, the rules dataset's row named by the
+// rule's scope and identifier (docs/UI.md section 8.7).
+export function rulePath(account: string, scope: "base" | "account", rule: string): string {
+  return `/api/${encodeURIComponent(account)}/rules/${encodeURIComponent(`${scope}:${rule}`)}`;
+}
+
+// matchPath is what each suffix typed in Add a rule matches in the account.
+export function matchPath(account: string, suffixes: readonly string[]): string {
+  return `/api/${encodeURIComponent(account)}/policy/match?${new URLSearchParams(suffixes.map((s) => ["suffix", s])).toString()}`;
+}
+
+// baseMatchPath is what each suffix typed in Add a base rule is, read with no account: its shape, whether
+// it is a public suffix, and the base rules already matching it (docs/UI.md section 8.14).
+export function baseMatchPath(suffixes: readonly string[]): string {
+  return `/api/setup/policy/match?${new URLSearchParams(suffixes.map((s) => ["suffix", s])).toString()}`;
+}
+
+// releasePath is what keeping only keep of a rule's suffixes, or none for a whole lift, would release in
+// the account, the senders the rule restricts there and no other rule does (docs/UI.md section 8.7).
+export function releasePath(
+  account: string,
+  scope: "base" | "account",
+  rule: string,
+  keep: readonly string[],
+): string {
+  const params = new URLSearchParams([
+    ["scope", scope],
+    ["rule", rule],
+    ...keep.map((k): [string, string] => ["keep", k]),
+  ]);
+  return `/api/${encodeURIComponent(account)}/policy/release?${params.toString()}`;
+}
+
+// policyApi is where a scope's policy writes go, an account's policy endpoints, which write either
+// scope, or the installation's base policy endpoints when no account is in view.
+export function policyApi(account: string | undefined): string {
+  return account === undefined ? "/api/setup/policy" : `/api/${encodeURIComponent(account)}/policy`;
+}
+
+// basePolicyPath is the base policy screen's read, the base rules its search keeps.
+export function basePolicyPath(search: string): string {
+  return search === ""
+    ? "/api/setup/policy"
+    : `/api/setup/policy?${new URLSearchParams({ search }).toString()}`;
+}
+
+// baseHistoryPath is the base policy's history over a range, narrowed to one rule when rule is given.
+export function baseHistoryPath(range: string, rule?: string): string {
+  const params = new URLSearchParams({ range });
+  if (rule !== undefined) {
+    params.append("rule", rule);
+  }
+  return `/api/setup/policy/history?${params.toString().replaceAll("%2C", ",")}`;
 }
 
 // lensPath is the dataset endpoint with the query the URL grammar builds (src/app/url.ts).
@@ -288,6 +403,54 @@ export function readAccount(
   signal: AbortSignal,
 ): Promise<Result<AccountSettings>> {
   return get<AccountSettings>(fetch, path, signal);
+}
+
+export function readRule(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<RuleDetail>> {
+  return get<RuleDetail>(fetch, path, signal);
+}
+
+export function readMatch(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<MatchAnswer>> {
+  return get<MatchAnswer>(fetch, path, signal);
+}
+
+export function readBaseMatch(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<BaseMatchAnswer>> {
+  return get<BaseMatchAnswer>(fetch, path, signal);
+}
+
+export function readRelease(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<Counts>> {
+  return get<Counts>(fetch, path, signal);
+}
+
+export function readBasePolicy(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<BasePolicy>> {
+  return get<BasePolicy>(fetch, path, signal);
+}
+
+export function readBaseHistory(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<BaseHistory>> {
+  return get<BaseHistory>(fetch, path, signal);
 }
 
 // isFigures tells the dataset endpoint's summary answer from a page of rows or a set of groups.

@@ -206,9 +206,36 @@ func TestNoRuntimeRoleCanAlterTheAuditLog(t *testing.T) {
 	}
 }
 
+// TestNoRuntimeRoleCanAlterThePolicyHistory attempts to update, delete and truncate the policy
+// history under each runtime role in turn, with the account set to the history row's own, so a policy
+// cannot be what stops the statement. Each must be refused for want of a grant, so who lifted a
+// restriction survives a compromise of the process that wrote it (ADR-0102).
+func TestNoRuntimeRoleCanAlterThePolicyHistory(t *testing.T) {
+	ctx := t.Context()
+	tx := seeded(t)
+	if _, err := tx.Exec(ctx, "INSERT INTO policy_changes (account_id, actor, action, rule_id, suffixes_after) VALUES ($1, 'operator', 'added', 'operator.example.com', '{example.com}')", accountA); err != nil {
+		t.Fatal(err)
+	}
+	attempts := map[string]string{
+		"update":   "UPDATE policy_changes SET actor = 'erased'",
+		"delete":   "DELETE FROM policy_changes",
+		"truncate": "TRUNCATE policy_changes",
+	}
+	for _, role := range runtimeRoles {
+		for _, name := range slices.Sorted(maps.Keys(attempts)) {
+			t.Run(role+"/"+name, func(t *testing.T) {
+				if _, err := as(ctx, tx, role, accountA, attempts[name]); !refusedByGrant(err) {
+					t.Errorf("%s: got %v, want a refusal for want of a grant", attempts[name], err)
+				}
+			})
+		}
+	}
+}
+
 // uiUpdates, uiInserts and uiDeletes are the UI's whole write grant, its two verbs' columns, the rule
-// a confirmation inserts, and the columns its OAuth client setup and account setup write with the
-// delete of an unused client (ADR-0084). uiInserts maps a table to the columns an insert may name, nil
+// a confirmation inserts, the columns its OAuth client setup and account setup write with the delete of
+// an unused client, and policy management's insert, edit of a rule's suffixes and lift, each with its
+// history row (ADR-0084, ADR-0102). uiInserts maps a table to the columns an insert may name, nil
 // for every column. The test states them rather than reading them from the chain, because they are
 // what it checks the chain against.
 var (
@@ -218,14 +245,16 @@ var (
 		"oauth_clients":     {"client_id", "client_secret", "project_id"},
 		"accounts":          {"oauth_client"},
 		"account_state":     {"credential", "mailbox", "lowered_target_rate", "last_auth_at", "last_auth_outcome"},
+		"policy_rules":      {"domain_suffix"},
 	}
 	uiInserts = map[string][]string{
-		"policy_rules":  nil,
-		"oauth_clients": {"name", "provider", "client_id", "client_secret", "project_id"},
-		"accounts":      {"account_id", "provider", "oauth_client"},
-		"account_state": {"account_id", "credential", "mailbox", "lowered_target_rate"},
+		"policy_rules":   nil,
+		"oauth_clients":  {"name", "provider", "client_id", "client_secret", "project_id"},
+		"accounts":       {"account_id", "provider", "oauth_client"},
+		"account_state":  {"account_id", "credential", "mailbox", "lowered_target_rate"},
+		"policy_changes": nil,
 	}
-	uiDeletes = []string{"oauth_clients"}
+	uiDeletes = []string{"oauth_clients", "policy_rules"}
 )
 
 // TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules attempts every write under the UI's role, an
@@ -298,6 +327,29 @@ func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 					"last_auth_at = now(), last_auth_outcome = 'succeeded' WHERE account_id = 'acct-new'",
 				"UPDATE accounts SET oauth_client = NULL WHERE account_id = 'acct-new'",
 				"DELETE FROM oauth_clients WHERE name = 'household'",
+			} {
+				tag, err := sp.Exec(ctx, sql)
+				if err != nil {
+					return fmt.Errorf("%s: %w", sql, err)
+				}
+				if tag.RowsAffected() != 1 {
+					return fmt.Errorf("%s wrote %d rows, want 1", sql, tag.RowsAffected())
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("add, edit and lift an account's rule with its history", func(t *testing.T) {
+		err := asRole(ctx, tx, uiRole, accountA, func(sp pgx.Tx) error {
+			for _, sql := range []string{
+				"INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES ('" + accountA + "', 'operator.example.net', 'restricted', '{example.net}', 'operator', 'operator')",
+				"INSERT INTO policy_changes (account_id, actor, action, rule_id, suffixes_after) VALUES ('" + accountA + "', 'operator', 'added', 'operator.example.net', '{example.net}')",
+				"UPDATE policy_rules SET domain_suffix = '{example.net,example.org}' WHERE account_id = '" + accountA + "' AND rule_id = 'operator.example.net'",
+				"DELETE FROM policy_rules WHERE account_id = '" + accountA + "' AND rule_id = 'operator.example.net'",
 			} {
 				tag, err := sp.Exec(ctx, sql)
 				if err != nil {

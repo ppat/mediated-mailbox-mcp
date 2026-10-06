@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "identifier_taken",
+    "message": "the scope already holds a rule of this identifier",
+    "origin": "client",
+    "request_id": "recorded"
+  }
+}

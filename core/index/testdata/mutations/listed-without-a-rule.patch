@@ -1,0 +1,19 @@
+control: An added rule reaches the stored sender classes by its effect
+removes: a domain the policy restricts with no rule is listed too, so a policy that never loaded restricts every stored sender
+packages: ./core/index
+tests: TestListed TestListed/a_policy_that_never_loaded
+scheduled-count: no
+
+diff --git a/core/index/scan.go b/core/index/scan.go
+index 4ed15846..87087a96 100644
+--- a/core/index/scan.go
++++ b/core/index/scan.go
+@@ -39,7 +39,7 @@ type Listing struct {
+ func Listed(p policy.Composed, l classify.Lookups, normal []string) []Listing {
+ 	var out []Listing
+ 	for _, d := range normal {
+-		if v := classify.Classify(p, "@"+d, l); v.Reason() == classify.Listed {
++		if v := classify.Classify(p, "@"+d, l); v.Class().Restricted() {
+ 			out = append(out, Listing{Domain: d, Rule: v.Rule()})
+ 		}
+ 	}

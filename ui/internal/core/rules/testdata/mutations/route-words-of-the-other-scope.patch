@@ -1,0 +1,19 @@
+control: A policy write the snapshot's validation or the UI's route words refuse is refused before it is written
+removes: each scope is held to the other scope's route words
+packages: ./ui/internal/core/rules
+tests: TestCheck/an_account's_route_word TestCheck/base_is_an_account's_route_word TestCheck/base_is_no_route_word_of_the_base_policy TestCheck/pick_is_no_route_word_of_the_base_policy
+scheduled-count: no
+
+diff --git a/ui/internal/core/rules/rules.go b/ui/internal/core/rules/rules.go
+index 8eb91ad2..2f42016f 100644
+--- a/ui/internal/core/rules/rules.go
++++ b/ui/internal/core/rules/rules.go
+@@ -34,7 +34,7 @@ type Rule struct {
+ // Reserved returns the words a scope's screens use in their addresses after the policy path, which no
+ // identifier of that scope may be (docs/UI.md sections 8.7 and 8.14).
+ func Reserved(scope string) []string {
+-	if scope == Base {
++	if scope != Base {
+ 		return []string{"new", "history", "import"}
+ 	}
+ 	return []string{"new", "pick", "history", "import", "base"}

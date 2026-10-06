@@ -1,0 +1,19 @@
+control: Message-derived text renders inert
+removes: the import preview hands a lifted rule's identifier to the raw-markup escape hatch
+packages: ./ui/browser/test/policy.test.tsx
+tests: markup in a file's identifiers and suffixes arrives as text in the preview and the import dialog
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policyimport.tsx b/ui/browser/src/screens/policyimport.tsx
+--- a/ui/browser/src/screens/policyimport.tsx
++++ b/ui/browser/src/screens/policyimport.tsx
+@@ -198,7 +198,8 @@
+       <Group title="Rules lifted" n={preview.lifted.length} lifts>
+         {preview.lifted.map((r) => (
+           <li key={r.rule_id}>
+-            <span class="mono">{r.rule_id}</span>, {r.suffixes.join(", ")}
++            <span class="mono" dangerouslySetInnerHTML={{ __html: r.rule_id }} />,{" "}
++            {r.suffixes.join(", ")}
+             <Releases account={account} released={r.released} what="rule" />
+           </li>
+         ))}

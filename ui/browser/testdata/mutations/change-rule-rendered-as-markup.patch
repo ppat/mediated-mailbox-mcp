@@ -1,0 +1,21 @@
+control: Message-derived text renders inert
+removes: the policy change row hands the identifier of a rule it links to the raw-markup escape hatch
+packages: ./ui/browser/test/policy.test.tsx
+tests: markup in a change's identifier, actor and suffixes arrives as text in its history row | markup in a rule's detail arrives as text in its panel and its lift dialog
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/row/change.tsx b/ui/browser/src/row/change.tsx
+--- a/ui/browser/src/row/change.tsx
++++ b/ui/browser/src/row/change.tsx
+@@ -99,9 +99,8 @@
+           <a
+             class="mono"
+             href={ruleScreen(account, row.account === null ? "base" : "account", row.rule_id)}
+-          >
+-            {row.rule_id}
+-          </a>
++            dangerouslySetInnerHTML={{ __html: row.rule_id }}
++          />
+         ) : (
+           <span class="mono">{row.rule_id}</span>
+         ),

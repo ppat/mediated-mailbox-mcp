@@ -1,0 +1,18 @@
+control: Message-derived text renders inert
+removes: the lift dialog hands its title, which names the rule or suffix, to the raw-markup escape hatch
+packages: ./ui/browser/test/policy.test.tsx
+tests: markup in a rule's detail arrives as text in its panel and its lift dialog
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policywrites.tsx b/ui/browser/src/screens/policywrites.tsx
+--- a/ui/browser/src/screens/policywrites.tsx
++++ b/ui/browser/src/screens/policywrites.tsx
+@@ -373,7 +373,7 @@
+         event.stopPropagation();
+       }}
+     >
+-      <h2 id={`${id}-title`}>{props.title}</h2>
++      <h2 id={`${id}-title`} dangerouslySetInnerHTML={{ __html: props.title }} />
+       <div id={`${id}-says`}>{props.children}</div>
+       {props.typed === undefined ? null : (
+         <label>

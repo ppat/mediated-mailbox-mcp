@@ -505,6 +505,27 @@ test("a failure's panel shows the rule that set its message's class apart from t
   expect(pairs).toContainEqual(["sender class", "restricted"]);
   expect(pairs).toContainEqual(["rule that set the class", "rule.bank"]);
   expect(pairs).toContainEqual(["rule ids that fired", "none"]);
+  // The rule links to the account's policy searched for its identifier, which lists that identifier's
+  // rule in each scope that holds one, since the index records the identifier and not its scope.
+  const rule = [...(provenance?.querySelectorAll("dt") ?? [])].find(
+    (dt) => dt.textContent === "rule that set the class",
+  )?.nextElementSibling;
+  expect(rule?.querySelector("a")?.getAttribute("href")).toBe("/personal/policy?search=rule.bank");
+  // A restricted sender carries no Restrict control.
+  expect(provenance?.textContent).not.toContain("Restrict");
+});
+
+test("a failure's panel offers Restrict {domain}… for a sender whose class reads normal", async () => {
+  await open(`/personal/jobs/r-0912/failures/5?${canonical}`, {
+    ...r0912,
+    [failurePath("personal", "r-0912", "5")]: ok("failure-5.json"),
+  });
+  const provenance = document.querySelector('aside[role="dialog"] .provenance');
+  const restrict = [...(provenance?.querySelectorAll("a") ?? [])].find((a) =>
+    a.textContent?.startsWith("Restrict "),
+  );
+  expect(restrict?.textContent).toBe("Restrict newsletter.example…");
+  expect(restrict?.getAttribute("href")).toBe("/personal/policy/new?suffix=newsletter.example");
 });
 
 test("markup in every message-derived field of a failure's panel arrives as text", async () => {
@@ -528,7 +549,7 @@ test("markup in every message-derived field of a failure's panel arrives as text
       recovered_by: text,
     },
   };
-  const panel = mount(<FailureBody detail={markedDetail} />);
+  const panel = mount(<FailureBody account="personal" detail={markedDetail} />);
   try {
     expect(panel.root.querySelectorAll("script").length).toBe(0);
     const values = [...panel.root.querySelectorAll(".provenance dd")];
@@ -542,9 +563,12 @@ test("markup in every message-derived field of a failure's panel arrives as text
     ]) {
       const dd = values.find((v) => v.previousElementSibling?.textContent === label);
       expect(dd?.textContent).toContain(text);
-      expect([...(dd?.querySelectorAll("*") ?? [])].every((el) => el.tagName === "SPAN")).toBe(
-        true,
-      );
+      // The rule that set the class links to the policy searched for it, and the link holds the text.
+      expect(
+        [...(dd?.querySelectorAll("*") ?? [])].every(
+          (el) => el.tagName === "SPAN" || (el.tagName === "A" && el.childElementCount === 0),
+        ),
+      ).toBe(true);
     }
     expect(panel.root.querySelector(".recorded")?.textContent).toBe(text);
     expect(panel.root.querySelector(".recorded")?.childElementCount).toBe(0);

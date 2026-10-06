@@ -91,6 +91,28 @@ export const itemKind: Readonly<Record<string, string>> = {
   op: "operation",
 };
 
+// The policy history's actions (ADR-0102).
+export const changeAction = {
+  added: "added",
+  edited: "edited",
+  lifted: "lifted",
+  confirmed: "confirmed from a candidate",
+} as const satisfies Record<Schemas["ChangeRow"]["action"], string>;
+
+// The problems a refused policy write or file names (docs/UI.md sections 8.7 and 17.4), each worded as
+// what is wrong with the rule. The suffix an invalid suffix names is added where the problem is shown.
+export const problemKind = {
+  blank_identifier: "its identifier is empty or carries surrounding space",
+  repeated_identifier: "another rule holds the same identifier",
+  no_suffix: "it has no domain suffix",
+  invalid_suffix: "a suffix is not shaped like a domain name",
+  other_class: "its class is not restricted, the one class",
+  reserved_identifier:
+    "its identifier is a word the policy screens' addresses use, exactly . or .., or holds a /",
+  not_the_form: "the file is not the policy file's form",
+  too_large: "the file is over 1 MB",
+} as const satisfies Record<Schemas["Problem"]["kind"], string>;
+
 // Wording is a stored value's text, with known false for a value its table does not hold.
 export type Wording = { text: string; known: boolean };
 
@@ -108,6 +130,7 @@ const vocabularies: Readonly<
   candidates: { status: candidateStatus },
   runs: { state: runState },
   failures: { error_class: errorClass, disposition },
+  policy_changes: { action: changeAction },
 };
 
 // dimensionWording words a value of a dataset's dimension, or returns the value as known text when the

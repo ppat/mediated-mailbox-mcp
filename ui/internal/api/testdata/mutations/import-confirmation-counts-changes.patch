@@ -1,0 +1,20 @@
+control: An import that lifts anything needs lift {k} for the count it lifts, the server's check
+removes: the confirmation's count is every change the import makes rather than the restrictions it lifts
+packages: ./ui/internal/api
+tests: TestAnImportThatLiftsNeedsItsConfirmation TestAFileIsCheckedWholeAndImportsIntoAnyScope
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/policyfile.go b/ui/internal/api/policyfile.go
+index fbbd2256..9a49b47f 100644
+--- a/ui/internal/api/policyfile.go
++++ b/ui/internal/api/policyfile.go
+@@ -474,7 +474,7 @@ func (s *Server) writeImport(w http.ResponseWriter, r *http.Request, account str
+ 			list[i] = f.rule
+ 		}
+ 		d := rules.Compare(toRules(stored), list)
+-		if k := d.Lifts(); k > 0 && !confirms(body.Confirmation, rules.Confirmation(k)) {
++		if k := d.Changes(); d.Lifts() > 0 && !confirms(body.Confirmation, rules.Confirmation(k)) {
+ 			return errConfirmationRequired
+ 		}
+ 		out = Imported{Added: []RuleAnswer{}, Edited: []EditedRule{}, Lifted: []LiftedRule{}, Lifts: d.Lifts()}

@@ -16,6 +16,7 @@ import (
 
 	core "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
@@ -365,6 +366,69 @@ func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	}
 }
 
+// TestAnAddedRuleRestrictsTheStoredClasses is ADR-0113's comparison in the second pass. A rule added
+// for a sender the index stores as normal, after the pass decided some of its messages, restricts every
+// one of its messages stored as normal with the rule, rebuilds the sender's statistics, and leaves each
+// scan state and the run's checkpoint as they were. A second comparison marks nothing, and neither does
+// one under a policy that never loaded.
+func TestAnAddedRuleRestrictsTheStoredClasses(t *testing.T) {
+	messages := []fake.Message{
+		message("m01", "a@shop.example", false, marker.Body("shopfirst"), ""),
+		message("m02", "b@shop.example", false, marker.Body("shopsecond"), ""),
+		message("m03", "c@shop.example", false, marker.Body("shoplater"), ""),
+		message("m04", "news@news.example", false, marker.Body("news"), ""),
+	}
+	w := realWorldOf(t, 2, messages)
+	w.open(t)
+	if _, err := w.pass.Next(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	before := inspectPostgres(t, postgres.URL(t), w.account)
+	checkpoint, _ := before.latest()
+	if before.Messages["m01"].State != "scanned" || before.Messages["m03"].State != "pending" {
+		t.Fatalf("before the rule the first page left %+v and %+v, want the first scanned and the third pending", before.Messages["m01"], before.Messages["m03"])
+	}
+
+	w.added = []string{"shop.example"}
+	w.open(t)
+
+	after := inspectPostgres(t, postgres.URL(t), w.account)
+	rule := "rule.shop.example"
+	if diff := cmp.Diff(map[string]*string{"m01": &rule, "m02": &rule, "m03": &rule, "m04": nil}, classRules(t, w.account), compare.Options); diff != "" {
+		t.Errorf("after the comparison the rules that set the classes (-want +got):\n%s", diff)
+	}
+	for id, st := range after.Messages {
+		want := "restricted"
+		if id == "m04" {
+			want = "normal"
+		}
+		if st.Class != want || st.State != before.Messages[id].State {
+			t.Errorf("after the comparison message %s is %+v, want class %s and the scan state %s it had", id, st, want, before.Messages[id].State)
+		}
+	}
+	var senderClass string
+	if err := superuser(t).QueryRow(context.Background(), "SELECT sender_class FROM senders WHERE account_id = $1 AND domain = 'shop.example'", w.account).Scan(&senderClass); err != nil || senderClass != "restricted" {
+		t.Errorf("the shop's statistics read %q with error %v, want restricted", senderClass, err)
+	}
+	if latest, _ := after.latest(); latest.Progress.Checkpoint != checkpoint.Progress.Checkpoint {
+		t.Errorf("after the comparison the run resumes from %+v, want %+v, since restricting needs no rescan", latest.Progress.Checkpoint, checkpoint.Progress.Checkpoint)
+	}
+
+	store := pass2.NewPostgres(backfillPool(t))
+	for name, p := range map[string]policy.Composed{
+		"a second comparison":           policyAdding(t, false, w.added).For(w.account),
+		"a policy that never loaded":    {},
+		"a policy without the new rule": policyListing(t, false).For(w.account),
+	} {
+		marked, err := store.List(context.Background(), w.account, func(normal []string) []index.Listing {
+			return index.Listed(p, lookups, normal)
+		})
+		if err != nil || marked != 0 {
+			t.Errorf("%s marked %d messages with error %v, want none", name, marked, err)
+		}
+	}
+}
+
 // classRules returns the rule each of the account's messages names as the one that set its class, nil
 // for none.
 func classRules(t testing.TB, account string) map[string]*string {
@@ -392,10 +456,12 @@ func classRules(t testing.TB, account string) map[string]*string {
 
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list, a rule added after the
 // first pass. The first pass stores the shop as a normal sender. A rule listing it is added before the
-// second pass reaches its messages, so the pass skips the first of them as restricted while its stored
-// class stays normal. The rule is removed before the pass ends, and the next run's delisting transition
-// finds the skipped message by its skip state, returns it to pending scan and starts over, and the pass
-// scans it (ADR-0037).
+// second pass reaches its messages, so the run restricts their stored class (ADR-0113) and skips the
+// first of them as restricted. That message's stored class is then set back to normal, as delta sync
+// stores a message under a policy it loaded before the rule, so only its skip state says the rule held
+// it. The rule is removed before the pass ends, and the next run's delisting transition finds the
+// skipped message by its skip state, returns it to pending scan and starts over, and the pass scans it
+// (ADR-0037).
 func TestARuleAddedAndRemovedDuringThePassReachesTheTransition(t *testing.T) {
 	messages := []fake.Message{
 		message("m01", "a@shop.example", false, marker.Body("shopone"), ""),
@@ -418,8 +484,11 @@ func TestARuleAddedAndRemovedDuringThePassReachesTheTransition(t *testing.T) {
 	if _, err := p.Next(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.Class != "normal" || st.State != "skipped_restricted" {
-		t.Fatalf("under the added rule m01 is %+v, want a sender stored normal and skipped as restricted", st)
+	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.Class != "restricted" || st.State != "skipped_restricted" {
+		t.Fatalf("under the added rule m01 is %+v, want a sender stored restricted and skipped as restricted", st)
+	}
+	if _, err := superuser(t).Exec(context.Background(), "UPDATE messages SET sender_class = 'normal', class_rule_id = NULL WHERE account_id = $1", w.account); err != nil {
+		t.Fatal(err)
 	}
 
 	w.deps.Policy = load()

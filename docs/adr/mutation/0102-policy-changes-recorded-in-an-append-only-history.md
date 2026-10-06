@@ -57,10 +57,9 @@ These were put to the operator with the cost of each, and the operator chose the
 - Assumptions about other components. Only the UI writes `policy_rules`, so only the UI writes the
   history. A change written to `policy_rules` outside the UI, directly in the database, leaves no
   history row, and nothing detects it. Row-level security confines the reads of an account's
-  history rows to its account, with the base policy's rows readable by every account. Today's
-  row-level security on `policy_rules` lets no role write a base rule, so how the UI writes a base
-  rule and its history row is an open decision of the unit that builds policy management
-  ([ROADMAP.md](../../../ROADMAP.md#open-decisions)).
+  history rows to its account, with the base policy's rows readable by every account. A base rule
+  and its history row are written in a transaction of the base policy's own, which names no account
+  ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
 - The history records changes and drives nothing. Removed rules still reach the delisting
   transition by their effect, as [ADR-0037](../redaction/0037-delisting-transition.md) decides, and
   never by reading this table.

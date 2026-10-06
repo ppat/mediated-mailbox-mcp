@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/sync/internal/tick/tick.go b/sync/internal/tick/tick.go
-index b5e0a1d..b04d619 100644
+index ce882013..b4c9e8a2 100644
 --- a/sync/internal/tick/tick.go
 +++ b/sync/internal/tick/tick.go
-@@ -288,8 +288,8 @@ func (t *ticker) scanning(ctx context.Context) error {
- 		t.at.Checkpoint.After = ""
+@@ -332,8 +332,8 @@ func (t *ticker) scanning(ctx context.Context) error {
+ 		return fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err)
  	}
  	decided := 0
 -	for decided < t.deps.Decisions {

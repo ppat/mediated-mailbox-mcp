@@ -1,0 +1,7 @@
+{
+  "rule_id": "base.newsletter",
+  "scope": "base",
+  "suffixes": [
+    "newsletter.example"
+  ]
+}

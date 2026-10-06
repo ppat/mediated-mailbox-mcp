@@ -1,0 +1,18 @@
+control: An import's lifts are confirmed in one dialog, typed as lift {k} for the base policy, and the request carries lift {k}
+removes: a base import's dialog asks for no lift {k} typed, so its button is enabled at once
+packages: ./ui/browser/test/basepolicy.test.tsx
+tests: a base import lifting a rule enables only once lift {k} is typed, and sends it
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/policyimport.tsx b/ui/browser/src/screens/policyimport.tsx
+--- a/ui/browser/src/screens/policyimport.tsx
++++ b/ui/browser/src/screens/policyimport.tsx
+@@ -236,7 +236,7 @@
+         <LiftDialog
+           title={`This import lifts ${counted(k, "restriction")}`}
+           typed={
+-            account === undefined
++            account === "never"
+               ? {
+                   expected: confirmation(k),
+                   label: `Type ${confirmation(k)} to confirm`,

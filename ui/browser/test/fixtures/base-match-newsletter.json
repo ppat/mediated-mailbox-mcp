@@ -1,0 +1,10 @@
+{
+  "suffixes": [
+    {
+      "public_suffix": false,
+      "rules": [],
+      "suffix": "newsletter.example",
+      "valid": true
+    }
+  ]
+}

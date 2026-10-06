@@ -1,0 +1,7 @@
+{
+  "rule_id": "operator.newsletter.example",
+  "scope": "account",
+  "suffixes": [
+    "newsletter.example"
+  ]
+}

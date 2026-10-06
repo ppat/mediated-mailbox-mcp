@@ -287,6 +287,46 @@ sql:
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
+  queries: senders/classification
+  gen:
+    go:
+      package: classification
+      out: senders/classification
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: policyrules/manage
+  gen:
+    go:
+      package: manage
+      out: policyrules/manage
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: policyrules/base
+  gen:
+    go:
+      package: base
+      out: policyrules/base
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
+  queries: policychanges
+  gen:
+    go:
+      package: policychanges
+      out: policychanges
+      sql_package: pgx/v5
+      emit_interface: true
+      omit_unused_structs: true
+- engine: postgresql
+  schema: migrations
   queries: messages/scan
   gen:
     go:

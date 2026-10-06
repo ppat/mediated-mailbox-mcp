@@ -353,7 +353,10 @@ The properties the shape enforces:
   - `policy_rules` rows with a null account are the base policy every account inherits
     ([ADR-0004](../classification/0004-sender-list-decides.md)), and `policy_changes` rows with a
     null account are the changes to it
-    ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
+    ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)). Every
+    account reads them, and only the UI's role writes them, in a transaction that names no account
+    and sets the base policy's own setting, `app.base`
+    ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
   - `reorg_op_log` carries no account column at all and is scoped through its plan, by a policy
     whose predicate reaches the plan's account. That policy's parent lookup is evaluated once per
     statement rather than once per row, so scoping it costs materially less than the foreign key
@@ -365,7 +368,9 @@ The properties the shape enforces:
   a pool the behaviour depends on which connection was drawn. No policy expression can raise,
   because [ADR-0060](../engineering/0060-no-code-in-the-database.md) bars the database-resident
   function that would. The shared transaction helper therefore reads the setting back after
-  setting it and fails the transaction when it is empty. The general asymmetry behind this is
+  setting it and fails the transaction when it is empty. Its one transaction whose account is
+  deliberately empty is the base policy's, which runs only the base policy's statements
+  ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). The general asymmetry behind this is
   worth carrying. An insert a policy refuses raises, while a select or update a policy empties
   returns quietly.
 - **The stored spellings of every enumerated column are the ones the DDL comments show**, in

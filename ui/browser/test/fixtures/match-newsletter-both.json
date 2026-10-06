@@ -1,0 +1,25 @@
+{
+  "senders_total": 5,
+  "suffixes": [
+    {
+      "messages": 4,
+      "public_suffix": false,
+      "rules": [],
+      "senders": 2,
+      "suffix": "newsletter.example",
+      "valid": true
+    },
+    {
+      "messages": 1,
+      "public_suffix": false,
+      "rules": [],
+      "senders": 1,
+      "suffix": "mail.newsletter.example",
+      "valid": true
+    }
+  ],
+  "together": {
+    "messages": 4,
+    "senders": 2
+  }
+}

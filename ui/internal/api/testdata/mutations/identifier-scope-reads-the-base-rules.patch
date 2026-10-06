@@ -1,0 +1,20 @@
+control: An identifier is unique within its scope
+removes: an account's scope is read as the base rules rather than its own, so its own rules are unknown to it and the base policy's identifiers taken
+packages: ./ui/internal/api
+tests: TestAnIdentifierComesBackInItsScopeAndBesideTheOther
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..6cd6dbd3 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -48,7 +48,7 @@ func accountWrites(t pgx.Tx, account string) scopeWrites {
+ 	return scopeWrites{
+ 		stored: func(ctx context.Context) ([]registry.StoredRule, error) {
+ 			all, err := registry.ComposedRules(ctx, rulesQ, account)
+-			return slices.DeleteFunc(all, func(r registry.StoredRule) bool { return r.Base }), err
++			return slices.DeleteFunc(all, func(r registry.StoredRule) bool { return !r.Base }), err
+ 		},
+ 		add: func(ctx context.Context, r rules.Rule, actor string) error {
+ 			return rulesQ.AddRule(ctx, manage.AddRuleParams{AccountID: scope, RuleID: r.ID, Class: policy.Restricted, DomainSuffix: r.Suffixes, Source: sourceOperator, CreatedBy: actor})

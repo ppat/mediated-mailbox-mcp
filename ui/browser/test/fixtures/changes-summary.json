@@ -1,0 +1,35 @@
+{
+  "account": "personal",
+  "as_of": "2026-09-10T10:16:04Z",
+  "dataset": "policy_changes",
+  "figures": [
+    {
+      "at": null,
+      "key": "changes",
+      "link": "/personal/policy/history?level=3",
+      "unit": null,
+      "value": 5,
+      "wording": "changes"
+    },
+    {
+      "at": null,
+      "key": "added",
+      "link": "/personal/policy/history?action=added%2Cconfirmed&level=3",
+      "unit": null,
+      "value": 2,
+      "wording": "added restriction"
+    },
+    {
+      "at": null,
+      "key": "lifted",
+      "link": "/personal/policy/history?action=lifted&level=3",
+      "unit": null,
+      "value": 3,
+      "wording": "lifted restriction"
+    }
+  ],
+  "filters": {
+    "range": "30d"
+  },
+  "level": 0
+}

@@ -11,11 +11,16 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
+	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
+	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
+	senderclasses "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 )
@@ -94,6 +99,12 @@ type Queries struct {
 	Runs       *jobruns.Queries
 	Failures   *classification.Queries
 	Audit      *auditlog.Queries
+	// Rules, Changes and Senders are policy management's reads, and Accounts the accounts listing a
+	// base rule's screen names (ADR-0091).
+	Rules    *manage.Queries
+	Changes  *policychanges.Queries
+	Senders  *senderclasses.Queries
+	Accounts *accounts.Queries
 }
 
 // Total is the count of rows a read's filters match, which the row pages count from, and for a
@@ -159,9 +170,10 @@ type Dataset struct {
 }
 
 // Datasets is the registry, the only source of what a lens can ask for (ADR-0057). Each dataset a
-// screen reads is one entry here, and nothing else is a dataset.
-func Datasets() []Dataset {
-	return []Dataset{plans(), candidates(), runs(), failures()}
+// screen reads is one entry here, and nothing else is a dataset. l is the lookups the sender classifier
+// normalizes domains with, which the policy datasets match senders against rules with.
+func Datasets(l classify.Lookups) []Dataset {
+	return []Dataset{plans(), candidates(), runs(), failures(), policyRules(l), policyChanges(), senders(l)}
 }
 
 // Descriptors returns the declarative half of every entry, which the dataset endpoint's pure core

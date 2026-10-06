@@ -1,0 +1,25 @@
+control: A rule changing where it applies is added under its new scope before the old one is lifted
+removes: a change of where a rule applies lifts the old rule before it sends the add under the new scope
+packages: ./ui/browser/test/policy.test.tsx
+tests: Change where this applies adds under the other scope first, then lifts the old rule with nothing lost | a change of where a rule applies whose add fails never sends the lift
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/addrule.tsx b/ui/browser/src/screens/addrule.tsx
+--- a/ui/browser/src/screens/addrule.tsx
++++ b/ui/browser/src/screens/addrule.tsx
+@@ -259,6 +259,14 @@
+   const counts = answer?.together ?? { senders: 0, messages: 0 };
+   const submit = async () => {
+     setFailure(undefined);
++    if (props.opener === "move") {
++      await sendWrite(deps.post, account, scope === "base" ? "account" : "base", {
++        kind: "lift",
++        rule: identifier,
++        before: suffixes,
++        confirmation: null,
++      });
++    }
+     const result = await sendWrite(deps.post, account, scope, {
+       kind: "add",
+       rule: identifier,

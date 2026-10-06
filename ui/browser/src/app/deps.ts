@@ -10,25 +10,38 @@ import {
   readAttempt,
   readInstallation,
   readAttention,
+  readBaseHistory,
+  readBaseMatch,
+  readRelease,
+  readBasePolicy,
   readFailure,
   readJobs,
   readLens,
+  readMatch,
+  readRule,
   readRun,
   readSystem,
   type AccountSettings,
   type Accounts,
   type AttemptAnswer,
   type Attention,
+  type BaseHistory,
+  type BaseMatchAnswer,
+  type Counts,
+  type BasePolicy,
   type FailureDetail,
   type Fetch,
   type Installation,
   type Jobs,
   type LensAnswer,
+  type MatchAnswer,
   type Post,
+  type RuleDetail,
   type RunSummary,
   type System,
 } from "./api.ts";
 import { Cache } from "./cache.ts";
+import { Outcomes } from "./outcomes.ts";
 import type { BrowserConfig } from "./config.ts";
 import type { Guides } from "./guide.ts";
 import { Streams, type Connect } from "./stream.ts";
@@ -79,6 +92,15 @@ export type Deps = {
   installation: Cache<Installation>;
   attempts: Cache<AttemptAnswer>;
   settings: Cache<AccountSettings>;
+  rules: Cache<RuleDetail>;
+  matches: Cache<MatchAnswer>;
+  baseMatches: Cache<BaseMatchAnswer>;
+  releases: Cache<Counts>;
+  basePolicy: Cache<BasePolicy>;
+  baseHistory: Cache<BaseHistory>;
+  // outcomes are the policy writes' outcomes each policy screen shows in its status region, with what
+  // Put it back adds back after a lift (docs/UI.md section 8.7).
+  outcomes: Outcomes;
 };
 
 export function makeDeps(
@@ -112,6 +134,13 @@ export function makeDeps(
     installation: new Cache((path, signal) => readInstallation(fetch, path, signal), now),
     attempts: new Cache((path, signal) => readAttempt(fetch, path, signal), now),
     settings: new Cache((path, signal) => readAccount(fetch, path, signal), now),
+    rules: new Cache((path, signal) => readRule(fetch, path, signal), now),
+    matches: new Cache((path, signal) => readMatch(fetch, path, signal), now),
+    baseMatches: new Cache((path, signal) => readBaseMatch(fetch, path, signal), now),
+    releases: new Cache((path, signal) => readRelease(fetch, path, signal), now),
+    basePolicy: new Cache((path, signal) => readBasePolicy(fetch, path, signal), now),
+    baseHistory: new Cache((path, signal) => readBaseHistory(fetch, path, signal), now),
+    outcomes: new Outcomes(),
   };
 }
 

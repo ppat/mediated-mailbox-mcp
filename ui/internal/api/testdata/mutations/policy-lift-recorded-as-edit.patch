@@ -1,0 +1,20 @@
+control: Every policy write leaves its history row or nothing
+removes: a lift is recorded as an edit, so the history no longer says a restriction was lifted
+packages: ./ui/internal/api
+tests: TestAPolicyWriteLeavesItsHistoryRowOrNothing
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
+index 60da4717..6d25d830 100644
+--- a/ui/internal/api/rules.go
++++ b/ui/internal/api/rules.go
+@@ -403,7 +403,7 @@ func (s *Server) liftRule(ctx context.Context, account string, isBase bool, id s
+ 		if err := s.fault("between a rule's write and its history row"); err != nil {
+ 			return err
+ 		}
+-		return w.record(ctx, actionLifted, id, stored[i].Suffixes, nil, actor)
++		return w.record(ctx, actionEdited, id, stored[i].Suffixes, nil, actor)
+ 	})
+ }
+ 

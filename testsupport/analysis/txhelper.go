@@ -20,12 +20,19 @@ import (
 // module's db directory, at any depth, whose New returns a pointer to its own Queries type, so a new
 // subsection is covered with no edit. Every package is checked, test files included.
 //
+// db/tx.RunBase, which opens a base-policy transaction naming no account (ADR-0112), is held to the
+// same rules as db/tx.Run, and each literal passed to either is one the rules below call a literal
+// passed to db/tx.Run.
+//
 // The rules, each reported where it is broken:
 //
 //   - A call of a subsection's New sits inside a function literal passed as the last argument of
 //     db/tx.Run, and its argument is the transaction parameter of the innermost such literal
 //     around it. A call anywhere else, on any other handle, or on the transaction of an enclosing
 //     literal from inside a nested one, which set another account, is reported.
+//   - The base policy's subsection, db/policyrules/base, is built only from a base-policy
+//     transaction's literal, and no other subsection is built from one, so the empty account is
+//     never read where an account's rows were meant.
 //   - The transaction parameter is never replaced. An assignment to it, a range clause assigning
 //     it and taking its address, through which it could be assigned, are reported, so the
 //     parameter a call names is always the transaction db/tx.Run handed the literal.
@@ -54,6 +61,10 @@ var TxHelper = &analysis.Analyzer{
 
 const txPath = modulePath + "/db/tx"
 
+// txBasePath is the base policy's subsection, whose statements run only in a base-policy transaction,
+// the one db/tx.RunBase opens, and the only subsection whose statements run in one (ADR-0112).
+const txBasePath = modulePath + "/db/policyrules/base"
+
 // txHelperExceptions maps each exempt subsection to its exempt statements.
 var txHelperExceptions = map[string][]string{
 	modulePath + "/db/accounts":            {"Accounts"},
@@ -71,6 +82,12 @@ const (
 	txNestedMessage  = "calls %s.New on the transaction of an enclosing literal passed to tx.Run, not the innermost one, so its statements run for another account. Build it from the innermost literal's transaction (ADR-0047)"
 	txAssignMessage  = "assigns to the transaction tx.Run hands the literal, so queries built from it could run in a transaction that did not set the account. Leave the parameter as tx.Run hands it (ADR-0047)"
 	txAddressMessage = "takes the address of the transaction tx.Run hands the literal, so it could be replaced through the pointer. Leave the parameter as tx.Run hands it (ADR-0047)"
+)
+
+// The findings of the base-policy transaction's rule.
+const (
+	txBaseOtherMessage   = "calls %s.New in a base-policy transaction, which names no account, so its statements would read no account's rows and raise nothing. Only db/policyrules/base runs in tx.RunBase (ADR-0112)"
+	txBaseAccountMessage = "calls %s.New in a transaction tx.Run opened for an account, and the base policy's statements run only in a base-policy transaction. Use tx.RunBase (ADR-0112)"
 )
 
 // generatedSubsection reports whether pkg is a generated data-access subsection.
@@ -112,10 +129,17 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
 	// literal.
 	literals := map[types.Object]*ast.FuncLit{}
 	var bodies []*ast.BlockStmt
+	// bases holds the bodies of the literals passed to db/tx.RunBase, the base-policy transactions.
+	bases := map[*ast.BlockStmt]bool{}
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
 			call, ok := n.(*ast.CallExpr)
-			if !ok || len(call.Args) == 0 || !isFunc(typeutil.StaticCallee(pass.TypesInfo, call), txPath, "Run") {
+			if !ok || len(call.Args) == 0 {
+				return true
+			}
+			callee := typeutil.StaticCallee(pass.TypesInfo, call)
+			baseTx := isFunc(callee, txPath, "RunBase")
+			if !baseTx && !isFunc(callee, txPath, "Run") {
 				return true
 			}
 			lit, ok := ast.Unparen(call.Args[len(call.Args)-1]).(*ast.FuncLit)
@@ -124,6 +148,9 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
 				return true
 			}
 			bodies = append(bodies, lit.Body)
+			if baseTx {
+				bases[lit.Body] = true
+			}
 			for _, field := range lit.Type.Params.List {
 				for _, name := range field.Names {
 					if obj := pass.TypesInfo.Defs[name]; obj != nil {
@@ -156,7 +183,7 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
 			case isWithTx(fn):
 				pass.Reportf(id.Pos(), txWithTxMessage, fn.Pkg().Name())
 			case isGeneratedNew(fn):
-				checkNew(pass, fn, id, stack, literals, bodies, inside)
+				checkNew(pass, fn, id, stack, literals, bodies, bases, inside)
 			}
 			return true
 		})
@@ -166,7 +193,7 @@ func runTxHelper(pass *analysis.Pass) (any, error) {
 
 // checkNew checks one use of a generated subsection's New, the identifier id, the last node of stack.
 func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.Node, literals map[types.Object]*ast.FuncLit,
-	bodies []*ast.BlockStmt, inside func(token.Pos, *ast.BlockStmt) bool,
+	bodies []*ast.BlockStmt, bases map[*ast.BlockStmt]bool, inside func(token.Pos, *ast.BlockStmt) bool,
 ) {
 	name := fn.Pkg().Name()
 	// parent returns the node i levels above the identifier, or nil.
@@ -207,8 +234,13 @@ func checkNew(pass *analysis.Pass, fn *types.Func, id *ast.Ident, stack []ast.No
 	if len(call.Args) == 1 {
 		if arg, ok := ast.Unparen(call.Args[0]).(*ast.Ident); ok {
 			if lit, ok := literals[pass.TypesInfo.Uses[arg]]; ok {
-				if lit.Body != innermost {
+				switch base := fn.Pkg().Path() == txBasePath; {
+				case lit.Body != innermost:
 					pass.Reportf(id.Pos(), txNestedMessage, name)
+				case bases[innermost] && !base:
+					pass.Reportf(id.Pos(), txBaseOtherMessage, name)
+				case !bases[innermost] && base:
+					pass.Reportf(id.Pos(), txBaseAccountMessage, name)
 				}
 				return
 			}

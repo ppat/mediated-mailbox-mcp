@@ -8,12 +8,15 @@ runner: bun
 diff --git a/ui/browser/src/screens/run.tsx b/ui/browser/src/screens/run.tsx
 --- a/ui/browser/src/screens/run.tsx
 +++ b/ui/browser/src/screens/run.tsx
-@@ -420,7 +420,7 @@
-         <dt>sender class</dt>
-         <dd>{row.sender_class === null ? "" : word(senderClass, row.sender_class).text}</dd>
-         <dt>rule that set the class</dt>
--        <dd class="mono">{detail.class_rule_id ?? "none"}</dd>
-+        <dd class="mono" dangerouslySetInnerHTML={{ __html: detail.class_rule_id ?? "none" }} />
+@@ -449,9 +449,8 @@
+           ) : (
+             <a
+               href={`${policyHome(account)}?${new URLSearchParams({ search: detail.class_rule_id }).toString()}`}
+-            >
+-              {detail.class_rule_id}
+-            </a>
++              dangerouslySetInnerHTML={{ __html: detail.class_rule_id }}
++            />
+           )}
+         </dd>
          <dt>content flags</dt>
-         <dd>{(row.content_flags ?? []).map((f) => word(contentFlag, f).text).join(", ")}</dd>
-         <dt>rule ids that fired</dt>

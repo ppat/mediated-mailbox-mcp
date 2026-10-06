@@ -98,6 +98,7 @@ test("with no account the entry route goes to the installation, whose first run 
   expect(root.querySelector(".topbar button")?.textContent).toBe("Installation");
   expect(text(root, ".checklist li")).toEqual([
     "○ not started Set up a Gmail OAuth clientStart",
+    "○ No base rules yet · optional Review the base policy",
     "◌ cannot start yet Connect an account",
   ]);
   expect(text(root, ".provider-clients p")).toEqual(["No Gmail client yet"]);
@@ -355,6 +356,13 @@ test("a restored attempt finishes from the pasted address, names a refusal's cau
     `Connected ${markedAccount} (${markedMailbox}).`,
   );
   expect(button(root, `Go to ${markedAccount}`)?.getAttribute("href")).toBe(`/${markedAccount}`);
+  // The base policy's count belongs to no account, and its rules apply from the start.
+  expect(text(root, "main p").find((p) => p.startsWith("The base policy's"))).toBe(
+    `The base policy's 0 rules apply to ${markedAccount} from the start. Rules made for one account do not. Review ${markedAccount}'s policy.`,
+  );
+  expect(button(root, `Review ${markedAccount}'s policy.`)?.getAttribute("href")).toBe(
+    `/${markedAccount}/policy`,
+  );
 });
 
 test("the paste box's own window and its side window hold nothing about any account", async () => {

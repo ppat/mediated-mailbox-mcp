@@ -1,0 +1,22 @@
+{
+  "senders_total": 5,
+  "suffixes": [
+    {
+      "messages": 4,
+      "public_suffix": false,
+      "rules": [
+        {
+          "rule_id": "operator.lender.example",
+          "scope": "account"
+        }
+      ],
+      "senders": 1,
+      "suffix": "lender.example",
+      "valid": true
+    }
+  ],
+  "together": {
+    "messages": 4,
+    "senders": 1
+  }
+}

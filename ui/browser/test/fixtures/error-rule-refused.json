@@ -1,0 +1,22 @@
+{
+  "error": {
+    "code": "rule_refused",
+    "message": "the rule fails the policy's checks",
+    "origin": "client",
+    "request_id": "recorded"
+  },
+  "problems": [
+    {
+      "kind": "invalid_suffix",
+      "line": null,
+      "rule_id": "new",
+      "suffix": "bad suffix"
+    },
+    {
+      "kind": "reserved_identifier",
+      "line": null,
+      "rule_id": "new",
+      "suffix": null
+    }
+  ]
+}

@@ -40,6 +40,7 @@ import { RowsTable } from "../lens/table.tsx";
 import { Timeline } from "../lens/timeline.tsx";
 import { failureColumns, pageRow } from "../row/failure.tsx";
 import { elapsed, progressOf, RunState, runHref } from "./jobs.tsx";
+import { addScreen, policyHome } from "./policywrites.tsx";
 
 // runScreen is the screen's path below the account, where the failures view's links lead.
 export function runScreen(run: string): string {
@@ -380,15 +381,29 @@ export function FailurePanel(props: { account: string; run: string; seq: string;
         shape="block"
         retry={() => void failures.retry(path)}
       >
-        {(answer) => <FailureBody detail={answer} />}
+        {(answer) => <FailureBody account={account} detail={answer} />}
       </Region>
     </DetailPanel>
   );
 }
 
-export function FailureBody(props: { detail: FailureDetail }) {
-  const { detail } = props;
+// senderDomain is the domain of a sender's address, what follows its last @, lowercased, which a
+// restriction of the sender names. The failure's detail carries the address and not the stored domain.
+export function senderDomain(address: string | null): string | undefined {
+  if (address === null || !address.includes("@")) {
+    return undefined;
+  }
+  const domain = address.slice(address.lastIndexOf("@") + 1).toLowerCase();
+  return domain === "" ? undefined : domain;
+}
+
+// FailureBody is a failure's detail. The rule that set the message's class links to the account's
+// policy searched for its identifier, which lists that identifier's rule in each scope that holds one,
+// and a sender whose class reads normal carries Restrict {domain}… (docs/UI.md section 7.1).
+export function FailureBody(props: { account: string; detail: FailureDetail }) {
+  const { account, detail } = props;
   const row = detail.row;
+  const domain = senderDomain(row.from_email);
   return (
     <>
       <h3>What happened</h3>
@@ -418,9 +433,27 @@ export function FailureBody(props: { detail: FailureDetail }) {
         <dt>last error</dt>
         <dd>{utc(row.last_at)}</dd>
         <dt>sender class</dt>
-        <dd>{row.sender_class === null ? "" : word(senderClass, row.sender_class).text}</dd>
+        <dd>
+          {row.sender_class === null ? "" : word(senderClass, row.sender_class).text}
+          {row.sender_class === "normal" && domain !== undefined ? (
+            <>
+              {" "}
+              <a href={addScreen(account, { suffixes: [domain] })}>Restrict {domain}…</a>
+            </>
+          ) : null}
+        </dd>
         <dt>rule that set the class</dt>
-        <dd class="mono">{detail.class_rule_id ?? "none"}</dd>
+        <dd class="mono">
+          {detail.class_rule_id === null ? (
+            "none"
+          ) : (
+            <a
+              href={`${policyHome(account)}?${new URLSearchParams({ search: detail.class_rule_id }).toString()}`}
+            >
+              {detail.class_rule_id}
+            </a>
+          )}
+        </dd>
         <dt>content flags</dt>
         <dd>{(row.content_flags ?? []).map((f) => word(contentFlag, f).text).join(", ")}</dd>
         <dt>rule ids that fired</dt>

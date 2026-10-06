@@ -6,10 +6,9 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
-index bfcdf223..217f06ee 100644
 --- a/ui/browser/src/app/router.tsx
 +++ b/ui/browser/src/app/router.tsx
-@@ -45,7 +45,7 @@ export function Routes() {
+@@ -57,7 +57,7 @@
        <Route path="/:account/account" component={AccountSettingsRoute} />
        <Route path="/:account/account/reauthorize" component={ReauthorizeScreenRoute} />
        <Route path="/:account/system" component={SystemScreenRoute} />
@@ -17,4 +16,4 @@ index bfcdf223..217f06ee 100644
 +      <Route path="/:account/jobs" component={JobsRoute} />
        <Route path="/:account/jobs/:run" component={RunScreenRoute} />
        <Route path="/:account/jobs/:run/failures/:seq" component={RunScreenRoute} />
-       <Route default component={NotFound} />
+       <Route path="/:account/policy" component={PolicyListRoute} />

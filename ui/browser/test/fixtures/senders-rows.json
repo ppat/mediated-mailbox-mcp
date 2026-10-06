@@ -1,0 +1,65 @@
+{
+  "account": "personal",
+  "as_of": "2026-09-10T10:16:04Z",
+  "dataset": "senders",
+  "filters": {},
+  "level": 3,
+  "page": 1,
+  "pages": 1,
+  "rows": [
+    {
+      "domain": "lender.example",
+      "first_seen": "2026-06-12T10:16:04Z",
+      "last_seen": "2026-09-08T10:16:04Z",
+      "list_id_ratio": null,
+      "message_count": 4,
+      "restricted_by": "operator.lender.example",
+      "scan_hits": 0,
+      "sender_class": "normal"
+    },
+    {
+      "domain": "newsletter.example",
+      "first_seen": "2026-07-12T10:16:04Z",
+      "last_seen": "2026-09-09T04:16:04Z",
+      "list_id_ratio": null,
+      "message_count": 3,
+      "restricted_by": null,
+      "scan_hits": 0,
+      "sender_class": "normal"
+    },
+    {
+      "domain": "<script>mmfieldmarker-senderdomain</script>",
+      "first_seen": "2026-07-12T10:16:04Z",
+      "last_seen": "2026-09-09T04:16:04Z",
+      "list_id_ratio": null,
+      "message_count": 2,
+      "restricted_by": null,
+      "scan_hits": 0,
+      "sender_class": "normal"
+    },
+    {
+      "domain": "bank.example",
+      "first_seen": "2026-09-08T10:16:04Z",
+      "last_seen": "2026-09-08T10:16:04Z",
+      "list_id_ratio": null,
+      "message_count": 1,
+      "restricted_by": "base.bank",
+      "scan_hits": 0,
+      "sender_class": "restricted"
+    },
+    {
+      "domain": "mail.newsletter.example",
+      "first_seen": "2026-07-12T10:16:04Z",
+      "last_seen": "2026-09-09T04:16:04Z",
+      "list_id_ratio": null,
+      "message_count": 1,
+      "restricted_by": null,
+      "scan_hits": 0,
+      "sender_class": "normal"
+    }
+  ],
+  "sort": "message_count,desc",
+  "total": {
+    "count": 5
+  }
+}

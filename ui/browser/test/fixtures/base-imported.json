@@ -1,0 +1,22 @@
+{
+  "added": [
+    {
+      "rule_id": "base.new",
+      "scope": "base",
+      "suffixes": [
+        "new.example"
+      ]
+    }
+  ],
+  "edited": [],
+  "lifted": [
+    {
+      "released": null,
+      "rule_id": "base.bank",
+      "suffixes": [
+        "bank.example"
+      ]
+    }
+  ],
+  "lifts": 1
+}

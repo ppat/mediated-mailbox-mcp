@@ -1,0 +1,20 @@
+control: A policy write records only a declared identity, never an empty one
+removes: a header other than the declared one is read, so a request carrying the declared header is refused
+packages: ./ui/internal/api
+tests: TestAPolicyWriteRecordsTheDeclaredIdentity
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/identity.go b/ui/internal/api/identity.go
+index 0206eab1..429c761c 100644
+--- a/ui/internal/api/identity.go
++++ b/ui/internal/api/identity.go
+@@ -19,7 +19,7 @@ type Identity struct {
+ func (s *Server) identity(w http.ResponseWriter, r *http.Request) (string, bool) {
+ 	v := s.opts.Identity.Operator
+ 	if s.opts.Identity.Header != "" {
+-		v = r.Header.Get(s.opts.Identity.Header)
++		v = r.Header.Get("X-Identity")
+ 	}
+ 	// A write always records who made it, so an identity that resolves empty, a missing header or an
+ 	// operator name configured empty, is refused rather than recorded.

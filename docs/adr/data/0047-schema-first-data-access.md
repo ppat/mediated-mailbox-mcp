@@ -60,6 +60,9 @@ decisions take everything as parameters
   ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md),
   [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md),
   [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
+  The base policy, which belongs to no account, is read and written through the helper's second
+  entry point, which sets no account and verifies that, and runs only the base policy's statements
+  ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
 - **One data-access library, produced from the one schema, serves every component** — so drift
   between the schema, the queries, and the result types is a build failure everywhere at once rather
   than a runtime discovery in one workload. The library is impure shared code, deliberately outside

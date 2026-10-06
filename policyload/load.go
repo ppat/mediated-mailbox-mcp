@@ -17,8 +17,11 @@
 // read that never reached the server or lost its connection fails the same way. A transaction whose
 // account setting does not hold the account would return no account rows and raise nothing, and
 // db/tx fails that transaction before any statement runs. The base rules read in each account's
-// transaction are compared, so an edit landing between two accounts' reads fails the reload rather
-// than composing accounts from different base policies. So a reload that fails keeps no row it read.
+// transaction are compared, so an edit landing between two accounts' reads never composes accounts
+// from different base policies. Such a reload reads every account once more at once, and fails only
+// when the second read's accounts disagree too, so an edit to the base policy pages only when edits
+// keep landing through both reads (ADR-0114). The second read is the last, so edits landing without
+// pause fail the reload rather than hold it in a loop. So a reload that fails keeps no row it read.
 // Its error is returned, the active snapshot stays, and the series the alarm reads says so.
 //
 // One fault is outside what the loader can see. A migration that drops or narrows the row-level
@@ -139,7 +142,7 @@ func readable(accounts []string) ([]string, error) {
 func (l *Loader) Snapshot() Snapshot { return *l.active.Load() }
 
 // Reload reads the policy tables and makes what it read the active snapshot if the read completed
-// and the rows validate. Otherwise the active snapshot stays, the reload-failure series reads 1
+// and the rows validate. A read whose accounts read different base rules is read once more. Otherwise the active snapshot stays, the reload-failure series reads 1
 // until a reload succeeds, and the returned error wraps ErrUntrustedRead or ErrInvalidUpdate. A
 // reload its caller cancelled returns an error wrapping context.Canceled and leaves the series as
 // it was.
@@ -147,6 +150,9 @@ func (l *Loader) Reload(ctx context.Context) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	rows, err := l.read(ctx)
+	if errors.Is(err, errTornBase) {
+		rows, err = l.read(ctx)
+	}
 	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
 		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
 	}
@@ -193,12 +199,16 @@ func (l *Loader) read(ctx context.Context) ([]policy.Row, error) {
 			base = inherited
 			rows = append(rows, base...)
 		} else if !slices.EqualFunc(base, inherited, sameRule) {
-			return nil, fmt.Errorf("account %s: the base rules changed between two accounts' reads", account)
+			return nil, fmt.Errorf("account %s: %w", account, errTornBase)
 		}
 		rows = append(rows, own...)
 	}
 	return rows, nil
 }
+
+// errTornBase is a read whose accounts read different base rules, because the base policy changed
+// between two accounts' reads.
+var errTornBase = errors.New("the base rules changed between two accounts' reads")
 
 // sameRule reports whether two rows hold the same rule.
 func sameRule(a, b policy.Row) bool {

@@ -1,0 +1,18 @@
+control: A base rule's lift asks for the rule identifier typed before its button enables
+removes: Edit domains removing a base rule's suffix asks for no identifier typed, so its lift button is enabled at once
+packages: ./ui/browser/test/policy.test.tsx
+tests: removing a suffix from a base rule asks for the rule's identifier typed too
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/rule.tsx b/ui/browser/src/screens/rule.tsx
+--- a/ui/browser/src/screens/rule.tsx
++++ b/ui/browser/src/screens/rule.tsx
+@@ -311,7 +311,7 @@
+       {confirming ? (
+         <LiftDialog
+           title={`Lift the restriction on ${lifted(change.removed)}`}
+-          typed={props.scope === "base" ? typedIdentifier(props.rule) : undefined}
++          typed={undefined}
+           action={`Lift restriction on ${lifted(change.removed)}`}
+           refusal={refusal}
+           onConfirm={(t) => void save(t)}

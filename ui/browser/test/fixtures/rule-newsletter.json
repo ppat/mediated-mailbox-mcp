@@ -1,0 +1,59 @@
+{
+  "accounts": [],
+  "class": "restricted",
+  "created_at": "2026-09-10T09:16:04Z",
+  "created_by": "operator",
+  "elsewhere": null,
+  "history": [
+    {
+      "account": "personal",
+      "action": "added",
+      "actor": "operator",
+      "id": 7,
+      "rule_exists": true,
+      "rule_id": "operator.newsletter.example",
+      "suffixes_after": [
+        "newsletter.example"
+      ],
+      "suffixes_before": [],
+      "ts": "2026-09-10T09:16:04Z"
+    }
+  ],
+  "matched": [
+    {
+      "domain": "newsletter.example",
+      "messages": 3,
+      "sender_class": "normal"
+    },
+    {
+      "domain": "mail.newsletter.example",
+      "messages": 1,
+      "sender_class": "normal"
+    }
+  ],
+  "matched_total": 2,
+  "messages": 4,
+  "released": {
+    "messages": 4,
+    "senders": 2
+  },
+  "restricted": 0,
+  "rule_id": "operator.newsletter.example",
+  "scope": "account",
+  "senders": 2,
+  "source": "operator",
+  "suffix_details": [
+    {
+      "messages": 4,
+      "released": {
+        "messages": 4,
+        "senders": 2
+      },
+      "senders": 2,
+      "suffix": "newsletter.example"
+    }
+  ],
+  "suffixes": [
+    "newsletter.example"
+  ]
+}

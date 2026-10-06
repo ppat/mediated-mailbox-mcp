@@ -30,8 +30,9 @@ restricted or skipped as restricted to a normal sender class with no rule naming
 scan, and rebuilds the domain's sender statistics, in one transaction. Clearing the rule keeps a
 message from naming a rule for a class that rule no longer sets
 ([ADR-0016](../data/0016-schema.md)). The skip state is read as well as the stored class,
-because a rule added after a message was stored leaves its stored class normal while the scan gate
-skips it as restricted, and how a newly added rule changes the stored class is not decided here.
+because a rule added after a message was stored can leave its stored class normal while the scan
+gate skips it as restricted, until the same comparison restricts the stored class
+([ADR-0113](./0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
 Backfill's second pass runs the comparison at the start of each of its runs, which it makes until
 the pass has ended for the account, and when it marks any message the run starts over from the first
 message waiting for a scan, because the marked messages may sit before the point it resumed from

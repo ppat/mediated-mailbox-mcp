@@ -1,0 +1,8 @@
+{
+  "rule_id": "operator.lender.example",
+  "scope": "account",
+  "suffixes": [
+    "lender.example",
+    "lendermail.example"
+  ]
+}

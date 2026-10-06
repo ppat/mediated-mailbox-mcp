@@ -27,6 +27,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
+
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -34,6 +38,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
+
+// lookups are the sender classifier's domain functions, as the composition root passes them.
+var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 // The UI's root configuration type is pinned field by field, so a new value is a visible change
 // (ADR-0078). The database section's own type is pinned in its package.
@@ -44,7 +51,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
 		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
 		"SealPublicKeyFile string", "PrivateKeyFiles []string", "TokenKeyFile string",
-		"ConsentRedirect string")
+		"ConsentRedirect string", "IdentityHeader string", "OperatorName string")
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -69,6 +76,7 @@ func TestTheDefaults(t *testing.T) {
 		AttentionServeFactor:  2,
 		AttentionGapDays:      7,
 		ConsentRedirect:       "http://127.0.0.1:47823/",
+		OperatorName:          "operator",
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
@@ -213,7 +221,7 @@ func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	c.Listen, c.ProbeListen = "127.0.0.1:0", "127.0.0.1:0"
 	c.TLSCert, c.TLSKey = filepath.Join(t.TempDir(), "absent.crt"), filepath.Join(t.TempDir(), "absent.key")
 	s, err := api.New(api.Options{
-		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(), Logger: discard(),
+		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: discard(),
 		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
 	})
 	if err != nil {
@@ -265,8 +273,10 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_ui`,
 		`level=INFO msg=configuration path=default_theme source=default value=system`,
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
+		`level=INFO msg=configuration path=identity_header source=default value=""`,
 		`level=INFO msg=configuration path=insecure_http source=default value=false`,
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
+		`level=INFO msg=configuration path=operator_name source=default value=operator`,
 		`level=INFO msg=configuration path=private_key_files source="flag --private_key_files" value=[` + privateKeyFile + `]`,
 		`level=INFO msg=configuration path=probe_listen source="flag --probe_listen" value=127.0.0.1:0`,
 		`level=INFO msg=configuration path=seal_public_key_file source="flag --seal_public_key_file" value=` + publicKeyFile,

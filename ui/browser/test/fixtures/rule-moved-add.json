@@ -1,0 +1,7 @@
+{
+  "rule_id": "operator.lender.example",
+  "scope": "base",
+  "suffixes": [
+    "lender.example"
+  ]
+}

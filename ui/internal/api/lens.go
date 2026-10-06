@@ -9,11 +9,15 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
+	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
+	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
+	senderclasses "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -200,6 +204,7 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 		q := registry.Queries{
 			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
 			Runs: jobruns.New(t), Failures: classification.New(t), Audit: auditlog.New(t),
+			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclasses.New(t), Accounts: accounts.New(t),
 		}
 		figures, total, err := dataset.Summary(r.Context(), q, read)
 		if err != nil {
@@ -327,6 +332,7 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
 			q := registry.Queries{
 				Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
 				Runs: jobruns.New(t), Failures: classification.New(t), Audit: auditlog.New(t),
+				Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclasses.New(t), Accounts: accounts.New(t),
 			}
 			body, err = dataset.Detail(r.Context(), q, account, req, s.opts.Clock())
 			return err

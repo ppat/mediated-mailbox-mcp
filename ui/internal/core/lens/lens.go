@@ -42,6 +42,9 @@ type Dimension struct {
 	Empty bool
 	// Values is the closed set of the column's values as stored, keying the browser's wording table.
 	Values []string
+	// Search marks the filter-only search entry of kind text (docs/UI.md section 5). Its value is
+	// taken whole, so a comma or a leading ! in it is part of the text searched for.
+	Search bool
 }
 
 // Sort is a sort column and its direction.
@@ -319,13 +322,21 @@ const None = "none"
 // one. The statements compare it as the empty string.
 const Empty = "empty"
 
-// parseFilter reads the filter grammar. dim=value is equality, dim=a,b any of, dim=!value exclusion.
+// parseFilter reads the filter grammar. A search filter's value is the text searched for, whole.
+// Otherwise dim=value is equality, dim=a,b any of, dim=!value exclusion.
 // none names a dimension's null group, and is refused on a dimension that has none. empty names the
 // group of a value stored empty, and is refused on a dimension that cannot hold one. Any other value
 // of a number or a date dimension must be one, so a value no statement could compare is refused before
 // any runs.
 func parseFilter(dim Dimension, value string) (Filter, error) {
 	f := Filter{Dimension: dim.Name}
+	if dim.Search {
+		if value == "" {
+			return Filter{}, refuse("invalid_filter", "the filter %s holds an empty value", dim.Name)
+		}
+		f.Values = []string{value}
+		return f, nil
+	}
 	if rest, ok := strings.CutPrefix(value, "!"); ok {
 		if rest == "" || strings.Contains(rest, ",") {
 			return Filter{}, refuse("invalid_filter", "the exclusion %s names one value", strconv.Quote(value))
@@ -422,6 +433,9 @@ func ParseRow(catalogue []Descriptor, dataset, row string, query map[string][]st
 	}
 	return req, nil
 }
+
+// ParseRange reads range= as the dataset endpoint does, for a bespoke read that takes a range.
+func ParseRange(v string) (Range, error) { return parseRange(v) }
 
 // parseRange reads a preset or two UTC dates, from before or on to.
 func parseRange(v string) (Range, error) {

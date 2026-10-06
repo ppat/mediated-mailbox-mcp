@@ -1,0 +1,20 @@
+control: Every account-scoped route refuses all and an unknown account
+removes: the export route admits any account, all and an unknown one included
+packages: ./ui/internal/api
+tests: TestThePolicyRoutesAreScoped
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index 129a5a0f..f6cb3f41 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -166,7 +166,7 @@ func Bespoke() []Route {
+ 			Request: ptr(liftRequestType(true, "LiftRule")), Response: ruleAnswerType(),
+ 		},
+ 		{
+-			Pattern: "/api/{account}/policy/export", Operation: "exportPolicy", Scoped: true, Download: policyFileType,
++			Pattern: "/api/{account}/policy/export", Operation: "exportPolicy", Download: policyFileType,
+ 			Summary: "Downloads the account's own rules as a policy file",
+ 		},
+ 		{

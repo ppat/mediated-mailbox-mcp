@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/policyload/load.go b/policyload/load.go
-index 6ed1b43..f2a309b 100644
+index 9e0644fd..0a8a3aa7 100644
 --- a/policyload/load.go
 +++ b/policyload/load.go
-@@ -122,6 +122,9 @@ func (l *Loader) Reload(ctx context.Context) error {
- 	l.mu.Lock()
- 	defer l.mu.Unlock()
- 	rows, err := l.read(ctx)
+@@ -153,6 +153,9 @@ func (l *Loader) Reload(ctx context.Context) error {
+ 	if errors.Is(err, errTornBase) {
+ 		rows, err = l.read(ctx)
+ 	}
 +	if err == nil && len(rows) == 0 {
 +		err = errors.New("no rules")
 +	}

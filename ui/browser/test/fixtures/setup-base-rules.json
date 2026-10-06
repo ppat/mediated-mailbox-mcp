@@ -1,0 +1,8 @@
+{
+  "accounts": [],
+  "base_rules": 1,
+  "clients": [],
+  "providers": [
+    "gmail"
+  ]
+}

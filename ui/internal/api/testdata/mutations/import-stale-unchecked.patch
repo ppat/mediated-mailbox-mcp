@@ -1,0 +1,22 @@
+control: An import is applied whole or not at all, against the stored rules its preview was computed against
+removes: an import applies over rules another write changed since its preview
+packages: ./ui/internal/api
+tests: TestAnImportIsAppliedWholeOrNotAtAll
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/policyfile.go b/ui/internal/api/policyfile.go
+index fbbd2256..d28bc0b9 100644
+--- a/ui/internal/api/policyfile.go
++++ b/ui/internal/api/policyfile.go
+@@ -466,9 +466,7 @@ func (s *Server) writeImport(w http.ResponseWriter, r *http.Request, account str
+ 		if err != nil {
+ 			return err
+ 		}
+-		if computedAgainst(stored) != *body.ComputedAgainst {
+-			return errStalePreview
+-		}
++
+ 		list := make([]rules.Rule, len(file))
+ 		for i, f := range file {
+ 			list[i] = f.rule

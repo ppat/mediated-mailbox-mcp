@@ -311,7 +311,7 @@ func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Threshold
 	s, err := api.New(api.Options{
 		Bundle:         os.DirFS(filepath.Join("..", "..", "browser", "dist")),
 		Database:       pool,
-		Datasets:       registry.Datasets(),
+		Datasets:       registry.Datasets(lookups),
 		Logger:         slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		Metrics:        reg,
 		Clock:          func() time.Time { return now },

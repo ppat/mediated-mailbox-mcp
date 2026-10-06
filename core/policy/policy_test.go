@@ -103,7 +103,8 @@ func TestLoadRefusesInvalidRows(t *testing.T) {
 	}{
 		{"empty identifier", rule("", "", "a.example"), "has an empty identifier"},
 		{"identifier with surrounding space", rule("", " a ", "a.example"), "has an empty identifier or one with surrounding space"},
-		{"repeated identifier", rule("acct-a", "gov.federal.irs", "a.example"), "repeats an identifier"},
+		{"identifier repeated in the base policy", rule("", "gov.federal.irs", "a.example"), "repeats an identifier within its scope"},
+		{"identifier repeated in one account's rules", rule("acct-a", "candidate.acct-a.examplebank.com", "a.example"), "repeats an identifier within its scope"},
 		{"class other than restricted", policy.Row{ID: "x", Class: "normal", DomainSuffixes: []string{"a.example"}}, `has the class "normal"`},
 		{"no class", policy.Row{ID: "x", DomainSuffixes: []string{"a.example"}}, `has the class ""`},
 		{"no domain suffix", rule("", "x"), "has no domain suffix"},
@@ -125,6 +126,26 @@ func TestLoadRefusesInvalidRows(t *testing.T) {
 				t.Fatalf("Load returned %v, want an error containing %q", err, c.want)
 			}
 		})
+	}
+}
+
+// An identifier is unique within its scope only, so the base policy and an account, and two accounts,
+// may each hold a rule of one identifier, and each account's composed policy holds both of its own
+// scopes' rules (ADR-0110).
+func TestAnIdentifierIsUniqueWithinItsScopeOnly(t *testing.T) {
+	s := load(t, []policy.Row{
+		rule("", "operator.schwab.com", "schwab.com"),
+		rule("acct-a", "operator.schwab.com", "schwabmail.com"),
+		rule("acct-a", "operator.fidelity.com", "fidelity.com"),
+		rule("acct-b", "operator.fidelity.com", "fmr.com"),
+	})
+	var got []string
+	for _, r := range s.For("acct-a").Rules() {
+		got = append(got, r.ID()+" "+strings.Join(r.DomainSuffixes(), ","))
+	}
+	want := []string{"operator.schwab.com schwab.com", "operator.schwab.com schwabmail.com", "operator.fidelity.com fidelity.com"}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("acct-a's rules (-want +got):\n%s", diff)
 	}
 }
 

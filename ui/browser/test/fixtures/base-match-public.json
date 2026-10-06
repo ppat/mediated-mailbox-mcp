@@ -1,0 +1,10 @@
+{
+  "suffixes": [
+    {
+      "public_suffix": true,
+      "rules": [],
+      "suffix": "com",
+      "valid": true
+    }
+  ]
+}

@@ -98,29 +98,56 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
 	if at < 0 {
 		return Verdict{}
 	}
-	domain, ok := normalize(address[at+1:], l)
+	sender, ok := SenderName(address[at+1:], l)
 	if !ok {
-		return Verdict{}
-	}
-	ascii, err := l.ToASCII(domain)
-	if err != nil {
-		return Verdict{}
-	}
-	if _, err := l.Registrable(ascii); err != nil {
 		return Verdict{}
 	}
 	for _, r := range p.Rules() {
 		for _, suffix := range r.DomainSuffixes() {
-			s, ok := normalize(suffix, l)
-			if !ok {
-				s = strings.ToLower(suffix)
-			}
-			if domain == s || strings.HasSuffix(domain, "."+s) {
+			if sender.Under(SuffixName(suffix, l)) {
 				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID()}
 			}
 		}
 	}
 	return Verdict{class: sensitivity.NormalSender(), reason: Unlisted}
+}
+
+// Name is a domain name in the form the classifier compares names in, its Unicode form lowercased
+// without a trailing dot. Every comparison of a sender with a rule's suffix is made between two Names,
+// so anything else that counts what a rule matches, such as the UI's policy screens, counts what
+// Classify decides.
+type Name struct{ form string }
+
+// SenderName returns a sender domain's Name, or false for a domain Classify classifies restricted as
+// unclassifiable, one it cannot read or with no registrable domain.
+func SenderName(domain string, l Lookups) (Name, bool) {
+	n, ok := normalize(domain, l)
+	if !ok {
+		return Name{}, false
+	}
+	ascii, err := l.ToASCII(n)
+	if err != nil {
+		return Name{}, false
+	}
+	if _, err := l.Registrable(ascii); err != nil {
+		return Name{}, false
+	}
+	return Name{form: n}, true
+}
+
+// SuffixName returns a rule's domain suffix's Name. A suffix the lookups cannot decode is compared
+// lowercased as written.
+func SuffixName(suffix string, l Lookups) Name {
+	n, ok := normalize(suffix, l)
+	if !ok {
+		return Name{form: strings.ToLower(suffix)}
+	}
+	return Name{form: n}
+}
+
+// Under reports whether n is suffix or a subdomain of it, at a label boundary.
+func (n Name) Under(suffix Name) bool {
+	return n.form != "" && (n.form == suffix.form || strings.HasSuffix(n.form, "."+suffix.form))
 }
 
 // normalize returns the Unicode form of a domain name, lowercased, without a trailing dot, or false
