@@ -32,6 +32,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -64,6 +65,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/logging"
+	logcore "github.com/ppat/mediated-mailbox-mcp/logging/core"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/readiness"
@@ -108,6 +111,8 @@ type Configuration struct {
 	// ProviderTimeout bounds each provider call a body request makes, after which the call is the
 	// provider's failure (ADR-0101).
 	ProviderTimeout time.Duration `yaml:"provider_timeout"`
+	// Log is the log section, which sets the level the deployable logs at (ADR-0119).
+	Log logcore.Config `yaml:"log"`
 }
 
 // maxProviderTimeout is the longest provider timeout the configuration accepts.
@@ -119,7 +124,7 @@ const scannerSection = "scanner"
 
 // defaults are the mediator's defaults. The user is the mediator's own runtime role (ADR-0075), and
 // the TLS mode is the one that fails closed. The TLS, token and key files have no default, since a
-// default path assumes the environment.
+// default path assumes the environment. The log level is info (ADR-0119).
 func defaults() Configuration {
 	return Configuration{
 		Listen:                ":8443",
@@ -128,6 +133,7 @@ func defaults() Configuration {
 		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
 		Scanner:               scan.DefaultConfig(),
 		ProviderTimeout:       30 * time.Second,
+		Log:                   logcore.Default(),
 	}
 }
 
@@ -166,22 +172,29 @@ func validate(c Configuration) error {
 	return credentialcore.Validate(c.Credential)
 }
 
+// main logs a start refused before the configuration is loaded through the initial logger, and
+// anything later through the logger run builds, which it also sets as the process default for the
+// code the project does not own (ADR-0119).
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	logger := logging.Initial(os.Stdout)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := run(ctx, os.Args[1:], os.Environ(), slog.Default())
+	err := run(ctx, os.Args[1:], os.Environ(), os.Stdout, func(configured *slog.Logger) {
+		logger = configured
+		slog.SetDefault(configured)
+	})
 	stop()
 	if err != nil {
-		slog.Error("the mediator stopped", "error", err)
+		logger.Error("the mediator stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
 // run loads the configuration and the keyring, connects to the database, loads the accounts and
-// their policy, and serves until ctx ends. It logs the effective configuration first, each value
-// with the layer that set it (ADR-0078). The keyring is loaded before any connection is made, so a
+// their policy, and serves until ctx ends. It builds the logger the log section configures, writing to
+// out, hands it to adopt and to every part that logs, and logs the effective configuration through it
+// first, each value with the layer that set it (ADR-0078, ADR-0119). The keyring is loaded before any connection is made, so a
 // public key matching none of the private keys refuses the start (ADR-0088).
-func run(ctx context.Context, args, environ []string, logger *slog.Logger) error {
+func run(ctx context.Context, args, environ []string, out io.Writer, adopt func(*slog.Logger)) error {
 	if err := refuseEnvironment(environ); err != nil {
 		return err
 	}
@@ -194,6 +207,11 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err != nil {
 		return fmt.Errorf("loading the configuration: %w", err)
 	}
+	logger, err := logging.New(out, loaded.Config.Log, loaded.Values)
+	if err != nil {
+		return fmt.Errorf("validating the configuration: %w", err)
+	}
+	adopt(logger)
 	for _, v := range loaded.Values {
 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 	}
@@ -257,7 +275,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener 
 	registry := served.registry
 	var ready readiness.State
 
-	surfaceHandler, err := surface(registry, c.TokenFile)
+	surfaceHandler, err := surface(registry, c.TokenFile, logger)
 	if err != nil {
 		return errors.Join(err, surfaceListener.Close(), probeListener.Close())
 	}
@@ -267,7 +285,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener 
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	probeServer := &http.Server{
-		Handler:           probes(&ready, metrics),
+		Handler:           probes(&ready, metrics, logger),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	reloading, stopReloading := context.WithCancel(ctx)
@@ -538,25 +556,25 @@ func stopped(err error) error {
 // surface returns the client surface, the API root and the MCP root generated from registry, behind
 // the bearer check. Anything else the surface is asked for is not found, after the bearer check.
 // Every response carries Cache-Control: no-store and no ETag, so no response a gate decided outlives
-// a change in its decision (ADR-0087).
-func surface(registry service.Registry, tokenFile string) (http.Handler, error) {
-	apiRoot, err := api.Handler(registry)
+// a change in its decision (ADR-0087). Each part logs through logger (ADR-0119).
+func surface(registry service.Registry, tokenFile string, logger *slog.Logger) (http.Handler, error) {
+	apiRoot, err := api.Handler(registry, logger)
 	if err != nil {
 		return nil, err
 	}
 	roots := http.NewServeMux()
 	roots.Handle("/api/", apiRoot)
-	roots.Handle("/mcp", mcp.Handler(registry, version()))
-	return noStore(bearer(tokenFile, roots)), nil
+	roots.Handle("/mcp", mcp.Handler(registry, version(), logger))
+	return noStore(bearer(tokenFile, roots, logger), logger), nil
 }
 
 // noStore marks every response uncacheable, before its handler runs, so a response its handler
 // never writes carries the mark too, and again as its header is written, removing any ETag, so a
 // handler's own caching headers do not survive.
-func noStore(next http.Handler) http.Handler {
+func noStore(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		next.ServeHTTP(&noStoreWriter{ResponseWriter: w}, r)
+		next.ServeHTTP(&noStoreWriter{ResponseWriter: w, log: logger}, r)
 	})
 }
 
@@ -565,6 +583,7 @@ func noStore(next http.Handler) http.Handler {
 type noStoreWriter struct {
 	http.ResponseWriter
 	wroteHeader bool
+	log         *slog.Logger
 }
 
 func (w *noStoreWriter) WriteHeader(status int) {
@@ -589,7 +608,7 @@ func (w *noStoreWriter) Flush() {
 		w.WriteHeader(http.StatusOK)
 	}
 	if err := http.NewResponseController(w.ResponseWriter).Flush(); err != nil {
-		slog.Warn("flushing a response failed", "error", err)
+		w.log.Debug("flushing a response failed", "error", err)
 	}
 }
 
@@ -598,11 +617,11 @@ func (w *noStoreWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
 // bearer admits a request to next only when it carries the bearer token held in tokenFile. The file
 // is read on each request. A file that cannot be read or holds no token admits nothing.
-func bearer(tokenFile string, next http.Handler) http.Handler {
+func bearer(tokenFile string, next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		want, err := os.ReadFile(tokenFile) //nolint:gosec // the operator names the mounted file the token is read from
 		if err != nil {
-			slog.ErrorContext(r.Context(), "reading the bearer token failed", "error", err)
+			logger.ErrorContext(r.Context(), "reading the bearer token failed", "error", err)
 		}
 		want = []byte(strings.TrimSpace(string(want)))
 		scheme, got, _ := strings.Cut(r.Header.Get("Authorization"), " ")
@@ -636,28 +655,28 @@ func tlsConfig(certFile, keyFile string, atIngress bool) *tls.Config {
 // probes returns the operational endpoints. /healthz answers 200 while the process serves, /readyz
 // answers 200 only while ready reports ready and 503 otherwise, and /metrics serves the process's
 // registry.
-func probes(ready *readiness.State, metrics *prometheus.Registry) http.Handler {
+func probes(ready *readiness.State, metrics *prometheus.Registry, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		answer(w, r, http.StatusOK, "ok")
+		answer(logger, w, r, http.StatusOK, "ok")
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if !ready.Ready() {
-			answer(w, r, http.StatusServiceUnavailable, "not ready")
+			answer(logger, w, r, http.StatusServiceUnavailable, "not ready")
 			return
 		}
-		answer(w, r, http.StatusOK, "ready")
+		answer(logger, w, r, http.StatusOK, "ready")
 	})
 	mux.Handle("GET /metrics", promhttp.HandlerFor(metrics, promhttp.HandlerOpts{}))
 	return mux
 }
 
-// answer writes a plain-text probe answer.
-func answer(w http.ResponseWriter, r *http.Request, status int, text string) {
+// answer writes a plain-text probe answer. A failed write means the prober went away.
+func answer(logger *slog.Logger, w http.ResponseWriter, r *http.Request, status int, text string) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(status)
 	if _, err := fmt.Fprintln(w, text); err != nil {
-		slog.WarnContext(r.Context(), "writing a probe answer failed", "error", err)
+		logger.DebugContext(r.Context(), "writing a probe answer failed", "error", err)
 	}
 }
 

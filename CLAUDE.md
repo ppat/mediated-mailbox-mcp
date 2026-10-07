@@ -42,7 +42,7 @@ had alternatives live in the records, cited by number. What tests a piece of wor
 [TESTING.md](./TESTING.md)'s, which controls exist and how each is proven is
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s.
 The UI's own layout is [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The
-data-access library and the nine narrow shared libraries each describe themselves in a README in
+data-access library and the ten narrow shared libraries each describe themselves in a README in
 their own directory.
 
 ### The Go module
@@ -73,6 +73,7 @@ carries the bare word.
 | `credential/` | Library | `mediated-mailbox-credential` | The sealing and opening of an account's provider credential, the loading of its keys, and the configuration section naming the key files with its validation, in `credential/core`, argued in [credential/README.md](./credential/README.md) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
 | `dbconnect/` | Library | `mediated-mailbox-dbconnect` | A deployable's database section of its configuration and the connection built from it, argued in [dbconnect/README.md](./dbconnect/README.md) |
+| `logging/` | Library | `mediated-mailbox-logging` | A deployable's log section of its configuration and the logger built from it, argued in [logging/README.md](./logging/README.md) |
 | `policyload/` | Library | `mediated-mailbox-policyload` | The loading of the policy tables into one snapshot, and the reload-failure alarm, argued in [policyload/README.md](./policyload/README.md) |
 | `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, Gmail's consent apart from its adapter, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
 | `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
@@ -92,7 +93,7 @@ carries the bare word.
 A deployable's job word is a verb for what it does, following `organize`. `ui` keeps the directory
 the Glossary gives it. Shared code is the shared pure library, or a narrow, named library that
 argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
-requires. The data-access library's case is ADR-0047's, and each of the other nine argues its case
+requires. The data-access library's case is ADR-0047's, and each of the other ten argues its case
 in its README.
 
 ### Inside a component
@@ -103,6 +104,7 @@ in its README.
 | Operator commands | A command a person runs by hand, which no deployable runs, sits under its library as `cmd/<name>/` in `package main`. The Gmail consent for the test account's token is `provider/gmail/cmd/consent`, a developer's tool that ships in no image ([ADR-0107](./docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)). `credential/cmd/keygen` writes the key pair that credentials are sealed to, and ships as signed static binaries attached to each release ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
 | Private code | Everything else a deployable holds sits under `<deployable>/internal/`, so the compiler refuses an import from another component as well as the import rules of [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md). The one exception is an `importtarget` package holding a violation file, described under [Tests](#tests) |
 | Pure core | Pure-core code sits under a directory named `core`. That is the top-level `core/`, `<deployable>/internal/core/<concern>/`, and `<library>/core/` inside a library that holds pure rules of its own. The word means the Glossary's pure core wherever it appears, so the core import check matches every one of them by path, anchored at the repository root |
+| Logging | The composition root builds one logger from its `log` section through `logging/` once its configuration has loaded, hands it as a value to every shell that logs, and sets it as the process default for the code the project does not own. Project code never reads the process default, and a `forbidigo` ban refuses `slog.Default`, the package-level `log/slog` functions that log through it and the `log` package, in every Go file. A pure core never logs ([ADR-0119](./docs/adr/engineering/0119-each-deployable-logs-at-a-configured-level-through-the-logger-its-root-builds.md)) |
 | Shell packages | Named for what they do, for example `api`, `mcp`, `service`, `lease`, `gmail`. No package is named `util`, `common` or `helpers` |
 | Library subsections | A library is organized in subsections by concern, each a package, granular enough that an import list can name exactly the subsections a component may use, as every component's list does for the data-access library |
 | Mediator layering | `mediate/internal/api` and `mediate/internal/mcp` are the two protocol roots, `mediate/internal/service` is the one service layer beneath both, and enforcement sits below it ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md)). Import rules per root refuse a root reaching below the service layer. Each root is generated from the service layer's operation registry by one file, `api.go` and `mcp.go`. Each registry entry declares its effect, and its HTTP method, path shape and MCP annotations are derived from it ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)). Only the generator file of its root is admitted the library its protocol is served with, `net/http` and the MCP SDK. The MCP SDK is admitted nowhere else in the mediator, and every other package under `mediate/internal/`, a new one included, is admitted no HTTP package, so an operation cannot be registered on the client surface from any of them. The composition root mounts the two roots on an HTTP mux, and what it mounts is left to review ([ADR-0053](./docs/adr/engineering/0053-parity-by-construction.md), [ADR-0086](./docs/adr/engineering/0086-mcp-root-on-the-official-go-sdk.md)) |

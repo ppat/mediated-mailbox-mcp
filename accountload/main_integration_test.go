@@ -198,7 +198,11 @@ func storedCredential(t *testing.T, conn *pgx.Conn, id string) []byte {
 // logBuffer collects a loader's log lines.
 type logBuffer struct{ bytes.Buffer }
 
-func (b *logBuffer) logger() *slog.Logger { return slog.New(slog.NewJSONHandler(b, nil)) }
+// logger writes JSON lines at debug, the most detailed level a deployment can configure, so a detail
+// line carrying what must never be logged is caught too (ADR-0119).
+func (b *logBuffer) logger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(b, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
 
 // errors returns the message of every error-level record with its account and client attributes.
 func (b *logBuffer) errors(t *testing.T) []map[string]string {

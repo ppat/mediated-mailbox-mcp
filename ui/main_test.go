@@ -11,14 +11,18 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -33,6 +37,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	logcore "github.com/ppat/mediated-mailbox-mcp/logging/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
@@ -51,10 +56,20 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
 		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
 		"SealPublicKeyFile string", "PrivateKeyFiles []string", "TokenKeyFile string",
-		"ConsentRedirect string", "IdentityHeader string", "OperatorName string")
+		"ConsentRedirect string", "IdentityHeader string", "OperatorName string", "Log core.Config")
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
+
+// beforeTheKeys is a configuration whose start stops at the public key, which does not exist, after
+// the log and before it reads any other file.
+var beforeTheKeys = []string{
+	"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
+	"--tls_key=/tls/key", "--seal_public_key_file=/absent/public", "--private_key_files=[/absent/private]",
+}
+
+// ignore is the adopt run takes, for a test that does not read the logger run builds.
+func ignore(*slog.Logger) {}
 
 // The UI's defaults are the port, its own runtime role, the TLS mode that fails closed, the mediator's
 // listen addresses and the records' intervals, and the database's host, name and password file are
@@ -77,11 +92,12 @@ func TestTheDefaults(t *testing.T) {
 		AttentionGapDays:      7,
 		ConsentRedirect:       "http://127.0.0.1:47823/",
 		OperatorName:          "operator",
+		Log:                   logcore.Config{Level: "info"},
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := run(t.Context(), []string{"--database.name=mailbox", "--database.password_file=/absent"}, nil, discard())
+	err := run(t.Context(), []string{"--database.name=mailbox", "--database.password_file=/absent"}, nil, io.Discard, ignore)
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("run returned %v, want %q", err, wantErr)
@@ -96,7 +112,7 @@ func TestPlainHTTPRefusesTheStart(t *testing.T) {
 		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true", "--seal_public_key_file=/absent",
 		"--private_key_files=[/absent]",
 	}
-	err := run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard())
+	err := run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, io.Discard, ignore)
 	want := "validating the configuration: insecure_http is true, and a binary built without the devloop build tag serves TLS only"
 	if err == nil || err.Error() != want {
 		t.Errorf("run returned %v, want %q", err, want)
@@ -109,7 +125,7 @@ func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
 		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
 		"--tls_cert=/tls/cert", "--seal_public_key_file=/absent", "--private_key_files=[/absent]",
 	}
-	err := run(t.Context(), args, nil, discard())
+	err := run(t.Context(), args, nil, io.Discard, ignore)
 	want := "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true"
 	if err == nil || err.Error() != want {
 		t.Errorf("run returned %v, want %q", err, want)
@@ -118,7 +134,7 @@ func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
 
 // A password variable refuses the start before any configuration is read.
 func TestAPasswordVariableRefusesTheStart(t *testing.T) {
-	err := run(t.Context(), nil, []string{"PGPASSWORD="}, discard())
+	err := run(t.Context(), nil, []string{"PGPASSWORD="}, io.Discard, ignore)
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("run returned %v, want %q", err, want)
@@ -233,6 +249,93 @@ func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	}
 }
 
+// logLines returns each line out holds, which must be a JSON object, as its level and message, a
+// configuration line's path, source and value, the value as the JSON it was written as, and the key
+// identifier the UI seals to.
+func logLines(t *testing.T, out *bytes.Buffer) []string {
+	t.Helper()
+	var lines []string
+	for text := range strings.Lines(out.String()) {
+		var l struct {
+			Level  string          `json:"level"`
+			Msg    string          `json:"msg"`
+			Path   string          `json:"path"`
+			Source string          `json:"source"`
+			Value  json.RawMessage `json:"value"`
+			KeyID  string          `json:"key_id"`
+		}
+		if err := json.Unmarshal([]byte(text), &l); err != nil {
+			t.Fatalf("a log line is not a JSON object: %q: %v", text, err)
+		}
+		line := l.Level + " " + l.Msg
+		if l.Path != "" {
+			line += fmt.Sprintf(" path=%s source=%q value=%s", l.Path, l.Source, l.Value)
+		}
+		if l.KeyID != "" {
+			line += " key_id=" + l.KeyID
+		}
+		lines = append(lines, line)
+	}
+	return lines
+}
+
+// The start logs at the level its log section sets, and hands adopt the logger it logs through, which
+// the composition root sets as the process default (ADR-0119). At warn the effective configuration,
+// logged at info, is left out.
+func TestTheStartLogsAtItsConfiguredLevel(t *testing.T) {
+	for _, c := range []struct {
+		name        string
+		args        []string
+		environ     []string
+		debugLogged bool
+		infoLogged  bool
+	}{
+		{"the default", nil, nil, false, true},
+		{"debug from a flag", []string{"--log.level=debug"}, nil, true, true},
+		{"warn from the environment", nil, []string{"MEDIATED_MAILBOX_LOG__LEVEL=warn"}, false, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			var adopted *slog.Logger
+			err := run(t.Context(), append(slices.Clone(beforeTheKeys), c.args...), c.environ, &out, func(l *slog.Logger) { adopted = l })
+			if err == nil || !strings.HasPrefix(err.Error(), "loading the public key: ") {
+				t.Fatalf("run returned %v, want the keyring's refusal", err)
+			}
+			if got := strings.Contains(out.String(), `"msg":"configuration"`); got != c.infoLogged {
+				t.Errorf("the effective configuration logged: %t, want %t:\n%s", got, c.infoLogged, out.String())
+			}
+			if adopted == nil {
+				t.Fatal("run handed adopt no logger")
+			}
+			out.Reset()
+			adopted.Debug("a detail")
+			adopted.Error("a failure")
+			want := []string{"ERROR a failure"}
+			if c.debugLogged {
+				want = []string{"DEBUG a detail", "ERROR a failure"}
+			}
+			if diff := cmp.Diff(want, logLines(t, &out), compare.Options); diff != "" {
+				t.Errorf("the adopted logger wrote (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// A level outside the four the log section names refuses the start, naming the layer that set it,
+// before anything is logged or adopted (ADR-0078, ADR-0119).
+func TestARefusedLogLevelRefusesTheStart(t *testing.T) {
+	var out bytes.Buffer
+	adopted := false
+	err := run(t.Context(), append(slices.Clone(beforeTheKeys), "--log.level=INFO"), nil, &out, func(*slog.Logger) { adopted = true })
+	want := `validating the configuration: log.level "INFO" is not debug, info, warn or error, set by the flag --log.level`
+	if err == nil || err.Error() != want {
+		t.Errorf("run returned %v, want %q", err, want)
+	}
+	if out.Len() != 0 || adopted {
+		t.Errorf("a refused start logged %q, adopted a logger: %t", out.String(), adopted)
+	}
+}
+
 // The start logs every effective value with the layer that set it, the password file's path and
 // never its contents, and the identifier of the key it seals to (ADR-0092, VERIFICATIONS, the row for
 // the UI's log of its key). It stops at the TLS key pair, after the log and before it listens.
@@ -243,53 +346,48 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	}
 	publicKeyFile, privateKeyFile, keyID := writeKeys(t)
 	var out bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&out, &slog.HandlerOptions{ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
-		if a.Key == slog.TimeKey {
-			return slog.Attr{}
-		}
-		return a
-	}}))
 	err := run(bounded(t), []string{
 		"--database.host=db.example", "--database.password_file=" + passwordFile, "--tls_cert=/absent/tls.crt", "--tls_key=/absent/tls.key",
 		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--seal_public_key_file=" + publicKeyFile,
 		"--private_key_files=[" + privateKeyFile + "]",
 	},
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, &out, ignore)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
 		t.Fatalf("run returned %v, want the key pair refused", err)
 	}
 	want := []string{
-		`level=INFO msg=configuration path=attention_backlog_share source=default value=5`,
-		`level=INFO msg=configuration path=attention_gap_days source=default value=7`,
-		`level=INFO msg=configuration path=attention_mask_count source=default value=20`,
-		`level=INFO msg=configuration path=attention_serve_factor source=default value=2`,
-		`level=INFO msg=configuration path=consent_redirect source=default value=http://127.0.0.1:47823/`,
-		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
-		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
-		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
-		`level=INFO msg=configuration path=database.port source=default value=5432`,
-		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
-		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_ui`,
-		`level=INFO msg=configuration path=default_theme source=default value=system`,
-		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
-		`level=INFO msg=configuration path=identity_header source=default value=""`,
-		`level=INFO msg=configuration path=insecure_http source=default value=false`,
-		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
-		`level=INFO msg=configuration path=operator_name source=default value=operator`,
-		`level=INFO msg=configuration path=private_key_files source="flag --private_key_files" value=[` + privateKeyFile + `]`,
-		`level=INFO msg=configuration path=probe_listen source="flag --probe_listen" value=127.0.0.1:0`,
-		`level=INFO msg=configuration path=seal_public_key_file source="flag --seal_public_key_file" value=` + publicKeyFile,
-		`level=INFO msg=configuration path=stream_interval source=default value=2s`,
-		`level=INFO msg=configuration path=stream_poll_interval source=default value=5s`,
-		`level=INFO msg=configuration path=stream_reconnect_max source=default value=30s`,
-		`level=INFO msg=configuration path=sync_interval source=default value=5m0s`,
-		`level=INFO msg=configuration path=tls_cert source="flag --tls_cert" value=/absent/tls.crt`,
-		`level=INFO msg=configuration path=tls_key source="flag --tls_key" value=/absent/tls.key`,
-		`level=INFO msg=configuration path=token_key_file source=default value=""`,
-		`level=INFO msg="sealing to the public key" key_id=` + keyID,
+		`INFO configuration path=attention_backlog_share source="default" value=5`,
+		`INFO configuration path=attention_gap_days source="default" value=7`,
+		`INFO configuration path=attention_mask_count source="default" value=20`,
+		`INFO configuration path=attention_serve_factor source="default" value=2`,
+		`INFO configuration path=consent_redirect source="default" value="http://127.0.0.1:47823/"`,
+		`INFO configuration path=database.host source="flag --database.host" value="db.example"`,
+		`INFO configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value="mailbox"`,
+		`INFO configuration path=database.password_file source="flag --database.password_file" value="` + passwordFile + `"`,
+		`INFO configuration path=database.port source="default" value=5432`,
+		`INFO configuration path=database.sslmode source="default" value="verify-full"`,
+		`INFO configuration path=database.sslrootcert source="default" value=""`,
+		`INFO configuration path=database.user source="default" value="mediated_mailbox_ui"`,
+		`INFO configuration path=default_theme source="default" value="system"`,
+		`INFO configuration path=heuristics_interval source="default" value=86400000000000`,
+		`INFO configuration path=identity_header source="default" value=""`,
+		`INFO configuration path=insecure_http source="default" value=false`,
+		`INFO configuration path=listen source="flag --listen" value="127.0.0.1:0"`,
+		`INFO configuration path=log.level source="default" value="info"`,
+		`INFO configuration path=operator_name source="default" value="operator"`,
+		`INFO configuration path=private_key_files source="flag --private_key_files" value=["` + privateKeyFile + `"]`,
+		`INFO configuration path=probe_listen source="flag --probe_listen" value="127.0.0.1:0"`,
+		`INFO configuration path=seal_public_key_file source="flag --seal_public_key_file" value="` + publicKeyFile + `"`,
+		`INFO configuration path=stream_interval source="default" value=2000000000`,
+		`INFO configuration path=stream_poll_interval source="default" value=5000000000`,
+		`INFO configuration path=stream_reconnect_max source="default" value=30000000000`,
+		`INFO configuration path=sync_interval source="default" value=300000000000`,
+		`INFO configuration path=tls_cert source="flag --tls_cert" value="/absent/tls.crt"`,
+		`INFO configuration path=tls_key source="flag --tls_key" value="/absent/tls.key"`,
+		`INFO configuration path=token_key_file source="default" value=""`,
+		`INFO sealing to the public key key_id=` + keyID,
 	}
-	got := strings.Split(strings.TrimSpace(out.String()), "\n")
+	got := logLines(t, &out)
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
 	}
@@ -343,7 +441,7 @@ func TestANonLoopbackConsentRedirectRefusesTheStart(t *testing.T) {
 			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 			"--tls_key=/tls/key", "--seal_public_key_file=/absent", "--private_key_files=[/absent]", "--consent_redirect=" + value,
 		}
-		err := run(t.Context(), args, nil, discard())
+		err := run(t.Context(), args, nil, io.Discard, ignore)
 		want := "validating the configuration: consent_redirect is not an http address on a loopback IP literal with an explicit port"
 		if err == nil || err.Error() != want {
 			t.Errorf("%s: run returned %v, want %q", value, err, want)

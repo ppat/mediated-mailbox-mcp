@@ -10,6 +10,7 @@ COPY core core
 COPY credential credential
 COPY db db
 COPY dbconnect dbconnect
+COPY logging logging
 COPY policyload policyload
 COPY provider provider
 COPY ratelimit ratelimit

@@ -184,7 +184,7 @@ func newHarness(t *testing.T) *harness {
 		t.Fatal(err)
 	}
 	h.fake = f
-	h.served, err = newServing(t.Context(), h.pool, ring, h.metrics, slog.New(slog.NewJSONHandler(h.log, nil)))
+	h.served, err = newServing(t.Context(), h.pool, ring, h.metrics, debugLogger(h.log))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -703,7 +703,7 @@ func (h *harness) both(t *testing.T, id string) (apiAnswer, mcpAnswer surfaceAns
 	if err := os.WriteFile(tokenFile, []byte("s3cret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	handler, err := surface(h.reg, tokenFile)
+	handler, err := surface(h.reg, tokenFile, debugLogger(h.log))
 	if err != nil {
 		t.Fatal(err)
 	}

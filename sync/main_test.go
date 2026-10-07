@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,6 +25,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	logcore "github.com/ppat/mediated-mailbox-mcp/logging/core"
 	"github.com/ppat/mediated-mailbox-mcp/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -41,10 +43,14 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"Database core.Config",
 		"Credential core.Config",
 		"Scanner scan.Config",
+		"Log core.Config",
 	)
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
+
+// ignore is the adopt run takes, for a test that does not read the logger run builds.
+func ignore(*slog.Logger) {}
 
 // Delta sync's defaults are ADR-0018's five-minute interval, a first window of seven days, two hundred
 // decisions a tick, the port, its own runtime role and the TLS mode that fails closed, and the host,
@@ -57,11 +63,12 @@ func TestTheDefaults(t *testing.T) {
 		DecisionsPerTick: 200,
 		Database:         dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_sync", SSLMode: "verify-full"},
 		Scanner:          scan.DefaultConfig(),
+		Log:              logcore.Config{Level: "info"},
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := run(t.Context(), nil, nil, discard())
+	err := run(t.Context(), nil, nil, io.Discard, ignore)
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("run returned %v, want %q", err, wantErr)
@@ -70,7 +77,7 @@ func TestTheDefaults(t *testing.T) {
 
 // A password variable refuses the start before any configuration is read.
 func TestAPasswordVariableRefusesTheStart(t *testing.T) {
-	err := run(t.Context(), nil, []string{"PGPASSWORD="}, discard())
+	err := run(t.Context(), nil, []string{"PGPASSWORD="}, io.Discard, ignore)
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("run returned %v, want %q", err, want)
@@ -93,7 +100,7 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 		{"--decisions_per_tick=0", "validating the configuration: decisions_per_tick 0 is not positive"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
-			err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, discard())
+			err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, ignore)
 			if err == nil || err.Error() != c.want {
 				t.Errorf("run returned %v, want %q", err, c.want)
 			}
@@ -109,36 +116,30 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&out, &slog.HandlerOptions{ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
-		if a.Key == slog.TimeKey {
-			return slog.Attr{}
-		}
-		return a
-	}}))
 	err := run(t.Context(), append([]string{"--database.host=db.example", "--database.password_file=" + passwordFile, "--sync_interval=2m"}, absentKeys...),
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, &out, ignore)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("run returned %v, want the keyring's refusal", err)
 	}
 	want := []string{
-		`level=INFO msg=configuration path=credential.private_key_files source="flag --credential.private_key_files" value=[/absent/private]`,
-		`level=INFO msg=configuration path=credential.public_key_file source="flag --credential.public_key_file" value=/absent/public`,
-		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
-		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
-		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
-		`level=INFO msg=configuration path=database.port source=default value=5432`,
-		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
-		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_sync`,
-		`level=INFO msg=configuration path=decisions_per_tick source=default value=200`,
-		`level=INFO msg=configuration path=first_window source=default value=168h0m0s`,
-		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
-		`level=INFO msg=configuration path=scanner.window source=default value=8`,
-		`level=INFO msg=configuration path=sync_interval source="flag --sync_interval" value=2m0s`,
+		`INFO configuration path=credential.private_key_files source="flag --credential.private_key_files" value=["/absent/private"]`,
+		`INFO configuration path=credential.public_key_file source="flag --credential.public_key_file" value="/absent/public"`,
+		`INFO configuration path=database.host source="flag --database.host" value="db.example"`,
+		`INFO configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value="mailbox"`,
+		`INFO configuration path=database.password_file source="flag --database.password_file" value="` + passwordFile + `"`,
+		`INFO configuration path=database.port source="default" value=5432`,
+		`INFO configuration path=database.sslmode source="default" value="verify-full"`,
+		`INFO configuration path=database.sslrootcert source="default" value=""`,
+		`INFO configuration path=database.user source="default" value="mediated_mailbox_sync"`,
+		`INFO configuration path=decisions_per_tick source="default" value=200`,
+		`INFO configuration path=first_window source="default" value=604800000000000`,
+		`INFO configuration path=log.level source="default" value="info"`,
+		`INFO configuration path=probe_listen source="default" value=":8080"`,
+		`INFO configuration path=scanner.window source="default" value=8`,
+		`INFO configuration path=sync_interval source="flag --sync_interval" value=120000000000`,
 	}
 	var got []string
-	for line := range strings.Lines(strings.TrimSpace(out.String())) {
-		line = strings.TrimSuffix(line, "\n")
+	for _, line := range logLines(t, &out) {
 		if !strings.Contains(line, " path=scanner.") || strings.Contains(line, " path=scanner.window ") {
 			got = append(got, line)
 		}
@@ -148,6 +149,88 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	}
 	if strings.Contains(out.String(), "the-secret-itself") {
 		t.Errorf("the log holds the password:\n%s", out.String())
+	}
+}
+
+// logLines returns each line out holds, which must be a JSON object, as its level and message, and
+// a configuration line's path, source and value, the value as the JSON it was written as.
+func logLines(t *testing.T, out *bytes.Buffer) []string {
+	t.Helper()
+	var lines []string
+	for text := range strings.Lines(out.String()) {
+		var l struct {
+			Level  string          `json:"level"`
+			Msg    string          `json:"msg"`
+			Path   string          `json:"path"`
+			Source string          `json:"source"`
+			Value  json.RawMessage `json:"value"`
+		}
+		if err := json.Unmarshal([]byte(text), &l); err != nil {
+			t.Fatalf("a log line is not a JSON object: %q: %v", text, err)
+		}
+		line := l.Level + " " + l.Msg
+		if l.Path != "" {
+			line += fmt.Sprintf(" path=%s source=%q value=%s", l.Path, l.Source, l.Value)
+		}
+		lines = append(lines, line)
+	}
+	return lines
+}
+
+// The start logs at the level its log section sets, and hands adopt the logger it logs through, which
+// the composition root sets as the process default (ADR-0119). At warn the effective configuration,
+// logged at info, is left out.
+func TestTheStartLogsAtItsConfiguredLevel(t *testing.T) {
+	for _, c := range []struct {
+		name        string
+		args        []string
+		environ     []string
+		debugLogged bool
+		infoLogged  bool
+	}{
+		{"the default", nil, nil, false, true},
+		{"debug from a flag", []string{"--log.level=debug"}, nil, true, true},
+		{"warn from the environment", nil, []string{"MEDIATED_MAILBOX_LOG__LEVEL=warn"}, false, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			var adopted *slog.Logger
+			err := run(t.Context(), append(append(slices.Clone(database), absentKeys...), c.args...), c.environ, &out, func(l *slog.Logger) { adopted = l })
+			if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
+				t.Fatalf("run returned %v, want the keyring's refusal", err)
+			}
+			if got := strings.Contains(out.String(), `"msg":"configuration"`); got != c.infoLogged {
+				t.Errorf("the effective configuration logged: %t, want %t:\n%s", got, c.infoLogged, out.String())
+			}
+			if adopted == nil {
+				t.Fatal("run handed adopt no logger")
+			}
+			out.Reset()
+			adopted.Debug("a detail")
+			adopted.Error("a failure")
+			want := []string{"ERROR a failure"}
+			if c.debugLogged {
+				want = []string{"DEBUG a detail", "ERROR a failure"}
+			}
+			if diff := cmp.Diff(want, logLines(t, &out), compare.Options); diff != "" {
+				t.Errorf("the adopted logger wrote (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// A level outside the four the log section names refuses the start, naming the layer that set it,
+// before anything is logged or adopted (ADR-0078, ADR-0119).
+func TestARefusedLogLevelRefusesTheStart(t *testing.T) {
+	var out bytes.Buffer
+	adopted := false
+	err := run(t.Context(), append(append(slices.Clone(database), absentKeys...), "--log.level=INFO"), nil, &out, func(*slog.Logger) { adopted = true })
+	want := `validating the configuration: log.level "INFO" is not debug, info, warn or error, set by the flag --log.level`
+	if err == nil || err.Error() != want {
+		t.Errorf("run returned %v, want %q", err, want)
+	}
+	if out.Len() != 0 || adopted {
+		t.Errorf("a refused start logged %q, adopted a logger: %t", out.String(), adopted)
 	}
 }
 
@@ -166,7 +249,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, discard())
+			err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, io.Discard, ignore)
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("run returned %v, want the configuration library's refusal", err)
 			}
@@ -207,7 +290,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		args := append(slices.Clone(database), "--credential.public_key_file="+public, "--credential.private_key_files=["+strings.Join(privates, ", ")+"]")
-		return run(t.Context(), args, nil, discard())
+		return run(t.Context(), args, nil, io.Discard, ignore)
 	}
 	pastTheKeyring := "configuring the database connection: reading the password file: "
 	for _, c := range []struct {
@@ -237,7 +320,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 // The scanner's section is validated by the scanner itself before any key file is read, so a value
 // outside its designed range refuses the start (ADR-0078, ADR-0005).
 func TestAnInvalidScannerSectionRefusesTheStart(t *testing.T) {
-	err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), "--scanner.window=0")...), nil, discard())
+	err := run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), "--scanner.window=0")...), nil, io.Discard, ignore)
 	if err == nil || !strings.HasPrefix(err.Error(), "validating the configuration: scanner: ") {
 		t.Errorf("run returned %v, want the scanner's refusal", err)
 	}

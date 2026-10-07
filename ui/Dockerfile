@@ -20,6 +20,7 @@ COPY core core
 COPY credential credential
 COPY db db
 COPY dbconnect dbconnect
+COPY logging logging
 COPY provider provider
 COPY ratelimit ratelimit
 COPY sanitize sanitize

@@ -3,6 +3,7 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
+	"log/slog"
 	"maps"
 	"math"
 	"net/http"
@@ -196,7 +197,7 @@ func sameObject(t *testing.T, reg service.Registry, rec *recorder) {
 	t.Helper()
 	shapes := shapes(t, reg)
 	apiRoot := root(t, reg)
-	mcpRoot := mcp.Handler(reg, "test")
+	mcpRoot := mcp.Handler(reg, "test", slog.New(slog.DiscardHandler))
 	property.Check(t, drawRoundTrip(shapes), func(t rapid.TB, c roundTrip) {
 		var args map[string]any
 		if err := json.Unmarshal([]byte(c.Args), &args); err != nil {

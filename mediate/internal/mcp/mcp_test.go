@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -195,7 +196,7 @@ const (
 // four annotations its effect class derives, literally and with every hint present, at either
 // revision (ADR-0053, ADR-0087, ADR-0086).
 func TestTheToolListIsTheRegistry(t *testing.T) {
-	h := mcp.Handler(registry(t), "test")
+	h := mcp.Handler(registry(t), "test", slog.New(slog.DiscardHandler))
 	fixture := func(name, annotations string) tool {
 		return tool{Name: name, Description: "A fixture " + name + ".", InputSchema: json.RawMessage(accountInput), OutputSchema: json.RawMessage(objectOutput), Annotations: annotations}
 	}
@@ -230,7 +231,7 @@ func TestTheToolListIsTheRegistry(t *testing.T) {
 // closes at once rather than being held open, and a request for prompts, resources or a log level
 // is a method the server does not have, carried in a 200 before 2026-07-28 and a 404 from it.
 func TestTheRootOffersToolsOnly(t *testing.T) {
-	h := mcp.Handler(registry(t), "test")
+	h := mcp.Handler(registry(t), "test", slog.New(slog.DiscardHandler))
 	capabilities := func(r response) json.RawMessage {
 		var got struct {
 			Capabilities json.RawMessage `json:"capabilities"`
@@ -324,7 +325,7 @@ func TestTheRootOffersToolsOnly(t *testing.T) {
 // mediator's saying only that it failed, and a missing account and a refused argument are the
 // client's, carrying the refusal (ADR-0101).
 func TestAToolCallRunsTheOperation(t *testing.T) {
-	h := mcp.Handler(registry(t), "test")
+	h := mcp.Handler(registry(t), "test", slog.New(slog.DiscardHandler))
 	for _, e := range []era{legacy, modern} {
 		type result struct {
 			IsError           bool            `json:"isError"`
@@ -393,7 +394,7 @@ func TestARepeatedArgumentIsRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := mcp.Handler(reg, "test")
+	h := mcp.Handler(reg, "test", slog.New(slog.DiscardHandler))
 	for _, args := range []string{`{"account_id":"acct-a","label":"x","label":"y"}`, `{"account_id":"acct-a","label":"x","LABEL":"y"}`} {
 		body := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_thing","arguments":` + args + `}}`
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", bytes.NewReader([]byte(body)))
@@ -422,7 +423,7 @@ func TestAServedToolTakesOnlyTheArgumentsItDeclares(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := mcp.Handler(reg, "test")
+	h := mcp.Handler(reg, "test", slog.New(slog.DiscardHandler))
 	for _, e := range []era{legacy, modern} {
 		for args, want := range map[string]string{
 			`{"account_id":"acct-a","SINCE":"2026-07-21T20:00:00Z"}`: `{"error":{"origin":"client","message":"the arguments name one the operation does not take"}}`,

@@ -15,8 +15,9 @@ import (
 
 // Handler returns the MCP root generated from reg, served over the streamable HTTP transport with no
 // session kept between requests (ADR-0086). version is the mediator's version, which the server
-// reports to a client when it initializes.
-func Handler(reg service.Registry, version string) http.Handler {
+// reports to a client when it initializes. The root and the SDK's transport log through logger, the one
+// its composition root hands it (ADR-0119).
+func Handler(reg service.Registry, version string, logger *slog.Logger) http.Handler {
 	// The capabilities are declared explicitly. With none given, the SDK advertises logging and a
 	// changing tool list, and an agent then holds a subscription stream open against the server.
 	server := sdk.NewServer(
@@ -30,13 +31,13 @@ func Handler(reg service.Registry, version string) http.Handler {
 			InputSchema:  op.Input,
 			OutputSchema: op.Output,
 			Annotations:  annotations(op.Annotations),
-		}, call(reg, op.Name))
+		}, call(reg, op.Name, logger))
 	}
 	server.AddReceivingMiddleware(refuseBeyondTools)
 	return sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return server }, &sdk.StreamableHTTPOptions{
 		Stateless:    true,
 		JSONResponse: true,
-		Logger:       slog.Default(),
+		Logger:       logger,
 	})
 }
 
@@ -54,7 +55,7 @@ func annotations(a service.Annotations) *sdk.ToolAnnotations {
 }
 
 // call returns the tool handler that runs the operation named name on the call's arguments.
-func call(reg service.Registry, name string) sdk.ToolHandler {
+func call(reg service.Registry, name string, logger *slog.Logger) sdk.ToolHandler {
 	return func(ctx context.Context, req *sdk.CallToolRequest) (*sdk.CallToolResult, error) {
 		input := req.Params.Arguments
 		if len(input) == 0 {
@@ -62,7 +63,8 @@ func call(reg service.Registry, name string) sdk.ToolHandler {
 		}
 		out, err := reg.Call(ctx, name, input)
 		if err != nil {
-			slog.ErrorContext(ctx, "operation failed", "operation", name, "error", err)
+			origin, _ := service.Classify(err)
+			logger.Log(ctx, failureLevel(origin), "operation failed", "operation", name, "error", err)
 			failure := service.Failure(err)
 			return &sdk.CallToolResult{
 				IsError:           true,
@@ -74,6 +76,22 @@ func call(reg service.Registry, name string) sdk.ToolHandler {
 			StructuredContent: out,
 			Content:           []sdk.Content{&sdk.TextContent{Text: string(out)}},
 		}, nil
+	}
+}
+
+// failureLevel is the level a failed call is logged at, the API root's. A failure inside the mediator
+// is one an operator acts on, a provider's is one an operator may act on, and a client's own request
+// failing is routine (ADR-0119).
+func failureLevel(origin service.Origin) slog.Level {
+	switch origin {
+	case service.OriginClient:
+		return slog.LevelInfo
+	case service.OriginProvider:
+		return slog.LevelWarn
+	case service.OriginMediator:
+		return slog.LevelError
+	default:
+		return slog.LevelError
 	}
 }
 

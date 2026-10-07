@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -24,7 +25,7 @@ import (
 // root returns the API root over reg.
 func root(t *testing.T, reg service.Registry) http.Handler {
 	t.Helper()
-	h, err := api.Handler(reg)
+	h, err := api.Handler(reg, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +179,7 @@ func TestBothRootsCarryExactlyTheRegistry(t *testing.T) {
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
-	mcp.Handler(reg, "test").ServeHTTP(rec, req)
+	mcp.Handler(reg, "test", slog.New(slog.DiscardHandler)).ServeHTTP(rec, req)
 	var listed struct {
 		Result struct {
 			Tools []struct {
@@ -265,4 +266,68 @@ func TestAServedRouteTakesOnlyTheArgumentsItDeclares(t *testing.T) {
 			t.Errorf("GET %s answered %d %s, want 400", target, got.Status, got.Body)
 		}
 	}
+}
+
+// Each failed call is logged at the level its origin gives, on both roots, through the logger the
+// root is handed. A client's own request failing is routine, a provider's failure is one an operator
+// may act on, and a failure inside the mediator is one an operator acts on (ADR-0119).
+func TestEachFailureIsLoggedAtItsOriginsLevel(t *testing.T) {
+	op := func(name string, err error) service.Operation {
+		return service.Operation{
+			Name: name, Description: "Fails.", Effect: service.Read, Path: "/api/accounts/{account_id}/" + name,
+			Input:  json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`),
+			Output: json.RawMessage(`{"type":"object"}`),
+			Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) { return nil, err },
+		}
+	}
+	reg, err := service.NewRegistry([]string{"acct-a"},
+		op("refuses", service.Refuse("since must be an ISO 8601 timestamp in UTC ending in Z")),
+		op("upstream", service.FromProvider(fmt.Errorf("gmail: 503: %w", mail.ErrProvider))),
+		op("fails", errors.New("internal detail")),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"INFO refuses", "WARN upstream", "ERROR fails"}
+
+	var apiLog strings.Builder
+	h, err := api.Handler(reg, slog.New(slog.NewJSONHandler(&apiLog, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"refuses", "upstream", "fails"} {
+		send(t, h, http.MethodGet, "/api/accounts/acct-a/"+name, "")
+	}
+	if diff := cmp.Diff(want, failures(t, apiLog.String()), compare.Options); diff != "" {
+		t.Errorf("the API root's log (-want +got):\n%s", diff)
+	}
+
+	var mcpLog strings.Builder
+	m := mcp.Handler(reg, "test", slog.New(slog.NewJSONHandler(&mcpLog, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	for i, name := range []string{"refuses", "upstream", "fails"} {
+		body := fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"method":"tools/call","params":{"name":%q,"arguments":{"account_id":"acct-a"}}}`, i+1, name)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		m.ServeHTTP(httptest.NewRecorder(), req)
+	}
+	if diff := cmp.Diff(want, failures(t, mcpLog.String()), compare.Options); diff != "" {
+		t.Errorf("the MCP root's log (-want +got):\n%s", diff)
+	}
+}
+
+// failures returns the level and operation of each failed call log holds.
+func failures(t *testing.T, log string) []string {
+	t.Helper()
+	var got []string
+	for line := range strings.Lines(log) {
+		var l struct{ Level, Msg, Operation string }
+		if err := json.Unmarshal([]byte(line), &l); err != nil {
+			t.Fatalf("a log line is not a JSON object: %q: %v", line, err)
+		}
+		if l.Msg == "operation failed" {
+			got = append(got, l.Level+" "+l.Operation)
+		}
+	}
+	return got
 }

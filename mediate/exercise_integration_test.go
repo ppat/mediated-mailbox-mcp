@@ -88,7 +88,8 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 
 	pool := mediator(t)
 	metrics := prometheus.NewRegistry()
-	served, err := newServing(t.Context(), pool, ring, metrics, slog.New(slog.NewTextHandler(os.Stderr, nil)))
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	served, err := newServing(t.Context(), pool, ring, metrics, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +116,7 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	if err := os.WriteFile(tokenPath, []byte(token), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	handler, err := surface(reg, tokenPath)
+	handler, err := surface(reg, tokenPath, logger)
 	if err != nil {
 		t.Fatal(err)
 	}

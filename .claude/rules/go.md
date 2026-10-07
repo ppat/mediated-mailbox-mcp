@@ -26,6 +26,11 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   variable's value by a name its caller gives, or the environment as a whole, such as `os.Getenv`.
   Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, stay
   allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
+- **Shells log through the logger their composition root hands them, never the process default.**
+  The root builds it from its `log` section through `logging/` and also sets it as the default for
+  the code the project does not own. A `forbidigo` ban refuses `slog.Default`, the package-level
+  `log/slog` functions that log through it and the `log` package in every Go file, and a pure core
+  never logs (ADR-0119, CLAUDE.md, Inside a component).
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
   txhelper analyser enforces it, by the rules and the three exempt statements CLAUDE.md states under
   Static analysis and formatting (ADR-0047). The base policy's statements run only in the helper's

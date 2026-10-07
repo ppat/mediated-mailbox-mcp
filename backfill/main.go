@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"maps"
 	"net"
@@ -44,6 +45,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/logging"
+	logcore "github.com/ppat/mediated-mailbox-mcp/logging/core"
 	"github.com/ppat/mediated-mailbox-mcp/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
@@ -74,37 +77,48 @@ type Configuration struct {
 	Database    dbconnectcore.Config  `yaml:"database"`
 	Credential  credentialcore.Config `yaml:"credential"`
 	Scanner     scan.Config           `yaml:"scanner"`
+	Log         logcore.Config        `yaml:"log"`
 }
 
 // defaults are backfill's defaults. The user is backfill's own runtime role (ADR-0075), and the TLS
 // mode is the one that fails closed. The key files have no default, since a default path assumes
-// the environment. The scanner's vocabulary and tuning are the ones the application ships.
+// the environment. The scanner's vocabulary and tuning are the ones the application ships, and the
+// log level is info (ADR-0119).
 func defaults() Configuration {
 	return Configuration{
 		ProbeListen: ":8080",
 		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
 		Scanner:     scan.DefaultConfig(),
+		Log:         logcore.Default(),
 	}
 }
 
+// main logs a start refused before the configuration is loaded through the initial logger, and
+// anything later through the logger run builds, which it also sets as the process default for the
+// code the project does not own (ADR-0119).
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	logger := logging.Initial(os.Stdout)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := run(ctx, os.Args[1:], os.Environ(), slog.Default())
+	err := run(ctx, os.Args[1:], os.Environ(), os.Stdout, func(configured *slog.Logger) {
+		logger = configured
+		slog.SetDefault(configured)
+	})
 	stop()
 	if err != nil {
-		slog.Error("backfill stopped", "error", err)
+		logger.Error("backfill stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
 // run loads the configuration and the keyring, connects to the database and runs backfill over the
-// accounts it reads there, serving the health probe and the metrics endpoint while it runs. It logs
-// the effective configuration first, each value with the layer that set it (ADR-0078). The scanner is
+// accounts it reads there, serving the health probe and the metrics endpoint while it runs. It builds
+// the logger the log section configures, writing to out, hands it to adopt and to every part that
+// logs, and logs the effective configuration through it first, each value with the layer that set it
+// (ADR-0078, ADR-0119). The scanner is
 // built from its section before anything else starts, so a section it refuses refuses the start. The
 // keyring is loaded before any connection is made, so a public key matching none of the private keys
 // refuses the start (ADR-0088).
-func run(ctx context.Context, args, environ []string, logger *slog.Logger) error {
+func run(ctx context.Context, args, environ []string, out io.Writer, adopt func(*slog.Logger)) error {
 	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
 		return err
 	}
@@ -117,6 +131,11 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err != nil {
 		return fmt.Errorf("loading the configuration: %w", err)
 	}
+	logger, err := logging.New(out, loaded.Config.Log, loaded.Values)
+	if err != nil {
+		return fmt.Errorf("validating the configuration: %w", err)
+	}
+	adopt(logger)
 	for _, v := range loaded.Values {
 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 	}
@@ -181,7 +200,7 @@ func serveProbes(ln net.Listener, registry *prometheus.Registry, logger *slog.Lo
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		if _, err := fmt.Fprintln(w, "ok"); err != nil {
-			logger.WarnContext(r.Context(), "writing a probe answer failed", "error", err)
+			logger.DebugContext(r.Context(), "writing a probe answer failed", "error", err)
 		}
 	})
 	mux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
@@ -564,7 +583,7 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
 			return errors.Join(append(handOvers, err)...)
 		}
 		at := p.Progress()
-		logger.Info("page made durable", "account", account, "run", p.Run(), "page", at.Checkpoint.Page, "messages", at.Counters.Messages)
+		logger.Debug("page made durable", "account", account, "run", p.Run(), "page", at.Checkpoint.Page, "messages", at.Counters.Messages)
 		if step.Done {
 			logger.Info("the first pass ended", "account", account, "run", p.Run(), "pages", at.Counters.Pages, "messages", at.Counters.Messages)
 			return errors.Join(handOvers...)
@@ -616,7 +635,7 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
 				"decided", at.Counters.Decided, "scanned", at.Counters.Scanned, "skipped", at.Counters.Skipped, "pending", at.Counters.Pending)
 			return errors.Join(handOvers...)
 		}
-		logger.Info("page made durable", "account", account, "run", p.Run(), "pass", 2, "page", at.Checkpoint.Page, "scanned", at.Counters.Scanned)
+		logger.Debug("page made durable", "account", account, "run", p.Run(), "pass", 2, "page", at.Checkpoint.Page, "scanned", at.Counters.Scanned)
 	}
 }
 

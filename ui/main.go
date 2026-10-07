@@ -17,6 +17,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -36,6 +37,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/logging"
+	logcore "github.com/ppat/mediated-mailbox-mcp/logging/core"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/settings"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
@@ -87,6 +90,8 @@ type Configuration struct {
 	// (ADR-0084), so every write has one.
 	IdentityHeader string `yaml:"identity_header"`
 	OperatorName   string `yaml:"operator_name"`
+	// Log is the log section, which sets the level the UI logs at (ADR-0119).
+	Log logcore.Config `yaml:"log"`
 }
 
 // providerTimeout bounds one request to a provider, checking a client, exchanging a consent's code or
@@ -101,6 +106,7 @@ const providerTimeout = 30 * time.Second
 // starting values. A consent redirects to 127.0.0.1 on a high port a web server on the operator's
 // computer is unlikely to answer on, which an installation may name otherwise (section 8.12). With no
 // identity header declared, a write records the operator name, operator unless configured otherwise.
+// The log level is info (ADR-0119).
 func defaults() Configuration {
 	return Configuration{
 		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full"},
@@ -118,13 +124,20 @@ func defaults() Configuration {
 		AttentionGapDays:      7,
 		ConsentRedirect:       "http://127.0.0.1:47823/",
 		OperatorName:          "operator",
+		Log:                   logcore.Default(),
 	}
 }
 
+// main logs a start refused before the configuration is loaded through the initial logger, and
+// anything later through the logger run builds, which it also sets as the process default for the
+// code the project does not own (ADR-0119).
 func main() {
+	logger := logging.Initial(os.Stdout)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	err := run(ctx, os.Args[1:], os.Environ(), logger)
+	err := run(ctx, os.Args[1:], os.Environ(), os.Stdout, func(configured *slog.Logger) {
+		logger = configured
+		slog.SetDefault(configured)
+	})
 	stop()
 	if err != nil {
 		logger.Error("ui stopped", "error", err)
@@ -133,8 +146,10 @@ func main() {
 }
 
 // run reads the configuration, validates it, builds the server and serves the UI and the probes until
-// ctx ends. It logs the effective configuration first, each value with the layer that set it.
-func run(ctx context.Context, args, environ []string, logger *slog.Logger) error {
+// ctx ends. It builds the logger the log section configures, writing to out, hands it to adopt and to
+// every part that logs, and logs the effective configuration through it first, each value with the
+// layer that set it (ADR-0078, ADR-0119).
+func run(ctx context.Context, args, environ []string, out io.Writer, adopt func(*slog.Logger)) error {
 	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
 		return err
 	}
@@ -147,6 +162,11 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err != nil {
 		return fmt.Errorf("loading the configuration: %w", err)
 	}
+	logger, err := logging.New(out, loaded.Config.Log, loaded.Values)
+	if err != nil {
+		return fmt.Errorf("validating the configuration: %w", err)
+	}
+	adopt(logger)
 	for _, v := range loaded.Values {
 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 	}

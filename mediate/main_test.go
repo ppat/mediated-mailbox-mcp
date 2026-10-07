@@ -32,6 +32,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	logcore "github.com/ppat/mediated-mailbox-mcp/logging/core"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/readiness"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -63,7 +64,7 @@ func counted(t *testing.T) (service.Registry, *atomic.Int64) {
 // mustSurface returns the client surface over reg behind the token in tokenFile.
 func mustSurface(t *testing.T, reg service.Registry, tokenFile string) http.Handler {
 	t.Helper()
-	h, err := surface(reg, tokenFile)
+	h, err := surface(reg, tokenFile, discard())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +284,7 @@ func TestTheProbes(t *testing.T) {
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{Name: "mediated_mailbox_test_gauge", Help: "A test gauge."})
 	metrics.MustRegister(gauge)
 	var ready readiness.State
-	h := probes(&ready, metrics)
+	h := probes(&ready, metrics, discard())
 	get := func(path string) string {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil))
@@ -361,10 +362,14 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"Credential core.Config",
 		"Scanner scan.Config",
 		"ProviderTimeout time.Duration",
+		"Log core.Config",
 	)
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
+
+// ignore is the adopt run takes, for a test that does not read the logger run builds.
+func ignore(*slog.Logger) {}
 
 // The mediator's defaults are its two listeners, a reload each minute, the port, its own runtime role,
 // the TLS mode that fails closed, the scanner configuration the application ships and a provider
@@ -375,11 +380,12 @@ func TestTheDefaults(t *testing.T) {
 		Listen: ":8443", ProbeListen: ":8080", AccountReloadInterval: time.Minute,
 		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
 		Scanner:  scan.DefaultConfig(), ProviderTimeout: 30 * time.Second,
+		Log: logcore.Config{Level: "info"},
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := run(t.Context(), nil, nil, discard())
+	err := run(t.Context(), nil, nil, io.Discard, ignore)
 	wantErr := "loading the configuration: token_file is required, and neither the file, MEDIATED_MAILBOX_TOKEN_FILE nor --token_file sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("run returned %v, want %q", err, wantErr)
@@ -433,7 +439,7 @@ func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 // An argument that is not a configuration flag is refused, so no account reaches the mediator from its
 // command line (ADR-0080).
 func TestAnAccountArgumentIsRefused(t *testing.T) {
-	err := run(t.Context(), []string{"acct-a"}, nil, discard())
+	err := run(t.Context(), []string{"acct-a"}, nil, io.Discard, ignore)
 	if err == nil || !strings.Contains(err.Error(), "loading the configuration") {
 		t.Errorf("run returned %v, want the argument refused", err)
 	}
@@ -470,57 +476,134 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&out, &slog.HandlerOptions{ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
-		if a.Key == slog.TimeKey {
-			return slog.Attr{}
-		}
-		return a
-	}}))
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
 	err := run(t.Context(), args(servingArgs, []string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys),
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, &out, ignore)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("run returned %v, want the keyring's refusal", err)
 	}
 	want := []string{
-		`level=INFO msg=configuration path=account_reload_interval source=default value=1m0s`,
-		`level=INFO msg=configuration path=credential.private_key_files source="flag --credential.private_key_files" value=[/absent/private]`,
-		`level=INFO msg=configuration path=credential.public_key_file source="flag --credential.public_key_file" value=/absent/public`,
-		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
-		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
-		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
-		`level=INFO msg=configuration path=database.port source=default value=5432`,
-		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
-		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_mediate`,
-		`level=INFO msg=configuration path=listen source=default value=:8443`,
-		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
-		`level=INFO msg=configuration path=provider_timeout source=default value=30s`,
-		`level=INFO msg=configuration path=scanner.dense_entropy source=default value=3`,
-		`level=INFO msg=configuration path=scanner.dense_length source=default value=16`,
-		`level=INFO msg=configuration path=scanner.link_params source=default value="[token code key auth t otp reset_password_token confirmation_token unlock_token oobcode verification_code confirmation_code ticket signature]"`,
-		`level=INFO msg=configuration path=scanner.link_words source=default value="[token confirm verify reset magic auth password login unlock]"`,
-		`level=INFO msg=configuration path=scanner.subject_threshold source=default value=0.6`,
-		`level=INFO msg=configuration path=scanner.threshold source=default value=0.6`,
-		`level=INFO msg=configuration path=scanner.triggers.en source=default value="[code otp verification verify pin passcode password 2fa two-factor two factor 2-factor one-time one time single-use security code login log in log-in sign-in sign in auth authenticate authentication secret access validate validation tan confirmation]"`,
-		`level=INFO msg=configuration path=scanner.weights.entropy source=default value=1`,
-		`level=INFO msg=configuration path=scanner.weights.length source=default value=1`,
-		`level=INFO msg=configuration path=scanner.weights.mix source=default value=1`,
-		`level=INFO msg=configuration path=scanner.weights.position source=default value=1`,
-		`level=INFO msg=configuration path=scanner.weights.proximity source=default value=1`,
-		`level=INFO msg=configuration path=scanner.window source=default value=8`,
-		`level=INFO msg=configuration path=tls_at_ingress source="flag --tls_at_ingress" value=true`,
-		`level=INFO msg=configuration path=tls_cert source=default value=""`,
-		`level=INFO msg=configuration path=tls_key source=default value=""`,
-		`level=INFO msg=configuration path=token_file source="flag --token_file" value=/absent/token`,
+		`INFO configuration path=account_reload_interval source="default" value=60000000000`,
+		`INFO configuration path=credential.private_key_files source="flag --credential.private_key_files" value=["/absent/private"]`,
+		`INFO configuration path=credential.public_key_file source="flag --credential.public_key_file" value="/absent/public"`,
+		`INFO configuration path=database.host source="flag --database.host" value="db.example"`,
+		`INFO configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value="mailbox"`,
+		`INFO configuration path=database.password_file source="flag --database.password_file" value="` + passwordFile + `"`,
+		`INFO configuration path=database.port source="default" value=5432`,
+		`INFO configuration path=database.sslmode source="default" value="verify-full"`,
+		`INFO configuration path=database.sslrootcert source="default" value=""`,
+		`INFO configuration path=database.user source="default" value="mediated_mailbox_mediate"`,
+		`INFO configuration path=listen source="default" value=":8443"`,
+		`INFO configuration path=log.level source="default" value="info"`,
+		`INFO configuration path=probe_listen source="default" value=":8080"`,
+		`INFO configuration path=provider_timeout source="default" value=30000000000`,
+		`INFO configuration path=scanner.dense_entropy source="default" value=3`,
+		`INFO configuration path=scanner.dense_length source="default" value=16`,
+		`INFO configuration path=scanner.link_params source="default" value=["token","code","key","auth","t","otp","reset_password_token","confirmation_token","unlock_token","oobcode","verification_code","confirmation_code","ticket","signature"]`,
+		`INFO configuration path=scanner.link_words source="default" value=["token","confirm","verify","reset","magic","auth","password","login","unlock"]`,
+		`INFO configuration path=scanner.subject_threshold source="default" value=0.6`,
+		`INFO configuration path=scanner.threshold source="default" value=0.6`,
+		`INFO configuration path=scanner.triggers.en source="default" value=["code","otp","verification","verify","pin","passcode","password","2fa","two-factor","two factor","2-factor","one-time","one time","single-use","security code","login","log in","log-in","sign-in","sign in","auth","authenticate","authentication","secret","access","validate","validation","tan","confirmation"]`,
+		`INFO configuration path=scanner.weights.entropy source="default" value=1`,
+		`INFO configuration path=scanner.weights.length source="default" value=1`,
+		`INFO configuration path=scanner.weights.mix source="default" value=1`,
+		`INFO configuration path=scanner.weights.position source="default" value=1`,
+		`INFO configuration path=scanner.weights.proximity source="default" value=1`,
+		`INFO configuration path=scanner.window source="default" value=8`,
+		`INFO configuration path=tls_at_ingress source="flag --tls_at_ingress" value=true`,
+		`INFO configuration path=tls_cert source="default" value=""`,
+		`INFO configuration path=tls_key source="default" value=""`,
+		`INFO configuration path=token_file source="flag --token_file" value="/absent/token"`,
 	}
-	got := strings.Split(strings.TrimSpace(out.String()), "\n")
+	got := logLines(t, &out)
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
 	}
 	if strings.Contains(out.String(), "the-secret-itself") {
 		t.Errorf("the log holds the password:\n%s", out.String())
+	}
+}
+
+// logLines returns each line out holds, which must be a JSON object, as its level and message, and
+// a configuration line's path, source and value, the value as the JSON it was written as.
+func logLines(t *testing.T, out *bytes.Buffer) []string {
+	t.Helper()
+	var lines []string
+	for text := range strings.Lines(out.String()) {
+		var l struct {
+			Level  string          `json:"level"`
+			Msg    string          `json:"msg"`
+			Path   string          `json:"path"`
+			Source string          `json:"source"`
+			Value  json.RawMessage `json:"value"`
+		}
+		if err := json.Unmarshal([]byte(text), &l); err != nil {
+			t.Fatalf("a log line is not a JSON object: %q: %v", text, err)
+		}
+		line := l.Level + " " + l.Msg
+		if l.Path != "" {
+			line += fmt.Sprintf(" path=%s source=%q value=%s", l.Path, l.Source, l.Value)
+		}
+		lines = append(lines, line)
+	}
+	return lines
+}
+
+// The start logs at the level its log section sets, and hands adopt the logger it logs through, which
+// the composition root sets as the process default (ADR-0119). At warn the effective configuration,
+// logged at info, is left out.
+func TestTheStartLogsAtItsConfiguredLevel(t *testing.T) {
+	for _, c := range []struct {
+		name        string
+		args        []string
+		environ     []string
+		debugLogged bool
+		infoLogged  bool
+	}{
+		{"the default", nil, nil, false, true},
+		{"debug from a flag", []string{"--log.level=debug"}, nil, true, true},
+		{"warn from the environment", nil, []string{"MEDIATED_MAILBOX_LOG__LEVEL=warn"}, false, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			var adopted *slog.Logger
+			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, &out, func(l *slog.Logger) { adopted = l })
+			if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
+				t.Fatalf("run returned %v, want the keyring's refusal", err)
+			}
+			if got := strings.Contains(out.String(), `"msg":"configuration"`); got != c.infoLogged {
+				t.Errorf("the effective configuration logged: %t, want %t:\n%s", got, c.infoLogged, out.String())
+			}
+			if adopted == nil {
+				t.Fatal("run handed adopt no logger")
+			}
+			out.Reset()
+			adopted.Debug("a detail")
+			adopted.Error("a failure")
+			want := []string{"ERROR a failure"}
+			if c.debugLogged {
+				want = []string{"DEBUG a detail", "ERROR a failure"}
+			}
+			if diff := cmp.Diff(want, logLines(t, &out), compare.Options); diff != "" {
+				t.Errorf("the adopted logger wrote (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// A level outside the four the log section names refuses the start, naming the layer that set it,
+// before anything is logged or adopted (ADR-0078, ADR-0119).
+func TestARefusedLogLevelRefusesTheStart(t *testing.T) {
+	var out bytes.Buffer
+	adopted := false
+	err := run(t.Context(), args(servingArgs, database, absentKeys, []string{"--log.level=INFO"}), nil, &out, func(*slog.Logger) { adopted = true })
+	want := `validating the configuration: log.level "INFO" is not debug, info, warn or error, set by the flag --log.level`
+	if err == nil || err.Error() != want {
+		t.Errorf("run returned %v, want %q", err, want)
+	}
+	if out.Len() != 0 || adopted {
+		t.Errorf("a refused start logged %q, adopted a logger: %t", out.String(), adopted)
 	}
 }
 
@@ -537,7 +620,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard())
+			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, ignore)
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("run returned %v, want the configuration library's refusal", err)
 			}
@@ -575,7 +658,7 @@ func TestNoConfigurationValueWeakensTheGate(t *testing.T) {
 		{"a scanner section with nothing to match", []string{"--config-file=" + emptied}, nil, "validating the configuration: scanner: "},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard())
+			err := run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, ignore)
 			if err == nil || !strings.HasPrefix(err.Error(), c.want) {
 				t.Errorf("run returned %v, want an error starting %q", err, c.want)
 			}
@@ -616,7 +699,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		keys := []string{"--credential.public_key_file=" + public, "--credential.private_key_files=[" + strings.Join(privates, ", ") + "]"}
-		return run(t.Context(), args(servingArgs, database, keys), nil, discard())
+		return run(t.Context(), args(servingArgs, database, keys), nil, io.Discard, ignore)
 	}
 	pastTheKeyring := "configuring the database connection: reading the password file: "
 	for _, c := range []struct {
@@ -649,7 +732,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 // (ADR-0086).
 func TestMCPGODEBUGStopsTheStart(t *testing.T) {
 	for _, value := range []string{"allowsessionsinstateless=1", ""} {
-		err := run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, discard())
+		err := run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, io.Discard, ignore)
 		if err == nil || !strings.Contains(err.Error(), "MCPGODEBUG is set") {
 			t.Errorf("with MCPGODEBUG=%q, run returned %v", value, err)
 		}
@@ -693,7 +776,7 @@ func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
 func TestAPasswordInTheEnvironmentStopsTheStart(t *testing.T) {
 	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {
 		for _, value := range []string{"s3cret", ""} {
-			err := run(t.Context(), nil, []string{name + "=" + value}, discard())
+			err := run(t.Context(), nil, []string{name + "=" + value}, io.Discard, ignore)
 			if err == nil || !strings.Contains(err.Error(), "the environment sets "+name) {
 				t.Errorf("with %s=%q, run returned %v", name, value, err)
 			}
@@ -713,14 +796,13 @@ func TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&out, nil))
 	full := args(servingArgs, []string{
 		"--config-file=" + filepath.Join(dir, "absent.yaml"),
 		"--database.host=127.0.0.1", "--database.port=1", "--database.name=mailbox",
 		"--database.password_file=" + password, "--database.sslmode=disable",
 		"--credential.public_key_file=" + public, "--credential.private_key_files=[" + private + "]",
 	})
-	err := run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, logger)
+	err := run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, &out, ignore)
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("run returned %v, want %q", err, want)
@@ -834,7 +916,7 @@ func TestNoStoreOverridesAHandlersCaching(t *testing.T) {
 	}
 	for name, handler := range cases {
 		rec := httptest.NewRecorder()
-		noStore(handler).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
+		noStore(handler, discard()).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
 		if got := rec.Header().Get("Cache-Control"); got != "no-store" {
 			t.Errorf("%s: Cache-Control %q", name, got)
 		}

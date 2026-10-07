@@ -181,6 +181,12 @@ func (b *logBuffer) String() string {
 	return b.buf.String()
 }
 
+// debugLogger writes JSON lines to b at debug, the most detailed level a deployment can configure, so
+// a detail line carrying what must never be logged is caught too (ADR-0119).
+func debugLogger(b *logBuffer) *slog.Logger {
+	return slog.New(slog.NewJSONHandler(b, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
+
 // served returns the serving state over the mediator's pool and a registry of one echo operation
 // behind it, as the composition root builds them.
 func served(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, metrics *prometheus.Registry, log *slog.Logger) (*serving, service.Registry) {
@@ -227,7 +233,7 @@ func TestTheMediatorServesTheAccountsEachReloadLists(t *testing.T) {
 	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES (NULL, 'base.bank', 'restricted', ARRAY['bank.example'], 'operator', 'test')`)
 	var log logBuffer
-	s, reg := served(t, mediator(t), ring, prometheus.NewRegistry(), slog.New(slog.NewJSONHandler(&log, nil)))
+	s, reg := served(t, mediator(t), ring, prometheus.NewRegistry(), debugLogger(&log))
 
 	if err := s.reload(t.Context()); err != nil {
 		t.Fatal(err)
@@ -293,7 +299,7 @@ func TestTheMediatorReloadsOnItsInterval(t *testing.T) {
 	ring, public := keys(t)
 	var log logBuffer
 	metrics := prometheus.NewRegistry()
-	s, reg := served(t, mediator(t), ring, metrics, slog.New(slog.NewJSONHandler(&log, nil)))
+	s, reg := served(t, mediator(t), ring, metrics, debugLogger(&log))
 	if err := s.reload(t.Context()); err != nil {
 		t.Fatal(err)
 	}

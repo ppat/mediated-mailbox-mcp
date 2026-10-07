@@ -129,6 +129,15 @@ linters:
       - pattern: ^promhttp\.Handler$
         pkg: ^github\.com/prometheus/client_golang/prometheus/promhttp$
         msg: it serves the default registry, and a process serves its own through promhttp.HandlerFor (ADR-0076)
+      # The process's default logger and the functions that log through it, and the log package, which writes
+      # unstructured lines through its own default. Project code logs through the logger its composition root
+      # hands it, which the root also sets as the default for the code the project does not own (ADR-0119).
+      - pattern: ^slog\.(Default|Debug|DebugContext|Info|InfoContext|Warn|WarnContext|Error|ErrorContext|Log|LogAttrs)$
+        pkg: ^log/slog$
+        msg: project code logs through the logger its composition root hands it, never the process default (ADR-0119)
+      - pattern: ^log\.
+        pkg: ^log$
+        msg: the log package writes unstructured lines, and project code logs through its root's logger (ADR-0119)
 
     depguard:
       # How to read these lists.
@@ -220,9 +229,11 @@ linters:
           # import it by its exact path.
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core/"
-          # The database connection library's and the credential library's pure cores are one package each too.
+          # The database connection library's, the credential library's and the logging library's pure cores are one
+          # package each too.
           - "github.com/ppat/mediated-mailbox-mcp/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
           - "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
           - "pgregory.net/rapid$"
@@ -278,6 +289,21 @@ linters:
           - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+
+        # The logging library, every file. It builds the logger a deployable's log section configures, and reads the
+        # configuration library's record of each value's source.
+        logging:
+          list-mode: strict
+          files:
+          - "${base-path}/logging/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
@@ -539,6 +565,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
           - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
@@ -595,6 +623,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
@@ -702,6 +732,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
           - "github.com/ppat/mediated-mailbox-mcp/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
@@ -791,6 +823,9 @@ linters:
           # The composition root's configuration (ADR-0078) and its database section, in ui/main.go.
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          # The composition root's log section and the logger built from it (ADR-0119), in ui/main.go.
+          - "github.com/ppat/mediated-mailbox-mcp/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
           - "github.com/ppat/mediated-mailbox-mcp/provider/fake$"
           # Gmail's consent, which the composition root hands the server.
@@ -988,6 +1023,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
           - "github.com/ppat/mediated-mailbox-mcp/policyload$"
@@ -1041,6 +1078,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/logging/core$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
           - "github.com/ppat/mediated-mailbox-mcp/policyload$"
@@ -1079,6 +1118,7 @@ linters:
           - "!${base-path}/credential/**"
           - "!${base-path}/db/**"
           - "!${base-path}/dbconnect/**"
+          - "!${base-path}/logging/**"
           - "!${base-path}/mediate/**"
           - "!${base-path}/organize/**"
           - "!${base-path}/policyload/**"

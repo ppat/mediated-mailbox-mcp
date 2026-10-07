@@ -11,6 +11,7 @@ paths:
   - "credential/README.md"
   - "db/README.md"
   - "dbconnect/README.md"
+  - "logging/README.md"
   - "policyload/README.md"
   - "provider/README.md"
   - "ratelimit/README.md"

@@ -2479,6 +2479,7 @@ and finds no pasted address to be the redirect's.
 | Key | Value | Required |
 | --- | --- | --- |
 | `database` | the section ADR-0078 declares for every deployable, the Postgres connection settings for the UI's own role (ADR-0084) rendered into the connection string, with the password read from the file `database.password_file` names and `database.user` defaulting to that role | yes |
+| `log` | the section ADR-0119 declares for every deployable, whose one value `log.level` is the level the UI logs at, `debug`, `info`, `warn` or `error` | no, `log.level` defaults to `info` |
 | `listen` | the address and port the UI serves on | no, defaults to `:8443`, as the mediator's does |
 | `probe_listen` | the address and port the health and readiness probes and the metrics endpoint serve on, in plain HTTP | no, defaults to `:8080`, as the mediator's does |
 | `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the mediator's are, so a renewed certificate needs no restart | yes, unless `insecure_http` |
