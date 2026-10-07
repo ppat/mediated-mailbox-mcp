@@ -1,0 +1,19 @@
+control: The log section is validated before anything else starts
+removes: the default logs at debug rather than info
+packages: ./logging/core
+tests: TestTheDefaultIsInfo
+scheduled-count: no
+
+diff --git a/logging/core/core.go b/logging/core/core.go
+index 5ea72fd1..e7df5dd3 100644
+--- a/logging/core/core.go
++++ b/logging/core/core.go
+@@ -28,7 +28,7 @@ const (
+ 
+ // Default is the section's default, which logs at info.
+ func Default() Config {
+-	return Config{Level: "info"}
++	return Config{Level: "debug"}
+ }
+ 
+ // Parse returns the level c names, and refuses any other text, a different letter case included.

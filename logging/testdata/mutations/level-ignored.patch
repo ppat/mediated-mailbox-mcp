@@ -1,0 +1,20 @@
+control: A logger writes JSON lines at the level its log section names and above
+removes: the logger writes at info whatever level the section names
+packages: ./logging
+tests: TestALoggerWritesItsLevelAndAbove/debug TestALoggerWritesItsLevelAndAbove/warn TestALoggerWritesItsLevelAndAbove/error
+scheduled-count: no
+
+diff --git a/logging/logging.go b/logging/logging.go
+index 97f76f2a..e13e9647 100644
+--- a/logging/logging.go
++++ b/logging/logging.go
+@@ -29,7 +29,8 @@ func New(w io.Writer, c core.Config, values []settings.Value) (*slog.Logger, err
+ 		}
+ 		return nil, err
+ 	}
+-	return build(w, handlerLevel(level)), nil
++	_ = handlerLevel(level)
++	return build(w, slog.LevelInfo), nil
+ }
+ 
+ // Initial returns the logger a composition root logs through before its configuration is loaded,

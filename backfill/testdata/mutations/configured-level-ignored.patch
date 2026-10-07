@@ -1,0 +1,19 @@
+control: Each deployable logs at the level its log section sets, through the logger it hands its shells and sets as the process default
+removes: backfill's root builds its logger at the default level whatever the log section sets
+packages: ./backfill
+tests: TestTheStartLogsAtItsConfiguredLevel/debug_from_a_flag TestTheStartLogsAtItsConfiguredLevel/warn_from_the_environment TestARefusedLogLevelRefusesTheStart
+scheduled-count: no
+
+diff --git a/backfill/main.go b/backfill/main.go
+index 4464b9d0..63827755 100644
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -131,7 +131,7 @@ func run(ctx context.Context, args, environ []string, out io.Writer, adopt func(
+ 	if err != nil {
+ 		return fmt.Errorf("loading the configuration: %w", err)
+ 	}
+-	logger, err := logging.New(out, loaded.Config.Log, loaded.Values)
++	logger, err := logging.New(out, logcore.Default(), loaded.Values)
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}

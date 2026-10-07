@@ -1,0 +1,27 @@
+control: The log section is validated before anything else starts
+removes: the level is matched ignoring its letter case, so INFO and Info are accepted
+packages: ./logging/core
+tests: TestAnyOtherLevelIsRefused
+scheduled-count: no
+
+diff --git a/logging/core/core.go b/logging/core/core.go
+index 5ea72fd1..a566f7f1 100644
+--- a/logging/core/core.go
++++ b/logging/core/core.go
+@@ -7,6 +7,7 @@ package core
+ import (
+ 	"errors"
+ 	"strconv"
++	"strings"
+ )
+ 
+ // Config is the log section.
+@@ -33,7 +34,7 @@ func Default() Config {
+ 
+ // Parse returns the level c names, and refuses any other text, a different letter case included.
+ func Parse(c Config) (Level, error) {
+-	switch c.Level {
++	switch strings.ToLower(c.Level) {
+ 	case "debug":
+ 		return Debug, nil
+ 	case "info":

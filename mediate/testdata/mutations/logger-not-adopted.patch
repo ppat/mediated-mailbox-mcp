@@ -1,0 +1,18 @@
+control: Each deployable logs at the level its log section sets, through the logger it hands its shells and sets as the process default
+removes: the mediator's root never hands its logger to adopt, so the process default is not set to it
+packages: ./mediate
+tests: TestTheStartLogsAtItsConfiguredLevel/the_default TestTheStartLogsAtItsConfiguredLevel/debug_from_a_flag TestTheStartLogsAtItsConfiguredLevel/warn_from_the_environment
+scheduled-count: no
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 80ea49cd..6cd25c32 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -211,7 +211,6 @@ func run(ctx context.Context, args, environ []string, out io.Writer, adopt func(
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+-	adopt(logger)
+ 	for _, v := range loaded.Values {
+ 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+ 	}

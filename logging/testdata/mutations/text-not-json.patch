@@ -1,0 +1,19 @@
+control: A logger writes JSON lines at the level its log section names and above
+removes: the logger writes text lines rather than JSON
+packages: ./logging
+tests: TestALoggerWritesItsLevelAndAbove/debug TestALoggerWritesItsLevelAndAbove/info TestALoggerWritesItsLevelAndAbove/warn TestALoggerWritesItsLevelAndAbove/error TestTheInitialLoggerWritesInfoAndAbove
+scheduled-count: no
+
+diff --git a/logging/logging.go b/logging/logging.go
+index 97f76f2a..2f9db2c6 100644
+--- a/logging/logging.go
++++ b/logging/logging.go
+@@ -40,7 +40,7 @@ func Initial(w io.Writer) *slog.Logger {
+ }
+ 
+ func build(w io.Writer, level slog.Level) *slog.Logger {
+-	return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{Level: level}))
++	return slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{Level: level}))
+ }
+ 
+ // handlerLevel is the handler's level for each level the section names.

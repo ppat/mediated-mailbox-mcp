@@ -1,0 +1,19 @@
+control: A logger writes JSON lines at the level its log section names and above
+removes: warn maps to the handler's info, so a logger at warn writes routine progress
+packages: ./logging
+tests: TestALoggerWritesItsLevelAndAbove/warn
+scheduled-count: no
+
+diff --git a/logging/logging.go b/logging/logging.go
+index 97f76f2a..bd95af9c 100644
+--- a/logging/logging.go
++++ b/logging/logging.go
+@@ -51,7 +51,7 @@ func handlerLevel(l core.Level) slog.Level {
+ 	case core.Info:
+ 		return slog.LevelInfo
+ 	case core.Warn:
+-		return slog.LevelWarn
++		return slog.LevelInfo
+ 	case core.Error:
+ 		return slog.LevelError
+ 	default:

@@ -1,0 +1,19 @@
+control: The log section is validated before anything else starts
+removes: warn, one of the four levels, is refused
+packages: ./logging/core
+tests: TestEachLevelIsNamed
+scheduled-count: no
+
+diff --git a/logging/core/core.go b/logging/core/core.go
+index 5ea72fd1..699ef2ff 100644
+--- a/logging/core/core.go
++++ b/logging/core/core.go
+@@ -38,8 +38,6 @@ func Parse(c Config) (Level, error) {
+ 		return Debug, nil
+ 	case "info":
+ 		return Info, nil
+-	case "warn":
+-		return Warn, nil
+ 	case "error":
+ 		return Error, nil
+ 	}

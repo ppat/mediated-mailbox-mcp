@@ -1,0 +1,18 @@
+control: The log section is validated before anything else starts
+removes: a level outside the four is accepted as info
+packages: ./logging/core
+tests: TestAnyOtherLevelIsRefused
+scheduled-count: no
+
+diff --git a/logging/core/core.go b/logging/core/core.go
+index 5ea72fd1..485bc4a1 100644
+--- a/logging/core/core.go
++++ b/logging/core/core.go
+@@ -43,5 +43,6 @@ func Parse(c Config) (Level, error) {
+ 	case "error":
+ 		return Error, nil
+ 	}
+-	return 0, errors.New("log.level " + strconv.Quote(c.Level) + " is not debug, info, warn or error")
++	_ = errors.New("log.level " + strconv.Quote(c.Level) + " is not debug, info, warn or error")
++	return Info, nil
+ }

@@ -1,0 +1,19 @@
+control: A logger writes JSON lines at the level its log section names and above
+removes: the logger used before the configuration loads writes debug lines
+packages: ./logging
+tests: TestTheInitialLoggerWritesInfoAndAbove
+scheduled-count: no
+
+diff --git a/logging/logging.go b/logging/logging.go
+index 97f76f2a..d2b2fe78 100644
+--- a/logging/logging.go
++++ b/logging/logging.go
+@@ -36,7 +36,7 @@ func New(w io.Writer, c core.Config, values []settings.Value) (*slog.Logger, err
+ // writing JSON lines to w at the default level, so a start refused before then is still logged in
+ // the same form.
+ func Initial(w io.Writer) *slog.Logger {
+-	return build(w, slog.LevelInfo)
++	return build(w, slog.LevelDebug)
+ }
+ 
+ func build(w io.Writer, level slog.Level) *slog.Logger {

@@ -1,0 +1,18 @@
+control: The log section is validated before anything else starts
+removes: a value is added to the log section without updating its pinned field list
+packages: ./logging/core
+tests: TestTheSectionIsPinned
+scheduled-count: no
+
+diff --git a/logging/core/core.go b/logging/core/core.go
+index 5ea72fd1..14de3d57 100644
+--- a/logging/core/core.go
++++ b/logging/core/core.go
+@@ -13,6 +13,7 @@ import (
+ type Config struct {
+ 	// Level is the least severe level written, debug, info, warn or error.
+ 	Level string `yaml:"level"`
++	File  string `yaml:"file"`
+ }
+ 
+ // Level is a level the section names, from the most detailed to the most severe.

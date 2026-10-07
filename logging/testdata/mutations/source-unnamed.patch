@@ -1,0 +1,19 @@
+control: A logger writes JSON lines at the level its log section names and above
+removes: a refused level is refused without the layer that set it
+packages: ./logging
+tests: TestARefusedLevelNamesItsSource/flag TestARefusedLevelNamesItsSource/environment TestARefusedLevelNamesItsSource/file
+scheduled-count: no
+
+diff --git a/logging/logging.go b/logging/logging.go
+index 97f76f2a..b9b5dda4 100644
+--- a/logging/logging.go
++++ b/logging/logging.go
+@@ -24,7 +24,7 @@ func New(w io.Writer, c core.Config, values []settings.Value) (*slog.Logger, err
+ 	if err != nil {
+ 		for _, v := range values {
+ 			if v.Path == levelPath {
+-				return nil, fmt.Errorf("%w, set by the %s", err, v.Source)
++				return nil, fmt.Errorf("%w", err)
+ 			}
+ 		}
+ 		return nil, err
