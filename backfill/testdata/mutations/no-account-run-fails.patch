@@ -1,0 +1,19 @@
+control: A backfill run over a database that lists no account ends successfully having done nothing
+removes: the early end for a run with no account is gone, so the policy loader refuses the empty account list
+packages: ./backfill
+tests: TestARunWithNoAccountEndsWithNothingToDo
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/main.go b/backfill/main.go
+--- a/backfill/main.go
++++ b/backfill/main.go
+@@ -256,7 +256,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 	for _, a := range listed {
+ 		ids = append(ids, a.ID())
+ 	}
+-	if len(ids) == 0 {
++	if false {
+ 		// Before an account is connected a run has nothing to serve, as when the deployment runs it
+ 		// at install, and it ends as having done its work, as delta sync and the mediator serve no
+ 		// account until one is listed.

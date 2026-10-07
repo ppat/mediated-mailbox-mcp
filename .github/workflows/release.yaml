@@ -153,3 +153,15 @@ jobs:
           mise exec -- cosign sign-blob --yes --bundle "${asset}.sigstore.json" "$asset"
         done
         gh release upload "$TAG" "$out"/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  # Every release runs the chainsaw suite against its own images and chart, and checks its key-generation binary,
+  # once both are published, so neither waits for someone to start it (ADR-0052, ADR-0088).
+  chainsaw:
+    needs: [images, chart, keygen]
+    if: ${{ github.event_name == 'release' }}
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/chainsaw.yaml
+    with:
+      version: ${{ github.event.release.tag_name }}

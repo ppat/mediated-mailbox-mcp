@@ -1,0 +1,17 @@
+control: The key pair reaches only the deployables that open a credential and the UI
+removes: the UI's container no longer mounts the key pair
+packages: ./packaging/chart
+tests: TestThePrivateKeyReachesOnlyTheDeployablesThatOpenCredentials
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/ui.yaml b/packaging/chart/templates/ui.yaml
+--- a/packaging/chart/templates/ui.yaml
++++ b/packaging/chart/templates/ui.yaml
+@@ -82,7 +82,6 @@ spec:
+         {{- end }}
+         volumeMounts:
+         {{- include "mediated-mailbox.databaseMounts" $ctx | nindent 8 }}
+-        {{- include "mediated-mailbox.keysMount" $ctx | nindent 8 }}
+         - name: tls
+           mountPath: /var/run/mediated-mailbox/tls
+           readOnly: true

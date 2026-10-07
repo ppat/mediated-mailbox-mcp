@@ -257,6 +257,33 @@ func TestARunTakesItsAccountsFromTheDatabase(t *testing.T) {
 	}
 }
 
+// A run over a database that lists no account ends as having done its work, without loading any
+// policy, since the policy loader reads in an account's transaction. That is the run the deployment
+// starts at install, before any account is connected (ADR-0116).
+func TestARunWithNoAccountEndsWithNothingToDo(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	ring, _ := keys(t)
+	worked := false
+	var log logBuffer
+
+	err := backfill(t.Context(), backfillPool(t), ring, log.logger(), prometheus.NewRegistry(), func(context.Context, served) error {
+		worked = true
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("backfill returned %v, want a run that ends with nothing to do", err)
+	}
+
+	if worked {
+		t.Error("the run did work with no account listed")
+	}
+	want := []record{{Level: "INFO", Msg: "no account is listed, so the run has nothing to do"}}
+	if diff := cmp.Diff(want, log.records(t), compare.Options); diff != "" {
+		t.Errorf("log (-want +got):\n%s", diff)
+	}
+}
+
 // An account that connects through no OAuth client is not connected, because backfill tells the loader
 // Gmail authenticates through one, so it is logged and skipped, though its provider has a client, and
 // nothing looks for a client the account does not name (ADR-0080, ADR-0106).

@@ -117,6 +117,7 @@ moves it. Records themselves link freely and deep, into
 | 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
 | 0105 | [A cursor gap re-enumerates from an hour before the last cursor was written, with no cap, and an account with no cursor is reconciled over a first window](./data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md) | Accepted |
 | 0112 | [The base policy is read and written in a transaction of its own, which names no account and reaches only the base policy's rows](./data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md) | Accepted |
+| 0115 | [The chart runs the migration step as one Job that Helm runs to completion before each install's and upgrade's other objects](./data/0115-the-chart-runs-the-migration-step-as-one-hook-job-before-each-install-and-upgrade.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -169,6 +170,8 @@ moves it. Records themselves link freely and deep, into
 | 0108 | [The index reads select messages by an index query of the client surface's own, never by the Provider Port's canonical query](./operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) | Accepted |
 | 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
 | 0111 | [A consent attempt travels in a cookie the UI server seals, bound to the session that started it](./operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md) | Accepted |
+| 0116 | [The chart runs backfill whenever its pod changes, and the operator starts it by hand from a suspended CronJob](./operability/0116-the-chart-runs-backfill-whenever-its-pod-changes-and-the-operator-starts-it-from-a-suspended-cronjob.md) | Accepted |
+| 0117 | [The chart runs delta sync as a StatefulSet of one replica, so a second pod starts only once the first is gone](./operability/0117-the-chart-runs-delta-sync-as-a-statefulset-of-one.md) | Accepted |
 
 ## Engineering — `engineering/`
 

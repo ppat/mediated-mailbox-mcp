@@ -8,7 +8,7 @@ integration: yes
 diff --git a/backfill/main.go b/backfill/main.go
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -216,7 +216,9 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+@@ -254,7 +254,9 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
  	listed := snapshot.Accounts()
  	ids := make([]string, 0, len(listed))
  	for _, a := range listed {
@@ -17,5 +17,5 @@ diff --git a/backfill/main.go b/backfill/main.go
 +			ids = append(ids, a.ID())
 +		}
  	}
- 	policies, err := policyload.New(pool, ids, registry)
- 	if err != nil {
+ 	if len(ids) == 0 {
+ 		// Before an account is connected a run has nothing to serve, as when the deployment runs it

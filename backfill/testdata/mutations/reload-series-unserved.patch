@@ -8,9 +8,9 @@ integration: yes
 diff --git a/backfill/main.go b/backfill/main.go
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -218,7 +218,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
- 	for _, a := range listed {
- 		ids = append(ids, a.ID())
+@@ -263,7 +263,7 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
+ 		logger.Info("no account is listed, so the run has nothing to do")
+ 		return nil
  	}
 -	policies, err := policyload.New(pool, ids, registry)
 +	policies, err := policyload.New(pool, ids, prometheus.NewRegistry())

@@ -21,7 +21,7 @@ project is intended for eventual open sourcing.
   the document set. Consumption and rollout belong to the consuming platform, outside this
   repository.
 - **The top level is flat.** Each deployable and each shared library is one top-level
-  directory beside `docs/`, `packaging/`, and `tests/`, with no grouping directories. A
+  directory beside `docs/` and `packaging/`, with no grouping directories. A
   library is told apart from a deployable only by having no Dockerfile and by documentation,
   a convention accepted in place of structure for the simpler layout. The UI's directory
   holds both of its halves ([ADR-0042](./0042-implementation-stack.md)), the browser app as a
@@ -33,8 +33,10 @@ project is intended for eventual open sourcing.
   [ADR-0049](./0049-image-per-component-lockstep.md)'s runtime-artifacts-only rule. The chart's Helm
   tests live inside the chart and ride inside the published chart artifact, which is Helm's standard
   design and an accepted, knowing exception to keeping tests out of distributions. The chainsaw
-  suite tests the assembled system, so it belongs to no single deployable and sits at
-  `tests/chainsaw/`.
+  suite tests the assembled system the chart stands up, so it belongs to no single deployable and
+  sits with the packaging, at `packaging/tests/chainsaw/`, outside the chart so the published
+  artifact never carries it. A top-level `tests/` directory would read as the home of every kind of
+  test, the Go code's included, while the suite is the packaging's.
 - **CI path filters are allow lists**, each a short static enumeration of the directories it
   watches, extended by one entry per new component, never an exclusion of everything else.
 - **Deployables share code only through the shared libraries and never import each other.** A

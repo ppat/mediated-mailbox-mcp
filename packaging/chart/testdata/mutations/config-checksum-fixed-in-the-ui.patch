@@ -1,0 +1,18 @@
+control: Each deployable's configuration file is passed through as written and restarts its pods when it changes
+removes: the UI's pods carry a checksum that does not follow its configuration, so a change restarts nothing
+packages: ./packaging/chart
+tests: TestTheConfigurationFileIsPassedThroughAsWritten
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/ui.yaml b/packaging/chart/templates/ui.yaml
+--- a/packaging/chart/templates/ui.yaml
++++ b/packaging/chart/templates/ui.yaml
+@@ -36,7 +36,7 @@ spec:
+       labels:
+         {{- include "mediated-mailbox.labels" $ctx | nindent 8 }}
+       annotations:
+-        checksum/config: {{ include "mediated-mailbox.configText" $ctx | sha256sum }}
++        checksum/config: {{ .Chart.AppVersion | sha256sum }}
+     spec:
+       serviceAccountName: {{ include "mediated-mailbox.name" $ctx }}
+       {{- include "mediated-mailbox.podSpec" $ctx | nindent 6 }}

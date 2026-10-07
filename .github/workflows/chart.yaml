@@ -30,8 +30,16 @@ jobs:
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # --strict fails on warnings as well as errors.
+    # --strict fails on warnings as well as errors. The chart refuses to render without its required inputs, and a
+    # render that stops there lints none of the templates after it, so the lint names each required input.
     - name: Lint the chart
       shell: bash
       working-directory: ./current
-      run: mise exec -- helm lint --strict packaging/chart
+      # yamllint disable-line rule:indentation
+      run: |
+        mise exec -- helm lint --strict packaging/chart \
+          --set database.host=postgres --set database.name=mailbox --set keys.secretName=keys \
+          --set migrate.passwordFileSecret.name=migrate --set mediate.passwordSecret.name=mediate \
+          --set mediate.tokenSecret.name=token --set mediate.tls.secretName=mediate-tls \
+          --set backfill.passwordSecret.name=backfill --set sync.passwordSecret.name=sync \
+          --set ui.passwordSecret.name=ui --set ui.tls.secretName=ui-tls

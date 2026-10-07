@@ -1,0 +1,17 @@
+control: The migration step runs before the deployables roll
+removes: the migration Job loses its hook annotation, so Helm creates it beside the deployables
+packages: ./packaging/chart
+tests: TestTheMigrationStepRunsBeforeTheDeployables
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/migrate.yaml b/packaging/chart/templates/migrate.yaml
+--- a/packaging/chart/templates/migrate.yaml
++++ b/packaging/chart/templates/migrate.yaml
+@@ -18,7 +18,6 @@ metadata:
+   labels:
+     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
+   annotations:
+-    helm.sh/hook: pre-install,pre-upgrade
+     helm.sh/hook-delete-policy: before-hook-creation
+ spec:
+   backoffLimit: {{ $m.backoffLimit }}

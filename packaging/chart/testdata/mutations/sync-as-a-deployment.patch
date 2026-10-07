@@ -1,0 +1,18 @@
+control: Delta sync runs as one process at a time
+removes: delta sync runs as a rolling Deployment, which starts a new pod before the old one is gone
+packages: ./packaging/chart
+tests: TestDeltaSyncRunsAsOneProcessAtATime
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/sync.yaml b/packaging/chart/templates/sync.yaml
+--- a/packaging/chart/templates/sync.yaml
++++ b/packaging/chart/templates/sync.yaml
+@@ -21,7 +21,7 @@ metadata:
+ automountServiceAccountToken: false
+ ---
+ apiVersion: apps/v1
+-kind: StatefulSet
++kind: Deployment
+ metadata:
+   name: {{ include "mediated-mailbox.name" $ctx }}
+   labels:

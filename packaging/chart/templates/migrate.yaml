@@ -1,0 +1,69 @@
+{{- /*
+The migration step (ADR-0048, ADR-0067), one Job the chart runs as a hook before an install's and an upgrade's other
+objects, so the chain has run before any deployable rolls and only one migrating container ever runs it
+(ADR-0115). A failed run fails the install or the upgrade, and no deployable rolls. The Job of the last run stays
+until the next one replaces it, so what it did can be read.
+
+It is the one pod that holds the migration role's credential, and it holds nothing else: no key, no runtime role's
+password, no configuration file. goose reads the connection string from GOOSE_DBSTRING, which names no password.
+pgx reads the password from the mounted password file the string names, in libpq's format.
+*/ -}}
+{{- $ctx := dict "root" . "component" "migrate" -}}
+{{- $db := .Values.database -}}
+{{- $m := .Values.migrate -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "mediated-mailbox.name" $ctx }}
+  labels:
+    {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ $m.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "mediated-mailbox.labels" $ctx | nindent 8 }}
+    spec:
+      {{- include "mediated-mailbox.podSpec" $ctx | nindent 6 }}
+      restartPolicy: Never
+      containers:
+      - name: migrate
+        image: {{ include "mediated-mailbox.image" $ctx }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- include "mediated-mailbox.containerSecurity" $ctx | nindent 8 }}
+        env:
+        - name: GOOSE_DBSTRING
+          value: {{ printf "host=%s port=%v dbname=%s user=mediated_mailbox_migrate sslmode=%s passfile=/var/run/mediated-mailbox/database/pgpass%s" (required "database.host is required" $db.host) $db.port (required "database.name is required" $db.name) ($db.sslmode | default "verify-full") (ternary " sslrootcert=/var/run/mediated-mailbox/database-ca/ca.crt" "" (not (empty $db.caSecret))) | quote }}
+        {{- with $m.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: database
+          mountPath: /var/run/mediated-mailbox/database
+          readOnly: true
+        {{- if $db.caSecret }}
+        - name: database-ca
+          mountPath: /var/run/mediated-mailbox/database-ca
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: database
+        secret:
+          secretName: {{ required "migrate.passwordFileSecret.name is required" $m.passwordFileSecret.name }}
+          defaultMode: 0440
+          items:
+          - key: {{ $m.passwordFileSecret.key }}
+            path: pgpass
+      {{- with $db.caSecret }}
+      - name: database-ca
+        secret:
+          secretName: {{ . }}
+          defaultMode: 0440
+          items:
+          - key: {{ $db.caKey }}
+            path: ca.crt
+      {{- end }}

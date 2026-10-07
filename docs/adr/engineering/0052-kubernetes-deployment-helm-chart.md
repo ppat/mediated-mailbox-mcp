@@ -46,14 +46,17 @@ may assume about the user's cluster.
   mean the controls hold there — the verification catalogue, not the chart, carries the proof
   obligations.
 - **Tests travel with the chart:** standard Helm tests in this repository, rule unit tests over
-  the alerting rules it ships, and a chainsaw suite —
+  the alerting rules it ships, render tests that render the chart with the pinned Helm and check
+  the objects it would hand a cluster, and a chainsaw suite —
   declarative Kubernetes end-to-end tests — that deploys the chart onto an ephemeral kind cluster
   and exercises it. The chainsaw harness deploys the chart via flux, which its workflow installs on
   the cluster as harness machinery, not something the chart assumes exists. The suite builds no
   images. It takes a version and deploys the chart with the images already published for that
-  version, and it runs when the packaging or the suite changes, never because a deployable changed.
-  Where no images exist for the version, it reports that it did not run rather than passing, and a
-  suite with no tests fails.
+  version, and it runs when the packaging or the suite changes and on every release, never on a pull
+  request that changes only a deployable. Where no images exist for the version, it reports that it did not run rather
+  than passing, and a suite with no tests fails. Run by hand, the same suite takes images built from
+  a tree and loaded into its cluster under a version of their own, which is the evidence a packaging
+  change carries until a release's run proves it ([CLAUDE.md](../../../CLAUDE.md#repository-process)).
 - **Distribution is OCI, in the same registry as the images, at the lockstep version** — no
   hosted chart repository, no index.
   [ADR-0028](../operability/0028-trust-anchor-hardening.md)'s signed-and-verified rule extends

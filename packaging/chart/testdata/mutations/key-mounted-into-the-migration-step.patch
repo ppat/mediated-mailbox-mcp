@@ -1,0 +1,25 @@
+control: The key pair reaches only the deployables that open a credential and the UI
+removes: the migration step mounts the key pair too
+packages: ./packaging/chart
+tests: TestThePrivateKeyReachesOnlyTheDeployablesThatOpenCredentials
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/migrate.yaml b/packaging/chart/templates/migrate.yaml
+--- a/packaging/chart/templates/migrate.yaml
++++ b/packaging/chart/templates/migrate.yaml
+@@ -42,6 +42,7 @@ spec:
+           {{- toYaml . | nindent 10 }}
+         {{- end }}
+         volumeMounts:
++        {{- include "mediated-mailbox.keysMount" $ctx | nindent 8 }}
+         - name: database
+           mountPath: /var/run/mediated-mailbox/database
+           readOnly: true
+@@ -51,6 +52,7 @@ spec:
+           readOnly: true
+         {{- end }}
+       volumes:
++      {{- include "mediated-mailbox.keysVolume" $ctx | nindent 6 }}
+       - name: database
+         secret:
+           secretName: {{ required "migrate.passwordFileSecret.name is required" $m.passwordFileSecret.name }}

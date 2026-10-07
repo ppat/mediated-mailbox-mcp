@@ -1,3 +1,6 @@
 # Directories the chart layout names keep a placeholder until their first file arrives. Helm refuses a file
 # under templates/ without a template extension, so neither lint nor the package reads one.
 .gitkeep
+# The chart's render tests and their mutation patches are Go test code of this module, not chart content.
+*.go
+testdata/

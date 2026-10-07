@@ -239,8 +239,8 @@ type served struct {
 // as soon as the unit ends (ADR-0082, ADR-0097).
 type unitOfWork func(ctx context.Context, s served) error
 
-// backfill takes the account snapshot once, at the start of the run (ADR-0090), loads the policy of
-// every listed account through a loader whose reload-failure series registry serves, builds a token
+// backfill takes the account snapshot once, at the start of the run (ADR-0090), ends at once when it
+// lists no account, loads the policy of every listed account through a loader whose reload-failure series registry serves, builds a token
 // source for each account it can serve and runs work with them. A snapshot whose read fails stops the
 // run, since a run that exits holds no previous snapshot. A credential the provider refuses is read
 // again from its row through the loader, the one way a running unit of work sees a credential the
@@ -255,6 +255,13 @@ func backfill(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, logge
 	ids := make([]string, 0, len(listed))
 	for _, a := range listed {
 		ids = append(ids, a.ID())
+	}
+	if len(ids) == 0 {
+		// Before an account is connected a run has nothing to serve, as when the deployment runs it
+		// at install, and it ends as having done its work, as delta sync and the mediator serve no
+		// account until one is listed.
+		logger.Info("no account is listed, so the run has nothing to do")
+		return nil
 	}
 	policies, err := policyload.New(pool, ids, registry)
 	if err != nil {

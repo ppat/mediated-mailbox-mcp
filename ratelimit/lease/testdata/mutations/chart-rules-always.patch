@@ -7,9 +7,9 @@ scheduled-count: no
 diff --git a/packaging/chart/templates/prometheusrule.yaml b/packaging/chart/templates/prometheusrule.yaml
 --- a/packaging/chart/templates/prometheusrule.yaml
 +++ b/packaging/chart/templates/prometheusrule.yaml
-@@ -4,7 +4,7 @@
- in a values file. A platform without the operator loads alerting-rules.yaml at the chart's root its own way. The
- rules are that file embedded whole, which is the file promtool tests.
+@@ -4,7 +4,7 @@ and it is off by default, so the chart assumes only core Kubernetes (ADR-0052).
+ and the template keeps it too. A platform without the operator loads alerting-rules.yaml at the chart's root its
+ own way. The rules are that file embedded whole, which is the file promtool tests.
  */ -}}
 -{{- if (.Values.alertingRules | default dict).enabled }}
 +{{- if true }}

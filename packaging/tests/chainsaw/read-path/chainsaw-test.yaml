@@ -1,0 +1,134 @@
+---
+# The read path on a bare cluster (ADR-0052). The harness creates PostgreSQL and every Secret the chart takes, and
+# flux installs the chart from the commit under test with the images published for the version under test. The
+# chart's namespace enforces the restricted Pod Security level, so a pod without ADR-0028's hardening is refused and
+# the install fails. Nothing else is installed, so a chart that assumed any other machinery fails here.
+#
+# It checks every deployable pod was created once the migration Job had completed, and that delta sync, whose probes
+# do not need the database, reads it through its own role.
+#
+# Then it upgrades the release twice and starts backfill by hand, to see what the deployment does on its own: an
+# upgrade reaching only another deployable runs no backfill, an upgrade changing the scanner's section runs it once
+# under a new Job and rolls delta sync without a second sync pod ever existing, and the suspended CronJob starts a run
+# when asked (ADR-0103, ADR-0116, ADR-0117).
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: read-path
+spec:
+  timeouts:
+    apply: 1m
+    assert: 10m
+    exec: 15m
+  steps:
+  - name: the harness's fixtures
+    try:
+    - script:
+        timeout: 10m
+        content: ./fixtures.sh mediated-mailbox
+
+  - name: the chart installs, and its Helm tests pass
+    try:
+    - apply:
+        resource:
+          apiVersion: source.toolkit.fluxcd.io/v1
+          kind: GitRepository
+          metadata:
+            name: mediated-mailbox
+            namespace: flux-system
+          spec:
+            interval: 10m
+            url: ($values.git.url)
+            ref:
+              commit: ($values.git.commit)
+            secretRef:
+              name: ($values.git.secretName)
+    - apply:
+        file: helmrelease.yaml
+    - assert:
+        resource:
+          apiVersion: helm.toolkit.fluxcd.io/v2
+          kind: HelmRelease
+          metadata:
+            name: mediated-mailbox
+            namespace: flux-system
+          status:
+            (conditions[?type == 'Ready']):
+            - status: "True"
+            (conditions[?type == 'TestSuccess']):
+            - status: "True"
+    catch:
+    - script:
+        content: ./diagnose.sh mediated-mailbox
+
+  - name: the migration step ran first, backfill ran, and every deployable serves
+    try:
+    - assert:
+        resource:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: mediated-mailbox-migrate
+            namespace: mediated-mailbox
+          status:
+            succeeded: 1
+    - script:
+        content: ./migration-first.sh mediated-mailbox
+    - assert:
+        resource:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            namespace: mediated-mailbox
+            labels:
+              app.kubernetes.io/component: backfill
+          status:
+            succeeded: 1
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mediated-mailbox-mediate
+            namespace: mediated-mailbox
+          status:
+            readyReplicas: 1
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mediated-mailbox-ui
+            namespace: mediated-mailbox
+          status:
+            readyReplicas: 1
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: StatefulSet
+          metadata:
+            name: mediated-mailbox-sync
+            namespace: mediated-mailbox
+          status:
+            readyReplicas: 1
+    catch:
+    - script:
+        content: ./diagnose.sh mediated-mailbox
+
+  - name: delta sync reads the database through its own role
+    try:
+    - script:
+        timeout: 5m
+        content: ./sync-reads.sh mediated-mailbox
+    catch:
+    - script:
+        content: ./diagnose.sh mediated-mailbox
+
+  - name: upgrades run backfill only after a scanner change, and never two sync pods
+    try:
+    - script:
+        timeout: 15m
+        content: ./upgrades.sh mediated-mailbox
+    catch:
+    - script:
+        content: ./diagnose.sh mediated-mailbox

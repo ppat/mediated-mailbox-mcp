@@ -272,6 +272,18 @@ const CASES = [
     overrides: (() => { const b = base(); return { tracked: () => [...b.tracked(), 'packaging/chart/Chart.lock'] } })(),
   },
   {
+    id: 'I17b', check: 'truth', expect: /tests\/chart\/values\.yaml docker\.io\/pinned\/image minor renders 'feat:'/,
+    defect: 'an image a values file names in an unshipped directory, which only the helm-values extraction enumerates',
+    overrides: (() => {
+      const b = base()
+      const file = 'tests/chart/values.yaml'
+      return {
+        tracked: () => [...b.tracked(), file],
+        text: (rel) => (rel === file ? 'tests:\n  image:\n    registry: docker.io\n    repository: pinned/image\n    tag: 1.0.0\n' : b.text(rel)),
+      }
+    })(),
+  },
+  {
     id: 'I18', check: 'truth', expect: /claimed by github>ppat\/renovate-presets#[^ ]+ \(top level\), a shared preset/,
     defect: 'the shipped empty scope inherited from the preset rather than claimed locally, so a preset rename would move every shipped header',
     overrides: patchRenovate((c) => { delete c.semanticCommitScope; return c }),

@@ -1,0 +1,126 @@
+---
+# Every input the chart takes. ADR-0052 has Postgres and the Secrets holding the system's secrets arrive as Helm
+# values or pre-existing Secrets. The chart takes every input that is not secret material as a value and every secret
+# as a pre-existing Secret, named here with a key in it, and creates no database, no role and no Secret: secret
+# material in a value would live in the configuration repository the values are kept in, which ADR-0079 rules out.
+# Each secret reaches only the pods that use it, as a mounted file. Policy and accounts are not inputs. They are
+# imported and connected through the UI once the system runs (ADR-0004, ADR-0080).
+#
+# A deployable's `config` is the text of its configuration file, passed through as written (ADR-0078). The chart
+# sets through environment variables only what it wires itself, the database connection and the paths of the files
+# it mounts, and those override the file. Every key and its meaning are each deployable's `--help`.
+
+# The images, one per deployable, at the release's version (ADR-0049).
+image:
+  registry: ghcr.io/ppat
+  # Empty takes the chart's appVersion, which the release sets to the release's version.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Pull secrets for a registry that needs them, as a list of {name: <Secret>}.
+imagePullSecrets: []
+
+# The PostgreSQL every deployable and the migration step connect to. The superuser bootstrap, the roles and the
+# database owned by the migration role are the deploying side's (ADR-0048). Each deployable connects as its own
+# runtime role (ADR-0075).
+database:
+  host: ""
+  port: 5432
+  name: ""
+  # Empty leaves each deployable's own default, verify-full, which the migration step uses too.
+  sslmode: ""
+  # A Secret holding the CA that signed the server's certificate, mounted for the deployables and the migration step.
+  caSecret: ""
+  caKey: ca.crt
+
+# The key pair credentials are sealed to (ADR-0081, ADR-0088), mounted only into the deployables that call a provider
+# and the UI. Every private key of the keyring is listed, the current key's and any still being replaced (ADR-0092).
+keys:
+  secretName: ""
+  publicKey: credential.pub
+  privateKeys:
+  - credential.key
+
+# The scanner's section, shared by every deployable that masks or scans, so they never re-open each other's work
+# (ADR-0096). Written as configuration text holding the `scanner:` key, and appended to each of those deployables'
+# files. Empty takes the scanner the application ships.
+scannerConfig: ""
+
+# The migration step (ADR-0048, ADR-0115). Its Secret's key holds a password file in libpq's format, such as
+# `*:*:*:mediated_mailbox_migrate:<password>`, the migration role's credential, which reaches no other pod.
+migrate:
+  passwordFileSecret:
+    name: ""
+    key: pgpass
+  backoffLimit: 2
+  resources: {}
+
+# The mediator. passwordSecret's key holds its role's password alone.
+mediate:
+  config: ""
+  replicas: 1
+  passwordSecret:
+    name: ""
+    key: password
+  # The bearer token clients present (ADR-0030).
+  tokenSecret:
+    name: ""
+    key: token
+  # A kubernetes.io/tls Secret for the client surface, unless an ingress in front terminates TLS.
+  tls:
+    secretName: ""
+    atIngress: false
+  service:
+    port: 443
+  scratchSize: 64Mi
+  resources: {}
+
+# Backfill (ADR-0116). A Job runs it after each install or upgrade that changes its pod, and the operator starts it
+# by hand from its suspended CronJob.
+backfill:
+  config: ""
+  passwordSecret:
+    name: ""
+    key: password
+  backoffLimit: 6
+  scratchSize: 64Mi
+  resources: {}
+
+# Delta sync, one process at a time (ADR-0103, ADR-0117).
+sync:
+  config: ""
+  passwordSecret:
+    name: ""
+    key: password
+  scratchSize: 64Mi
+  resources: {}
+
+# The UI (ADR-0084).
+ui:
+  config: ""
+  # More than one replica needs tokenKeySecret, so replicas share the request token's key (ADR-0061, ADR-0111).
+  replicas: 1
+  passwordSecret:
+    name: ""
+    key: password
+  # A kubernetes.io/tls Secret. The UI serves only TLS.
+  tls:
+    secretName: ""
+  # The key behind the request token, at least 32 bytes. Unset, each process generates one at its start.
+  tokenKeySecret:
+    name: ""
+    key: key
+  service:
+    port: 443
+  resources: {}
+
+# The Helm tests' image, which needs sh and curl, pinned by digest after its tag.
+tests:
+  image:
+    registry: docker.io
+    repository: curlimages/curl
+    tag: 8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+
+# The alerting rules of ADR-0077 as a PrometheusRule, which needs the Prometheus Operator, so it is off by default.
+alertingRules:
+  enabled: false

@@ -1,0 +1,17 @@
+control: Every pod the chart runs is hardened
+removes: containers lose the read-only root filesystem
+packages: ./packaging/chart
+tests: TestEveryPodRunsHardened
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -59,7 +59,6 @@ imagePullSecrets:
+ securityContext:
+   allowPrivilegeEscalation: false
+   privileged: false
+-  readOnlyRootFilesystem: true
+   capabilities:
+     drop:
+     - ALL

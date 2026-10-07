@@ -57,4 +57,5 @@ in lockstep, so there is no long window in which old code runs against new schem
 - Assumptions about other components: something outside the application runs the bootstrap as a
   superuser, creates the application database owned by the migration role, grants the DDL-owning
   role to the migration step and withholds it from the runtime roles. The deployment runs the
-  migration step before rolling the deployables, whatever the deployment mechanism is.
+  migration step before rolling the deployables, whatever the deployment mechanism is. The Helm
+  chart's way is [ADR-0115](./0115-the-chart-runs-the-migration-step-as-one-hook-job-before-each-install-and-upgrade.md).

@@ -67,7 +67,7 @@ const MODELLED_MATCHERS = ['matchManagers', 'matchFileNames', 'matchDepNames', '
 // run so a new dependency file is a new cell. A file only an unmodelled manager reads is instead a
 // refusal, because its headers would be emitted and never enumerated here.
 const UNMODELLED_OCCUPANCY = [
-  [/(^|\/)Chart\.lock$/, 'helmv3'], [/(^|\/)values(-[^/]+)?\.ya?ml$/, 'helm-values'],
+  [/(^|\/)Chart\.lock$/, 'helmv3'],
   [/(^|\/)(package-lock\.json|npm-shrinkwrap\.json)$/, 'npm'], [/(^|\/)yarn\.lock$/, 'npm'], [/(^|\/)pnpm-lock\.yaml$/, 'npm'],
   [/(^|\/)\.tool-versions$/, 'asdf'], [/(^|\/)go\.work$/, 'gomod'], [/(^|\/)Cargo\.toml$/, 'cargo'],
   [/(^|\/)pyproject\.toml$/, 'pep621'], [/(^|\/)requirements[^/]*\.txt$/, 'pip_requirements'], [/(^|\/)Gemfile$/, 'bundler'],
@@ -294,6 +294,30 @@ const extractGithubActions = (env, file) => {
   return cells
 }
 
+// Renovate's helm-values manager reads every values file. It extracts an image from a map holding a
+// repository and a tag or version, optionally with a registry it prefixes to the name, and from a map
+// whose image key is a string beside a tag or version. A tag may carry its digest after an @. Both
+// shapes are walked over the whole document, so an image nested at any depth is a cell.
+const HELM_VALUES = /(^|\/)values(-[^/]+)?\.ya?ml$/
+
+const extractHelmValues = (env, file) => {
+  const cells = []
+  const walk = (node) => {
+    if (Array.isArray(node)) { node.forEach(walk); return }
+    if (!node || typeof node !== 'object') return
+    const version = node.tag ?? node.version
+    if (typeof version === 'string' || typeof version === 'number') {
+      let depName = null
+      if (typeof node.repository === 'string') depName = typeof node.registry === 'string' && node.registry ? `${node.registry}/${node.repository}` : node.repository
+      else if (typeof node.image === 'string') depName = node.image
+      if (depName) cells.push({ manager: 'helm-values', packageFile: file, depName, depType: null, datasource: 'docker' })
+    }
+    for (const value of Object.values(node)) walk(value)
+  }
+  walk(env.yaml(file))
+  return cells
+}
+
 const extractRegex = (env, manager, tracked) => {
   const cells = []
   const filePatterns = (manager.managerFilePatterns ?? []).map((p) => {
@@ -333,6 +357,7 @@ const occupancy = (env) => {
     for (const [re, manager] of UNMODELLED_OCCUPANCY) if (re.test(file)) unmodelled.push(`${file} (${manager})`)
     if (/(^|\/)go\.mod$/.test(file)) cells.push(...extractGomod(env, file))
     if (DOCKERFILE.test(file)) cells.push(...extractDockerfile(env, file))
+    if (HELM_VALUES.test(file)) cells.push(...extractHelmValues(env, file))
     if (/(^|\/)\.?mise\.toml$/.test(file)) cells.push(...extractMise(env, file))
     if (/(^|\/)package\.json$/.test(file)) cells.push(...extractBun(env, file, tracked))
     if (/^\.pre-commit-config\.ya?ml$/.test(file)) cells.push(...extractPreCommit(env, file))

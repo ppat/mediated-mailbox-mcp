@@ -48,3 +48,5 @@ paths with the fourth's approval and rollback machinery. No other packaging was 
   drills are defined in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - The runs, events, and failures tables are the only place the UI reads progress from. A
   workload that skips a row is invisible there.
+- How the Helm chart starts backfill, by hand and after each change, is
+  [ADR-0116](./0116-the-chart-runs-backfill-whenever-its-pod-changes-and-the-operator-starts-it-from-a-suspended-cronjob.md)'s.

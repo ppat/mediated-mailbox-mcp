@@ -46,7 +46,8 @@ its manifest sits.
 ## What is modelled, and what is refused
 
 Occupancy is extracted from the tracked tree for the managers this repository uses: `gomod`,
-`dockerfile`, `mise`, `bun`, `pre-commit`, `github-actions` including the runner, the `custom.regex`
+`dockerfile`, `helm-values` for an image a values file names by repository and tag or version,
+`mise`, `bun`, `pre-commit`, `github-actions` including the runner, the `custom.regex`
 managers declared in `.github/renovate.json`, and `renovate-config`. A file only another manager
 would read is a hard failure, so a new kind of dependency file is taught to the model before its
 headers can be emitted unenumerated. The matchers the fold evaluates are `matchManagers`,

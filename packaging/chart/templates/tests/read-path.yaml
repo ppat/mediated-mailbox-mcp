@@ -1,0 +1,48 @@
+{{- /*
+The read path's Helm tests, run by `helm test` after an install or an upgrade. Each asks one long-running
+deployable, through its Service, for what a pod answers only once it is wired as stated below. A test pod mounts no Secret and holds
+no credential, so it sees each surface as an unauthenticated caller would, and it runs under the same hardening as
+every other pod the chart runs. The migration step and backfill are Jobs, whose success Helm and the Job's own
+status already report.
+
+- The mediator answers ready, which it does only once its TLS key pair and bearer token load, and it serves only
+  after it read its accounts and their policy through its own role, which needs the schema the migration step
+  wrote. Its surface refuses a request without the bearer token.
+- The UI answers ready only while the database answers its own role, and it serves its page over TLS.
+- Delta sync answers its health probe and serves its metrics endpoint, which it does only once its configuration
+  validated and its keyring loaded. Neither answer needs the database, and a tick over no account shows nothing a
+  test could read, so whether delta sync reads the database through its role is left to the chainsaw suite, which
+  stores an OAuth client and waits for the series a successful read sets.
+
+The test image is the one input the tests take from outside this repository. It is a value, so a deployment that
+mirrors images can point it at its mirror.
+*/ -}}
+{{- $mediate := dict "root" . "component" "mediate" -}}
+{{- $ui := dict "root" . "component" "ui" -}}
+{{- $sync := dict "root" . "component" "sync" -}}
+{{- $scheme := ternary "http" "https" .Values.mediate.tls.atIngress -}}
+{{- range $test := list
+  (dict "ctx" $mediate "script" (printf "curl -fsS http://%s:8080/readyz && test \"$(curl -ks -o /dev/null -w '%%{http_code}' %s://%s:%v/mcp)\" = 401" (include "mediated-mailbox.name" $mediate) $scheme (include "mediated-mailbox.name" $mediate) $.Values.mediate.service.port))
+  (dict "ctx" $ui "script" (printf "curl -fsS http://%s:8080/readyz && curl -kfsS -o /dev/null https://%s:%v/" (include "mediated-mailbox.name" $ui) (include "mediated-mailbox.name" $ui) $.Values.ui.service.port))
+  (dict "ctx" $sync "script" (printf "curl -fsS http://%s:8080/healthz && curl -fsS -o /dev/null http://%s:8080/metrics" (include "mediated-mailbox.name" $sync) (include "mediated-mailbox.name" $sync)))
+}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "mediated-mailbox.name" $test.ctx }}-test
+  labels:
+    {{- include "mediated-mailbox.labels" (dict "root" $ "component" (printf "%s-test" $test.ctx.component)) | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  {{- include "mediated-mailbox.podSpec" $test.ctx | nindent 2 }}
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: {{ with $.Values.tests.image }}{{ printf "%s/%s:%s" .registry .repository .tag }}{{ end }}
+    imagePullPolicy: {{ $.Values.image.pullPolicy }}
+    {{- include "mediated-mailbox.containerSecurity" $test.ctx | nindent 4 }}
+    command: ["sh", "-ec", {{ $test.script | quote }}]
+{{- end }}

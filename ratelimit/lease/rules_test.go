@@ -53,11 +53,21 @@ func TestAlertingRules(t *testing.T) {
 	}
 }
 
-// rendered renders the chart with the given arguments and returns each document's kind and, for
-// a PrometheusRule, its spec.
+// inputs are the chart's required inputs and nothing else, so a render with them alone holds every
+// default the chart ships (ADR-0052).
+var inputs = []string{
+	"--set", "database.host=postgres", "--set", "database.name=mailbox", "--set", "keys.secretName=keys",
+	"--set", "migrate.passwordFileSecret.name=migrate", "--set", "mediate.passwordSecret.name=mediate",
+	"--set", "mediate.tokenSecret.name=token", "--set", "mediate.tls.secretName=mediate-tls",
+	"--set", "backfill.passwordSecret.name=backfill", "--set", "sync.passwordSecret.name=sync",
+	"--set", "ui.passwordSecret.name=ui", "--set", "ui.tls.secretName=ui-tls",
+}
+
+// rendered renders the chart with its required inputs and the given arguments and returns each
+// document's kind and, for a PrometheusRule, its spec.
 func rendered(t *testing.T, args ...string) (kinds []string, ruleSpecs []any) {
 	t.Helper()
-	out, err := run(t, "helm", append([]string{"template", "release", chartDir}, args...)...)
+	out, err := run(t, "helm", append(append([]string{"template", "release", chartDir}, inputs...), args...)...)
 	if err != nil {
 		t.Fatalf("helm template failed: %v\n%s", err, out)
 	}
@@ -81,12 +91,12 @@ func rendered(t *testing.T, args ...string) (kinds []string, ruleSpecs []any) {
 	}
 }
 
-// TestTheChartShipsTheRulesOnlyWhenSwitchedOn renders the chart with no values set, which must
+// TestTheChartShipsTheRulesOnlyWhenSwitchedOn renders the chart with only its required inputs set, which must
 // hold no PrometheusRule, and with the switch on, which must hold one carrying exactly the rules file
 // promtool tests (ADR-0077, ADR-0052).
 func TestTheChartShipsTheRulesOnlyWhenSwitchedOn(t *testing.T) {
 	if _, specs := rendered(t); len(specs) != 0 {
-		t.Errorf("the chart with no values set renders %d PrometheusRule resources, want none", len(specs))
+		t.Errorf("the chart with only its required inputs set renders %d PrometheusRule resources, want none", len(specs))
 	}
 	_, specs := rendered(t, "--set", "alertingRules.enabled=true")
 	if len(specs) != 1 {

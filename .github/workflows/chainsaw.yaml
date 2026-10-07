@@ -3,15 +3,23 @@
 name: chainsaw
 
 # The chainsaw suite deploys the chart onto an ephemeral kind cluster through flux, with the images already
-# published for one release version, and builds no image (ADR-0052). A dispatch names the version. A pull
-# request changing the chart or the suite tests it with the latest release's images, so a deployable's change
-# does not run it.
+# published for one release version, and builds no image (ADR-0052). Every release runs it, called by the release
+# workflow with the release's version, so the suite and the check of the release's key-generation binary run against
+# each release with no one starting them (ADR-0088). A dispatch names a version. A pull request changing the chart,
+# the suite or this workflow tests the pull request's chart with the latest release's images, so a pull request that
+# changes only a deployable does not run it.
 on:
   pull_request:
     paths:
+    - .github/scripts/chainsaw/**
     - .github/workflows/chainsaw.yaml
     - packaging/**
-    - tests/chainsaw/**
+  workflow_call:
+    inputs:
+      version:
+        description: Release version whose published images the chart is deployed with, such as 0.1.0
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       version:
@@ -19,8 +27,10 @@ on:
         required: true
         type: string
 
+# A literal prefix, because a called workflow's github.workflow is its caller's, and sharing the caller's group
+# would cancel one against the other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: chainsaw-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -30,6 +40,24 @@ env:
   IMAGES: backfill mediate migrate organize propose sync ui
 
 jobs:
+  # The check that a run tested something, proven on every run of this workflow, a run with no release to deploy
+  # included, against the pinned chainsaw's own output for a suite with no test and for one with a test.
+  self-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Prove the check refuses a run that tested nothing
+      shell: bash
+      working-directory: ./current
+      run: .github/scripts/chainsaw/self-test.sh packaging/tests/chainsaw/.chainsaw.yaml
+
   resolve:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -40,15 +68,15 @@ jobs:
       ready: ${{ steps.resolve.outputs.ready }}
       version: ${{ steps.resolve.outputs.version }}
     steps:
-    # A dispatched version without every image fails. On a pull request, no release, or a latest release
-    # without every image, skips the suite with a warning and a summary saying why, since nothing exists to
-    # deploy the chart with. Once a release publishes its images, every such pull request runs the suite.
+    # A version given by a dispatch or by the release workflow without every image fails. On a pull request, no
+    # release, or a latest release without every image, skips the suite with a warning and a summary saying why,
+    # since nothing exists to deploy the chart with. Once a release publishes its images, every such pull request
+    # runs the suite.
     - name: Resolve the version and find its images
       id: resolve
       shell: bash
       env:
         ACTOR: ${{ github.actor }}
-        EVENT_NAME: ${{ github.event_name }}
         GH_TOKEN: ${{ github.token }}
         INPUT_VERSION: ${{ inputs.version }}
         OWNER: ${{ github.repository_owner }}
@@ -56,7 +84,7 @@ jobs:
       # yamllint disable-line rule:indentation
       run: |
         not_ready() {
-          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+          if [[ -n "$INPUT_VERSION" ]]; then
             echo "::error::$1"
             exit 1
           fi
@@ -66,7 +94,7 @@ jobs:
           exit 0
         }
 
-        if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+        if [[ -n "$INPUT_VERSION" ]]; then
           version="${INPUT_VERSION#v}"
         else
           if ! latest="$(gh api "repos/${REPOSITORY}/releases/latest" --jq .tag_name 2>&1)"; then
@@ -140,7 +168,8 @@ jobs:
         mise exec -- flux create secret git mediated-mailbox-git --namespace flux-system \
           --url "https://github.com/${REPOSITORY}" --username x-access-token --password "$GIT_TOKEN"
 
-    # chainsaw exits zero when it finds no test, so a run that passed no test fails here.
+    # chainsaw exits zero when it finds no test, so a run that passed no test fails here, by the check the
+    # self-test job proves.
     - name: Run the suite
       shell: bash
       working-directory: ./current
@@ -161,10 +190,48 @@ jobs:
           commit: ${REVISION}
           secretName: mediated-mailbox-git
         EOF
-        mise exec -- chainsaw test tests/chainsaw --config tests/chainsaw/.chainsaw.yaml \
+        set -o pipefail
+        mise exec -- chainsaw test packaging/tests/chainsaw --config packaging/tests/chainsaw/.chainsaw.yaml \
           --values "${RUNNER_TEMP}/values.yaml" | tee "${RUNNER_TEMP}/chainsaw.log"
-        passed="$(sed -n 's/^- Passed  *tests \([0-9][0-9]*\)$/\1/p' "${RUNNER_TEMP}/chainsaw.log")"
-        if [[ -z "$passed" || "$passed" -eq 0 ]]; then
-          echo "::error::The chainsaw suite passed no test, so the run proved nothing about the chart."
-          exit 1
+        .github/scripts/chainsaw/passed.sh "${RUNNER_TEMP}/chainsaw.log"
+
+  # The key-generation binary the release attached, checked against the release's signing identity, with a tampered
+  # copy refused and the pair it writes sealed to and opened with through the library (ADR-0088). On a pull request,
+  # a latest release that attached no binary skips with a warning, as the suite does without images.
+  keygen:
+    needs: [resolve]
+    if: ${{ needs.resolve.outputs.ready == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check the release's key-generation binary
+      shell: bash
+      working-directory: ./current
+      env:
+        GH_TOKEN: ${{ github.token }}
+        INPUT_VERSION: ${{ inputs.version }}
+        REPOSITORY: ${{ github.repository }}
+        VERSION: ${{ needs.resolve.outputs.version }}
+      # yamllint disable-line rule:indentation
+      run: |
+        assets="$(gh release view "v${VERSION}" --repo "$REPOSITORY" --json assets --jq '.assets[].name')"
+        if ! grep -qx 'mediated-mailbox-keygen-linux-amd64' <<< "$assets"; then
+          message="Release v${VERSION} attached no key-generation binary."
+          if [[ -n "$INPUT_VERSION" ]]; then
+            echo "::error::${message}"
+            exit 1
+          fi
+          echo "::warning::${message} The binary was not checked."
+          printf '### The key-generation binary was not checked\n\n%s\n' "$message" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
         fi
+        .github/scripts/chainsaw/keygen.sh "$VERSION" "$REPOSITORY"

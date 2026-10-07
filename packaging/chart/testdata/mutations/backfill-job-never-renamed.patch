@@ -1,0 +1,18 @@
+control: Backfill runs again after a release or a change of the scanner's section, and only then
+removes: the backfill Job's name carries no hash, so no release or scanner change runs it again
+packages: ./packaging/chart
+tests: TestBackfillRunsAgainAfterAReleaseOrAScannerChangeOnly
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/backfill.yaml b/packaging/chart/templates/backfill.yaml
+--- a/packaging/chart/templates/backfill.yaml
++++ b/packaging/chart/templates/backfill.yaml
+@@ -81,7 +81,7 @@ automountServiceAccountToken: false
+ apiVersion: batch/v1
+ kind: Job
+ metadata:
+-  name: {{ printf "%s-%s" ($name | trunc 52 | trimSuffix "-") ($pod | sha256sum | trunc 10) }}
++  name: {{ printf "%s-run" $name }}
+   labels:
+     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
+ spec:

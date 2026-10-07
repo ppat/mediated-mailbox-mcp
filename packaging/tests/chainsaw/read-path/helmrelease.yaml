@@ -1,0 +1,67 @@
+---
+# The release under test. Every input names a Secret fixtures.sh created. The images are the version's, which the
+# workflow loads into the cluster's node, and the chart is the commit's.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: mediated-mailbox
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  releaseName: mediated-mailbox
+  targetNamespace: mediated-mailbox
+  chart:
+    spec:
+      chart: ($values.chart.path)
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: mediated-mailbox
+        namespace: flux-system
+  # Helm would otherwise hold the release for backfill's whole run (ADR-0116).
+  install:
+    disableWaitForJobs: true
+    remediation:
+      retries: 0
+  upgrade:
+    disableWaitForJobs: true
+    remediation:
+      retries: 0
+  test:
+    enable: true
+  values:
+    image:
+      registry: ($values.registry)
+      tag: ($values.version)
+    database:
+      host: postgres.postgres.svc.cluster.local
+      name: mailbox
+      # The harness's PostgreSQL serves no TLS. A deployment keeps the default, verify-full.
+      sslmode: disable
+    keys:
+      secretName: sealing-keys
+    migrate:
+      passwordFileSecret:
+        name: database-migrate
+    mediate:
+      passwordSecret:
+        name: database-mediate
+      tokenSecret:
+        name: bearer-token
+      tls:
+        secretName: tls-mediate
+    backfill:
+      passwordSecret:
+        name: database-backfill
+    sync:
+      passwordSecret:
+        name: database-sync
+      # A tick every 30 seconds, so the suite sees one read the client it stores soon after.
+      config: |
+        sync_interval: 30s
+    ui:
+      passwordSecret:
+        name: database-ui
+      tls:
+        secretName: tls-ui

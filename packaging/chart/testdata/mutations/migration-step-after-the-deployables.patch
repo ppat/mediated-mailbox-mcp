@@ -1,0 +1,18 @@
+control: The migration step runs before the deployables roll
+removes: the migration Job runs as a post-install and post-upgrade hook, after the deployables rolled
+packages: ./packaging/chart
+tests: TestTheMigrationStepRunsBeforeTheDeployables
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/migrate.yaml b/packaging/chart/templates/migrate.yaml
+--- a/packaging/chart/templates/migrate.yaml
++++ b/packaging/chart/templates/migrate.yaml
+@@ -18,7 +18,7 @@ metadata:
+   labels:
+     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
+   annotations:
+-    helm.sh/hook: pre-install,pre-upgrade
++    helm.sh/hook: post-install,post-upgrade
+     helm.sh/hook-delete-policy: before-hook-creation
+ spec:
+   backoffLimit: {{ $m.backoffLimit }}

@@ -71,10 +71,10 @@
       ".markdownlint-cli2.yaml"
     ],
     "https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/configuration-chainsaw-v1alpha2.json": [
-      "tests/chainsaw/.chainsaw.yaml"
+      "packaging/tests/chainsaw/.chainsaw.yaml"
     ],
     "https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json": [
-      "tests/chainsaw/**/chainsaw-test.yaml"
+      "packaging/tests/chainsaw/**/chainsaw-test.yaml"
     ]
   },
 

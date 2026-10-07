@@ -1090,5 +1090,7 @@ linters:
           - "!${base-path}/sync/**"
           - "!${base-path}/testsupport/**"
           - "!${base-path}/ui/**"
+          # The chart's render tests, which the ordinary test list governs as it does every other test file.
+          - "!${base-path}/packaging/chart/**_test.go"
           allow:
           - "$gostd"
