@@ -142,7 +142,7 @@ third pass none remains.
 | 2026-10-01 | re-authorizing an account can never switch it to another mailbox, and the account shows its mailbox | docs/UI.md §8.12, §8.13; ADR-0080 |
 | 2026-10-01 | importing and exporting the policy designed apart from the policy writes | docs/UI.md §20; ROADMAP.md's open decisions |
 | 2026-10-02 | a policy file is generic, naming no scope, so one exported from any scope imports as the base policy or into any account, and a rule's identifier is unique within its scope only. Importing a file makes the chosen scope's stored rules equal to the file, after a preview and one confirmation of every lift, typed as `lift {k}` for the base scope. This replaces the 2026-10-01 row's open question | docs/UI.md §8.7, §8.14; ADR-0110 |
-| 2026-10-01 | a connected account, a replaced credential and a policy edit reach the workloads with no manual step | docs/UI.md §8.7, §8.12, §20; ROADMAP.md's unit F7 |
+| 2026-10-01 | a connected account, a replaced credential and a policy edit reach the workloads with no manual step | docs/UI.md §8.7, §8.12; ADR-0119; ROADMAP.md's unit F10 |
 | 2026-10-01 | a refused credential is shown in the UI only, with no alerting rule of its own | docs/UI.md §8.13, §12 |
 
 **Requirements the design work surfaced.**

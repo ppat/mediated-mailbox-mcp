@@ -5,8 +5,10 @@
 
 ## Context
 
-The rate budget is per account, but the spenders are separate processes — the mediator pod serving
-interactive queries, the backfill job, the sync job, a reorg apply. Two problems follow: a naive
+The rate budget is per account, but the spenders are separate processes and separate jobs — the
+mediator serving interactive queries, and the background jobs, backfill, delta sync and reorg
+apply, which run as job kinds of one worker process
+([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)). Two problems follow: a naive
 shared queue lets a running backfill starve the agent's live queries behind hours of enqueued
 work, and separate processes can collectively overrun a budget each respects individually.
 

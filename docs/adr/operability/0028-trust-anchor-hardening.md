@@ -6,11 +6,11 @@
 
 ## Context
 
-Every deployable that calls a provider holds full mailbox credentials
-([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)). If one of their pods
-is owned, redaction is irrelevant, because the attacker calls the provider directly. The design
-accepts this as the irreducible trust anchor, which converts the question from "how do we prevent
-it" into "how expensive is it, how fast is it noticed, and what evidence survives."
+Every process that calls a provider holds full mailbox credentials
+([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)). If one of those
+processes is owned, redaction is irrelevant, because the attacker calls the provider directly. The
+design accepts this as the irreducible trust anchor, which converts the question from "how do we
+prevent it" into "how expensive is it, how fast is it noticed, and what evidence survives."
 
 ## Decision
 
@@ -18,11 +18,15 @@ Layered hardening, each layer answering one of those three questions:
 
 - **Raising the cost:** credentials sealed so that only code calling a provider opens an account's
   credential, the UI's one opening part opening an OAuth client's secret and nothing else
-  ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)). Each of those deployables runs
+  ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)). Each of those processes runs
   hardened and minimal, with no elevated privileges, an immutable filesystem, no shell, and nothing
-  beyond what it needs. The hardening is enforced by policy, and images are signed and verified
-  before they run. The UI runs under the same hardening, because it holds a fresh grant while it
-  completes a consent and holds the private key
+  beyond what it needs. Membership is by process, and everything a member process links is inside
+  the anchor, the code of every job kind the worker runs included
+  ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)). Within the worker, each job
+  kind is held to the code and grants it needs by isolation per job kind, not by a process
+  boundary. The hardening is enforced by policy, and images are signed and verified before they
+  run. The UI runs under the same hardening, because it holds a fresh grant while it completes a
+  consent and holds the private key
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - **Audit trail is maintained:** A record of changes is maintained in state store and significant
   events or changes are logged at a corresponding log level.

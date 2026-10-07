@@ -28,7 +28,11 @@ needs the secret of the client a consent was issued to.
   ([ADR-0082](./0082-rotation-writeback-to-the-database.md)).
 - **Only code that calls a provider opens an account's credential.** The UI's code never opens
   one. That is held by the UI's import lists and by what its one opening part can open, not by
-  keeping the key from the UI.
+  keeping the key from the UI. Inside the worker that runs every background job kind
+  ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)), a job kind that calls no
+  provider, heuristics today, never opens one either. That is held by its own import list, which
+  admits no opening code, by its role holding no grant on a sealed credential, and by its entry
+  constructor taking only what the job needs, not by keeping the key from the worker.
 - **One isolated part of the UI opens an OAuth client's secret, and nothing else.** The secret stays
   in its one sealed column and is never stored in a second form. The UI holds the same private keys
   the deployables that call a provider hold, and one package of the UI, `ui/internal/clientsecret`,
@@ -89,11 +93,15 @@ needs the secret of the client a consent was issued to.
   is held by review alone. Such code would open a value with primitives written from scratch, or
   reached through `go:linkname` or `unsafe`, with the key files whose paths the composition root
   holds, or run a statement through the paths the analyser leaves to review, which ADR-0071 lists. Test
-  code is outside both rules, since it is never served.
+  code is outside both rules, since it is never served. The same holds for a job kind of the worker
+  that calls no provider. Its import list holds it to the code it may link, and code that sets out
+  to read the process's memory or its key files is held by Go's memory safety and review, which is
+  why the worker's build carries no cgo and no dependency added for a job uses `unsafe`
+  ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)).
 - Losing the private key loses every stored credential and every OAuth client's secret. The
   operator recovers by setting up each OAuth client again and re-authorizing each account through
   the UI.
 - The construction is [ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a key
   is replaced is [ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)'s.
 - Assumptions about other components. The platform delivering the key files keeps the private key
-  away from every deployable that neither calls a provider nor is the UI.
+  away from every process that neither runs code that calls a provider nor is the UI.

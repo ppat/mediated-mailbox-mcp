@@ -31,7 +31,8 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
 
 - Shape: `| <deliberate violation> → <expected refusal> | what it proves, ADR-NNNN, and the wrong
   reading it rules out | <unit link> |`. Pending rows key to the unit that delivers the control, or
-  to the production point at which a drill or manual exercise runs; unit identifiers link to their
+  to the production point at which a drill or manual exercise runs, or a delivered unit whose later
+  work delivers it, marked as later work; unit identifiers link to their
   roadmap group anchors and production points to their sections.
 - Before writing the row, name the deliberate violation. If the row's left side is an
   enumeration, an inspection, or a comparison, it is not an injection — restate it as the

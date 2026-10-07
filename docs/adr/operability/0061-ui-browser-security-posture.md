@@ -5,8 +5,8 @@
 
 ## Context
 
-The UI carries the two decisions no client may reach, and OAuth client setup, account setup and
-policy management ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), and in
+The UI carries the two decisions no client may reach, a rollback request, and OAuth client setup,
+account setup and policy management ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), and in
 its first version has no authentication of its own. A page on another origin, opened in the
 operator's browser, could otherwise submit a decision, replace a client or an account's
 credential, or lift a policy rule with the operator's cookies. The operator delegated the UI's design to the designing session on 2026-09-09, and this

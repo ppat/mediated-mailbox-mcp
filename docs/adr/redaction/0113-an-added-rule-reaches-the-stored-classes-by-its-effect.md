@@ -28,8 +28,10 @@ policy management is the first work that adds rules to a filled index, so it dec
   stores as normal, and for every domain the policy snapshot it loaded now restricts under a rule, it
   sets that domain's messages stored as normal to the restricted class with the rule that now sets
   it, and rebuilds the domain's sender statistics, in one transaction. Backfill's second pass makes
-  it at the start of each of its runs, and delta sync on each tick once the pass has ended, as each
-  makes the delisting comparison ([ADR-0104](./0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md)).
+  it at the start of each of its runs, and again at the first unit boundary after the policy its run
+  holds changes by value, and delta sync on each tick once the pass has ended, as each makes the
+  delisting comparison ([ADR-0037](./0037-delisting-transition.md),
+  [ADR-0104](./0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md)).
 - **A domain the policy restricts with no rule is left as stored.** A policy that never loaded, and
   an address the classifier cannot read, classify restricted with no rule naming why. Neither is a
   rule taking effect, and writing either would restrict every stored sender while no policy has

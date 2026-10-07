@@ -7,8 +7,8 @@
 ## Context
 
 [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) fixes what the UI is
-(read-mostly, two decision verbs, OAuth client setup, account setup and policy management, a
-separate deployment, never a body) and lists its views, but not how those views are organized or
+(read-mostly, two decision verbs, a rollback request, OAuth client setup, account setup and policy
+management, a separate deployment, never a body) and lists its views, but not how those views are organized or
 how the UI grows past them. The operator asked for a UI structured to take on views not yet described, with drill-down,
 zoom in and out, and aggregate views over plans and any other element as if analyzing a data set or
 a proposed change. Three directions were sketched and compared on one canvas, differing only in
@@ -47,8 +47,8 @@ ladder.
   handles values of is the one being connected, whose rows it writes alone.
 - **Message-derived text renders as text only.** Subjects, display names, addresses, labels, and
   reasons are attacker-written text. No rendering path interprets them as markup.
-- ADR-0084's constraints are unchanged. Two decision verbs, OAuth client setup, account setup and
-  policy management by database grant, code that never opens a stored credential, never a body. The shape adds
+- ADR-0084's constraints are unchanged. Two decision verbs, a rollback request, OAuth client setup,
+  account setup and policy management by database grant, code that never opens a stored credential, never a body. The shape adds
   legibility, not surface. The UI stays boring in ADR-0084's sense.
 
 ## Alternatives considered

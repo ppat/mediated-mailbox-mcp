@@ -36,8 +36,13 @@ gate skips it as restricted, until the same comparison restricts the stored clas
 Backfill's second pass runs the comparison at the start of each of its runs, which it makes until
 the pass has ended for the account, and when it marks any message the run starts over from the first
 message waiting for a scan, because the marked messages may sit before the point it resumed from
-([ADR-0017](../data/0017-two-pass-backfill.md)). A rule removed by any path therefore reaches the
-transition, whether through the UI, an import that drops it, a narrowed domain list, or a change
+([ADR-0017](../data/0017-two-pass-backfill.md)). A running second pass also makes it again at the
+first unit boundary after the policy its run holds changes, where a change means the rules differ
+by value, not that a reload built a new snapshot
+([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). When that
+comparison marks any message, the run starts over from the first message waiting for a scan inside
+the same run, as a comparison at a run's start does. A rule removed by any path therefore reaches
+the transition, whether through the UI, an import that drops it, a narrowed domain list, or a change
 made directly in the database while nothing was running.
 
 One interaction, bounded deliberately: the serve-time pattern check

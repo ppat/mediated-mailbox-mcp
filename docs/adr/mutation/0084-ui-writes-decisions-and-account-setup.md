@@ -1,4 +1,4 @@
-# 0084. The UI is a separate surface that writes the database directly, for two decisions, OAuth client setup, account setup and policy management, and seals credentials its code never opens
+# 0084. The UI is a separate surface that writes the database directly, for two decisions, a rollback request, OAuth client setup, account setup and policy management, and seals credentials its code never opens
 
 **Status:** Accepted (supersedes [ADR-0021](./0021-approval-surface.md)) ·
 **Pillar:** [Approval is not in any client's vocabulary](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary) ·
@@ -20,17 +20,17 @@ both.
 ## Decision
 
 **A read-mostly web UI, deployed and privileged separately from the mediator. Its writes are two
-decision verbs, OAuth client setup, account setup and policy management.**
+decision verbs, a rollback request, OAuth client setup, account setup and policy management.**
 
 | View | Purpose |
 | --- | --- |
 | **Corpus overview** | Volume by sender, label distribution, unfiled counts, classification breakdown. It makes backfill output legible to the operator, not just the agent |
-| **Reorg plans** | List, diff, sample of affected messages, per-message reasoning, **approve/reject**. The load-bearing screen |
+| **Reorg plans** | List, diff, sample of affected messages, per-message reasoning, **approve/reject**, and a **rollback request** for an applied plan. The load-bearing screen |
 | **Review queue** | Ranked heuristic candidates with the signal that flagged them, **confirm/dismiss** into the policy store. What keeps the sender list from going stale |
 | **Masking events** | What was masked, why, which rule. Tunes the masking posture from real traffic |
 | **Scan gate decisions** | Skip rates by reason and sender. Makes the accepted residual auditable |
 | **Audit log** | Every body served, every denial, every mutation |
-| **Jobs** | Every batch workload live, its progress, the rate budget by priority class, recent runs |
+| **Jobs** | Every background job live, its progress, the rate budget by priority class, recent runs |
 | **A run** | One run, and a failed one down to its individual failures |
 | **OAuth client setup** | Setting up each of the installation's OAuth clients for a provider through the guided flow, once per client, apart from any account |
 | **Account setup** | Connecting an account through one of its provider's clients, setting what the account's rows hold, and re-authorizing an account whose credential stopped working |
@@ -46,7 +46,9 @@ Constraints that keep it safe to exist:
 - **Separate Deployment, ServiceAccount, and database role.** It is read-only on most tables. Its
   read of `account_state` arrives with the statement that needs it and never covers `credential`
   ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Its write grant is exactly the columns each decision verb sets, `reorg_plans(status, approved_at,
-  approved_by)` and `policy_candidates(status, reviewed_at, reviewed_by)`, insert on
+  approved_by)` and `policy_candidates(status, reviewed_at, reviewed_by)`, the first of which also
+  carries the rollback request, a plan status
+  ([ADR-0020](./0020-reorg-plan-approve-apply-rollback.md)), insert on
   `policy_rules` for the one row confirming a candidate emits
   ([ADR-0004](../classification/0004-sender-list-decides.md)), and the columns OAuth client setup
   and account setup write, among them the two last-authentication columns of `account_state`, where
@@ -87,7 +89,8 @@ Constraints that keep it safe to exist:
   come later.
 
 The shape is a small single-page app over a thin read API. Its value is legibility, two decisions,
-connecting accounts and keeping the policy. Its design is [docs/UI.md](../../UI.md).
+a rollback request, connecting accounts and keeping the policy. Its design is
+[docs/UI.md](../../UI.md).
 
 ## Alternatives considered
 
@@ -107,9 +110,10 @@ connecting accounts and keeping the policy. Its design is [docs/UI.md](../../UI.
 
 ## Consequences
 
-- Compromise of the UI yields two decision verbs, OAuth client setup, account setup and policy
-  management. An approved plan is still constrained by the Mutation Authorizer at apply time. A
-  confirmed candidate's rule insert can only add a restriction, and invalid rules never take effect
+- Compromise of the UI yields two decision verbs, a rollback request, OAuth client setup, account
+  setup and policy management. An approved plan is still constrained by the Mutation Authorizer at
+  apply time. A confirmed candidate's rule insert can only add a restriction, and invalid rules
+  never take effect
   ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). Policy management can lift
   restrictions, every account's included, and each lift is recorded in a history no runtime role
   can rewrite ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), so the

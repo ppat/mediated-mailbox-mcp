@@ -32,6 +32,12 @@ class AccountContext:
     rate_limiter:   AdaptiveRateController  # shared via rate_state (ADR-0025)
 ```
 
+The bundle is a concept, everything the system holds for one account and for no other. Its parts
+live in their own libraries, the account snapshot, the provider adapter's connection, the policy
+snapshot and the rate limiter, and the structure above illustrates what the bundle holds rather
+than prescribing one Go type
+([DESIGN.md's Glossary](../../../DESIGN.md#provider-abstraction-and-accounts)).
+
 The rules that keep accounts from bleeding:
 
 - **`account_id` is required on every client-surface operation** (API endpoint or MCP tool).

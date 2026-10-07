@@ -30,14 +30,16 @@ no read path needs.
              ► NO CLIENT OPERATION — MCP TOOL OR API ENDPOINT — PERFORMS THIS TRANSITION.
              or REJECT: status=REJECTED, the same columns, the plan is closed
 
-4. APPLY   a job: re-validate the whole plan + check its age (ADR-0032)
+4. APPLY   a job of the worker, started from APPROVED by a compare-and-set on the status
+             (ADR-0119): re-validate the whole plan + check its age (ADR-0032)
              a plan that fails either → status=APPLY_REFUSED with the reason, before any write
              → ensure labels exist → batched mutations
              every operation recorded to the op log (labels before/after)
              the Mutation Authorizer checked per operation — approval never
              overrides the matrix (ADR-0019)
 
-5. ROLLBACK  replay the op log in reverse — exact restore, indefinitely
+5. ROLLBACK  the operator requests it, in the UI, as a plan status; a job of the worker
+             replays the op log in reverse — exact restore, indefinitely
 ```
 
 The decisions inside the cycle, each with its reason:
@@ -64,6 +66,16 @@ The decisions inside the cycle, each with its reason:
   decision and its reasons are [ADR-0032](./0032-whole-batch-validation.md).
 - **Apply is checkpointed.** A failed run resumes; a partially-applied plan is a known,
   describable state, never an indeterminate one.
+- **Apply starts from the recorded approval, once.** The worker's apply job finds a plan whose
+  status reads APPROVED and moves it to APPLYING by a compare-and-set, writing the transition only
+  while the status still reads APPROVED, so no two runs start one plan whatever the platform does
+  ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). The
+  same job finds a plan still recorded as APPLYING after a crash and resumes it from its checkpoint.
+- **A rollback is requested as a plan status.** The operator requests it in the UI, which writes
+  the status within the grant it already holds on a plan's status
+  ([ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)), and the worker's apply job reads it
+  as it reads an approval. The status value is named where rollback is built. No client operation
+  writes it, as none writes an approval.
 - **Never delete a label that still has messages in it.** Remove associations first — a
   provider-side cascade can destroy state the rollback log assumed restorable.
 - **A scale cap:** a plan touching more than a quarter of the corpus requires a second explicit

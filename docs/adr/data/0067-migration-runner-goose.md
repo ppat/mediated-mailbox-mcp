@@ -183,7 +183,7 @@ another.
   role to the migration step and withholds it from the runtime roles. The deployment mechanism runs
   the step before rolling the deployables, and any mechanism that can run a command can do it, which
   is what [ADR-0051](../engineering/0051-environment-contract.md) requires. The extensions the
-  schema needs are created by the bootstrap before the chain and recorded in its first migration,
+  schema needs are trusted, so the chain's first migration creates them under the migration role,
   which [ADR-0048](./0048-forward-only-migrations.md) decides.
 - No new control. The constraints this record checked belong to
   [ADR-0048](./0048-forward-only-migrations.md) and

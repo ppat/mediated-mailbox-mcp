@@ -15,14 +15,18 @@ extend to the artifact layer or quietly stop at the process boundary.
 ## Decision
 
 - **One image per deployable.** The default position is an image per deployable, held until reality
-  bites and argues for a different cut. The deployables today are the mediator, the UI, and the four
-  batch workloads; the other named components — the gate, the classifier, the scanner, the scan
-  gate, the rate limiter — are not deployables and ride inside deployables as code. The migration
+  bites and argues for a different cut. The deployables are the mediator, the UI, and the worker
+  that runs every background job kind
+  ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)); the other named
+  components — the gate, the classifier, the scanner, the scan gate, the rate limiter — are not
+  deployables and ride inside deployables as code. The migration
   step of [ADR-0048](../data/0048-forward-only-migrations.md) is not a deployable either. It has an
   image of its own, which carries the migration runner and the migration chain and none of this
   project's Go code. Each image bakes only its deployable's own code plus the shared libraries it
   imports — one deployable's image cannot contain another's code, so "nothing beyond what it needs"
-  reads all the way down to image contents.
+  reads all the way down to image contents. Exactness is a property of the binary and the final
+  stage. Go links only the packages a binary imports, and the final stage copies only that binary,
+  so which source a build stage copies is mechanism and never widens what the image holds.
 - **Everything moves in lockstep.** Images, the deployment artifact that consumes them and the
   key-generation binaries attached to the release
   ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)) carry one version — the
@@ -60,8 +64,13 @@ extend to the artifact layer or quietly stop at the process boundary.
   default-until-reality-bites heuristic; switching the cut later is a packaging change, not a
   redesign.
 - Packaging isolation is never asked to carry credential isolation: which process can open a stored
-  credential stays a property of which deployables receive the private key's file, and within the
-  UI of its code ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)), whatever
-  the images look like.
+  credential stays a property of which processes receive the private key's file, and within the
+  UI and within the worker of their code
+  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)), whatever the images
+  look like.
+- The worker's image holds the code of every job kind it runs, so the exactness this record keeps
+  per deployable is the worker's as a whole, not each job kind's. The alternative of one shared
+  image for four batch workloads no longer has a subject, because the background work is one
+  deployable ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
 - Assumptions about other components: the build-and-publish machinery is parameterized per
   deployable; the deployment artifact consumes every image at the same lockstep version.

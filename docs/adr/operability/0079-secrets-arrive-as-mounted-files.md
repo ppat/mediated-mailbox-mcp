@@ -22,11 +22,18 @@ restarts.
   and child-process inheritance. File mounts do not.
 - **No deployable fetches these secrets itself.** Something outside the deployables delivers the
   files.
-- **Only the deployables that use a secret can read its file.** In particular, only the
-  deployables that open credentials to call a provider, the mediator, backfill, delta sync and the
-  reorg workload, and the UI, whose one isolated part opens an OAuth client's secret with it
+- **Only the processes that use a secret can read its file.** In particular, only the processes
+  that open credentials to call a provider, the mediator and the worker whose job kinds include
+  backfill, delta sync and reorg apply
+  ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)), and the UI, whose one isolated
+  part opens an OAuth client's secret with it
   ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md)), can read the private key that opens
-  an account's credential.
+  an account's credential. Custody is by process: everything a process that reads the key links is
+  inside the trust anchor. A job kind of the worker that calls no provider runs in a process that
+  reads the key, and is kept from it by code isolation per job kind, as the UI's code is kept from
+  opening an account's credential
+  ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md),
+  [ADR-0081](./0081-credentials-sealed-to-a-public-key.md)).
 
 ## Alternatives considered
 

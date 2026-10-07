@@ -52,6 +52,7 @@ CREATE TABLE account_state (             -- everything else an account carries (
   sync_cursor_at    timestamptz,           -- when sync_cursor was last written
   last_auth_at      timestamptz,           -- latest authentication attempt recorded (ADR-0097)
   last_auth_outcome text                   -- succeeded | refused | failed, exposed by ADR-0034
+    CHECK (last_auth_outcome IN ('succeeded', 'refused', 'failed'))
 );
 -- sync_cursor_at is written by delta sync, last_auth_* by each provider-calling deployable from
 -- what its provider adapter reports, and by the UI from the code exchange of a consent it
@@ -82,7 +83,7 @@ CREATE TABLE rate_state (                 -- cross-process rate coordination (AD
 CREATE TABLE rate_grants (                -- every grant of the last second, which are also the live leases (ADR-0024, ADR-0025)
   grant_id    bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   account_id  text NOT NULL REFERENCES accounts,
-  class       text NOT NULL,              -- interactive | sync | batch
+  class       text NOT NULL CHECK (class IN ('interactive', 'sync', 'batch')),
   tokens      real NOT NULL,
   issued_at   timestamptz NOT NULL        -- the lease expires one second later
 );
@@ -92,7 +93,7 @@ CREATE INDEX ON rate_grants (account_id, issued_at);
 
 CREATE TABLE senders (                    -- drives the scan gate and the heuristics
   account_id        text NOT NULL REFERENCES accounts,
-  domain            citext NOT NULL,
+  domain            text NOT NULL CHECK (domain = lower(domain COLLATE "C")),
   local_part_sample text[],
   display_names     text[],
   message_count     bigint NOT NULL DEFAULT 0,
@@ -101,8 +102,7 @@ CREATE TABLE senders (                    -- drives the scan gate and the heuris
   has_list_id_ratio real,                 -- newsletter vs transactional signal
   label_distribution jsonb,
   scan_hit_count    bigint NOT NULL DEFAULT 0,
-  sender_class      text NOT NULL DEFAULT 'normal',
-  embedding         vector(384),          -- pgvector, heuristic candidates (ADR-0004)
+  sender_class      text NOT NULL DEFAULT 'normal' CHECK (sender_class IN ('normal', 'restricted')),
   PRIMARY KEY (account_id, domain)
 );
 
@@ -111,7 +111,8 @@ CREATE TABLE messages (
   message_id       text NOT NULL,
   thread_id        text NOT NULL,
   from_email       citext NOT NULL,
-  from_domain      citext NOT NULL,       -- denormalized: classification hot path
+  from_domain      text NOT NULL          -- denormalized: classification hot path
+    CHECK (from_domain = lower(from_domain COLLATE "C")),
   from_name        text,
   subject          text,                  -- masked at rest if a code was detected
   subject_masked   boolean NOT NULL DEFAULT false,
@@ -125,12 +126,14 @@ CREATE TABLE messages (
   list_id          text,
   size_bytes       int,
   auth_results     jsonb,
-  sender_class     text NOT NULL,          -- normal | restricted
-  content_flags    text[] NOT NULL DEFAULT '{}',  -- mfa_code | login_link
+  sender_class     text NOT NULL CHECK (sender_class IN ('normal', 'restricted')),
+  content_flags    text[] NOT NULL DEFAULT '{}'
+    CHECK (content_flags <@ '{mfa_code,login_link}'),
   rule_ids         text[] NOT NULL DEFAULT '{}',  -- the content rules that set content_flags
   class_rule_id    text,                   -- the identifier of the policy rule that set sender_class, NULL when none
                                            -- did; an identifier, which two scopes may hold (ADR-0110)
-  scan_state       text NOT NULL DEFAULT 'pending',  -- scanned | skipped_restricted | skipped_gate | pending (ADR-0093)
+  scan_state       text NOT NULL DEFAULT 'pending'   -- ADR-0093's states
+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
   scanned_at       timestamptz,
   scanner_version  int,
   scanner_revision text,                   -- the scanner configuration's revision (ADR-0009)
@@ -141,15 +144,14 @@ CREATE TABLE messages (
 
 CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
-CREATE INDEX ON messages USING gin (labels);
 CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
-CREATE INDEX ON messages USING gin (subject gin_trgm_ops);
+-- no index over labels or subject: no leakproof comparison serves either under row-level security
 
 CREATE TABLE scan_gate_decisions (        -- makes ADR-0093's residual auditable
   account_id  text NOT NULL,
   message_id  text NOT NULL,
-  decision    text NOT NULL,              -- SCAN | SKIP
+  decision    text NOT NULL CHECK (decision IN ('SCAN', 'SKIP')),
   reason      text NOT NULL,              -- restricted | high_volume_no_hits | ...
   decided_at  timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (account_id, message_id)
@@ -157,7 +159,7 @@ CREATE TABLE scan_gate_decisions (        -- makes ADR-0093's residual auditable
 
 CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
   account_id   text NOT NULL,
-  domain       citext NOT NULL,
+  domain       text NOT NULL CHECK (domain = lower(domain COLLATE "C")),
   signals      jsonb NOT NULL,            -- one entry per heuristic that fired, with its evidence, as
                                           --   [{heuristic, evidence}], heuristic one of display_name,
                                           --   domain_clustering, institution_keyword, transactional_pattern,
@@ -172,7 +174,8 @@ CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
                                           --   (embedding_similarity); score is the similarity against the
                                           --   confirmed-sensitive centroid ADR-0004 compares with
   score        real NOT NULL,
-  status       text NOT NULL DEFAULT 'pending',  -- pending|confirmed|dismissed
+  status       text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'confirmed', 'dismissed')),
   created_at   timestamptz NOT NULL DEFAULT now(),
   reviewed_at  timestamptz,
   reviewed_by  text,                      -- human only; in the UI's write grant (ADR-0084)
@@ -183,9 +186,9 @@ CREATE TABLE policy_rules (               -- the sender policy as rows (ADR-0004
   account_id     text REFERENCES accounts, -- NULL for the base policy; an overlay names its account
   rule_id        text NOT NULL,           -- unique within its scope (ADR-0110); candidate.{account}.{domain}
                                           -- when a confirmation minted it
-  class          text NOT NULL,           -- restricted
+  class          text NOT NULL CHECK (class IN ('restricted')),
   domain_suffix  text[] NOT NULL,
-  source         text NOT NULL,           -- operator | candidate
+  source         text NOT NULL CHECK (source IN ('operator', 'candidate')),
   created_at     timestamptz NOT NULL DEFAULT now(),
   created_by     text NOT NULL,           -- the operator identity; in the UI's write grant (ADR-0084)
   UNIQUE NULLS NOT DISTINCT (account_id, rule_id)  -- the base policy is one scope, each account another
@@ -197,7 +200,7 @@ CREATE TABLE policy_changes (             -- every change to policy_rules, appen
   account_id     text REFERENCES accounts, -- NULL for a base rule's change; an overlay rule's names its account
   ts             timestamptz NOT NULL DEFAULT now(),
   actor          text NOT NULL,           -- the operator identity (ADR-0084)
-  action         text NOT NULL,           -- added | edited | lifted | confirmed
+  action         text NOT NULL CHECK (action IN ('added', 'edited', 'lifted', 'confirmed')),
   rule_id        text NOT NULL,
   suffixes_before text[] NOT NULL DEFAULT '{}',  -- empty for added and confirmed
   suffixes_after  text[] NOT NULL DEFAULT '{}'   -- empty for lifted
@@ -209,7 +212,7 @@ CREATE TABLE masking_events (
   id          bigserial PRIMARY KEY,
   account_id  text NOT NULL,             -- indexed below with masked_at
   message_id  text NOT NULL,
-  field       text NOT NULL,              -- subject
+  field       text NOT NULL CHECK (field IN ('subject')),
   rule_id     text NOT NULL,
   tier        int NOT NULL,
   scanner_version  int,                   -- the scanner the masking ran under (ADR-0096)
@@ -222,7 +225,9 @@ CREATE INDEX ON masking_events (account_id, masked_at DESC);
 CREATE TABLE reorg_plans (
   plan_id     uuid PRIMARY KEY,
   account_id  text NOT NULL REFERENCES accounts,
-  status      text NOT NULL,              -- DRAFT|APPROVED|APPLYING|APPLIED|ROLLED_BACK|REJECTED|APPLY_REFUSED
+  status      text NOT NULL CHECK (status IN ('DRAFT', 'APPROVED', 'APPLYING', 'APPLIED',
+                'ROLLED_BACK', 'REJECTED', 'APPLY_REFUSED')),  -- ADR-0020's set; rollback's own status
+                                          -- is added where rollback is built
   description text,
   proposer    text,                       -- the client actor at creation
   plan        jsonb NOT NULL,             -- label_ops as [{op: create|rename|delete, label, to}], message_ops, stats
@@ -257,12 +262,13 @@ CREATE TABLE reorg_op_log (
   PRIMARY KEY (plan_id, seq)
 );
 
-CREATE TABLE job_runs (                   -- every batch workload's runs (ADR-0022)
+CREATE TABLE job_runs (                   -- every background job kind's runs (ADR-0022)
   account_id    text NOT NULL REFERENCES accounts,
   run_id        text NOT NULL,            -- short opaque string
-  workload      text NOT NULL,            -- backfill | sync | apply | heuristics
-  pass          text,                     -- pass1 | pass2 | tick | gap_recovery | apply | rollback
-  state         text NOT NULL,            -- running | succeeded | failed
+  workload      text NOT NULL,            -- the job kind: backfill | sync | apply | heuristics
+  pass          text NOT NULL,            -- pass1 | pass2 | tick | gap_recovery | apply | rollback, and the
+                                          --   one heuristics names when it is built
+  state         text NOT NULL CHECK (state IN ('running', 'succeeded', 'failed')),
   plan_id       uuid REFERENCES reorg_plans,  -- apply and rollback runs
   resumed_from  text,                     -- the run this one resumed
   started_at    timestamptz NOT NULL,
@@ -280,8 +286,16 @@ CREATE TABLE job_runs (                   -- every batch workload's runs (ADR-00
                                           --   pending, scanned, skipped (ADR-0104, ADR-0105); apply ops_done,
                                           --   ops_total, failures; heuristics candidates
   last_error    text,                     -- provider or scanner text, never a body
-  PRIMARY KEY (account_id, run_id)
+  PRIMARY KEY (account_id, run_id),
+  CHECK ((workload, pass) IN (('backfill', 'pass1'), ('backfill', 'pass2'),
+                              ('sync', 'tick'), ('sync', 'gap_recovery')))
+                                          -- the pairs of the job kinds built; each job kind adds
+                                          --   its own pairs in the migration that brings its role
 );
+CREATE INDEX ON job_runs (account_id, workload, pass, started_at DESC, run_id);
+CREATE INDEX ON job_runs (account_id) WHERE state = 'running';
+CREATE INDEX ON job_runs (account_id, finished_at);
+CREATE INDEX ON job_runs (account_id, started_at DESC);
 
 CREATE TABLE job_run_events (             -- a run's timeline
   account_id text NOT NULL,
@@ -312,17 +326,36 @@ CREATE TABLE job_run_failures (           -- a run's per-item failures
 );
 
 CREATE TABLE audit_log (
-  id          bigserial PRIMARY KEY,
-  ts          timestamptz NOT NULL DEFAULT now(),
-  account_id  text NOT NULL,
-  actor       text NOT NULL,
-  action      text NOT NULL,              -- READ_BODY|DENY_BODY|MUTATE|DENY_MUTATE
-  message_id  text,
-  sensitivity jsonb,
-  rule_ids    text[]
+  id               bigserial PRIMARY KEY,
+  ts               timestamptz NOT NULL DEFAULT now(),
+  account_id       text NOT NULL,
+  actor            text NOT NULL,
+  action           text NOT NULL
+    CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),
+  message_id       text,
+  -- what a body decision rests on (ADR-0001, ADR-0002)
+  stage            text CHECK (stage IN ('gate', 'serve')),
+  reason           text,                  -- closed and checked: the reasons a body decision gives,
+                                          --   released included, whose spellings are settled with
+                                          --   the reasons the client surface returns
+  sender_class     text CHECK (sender_class IN ('normal', 'restricted')),
+  class_rule_id    text,                  -- the policy rule behind sender_class
+  class_rule_scope text CHECK (class_rule_scope IN ('base', 'account')),
+  content_flags    text[] CHECK (content_flags <@ '{mfa_code,login_link}'),
+  content_rule_ids text[],                -- the scanner rules behind the stored flags
+  serve_rule_ids   text[],                -- the serve-time pattern check's rules, on a serve-time denial
+  scan_state       text
+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
+  scanner_version  int,                   -- the scanner the serve-time check ran under
+  scanner_revision text,
+  CHECK (action NOT IN ('READ_BODY', 'DENY_BODY')
+         OR (reason IS NOT NULL AND sender_class IS NOT NULL AND scan_state IS NOT NULL)),
+  CHECK ((class_rule_id IS NULL) = (class_rule_scope IS NULL))
 );
 -- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention.
+-- A mutation's own columns are added where mutation is built, and rows written before keep their meaning.
 CREATE INDEX ON audit_log (account_id, ts DESC);
+CREATE INDEX ON audit_log (account_id, message_id, ts DESC);
 ```
 
 The properties the shape enforces:
@@ -373,12 +406,47 @@ The properties the shape enforces:
   ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). The general asymmetry behind this is
   worth carrying. An insert a policy refuses raises, while a select or update a policy empties
   returns quietly.
-- **The stored spellings of every enumerated column are the ones the DDL comments show**, in
+- **The stored spellings of every enumerated column are the ones the DDL shows**, in
   lowercase snake case where a record names the state in capitals (`skipped_gate` for
   [ADR-0093](../redaction/0093-composite-scan-gate.md)'s `SKIPPED_GATE`). Plan statuses keep
   their capitals as [ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md) writes
   them.
-- **The batch workloads' runs, timeline events, and per-item failures are rows**
+- **Closed vocabularies are checked, in three tiers.** A check is a constraint, not code in the
+  database ([ADR-0060](../engineering/0060-no-code-in-the-database.md)), and each check standing in
+  for a rule costs a test and its mutation demonstration once.
+  - *Irreversible if a wrong spelling slips*: the audit row's closed columns and `policy_changes`'
+    action. Both tables are append-only, so a wrong spelling written there stays for good. A new
+    token costs one migration that replaces the constraint in the token's own release, written as
+    `NOT VALID` then `VALIDATE` so inserts keep flowing, and widening a set never fails validation.
+  - *Asked for by a reader*: `job_runs`' job kind and pass as a closed set of pairs, and its state.
+    A job kind arrives with a role and grants anyway, so extending the check rides that migration.
+  - *Cheap, next to safety*: the sender class, scan state and content flags of `messages`, the
+    sender class of `senders`, the gate's decision, the last authentication outcome, a rule's class
+    and source, a candidate's and a plan's status, a grant's class and a masking event's field.
+    Readers already fail closed on an unknown value, so the gain is a loud write failure in place of
+    quiet over-redaction.
+  - *Not checked*: `accounts.provider`, since a check would put a storage change in every new
+    backend ([P2](../../../USE_CASES.md#p2--backend-swap)), and the vocabularies tuning and new job
+    kinds grow on rebuildable rows an update can fix, the gate decision's reason, a run event's
+    kind, a failure's class, item kind and disposition, and a masking event's tier.
+- **Sender domains are stored as lowercase `text`.** Every stored domain is written through one
+  normalizer in Go that lowercases it, and no statement lowercases in SQL, because PostgreSQL's
+  `lower()` differs from Go's and depends on the database's collation, so a statement that lowered
+  in SQL would match some stored values on one database and miss them on another. The check
+  `x = lower(x COLLATE "C")` is a guard, not the definition. It refuses an ASCII capital, the
+  plausible bug of a writer skipping the normalizer, and means the same on every database, since
+  the `C` collation folds only A to Z, and it refuses nothing Go's function produces. A domain
+  written in punycode is stored in punycode and one written in Unicode in Unicode. Case-insensitive
+  text stays only where display case must be kept and matching needs no index, which is
+  `from_email`.
+- **The audit row records what a body decision rests on, in typed columns**: the stage that
+  decided, the reason, the sender class with the rule behind it and that rule's scope, the content
+  flags with the scanner rules behind them kept apart from the serve-time check's, the scan state,
+  and the scanner the serve-time check ran under. On evidence no runtime role can ever correct, a
+  closed vocabulary fails at insert, and a check reads a column plainly. The mediator writes the
+  audit row before it releases anything, so a token the check does not know fails the request
+  closed and loudly and never serves a body without its record.
+- **The background job kinds' runs, timeline events, and per-item failures are rows**
   ([ADR-0022](../operability/0022-four-workloads.md)), and their free-text columns hold provider
   or scanner text and never a body, under the same comment that binds every table.
 - **The UI's decisions are recorded in the columns its verbs set and the rule row its confirm
@@ -401,7 +469,12 @@ The properties the shape enforces:
   nothing fills them in.
 - **Masked subjects are stored masked** — the index never holds a live code.
 - **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
-  (`scan_state = 'pending'`) directly.
+  (`scan_state = 'pending'`) directly. A partial index serves a runtime role when the statement
+  states its predicate exactly, even where the predicate's operator is not leakproof.
+- **The run indexes serve the reads that repeat**, every tick's latest run, the jobs screen's
+  latest run per job kind and pass, the event stream, the runs dataset, and the job mechanism's due
+  decisions, and the audit index serves a message's audit rows. `job_runs.pass` is never null, so
+  the latest-run reads compare it by equality, which an index serves.
 - **The policy history is append-only to every runtime role**, for the same reason as the audit
   log below, so who lifted a restriction and when survives the UI's compromise
   ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
@@ -442,3 +515,15 @@ The properties the shape enforces:
   running system trims the table, and whether it is ever trimmed is an open decision in
   [ROADMAP.md](../../../ROADMAP.md).
 - Schema evolution is by migration; the DDL's no-body comment binds every future one.
+- **Row-level security costs indexes.** PostgreSQL uses a predicate as an index condition ahead of
+  a policy only when every function it applies to the row's columns is leakproof, so an index over
+  a column compared with an operator that is not leakproof goes unused by every runtime role. That
+  is why the sender domains are `text`, served by a leakproof `text` index, and why no index over
+  labels or the subject exists: array operators, `ILIKE` and trigram matching have no leakproof
+  form, so reads over labels and the subject filter after the account index. Marking a function
+  leakproof is refused. The rule a statement keeps is
+  [ADR-0066](./0066-data-access-generated-from-sql.md)'s. Whether row-level security stays is
+  reconsidered after the third production point ([ROADMAP.md](../../../ROADMAP.md)).
+- **A new account-keyed table** leads its key with `account_id text NOT NULL REFERENCES accounts`,
+  carries a policy on `app.account`, compares its keys with leakproof operators, checks its closed
+  vocabularies, has its grants per role in the migration that creates it, and holds no body column.

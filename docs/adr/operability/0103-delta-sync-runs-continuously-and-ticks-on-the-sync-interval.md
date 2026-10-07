@@ -25,8 +25,10 @@ cannot know the platform's scrape interval or reach a push gateway the platform 
 
 ## Decision
 
-- **Delta sync is a process that runs until stopped.** It ticks on the sync interval, a value of its
-  configuration whose default is ADR-0018's five minutes
+- **Delta sync runs in a process that runs until stopped**, the worker that runs every background
+  job kind ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)), and its scheduler
+  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). It ticks on the sync
+  interval, a value of its configuration whose default is ADR-0018's five minutes
   ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)). A tick is the
   unit of work. A tick that outlasts the interval delays the next one rather than overlapping it.
 - **A tick that starts records as failed the account's latest tick and latest gap recovery still
@@ -37,12 +39,14 @@ cannot know the platform's scrape interval or reach a push gateway the platform 
   emits stays in the scrape between ticks. The request cost and the hard cap of
   [ADR-0077](./0077-conditions-raised-as-alerting-rules.md) are counted on one registry for the
   process, and a counter keeps its value from one tick to the next.
-- **Each tick takes the account snapshot again**, re-seals what it opens with a key that is not the
-  current one and sets the key-scan series from what it found
+- **Each tick takes the latest account snapshot**, the one delta sync's own loader holds, reloaded
+  on its schedule, re-seals what it opens with a key that is not the current one and sets the
+  key-scan series from what it found
   ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md),
-  [ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). It also loads the policy of the
-  accounts the snapshot lists, and builds the rate limiter under the target each account's state row
-  sets. A snapshot whose read fails keeps the previous one and is logged, as ADR-0090 decides.
+  [ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). It also takes the latest policy
+  snapshot delta sync's own policy loader holds for the accounts the snapshot lists, and builds the
+  rate limiter under the target each account's state row sets. A reload whose read fails keeps the
+  previous snapshot and is logged, as ADR-0090 decides.
 - **The key-scan series are two gauges.** `mediated_mailbox_sync_credential_on_old_key` carries one
   series per account `accounts` lists, labelled by the account, and
   `mediated_mailbox_sync_client_secret_on_old_key` one series per row of `oauth_clients`, labelled by
@@ -79,7 +83,9 @@ assumption about the platform's scrape interval and no component the chart does 
 - A runaway spread across delta sync's ticks reaches the runaway rule, since its count is scraped
   like the mediator's. ADR-0077's remaining gap, a process living less than two scrape intervals,
   no longer applies to delta sync.
-- Assumptions about other components. The platform runs one delta sync process at a time, a
+- Assumptions about other components. The platform runs one copy of the worker at a time, a
   rollout included, keeps it running and restarts it when it stops, and scrapes its metrics
   endpoint as it does the mediator's
-  ([ADR-0051](../engineering/0051-environment-contract.md)).
+  ([ADR-0051](../engineering/0051-environment-contract.md)). The worker's in-process exclusion of
+  one run per job and account rests on that single copy
+  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).

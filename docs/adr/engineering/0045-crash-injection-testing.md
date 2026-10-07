@@ -10,11 +10,11 @@ The delivery posture defers freely except where deferral is irreversible or the 
 permits is silent. A crash-recovery bug in checkpointed apply or rollback is both. It corrupts
 label state on the real mailbox, and it fails silently until a process dies mid-sequence.
 Sequence-dependent failures are reachable by no other kind of test, because no other kind
-places a crash inside a generated sequence, and a physical kill-the-pod drill proves the real
-substrate exactly once, on one sequence. "Learn from the real mailbox" cannot cover this class. The
-pattern this record builds on is the one published in Amazon's S3 ShardStore work (SOSP 2021).
-That pattern is a crash operation in the generator's alphabet, persistence and forward-progress
-invariants checked after recovery, and a deliberately coarse crash model.
+places a crash inside a generated sequence, and a physical drill that kills the running process
+proves the real substrate exactly once, on one sequence. "Learn from the real mailbox" cannot cover
+this class. The pattern this record builds on is the one published in Amazon's S3 ShardStore work
+(SOSP 2021). That pattern is a crash operation in the generator's alphabet, persistence and
+forward-progress invariants checked after recovery, and a deliberately coarse crash model.
 
 ## Decision
 
@@ -38,7 +38,7 @@ invariants checked after recovery, and a deliberately coarse crash model.
   PostgreSQL only when reduced or drawn from a fixed seed, so the backfill target's bounded runs
   take seconds. A target whose bounded runs proved too slow for the gate would run them on the
   scheduled, non-gating workflow instead.
-- **The physical drills stay.** Killing the real pod mid-run proves the real substrate once,
+- **The physical drills stay.** Killing the real process mid-run proves the real substrate once,
   and the in-process harness explores the sequence space cheaply and continuously. Disjoint
   kinds, not substitutes.
 
@@ -63,8 +63,10 @@ invariants checked after recovery, and a deliberately coarse crash model.
   [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) takes it. The crash operation's
   behaviour, the call into the real recovery path, the two invariant families, and the sampler that
   draws a fresh operation mix for each sequence in every run are what this project writes.
-- The catalogue's existing recovery rows (kill the backfill pod mid-run, kill the apply job
-  mid-plan) keep the drill kind's date-claim semantics for the real-substrate half. The
+- The catalogue's existing recovery rows (kill the process running backfill mid-run, kill the
+  worker mid-plan of an apply,
+  [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)) keep the drill kind's date-claim semantics for the real-substrate half. A kill of the worker
+  stops every job it runs, so one kill exercises every running job's resume at once. The
   harness's continuous proof of the same controls is dispositioned in the catalogue's §5
   rather than as new rows.
 - Assumptions about other components: checkpoint and op-log machinery expose their state as

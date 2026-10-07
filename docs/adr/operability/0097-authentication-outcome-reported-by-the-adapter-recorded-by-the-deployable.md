@@ -13,8 +13,10 @@ adapter is the code that sees each authentication attempt. It has no database ac
 only code that knows a provider's concepts ([ADR-0010](../provider/0010-one-provider-port.md)). The
 deployables that call a provider hold a database role and already read what the adapter holds at
 the end of each unit of work, to write back a rotated credential
-([ADR-0082](./0082-rotation-writeback-to-the-database.md)). Up to four deployables call a provider
-for the same account, so they all record the same two columns. The UI is a deployable too, and
+([ADR-0082](./0082-rotation-writeback-to-the-database.md)). Several deployables, and several job
+kinds inside the worker that runs every background job
+([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)), call a provider for the same
+account, so they all record the same two columns. The UI is a deployable too, and
 calls the provider's token endpoint while it completes a consent, exchanging the consent's code for
 the credential it stores
 ([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md),
@@ -42,7 +44,8 @@ the credential it stores
   request its caller cancelled before an answer arrived has no outcome and is not reported.
 - **The deployable records what the adapter holds at the end of each unit of work**, beside the
   rotation hand-over of [ADR-0082](./0082-rotation-writeback-to-the-database.md), a unit that failed
-  included. An adapter that has made no attempt records nothing.
+  included. In the worker, the job kind whose unit of work it was records it, under that job kind's
+  own role. An adapter that has made no attempt records nothing.
 - **The UI records the attempt its own code exchange made** when it completes a consent, connecting
   or re-authorizing an account, with the same statement, in the transaction that stores the
   credential. A completed consent's exchange is an attempt the provider answered with a credential,

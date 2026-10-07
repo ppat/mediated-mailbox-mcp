@@ -28,8 +28,9 @@ application's business.
   application side, the environment-specific implementation behind it, swappable at deploy,
   configuration, or run time — [ADR-0010](../provider/0010-one-provider-port.md)'s pattern,
   generalized. The honest count of assumptions requiring it today: zero — probes are plain
-  HTTP any healthcheck can hit, and batch jobs are exit codes plus idempotent resume, which any
-  scheduler can drive.
+  HTTP any healthcheck can hit, and every job resumes idempotently whatever starts it, a platform's
+  scheduler or the long-running worker that schedules its own jobs
+  ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
 - **Settings are user-switchable within the ranges the design permits, with reasonable
   defaults everywhere. Safety dispositions are never settings:** no configuration flag exists that
   weakens deny-by-default, disables the gate, or skips masking.

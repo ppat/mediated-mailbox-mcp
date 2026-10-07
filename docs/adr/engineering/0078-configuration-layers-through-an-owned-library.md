@@ -69,6 +69,10 @@ calls for one and the second because policy lives in the database.
   `scanner.triggers.de` is `MEDIATED_MAILBOX_SCANNER__TRIGGERS__DE` and the flag
   `--scanner.triggers.de`. `--help` is generated from the same declaration and lists each
   value's path, environment name, flag and default. Every deployable uses the one prefix.
+- **The worker reads one tree**, with shared sections, such as the scanner and the credential keys,
+  and a section per job kind it runs
+  ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). A value several
+  job kinds use, such as the scanner's, is read once, so they agree on it by construction.
 - **Keyed values.** Per-language word lists are a map keyed by language, so a flag or an
   environment variable can override one language's list or add a language. Map keys are runs of
   `[a-z0-9]` joined by single underscores, with none leading or trailing, because a key becomes a
@@ -95,6 +99,12 @@ calls for one and the second because policy lives in the database.
     `password_file` are required. `port` defaults to 5432, `user` to the deployable's own runtime
     role ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)), and `sslmode` to
     `verify-full`. `sslrootcert` is optional and holds the path of a mounted CA file.
+  - The worker connects as one runtime role per job kind
+    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), so its one
+    `database` section holds, beside the settings every job kind shares, each job kind's user and
+    password file, and each job kind's user defaults to that job kind's own role. No value is
+    spelled twice. How the keys inside the section are laid out is decided where the worker is
+    built.
   - The file `password_file` names holds the password alone, not a libpq password file. One
     trailing newline, written `\n` or `\r\n`, is trimmed from it, because files written by editors
     and by `kubectl create secret --from-file` commonly end in one. A file holding no password once
