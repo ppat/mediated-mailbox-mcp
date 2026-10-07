@@ -1,0 +1,19 @@
+control: the UI serves TLS when a key pair is named and plain HTTP when none is, with the key pair read from its mounted files
+removes: serve builds the UI's server without its TLS configuration
+packages: ./ui
+tests: TestWithAKeyPairTheUIIsServedOverTLSOnly
+scheduled-count: no
+
+diff --git a/ui/main.go b/ui/main.go
+index 66af940c..a72ada80 100644
+--- a/ui/main.go
++++ b/ui/main.go
+@@ -268,7 +268,7 @@ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.L
+ 	// Requests take ctx as their base, so an open event stream ends when the process is told to stop
+ 	// rather than holding the shutdown until its timeout.
+ 	ui := &http.Server{
+-		Handler: server.Handler(), ReadHeaderTimeout: 10 * time.Second, TLSConfig: tlsConfig(c.TLSCert, c.TLSKey),
++		Handler: server.Handler(), ReadHeaderTimeout: 10 * time.Second, TLSConfig: nil,
+ 		BaseContext: func(net.Listener) context.Context { return ctx },
+ 	}
+ 	probes := &http.Server{Handler: server.Probes(), ReadHeaderTimeout: 10 * time.Second}

@@ -6,11 +6,11 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index b3651a5..7c3a0d9 100644
+index 5bde0327..f4673750 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -171,7 +171,7 @@ func serveSurface(srv *http.Server, ln net.Listener) error {
- 	if srv.TLSConfig == nil {
+@@ -510,7 +510,7 @@ func serveSurface(srv *http.Server, ln net.Listener, overTLS bool) error {
+ 	if !overTLS {
  		return stopped(srv.Serve(ln))
  	}
 -	return stopped(srv.ServeTLS(ln, "", ""))

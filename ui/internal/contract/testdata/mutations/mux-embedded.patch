@@ -5,10 +5,10 @@ tests: TestTheRecordingMuxEmbedsNothing
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index a294fb54..540861cd 100644
+index 03024e4d..2a01c1aa 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -107,7 +107,7 @@ type recordingMux struct {
+@@ -116,7 +116,7 @@ type recordingMux struct {
  	// whose line carries a //nolint:govet directive with a reason passes, because govet is an ordinary
  	// linter, and is left to review.
  	noCopy   noCopy
@@ -17,7 +17,7 @@ index a294fb54..540861cd 100644
  	patterns []string
  }
  
-@@ -119,11 +119,11 @@ func (*noCopy) Unlock() {}
+@@ -128,11 +128,11 @@ func (*noCopy) Unlock() {}
  
  func (m *recordingMux) Handle(pattern string, h http.Handler) {
  	m.patterns = append(m.patterns, pattern)
@@ -31,7 +31,7 @@ index a294fb54..540861cd 100644
  }
  
  // New builds the server. It refuses a bespoke route without a handler and a handler without a route,
-@@ -181,7 +181,7 @@ func New(opts Options) (*Server, error) {
+@@ -207,7 +207,7 @@ func New(opts Options) (*Server, error) {
  			handlers[RowOperation(d.Name)] = s.rowDetail(d)
  		}
  	}
@@ -40,9 +40,9 @@ index a294fb54..540861cd 100644
  	for _, route := range apiRoutes(opts.Datasets) {
  		h, ok := handlers[route.Operation]
  		if !ok {
-@@ -213,7 +213,7 @@ func New(opts Options) (*Server, error) {
+@@ -239,7 +239,7 @@ func New(opts Options) (*Server, error) {
  	// before it is routed unless it carries the session's request token (ADR-0061).
- 	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
+ 	s.handler = observe(opts.Logger, withPolicy(withSession(opts.ServesTLS, withToken(k, mux))))
  
 -	probes := &recordingMux{mux: http.NewServeMux()}
 +	probes := &recordingMux{ServeMux: http.NewServeMux()}

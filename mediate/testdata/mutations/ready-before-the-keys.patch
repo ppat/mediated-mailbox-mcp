@@ -6,7 +6,7 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index be7955fc..29ba7907 100644
+index 345a19f0..e9933eed 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
 @@ -486,6 +486,7 @@ func refuseEnvironment(environ []string) error {
@@ -14,6 +14,6 @@ index be7955fc..29ba7907 100644
  // again on each handshake and each request.
  func markReadyWhenServable(ready *readiness.State, c Configuration) error {
 +	ready.MarkReady()
- 	if c.TLSCert != "" {
+ 	if c.servesTLS() {
  		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
  			return fmt.Errorf("loading the TLS key pair: %w", err)

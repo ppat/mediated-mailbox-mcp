@@ -81,17 +81,18 @@ func sessionOf(ctx context.Context) session {
 }
 
 // withSession gives every request a session. A request without the cookie, or with one that is not a
-// session identifier this server could have issued, is issued a new one with its response, HttpOnly,
-// Secure and SameSite=Strict with browser-session lifetime (ADR-0061).
-func withSession(next http.Handler) http.Handler {
+// session identifier this server could have issued, is issued a new one with its response, HttpOnly
+// and SameSite=Strict with browser-session lifetime, and Secure when secure is set, which is when the
+// UI serves TLS (ADR-0061, ADR-0118).
+func withSession(secure bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := session{}
 		if c, err := r.Cookie(sessionCookie); err == nil && validSession(c.Value) {
 			s = session{id: c.Value, carried: true}
 		} else {
 			s = session{id: rand.Text() + rand.Text()}
-			http.SetCookie(w, &http.Cookie{
-				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+			http.SetCookie(w, &http.Cookie{ //nolint:gosec // Secure follows the UI's mode, set exactly when it serves TLS (ADR-0118)
+				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode,
 			})
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, s)))

@@ -28,14 +28,15 @@ UI refused plain HTTP outside a binary built for the dev loop. The app does not 
 - **A configuration naming one of the two files and not the other is refused at start.** A
   half-mounted Secret going plain without a word is the failure this refusal prevents.
 - **Every request still reaches the same checks in either mode.** The mediator's bearer check runs
-  before both roots ([ADR-0030](./0030-api-core-mcp-thin-adapter.md)), and the UI's session cookie
-  and request token ([ADR-0061](./0061-ui-browser-security-posture.md),
-  [ADR-0111](./0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md)) are unchanged.
-  The UI's cookies stay `Secure` in both modes.
-- **The browser reaches the UI over HTTPS**, terminated by the UI or by the platform in front of
-  it. This is a declared requirement on the deployment
-  ([O6](../../../USE_CASES.md#o6--deployable)). Behind a platform that terminates TLS, the browser's
-  hop is HTTPS, so a `Secure` cookie is stored and sent as before.
+  before both roots ([ADR-0030](./0030-api-core-mcp-thin-adapter.md)), and the UI's session and
+  its request token ([ADR-0061](./0061-ui-browser-security-posture.md),
+  [ADR-0111](./0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md)) work as before.
+  `HttpOnly`, `SameSite=Strict`, the session binding, the request token check and the attempt
+  cookie's sealing hold in both modes.
+- **The UI's cookies carry `Secure` exactly when the UI serves TLS.** The mode has one source, both
+  TLS files named in the configuration, and the same value decides the listener and the cookies.
+  Behind a platform that terminates TLS, the browser's hop is still HTTPS, so a cookie without
+  `Secure` is stored and sent as before. Over a plain browser hop the UI works, writes included.
 
 ## Alternatives considered
 
@@ -45,30 +46,35 @@ UI refused plain HTTP outside a binary built for the dev loop. The app does not 
   ([ADR-0051](../engineering/0051-environment-contract.md)).
 - **A key declaring that something in front terminates TLS, as the mediator had it.** Its case was
   that plain HTTP happens only when the operator says so, never because material is missing.
-  Rejected because the key states a fact about the platform, and its protection holds without it.
-  The mode follows the configured keys and not the presence of files, so a missing mount behind a
-  configured path fails the start or readiness rather than going plain, and naming one file alone is
-  refused.
+  Rejected because the key states a fact about the platform. Part of its protection holds without
+  it. The mode follows the configured keys and not the presence of files, so a missing mount behind
+  a configured path fails the start or readiness rather than going plain, and naming one file alone
+  is refused. The part given up is accepted. A deployment that names neither file by mistake serves
+  plain HTTP without complaint, because the app cannot tell a platform that terminates TLS in front
+  of it from a forgotten input.
 - **A key switching TLS on or off, beside the two paths.** Its case was a mode stated apart from the
   paths. Rejected because the two paths already say it, so a second key is a second source for one
   fact, and every pairing where the two disagree would need its own refusal.
-- **Dropping `Secure` from the UI's cookies when the UI serves plain HTTP.** Its case was that the
-  UI's session would work over a genuinely plain browser hop. Rejected because the session cookie
-  would then travel in clear wherever the browser's hop is plain, and behind a platform that
-  terminates TLS the browser's hop is HTTPS, where `Secure` works.
+- **`Secure` on the UI's cookies always, which forces an HTTPS browser hop on the deployment.** Its
+  case was that the cookie never travels in clear. Rejected because a browser stores no `Secure`
+  cookie over a plain hop, so the choice would make an HTTPS browser hop a requirement on the
+  platform, which is an opinion about the platform
+  ([ADR-0051](../engineering/0051-environment-contract.md)).
 
 ## Consequences
 
 - The mediator's `tls_at_ingress` key and the UI's `insecure_http` key are gone, and the build tag
   that admitted the UI's plain HTTP to the dev loop alone guards nothing and is gone with them. The
   dev loop runs the UI with neither file named.
+- Serving plain HTTP is not a safety disposition under
+  [ADR-0051](../engineering/0051-environment-contract.md), because the gate, the bearer check and
+  the request token are unchanged in either mode.
 - In plain HTTP the bearer token travels in clear between whatever terminates TLS and the app. The
   hop is the platform's to protect, as the network the app runs in is
   ([DESIGN.md](../../../DESIGN.md#network-position-never-substitutes-for-the-gate)).
-- Over a plain-HTTP browser hop, a browser does not store a `Secure` cookie, so the UI's session
-  never binds a request token and every state-changing request is refused. The UI fails closed
-  rather than carrying its session in clear. A browser that treats a loopback origin as secure, as
-  Chrome and Firefox do, stores the cookie there, and the dev loop runs on that.
+- In plain mode a cookie can travel in clear wherever the browser's own hop is plain. That cost is
+  accepted, since the browser's hop is the platform's, as the hop in front of the app is. The
+  session and the request token still bind every write to a page the UI served.
 - The mediator reports ready only once the key pair loads when one is configured, and once the
   bearer token loads in either mode ([ADR-0051](../engineering/0051-environment-contract.md)).
 - The chart declares the TLS material as an optional input for the mediator and the UI
@@ -76,4 +82,4 @@ UI refused plain HTTP outside a binary built for the dev loop. The app does not 
   when the input is given.
 - Assumptions about other components: the platform either hands each deployable a certificate and
   key as mounted files and keeps them current, or terminates TLS in front of it and forwards plain
-  HTTP over a hop it protects. The browser's hop to the UI is HTTPS either way.
+  HTTP over a hop it protects.

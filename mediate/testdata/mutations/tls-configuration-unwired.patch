@@ -1,0 +1,19 @@
+control: The client surface is served over TLS when a key pair is named and over plain HTTP when none is, with the key pair read from its mounted files
+removes: serve builds the client surface's server without its TLS configuration
+packages: ./mediate
+tests: TestWithAKeyPairTheSurfaceIsServedOverTLSOnly
+scheduled-count: no
+
+diff --git a/mediate/main.go b/mediate/main.go
+index 5bde0327..124dd7f1 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -252,7 +252,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
+ 	}
+ 	surfaceServer := &http.Server{
+ 		Handler:           surfaceHandler,
+-		TLSConfig:         tlsConfig(c.TLSCert, c.TLSKey),
++		TLSConfig:         nil,
+ 		ReadHeaderTimeout: 10 * time.Second,
+ 	}
+ 	probeServer := &http.Server{

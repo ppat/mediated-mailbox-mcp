@@ -6,11 +6,11 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..f4258e1 100644
+index 345a19f0..94590da5 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -236,9 +236,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener net.Listener, served *serving, metrics *prometheus.Registry, logger *slog.Logger) error {
- 	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
+@@ -266,9 +266,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
+ 	go func() { errs <- serveSurface(surfaceServer, surfaceListener, c.servesTLS()) }()
  	go func() { errs <- serveProbes(probeServer, probeListener) }()
  	go served.reloadEvery(reloading, c.AccountReloadInterval)
 -	if err := markReadyWhenServable(&ready, c); err != nil {

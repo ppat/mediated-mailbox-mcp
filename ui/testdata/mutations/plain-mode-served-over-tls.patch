@@ -5,16 +5,15 @@ tests: TestWithNoKeyPairTheUIIsServedOverPlainHTTP
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index 001bdb6c..5d8342f2 100644
+index 66af940c..a90a73f3 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -298,9 +298,6 @@ func serveUI(srv *http.Server, ln net.Listener) error {
- // served without a restart, as the mediator's client surface does (docs/UI.md section 15). It returns
- // none when no key pair is named.
- func tlsConfig(certFile, keyFile string) *tls.Config {
--	if certFile == "" {
--		return nil
--	}
- 	return &tls.Config{
- 		MinVersion: tls.VersionTLS12,
- 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+@@ -273,7 +273,7 @@ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.L
+ 	}
+ 	probes := &http.Server{Handler: server.Probes(), ReadHeaderTimeout: 10 * time.Second}
+ 	errs := make(chan error, 2)
+-	go func() { errs <- serveUI(ui, uiListener, overTLS) }()
++	go func() { errs <- serveUI(ui, uiListener, true) }()
+ 	go func() { errs <- probes.Serve(probeListener) }()
+ 	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", overTLS)
+ 	var err error

@@ -1,12 +1,12 @@
 control: each cookie the UI sets is Secure exactly when the UI serves TLS, and HttpOnly and SameSite=Strict in both modes
-removes: the session cookie is set SameSite=Lax, so a top-level navigation from another site carries it
+removes: the session cookie is set without Secure whatever the mode, so it travels in clear wherever it can
 packages: ./ui/internal/api
-tests: TestEachCookieIsSecureExactlyWhenTheUIServesTLS
+tests: TestEachCookieIsSecureExactlyWhenTheUIServesTLS/TLS
 scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/session.go b/ui/internal/api/session.go
-index cdfa9be8..7cdf553d 100644
+index cdfa9be8..c920e5ae 100644
 --- a/ui/internal/api/session.go
 +++ b/ui/internal/api/session.go
 @@ -92,7 +92,7 @@ func withSession(secure bool, next http.Handler) http.Handler {
@@ -14,7 +14,7 @@ index cdfa9be8..7cdf553d 100644
  			s = session{id: rand.Text() + rand.Text()}
  			http.SetCookie(w, &http.Cookie{ //nolint:gosec // Secure follows the UI's mode, set exactly when it serves TLS (ADR-0118)
 -				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode,
-+				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode,
++				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: false, SameSite: http.SameSiteStrictMode,
  			})
  		}
  		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, s)))

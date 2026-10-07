@@ -63,6 +63,9 @@ type rig struct {
 	// identity is who a policy write is recorded as made by, the operator name unless a test declares
 	// an identity header.
 	identity api.Identity
+	// servesTLS is whether the server is built as the composition root builds it when the UI serves
+	// TLS, which sets its cookies' Secure attribute.
+	servesTLS bool
 }
 
 // defaultRedirect is the consent redirect the rig configures unless a test names another.
@@ -135,7 +138,7 @@ func (r *rig) server(key []byte) *api.Server {
 		Clock: func() time.Time { return r.clock }, StreamInterval: time.Second, TokenKey: key, Seal: r.public,
 		Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, ClientSecrets: secrets,
 		Browser: api.Browser{DefaultTheme: "system", StreamReconnectMax: time.Second, StreamPollInterval: time.Second, ConsentRedirect: r.redirect},
-		Lookups: lookups, Identity: r.identity,
+		Lookups: lookups, Identity: r.identity, ServesTLS: r.servesTLS,
 	})
 	if err != nil {
 		r.t.Fatal(err)

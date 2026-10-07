@@ -511,38 +511,45 @@ func TestAnotherConfiguredRedirectIsUsedEverywhere(t *testing.T) {
 }
 
 // Every cookie the UI sets, the session on the first response and the consent attempt as it starts and
-// as it ends, is Secure, HttpOnly and SameSite=Strict. The handler sets them the same way whether the
-// UI serves TLS or plain HTTP, so over a plain-HTTP browser hop the browser keeps no session and every
-// state-changing request is refused (ADR-0061, ADR-0111, ADR-0118, VERIFICATIONS, the row for the UI's
-// cookie attributes).
-func TestEveryCookieTheUISetsIsSecureHttpOnlyAndStrict(t *testing.T) {
-	r := newRig(t)
-	b := &browser{t: t, h: r.s.Handler(), cookies: map[string]string{}}
-	var set []string
-	keep := func(res response) response {
-		set = append(set, res.header.Values("Set-Cookie")...)
-		return res
-	}
-	m := tokenMeta.FindSubmatch(keep(b.get("/setup")).body)
-	if m == nil {
-		t.Fatal("the entry document carried no token")
-	}
-	b.token = string(m[1])
-	b.addClient(household, householdID, householdSecret)
-	a := decode[started](t, keep(b.post("/api/setup/connect", map[string]any{"account": "jo", "client": household, "mailbox": "jo@gmail.com", "lowered_target": nil})))
-	decode[map[string]any](t, keep(b.finish(r.grant(a, "jo@gmail.com"))))
-	seen := map[string]int{}
-	for _, line := range set {
-		c, err := http.ParseSetCookie(line)
-		if err != nil {
-			t.Fatalf("%q: %v", line, err)
-		}
-		seen[c.Name]++
-		if !c.Secure || !c.HttpOnly || c.SameSite != http.SameSiteStrictMode {
-			t.Errorf("%s is set as %q, want Secure, HttpOnly and SameSite=Strict", c.Name, line)
-		}
-	}
-	if diff := cmp.Diff(map[string]int{"ui_session": 1, "ui_consent": 2}, seen, compare.Options); diff != "" {
-		t.Errorf("the cookies set (-want +got):\n%s", diff)
+// as it ends, is HttpOnly and SameSite=Strict, and Secure exactly when the UI serves TLS, as the
+// composition root builds the server for each mode (ADR-0061, ADR-0111, ADR-0118, VERIFICATIONS, the
+// row for the UI's cookie attributes).
+func TestEachCookieIsSecureExactlyWhenTheUIServesTLS(t *testing.T) {
+	for _, mode := range []struct {
+		name              string
+		servesTLS, secure bool
+	}{{"TLS", true, true}, {"plain HTTP", false, false}} {
+		t.Run(mode.name, func(t *testing.T) {
+			r := newRig(t)
+			r.servesTLS = mode.servesTLS
+			r.s = r.server(tokenKey)
+			b := &browser{t: t, h: r.s.Handler(), cookies: map[string]string{}}
+			var set []string
+			keep := func(res response) response {
+				set = append(set, res.header.Values("Set-Cookie")...)
+				return res
+			}
+			m := tokenMeta.FindSubmatch(keep(b.get("/setup")).body)
+			if m == nil {
+				t.Fatal("the entry document carried no token")
+			}
+			b.token = string(m[1])
+			b.addClient(household, householdID, householdSecret)
+			a := decode[started](t, keep(b.post("/api/setup/connect", map[string]any{"account": "jo", "client": household, "mailbox": "jo@gmail.com", "lowered_target": nil})))
+			decode[map[string]any](t, keep(b.finish(r.grant(a, "jo@gmail.com"))))
+			type attributes struct{ Secure, HTTPOnly, Strict bool }
+			got := map[string][]attributes{}
+			for _, line := range set {
+				c, err := http.ParseSetCookie(line)
+				if err != nil {
+					t.Fatalf("%q: %v", line, err)
+				}
+				got[c.Name] = append(got[c.Name], attributes{Secure: c.Secure, HTTPOnly: c.HttpOnly, Strict: c.SameSite == http.SameSiteStrictMode})
+			}
+			want := attributes{Secure: mode.secure, HTTPOnly: true, Strict: true}
+			if diff := cmp.Diff(map[string][]attributes{"ui_session": {want}, "ui_consent": {want, want}}, got, compare.Options); diff != "" {
+				t.Errorf("the cookies set (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

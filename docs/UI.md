@@ -45,8 +45,8 @@ show no account's data ([section 8.10](#810-installation), ADR-0056).
 
 The UI has no authentication of its own in the first version. A deployment may place it behind
 an ingress that forwards to an authenticating proxy and passes the identity in a declared header,
-and the UI's own authentication may come later (ADR-0084). TLS holds on the browser's hop, served
-by the UI or by the platform in front of it ([section 15](#15-security-of-the-ui-itself)).
+and the UI's own authentication may come later (ADR-0084). The UI serves TLS when it is given a
+certificate and a key, and plain HTTP otherwise ([section 15](#15-security-of-the-ui-itself)).
 
 The UI is desktop-first. It is designed at 1440 pixels wide with a floor of about 1280, and the
 first version has no mobile layout.
@@ -2007,15 +2007,13 @@ decisions, the two setups, and the policy writes.
   its configuration names a certificate and a key, and plain HTTP when it names neither, behind a
   platform that terminates TLS in front of it
   ([section 18.1](#181-the-configuration-the-ui-declares)). Naming one without the other refuses
-  the start. The browser reaches the UI over HTTPS either way, a requirement the deployment
-  declares, because the UI's cookies are `Secure` in both modes. Over a plain-HTTP browser hop the
-  browser stores neither cookie, so every state-changing request is refused with `stale_page` and
-  the UI fails closed rather than carrying its session in clear. Dropping `Secure` when the UI
-  serves plain HTTP was the alternative, and its case was a session that works over any hop. It was
-  not chosen because behind a platform that terminates TLS the browser's hop is HTTPS, where
-  `Secure` works, and on a genuinely plain hop the session cookie would travel in clear. A browser
-  that treats a loopback origin as secure, as Chrome and Firefox do, stores the cookies there,
-  which is what the dev loop runs on ([section 18](#18-repository-and-build-layout)). The "own
+  the start. The UI's cookies carry `Secure` exactly when the UI serves TLS, the mode both TLS
+  files decide for the listener and the cookies alike. Behind a platform that terminates TLS the
+  browser's hop is still HTTPS, and a cookie without `Secure` is stored and sent as before. Over a
+  plain browser hop the UI works, writes included, and its cookies travel in clear on that hop,
+  which is the platform's. `Secure` always was the alternative, and its case was a cookie that never
+  travels in clear. It was not chosen because a browser stores no `Secure` cookie over a plain hop,
+  so it would make an HTTPS browser hop a requirement on the platform (ADR-0118). The "own
   auth" half of ADR-0084's posture is, for the first version, the operator's ruling of
   no authentication of the UI's own with an optional authenticating proxy in front
   ([section 1](#1-what-the-ui-is-for)).
@@ -2030,8 +2028,8 @@ decisions, the two setups, and the policy writes.
   every page load to place the request token in a `meta` tag. The policy allows it because it is not
   a script. The UI has no authentication of its own, so the session is anonymous and exists solely
   to bind the request token, whether or not an authenticating proxy sits in front. On the first
-  response the UI issues the cookie `ui_session`, a random id, `HttpOnly`, `Secure`,
-  `SameSite=Strict`, with browser-session lifetime. The token is an HMAC of the session id under a
+  response the UI issues the cookie `ui_session`, a random id, `HttpOnly`, `SameSite=Strict`, and
+  `Secure` when the UI serves TLS, with browser-session lifetime. The token is an HMAC of the session id under a
   key generated at process start, or the key in the file `token_key_file` names when more than
   one replica runs, and its lifetime is the session's. Every state-changing request sends it in the
   `X-Request-Token` header, and the server checks it against the cookie, so a request forged from
@@ -2448,9 +2446,10 @@ ui/
   and the browser types and the descriptor table from the document. A stale document, stale types,
   or a stale descriptor table fails the build (ADR-0065).
 - **Dev loop.** The Go server runs against a local Postgres with the synthetic fixtures, in plain
-  HTTP with neither `tls_cert` nor `tls_key` named, on a loopback address the browser treats as a
-  secure origin ([section 15](#15-security-of-the-ui-itself)). The browser app runs under bun's dev
-  server proxying `/api` to the Go server, with the same request token and identity rules in force. The dev server serves no policy header, so the policy of
+  HTTP with neither `tls_cert` nor `tls_key` named, so its cookies carry no `Secure`
+  ([section 15](#15-security-of-the-ui-itself)). The browser app runs under bun's dev server
+  proxying `/api` to the Go server, with the same request token and identity rules in force. The
+  dev server serves no policy header, so the policy of
   [section 15](#15-security-of-the-ui-itself) is exercised only against the built output the Go
   server serves (ADR-0064).
 - **Tests.** The Go side tests the registry, the queries, the error contract, the decisions, and the

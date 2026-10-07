@@ -6,13 +6,13 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index be7955fc..ded38af8 100644
+index 5bde0327..819fb06a 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -611,10 +611,10 @@ func tlsConfig(certFile, keyFile string) *tls.Config {
- 	if certFile == "" {
- 		return nil
- 	}
+@@ -609,10 +609,10 @@ func bearer(tokenFile string, next http.Handler) http.Handler {
+ // tlsConfig returns the client surface's TLS configuration, which reads the key pair from its
+ // mounted files on each handshake. It is used only when the surface is served over TLS.
+ func tlsConfig(certFile, keyFile string) *tls.Config {
 +	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
  	return &tls.Config{
  		MinVersion: tls.VersionTLS12,

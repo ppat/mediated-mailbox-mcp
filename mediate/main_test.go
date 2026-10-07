@@ -207,21 +207,24 @@ func writeKeyPair(t *testing.T, certFile, keyFile string, serial int64) *x509.Ce
 	return cert
 }
 
-// serveOn serves srv on a loopback listener until the test ends, and returns its address.
-func serveOn(t *testing.T, srv *http.Server) string {
+// started runs the mediator's serve, as its composition root builds the servers, with c over reg on
+// loopback listeners until the test ends, and returns the client surface's address. A serve that
+// returns an error fails the test.
+func started(t *testing.T, c Configuration, reg service.Registry) string {
 	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	served := make(chan error, 1)
-	go func() { served <- serveSurface(srv, ln) }()
+	surfaceListener, probeListener := loopback(t), loopback(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() {
+		done <- serve(ctx, c, surfaceListener, probeListener, &serving{registry: reg, logger: discard()}, prometheus.NewRegistry(), discard())
+	}()
 	t.Cleanup(func() {
-		if err := errors.Join(srv.Shutdown(context.Background()), <-served); err != nil {
-			t.Error(err)
+		cancel()
+		if err := <-done; err != nil {
+			t.Errorf("serve returned %v", err)
 		}
 	})
-	return ln.Addr().String()
+	return surfaceListener.Addr().String()
 }
 
 // over sends r to the surface at base, the scheme and the address, through client, and returns the
@@ -257,21 +260,22 @@ func over(t *testing.T, client *http.Client, base string, r request) (int, *x509
 func trusting(cert *x509.Certificate) *http.Client {
 	pool := x509.NewCertPool()
 	pool.AddCert(cert)
-	return &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
+	return &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
 }
 
-// With a key pair named, the client surface is served over TLS only (ADR-0118). A plain HTTP request
-// carrying the token never reaches a root. Over TLS each root refuses a request without the token
-// and serves one with it, and a key pair rotated in its mounted files serves the next handshake.
+// With a key pair named, the mediator's serve, the composition root's own wiring, serves the client
+// surface over TLS only (ADR-0118). A plain HTTP request carrying the token never reaches a root.
+// Over TLS each root refuses a request without the token and serves one with it, and a key pair
+// rotated in its mounted files serves the next handshake.
 func TestWithAKeyPairTheSurfaceIsServedOverTLSOnly(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
 	first := writeKeyPair(t, certFile, keyFile, 1)
 	reg, calls := counted(t)
-	addr := serveOn(t, &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig(certFile, keyFile), ReadHeaderTimeout: 5 * time.Second})
+	addr := started(t, Configuration{TLSCert: certFile, TLSKey: keyFile, TokenFile: tokenFile(t, "s3cret"), AccountReloadInterval: time.Hour}, reg)
 
 	for _, r := range []request{apiCall.with("Bearer s3cret"), mcpCall.with("Bearer s3cret")} {
-		if got, _, err := over(t, &http.Client{}, "http://"+addr, r); err == nil && got == http.StatusOK {
+		if got, _, err := over(t, &http.Client{Timeout: 5 * time.Second}, "http://"+addr, r); err == nil && got == http.StatusOK {
 			t.Errorf("a plain HTTP request to %s was served", r.path)
 		}
 	}
@@ -339,18 +343,18 @@ func TestTheProbes(t *testing.T) {
 	}
 }
 
-// With no key pair named, the client surface is served over plain HTTP, behind whatever terminates
-// TLS in front of it, and each root still refuses a request without the token and serves one with it
-// (ADR-0030, ADR-0118).
+// With no key pair named, the mediator's serve serves the client surface over plain HTTP, behind
+// whatever terminates TLS in front of it, and each root still refuses a request without the token and
+// serves one with it (ADR-0030, ADR-0118).
 func TestWithNoKeyPairTheSurfaceIsServedOverPlainHTTP(t *testing.T) {
 	reg, calls := counted(t)
-	addr := serveOn(t, &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig("", ""), ReadHeaderTimeout: 5 * time.Second})
+	addr := started(t, Configuration{TokenFile: tokenFile(t, "s3cret"), AccountReloadInterval: time.Hour}, reg)
 	statuses := map[string]int{}
 	for name, r := range map[string]request{
 		"the API root without the token": apiCall, "the MCP root without the token": mcpCall,
 		"the API root with the token": apiCall.with("Bearer s3cret"), "the MCP root with the token": mcpCall.with("Bearer s3cret"),
 	} {
-		got, _, err := over(t, &http.Client{}, "http://"+addr, r)
+		got, _, err := over(t, &http.Client{Timeout: 5 * time.Second}, "http://"+addr, r)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

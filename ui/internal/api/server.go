@@ -73,6 +73,9 @@ type Options struct {
 	Lookups classify.Lookups
 	// Identity is who a policy write is recorded as made by (ADR-0084).
 	Identity Identity
+	// ServesTLS is whether the UI serves TLS, which sets its cookies' Secure attribute. The composition
+	// root derives it from the configuration, as it does the listener's mode (ADR-0118).
+	ServesTLS bool
 }
 
 // Server is the UI's server.
@@ -234,7 +237,7 @@ func New(opts Options) (*Server, error) {
 	s.uiMux = mux
 	// Every request is given its session, and every request whose method is not GET or HEAD is refused
 	// before it is routed unless it carries the session's request token (ADR-0061).
-	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
+	s.handler = observe(opts.Logger, withPolicy(withSession(opts.ServesTLS, withToken(k, mux))))
 
 	probes := &recordingMux{mux: http.NewServeMux()}
 	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

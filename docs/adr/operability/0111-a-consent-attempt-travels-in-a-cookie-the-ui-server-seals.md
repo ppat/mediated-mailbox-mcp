@@ -25,8 +25,9 @@ token key can come from a mounted file
 
 - **The attempt is held in a cookie whose value the UI server seals.** The value is the attempt's
   fields encrypted with an authenticated cipher, so the browser carries it and can neither read it
-  nor alter it. The cookie is `HttpOnly`, `Secure` and `SameSite=Strict`, sent only to the read API's
-  paths, with browser-session lifetime.
+  nor alter it. The cookie is `HttpOnly` and `SameSite=Strict`, and `Secure` exactly when the UI
+  serves TLS ([ADR-0118](./0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)), sent only
+  to the read API's paths, with browser-session lifetime.
 - **The seal is bound to the session.** Its additional data is the `ui_session` identifier
   ([ADR-0061](./0061-ui-browser-security-posture.md)), so an attempt sealed for one session opens in
   no other.
@@ -77,6 +78,4 @@ account.
 - Assumptions about other components. Every replica of one installation mounts the same
   `token_key_file` when more than one runs
   ([docs/UI.md section 18.1](../../UI.md#181-the-configuration-the-ui-declares)), and the browser
-  keeps a cookie of a few hundred bytes for the session. The browser reaches the UI over HTTPS,
-  terminated by the UI or by the platform in front of it, so the `Secure` cookie is stored
-  ([ADR-0118](./0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)).
+  keeps a cookie of a few hundred bytes for the session.

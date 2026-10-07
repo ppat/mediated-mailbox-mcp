@@ -6,14 +6,14 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index be7955fc..54c0f5be 100644
+index 345a19f0..dec322f5 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
 @@ -486,7 +486,7 @@ func refuseEnvironment(environ []string) error {
  // bearer token load, so a pod whose mounts cannot serve a client never reports ready. They are read
  // again on each handshake and each request.
  func markReadyWhenServable(ready *readiness.State, c Configuration) error {
--	if c.TLSCert != "" {
+-	if c.servesTLS() {
 +	if false {
  		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
  			return fmt.Errorf("loading the TLS key pair: %w", err)

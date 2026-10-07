@@ -5,13 +5,13 @@ tests: TestWithAKeyPairTheUIIsServedOverTLSOnly
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index 001bdb6c..7b4f1ee3 100644
+index 66af940c..d8a256a8 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -301,10 +301,10 @@ func tlsConfig(certFile, keyFile string) *tls.Config {
- 	if certFile == "" {
- 		return nil
- 	}
+@@ -304,10 +304,10 @@ func serveUI(srv *http.Server, ln net.Listener, overTLS bool) error {
+ // served without a restart, as the mediator's client surface does (docs/UI.md section 15). It is used
+ // only when the UI is served over TLS.
+ func tlsConfig(certFile, keyFile string) *tls.Config {
 +	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
  	return &tls.Config{
  		MinVersion: tls.VersionTLS12,

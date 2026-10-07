@@ -263,7 +263,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener 
 	defer stopReloading()
 	// One slot for each server and one for the readiness check, so no send blocks.
 	errs := make(chan error, 3)
-	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
+	go func() { errs <- serveSurface(surfaceServer, surfaceListener, c.servesTLS()) }()
 	go func() { errs <- serveProbes(probeServer, probeListener) }()
 	go served.reloadEvery(reloading, c.AccountReloadInterval)
 	if err := markReadyWhenServable(&ready, c); err != nil {
@@ -486,7 +486,7 @@ func refuseEnvironment(environ []string) error {
 // bearer token load, so a pod whose mounts cannot serve a client never reports ready. They are read
 // again on each handshake and each request.
 func markReadyWhenServable(ready *readiness.State, c Configuration) error {
-	if c.TLSCert != "" {
+	if c.servesTLS() {
 		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
 			return fmt.Errorf("loading the TLS key pair: %w", err)
 		}
@@ -502,10 +502,16 @@ func markReadyWhenServable(ready *readiness.State, c Configuration) error {
 	return nil
 }
 
-// serveSurface serves the client surface on ln until it is shut down, over TLS unless srv has no TLS
-// configuration, which a configuration naming no key pair leaves it without (ADR-0118).
-func serveSurface(srv *http.Server, ln net.Listener) error {
-	if srv.TLSConfig == nil {
+// servesTLS is whether the client surface is served over TLS, which both TLS files named decide. It is
+// the one source of the mode (ADR-0118).
+func (c Configuration) servesTLS() bool { return c.TLSCert != "" && c.TLSKey != "" }
+
+// serveSurface serves the client surface on ln until it is shut down, over TLS with srv's TLS
+// configuration when overTLS is set and over plain HTTP otherwise. The caller derives overTLS from the
+// configuration naming a key pair (ADR-0118), so a server built without its TLS configuration fails
+// its start rather than serving plain HTTP.
+func serveSurface(srv *http.Server, ln net.Listener, overTLS bool) error {
+	if !overTLS {
 		return stopped(srv.Serve(ln))
 	}
 	return stopped(srv.ServeTLS(ln, "", ""))
@@ -605,12 +611,8 @@ func bearer(tokenFile string, next http.Handler) http.Handler {
 }
 
 // tlsConfig returns the client surface's TLS configuration, which reads the key pair from its
-// mounted files on each handshake, or none when no key pair is named, so the surface is served over
-// plain HTTP behind whatever terminates TLS in front of it (ADR-0118).
+// mounted files on each handshake. It is used only when the surface is served over TLS.
 func tlsConfig(certFile, keyFile string) *tls.Config {
-	if certFile == "" {
-		return nil
-	}
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

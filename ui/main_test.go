@@ -12,7 +12,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/hex"
 	"encoding/pem"
-	"errors"
 	"log/slog"
 	"math/big"
 	"net"
@@ -151,128 +150,144 @@ func writeKeyPair(t *testing.T, certFile, keyFile string, serial int64) *x509.Ce
 	return cert
 }
 
-// served serves a handler answering 204 to every request through serveUI, under config, on a
-// loopback listener until the test ends, and returns its address.
-func served(t *testing.T, config *tls.Config) string {
+// newServer returns the UI's server with the options c decides, as the composition root's configured
+// returns them, over an empty bundle, which answers an entry document without a database.
+func newServer(t *testing.T, c Configuration) *api.Server {
 	t.Helper()
-	srv := &http.Server{
-		Handler:           http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }),
-		TLSConfig:         config,
-		ReadHeaderTimeout: 5 * time.Second,
+	opts := configured(c)
+	opts.Bundle, opts.Datasets, opts.Logger = fstest.MapFS{}, registry.Datasets(lookups), discard()
+	opts.Metrics, opts.Clock, opts.TokenKey = prometheus.NewRegistry(), time.Now, make([]byte, api.MinTokenKey)
+	s, err := api.New(opts)
+	if err != nil {
+		t.Fatal(err)
 	}
+	return s
+}
+
+// loopback opens a loopback listener on a port the system picks and keeps it open, so a test learns
+// the address from the listener it hands the start and no other process can take the port in between.
+func loopback(t *testing.T) net.Listener {
+	t.Helper()
 	var lc net.ListenConfig
 	ln, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	done := make(chan error, 1)
-	go func() { done <- serveUI(srv, ln) }()
-	t.Cleanup(func() {
-		if err := errors.Join(srv.Shutdown(context.Background()), ignoreClosed(<-done)); err != nil {
-			t.Error(err)
-		}
-	})
-	return ln.Addr().String()
+	return ln
 }
 
-// get sends a GET for / to address through client and returns the response's status and its TLS
-// connection state, nil over plain HTTP.
-func get(t *testing.T, client *http.Client, address string) (int, *tls.ConnectionState, error) {
+// started runs the UI's serve with c on loopback listeners until the test ends, over a server built
+// with the options c decides, as the composition root builds both, and returns the UI's address. A
+// serve that returns an error fails the test.
+func started(t *testing.T, c Configuration) string {
 	t.Helper()
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, address+"/", http.NoBody)
+	uiListener, probeListener := loopback(t), loopback(t)
+	s := newServer(t, c)
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- serve(ctx, c, uiListener, probeListener, s, discard()) }()
+	t.Cleanup(func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Errorf("serve returned %v", err)
+		}
+	})
+	return uiListener.Addr().String()
+}
+
+// answer is what a test reads of the UI's answer to an entry document's request.
+type answer struct {
+	status int
+	// tls is the connection's TLS state, nil over plain HTTP.
+	tls *tls.ConnectionState
+	// session is the session cookie the answer set.
+	session *http.Cookie
+}
+
+// entry sends a GET for an entry document to address through client in a new session and returns
+// the answer.
+func entry(t *testing.T, client *http.Client, address string) (answer, error) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, address+"/personal", http.NoBody)
 	if err != nil {
 		t.Fatal(err)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return answer{}, err
 	}
-	return resp.StatusCode, resp.TLS, resp.Body.Close()
+	a := answer{status: resp.StatusCode, tls: resp.TLS}
+	for _, c := range resp.Cookies() {
+		if c.Name == "ui_session" {
+			a.session = c
+		}
+	}
+	return a, resp.Body.Close()
 }
 
-// With a key pair named, the UI is served over TLS only (ADR-0118). A plain HTTP request is not
-// served, and a key pair rotated in its mounted files serves the next handshake without a restart, as
-// the mediator's client surface does (docs/UI.md section 15).
+// trusting returns a client that trusts cert alone and opens a new connection, so a new handshake,
+// for every request.
+func trusting(cert *x509.Certificate) *http.Client {
+	pool := x509.NewCertPool()
+	pool.AddCert(cert)
+	return &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
+}
+
+// With a key pair named, the UI's serve, the composition root's own wiring, serves the UI over TLS
+// only, and the session cookie carries Secure (ADR-0118). A plain HTTP request is not served, and a
+// key pair rotated in its mounted files serves the next handshake without a restart, as the
+// mediator's client surface does (docs/UI.md section 15).
 func TestWithAKeyPairTheUIIsServedOverTLSOnly(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
 	first := writeKeyPair(t, certFile, keyFile, 1)
-	addr := served(t, tlsConfig(certFile, keyFile))
-	if status, _, err := get(t, &http.Client{}, "http://"+addr); err == nil && status == http.StatusNoContent {
+	c := defaults()
+	c.TLSCert, c.TLSKey = certFile, keyFile
+	addr := started(t, c)
+	if a, err := entry(t, &http.Client{Timeout: 5 * time.Second}, "http://"+addr); err == nil && a.status == http.StatusOK {
 		t.Error("a plain HTTP request was served")
 	}
 	for i, cert := range []*x509.Certificate{first, nil} {
 		if cert == nil {
 			cert = writeKeyPair(t, certFile, keyFile, 2)
 		}
-		pool := x509.NewCertPool()
-		pool.AddCert(cert)
-		client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
-		status, state, err := get(t, client, "https://"+addr)
+		a, err := entry(t, trusting(cert), "https://"+addr)
 		if err != nil {
 			t.Fatalf("handshake %d with the key pair then in the files: %v", i+1, err)
 		}
-		if got := state.PeerCertificates[0].SerialNumber.Int64(); status != http.StatusNoContent || got != cert.SerialNumber.Int64() {
-			t.Errorf("handshake %d: status %d with serial %d, want 204 with serial %d", i+1, status, got, cert.SerialNumber.Int64())
+		if got := a.tls.PeerCertificates[0].SerialNumber.Int64(); a.status != http.StatusOK || got != cert.SerialNumber.Int64() {
+			t.Errorf("handshake %d: status %d with serial %d, want 200 with serial %d", i+1, a.status, got, cert.SerialNumber.Int64())
+		}
+		if a.session == nil || !a.session.Secure {
+			t.Errorf("handshake %d: the session cookie is %v, want it Secure", i+1, a.session)
 		}
 	}
 }
 
-// With no key pair named, the UI is served over plain HTTP, behind whatever terminates TLS in front of
-// it (ADR-0118).
+// With no key pair named, the UI's serve loads none and serves the UI over plain HTTP, behind whatever
+// terminates TLS in front of it, and the session cookie carries no Secure (ADR-0118).
 func TestWithNoKeyPairTheUIIsServedOverPlainHTTP(t *testing.T) {
-	addr := served(t, tlsConfig("", ""))
-	status, state, err := get(t, &http.Client{}, "http://"+addr)
+	addr := started(t, defaults())
+	a, err := entry(t, &http.Client{Timeout: 5 * time.Second}, "http://"+addr)
 	if err != nil {
 		t.Fatalf("a plain HTTP request: %v", err)
 	}
-	if status != http.StatusNoContent || state != nil {
-		t.Errorf("status %d over TLS %v, want 204 over plain HTTP", status, state != nil)
+	if a.status != http.StatusOK || a.tls != nil {
+		t.Errorf("status %d over TLS %v, want 200 over plain HTTP", a.status, a.tls != nil)
 	}
-}
-
-func ignoreClosed(err error) error {
-	if errors.Is(err, http.ErrServerClosed) {
-		return nil
+	if a.session == nil || a.session.Secure {
+		t.Errorf("the session cookie is %v, want it set without Secure", a.session)
 	}
-	return err
 }
 
 // A TLS key pair that does not load refuses the start before the UI serves, so a pod whose mounts
-// cannot serve never listens.
+// cannot serve never answers.
 func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	c := defaults()
-	c.Listen, c.ProbeListen = "127.0.0.1:0", "127.0.0.1:0"
 	c.TLSCert, c.TLSKey = filepath.Join(t.TempDir(), "absent.crt"), filepath.Join(t.TempDir(), "absent.key")
-	s, err := api.New(api.Options{
-		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: discard(),
-		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = serve(bounded(t), c, s, discard())
+	err := serve(bounded(t), c, loopback(t), loopback(t), newServer(t, c), discard())
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
 		t.Fatalf("serve returned %v, want the key pair refused", err)
-	}
-}
-
-// With no key pair named, the start loads none and serves until it is stopped, so a UI behind a
-// platform that terminates TLS in front of it starts (ADR-0118).
-func TestWithNoKeyPairTheStartServesUntilStopped(t *testing.T) {
-	c := defaults()
-	c.Listen, c.ProbeListen = "127.0.0.1:0", "127.0.0.1:0"
-	s, err := api.New(api.Options{
-		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: discard(),
-		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
-	defer cancel()
-	if err := serve(ctx, c, s, discard()); err != nil {
-		t.Fatalf("serve returned %v, want nil once stopped", err)
 	}
 }
 

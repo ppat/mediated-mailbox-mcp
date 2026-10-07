@@ -191,13 +191,34 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err != nil {
 		return fmt.Errorf("loading the keyring: %w", err)
 	}
-	server, err := api.New(api.Options{
-		Bundle:         bundle,
-		Database:       pool,
-		Datasets:       registry.Datasets(lookups),
-		Logger:         logger,
-		Metrics:        prometheus.NewRegistry(),
-		Clock:          time.Now,
+	opts := configured(c)
+	opts.Bundle, opts.Database, opts.Datasets, opts.Logger = bundle, pool, registry.Datasets(lookups), logger
+	opts.Metrics, opts.Clock, opts.TokenKey, opts.Seal = prometheus.NewRegistry(), time.Now, tokenKey, sealKey
+	opts.Consents = map[string]mail.Consent[context.Context]{
+		"gmail": consent.New(&http.Client{Timeout: providerTimeout}, c.ConsentRedirect),
+	}
+	opts.ClientSecrets, opts.Lookups = secrets, lookups
+	server, err := api.New(opts)
+	if err != nil {
+		return err
+	}
+	var lc net.ListenConfig
+	uiListener, err := lc.Listen(ctx, "tcp", c.Listen)
+	if err != nil {
+		return err
+	}
+	probeListener, err := lc.Listen(ctx, "tcp", c.ProbeListen)
+	if err != nil {
+		return errors.Join(err, uiListener.Close())
+	}
+	return serve(ctx, c, uiListener, probeListener, server, logger)
+}
+
+// configured returns the server's options its configuration decides, which run completes with the
+// server's dependencies. The mode the UI serves in sets its cookies' Secure attribute, from the same
+// source as the listener's mode (ADR-0118).
+func configured(c Configuration) api.Options {
+	return api.Options{
 		Cadences:       api.Cadences{Sync: c.SyncInterval, Heuristics: c.HeuristicsInterval},
 		StreamInterval: c.StreamInterval,
 		Attention: attention.Thresholds{
@@ -208,19 +229,9 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 			DefaultTheme: c.DefaultTheme, StreamReconnectMax: c.StreamReconnectMax, StreamPollInterval: c.StreamPollInterval,
 			ConsentRedirect: c.ConsentRedirect,
 		},
-		TokenKey: tokenKey,
-		Seal:     sealKey,
-		Consents: map[string]mail.Consent[context.Context]{
-			"gmail": consent.New(&http.Client{Timeout: providerTimeout}, c.ConsentRedirect),
-		},
-		ClientSecrets: secrets,
-		Lookups:       lookups,
-		Identity:      api.Identity{Header: c.IdentityHeader, Operator: c.OperatorName},
-	})
-	if err != nil {
-		return err
+		Identity:  api.Identity{Header: c.IdentityHeader, Operator: c.OperatorName},
+		ServesTLS: c.servesTLS(),
 	}
-	return serve(ctx, c, server, logger)
 }
 
 // loadTokenKey reads the key behind the request token from its mounted file, or generates one when no
@@ -244,23 +255,17 @@ func loadTokenKey(path string) ([]byte, error) {
 	return key, nil
 }
 
-// serve runs the UI's listener, over TLS when a certificate and a key are named and over plain HTTP
-// when neither is (ADR-0118), and the probes' plain-HTTP listener, until ctx ends or either fails,
-// then shuts both down.
-func serve(ctx context.Context, c Configuration, server *api.Server, logger *slog.Logger) error {
-	if c.TLSCert != "" {
+// serve serves the UI on uiListener, over TLS when a certificate and a key are named and over plain
+// HTTP when neither is (ADR-0118), and the probes on probeListener over plain HTTP, until ctx ends or
+// either fails, then shuts both down. It takes the listeners already open, as the mediator's serve
+// does, so a caller that must know the addresses holds them from before the start, and it closes both
+// on every path. A key pair that is named and does not load stops it before it serves.
+func serve(ctx context.Context, c Configuration, uiListener, probeListener net.Listener, server *api.Server, logger *slog.Logger) error {
+	overTLS := c.servesTLS()
+	if overTLS {
 		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
-			return fmt.Errorf("loading the TLS key pair: %w", err)
+			return errors.Join(fmt.Errorf("loading the TLS key pair: %w", err), uiListener.Close(), probeListener.Close())
 		}
-	}
-	var lc net.ListenConfig
-	uiListener, err := lc.Listen(ctx, "tcp", c.Listen)
-	if err != nil {
-		return err
-	}
-	probeListener, err := lc.Listen(ctx, "tcp", c.ProbeListen)
-	if err != nil {
-		return errors.Join(err, uiListener.Close())
 	}
 	// Requests take ctx as their base, so an open event stream ends when the process is told to stop
 	// rather than holding the shutdown until its timeout.
@@ -270,9 +275,10 @@ func serve(ctx context.Context, c Configuration, server *api.Server, logger *slo
 	}
 	probes := &http.Server{Handler: server.Probes(), ReadHeaderTimeout: 10 * time.Second}
 	errs := make(chan error, 2)
-	go func() { errs <- serveUI(ui, uiListener) }()
+	go func() { errs <- serveUI(ui, uiListener, overTLS) }()
 	go func() { errs <- probes.Serve(probeListener) }()
-	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", ui.TLSConfig != nil)
+	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", overTLS)
+	var err error
 	select {
 	case <-ctx.Done():
 	case err = <-errs:
@@ -285,22 +291,25 @@ func serve(ctx context.Context, c Configuration, server *api.Server, logger *slo
 	return errors.Join(err, ui.Shutdown(shutdown), probes.Shutdown(shutdown))
 }
 
-// serveUI serves the UI on ln until it is shut down, over TLS unless srv has no TLS configuration,
-// which a configuration naming no key pair leaves it without (ADR-0118).
-func serveUI(srv *http.Server, ln net.Listener) error {
-	if srv.TLSConfig == nil {
+// servesTLS is whether the UI serves TLS, which both TLS files named decide. It is the one source of
+// the mode, which the listener and the cookies' Secure attribute both follow (ADR-0118).
+func (c Configuration) servesTLS() bool { return c.TLSCert != "" && c.TLSKey != "" }
+
+// serveUI serves the UI on ln until it is shut down, over TLS with srv's TLS configuration when
+// overTLS is set and over plain HTTP otherwise. The caller derives overTLS from the configuration
+// naming a key pair (ADR-0118), so a server built without its TLS configuration fails its start
+// rather than serving plain HTTP.
+func serveUI(srv *http.Server, ln net.Listener, overTLS bool) error {
+	if !overTLS {
 		return srv.Serve(ln)
 	}
 	return srv.ServeTLS(ln, "", "")
 }
 
 // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate is
-// served without a restart, as the mediator's client surface does (docs/UI.md section 15). It returns
-// none when no key pair is named.
+// served without a restart, as the mediator's client surface does (docs/UI.md section 15). It is used
+// only when the UI is served over TLS.
 func tlsConfig(certFile, keyFile string) *tls.Config {
-	if certFile == "" {
-		return nil
-	}
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

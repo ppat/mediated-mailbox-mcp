@@ -5,11 +5,11 @@ tests: TestWithAKeyPairTheUIIsServedOverTLSOnly
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index 001bdb6c..c176a051 100644
+index 66af940c..c4355a1e 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -291,7 +291,7 @@ func serveUI(srv *http.Server, ln net.Listener) error {
- 	if srv.TLSConfig == nil {
+@@ -297,7 +297,7 @@ func serveUI(srv *http.Server, ln net.Listener, overTLS bool) error {
+ 	if !overTLS {
  		return srv.Serve(ln)
  	}
 -	return srv.ServeTLS(ln, "", "")

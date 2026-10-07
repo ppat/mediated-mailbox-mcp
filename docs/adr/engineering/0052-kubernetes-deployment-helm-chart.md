@@ -25,7 +25,7 @@ may assume about the user's cluster.
   but does not own arrives as user-supplied inputs.** Postgres and the Secrets holding the system's
   secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)) arrive as Helm
   values or pre-existing Secrets. The TLS material of the mediator and the UI is an optional input
-  the chart declares, rendered into their configuration only when it is given, since each serves
+  the chart declares, rendered into their configuration only when it is given, since each can serve
   plain HTTP behind a platform that terminates TLS in front of it
   ([ADR-0118](../operability/0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)).
   Policy is not a chart input. It lives in the database, and it is

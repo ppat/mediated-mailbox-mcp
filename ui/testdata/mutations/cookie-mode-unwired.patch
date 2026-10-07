@@ -1,0 +1,19 @@
+control: each cookie the UI sets is Secure exactly when the UI serves TLS, and HttpOnly and SameSite=Strict in both modes
+removes: the composition root builds the server as if the UI served plain HTTP whatever the configuration, so its cookies lack Secure under TLS
+packages: ./ui
+tests: TestWithAKeyPairTheUIIsServedOverTLSOnly
+scheduled-count: no
+
+diff --git a/ui/main.go b/ui/main.go
+index 96bf7b41..d75bf4be 100644
+--- a/ui/main.go
++++ b/ui/main.go
+@@ -230,7 +230,7 @@ func configured(c Configuration) api.Options {
+ 			ConsentRedirect: c.ConsentRedirect,
+ 		},
+ 		Identity:  api.Identity{Header: c.IdentityHeader, Operator: c.OperatorName},
+-		ServesTLS: c.servesTLS(),
++		ServesTLS: false,
+ 	}
+ }
+ 

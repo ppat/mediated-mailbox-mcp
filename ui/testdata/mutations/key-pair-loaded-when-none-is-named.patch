@@ -1,19 +1,19 @@
 control: the UI serves TLS when a key pair is named and plain HTTP when none is, with the key pair read from its mounted files
 removes: the start loads the key pair whether or not one is named, so a UI serving plain HTTP never starts
 packages: ./ui
-tests: TestWithNoKeyPairTheStartServesUntilStopped
+tests: TestWithNoKeyPairTheUIIsServedOverPlainHTTP
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index 001bdb6c..d6be73e1 100644
+index 96bf7b41..c4556f2f 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -248,7 +248,7 @@ func loadTokenKey(path string) ([]byte, error) {
- // when neither is (ADR-0118), and the probes' plain-HTTP listener, until ctx ends or either fails,
- // then shuts both down.
- func serve(ctx context.Context, c Configuration, server *api.Server, logger *slog.Logger) error {
--	if c.TLSCert != "" {
+@@ -262,7 +262,7 @@ func loadTokenKey(path string) ([]byte, error) {
+ // on every path. A key pair that is named and does not load stops it before it serves.
+ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.Listener, server *api.Server, logger *slog.Logger) error {
+ 	overTLS := c.servesTLS()
+-	if overTLS {
 +	if true {
  		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
- 			return fmt.Errorf("loading the TLS key pair: %w", err)
+ 			return errors.Join(fmt.Errorf("loading the TLS key pair: %w", err), uiListener.Close(), probeListener.Close())
  		}

@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index a294fb54..9e8b5394 100644
+index 03024e4d..610f1518 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -207,11 +207,11 @@ func New(opts Options) (*Server, error) {
+@@ -233,11 +233,11 @@ func New(opts Options) (*Server, error) {
  	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
  		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
  	}))
@@ -18,8 +18,8 @@ index a294fb54..9e8b5394 100644
  	s.uiMux = mux
  	// Every request is given its session, and every request whose method is not GET or HEAD is refused
  	// before it is routed unless it carries the session's request token (ADR-0061).
--	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
-+	s.handler = observe(opts.Logger, withSession(withToken(k, mux)))
+-	s.handler = observe(opts.Logger, withPolicy(withSession(opts.ServesTLS, withToken(k, mux))))
++	s.handler = observe(opts.Logger, withSession(opts.ServesTLS, withToken(k, mux)))
  
  	probes := &recordingMux{mux: http.NewServeMux()}
  	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

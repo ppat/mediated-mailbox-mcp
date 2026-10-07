@@ -1,12 +1,12 @@
 control: each cookie the UI sets is Secure exactly when the UI serves TLS, and HttpOnly and SameSite=Strict in both modes
-removes: the consent attempt cookie is cleared without HttpOnly as an attempt ends
+removes: the consent attempt cookie is cleared without Secure whatever the mode as an attempt ends
 packages: ./ui/internal/api
-tests: TestEachCookieIsSecureExactlyWhenTheUIServesTLS
+tests: TestEachCookieIsSecureExactlyWhenTheUIServesTLS/TLS
 scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/attempt.go b/ui/internal/api/attempt.go
-index 7e903eb0..4d17668d 100644
+index 7e903eb0..828a8ce6 100644
 --- a/ui/internal/api/attempt.go
 +++ b/ui/internal/api/attempt.go
 @@ -105,6 +105,6 @@ func keepAttempt(w http.ResponseWriter, value string, secure bool) {
@@ -14,6 +14,6 @@ index 7e903eb0..4d17668d 100644
  func endAttempt(w http.ResponseWriter, secure bool) {
  	http.SetCookie(w, &http.Cookie{ //nolint:gosec // Secure follows the UI's mode, set exactly when it serves TLS (ADR-0118)
 -		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode,
-+		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, Secure: secure, SameSite: http.SameSiteStrictMode,
++		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, HttpOnly: true, Secure: false, SameSite: http.SameSiteStrictMode,
  	})
  }

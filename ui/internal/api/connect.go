@@ -274,7 +274,7 @@ func (s *Server) start(w http.ResponseWriter, r *http.Request, a attempt) {
 		s.uiFailure(w, r, err)
 		return
 	}
-	keepAttempt(w, sealed)
+	keepAttempt(w, sealed, s.opts.ServesTLS)
 	writeJSON(w, r, attemptAnswer{Attempt: viewOf(a)})
 }
 
@@ -374,7 +374,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
 	if s.storeFailure(w, r, err) {
 		return
 	}
-	endAttempt(w)
+	endAttempt(w, s.opts.ServesTLS)
 	writeJSON(w, r, finishAnswer{Kind: a.Kind, Account: a.Account, Mailbox: a.Mailbox, Client: a.Client})
 }
 

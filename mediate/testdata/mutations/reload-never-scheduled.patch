@@ -7,12 +7,12 @@ integration: yes
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..bd4a3c5 100644
+index 345a19f0..c46ae7da 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -240,7 +240,7 @@ func serve(ctx context.Context, c Configuration, served *serving, metrics *prome
+@@ -265,7 +265,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
  	errs := make(chan error, 3)
- 	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
+ 	go func() { errs <- serveSurface(surfaceServer, surfaceListener, c.servesTLS()) }()
  	go func() { errs <- serveProbes(probeServer, probeListener) }()
 -	go served.reloadEvery(reloading, c.AccountReloadInterval)
 +	_ = reloading

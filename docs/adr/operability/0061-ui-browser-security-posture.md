@@ -16,8 +16,9 @@ it.
 ## Decision
 
 - **The UI issues an anonymous session cookie on first response**, a random identifier,
-  `HttpOnly`, `Secure`, `SameSite=Strict`, with browser-session lifetime, whether or not a
-  proxy authenticates in front of the UI.
+  `HttpOnly`, `SameSite=Strict`, with browser-session lifetime, whether or not a proxy
+  authenticates in front of the UI, and `Secure` exactly when the UI serves TLS
+  ([ADR-0118](./0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)).
 - **The entry document carries a token derived from that session.** The entry document is the
   one page a Go handler renders. The token is an HMAC of the session identifier under a key
   generated at process start, or a configured key when more than one replica runs. Everything
@@ -46,8 +47,4 @@ it.
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - Assumptions about other components: the identity a decision records comes from
   [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s rule and is independent
-  of the token, which proves only that the request came from a page the UI served. The browser
-  reaches the UI over HTTPS, terminated by the UI or by the platform in front of it
-  ([ADR-0118](./0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)), so the `Secure`
-  cookie is stored. Over a plain-HTTP browser hop it is not, and every state-changing request is
-  refused.
+  of the token, which proves only that the request came from a page the UI served.

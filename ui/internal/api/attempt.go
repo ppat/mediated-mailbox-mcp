@@ -93,16 +93,18 @@ func (k keys) openAttempt(r *http.Request) (attempt, error) {
 	return a, nil
 }
 
-// keepAttempt sets the session's attempt, replacing any it held, so only the newest can finish.
-func keepAttempt(w http.ResponseWriter, value string) {
-	http.SetCookie(w, &http.Cookie{
-		Name: attemptCookie, Value: value, Path: "/api/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+// keepAttempt sets the session's attempt, replacing any it held, so only the newest can finish. The
+// cookie is Secure when secure is set, which is when the UI serves TLS (ADR-0118).
+func keepAttempt(w http.ResponseWriter, value string, secure bool) {
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // Secure follows the UI's mode, set exactly when it serves TLS (ADR-0118)
+		Name: attemptCookie, Value: value, Path: "/api/", HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode,
 	})
 }
 
-// endAttempt clears the session's attempt once a finish has stored what it was for.
-func endAttempt(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+// endAttempt clears the session's attempt once a finish has stored what it was for, with the cookie
+// Secure as keepAttempt set it.
+func endAttempt(w http.ResponseWriter, secure bool) {
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // Secure follows the UI's mode, set exactly when it serves TLS (ADR-0118)
+		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode,
 	})
 }
