@@ -231,6 +231,16 @@
         "typescript"
       ],
       "allowedVersions": "<6"
+    },
+    {
+      "description": "The chart's own images move in lockstep at the release's version, which the release workflow sets as the chart's appVersion, so their empty tags in the chart's values are never a version to update or a digest to pin (ADR-0049).",
+      "matchManagers": [
+        "helm-values"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/ppat/mediated-mailbox-*"
+      ],
+      "enabled": false
     }
   ],
   "postUpdateOptions": [
