@@ -3,9 +3,9 @@
 How this project tests, for the implementer. This document answers two questions in one place.
 What tests must a piece of work have, and what proves the work done? Each answer links the
 decision record that argued it, and the records hold the arguments. Test scenarios live in
-[docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and mutation demonstrations live in
-[docs/MUTATIONS.md](./docs/MUTATIONS.md). This document moves when a record mints a change to
-the strategy, never ahead of one.
+[docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and mutation demonstrations live in the mutation
+ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists. This document moves when a
+record mints a change to the strategy, never ahead of one.
 
 ## The stance
 
@@ -88,10 +88,10 @@ The chain from outcome to evidence, stated once.
    automatable injection becomes a permanent CI test that never retires. A drill and a manual
    exercise prove only that the control worked on the day they ran, as
    [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) records them.
-4. At implementation, every automatable control also gets its mutation demonstration in
-   [docs/MUTATIONS.md](./docs/MUTATIONS.md). The mechanism is broken both ways, so it does less
-   and so it does the wrong thing, each by a checked-in patch, the tests must go red on each, and
-   the script records which ones did. The demonstration is repeated when the control, its tests or
+4. At implementation, every automatable control also gets its mutation demonstration in the
+   mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists. The mechanism
+   is broken both ways, so it does less and so it does the wrong thing, each by a checked-in patch,
+   the tests must go red on each, and the script records which ones did. The demonstration is repeated when the control, its tests or
    a generator they draw from changes, a move of their code or tests to another path included
    ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). Separately,
    whether each demonstration's patch still applies is a standing guard the `mutation-patches`

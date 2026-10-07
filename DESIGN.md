@@ -12,11 +12,12 @@ falsifiable acceptance criterion. [ROADMAP.md](./ROADMAP.md) holds all the work.
 roadmap fact, not a design fact, and a pillar binds identically whether its mechanisms are live or
 unbuilt. [TESTING.md](./TESTING.md) holds the testing strategy the records behind it decide.
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) holds the proving injection for every control.
-And [docs/MUTATIONS.md](./docs/MUTATIONS.md) holds each automatable control's mutation
-demonstration. Where this document cites a specific decision it does so by number ("ADR-0007"),
-resolved through the decision-record index, never deep-linked. Records are the fluid layer and
-may move or be superseded, while a record's number is stable. Vocabulary used across the
-documents is defined in the [Glossary](#glossary) below, and nowhere else.
+And the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists, holds
+each automatable control's mutation demonstration. Where this document cites a specific decision
+it does so by number ("ADR-0007"), resolved through the decision-record index, never deep-linked.
+Records are the fluid layer and may move or be superseded, while a record's number is stable.
+Vocabulary used across the documents is defined in the [Glossary](#glossary) below, and nowhere
+else.
 
 ## 1. What the system is
 
@@ -208,7 +209,7 @@ point toward deny degrades in utility, never in safety.
 Known limit, stated rather than hidden: fail-closed paths are exercised by tests or not at all.
 Production never visits them until the day it matters. Their proving injections are catalogued in
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail lives in
-[docs/MUTATIONS.md](./docs/MUTATIONS.md).
+the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists.
 
 ### Sensitivity is two independent axes
 
@@ -376,7 +377,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Metadata (subjects, senders, traffic patterns) is deliberately exposed | ADR-0001, via the [decision-record index](./docs/adr/README.md) |
 | A bounded residual of unscanned bodies is released by design | ADR-0093 and ADR-0002, and its measurement rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | A single chokepoint concentrates correctness, so a gate bug is a bug everywhere | Built first and proven offline, via the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
-| Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in [docs/MUTATIONS.md](./docs/MUTATIONS.md) (ADR-0046) |
+| Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists (ADR-0046) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0093) |
 | The approval surface is itself a target | ADR-0084 (two decision verbs, a rollback request, OAuth client setup, account setup and policy management, scoped role, seals credentials its code never opens), with every policy change recorded where no runtime role can rewrite it (ADR-0102) |
 | Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
@@ -676,9 +677,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).
 - **Mutation demonstration** (also *mutation table*) — the per-control record that breaking a
   control's mechanism, so it does less and so it does the wrong thing, made its tests go red, kept in
-  [docs/MUTATIONS.md](./docs/MUTATIONS.md) (rule in ADR-0046, via the
-  [decision-record index](./docs/adr/README.md)). Mutation here is the test-suite sense,
-  breaking a mechanism, and not the mailbox-write sense of **Mutation Authorizer**.
+  the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists (rule in
+  ADR-0046, via the [decision-record index](./docs/adr/README.md)). Mutation here is the test-suite
+  sense, breaking a mechanism, and not the mailbox-write sense of **Mutation Authorizer**.
 - **Violation injection** (also *proving injection*) — the acceptance standard. A control is
   proven by deliberately creating the violation it exists to stop and watching it fire, never by
   observing that nothing bad happened. Catalogued in

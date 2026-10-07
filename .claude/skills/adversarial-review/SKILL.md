@@ -211,8 +211,8 @@ one row per control.
   direction, is a finding. Check the conflict list, check that `git diff origin/main --stat` lists
   only the change's files, check that its word-level diff against the new base equals its diff
   against the old base apart from the conflicts listed, and check that in `ROADMAP.md`,
-  `docs/MUTATIONS.md` and `docs/VERIFICATIONS.md` the references to each recently landed pull
-  request match `main`.
+  `docs/VERIFICATIONS.md` and the mutation ledger, `docs/MUTATIONS.md` with the files under
+  `docs/mutations/` it lists, the references to each recently landed pull request match `main`.
 - **No widening without a consumer.** No import list, grant, ban, allow entry or expected finding is
   loosened unless something in the same change needs it, and never beyond what the records allow.
 

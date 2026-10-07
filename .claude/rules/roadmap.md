@@ -20,8 +20,8 @@ set. Its preamble carries the reading rules; hold these lines:
   the user gets is not an increment.
 - Checkboxes are the only state marker on units; nuance lives in prose. A unit is not done while
   the verification rows keyed to it are pending for the part they key to it, nor while any
-  automatable control it delivers is missing its mutation demonstration in docs/MUTATIONS.md
-  (ADR-0046). A demonstration recorded with later work that touches the control's surface area
+  automatable control it delivers is missing its mutation demonstration in the mutation ledger,
+  docs/MUTATIONS.md and the files it lists (ADR-0046). A demonstration recorded with later work that touches the control's surface area
   does not hold open the unit that built the control's mechanism. A verification row keyed to a
   delivered unit as later work, filed under the unit whose mechanism it concerns as a discovery is,
   keys that later work and does not hold the unit open either.

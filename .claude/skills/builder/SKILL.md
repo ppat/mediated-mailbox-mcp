@@ -129,10 +129,11 @@ Building never waits on a choice. Make it, keep going, and put it in the report 
 - **Every new control lands with its proof,** as `TESTING.md`,
   [ADR-0046](../../../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) and the
   preamble of `docs/MUTATIONS.md` require of its kind. That is its `docs/VERIFICATIONS.md` row, a
-  violation file for a lint ban, and for a control with a standing automated test its
-  `docs/MUTATIONS.md` row, with each break its own patch run through `go tool mutproof`. Read the
-  failing assertion, not only the runner's summary. A patch's description says exactly what it
-  breaks. A control's test never reads the value it asserts from the code under test.
+  violation file for a lint ban, and for a control with a standing automated test its row in the
+  mutation ledger, `docs/MUTATIONS.md` and the files it lists, with each break its own patch run
+  through `go tool mutproof`. Read the failing assertion, not only the runner's summary. A patch's
+  description says exactly what it breaks. A control's test never reads the value it asserts from
+  the code under test.
 - **A test counts once it is seen to fail.** Every test the change adds goes red without the change
   it covers, whether or not it proves a control. It watches the outcome the user or the next stage
   sees, not a count of calls or renders.
@@ -169,9 +170,10 @@ account's credential files.
 
 Rebase onto current `main` when the main session asks, or when `main` has moved so the branch
 conflicts. The rebase meets the standard of the `adversarial-review` skill's pass 5, losing nothing
-on either side, which its review checks. Conflicts in `ROADMAP.md`, `docs/MUTATIONS.md` and
-`docs/VERIFICATIONS.md` usually sit inside one long table cell that both sides edited, so git
-reports the whole line. Compare the two sides word by word to find what each changed, and keep both.
+on either side, which its review checks. Conflicts in `ROADMAP.md` usually sit inside one long
+table cell that both sides edited, so git reports the whole line. In `docs/VERIFICATIONS.md` and
+the mutation ledger's files under `docs/mutations/` they sit on one field's line of a row, which
+can still run long. Compare the two sides word by word to find what each changed, and keep both.
 List every conflict in the report with what each side meant and how it was resolved. After the
 rebase, list the unmerged files and grep for conflict markers before continuing, re-run the gates,
 and re-check every patch the rebase touched.
