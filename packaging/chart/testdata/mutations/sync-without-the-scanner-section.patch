@@ -1,18 +1,18 @@
-control: Each deployable's configuration file is passed through as written and restarts its pods when it changes
+control: Each deployable reads only its own file, rendered from the structured values, and restarts when it changes
 removes: delta sync's file no longer carries the shared scanner section, so it scans under another section than backfill
 packages: ./packaging/chart
-tests: TestTheConfigurationFileIsPassedThroughAsWritten
+tests: TestEachDeployableReadsOnlyItsOwnRenderedFile
 scheduled-count: no
 
-diff --git a/packaging/chart/templates/sync.yaml b/packaging/chart/templates/sync.yaml
---- a/packaging/chart/templates/sync.yaml
-+++ b/packaging/chart/templates/sync.yaml
-@@ -5,7 +5,7 @@ promise when a node stops answering (ADR-0117). It calls a provider, so it mount
- scans bodies, so it gets memory-backed scratch space (ADR-0009). It serves only the health probe and the metrics
- endpoint.
- */ -}}
--{{- $ctx := dict "root" . "component" "sync" "scanner" true -}}
-+{{- $ctx := dict "root" . "component" "sync" "scanner" false -}}
- {{- $v := .Values.sync -}}
- {{- if include "mediated-mailbox.hasConfig" $ctx }}
- ---
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -201,7 +201,7 @@ only keys its deployable declares, since every deployable refuses a key it does
+ {{- $keys := dict "public" "/var/run/mediated-mailbox/keys/public.key" "private" (include "mediated-mailbox.privateKeyFiles" . | fromYamlArray) -}}
+ {{- if has .component (list "mediate" "backfill" "sync") }}
+ {{- $_ := set $file "credential" (dict "public_key_file" $keys.public "private_key_files" $keys.private) -}}
+-{{- with $root.Values.scanner }}{{ $_ := set $file "scanner" . }}{{ end -}}
++{{- if ne .component "sync" }}{{ with $root.Values.scanner }}{{ $_ := set $file "scanner" . }}{{ end }}{{ end -}}
+ {{- end }}
+ {{- if eq .component "mediate" }}
+ {{- $_ := set $file "token_file" "/var/run/mediated-mailbox/token/token" -}}

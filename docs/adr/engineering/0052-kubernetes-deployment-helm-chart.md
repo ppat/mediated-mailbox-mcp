@@ -30,15 +30,17 @@ may assume about the user's cluster.
   [ADR-0041](./0041-policy-as-immutable-snapshots.md)). Beyond core Kubernetes, neither the chart
   nor its tests assume anything about the cluster they land on — no external-secrets, no
   cert-manager. This is ADR-0079's boundary made concrete: a chart that accepts only values and
-  pre-existing objects structurally cannot know the secret machinery. The one exception is the
-  alerting rules of [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md), which
-  the chart renders as the Prometheus Operator's resource only when a value switched off by
-  default turns them on.
+  pre-existing objects structurally cannot know the secret machinery. The exceptions are resources
+  the chart renders only when a value switched off by default turns them on: the alerting rules of
+  [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md), as the Prometheus
+  Operator's resource, and the Gateway API's HTTPRoute for a surface the chart exposes. The
+  Ingress the chart can render for the same surfaces is core Kubernetes, and is off by default too.
 - **Each deployable's configuration is rendered as
-  [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) requires.** The chart passes
-  the configuration file through as the text the operator wrote, gives each deployable only its own
-  environment variables, sets `enableServiceLinks: false`, and restarts a deployable's pods when its
-  configuration changes.
+  [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) requires.** The chart renders
+  each deployable's configuration file from structured values into one ConfigMap, a file per
+  deployable holding only the keys that deployable declares, mounts into each deployable's pods only
+  its own file, gives each deployable only its own environment variables, sets
+  `enableServiceLinks: false`, and restarts a deployable's pods when its own file changes.
 - **Project-owned configuration and policy hardening ship in the chart; their enforcement is the
   platform's.** The pod security contexts are core fields and comply with the hardening
   posture ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). Admission machinery and
@@ -50,13 +52,12 @@ may assume about the user's cluster.
   the objects it would hand a cluster, and a chainsaw suite —
   declarative Kubernetes end-to-end tests — that deploys the chart onto an ephemeral kind cluster
   and exercises it. The chainsaw harness deploys the chart via flux, which its workflow installs on
-  the cluster as harness machinery, not something the chart assumes exists. The suite builds no
-  images. It takes a version and deploys the chart with the images already published for that
-  version, and it runs when the packaging or the suite changes and on every release, never on a pull
-  request that changes only a deployable. Where no images exist for the version, it reports that it did not run rather
-  than passing, and a suite with no tests fails. Run by hand, the same suite takes images built from
-  a tree and loaded into its cluster under a version of their own, which is the evidence a packaging
-  change carries until a release's run proves it ([CLAUDE.md](../../../CLAUDE.md#repository-process)).
+  the cluster as harness machinery, not something the chart assumes exists. On a pull
+  request that changes the chart or the suite it runs against the images built from the pull
+  request's own tree in its job, so the pull request is proven by its own run, and it never runs on
+  a pull request that changes only a deployable. Started by hand, it takes a release version and
+  deploys the chart with the images already published for it, and fails when the version lacks one.
+  A suite with no tests fails.
 - **Distribution is OCI, in the same registry as the images, at the lockstep version** — no
   hosted chart repository, no index.
   [ADR-0028](../operability/0028-trust-anchor-hardening.md)'s signed-and-verified rule extends

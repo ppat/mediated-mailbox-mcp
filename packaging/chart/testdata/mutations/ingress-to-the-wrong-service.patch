@@ -1,0 +1,18 @@
+control: An Ingress or an HTTPRoute renders only when switched on, and sends traffic to its own component
+removes: the Ingress sends traffic to the release's name rather than its own component's Service
+packages: ./packaging/chart
+tests: TestIngressAndRoutesRenderOnlyWhenSwitchedOn
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -349,7 +349,7 @@ spec:
+             {{- end }}
+             backend:
+               service:
+-                name: {{ $name }}
++                name: {{ include "mediated-mailbox.fullname" .root }}
+                 port:
+                   number: {{ $v.service.port }}
+           {{- end }}

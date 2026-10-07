@@ -22,5 +22,5 @@ for _ in $(seq 1 90); do
   sleep 2
 done
 echo "delta sync set no series for the stored OAuth client, so no tick read the database through its role" >&2
-kubectl -n "$namespace" logs statefulset/mediated-mailbox-sync --tail=20 >&2
+kubectl -n "$namespace" logs deployment/mediated-mailbox-sync --tail=20 >&2
 exit 1

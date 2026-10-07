@@ -305,9 +305,9 @@ need the repository's tools install them from `mise.toml` through
 | `secrets` | Every pull request | gitleaks |
 | `mutation-patches` | Every pull request | `git apply --check` over every mutation patch under a `testdata/mutations/` directory, excluding `testsupport/cmd/mutproof/testdata/`'s own fixtures, after a self-test proves the check refuses a patch whose context no longer matches. Unconditional rather than path-filtered, because a patch's diff context can span any file in the tree, and neither `go-test` nor `go-integration` runs it, so a patch's plain applicability is a standing guard apart from the mutation demonstration itself, which stays event-driven ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)) |
 | `chart` | `packaging/`, tool pins | `helm lint --strict` with every input the chart requires set, since a render that stops at a missing one lints none of the templates after it |
-| `chainsaw` | `packaging/`, `.github/scripts/chainsaw/`, every release, called by the `release` workflow, and by hand with a version | A self-test first, which runs the pinned chainsaw with no cluster over a suite holding no test and one holding a passing test and requires the check that a run tested something to refuse the first and accept the second. Then the chainsaw suite as ADR-0052 states it, against the images published for the version, and the check of the version's key-generation binary, its keyless signature against the release workflow's identity, a tampered copy refused and the pair it writes sealed to and opened with ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). On a pull request the version is the latest release's, and a latest release without every image or without the binary skips that part with a warning |
+| `chainsaw` | `packaging/chart/`, `packaging/tests/chainsaw/`, `.github/scripts/chainsaw/`, and by hand with a version | A self-test first, which runs the pinned chainsaw with no cluster over a suite holding no test and one holding a passing test and requires the check that a run tested something to refuse the first and accept the second. Then the chainsaw suite as ADR-0052 states it: on a pull request against the read path's images built from the pull request's tree in the job and loaded into the cluster, and by hand against the images published for the version |
 | `deep-tests` | A schedule, by hand, and a change to the workflow itself | Deep property search and crash-sequence exploration at the scheduled case count, which a manual run may override, with a fresh seed each run, skipped with a stated reason while no property or crash test exists ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)) |
-| `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, pushes and signs the chart, and builds the `credential/cmd/keygen` binaries as `mediated-mailbox-keygen-<os>-<arch>` for linux and darwin on amd64 and arm64, signs each keylessly into a Sigstore bundle, and attaches each binary and its bundle to the release ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Once all of them are published it calls the `chainsaw` workflow with the release's version, so every release is proven with no one starting the run. Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
+| `release` | A release | Builds, pushes and signs every image by digest with keyless signing, sets the chart's `version` and `appVersion` to the release version as it packages the chart, pushes and signs the chart, and builds the `credential/cmd/keygen` binaries as `mediated-mailbox-keygen-<os>-<arch>` for linux and darwin on amd64 and arm64, signs each keylessly into a Sigstore bundle, and attaches each binary and its bundle to the release ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
 | `lint` | Every pull request | The repository's existing hygiene checks, `commit-messages`, commitlint over the branch commits, and `commit-taxonomy`, which derives every header Renovate and release-please can emit and lints it, requires each to be true of its file, and checks a pull request's headers against its diff ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). `commit-taxonomy` carries no path filter, `needs:` or `if:`, because a skipped job satisfies a required check |
 | `pr-title` | Every pull request, on open, edit, synchronize and reopen | commitlint over the pull request title, the string that lands on `main` for a multi-commit pull request ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). Never gated, for the same reason |
 | `pr-labels` | Every pull request, on open, edit, synchronize, reopen, label and unlabel | Sets the pull request's `component:` labels to exactly the components its diff touches, read from the [component table](#components) at the pull request's head, creating a missing label in the component color. A new component needs only its table row. A pull request from a fork cannot write labels, so its run fails |
@@ -328,8 +328,9 @@ checks that gate the commit vocabulary carry no condition.
   every CI job. Go library dependencies are pinned in `go.mod`, browser dependencies in
   `ui/browser/package.json` and `ui/browser/codegen/package.json`, the commitlint the gates and the
   `commit-taxonomy` check run in the root `package.json` with `bun.lock` committed, base images
-  in the Dockerfiles, and the Helm tests' image in the chart's `values.yaml`, by registry, repository
-  and a tag carrying its digest, the shape Renovate's helm-values manager reads. The existing hygiene workflow, its reusable jobs and pre-commit's hygiene
+  in the Dockerfiles, and the Helm tests' image in the chart's `values.yaml`, by repository and a tag
+  carrying its digest, the shape Renovate's helm-values manager reads. The existing hygiene
+  workflow, its reusable jobs and pre-commit's hygiene
   hooks carry their own pins. Renovate tracks every pin, and groups the Go version and the bun
   version across the places each is pinned so they move together. It runs `go mod tidy` after an
   update to a Go dependency, because the update writes the new module's sums and prunes none of the
@@ -381,20 +382,6 @@ checks that gate the commit vocabulary carry no condition.
   at its finish line also carries the unit's move to the roadmap's delivered register. A closed
   ticket means its work has merged to `main`. Released and deployed are later states, tracked apart
   in ROADMAP.md.
-- **A packaging ticket closes on the chainsaw suite's run against a release.** The suite deploys the
-  images published for a release and builds none, and a release is cut on no schedule a ticket
-  controls. So a pull request that changes the chart or the suite merges with its chart, its suite
-  and the evidence of a run on a kind cluster against images built from its tree, loaded into the
-  cluster under a version of their own with flux installing the chart from its head commit as the
-  workflow does. It references its ticket without closing it. The `release` workflow runs the suite
-  and the check of the key-generation binary against every release, so nobody starts the run. Once
-  a release's run is green, a follow-up pull request records the proof, the release's parts of the
-  rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) and the unit's move to the roadmap's
-  delivered register, and closes the ticket. A red run is a discovery, cut as a ticket under the unit
-  whose mechanism broke. When the latest release's images hold every change the chart depends on,
-  not merely exist for every deployable the chart runs, the packaging pull request's own `chainsaw`
-  run is that proof, and that pull request closes its
-  ticket.
 - **A builder subagent builds a pull request through the `builder` skill,** which holds the brief
   a builder gets, the order it works in, the proof and gates it runs, and the report it hands back.
 - **A pull request an agent builds leaves draft** only once the **`adversarial-review` skill**'s
@@ -403,9 +390,9 @@ checks that gate the commit vocabulary carry no condition.
 - **GitHub labels.** A ticket carries `unit:<ID>` for the unit it serves and one
   `component:<directory>` per component of the [component table](#components) it touches, with the
   directory spelled as that table's first column spells it without the trailing slash, so
-  `packaging/chart` and `packaging/tests/chainsaw` keep every segment. The pull request that closes it carries
-  the unit label and one component label per component its diff touches. A change touching no
-  component carries the unit label alone. The author applies the ticket's labels and the pull
+  `packaging/chart` and `packaging/tests/chainsaw` keep every segment. The pull request that closes
+  it carries the unit label and one component label per component its diff touches. A change
+  touching no component carries the unit label alone. The author applies the ticket's labels and the pull
   request's unit label at creation. The `pr-labels` workflow of the [workflow table](#ci-workflows)
   sets the pull request's component labels from its diff and keeps them in line with it, and the
   author corrects the ticket's component labels to match the pull request's before it merges. A

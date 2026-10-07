@@ -1,69 +1,37 @@
 {{- /*
 The mediator: the client surface, and the probes and metrics endpoint on their own plain-HTTP listener. It calls a
-provider, so it mounts the key pair (ADR-0081), and it holds bodies, so it gets memory-backed scratch space
-(ADR-0009). The surface serves TLS from the mounted key pair unless an ingress in front is declared to terminate it.
+provider, so it mounts the key pair (ADR-0081). The surface serves TLS from the mounted key pair unless an ingress in
+front is declared to terminate it. Its root filesystem is read-only and it mounts no writable volume, so nothing it
+holds can spill to a disk (ADR-0009).
 */ -}}
-{{- $ctx := dict "root" . "component" "mediate" "scanner" true -}}
+{{- $ctx := dict "root" . "component" "mediate" "config" true -}}
 {{- $v := .Values.mediate -}}
-{{- if include "mediated-mailbox.hasConfig" $ctx }}
+{{- with include "mediated-mailbox.serviceAccount" $ctx }}
 ---
-{{ include "mediated-mailbox.configMap" $ctx }}
+{{ . }}
 {{- end }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ include "mediated-mailbox.name" $ctx }}
-  labels:
-    {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
-automountServiceAccountToken: false
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "mediated-mailbox.name" $ctx }}
+  name: {{ include "mediated-mailbox.componentName" $ctx }}
   labels:
     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
 spec:
-  replicas: {{ $v.replicas }}
+  replicas: {{ $v.replicaCount }}
   selector:
     matchLabels:
-      {{- include "mediated-mailbox.selector" $ctx | nindent 6 }}
+      {{- include "mediated-mailbox.selectorLabels" $ctx | nindent 6 }}
   template:
     metadata:
-      labels:
-        {{- include "mediated-mailbox.labels" $ctx | nindent 8 }}
-      annotations:
-        checksum/config: {{ include "mediated-mailbox.configText" $ctx | sha256sum }}
+      {{- include "mediated-mailbox.podMetadata" $ctx | nindent 6 }}
     spec:
-      serviceAccountName: {{ include "mediated-mailbox.name" $ctx }}
       {{- include "mediated-mailbox.podSpec" $ctx | nindent 6 }}
       containers:
       - name: mediate
-        image: {{ include "mediated-mailbox.image" $ctx }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        {{- include "mediated-mailbox.containerSecurity" $ctx | nindent 8 }}
-        {{- if include "mediated-mailbox.hasConfig" $ctx }}
+        {{- include "mediated-mailbox.container" $ctx | nindent 8 }}
         args:
-        - --config-file=/etc/mediated-mailbox/config.yaml
-        {{- end }}
-        env:
-        {{- include "mediated-mailbox.databaseEnv" $ctx | nindent 8 }}
-        - name: MEDIATED_MAILBOX_CREDENTIAL__PUBLIC_KEY_FILE
-          value: /var/run/mediated-mailbox/keys/public.key
-        - name: MEDIATED_MAILBOX_CREDENTIAL__PRIVATE_KEY_FILES
-          value: {{ include "mediated-mailbox.privateKeyFiles" $ctx | quote }}
-        - name: MEDIATED_MAILBOX_TOKEN_FILE
-          value: /var/run/mediated-mailbox/token/token
-        {{- if $v.tls.atIngress }}
-        - name: MEDIATED_MAILBOX_TLS_AT_INGRESS
-          value: "true"
-        {{- else }}
-        - name: MEDIATED_MAILBOX_TLS_CERT
-          value: /var/run/mediated-mailbox/tls/tls.crt
-        - name: MEDIATED_MAILBOX_TLS_KEY
-          value: /var/run/mediated-mailbox/tls/tls.key
-        {{- end }}
+        {{- include "mediated-mailbox.configArgs" $ctx | nindent 8 }}
         ports:
         - name: surface
           containerPort: 8443
@@ -77,14 +45,10 @@ spec:
           httpGet:
             path: /readyz
             port: probes
-        {{- with $v.resources }}
-        resources:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
         volumeMounts:
+        {{- include "mediated-mailbox.configMount" $ctx | nindent 8 }}
         {{- include "mediated-mailbox.databaseMounts" $ctx | nindent 8 }}
         {{- include "mediated-mailbox.keysMount" $ctx | nindent 8 }}
-        {{- include "mediated-mailbox.scratchMount" $ctx | nindent 8 }}
         - name: token
           mountPath: /var/run/mediated-mailbox/token
           readOnly: true
@@ -93,13 +57,10 @@ spec:
           mountPath: /var/run/mediated-mailbox/tls
           readOnly: true
         {{- end }}
-        {{- if include "mediated-mailbox.hasConfig" $ctx }}
-        {{- include "mediated-mailbox.configMount" $ctx | nindent 8 }}
-        {{- end }}
       volumes:
-      {{- include "mediated-mailbox.databaseVolumes" (merge (dict "password" $v.passwordSecret) $ctx) | nindent 6 }}
+      {{- include "mediated-mailbox.configVolume" $ctx | nindent 6 }}
+      {{- include "mediated-mailbox.databaseVolumes" $ctx | nindent 6 }}
       {{- include "mediated-mailbox.keysVolume" $ctx | nindent 6 }}
-      {{- include "mediated-mailbox.scratchVolume" $ctx | nindent 6 }}
       - name: token
         secret:
           secretName: {{ required "mediate.tokenSecret.name is required" $v.tokenSecret.name }}
@@ -113,19 +74,17 @@ spec:
           secretName: {{ required "mediate.tls.secretName is required unless mediate.tls.atIngress is set" $v.tls.secretName }}
           defaultMode: 0440
       {{- end }}
-      {{- if include "mediated-mailbox.hasConfig" $ctx }}
-      {{- include "mediated-mailbox.configVolume" $ctx | nindent 6 }}
-      {{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "mediated-mailbox.name" $ctx }}
+  name: {{ include "mediated-mailbox.componentName" $ctx }}
   labels:
     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
 spec:
+  type: {{ $v.service.type }}
   selector:
-    {{- include "mediated-mailbox.selector" $ctx | nindent 4 }}
+    {{- include "mediated-mailbox.selectorLabels" $ctx | nindent 4 }}
   ports:
   - name: surface
     port: {{ $v.service.port }}
@@ -133,3 +92,11 @@ spec:
   - name: probes
     port: 8080
     targetPort: probes
+{{- with include "mediated-mailbox.ingress" $ctx }}
+---
+{{ . }}
+{{- end }}
+{{- with include "mediated-mailbox.httpRoute" $ctx }}
+---
+{{ . }}
+{{- end }}

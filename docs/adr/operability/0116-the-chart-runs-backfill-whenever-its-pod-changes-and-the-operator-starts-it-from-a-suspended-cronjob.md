@@ -29,15 +29,17 @@ be updated in place, and an upgrade that tries fails.
 - **A Job runs backfill, named by a hash of its pod template.** The chart renders one Job whose
   name is backfill's name followed by the first ten hexadecimal digits of the SHA-256 of the
   rendered pod template. The template holds the image, which carries the release's version, and a
-  checksum of the configuration file, which holds the scanner's section. A release or a change of
+  checksum of backfill's own configuration file, which holds the scanner's section. A release or a change of
   the scanner's section changes the name, so Helm creates the new Job, which runs backfill, and
   deletes the old one. An install or upgrade that leaves the template as it was leaves the finished
   Job alone and runs nothing.
 - **The scanner's section is one value shared by every deployable that masks or scans.** The chart
-  appends it to the configuration file of the mediator, backfill and delta sync, so the three run
-  the same section, as ADR-0096 assumes, and a change to it reaches backfill's pod template.
+  renders it into the configuration file of the mediator, backfill and delta sync, so the three run
+  the same section, as ADR-0096 assumes, and a change to it reaches backfill's pod template. A change
+  that reaches only another deployable's file leaves backfill's file, and so its pod template, as it
+  was.
 - **A suspended CronJob, never scheduled, carries the same pod template**, so the operator starts
-  backfill by hand with `kubectl create job --from=cronjob/<release>-backfill <name>`. That is the
+  backfill by hand with `kubectl create job --from=cronjob/<fullname>-backfill <name>`. That is the
   first start once an account is connected, and any later run the operator wants, such as after
   connecting another account.
 - **The Job also runs at install.** A run with no account listed ends at once, successfully, as

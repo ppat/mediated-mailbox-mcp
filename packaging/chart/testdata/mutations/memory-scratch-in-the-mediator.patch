@@ -1,0 +1,19 @@
+control: No pod the chart runs mounts a writable volume
+removes: the mediator gets a memory-backed emptyDir it can write to
+packages: ./packaging/chart
+tests: TestNoPodMountsAWritableVolume
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/mediate.yaml b/packaging/chart/templates/mediate.yaml
+--- a/packaging/chart/templates/mediate.yaml
++++ b/packaging/chart/templates/mediate.yaml
+@@ -61,6 +61,9 @@ spec:
+       {{- include "mediated-mailbox.configVolume" $ctx | nindent 6 }}
+       {{- include "mediated-mailbox.databaseVolumes" $ctx | nindent 6 }}
+       {{- include "mediated-mailbox.keysVolume" $ctx | nindent 6 }}
++      - name: scratch
++        emptyDir:
++          medium: Memory
+       - name: token
+         secret:
+           secretName: {{ required "mediate.tokenSecret.name is required" $v.tokenSecret.name }}

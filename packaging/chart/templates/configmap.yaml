@@ -1,0 +1,15 @@
+{{- /*
+The one ConfigMap holding every deployable's configuration file, one key per deployable, each rendered from the
+structured values (ADR-0052, ADR-0078). Each deployable's pod mounts only its own key.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mediated-mailbox.fullname" . }}-config
+  labels:
+    {{- include "mediated-mailbox.labels" (dict "root" . "component" "config") | nindent 4 }}
+data:
+  {{- range $component := list "mediate" "backfill" "sync" "ui" }}
+  {{ $component }}.yaml: |
+    {{- include "mediated-mailbox.configFile" (dict "root" $ "component" $component) | nindent 4 }}
+  {{- end }}

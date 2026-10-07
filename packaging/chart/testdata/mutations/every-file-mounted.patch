@@ -1,0 +1,19 @@
+control: Each deployable reads only its own file, rendered from the structured values, and restarts when it changes
+removes: each pod mounts the whole ConfigMap rather than its own file
+packages: ./packaging/chart
+tests: TestEachDeployableReadsOnlyItsOwnRenderedFile
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -240,9 +240,6 @@ only keys its deployable declares, since every deployable refuses a key it does
+ - name: config
+   configMap:
+     name: {{ include "mediated-mailbox.fullname" .root }}-config
+-    items:
+-    - key: {{ .component }}.yaml
+-      path: config.yaml
+ {{- end }}
+ 
+ {{- /* The mounts of a deployable's database password and, when one is named, the database's CA. */ -}}

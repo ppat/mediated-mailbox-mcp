@@ -1,0 +1,18 @@
+control: Each deployable reads only its own file, rendered from the structured values, and restarts when it changes
+removes: each pod's checksum covers every deployable's file, so a change to one restarts them all
+packages: ./packaging/chart
+tests: TestEachDeployableReadsOnlyItsOwnRenderedFile
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -104,7 +104,7 @@ component's configuration file, so a change to the file restarts the component's
+ {{- $v := index .root.Values .component -}}
+ {{- $annotations := deepCopy ($v.podAnnotations | default dict) -}}
+ {{- if .config }}
+-{{- $_ := set $annotations "checksum/config" (include "mediated-mailbox.configFile" . | sha256sum) -}}
++{{- $_ := set $annotations "checksum/config" (.root.Values | toJson | sha256sum) -}}
+ {{- end }}
+ labels:
+   {{- include "mediated-mailbox.labels" . | nindent 2 }}

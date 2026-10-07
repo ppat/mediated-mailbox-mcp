@@ -1,6 +1,7 @@
 ---
 # The read path on a bare cluster (ADR-0052). The harness creates PostgreSQL and every Secret the chart takes, and
-# flux installs the chart from the commit under test with the images published for the version under test. The
+# flux installs the chart from the commit under test with the images the workflow loaded for the version under test,
+# built from the pull request's tree or published for a release. The
 # chart's namespace enforces the restricted Pod Security level, so a pod without ADR-0028's hardening is refused and
 # the install fails. Nothing else is installed, so a chart that assumed any other machinery fails here.
 #
@@ -10,7 +11,7 @@
 # Then it upgrades the release twice and starts backfill by hand, to see what the deployment does on its own: an
 # upgrade reaching only another deployable runs no backfill, an upgrade changing the scanner's section runs it once
 # under a new Job and rolls delta sync without a second sync pod ever existing, and the suspended CronJob starts a run
-# when asked (ADR-0103, ADR-0116, ADR-0117).
+# when asked (ADR-0103, ADR-0116).
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -105,7 +106,7 @@ spec:
     - assert:
         resource:
           apiVersion: apps/v1
-          kind: StatefulSet
+          kind: Deployment
           metadata:
             name: mediated-mailbox-sync
             namespace: mediated-mailbox

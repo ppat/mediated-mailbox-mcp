@@ -1,0 +1,18 @@
+control: An Ingress or an HTTPRoute renders only when switched on, and sends traffic to its own component
+removes: the HTTPRoute renders whatever its switch says, so the chart needs the Gateway API by default
+packages: ./packaging/chart
+tests: TestIngressAndRoutesRenderOnlyWhenSwitchedOn
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -360,7 +360,7 @@ spec:
+ {{- define "mediated-mailbox.httpRoute" -}}
+ {{- $v := index .root.Values .component -}}
+ {{- $name := include "mediated-mailbox.componentName" . -}}
+-{{- if $v.httpRoute.enabled }}
++{{- if true }}
+ apiVersion: gateway.networking.k8s.io/v1
+ kind: HTTPRoute
+ metadata:

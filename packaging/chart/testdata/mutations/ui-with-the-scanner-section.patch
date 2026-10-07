@@ -1,18 +1,17 @@
-control: Each deployable's configuration file is passed through as written and restarts its pods when it changes
-removes: the UI's file is given the scanner section, a section it does not declare and refuses at start
+control: Each deployable reads only its own file, rendered from the structured values, and restarts when it changes
+removes: the UI's file is given the scanner section, a key it does not declare and refuses at start
 packages: ./packaging/chart
-tests: TestTheConfigurationFileIsPassedThroughAsWritten
+tests: TestEachDeployableReadsOnlyItsOwnRenderedFile
 scheduled-count: no
 
-diff --git a/packaging/chart/templates/ui.yaml b/packaging/chart/templates/ui.yaml
---- a/packaging/chart/templates/ui.yaml
-+++ b/packaging/chart/templates/ui.yaml
-@@ -5,7 +5,7 @@ client-secret part opens with the private keys, so it mounts the key pair (ADR-0
- plain HTTP is refused outside the dev loop's build (docs/UI.md section 18), and its probes and metrics endpoint
- listen apart in plain HTTP. It handles no body, so it gets no scratch space.
- */ -}}
--{{- $ctx := dict "root" . "component" "ui" "scanner" false -}}
-+{{- $ctx := dict "root" . "component" "ui" "scanner" true -}}
- {{- $v := .Values.ui -}}
- {{- if include "mediated-mailbox.hasConfig" $ctx }}
- ---
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -213,6 +213,7 @@ only keys its deployable declares, since every deployable refuses a key it does
+ {{- end }}
+ {{- end }}
+ {{- if eq .component "ui" }}
++{{- with $root.Values.scanner }}{{ $_ := set $file "scanner" . }}{{ end -}}
+ {{- $_ := set $file "seal_public_key_file" $keys.public -}}
+ {{- $_ := set $file "private_key_files" $keys.private -}}
+ {{- $_ := set $file "tls_cert" "/var/run/mediated-mailbox/tls/tls.crt" -}}

@@ -1,0 +1,29 @@
+{{- $fullname := include "mediated-mailbox.fullname" . -}}
+The mediated mailbox is installed as {{ .Release.Name }} in {{ .Release.Namespace }}.
+
+The migration step ran before the deployables started. Its last run is the Job {{ $fullname }}-migrate.
+
+The mediator's client surface is the Service {{ $fullname }}-mediate on port {{ .Values.mediate.service.port }}.
+{{- if .Values.mediate.ingress.enabled }}
+It is exposed through the Ingress {{ $fullname }}-mediate.
+{{- end }}
+{{- if .Values.mediate.httpRoute.enabled }}
+It is exposed through the HTTPRoute {{ $fullname }}-mediate.
+{{- end }}
+
+The UI is the Service {{ $fullname }}-ui on port {{ .Values.ui.service.port }}.
+{{- if .Values.ui.ingress.enabled }}
+It is exposed through the Ingress {{ $fullname }}-ui.
+{{- end }}
+{{- if .Values.ui.httpRoute.enabled }}
+It is exposed through the HTTPRoute {{ $fullname }}-ui.
+{{- end }}
+To reach it from this machine:
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ $fullname }}-ui 8443:{{ .Values.ui.service.port }}
+
+Set up an OAuth client, connect an account and import the policy through the UI. Then start backfill's first run:
+
+  kubectl --namespace {{ .Release.Namespace }} create job --from=cronjob/{{ $fullname }}-backfill backfill-first-run
+
+Each later release, and each change to the scanner's section, runs backfill again with no manual step.

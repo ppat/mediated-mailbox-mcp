@@ -28,8 +28,9 @@ formatting to Tools and versions. These are the tripwires:
 - **Integration tests against PostgreSQL run only under `go tool pgrun` with `-tags integration`**,
   and a gating property run sets `RAPID_NOFAILFILE=true`, passes no `-short`, and takes its case
   count and seed from the environment (ADR-0068, ADR-0069).
-- **The chainsaw workflow builds no images**, takes a version, and runs on packaging and suite
-  changes and on every release, never on a pull request that changes only a deployable (ADR-0052).
+- **The chainsaw workflow runs on a pull request that changes the chart or the suite**, against the
+  images it builds from that pull request's tree, and by hand against a release version's published
+  images, never on a pull request that changes only a deployable (ADR-0052).
 - **Every release builds, pushes and signs every image and the chart at the release version**
   (ADR-0049, ADR-0052). Each image is built from the repository root with its own Dockerfile.
 - **Every tool is at its latest version unless a document says otherwise.** The tools this project's

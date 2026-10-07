@@ -6,121 +6,391 @@
 # Each secret reaches only the pods that use it, as a mounted file. Policy and accounts are not inputs. They are
 # imported and connected through the UI once the system runs (ADR-0004, ADR-0080).
 #
-# A deployable's `config` is the text of its configuration file, passed through as written (ADR-0078). The chart
-# sets through environment variables only what it wires itself, the database connection and the paths of the files
-# it mounts, and those override the file. Every key and its meaning are each deployable's `--help`.
+# Each deployable reads one configuration file, which the chart renders from these values into one ConfigMap and
+# mounts into that deployable's pods alone (ADR-0078). The database, the key files and the scanner's section are
+# declared once, below, and each deployable's own keys sit in its `config` section. values.schema.json refuses a key
+# the deployable does not declare, since the deployable would refuse it at start.
 
-# The images, one per deployable, at the release's version (ADR-0049).
-image:
-  registry: ghcr.io/ppat
-  # Empty takes the chart's appVersion, which the release sets to the release's version.
-  tag: ""
-  pullPolicy: IfNotPresent
+# -- Replaces the chart's name in every object's name and in the name label.
+nameOverride: ""
+# -- Replaces the release's fully qualified name, the prefix of every object's name.
+fullnameOverride: ""
 
-# Pull secrets for a registry that needs them, as a list of {name: <Secret>}.
+# -- Pull secrets for a registry that needs them, as a list of {name: <Secret>}, given to every pod.
 imagePullSecrets: []
 
 # The PostgreSQL every deployable and the migration step connect to. The superuser bootstrap, the roles and the
 # database owned by the migration role are the deploying side's (ADR-0048). Each deployable connects as its own
-# runtime role (ADR-0075).
+# runtime role, named after it (ADR-0075).
 database:
+  # -- The server's host name. Required.
   host: ""
+  # -- The server's port.
   port: 5432
+  # -- The database's name. Required.
   name: ""
-  # Empty leaves each deployable's own default, verify-full, which the migration step uses too.
+  # -- The TLS mode. Empty leaves each deployable's default, verify-full, which the migration step uses too.
   sslmode: ""
-  # A Secret holding the CA that signed the server's certificate, mounted for the deployables and the migration step.
+  # -- A Secret holding the CA that signed the server's certificate, mounted for the deployables and the migration
+  # step. Empty mounts none.
   caSecret: ""
+  # -- The key in caSecret holding the CA.
   caKey: ca.crt
 
-# The key pair credentials are sealed to (ADR-0081, ADR-0088), mounted only into the deployables that call a provider
-# and the UI. Every private key of the keyring is listed, the current key's and any still being replaced (ADR-0092).
+# The key pair credentials are sealed to (ADR-0081, ADR-0088), from one Secret, mounted only into the deployables
+# that call a provider and the UI.
 keys:
+  # -- The Secret holding the public key and every private key. Required.
   secretName: ""
+  # -- The key in the Secret holding the public key.
   publicKey: credential.pub
+  # -- The keys in the Secret holding the private keys, the current key's and any still being replaced (ADR-0092).
   privateKeys:
   - credential.key
 
-# The scanner's section, shared by every deployable that masks or scans, so they never re-open each other's work
-# (ADR-0096). Written as configuration text holding the `scanner:` key, and appended to each of those deployables'
-# files. Empty takes the scanner the application ships.
-scannerConfig: ""
+# -- The scanner's section, shared by every deployable that masks or scans, the mediator, backfill and delta sync, so
+# they never re-open each other's work (ADR-0096). Its keys are the scanner's: triggers by language, link_words,
+# link_params, window, dense_length, dense_entropy, weights, threshold and subject_threshold. A key left out keeps the
+# value the application ships. Quote a word YAML would read as a boolean, such as "no".
+scanner: {}
 
-# The migration step (ADR-0048, ADR-0115). Its Secret's key holds a password file in libpq's format, such as
-# `*:*:*:mediated_mailbox_migrate:<password>`, the migration role's credential, which reaches no other pod.
+# -- The pod security context every pod gets (ADR-0028). A component's own podSecurityContext is merged over it.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- The container security context every container gets (ADR-0028). A component's own securityContext is merged
+# over it.
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+
+# The migration step, a Job Helm runs before each install's and upgrade's other objects (ADR-0048, ADR-0115).
 migrate:
+  image:
+    # -- The migration image.
+    repository: ghcr.io/ppat/mediated-mailbox-migrate
+    # -- The image's tag. Empty takes the chart's appVersion, the release's version.
+    tag: ""
+    # -- The image pull policy.
+    pullPolicy: IfNotPresent
+  # -- The Secret whose key holds the migration role's credential as a password file in libpq's format, such as
+  # `*:*:*:mediated_mailbox_migrate:<password>`. It reaches no other pod. Required.
   passwordFileSecret:
     name: ""
     key: pgpass
+  # -- A pre-existing service account the Job runs as. The hook runs before the chart's own objects exist, so the
+  # chart creates none for it. Empty runs as the namespace's default, with no token mounted.
+  serviceAccountName: ""
+  # -- How many times a failed run is retried before the install or upgrade fails.
   backoffLimit: 2
+  # -- Annotations added to the Job's pod.
+  podAnnotations: {}
+  # -- Labels added to the Job's pod.
+  podLabels: {}
+  # -- Merged over the top-level podSecurityContext.
+  podSecurityContext: {}
+  # -- Merged over the top-level securityContext.
+  securityContext: {}
+  # -- The container's resource requests and limits.
   resources: {}
+  # -- The pod's node selector.
+  nodeSelector: {}
+  # -- The pod's tolerations.
+  tolerations: []
+  # -- The pod's affinity.
+  affinity: {}
 
-# The mediator. passwordSecret's key holds its role's password alone.
+# The mediator, the client surface.
 mediate:
-  config: ""
-  replicas: 1
+  image:
+    # -- The mediator's image.
+    repository: ghcr.io/ppat/mediated-mailbox-mediate
+    # -- The image's tag. Empty takes the chart's appVersion, the release's version.
+    tag: ""
+    # -- The image pull policy.
+    pullPolicy: IfNotPresent
+  # -- The number of mediator pods.
+  replicaCount: 1
+  # -- The Secret whose key holds the mediator role's password alone. Required.
   passwordSecret:
     name: ""
     key: password
-  # The bearer token clients present (ADR-0030).
+  # -- The Secret whose key holds the bearer token clients present (ADR-0030). Required.
   tokenSecret:
     name: ""
     key: token
-  # A kubernetes.io/tls Secret for the client surface, unless an ingress in front terminates TLS.
   tls:
+    # -- A kubernetes.io/tls Secret for the client surface. Required unless atIngress.
     secretName: ""
+    # -- Declares that an ingress in front terminates TLS, so the surface serves plain HTTP and takes no key pair.
     atIngress: false
-  service:
-    port: 443
-  scratchSize: 64Mi
+  # -- The mediator's own configuration keys: account_reload_interval, how often the account snapshot reloads, and
+  # provider_timeout, the bound on each provider call a body request makes. Durations are written as "1m" or "30s".
+  config: {}
+  serviceAccount:
+    # -- Whether the chart creates the mediator's service account.
+    create: true
+    # -- Whether the service account's token is mounted. No workload talks to the Kubernetes API (ADR-0028).
+    automount: false
+    # -- Annotations added to the service account.
+    annotations: {}
+    # -- The service account's name. Empty takes the component's name when the chart creates it, else default.
+    name: ""
+  # -- Annotations added to the mediator's pods.
+  podAnnotations: {}
+  # -- Labels added to the mediator's pods.
+  podLabels: {}
+  # -- Merged over the top-level podSecurityContext.
+  podSecurityContext: {}
+  # -- Merged over the top-level securityContext.
+  securityContext: {}
+  # -- The container's resource requests and limits.
   resources: {}
+  # -- The pods' node selector.
+  nodeSelector: {}
+  # -- The pods' tolerations.
+  tolerations: []
+  # -- The pods' affinity.
+  affinity: {}
+  service:
+    # -- The Service's type.
+    type: ClusterIP
+    # -- The Service's port for the client surface. The probes are on port 8080.
+    port: 443
+  # -- An Ingress for the client surface, off by default.
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+    - host: mediate.example.local
+      paths:
+      - path: /
+        pathType: Prefix
+    tls: []
+  # -- A Gateway API HTTPRoute for the client surface, off by default. Rendering it needs the Gateway API's
+  # resources in the cluster.
+  httpRoute:
+    enabled: false
+    annotations: {}
+    parentRefs:
+    - name: gateway
+      sectionName: https
+    hostnames:
+    - mediate.example.local
+    rules:
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /
 
 # Backfill (ADR-0116). A Job runs it after each install or upgrade that changes its pod, and the operator starts it
-# by hand from its suspended CronJob.
+# by hand from its suspended CronJob. Its configuration is the shared database, keys and scanner section, so it has
+# no keys of its own.
 backfill:
-  config: ""
+  image:
+    # -- Backfill's image.
+    repository: ghcr.io/ppat/mediated-mailbox-backfill
+    # -- The image's tag. Empty takes the chart's appVersion, the release's version.
+    tag: ""
+    # -- The image pull policy.
+    pullPolicy: IfNotPresent
+  # -- The Secret whose key holds backfill's role's password alone. Required.
   passwordSecret:
     name: ""
     key: password
+  # -- How many times a failed run is retried. A run resumes from its checkpoint.
   backoffLimit: 6
-  scratchSize: 64Mi
+  serviceAccount:
+    # -- Whether the chart creates backfill's service account.
+    create: true
+    # -- Whether the service account's token is mounted.
+    automount: false
+    # -- Annotations added to the service account.
+    annotations: {}
+    # -- The service account's name. Empty takes the component's name when the chart creates it, else default.
+    name: ""
+  # -- Annotations added to backfill's pods.
+  podAnnotations: {}
+  # -- Labels added to backfill's pods.
+  podLabels: {}
+  # -- Merged over the top-level podSecurityContext.
+  podSecurityContext: {}
+  # -- Merged over the top-level securityContext.
+  securityContext: {}
+  # -- The container's resource requests and limits.
   resources: {}
+  # -- The pods' node selector.
+  nodeSelector: {}
+  # -- The pods' tolerations.
+  tolerations: []
+  # -- The pods' affinity.
+  affinity: {}
 
-# Delta sync, one process at a time (ADR-0103, ADR-0117).
+# Delta sync, one process at a time (ADR-0103).
 sync:
-  config: ""
+  image:
+    # -- Delta sync's image.
+    repository: ghcr.io/ppat/mediated-mailbox-sync
+    # -- The image's tag. Empty takes the chart's appVersion, the release's version.
+    tag: ""
+    # -- The image pull policy.
+    pullPolicy: IfNotPresent
+  # -- The Secret whose key holds delta sync's role's password alone. Required.
   passwordSecret:
     name: ""
     key: password
-  scratchSize: 64Mi
+  # -- Delta sync's own configuration keys: sync_interval, how often a tick starts, which the UI also displays,
+  # first_window, how far back an account with no cursor is reconciled, and decisions_per_tick, how many waiting
+  # messages one tick decides for an account. Durations are written as "5m" or "168h".
+  config: {}
+  serviceAccount:
+    # -- Whether the chart creates delta sync's service account.
+    create: true
+    # -- Whether the service account's token is mounted.
+    automount: false
+    # -- Annotations added to the service account.
+    annotations: {}
+    # -- The service account's name. Empty takes the component's name when the chart creates it, else default.
+    name: ""
+  # -- Annotations added to delta sync's pod.
+  podAnnotations: {}
+  # -- Labels added to delta sync's pod.
+  podLabels: {}
+  # -- Merged over the top-level podSecurityContext.
+  podSecurityContext: {}
+  # -- Merged over the top-level securityContext.
+  securityContext: {}
+  # -- The container's resource requests and limits.
   resources: {}
+  # -- The pod's node selector.
+  nodeSelector: {}
+  # -- The pod's tolerations.
+  tolerations: []
+  # -- The pod's affinity.
+  affinity: {}
 
 # The UI (ADR-0084).
 ui:
-  config: ""
-  # More than one replica needs tokenKeySecret, so replicas share the request token's key (ADR-0061, ADR-0111).
-  replicas: 1
+  image:
+    # -- The UI's image.
+    repository: ghcr.io/ppat/mediated-mailbox-ui
+    # -- The image's tag. Empty takes the chart's appVersion, the release's version.
+    tag: ""
+    # -- The image pull policy.
+    pullPolicy: IfNotPresent
+  # -- The number of UI pods. More than one needs tokenKeySecret, so the pods share the request token's key
+  # (ADR-0061, ADR-0111).
+  replicaCount: 1
+  # -- The Secret whose key holds the UI role's password alone. Required.
   passwordSecret:
     name: ""
     key: password
-  # A kubernetes.io/tls Secret. The UI serves only TLS.
   tls:
+    # -- A kubernetes.io/tls Secret the UI serves. Required.
     secretName: ""
-  # The key behind the request token, at least 32 bytes. Unset, each process generates one at its start.
+  # -- The Secret whose key holds the key behind the request token, at least 32 bytes. Empty generates one per
+  # process at its start.
   tokenKeySecret:
     name: ""
     key: key
-  service:
-    port: 443
+  # -- The UI's own configuration keys, as docs/UI.md section 18.1 declares them: heuristics_interval,
+  # stream_interval, default_theme, stream_reconnect_max, stream_poll_interval, the attention_* thresholds,
+  # consent_redirect, identity_header and operator_name. Its sync_interval follows sync.config.sync_interval.
+  config: {}
+  serviceAccount:
+    # -- Whether the chart creates the UI's service account.
+    create: true
+    # -- Whether the service account's token is mounted.
+    automount: false
+    # -- Annotations added to the service account.
+    annotations: {}
+    # -- The service account's name. Empty takes the component's name when the chart creates it, else default.
+    name: ""
+  # -- Annotations added to the UI's pods.
+  podAnnotations: {}
+  # -- Labels added to the UI's pods.
+  podLabels: {}
+  # -- Merged over the top-level podSecurityContext.
+  podSecurityContext: {}
+  # -- Merged over the top-level securityContext.
+  securityContext: {}
+  # -- The container's resource requests and limits.
   resources: {}
+  # -- The pods' node selector.
+  nodeSelector: {}
+  # -- The pods' tolerations.
+  tolerations: []
+  # -- The pods' affinity.
+  affinity: {}
+  service:
+    # -- The Service's type.
+    type: ClusterIP
+    # -- The Service's port for the UI. The probes are on port 8080.
+    port: 443
+  # -- An Ingress for the UI, off by default.
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+    - host: ui.example.local
+      paths:
+      - path: /
+        pathType: Prefix
+    tls: []
+  # -- A Gateway API HTTPRoute for the UI, off by default. Rendering it needs the Gateway API's resources in the
+  # cluster.
+  httpRoute:
+    enabled: false
+    annotations: {}
+    parentRefs:
+    - name: gateway
+      sectionName: https
+    hostnames:
+    - ui.example.local
+    rules:
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /
 
-# The Helm tests' image, which needs sh and curl, pinned by digest after its tag.
+# The Helm tests' pods, which need sh and curl.
 tests:
   image:
-    registry: docker.io
-    repository: curlimages/curl
+    # -- The tests' image, pinned by digest after its tag.
+    repository: docker.io/curlimages/curl
+    # -- The tag and digest.
     tag: 8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+    # -- The image pull policy.
+    pullPolicy: IfNotPresent
+  # -- Annotations added to the test pods.
+  podAnnotations: {}
+  # -- Labels added to the test pods.
+  podLabels: {}
+  # -- Merged over the top-level podSecurityContext.
+  podSecurityContext: {}
+  # -- Merged over the top-level securityContext.
+  securityContext: {}
+  # -- The container's resource requests and limits.
+  resources: {}
+  # -- The pods' node selector.
+  nodeSelector: {}
+  # -- The pods' tolerations.
+  tolerations: []
+  # -- The pods' affinity.
+  affinity: {}
 
-# The alerting rules of ADR-0077 as a PrometheusRule, which needs the Prometheus Operator, so it is off by default.
 alertingRules:
+  # -- Renders the alerting rules of ADR-0077 as a PrometheusRule, which needs the Prometheus Operator, so it is off
+  # by default.
   enabled: false

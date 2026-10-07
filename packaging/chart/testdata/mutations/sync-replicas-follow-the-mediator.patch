@@ -1,5 +1,5 @@
 control: Delta sync runs as one process at a time
-removes: delta sync's pods are managed in parallel, so a replacement need not wait for the pod before it
+removes: delta sync takes the mediator's replica count, so a scaled mediator runs several delta sync processes
 packages: ./packaging/chart
 tests: TestDeltaSyncRunsAsOneProcessAtATime
 scheduled-count: no
@@ -7,12 +7,12 @@ scheduled-count: no
 diff --git a/packaging/chart/templates/sync.yaml b/packaging/chart/templates/sync.yaml
 --- a/packaging/chart/templates/sync.yaml
 +++ b/packaging/chart/templates/sync.yaml
-@@ -29,7 +29,7 @@ metadata:
+@@ -17,7 +17,7 @@ metadata:
+   labels:
+     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
  spec:
-   replicas: 1
-   serviceName: {{ include "mediated-mailbox.name" $ctx }}
--  podManagementPolicy: OrderedReady
-+  podManagementPolicy: Parallel
-   updateStrategy:
-     type: RollingUpdate
+-  replicas: 1
++  replicas: {{ .Values.mediate.replicaCount }}
+   strategy:
+     type: Recreate
    selector:

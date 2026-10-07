@@ -82,5 +82,4 @@ assumption about the platform's scrape interval and no component the chart does 
 - Assumptions about other components. The platform runs one delta sync process at a time, a
   rollout included, keeps it running and restarts it when it stops, and scrapes its metrics
   endpoint as it does the mediator's
-  ([ADR-0051](../engineering/0051-environment-contract.md)). The Helm chart keeps it to one
-  process as [ADR-0117](./0117-the-chart-runs-delta-sync-as-a-statefulset-of-one.md) decides.
+  ([ADR-0051](../engineering/0051-environment-contract.md)).

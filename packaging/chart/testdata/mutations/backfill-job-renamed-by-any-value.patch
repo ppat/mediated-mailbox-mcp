@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/packaging/chart/templates/backfill.yaml b/packaging/chart/templates/backfill.yaml
 --- a/packaging/chart/templates/backfill.yaml
 +++ b/packaging/chart/templates/backfill.yaml
-@@ -81,7 +81,7 @@ automountServiceAccountToken: false
+@@ -48,7 +48,7 @@ spec:
  apiVersion: batch/v1
  kind: Job
  metadata:

@@ -1,0 +1,18 @@
+control: No pod the chart runs mounts a writable volume
+removes: backfill's pod gets an emptyDir on the node's disk it can write to
+packages: ./packaging/chart
+tests: TestNoPodMountsAWritableVolume
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/backfill.yaml b/packaging/chart/templates/backfill.yaml
+--- a/packaging/chart/templates/backfill.yaml
++++ b/packaging/chart/templates/backfill.yaml
+@@ -36,6 +36,8 @@ spec:
+   {{- include "mediated-mailbox.configVolume" $ctx | nindent 2 }}
+   {{- include "mediated-mailbox.databaseVolumes" $ctx | nindent 2 }}
+   {{- include "mediated-mailbox.keysVolume" $ctx | nindent 2 }}
++  - name: scratch
++    emptyDir: {}
+ {{- end }}
+ {{- $ctx := dict "root" . "component" "backfill" -}}
+ {{- $pod := include "mediated-mailbox.backfillPod" . -}}

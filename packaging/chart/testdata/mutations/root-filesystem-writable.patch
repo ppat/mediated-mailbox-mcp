@@ -1,17 +1,18 @@
 control: Every pod the chart runs is hardened
-removes: containers lose the read-only root filesystem
+removes: the default container security context leaves the root filesystem writable
 packages: ./packaging/chart
 tests: TestEveryPodRunsHardened
 scheduled-count: no
 
-diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
---- a/packaging/chart/templates/_helpers.tpl
-+++ b/packaging/chart/templates/_helpers.tpl
-@@ -59,7 +59,6 @@ imagePullSecrets:
+diff --git a/packaging/chart/values.yaml b/packaging/chart/values.yaml
+--- a/packaging/chart/values.yaml
++++ b/packaging/chart/values.yaml
+@@ -68,7 +68,7 @@ podSecurityContext:
  securityContext:
    allowPrivilegeEscalation: false
    privileged: false
 -  readOnlyRootFilesystem: true
++  readOnlyRootFilesystem: false
    capabilities:
      drop:
      - ALL

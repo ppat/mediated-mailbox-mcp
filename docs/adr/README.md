@@ -171,7 +171,6 @@ moves it. Records themselves link freely and deep, into
 | 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
 | 0111 | [A consent attempt travels in a cookie the UI server seals, bound to the session that started it](./operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md) | Accepted |
 | 0116 | [The chart runs backfill whenever its pod changes, and the operator starts it by hand from a suspended CronJob](./operability/0116-the-chart-runs-backfill-whenever-its-pod-changes-and-the-operator-starts-it-from-a-suspended-cronjob.md) | Accepted |
-| 0117 | [The chart runs delta sync as a StatefulSet of one replica, so a second pod starts only once the first is gone](./operability/0117-the-chart-runs-delta-sync-as-a-statefulset-of-one.md) | Accepted |
 
 ## Engineering — `engineering/`
 

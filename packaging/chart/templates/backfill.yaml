@@ -1,82 +1,49 @@
 {{- /*
 Backfill, a batch job that exits when its run ends (ADR-0022, ADR-0051). It calls a provider, so it mounts the key
-pair (ADR-0081), and it scans bodies, so it gets memory-backed scratch space (ADR-0009).
+pair (ADR-0081). Its root filesystem is read-only and it mounts no writable volume (ADR-0009).
 
 Two objects run the one pod template below (ADR-0116):
 
 - A Job whose name carries a hash of the pod template. A release changes the image and a change to the scanner's
-  section changes the configuration file, and either changes the hash, so the next install or upgrade runs backfill
-  under a new name with no manual step, which re-scans and re-decides what the change made stale (ADR-0096,
-  ADR-0098). An upgrade that leaves the template as it was leaves the finished Job in place and runs nothing, and
-  so does a reconcile that changes nothing.
+  section changes backfill's configuration file, whose checksum the template carries, and either changes the hash, so
+  the next install or upgrade runs backfill under a new name with no manual step, which re-scans and re-decides what
+  the change made stale (ADR-0096, ADR-0098). An upgrade that leaves the template as it was leaves the finished Job in
+  place and runs nothing, and so does a reconcile that changes nothing.
 - A suspended CronJob, never scheduled, which is how the operator starts backfill by hand, as its first start after
   connecting an account and whenever it should run again:
-  kubectl create job --from=cronjob/<release>-backfill <name>
+  kubectl create job --from=cronjob/<fullname>-backfill <name>
 */ -}}
 {{- define "mediated-mailbox.backfillPod" -}}
-{{- $ctx := dict "root" . "component" "backfill" "scanner" true -}}
-{{- $v := .Values.backfill -}}
+{{- $ctx := dict "root" . "component" "backfill" "config" true -}}
 metadata:
-  labels:
-    {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
-  annotations:
-    checksum/config: {{ include "mediated-mailbox.configText" $ctx | sha256sum }}
+  {{- include "mediated-mailbox.podMetadata" $ctx | nindent 2 }}
 spec:
-  serviceAccountName: {{ include "mediated-mailbox.name" $ctx }}
   {{- include "mediated-mailbox.podSpec" $ctx | nindent 2 }}
   restartPolicy: Never
   containers:
   - name: backfill
-    image: {{ include "mediated-mailbox.image" $ctx }}
-    imagePullPolicy: {{ .Values.image.pullPolicy }}
-    {{- include "mediated-mailbox.containerSecurity" $ctx | nindent 4 }}
-    {{- if include "mediated-mailbox.hasConfig" $ctx }}
+    {{- include "mediated-mailbox.container" $ctx | nindent 4 }}
     args:
-    - --config-file=/etc/mediated-mailbox/config.yaml
-    {{- end }}
-    env:
-    {{- include "mediated-mailbox.databaseEnv" $ctx | nindent 4 }}
-    - name: MEDIATED_MAILBOX_CREDENTIAL__PUBLIC_KEY_FILE
-      value: /var/run/mediated-mailbox/keys/public.key
-    - name: MEDIATED_MAILBOX_CREDENTIAL__PRIVATE_KEY_FILES
-      value: {{ include "mediated-mailbox.privateKeyFiles" $ctx | quote }}
+    {{- include "mediated-mailbox.configArgs" $ctx | nindent 4 }}
     ports:
     - name: probes
       containerPort: 8080
-    {{- with $v.resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
     volumeMounts:
+    {{- include "mediated-mailbox.configMount" $ctx | nindent 4 }}
     {{- include "mediated-mailbox.databaseMounts" $ctx | nindent 4 }}
     {{- include "mediated-mailbox.keysMount" $ctx | nindent 4 }}
-    {{- include "mediated-mailbox.scratchMount" $ctx | nindent 4 }}
-    {{- if include "mediated-mailbox.hasConfig" $ctx }}
-    {{- include "mediated-mailbox.configMount" $ctx | nindent 4 }}
-    {{- end }}
   volumes:
-  {{- include "mediated-mailbox.databaseVolumes" (merge (dict "password" $v.passwordSecret) $ctx) | nindent 2 }}
-  {{- include "mediated-mailbox.keysVolume" $ctx | nindent 2 }}
-  {{- include "mediated-mailbox.scratchVolume" $ctx | nindent 2 }}
-  {{- if include "mediated-mailbox.hasConfig" $ctx }}
   {{- include "mediated-mailbox.configVolume" $ctx | nindent 2 }}
-  {{- end }}
+  {{- include "mediated-mailbox.databaseVolumes" $ctx | nindent 2 }}
+  {{- include "mediated-mailbox.keysVolume" $ctx | nindent 2 }}
 {{- end }}
-{{- $ctx := dict "root" . "component" "backfill" "scanner" true -}}
+{{- $ctx := dict "root" . "component" "backfill" -}}
 {{- $pod := include "mediated-mailbox.backfillPod" . -}}
-{{- $name := include "mediated-mailbox.name" $ctx -}}
-{{- if include "mediated-mailbox.hasConfig" $ctx }}
+{{- $name := include "mediated-mailbox.componentName" $ctx -}}
+{{- with include "mediated-mailbox.serviceAccount" $ctx }}
 ---
-{{ include "mediated-mailbox.configMap" $ctx }}
+{{ . }}
 {{- end }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ $name }}
-  labels:
-    {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
-automountServiceAccountToken: false
 ---
 apiVersion: batch/v1
 kind: Job

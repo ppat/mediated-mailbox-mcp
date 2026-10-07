@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -30,7 +31,7 @@ const (
 
 // inputs are the chart's required inputs, every Secret named apart, so a test can tell which pod
 // mounts which.
-var inputs = map[string]string{
+var inputs = map[string]any{
 	"database.host":                   "postgres",
 	"database.name":                   "mailbox",
 	"keys.secretName":                 keysSecret,
@@ -73,19 +74,30 @@ func (o object) name() string { return o.str("metadata", "name") }
 // component is the component label the chart gives an object.
 func (o object) component() string { return o.str("metadata", "labels", "app.kubernetes.io/component") }
 
-// podSpec is the pod spec an object runs, wherever its kind keeps it, and nil for an object that runs
-// no pod.
-func (o object) podSpec() object {
-	var spec any
+// at is an object's kind and component, how the tests name it.
+func (o object) at() string { return o.kind() + " " + o.component() }
+
+// podTemplate is the pod template an object runs, its metadata and spec, wherever its kind keeps
+// it, and nil for an object that runs no pod.
+func (o object) podTemplate() object {
+	var tmpl any
 	switch o.kind() {
 	case "Pod":
-		spec = o.get("spec")
+		tmpl = map[string]any(o)
 	case "Deployment", "StatefulSet", "Job":
-		spec = o.get("spec", "template", "spec")
+		tmpl = o.get("spec", "template")
 	case "CronJob":
-		spec = o.get("spec", "jobTemplate", "spec", "template", "spec")
+		tmpl = o.get("spec", "jobTemplate", "spec", "template")
 	}
-	if m, ok := spec.(map[string]any); ok {
+	if m, ok := tmpl.(map[string]any); ok {
+		return m
+	}
+	return nil
+}
+
+// podSpec is the pod spec an object runs, and nil for an object that runs no pod.
+func (o object) podSpec() object {
+	if m, ok := o.podTemplate().get("spec").(map[string]any); ok {
 		return m
 	}
 	return nil
@@ -144,13 +156,12 @@ func run(t *testing.T, tool string, args ...string) (string, error) {
 	return out.String(), err
 }
 
-// render renders the chart with the inputs, overridden and extended by values, and returns every
-// object, the Helm tests included.
-func render(t *testing.T, values map[string]string) []object {
+// render renders the chart with the inputs, overridden and extended by values keyed by their dotted
+// paths, and returns every object, the Helm tests included.
+func render(t *testing.T, values map[string]any) []object {
 	t.Helper()
 	set := maps.Clone(inputs)
 	maps.Copy(set, values)
-	file := filepath.Join(t.TempDir(), "values.yaml")
 	tree := map[string]any{}
 	for _, key := range slices.Sorted(maps.Keys(set)) {
 		node := tree
@@ -169,6 +180,7 @@ func render(t *testing.T, values map[string]string) []object {
 	if err != nil {
 		t.Fatal(err)
 	}
+	file := filepath.Join(t.TempDir(), "values.yaml")
 	if err := os.WriteFile(file, text, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -193,21 +205,18 @@ func render(t *testing.T, values map[string]string) []object {
 	}
 }
 
-// reach maps each object that runs a pod, as its kind and component, to whether its pod mounts the
-// Secret.
+// reach maps each object that runs a pod to whether its pod mounts the Secret.
 func reach(objects []object, secret string) map[string]bool {
 	out := map[string]bool{}
 	for _, o := range objects {
-		spec := o.podSpec()
-		if spec == nil {
-			continue
+		if spec := o.podSpec(); spec != nil {
+			out[o.at()] = slices.Contains(mountedSecrets(spec), secret)
 		}
-		out[o.kind()+" "+o.component()] = slices.Contains(mountedSecrets(spec), secret)
 	}
 	return out
 }
 
-// R1's part of VERIFICATIONS' row for the private key's reach. The key pair reaches the pods of the
+// VERIFICATIONS' row for the private key's reach, its chart part. The key pair reaches the pods of the
 // deployables that open a credential, the mediator, backfill however it is started, and delta sync,
 // and the UI, whose one client-secret part opens with it. It reaches no other pod the chart runs, the
 // migration step and the Helm tests included (ADR-0079, ADR-0081).
@@ -217,7 +226,7 @@ func TestThePrivateKeyReachesOnlyTheDeployablesThatOpenCredentials(t *testing.T)
 		"Deployment mediate": true,
 		"Job backfill":       true,
 		"CronJob backfill":   true,
-		"StatefulSet sync":   true,
+		"Deployment sync":    true,
 		"Deployment ui":      true,
 		"Pod mediate-test":   false,
 		"Pod ui-test":        false,
@@ -233,22 +242,23 @@ func TestThePrivateKeyReachesOnlyTheDeployablesThatOpenCredentials(t *testing.T)
 // password, the key pair and every other secret stay out of the one container holding the
 // schema-owning role (ADR-0048, ADR-0079, ADR-0115).
 func TestTheMigrationCredentialReachesOnlyTheMigrationStep(t *testing.T) {
-	objects := render(t, map[string]string{"database.caSecret": "database-ca"})
-	for kind, mounts := range reach(objects, migrateSecret) {
-		if mounts != (kind == "Job migrate") {
-			t.Errorf("%s mounts the migration role's credential: %t", kind, mounts)
+	objects := render(t, map[string]any{"database.caSecret": "database-ca"})
+	for at, mounts := range reach(objects, migrateSecret) {
+		if mounts != (at == "Job migrate") {
+			t.Errorf("%s mounts the migration role's credential: %t", at, mounts)
 		}
 	}
 	for _, o := range objects {
-		if o.kind() == "Job" && o.component() == "migrate" {
-			if diff := cmp.Diff([]string{"database-ca", migrateSecret}, mountedSecrets(o.podSpec()), compare.Options); diff != "" {
-				t.Errorf("the Secrets the migration step mounts (-want +got):\n%s", diff)
-			}
-			for _, c := range o.podSpec().list("containers") {
-				for _, e := range c.list("env") {
-					if e.get("valueFrom") != nil {
-						t.Errorf("the migration step takes %s from another object rather than from its mounted file", e.str("name"))
-					}
+		if o.at() != "Job migrate" {
+			continue
+		}
+		if diff := cmp.Diff([]string{"database-ca", migrateSecret}, mountedSecrets(o.podSpec()), compare.Options); diff != "" {
+			t.Errorf("the Secrets the migration step mounts (-want +got):\n%s", diff)
+		}
+		for _, c := range o.podSpec().list("containers") {
+			for _, e := range c.list("env") {
+				if e.get("valueFrom") != nil {
+					t.Errorf("the migration step takes %s from another object rather than from its mounted file", e.str("name"))
 				}
 			}
 		}
@@ -262,7 +272,7 @@ func TestTheMigrationStepRunsBeforeTheDeployables(t *testing.T) {
 	hooks := map[string]string{}
 	for _, o := range render(t, nil) {
 		if h := o.str("metadata", "annotations", "helm.sh/hook"); h != "" && h != "test" {
-			hooks[o.kind()+" "+o.component()] = h
+			hooks[o.at()] = h
 		}
 	}
 	want := map[string]string{"Job migrate": "pre-install,pre-upgrade"}
@@ -271,32 +281,30 @@ func TestTheMigrationStepRunsBeforeTheDeployables(t *testing.T) {
 	}
 }
 
-// VERIFICATIONS' row for delta sync's one process. The chart runs it only as a StatefulSet of one
-// replica whose pods start in order, so a second pod starts only once the first is gone, a rollout
-// included (ADR-0103, ADR-0117).
+// VERIFICATIONS' row for delta sync's one process. The chart runs it only as a Deployment of one
+// replica whose Recreate strategy ends the old pod before it starts the new one, so a rollout never
+// runs two (ADR-0103).
 func TestDeltaSyncRunsAsOneProcessAtATime(t *testing.T) {
 	var runs []string
-	for _, o := range render(t, nil) {
+	for _, o := range render(t, map[string]any{"mediate.replicaCount": 3, "ui.replicaCount": 2}) {
 		spec := o.podSpec()
 		if spec == nil {
 			continue
 		}
 		for _, c := range spec.list("containers") {
-			if strings.Contains(c.str("image"), "/mediated-mailbox-sync:") {
-				runs = append(runs, o.kind())
-				if o.kind() != "StatefulSet" {
-					continue
-				}
-				if r, ok := o.get("spec", "replicas").(int); !ok || r != 1 {
-					t.Errorf("delta sync's StatefulSet has %v replicas, want 1", o.get("spec", "replicas"))
-				}
-				if p := o.str("spec", "podManagementPolicy"); p != "OrderedReady" {
-					t.Errorf("delta sync's pods are managed %q, want OrderedReady", p)
-				}
+			if !strings.Contains(c.str("image"), "/mediated-mailbox-sync:") {
+				continue
+			}
+			runs = append(runs, o.kind())
+			if r, ok := o.get("spec", "replicas").(int); !ok || r != 1 {
+				t.Errorf("delta sync's %s has %v replicas, want 1", o.kind(), o.get("spec", "replicas"))
+			}
+			if s := o.str("spec", "strategy", "type"); s != "Recreate" {
+				t.Errorf("delta sync's %s rolls out by %q, want Recreate", o.kind(), s)
 			}
 		}
 	}
-	if diff := cmp.Diff([]string{"StatefulSet"}, runs, compare.Options); diff != "" {
+	if diff := cmp.Diff([]string{"Deployment"}, runs, compare.Options); diff != "" {
 		t.Errorf("the objects that run delta sync (-want +got):\n%s", diff)
 	}
 }
@@ -306,7 +314,7 @@ func backfillJob(t *testing.T, objects []object) string {
 	t.Helper()
 	var names []string
 	for _, o := range objects {
-		if o.kind() == "Job" && o.component() == "backfill" {
+		if o.at() == "Job backfill" {
 			names = append(names, o.name())
 		}
 	}
@@ -323,25 +331,25 @@ func backfillJob(t *testing.T, objects []object) string {
 // ADR-0098, ADR-0116).
 func TestBackfillRunsAgainAfterAReleaseOrAScannerChangeOnly(t *testing.T) {
 	base := backfillJob(t, render(t, nil))
-	for change, values := range map[string]map[string]string{
-		"a release":             {"image.tag": "9.9.9"},
-		"the scanner's section": {"scannerConfig": "scanner:\n  triggers:\n    en: [verify]\n"},
+	for change, values := range map[string]map[string]any{
+		"a release":             {"backfill.image.tag": "9.9.9"},
+		"the scanner's section": {"scanner": map[string]any{"triggers": map[string]any{"en": []string{"verify"}}}},
 	} {
 		if got := backfillJob(t, render(t, values)); got == base {
 			t.Errorf("after %s the Job running backfill keeps its name %s, so no upgrade runs it", change, got)
 		}
 	}
-	for change, values := range map[string]map[string]string{
-		"the UI's configuration":     {"ui.config": "operator_name: someone\n"},
-		"the mediator's replicas":    {"mediate.replicas": "2"},
-		"delta sync's configuration": {"sync.config": "sync_interval: 1m\n"},
+	for change, values := range map[string]map[string]any{
+		"the UI's configuration":     {"ui.config": map[string]any{"operator_name": "someone"}},
+		"the mediator's replicas":    {"mediate.replicaCount": 2},
+		"delta sync's configuration": {"sync.config": map[string]any{"first_window": "72h"}},
 	} {
 		if got := backfillJob(t, render(t, values)); got != base {
 			t.Errorf("after a change of %s the Job running backfill is renamed %s from %s, so an upgrade runs it", change, got, base)
 		}
 	}
 	for _, o := range render(t, nil) {
-		if o.kind() == "CronJob" && o.component() == "backfill" && o.get("spec", "suspend") != true {
+		if o.at() == "CronJob backfill" && o.get("spec", "suspend") != true {
 			t.Errorf("backfill's CronJob is scheduled, suspend is %v", o.get("spec", "suspend"))
 		}
 	}
@@ -350,8 +358,8 @@ func TestBackfillRunsAgainAfterAReleaseOrAScannerChangeOnly(t *testing.T) {
 // VERIFICATIONS' row for the pod hardening. Every pod the chart runs, the migration step, the UI and
 // the Helm tests included, runs as a non-root user under the runtime's seccomp profile with no
 // service account token and no injected service variables, and every container runs with a
-// read-only root filesystem, no privilege escalation and every capability dropped (ADR-0028,
-// ADR-0052, ADR-0078).
+// read-only root filesystem, no privilege escalation and every capability dropped, unless a value
+// overrides them (ADR-0028, ADR-0052, ADR-0078).
 func TestEveryPodRunsHardened(t *testing.T) {
 	pods := 0
 	for _, o := range render(t, nil) {
@@ -360,7 +368,6 @@ func TestEveryPodRunsHardened(t *testing.T) {
 			continue
 		}
 		pods++
-		at := o.kind() + " " + o.component()
 		for path, want := range map[string]any{
 			"automountServiceAccountToken":        false,
 			"enableServiceLinks":                  false,
@@ -368,7 +375,7 @@ func TestEveryPodRunsHardened(t *testing.T) {
 			"securityContext.seccompProfile.type": "RuntimeDefault",
 		} {
 			if got := spec.get(strings.Split(path, ".")...); got != want {
-				t.Errorf("%s: %s is %v, want %v", at, path, got, want)
+				t.Errorf("%s: %s is %v, want %v", o.at(), path, got, want)
 			}
 		}
 		for _, c := range spec.list("containers") {
@@ -378,11 +385,11 @@ func TestEveryPodRunsHardened(t *testing.T) {
 				"securityContext.privileged":               false,
 			} {
 				if got := c.get(strings.Split(path, ".")...); got != want {
-					t.Errorf("%s: container %s: %s is %v, want %v", at, c.str("name"), path, got, want)
+					t.Errorf("%s: container %s: %s is %v, want %v", o.at(), c.str("name"), path, got, want)
 				}
 			}
 			if drop, ok := c.get("securityContext", "capabilities", "drop").([]any); !ok || !slices.Contains(drop, any("ALL")) {
-				t.Errorf("%s: container %s drops %v, want ALL", at, c.str("name"), drop)
+				t.Errorf("%s: container %s drops %v, want ALL", o.at(), c.str("name"), drop)
 			}
 		}
 	}
@@ -391,152 +398,207 @@ func TestEveryPodRunsHardened(t *testing.T) {
 	}
 }
 
-// VERIFICATIONS' row for scratch space. The workloads that hold bodies, the mediator, backfill and
-// delta sync, write to memory-backed scratch space at /tmp, their one writable path, and the UI,
-// which holds none, has none (ADR-0009).
-func TestTheWorkloadsThatHoldBodiesGetMemoryScratch(t *testing.T) {
-	got := map[string]bool{}
-	for _, o := range render(t, nil) {
+// VERIFICATIONS' row for nowhere to spill. No pod the chart runs mounts a writable volume: every volume
+// is a Secret or the configuration ConfigMap, both read-only, so with the read-only root filesystem a
+// process holding a body has nowhere to write it, and a spill fails loudly (ADR-0009).
+func TestNoPodMountsAWritableVolume(t *testing.T) {
+	for _, o := range render(t, map[string]any{"database.caSecret": "database-ca", "ui.tokenKeySecret.name": "token-key"}) {
 		spec := o.podSpec()
-		if spec == nil || strings.HasSuffix(o.component(), "-test") || o.component() == "migrate" {
+		if spec == nil {
 			continue
 		}
-		memory := map[string]bool{}
 		for _, v := range spec.list("volumes") {
-			if v.str("emptyDir", "medium") == "Memory" {
-				memory[v.str("name")] = true
+			if v.get("secret") == nil && v.get("configMap") == nil {
+				t.Errorf("%s mounts volume %s, which is neither a Secret nor a ConfigMap: %v", o.at(), v.str("name"), map[string]any(v))
 			}
 		}
-		mounted := false
-		for _, c := range spec.list("containers") {
-			for _, m := range c.list("volumeMounts") {
-				mounted = mounted || (memory[m.str("name")] && m.str("mountPath") == "/tmp")
-			}
-		}
-		got[o.kind()+" "+o.component()] = mounted
 	}
-	want := map[string]bool{
-		"Deployment mediate": true, "Job backfill": true, "CronJob backfill": true, "StatefulSet sync": true,
-		"Deployment ui": false,
+}
+
+// The objects that run a deployable, each with the deployable whose values configure it.
+var deployables = []struct{ object, component string }{
+	{"Deployment mediate", "mediate"},
+	{"Job backfill", "backfill"},
+	{"CronJob backfill", "backfill"},
+	{"Deployment sync", "sync"},
+	{"Deployment ui", "ui"},
+}
+
+// rendered is what one render gives the configuration: each deployable's file, decoded, and, per
+// object running a deployable, the checksum its pod template carries and the ConfigMap keys its pod
+// mounts.
+type rendered struct {
+	files      map[string]map[string]any
+	checksums  map[string]string
+	mounted    map[string][]string
+	configMaps int
+}
+
+func configOf(t *testing.T, objects []object) rendered {
+	t.Helper()
+	r := rendered{files: map[string]map[string]any{}, checksums: map[string]string{}, mounted: map[string][]string{}}
+	for _, o := range objects {
+		if o.kind() != "ConfigMap" {
+			continue
+		}
+		r.configMaps++
+		data, ok := o.get("data").(map[string]any)
+		if !ok {
+			continue
+		}
+		for key, text := range data {
+			body, ok := text.(string)
+			if !ok {
+				t.Fatalf("%s is not text: %v", key, text)
+			}
+			var file map[string]any
+			if err := yaml.Unmarshal([]byte(body), &file); err != nil {
+				t.Fatalf("%s: %v", key, err)
+			}
+			r.files[strings.TrimSuffix(key, ".yaml")] = file
+		}
+	}
+	for _, o := range objects {
+		tmpl := o.podTemplate()
+		if tmpl == nil || o.kind() == "Pod" {
+			continue
+		}
+		r.checksums[o.at()] = tmpl.str("metadata", "annotations", "checksum/config")
+		for _, v := range o.podSpec().list("volumes") {
+			if v.get("configMap") == nil {
+				continue
+			}
+			for _, item := range v.list("configMap", "items") {
+				r.mounted[o.at()] = append(r.mounted[o.at()], item.str("key"))
+			}
+		}
+	}
+	return r
+}
+
+// keysOf returns a file's top-level keys, sorted.
+func keysOf(file map[string]any) []string { return slices.Sorted(maps.Keys(file)) }
+
+// VERIFICATIONS' row for the configuration. One ConfigMap holds a file per deployable, rendered from
+// the structured values, each holding exactly the keys its deployable declares that the values set:
+// its own section, the database, its key files, the shared scanner section for the three that mask or
+// scan, and the paths of what the chart mounts. A word YAML would read as a boolean stays the string
+// the values gave. Each object running a deployable mounts only its own file, and its checksum
+// changes with that file and with nothing else (ADR-0052, ADR-0078, ADR-0096).
+func TestEachDeployableReadsOnlyItsOwnRenderedFile(t *testing.T) {
+	values := map[string]any{
+		"scanner":        map[string]any{"triggers": map[string]any{"no": []string{"no", "verify"}}},
+		"mediate.config": map[string]any{"provider_timeout": "20s"},
+		"sync.config":    map[string]any{"sync_interval": "30s", "decisions_per_tick": 50},
+		"ui.config":      map[string]any{"operator_name": "someone"},
+	}
+	base := configOf(t, render(t, values))
+	if base.configMaps != 1 {
+		t.Errorf("the chart renders %d ConfigMaps, want one", base.configMaps)
+	}
+	want := map[string][]string{
+		"mediate":  {"credential", "database", "provider_timeout", "scanner", "tls_cert", "tls_key", "token_file"},
+		"backfill": {"credential", "database", "scanner"},
+		"sync":     {"credential", "database", "decisions_per_tick", "scanner", "sync_interval"},
+		"ui":       {"database", "operator_name", "private_key_files", "seal_public_key_file", "sync_interval", "tls_cert", "tls_key"},
+	}
+	got := map[string][]string{}
+	for component, file := range base.files {
+		got[component] = keysOf(file)
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
-		t.Errorf("which pods get memory-backed scratch at /tmp (-want +got):\n%s", diff)
+		t.Errorf("the keys of each deployable's file (-want +got):\n%s", diff)
 	}
-}
-
-// templateMeta returns the metadata of the pod template an object runs, wherever its kind keeps it.
-func (o object) templateMeta() object {
-	var meta any
-	switch o.kind() {
-	case "Deployment", "StatefulSet", "Job":
-		meta = o.get("spec", "template", "metadata")
-	case "CronJob":
-		meta = o.get("spec", "jobTemplate", "spec", "template", "metadata")
-	}
-	if m, ok := meta.(map[string]any); ok {
-		return m
-	}
-	return nil
-}
-
-// configs is what one render gives each object that runs a deployable: the text of the deployable's
-// ConfigMap, the checksum its pod template carries, and whether its container is given the file.
-type configs map[string]struct {
-	text, checksum string
-	file           bool
-}
-
-// configsOf reads configs from a render, keyed on each object's kind and component, the Helm tests left
-// out.
-func configsOf(objects []object) configs {
-	texts := map[string]string{}
-	for _, o := range objects {
-		if o.kind() == "ConfigMap" {
-			texts[o.component()] = o.str("data", "config.yaml")
+	for _, component := range []string{"mediate", "backfill", "sync"} {
+		triggers := object(base.files[component]).get("scanner", "triggers", "no")
+		if diff := cmp.Diff([]any{"no", "verify"}, triggers, compare.Options); diff != "" {
+			t.Errorf("%s's scanner triggers for no (-want +got):\n%s", component, diff)
 		}
 	}
-	out := configs{}
-	for _, o := range objects {
-		meta := o.templateMeta()
-		if meta == nil {
-			continue
-		}
-		c := out[o.kind()+" "+o.component()]
-		c.text = texts[o.component()]
-		c.checksum = meta.str("annotations", "checksum/config")
-		for _, container := range o.podSpec().list("containers") {
-			if args, ok := container.get("args").([]any); ok {
-				c.file = c.file || slices.Contains(args, any("--config-file=/etc/mediated-mailbox/config.yaml"))
-			}
-		}
-		out[o.kind()+" "+o.component()] = c
-	}
-	return out
-}
-
-// The objects that run a deployable, each with the deployable whose values configure it and whether
-// the deployable masks or scans, so its file carries the shared scanner section (ADR-0096, ADR-0116).
-var deployables = []struct {
-	object, values string
-	scans          bool
-}{
-	{"Deployment mediate", "mediate", true},
-	{"Job backfill", "backfill", true},
-	{"CronJob backfill", "backfill", true},
-	{"StatefulSet sync", "sync", true},
-	{"Deployment ui", "ui", false},
-}
-
-// The configuration file reaches every deployable as the text the operator wrote, comments and a word
-// a re-serialisation would read as a boolean included, followed by the shared scanner section for each
-// deployable that masks or scans and for no other. A change to a deployable's own text changes the
-// checksum of every object running it, so its pods restart, and a change to the scanner section changes
-// the checksum of the three that carry it and not the UI's. A deployable with no text gets no file,
-// since a file holding no document refuses the start (ADR-0052, ADR-0078, ADR-0096).
-func TestTheConfigurationFileIsPassedThroughAsWritten(t *testing.T) {
-	own := "# the operator's own comment\nno_such_key_is_read: no\n"
-	scanner := "scanner:\n  triggers:\n    no: [verify]\n"
-	values := map[string]string{"scannerConfig": scanner}
 	for _, d := range deployables {
-		values[d.values+".config"] = own
-	}
-	before := configsOf(render(t, values))
-	for _, d := range deployables {
-		got := before[d.object]
-		want := own
-		if d.scans {
-			want = own + "\n" + scanner
+		if diff := cmp.Diff([]string{d.component + ".yaml"}, base.mounted[d.object], compare.Options); diff != "" {
+			t.Errorf("%s mounts these files of the ConfigMap (-want +got):\n%s", d.object, diff)
 		}
-		if got.text != want || !got.file || got.checksum == "" {
-			t.Errorf("%s: the file is %q, given as an argument %t, with checksum %q, want %q given with a checksum", d.object, got.text, got.file, got.checksum, want)
+		if base.checksums[d.object] == "" {
+			t.Errorf("%s carries no configuration checksum", d.object)
 		}
 	}
 
-	for _, changed := range deployables {
+	for change, edit := range map[string]struct {
+		values  map[string]any
+		changes []string
+	}{
+		"the mediator's own key":  {map[string]any{"mediate.config": map[string]any{"provider_timeout": "25s"}}, []string{"mediate"}},
+		"delta sync's tick count": {map[string]any{"sync.config": map[string]any{"sync_interval": "30s", "decisions_per_tick": 60}}, []string{"sync"}},
+		"delta sync's interval":   {map[string]any{"sync.config": map[string]any{"sync_interval": "1m", "decisions_per_tick": 50}}, []string{"sync", "ui"}},
+		"the UI's own key":        {map[string]any{"ui.config": map[string]any{"operator_name": "another"}}, []string{"ui"}},
+		"the scanner's section":   {map[string]any{"scanner": map[string]any{"window": 6}}, []string{"mediate", "backfill", "sync"}},
+		"the database's host":     {map[string]any{"database.host": "elsewhere"}, []string{"mediate", "backfill", "sync", "ui"}},
+	} {
 		edited := maps.Clone(values)
-		edited[changed.values+".config"] = own + "another_key: 1\n"
-		after := configsOf(render(t, edited))
+		maps.Copy(edited, edit.values)
+		after := configOf(t, render(t, edited))
 		for _, d := range deployables {
-			restarted := after[d.object].checksum != before[d.object].checksum
-			if want := d.values == changed.values; restarted != want {
-				t.Errorf("a change of %s's file: %s's checksum changed %t, want %t", changed.values, d.object, restarted, want)
+			moved := after.checksums[d.object] != base.checksums[d.object]
+			if want := slices.Contains(edit.changes, d.component); moved != want {
+				t.Errorf("a change of %s: %s's checksum changed %t, want %t", change, d.object, moved, want)
 			}
 		}
 	}
+}
 
-	edited := maps.Clone(values)
-	edited["scannerConfig"] = scanner + "    en: [log in]\n"
-	after := configsOf(render(t, edited))
-	for _, d := range deployables {
-		if restarted := after[d.object].checksum != before[d.object].checksum; restarted != d.scans {
-			t.Errorf("a change of the scanner section: %s's checksum changed %t, want %t", d.object, restarted, d.scans)
+// VERIFICATIONS' row for exposing the surfaces. The mediator and the UI each render an Ingress and a
+// Gateway API HTTPRoute only when its value switches it on, so by default the chart needs nothing
+// beyond core Kubernetes, and each points at its own component's Service and port (ADR-0052).
+func TestIngressAndRoutesRenderOnlyWhenSwitchedOn(t *testing.T) {
+	for _, o := range render(t, nil) {
+		if o.kind() == "Ingress" || o.kind() == "HTTPRoute" {
+			t.Errorf("the chart with its defaults renders %s %s", o.kind(), o.name())
 		}
 	}
-
-	empty := configsOf(render(t, nil))
-	for _, d := range deployables {
-		if got := empty[d.object]; got.text != "" || got.file {
-			t.Errorf("%s, given no text and no scanner section, has the file %q, given as an argument %t", d.object, got.text, got.file)
+	values := map[string]any{"mediate.service.port": 8443, "ui.service.port": 9443}
+	for _, component := range []string{"mediate", "ui"} {
+		values[component+".ingress.enabled"] = true
+		values[component+".httpRoute.enabled"] = true
+	}
+	services := map[string]string{}
+	objects := render(t, values)
+	for _, o := range objects {
+		if o.kind() == "Service" {
+			services[o.component()] = o.name()
 		}
 	}
+	got := map[string]string{}
+	for _, o := range objects {
+		switch o.kind() {
+		case "Ingress":
+			for _, rule := range o.list("spec", "rules") {
+				for _, p := range rule.list("http", "paths") {
+					got[o.at()] = p.str("backend", "service", "name") + ":" + intString(p.get("backend", "service", "port", "number"))
+				}
+			}
+		case "HTTPRoute":
+			for _, rule := range o.list("spec", "rules") {
+				for _, ref := range rule.list("backendRefs") {
+					got[o.at()] = ref.str("name") + ":" + intString(ref.get("port"))
+				}
+			}
+		}
+	}
+	want := map[string]string{
+		"Ingress mediate":   services["mediate"] + ":8443",
+		"HTTPRoute mediate": services["mediate"] + ":8443",
+		"Ingress ui":        services["ui"] + ":9443",
+		"HTTPRoute ui":      services["ui"] + ":9443",
+	}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("where each Ingress and HTTPRoute sends its traffic (-want +got):\n%s", diff)
+	}
+}
+
+func intString(v any) string {
+	if n, ok := v.(int); ok {
+		return strconv.Itoa(n)
+	}
+	return "?"
 }

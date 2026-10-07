@@ -51,8 +51,9 @@ runs on every message and the body scan does not
 
 **Residue: nothing body-derived persists or spills.**
 
-- Bodies live in memory only: no body to disk, no spill path, memory-backed scratch space
-  (`emptyDir: {medium: Memory}`) for anything that could spill, short-lived process.
+- Bodies live in memory only: no body to disk and no spill path. A process holding bodies runs
+  with a read-only root filesystem and no writable volume, so a spill fails loudly instead of
+  landing anywhere.
 - Nothing body-derived is persisted except the masked subject and the flags — no matched text, no
   offsets, no excerpts. Scanner logs record counts and rule identifiers only.
 - `scanner_version` is stamped on every verdict so that when rules improve, affected rows are

@@ -1,9 +1,9 @@
 {{- /*
 The read path's Helm tests, run by `helm test` after an install or an upgrade. Each asks one long-running
-deployable, through its Service, for what a pod answers only once it is wired as stated below. A test pod mounts no Secret and holds
-no credential, so it sees each surface as an unauthenticated caller would, and it runs under the same hardening as
-every other pod the chart runs. The migration step and backfill are Jobs, whose success Helm and the Job's own
-status already report.
+deployable, through its Service, for what a pod answers only once it is wired as stated below. A test pod mounts no
+Secret and holds no credential, so it sees each surface as an unauthenticated caller would, and it runs under the same
+hardening as every other pod the chart runs. The migration step and backfill are Jobs, whose success Helm and the
+Job's own status already report.
 
 - The mediator answers ready, which it does only once its TLS key pair and bearer token load, and it serves only
   after it read its accounts and their policy through its own role, which needs the schema the migration step
@@ -17,32 +17,37 @@ status already report.
 The test image is the one input the tests take from outside this repository. It is a value, so a deployment that
 mirrors images can point it at its mirror.
 */ -}}
-{{- $mediate := dict "root" . "component" "mediate" -}}
-{{- $ui := dict "root" . "component" "ui" -}}
-{{- $sync := dict "root" . "component" "sync" -}}
+{{- $mediate := include "mediated-mailbox.componentName" (dict "root" . "component" "mediate") -}}
+{{- $ui := include "mediated-mailbox.componentName" (dict "root" . "component" "ui") -}}
+{{- $sync := include "mediated-mailbox.componentName" (dict "root" . "component" "sync") -}}
 {{- $scheme := ternary "http" "https" .Values.mediate.tls.atIngress -}}
 {{- range $test := list
-  (dict "ctx" $mediate "script" (printf "curl -fsS http://%s:8080/readyz && test \"$(curl -ks -o /dev/null -w '%%{http_code}' %s://%s:%v/mcp)\" = 401" (include "mediated-mailbox.name" $mediate) $scheme (include "mediated-mailbox.name" $mediate) $.Values.mediate.service.port))
-  (dict "ctx" $ui "script" (printf "curl -fsS http://%s:8080/readyz && curl -kfsS -o /dev/null https://%s:%v/" (include "mediated-mailbox.name" $ui) (include "mediated-mailbox.name" $ui) $.Values.ui.service.port))
-  (dict "ctx" $sync "script" (printf "curl -fsS http://%s:8080/healthz && curl -fsS -o /dev/null http://%s:8080/metrics" (include "mediated-mailbox.name" $sync) (include "mediated-mailbox.name" $sync)))
+  (dict "component" "mediate" "script" (printf "curl -fsS http://%s:8080/readyz && test \"$(curl -ks -o /dev/null -w '%%{http_code}' %s://%s:%v/mcp)\" = 401" $mediate $scheme $mediate $.Values.mediate.service.port))
+  (dict "component" "ui" "script" (printf "curl -fsS http://%s:8080/readyz && curl -kfsS -o /dev/null https://%s:%v/" $ui $ui $.Values.ui.service.port))
+  (dict "component" "sync" "script" (printf "curl -fsS http://%s:8080/healthz && curl -fsS -o /dev/null http://%s:8080/metrics" $sync $sync))
 }}
+{{- $ctx := dict "root" $ "component" "tests" }}
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: {{ include "mediated-mailbox.name" $test.ctx }}-test
+  name: {{ include "mediated-mailbox.componentName" (dict "root" $ "component" $test.component) }}-test
   labels:
-    {{- include "mediated-mailbox.labels" (dict "root" $ "component" (printf "%s-test" $test.ctx.component)) | nindent 4 }}
+    {{- include "mediated-mailbox.labels" (dict "root" $ "component" (printf "%s-test" $test.component)) | nindent 4 }}
+    {{- with $.Values.tests.podLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   annotations:
     helm.sh/hook: test
     helm.sh/hook-delete-policy: before-hook-creation
+    {{- with $.Values.tests.podAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
-  {{- include "mediated-mailbox.podSpec" $test.ctx | nindent 2 }}
+  {{- include "mediated-mailbox.podSpec" $ctx | nindent 2 }}
   restartPolicy: Never
   containers:
   - name: test
-    image: {{ with $.Values.tests.image }}{{ printf "%s/%s:%s" .registry .repository .tag }}{{ end }}
-    imagePullPolicy: {{ $.Values.image.pullPolicy }}
-    {{- include "mediated-mailbox.containerSecurity" $test.ctx | nindent 4 }}
+    {{- include "mediated-mailbox.container" $ctx | nindent 4 }}
     command: ["sh", "-ec", {{ $test.script | quote }}]
 {{- end }}

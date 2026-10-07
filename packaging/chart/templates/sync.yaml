@@ -1,64 +1,38 @@
 {{- /*
-Delta sync, one process that runs until stopped and is never two at once, a rollout included (ADR-0103). A
-StatefulSet of one replica starts its pod again only once the pod before it is gone, which a Deployment does not
-promise when a node stops answering (ADR-0117). It calls a provider, so it mounts the key pair (ADR-0081), and it
-scans bodies, so it gets memory-backed scratch space (ADR-0009). It serves only the health probe and the metrics
-endpoint.
+Delta sync, one process that runs until stopped and is never two at once, a rollout included (ADR-0103): a
+Deployment of one replica whose Recreate strategy ends the old pod before it starts the new one. It calls a provider,
+so it mounts the key pair (ADR-0081). It serves only the health probe and the metrics endpoint. Its root filesystem
+is read-only and it mounts no writable volume (ADR-0009).
 */ -}}
-{{- $ctx := dict "root" . "component" "sync" "scanner" true -}}
-{{- $v := .Values.sync -}}
-{{- if include "mediated-mailbox.hasConfig" $ctx }}
+{{- $ctx := dict "root" . "component" "sync" "config" true -}}
+{{- with include "mediated-mailbox.serviceAccount" $ctx }}
 ---
-{{ include "mediated-mailbox.configMap" $ctx }}
+{{ . }}
 {{- end }}
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ include "mediated-mailbox.name" $ctx }}
-  labels:
-    {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
-automountServiceAccountToken: false
----
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: {{ include "mediated-mailbox.name" $ctx }}
+  name: {{ include "mediated-mailbox.componentName" $ctx }}
   labels:
     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
 spec:
   replicas: 1
-  serviceName: {{ include "mediated-mailbox.name" $ctx }}
-  podManagementPolicy: OrderedReady
-  updateStrategy:
-    type: RollingUpdate
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
-      {{- include "mediated-mailbox.selector" $ctx | nindent 6 }}
+      {{- include "mediated-mailbox.selectorLabels" $ctx | nindent 6 }}
   template:
     metadata:
-      labels:
-        {{- include "mediated-mailbox.labels" $ctx | nindent 8 }}
-      annotations:
-        checksum/config: {{ include "mediated-mailbox.configText" $ctx | sha256sum }}
+      {{- include "mediated-mailbox.podMetadata" $ctx | nindent 6 }}
     spec:
-      serviceAccountName: {{ include "mediated-mailbox.name" $ctx }}
       {{- include "mediated-mailbox.podSpec" $ctx | nindent 6 }}
       containers:
       - name: sync
-        image: {{ include "mediated-mailbox.image" $ctx }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        {{- include "mediated-mailbox.containerSecurity" $ctx | nindent 8 }}
-        {{- if include "mediated-mailbox.hasConfig" $ctx }}
+        {{- include "mediated-mailbox.container" $ctx | nindent 8 }}
         args:
-        - --config-file=/etc/mediated-mailbox/config.yaml
-        {{- end }}
-        env:
-        {{- include "mediated-mailbox.databaseEnv" $ctx | nindent 8 }}
-        - name: MEDIATED_MAILBOX_CREDENTIAL__PUBLIC_KEY_FILE
-          value: /var/run/mediated-mailbox/keys/public.key
-        - name: MEDIATED_MAILBOX_CREDENTIAL__PRIVATE_KEY_FILES
-          value: {{ include "mediated-mailbox.privateKeyFiles" $ctx | quote }}
+        {{- include "mediated-mailbox.configArgs" $ctx | nindent 8 }}
         ports:
         - name: probes
           containerPort: 8080
@@ -70,34 +44,24 @@ spec:
           httpGet:
             path: /healthz
             port: probes
-        {{- with $v.resources }}
-        resources:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
         volumeMounts:
+        {{- include "mediated-mailbox.configMount" $ctx | nindent 8 }}
         {{- include "mediated-mailbox.databaseMounts" $ctx | nindent 8 }}
         {{- include "mediated-mailbox.keysMount" $ctx | nindent 8 }}
-        {{- include "mediated-mailbox.scratchMount" $ctx | nindent 8 }}
-        {{- if include "mediated-mailbox.hasConfig" $ctx }}
-        {{- include "mediated-mailbox.configMount" $ctx | nindent 8 }}
-        {{- end }}
       volumes:
-      {{- include "mediated-mailbox.databaseVolumes" (merge (dict "password" $v.passwordSecret) $ctx) | nindent 6 }}
-      {{- include "mediated-mailbox.keysVolume" $ctx | nindent 6 }}
-      {{- include "mediated-mailbox.scratchVolume" $ctx | nindent 6 }}
-      {{- if include "mediated-mailbox.hasConfig" $ctx }}
       {{- include "mediated-mailbox.configVolume" $ctx | nindent 6 }}
-      {{- end }}
+      {{- include "mediated-mailbox.databaseVolumes" $ctx | nindent 6 }}
+      {{- include "mediated-mailbox.keysVolume" $ctx | nindent 6 }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "mediated-mailbox.name" $ctx }}
+  name: {{ include "mediated-mailbox.componentName" $ctx }}
   labels:
     {{- include "mediated-mailbox.labels" $ctx | nindent 4 }}
 spec:
   selector:
-    {{- include "mediated-mailbox.selector" $ctx | nindent 4 }}
+    {{- include "mediated-mailbox.selectorLabels" $ctx | nindent 4 }}
   ports:
   - name: probes
     port: 8080
