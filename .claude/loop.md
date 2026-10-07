@@ -30,7 +30,6 @@ past runs.
 | --- | --- |
 | `sessions.md` | The roster. Each ticket session's ticket, its Claude Code session ID, when it was launched and whether it holds a tiny slot. Also the user rulings, the instructions the user has given the control session for the loop |
 | `other-sessions.md` | The sessions outside the ticket slots, each by its session ID. The non-ticket sessions launched at the user's request, each with its purpose and brief, and the sessions the user runs outside the loop, each with the tickets it owns |
-| `launch-pause.md` | Whether the user has paused all launches, and since when. A held ticket is recorded only as its State in the roadmap ticket |
 | `number-claims.md` | The decision record and migration numbers granted to live sessions and not yet on `main` |
 
 | Question | Source |
@@ -139,11 +138,7 @@ It finds a share already full, and gives no warning before that. When the file d
 whole, launch nothing, give the disk line in the report, and send every live session the
 [incident notice](#messages).
 
-**Pause and holds.** The user can pause all launches, which you record in `launch-pause.md`, and
-can hold a single ticket, which you record by writing hold as its State in the roadmap ticket. Both
-stay until the user lifts them. While launches are paused, launch nothing, and say so in the report.
-A held ticket is never launched. When the user lifts a hold, write the State that step 5 of every
-iteration gives the ticket by the rules below its hold rule.
+**Pause and holds.** The user can pause all new agent session launches and/or hold a individual tickets. Holds you can record by writing hold as its State in the roadmap ticket. Since pauses affect all new session launches, its best recorded up front in `sessions.md`. Both stay until the user lifts them. While launches are paused, launch nothing, and say so in the report. A held ticket is never launched. When the user lifts a hold, write the State that step 5 of every iteration gives the ticket by the rules below its hold rule.
 
 **Which ticket.** Take pending tickets in the order the roadmap ticket lists them, which follows
 the roadmap's value path. Launch one only when every blocker its `Blocked by` line names is built,
@@ -247,14 +242,14 @@ completes, you should launch the `adversarial-review` skill with the Skill tool 
 following the approach it lays out, never bits and pieces of it, to review the builder work, with as
 many review <-> fix rounds as necessary till green with fixes being tasked to the same subagent that
 did the implementation. You drive all the subagents as outlined within their respective skills. In
-every review round, and on the final state before the pull request leaves draft, launch the
-`coherence-check` skill afresh with the Skill tool and use it in full across the whole repository,
-documents and implementation alike, following the approach it lays out, never bits and pieces of it,
-and it writes its report file. When the pull request is ready, present it to the user here.
+every review round, and on the final state before the pull request leaves draft, you must ensure
+the coherence check ran in full by adversarial review subagent by asking it provide evidence of
+coherence check having run (i.e. coherence check's report file). When the pull request is ready, 
+present it to the user here.
 
 Give a new decision record the status that the statuses rule in docs/adr/README.md sets, which
-depends on whether your pull request implements the record. Before you
-write a new decision record or migration, ask mediated-mailbox-control for its number, and wait for
+depends on whether your pull request implements the record. Just before you write a new decision 
+record or migration (not any earlier), ask mediated-mailbox-control for its number, and wait for
 the grant. Use only numbers it grants you, and tell it if you release one.
 
 When your pull request leaves draft and is ready for the user's review, send
