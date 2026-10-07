@@ -38,11 +38,11 @@ Classify what you are about to write, before opening any file:
 
 The ambiguous cases, resolved the way this document set resolves them:
 
-- **A new record's status** is set to **Accepted**, in the pull request that implements it. So if a new  
-  record is being created along with its implementation in the same PR, it gets ratified by approval 
-  and landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with 
-  the first PR whose implementation is at least partly influenced by that record. That is the general 
-  practice though its not unacceptable to records to be ratified by prior to implementation, just 
+- **A new record's status** is set to **Accepted**, in the pull request that implements it. So if a new
+  record is being created along with its implementation in the same PR, it gets ratified by approval
+  and landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with
+  the first PR whose implementation is at least partly influenced by that record. That is the general
+  practice though its not unacceptable to records to be ratified by prior to implementation, just
   unnecessary.
 - **A pillar's limitation** → stated with the pillar itself, plus a pointer row in the design's
   Known limits table saying where the disposition lives. Pointer duplication is sanctioned; fact

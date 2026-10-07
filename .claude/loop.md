@@ -244,11 +244,11 @@ many review <-> fix rounds as necessary till green with fixes being tasked to th
 did the implementation. You drive all the subagents as outlined within their respective skills. In
 every review round, and on the final state before the pull request leaves draft, you must ensure
 the coherence check ran in full by adversarial review subagent by asking it provide evidence of
-coherence check having run (i.e. coherence check's report file). When the pull request is ready, 
+coherence check having run (i.e. coherence check's report file). When the pull request is ready,
 present it to the user here.
 
 Give a new decision record the status that the statuses rule in docs/adr/README.md sets, which
-depends on whether your pull request implements the record. Just before you write a new decision 
+depends on whether your pull request implements the record. Just before you write a new decision
 record or migration (not any earlier), ask mediated-mailbox-control for its number, and wait for
 the grant. Use only numbers it grants you, and tell it if you release one.
 
