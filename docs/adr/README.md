@@ -36,22 +36,16 @@ moves it. Records themselves link freely and deep, into
 - **No YAML frontmatter, deliberately.** A machine-readable metadata block would be a second home
   for facts the header line already states, and frontmatter cannot carry the links the line
   requires. The readers here — humans and LLMs — read text; this index is the queryable view.
-- **Statuses:** **Proposed** (adopted by the documents, and awaiting operator ratification or, as
-  stated below, implementation) → **Accepted** → **Superseded** (the header gains
-  `**Superseded by:** ADR-NNNN`; the replacement is a new number). A record is marked Superseded
-  only when the record superseding it becomes Accepted. Until then the old record stays as it is,
-  the stable documents keep citing it, and the new record, while Proposed, names in its header the
-  record it will supersede. An **Accepted** record may instead transition to **Deprecated**, meaning
-  the decision no longer holds and nothing replaces it. A deprecated record is dead. It binds
-  nothing, is cited by nothing as current authority, and is kept only so the trail stays whole. A
-  record numbered above 0114 lands **Proposed** when the code as of its pull request's merge does
-  not implement its design, even when the operator has agreed to it, and stays Proposed until the
-  pull request that completes its implementation switches it to **Accepted** along with that
-  implementation. A record numbered above 0114 that the same pull request implements is written
-  **Accepted**, because the operator ratifies it by reviewing and merging that pull request. A
-  record numbered 0114 or lower keeps its status, and its Accepted status says nothing about whether
-  it is built. A record's status is the one place a record reflects implementation. Which unit
-  builds it, and when, stays [ROADMAP.md](../../ROADMAP.md)'s business.
+- **Statuses:** **Proposed** (adopted by the documents, awaiting operator ratification) →
+  **Accepted** → **Superseded** (the header gains `**Superseded by:** ADR-NNNN`; the replacement
+  is a new number). An **Accepted** record may instead transition to **Deprecated**, meaning the
+  decision no longer holds and nothing replaces it. A deprecated record is dead. It binds
+  nothing, is cited by nothing as current authority, and is kept only so the trail stays whole.
+  A new record is set to **Accepted**, in the pull request that implements it. So if a new record
+  is being created along with its implementation in the same PR, it gets ratified by approval and
+  landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with 
+  the first PR whose implementation is partly influenced by that record. That is the general practice
+  though its not unacceptable to records to be ratified by prior to implementation, just unnecessary.
 - **In-place change versus supersession.** An accepted record may change in place when the change
   stays true to the original decision in spirit and is backwards compatible with the previous
   interpretation — everything true or permitted under the old reading remains so (broadening a
