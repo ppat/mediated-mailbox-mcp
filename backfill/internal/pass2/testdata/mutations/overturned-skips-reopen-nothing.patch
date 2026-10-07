@@ -1,6 +1,6 @@
 control: An overturned gate skip reopens the second pass, marked to start over
 removes: the run-start step reopens the second pass only for a stale verdict or subject, so a skip it returned to pending after the pass ended waits for good
-packages: ./backfill ./backfill/internal/pass2
+packages: ./backfill/app ./backfill/internal/pass2
 tests: TestAChangeOfThresholdsDecidesTheStoredSkipsAgain
 scheduled-count: no
 integration: yes

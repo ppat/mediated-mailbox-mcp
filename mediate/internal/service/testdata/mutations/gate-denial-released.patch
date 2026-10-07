@@ -1,6 +1,6 @@
 control: The gate decides every body request from the index, and a denial never reaches the provider
 removes: a body the gate denies is released all the same
-packages: ./mediate
+packages: ./mediate/app
 tests: TestTheGateDeniesFromTheIndexWithoutReachingTheProvider
 scheduled-count: no
 integration: yes

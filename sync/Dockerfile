@@ -16,6 +16,7 @@ COPY ratelimit ratelimit
 COPY sanitize sanitize
 COPY settings settings
 COPY sync/main.go sync/main.go
+COPY sync/app sync/app
 COPY sync/internal sync/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-sync ./sync
 

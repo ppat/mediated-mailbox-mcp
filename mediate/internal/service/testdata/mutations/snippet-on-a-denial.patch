@@ -1,6 +1,6 @@
 control: The snippet and attachment filenames follow the body, and a denial releases none of them
 removes: a serve-time denial carries the snippet it withheld
-packages: ./mediate
+packages: ./mediate/app
 tests: TestTheServeTimeCheckReadsEverythingReleased
 scheduled-count: no
 integration: yes

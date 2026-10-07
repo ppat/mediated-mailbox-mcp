@@ -1,0 +1,20 @@
+control: The mediator serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+removes: a reload whose read fails stops serving every account
+packages: ./mediate/app
+tests: TestTheMediatorServesTheAccountsEachReloadLists
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..561e3394 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -346,6 +346,7 @@ func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, met
+ // next reload loads the policy again.
+ func (s *serving) reload(ctx context.Context) error {
+ 	if err := s.loader.Load(ctx); err != nil {
++		s.registry.Serve(nil)
+ 		return fmt.Errorf("loading the accounts: %w", err)
+ 	}
+ 	next := s.loader.Snapshot()

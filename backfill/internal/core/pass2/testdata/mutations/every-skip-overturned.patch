@@ -1,6 +1,6 @@
 control: A stored gate skip the gate no longer decides as the same skip returns to pending at every backfill run's start
 removes: every stored gate skip is overturned, the ones the gate still decides as the same skip included
-packages: ./backfill ./backfill/internal/core/pass2
+packages: ./backfill/app ./backfill/internal/core/pass2
 tests: TestOverturned TestAChangeOfThresholdsDecidesTheStoredSkipsAgain
 scheduled-count: no
 integration: yes

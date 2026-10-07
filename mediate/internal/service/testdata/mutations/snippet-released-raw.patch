@@ -1,6 +1,6 @@
 control: A body with no HTML part, the snippet and each filename are released as fenced code blocks showing the text exactly
 removes: the snippet is released as the provider gave it, unfenced
-packages: ./mediate
+packages: ./mediate/app
 tests: TestAReleasedBodyIsCleanMarkdown
 scheduled-count: no
 integration: yes

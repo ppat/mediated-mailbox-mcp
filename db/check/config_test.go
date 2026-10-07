@@ -41,7 +41,8 @@ var componentRoles = map[string]string{
 
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no
 // list, which TestComponentRolesReported requires to be reported. The entries named narrow and wide
-// name lists that name no subsection themselves and admit a library's list that does. The entries
+// name lists that name no subsection themselves and admit a library's list that does, and outer names one
+// that admits a second library's list, which admits the first's. The entries
 // named coreonly and coreexact name lists admitting only the library's pure core, by a prefix entry
 // and by its exact package, which runs none of the library's statements, so they too must be
 // reported.
@@ -51,6 +52,7 @@ var testRoles = map[string]string{
 	"coreexact":  "check_fixture_reader",
 	"coreonly":   "check_fixture_reader",
 	"narrow":     "check_fixture_reader",
+	"outer":      "check_fixture_writer",
 	"reader":     "check_fixture_reader",
 	"wide":       "check_fixture_writer",
 	"writer":     "check_fixture_writer",
@@ -227,7 +229,8 @@ func admitsCode(allow, pkgs []string) bool {
 }
 
 // plan is one list's subsections, to be run under one role. For a deployable's list the role is its
-// own, and via names the list. For a library's list via names the deployable's list admitting it.
+// own, and via names the list. For a library's list via names the deployable's list admitting it,
+// directly or through the lists of other libraries.
 type plan struct {
 	list string
 	via  string
@@ -237,7 +240,7 @@ type plan struct {
 
 // plans returns every list's subsections under every role that runs them. A list with a role runs its
 // subsections under that role. A list without one is a library's, and runs them under the role of
-// each list with a role that admits it. A list with neither is skipped, because roleProblems refuses
+// each list with a role that reaches it. A list with neither is skipped, because roleProblems refuses
 // it.
 func plans(lists importLists, roles map[string]string) []plan {
 	var out []plan
@@ -246,23 +249,45 @@ func plans(lists importLists, roles map[string]string) []plan {
 			out = append(out, plan{list: list, via: list, role: role, subs: lists.named[list]})
 			continue
 		}
-		for _, via := range slices.Sorted(maps.Keys(lists.admits)) {
-			if role, ok := roles[via]; ok && slices.Contains(lists.admits[via], list) {
-				out = append(out, plan{list: list, via: via, role: role, subs: lists.named[list]})
-			}
+		for _, via := range reaching(lists, roles, list) {
+			out = append(out, plan{list: list, via: via, role: roles[via], subs: lists.named[list]})
 		}
 	}
 	return out
 }
 
+// reaching returns, sorted, the lists with a role that admit list, directly or through the lists
+// without a role of libraries that admit it, as a library whose code imports another library runs
+// that library's statements under the role of each deployable admitting the first. A list with a role
+// ends a path, so a deployable's list reaches only the libraries its own code admits.
+func reaching(lists importLists, roles map[string]string, list string) []string {
+	seen := map[string]bool{list: true}
+	var out []string
+	for queue := []string{list}; len(queue) > 0; queue = queue[1:] {
+		for _, via := range slices.Sorted(maps.Keys(lists.admits)) {
+			if seen[via] || !slices.Contains(lists.admits[via], queue[0]) {
+				continue
+			}
+			seen[via] = true
+			if _, ok := roles[via]; ok {
+				out = append(out, via)
+			} else {
+				queue = append(queue, via)
+			}
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
 // roleProblems reports a list naming subsections with no role to test its grants under, neither its
-// own nor that of a list admitting it, a list admitting a library's list without a role of its own,
-// whose statements would then run under a role nothing tested, and a role entry naming a list that
+// own nor that of a list reaching it, a list admitting a library's list without a role of its own and
+// that no list with a role reaches, whose statements would then run under a role nothing tested, and a role entry naming a list that
 // neither names subsections nor admits a list that does.
 func roleProblems(lists importLists, roles map[string]string) []string {
 	var out []string
 	for _, name := range slices.Sorted(maps.Keys(lists.admits)) {
-		if _, ok := roles[name]; ok {
+		if _, ok := roles[name]; ok || len(reaching(lists, roles, name)) > 0 {
 			continue
 		}
 		for _, library := range lists.admits[name] {

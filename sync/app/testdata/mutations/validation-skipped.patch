@@ -1,0 +1,25 @@
+control: Delta sync refuses a configuration it cannot tick with
+removes: the interval, the first window and the bound on decisions are not validated
+packages: ./sync/app
+tests: TestATickThatCannotRunRefusesTheStart
+scheduled-count: no
+
+diff --git a/sync/app/app.go b/sync/app/app.go
+index 7e99a2d2..114a89e8 100644
+--- a/sync/app/app.go
++++ b/sync/app/app.go
+@@ -96,11 +96,11 @@ func defaults() Configuration {
+ // the bound on a tick's decisions are positive.
+ func validate(c Configuration) error {
+ 	switch {
+-	case c.SyncInterval <= 0:
++	case false && c.SyncInterval <= 0:
+ 		return fmt.Errorf("sync_interval %s is not positive", c.SyncInterval)
+-	case c.FirstWindow <= 0:
++	case false && c.FirstWindow <= 0:
+ 		return fmt.Errorf("first_window %s is not positive", c.FirstWindow)
+-	case c.DecisionsPerTick <= 0:
++	case false && c.DecisionsPerTick <= 0:
+ 		return fmt.Errorf("decisions_per_tick %d is not positive", c.DecisionsPerTick)
+ 	}
+ 	if err := dbconnectcore.Validate(c.Database); err != nil {

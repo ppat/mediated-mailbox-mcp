@@ -1,0 +1,21 @@
+control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
+removes: a backfill run returns no verdict to pending before its first pass, so stale verdicts keep releasing bodies
+packages: ./backfill/app
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index 1691e4f5..90726198 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -353,9 +353,6 @@ func secondDeps(store pass2.Store, body pass2.Body, composed policy.Composed, lo
+ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, metrics *pass1.Metrics, secondMetrics *pass2.Metrics,
+ 	handOver func(context.Context, string) error, logger *slog.Logger,
+ ) error {
+-	if err := reopen(ctx, second, account, logger); err != nil {
+-		return err
+-	}
+ 	if err := passAccount(ctx, first, account, metrics, handOver, logger); err != nil {
+ 		return err
+ 	}

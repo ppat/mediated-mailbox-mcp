@@ -1,0 +1,19 @@
+control: the UI's configuration type is pinned field by field
+removes: a value's configuration path is renamed, so the file, the environment and the flags name another key than the one declared
+packages: ./ui/app
+tests: TestTheEffectiveConfigurationIsLogged
+scheduled-count: no
+
+diff --git a/ui/app/app.go b/ui/app/app.go
+index f539f0b1..a942ef85 100644
+--- a/ui/app/app.go
++++ b/ui/app/app.go
+@@ -51,7 +51,7 @@ type Configuration struct {
+ 	InsecureHTTP       bool                 `yaml:"insecure_http"`
+ 	SyncInterval       time.Duration        `yaml:"sync_interval"`
+ 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
+-	StreamInterval     time.Duration        `yaml:"stream_interval"`
++	StreamInterval     time.Duration        `yaml:"poll_interval"`
+ 	DefaultTheme       string               `yaml:"default_theme"`
+ 	StreamReconnectMax time.Duration        `yaml:"stream_reconnect_max"`
+ 	StreamPollInterval time.Duration        `yaml:"stream_poll_interval"`

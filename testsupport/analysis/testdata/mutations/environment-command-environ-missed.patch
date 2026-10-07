@@ -1,4 +1,4 @@
-control: The analyser refuses a read of the environment outside a deployable's composition root
+control: The analyser refuses a read of the environment outside a deployable's main.go
 removes: (*exec.Cmd).Environ is not reported, so a command's inherited environment escapes
 packages: ./testsupport/analysis
 tests: TestEnvironment

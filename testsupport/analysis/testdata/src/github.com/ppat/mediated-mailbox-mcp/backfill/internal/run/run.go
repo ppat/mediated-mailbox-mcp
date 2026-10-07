@@ -1,4 +1,4 @@
-// Package run stands for a deployable's code outside its composition root.
+// Package run stands for a deployable's code outside its main.go.
 package run
 
 import (

@@ -1,6 +1,6 @@
 control: The gate decides every body request from the index, and a denial never reaches the provider
 removes: the body is fetched from the provider before the gate decides, and dropped on a denial
-packages: ./mediate
+packages: ./mediate/app
 tests: TestTheGateDeniesFromTheIndexWithoutReachingTheProvider TestABodyFetchSpendsFromTheInteractiveReservation
 scheduled-count: no
 integration: yes

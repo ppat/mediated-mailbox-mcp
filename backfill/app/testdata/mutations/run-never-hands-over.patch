@@ -1,0 +1,20 @@
+control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
+removes: the run never ends a unit of work over an account's session, so no source's token reaches the database
+packages: ./backfill/app
+tests: TestARunHandsEachAccountOverWhenItsUnitEnds
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index 1691e4f5..e6d60406 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -332,7 +332,7 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
+ // account's session and returns the failures of its hand-over and of its recording joined.
+ func ender(s *session.Session) func(context.Context, string) error {
+ 	return func(ctx context.Context, _ string) error {
+-		return errors.Join(s.End(ctx))
++		return nil
+ 	}
+ }
+ 

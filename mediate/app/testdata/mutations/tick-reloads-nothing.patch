@@ -1,0 +1,21 @@
+control: The serving mediator reloads its account snapshot on the interval its configuration sets
+removes: each tick of the schedule passes without a reload
+packages: ./mediate/app
+tests: TestTheMediatorReloadsOnItsInterval
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..65f967ff 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -415,7 +415,7 @@ func (s *serving) reloadEvery(ctx context.Context, interval time.Duration) {
+ 		case <-ctx.Done():
+ 			return
+ 		case <-ticker.C:
+-			if err := s.reload(ctx); err != nil && ctx.Err() == nil {
++			if err := error(nil); err != nil && ctx.Err() == nil {
+ 				s.logger.Error("the accounts were not reloaded, so the ones served stay", "error", err)
+ 			}
+ 		}

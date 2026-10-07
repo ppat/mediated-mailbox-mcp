@@ -1,6 +1,6 @@
 control: A reopened first pass always leads to a run of the second pass
 removes: the run-start step reopens the second pass only when it returned a verdict to pending, not when the first pass is due again
-packages: ./backfill
+packages: ./backfill/app
 tests: TestAReopenedFirstPassLeadsToASecondPass
 scheduled-count: no
 integration: yes

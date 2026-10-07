@@ -1,0 +1,21 @@
+control: The mediator loads the policy of the accounts it serves, and of none when it serves none
+removes: the policy loader is built even with no account served, which it refuses
+packages: ./mediate/app
+tests: TestTheMediatorServesTheAccountsEachReloadLists
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..f1500fa9 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -360,7 +360,7 @@ func (s *serving) reload(ctx context.Context) error {
+ // loadPolicy sets the accounts the shared policy loader reads to accounts and has it load, through
+ // the coalesced load. With no account there is no policy to load.
+ func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
+-	if len(accounts) == 0 {
++	if false {
+ 		s.logger.Info("no account is served, so no policy is loaded")
+ 		return nil
+ 	}

@@ -1,6 +1,6 @@
 control: A stored gate skip the gate no longer decides as the same skip returns to pending at every backfill run's start
 removes: the read of the stored gate skips drops the sender's prior hits, so a skip whose sender has since gained a hit stays in force
-packages: ./backfill
+packages: ./backfill/app
 tests: TestASkipWhoseSenderGainedAPriorHitIsScanned
 scheduled-count: no
 integration: yes

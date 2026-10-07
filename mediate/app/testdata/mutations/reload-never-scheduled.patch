@@ -1,0 +1,21 @@
+control: The serving mediator reloads its account snapshot on the interval its configuration sets
+removes: the serving mediator starts no scheduled reload
+packages: ./mediate/app
+tests: TestTheMediatorReloadsOnItsInterval
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..c4d12e7a 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -260,7 +260,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
+ 	errs := make(chan error, 3)
+ 	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
+ 	go func() { errs <- serveProbes(probeServer, probeListener) }()
+-	go served.reloadEvery(reloading, c.AccountReloadInterval)
++	_ = reloading
+ 	if err := markReadyWhenServable(&ready, c); err != nil {
+ 		errs <- err
+ 	}

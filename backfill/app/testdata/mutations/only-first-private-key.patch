@@ -1,0 +1,19 @@
+control: A deployable that opens credentials refuses to start unless its public key matches one of its private keys
+removes: the keyring holds only the first private key named, so a public key matching a later one refuses the start
+packages: ./backfill/app
+tests: TestThePublicKeyMustMatchAPrivateKey TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two
+scheduled-count: no
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index 1691e4f5..b5c4a23c 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -113,7 +113,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+-	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
++	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles[:1]...)
+ 	if err != nil {
+ 		return fmt.Errorf("loading the keyring: %w", err)
+ 	}

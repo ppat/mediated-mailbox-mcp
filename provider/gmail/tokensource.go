@@ -25,6 +25,13 @@ type Credentials struct {
 	RefreshToken string
 }
 
+// NewCredentials returns the credentials of an account that connects through the OAuth client
+// clientID with clientSecret and holds refreshToken, from the plain values the deployable opened.
+// The adapter knows no account, so a deployable's account session builds each source through it.
+func NewCredentials(clientID string, clientSecret, refreshToken []byte) Credentials {
+	return Credentials{ClientID: clientID, ClientSecret: string(clientSecret), RefreshToken: string(refreshToken)}
+}
+
 // TokenSource hands out access tokens for one account, refreshing them from the refresh token.
 //
 // When Google rotates the refresh token, the source holds the new one and uses it from then on.
@@ -54,6 +61,12 @@ func (s *TokenSource) RefreshToken() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.creds.RefreshToken
+}
+
+// Credential returns the refresh token the source holds, as RefreshToken does, as the bytes a
+// deployable hands over at the end of a unit of work.
+func (s *TokenSource) Credential() []byte {
+	return []byte(s.RefreshToken())
 }
 
 // LastAttempt returns the source's latest request to the token endpoint and its outcome, or the

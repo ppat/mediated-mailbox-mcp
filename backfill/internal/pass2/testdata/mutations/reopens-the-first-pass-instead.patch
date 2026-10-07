@@ -1,6 +1,6 @@
 control: A reopened first pass always leads to a run of the second pass
 removes: the run-start step records the first pass as not ended in place of the second
-packages: ./backfill
+packages: ./backfill/app
 tests: TestAReopenedFirstPassLeadsToASecondPass
 scheduled-count: no
 integration: yes

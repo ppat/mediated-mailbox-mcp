@@ -1,6 +1,6 @@
 control: A stored subject the enumeration did not find is masked whole under the scanner in force
 removes: a stored subject whose scanner version alone differs is not found stale when the enumeration ends, so a removed message keeps a subject masked under the earlier version
-packages: ./backfill
+packages: ./backfill/app
 tests: TestAChangeOfScannerVersionAloneMasksAndScansAgain
 scheduled-count: no
 integration: yes

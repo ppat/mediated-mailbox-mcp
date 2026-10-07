@@ -1,0 +1,20 @@
+control: A provider call that does not answer within the provider timeout is the provider's failure
+removes: a provider call has no deadline of the mediator's, so a provider that does not answer holds the request
+packages: ./mediate/app
+tests: TestAProviderThatDoesNotAnswerIsTheProvidersFailure
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..afc5ac72 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -815,7 +815,7 @@ func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[c
+ 		return zero, fmt.Errorf("leasing the call: %w", err)
+ 	}
+ 	start := time.Now()
+-	bounded, cancel := context.WithTimeout(ctx, timeout)
++	bounded, cancel := context.WithTimeout(ctx, timeout+time.Hour)
+ 	out, err := call(bounded)
+ 	if err != nil && errors.Is(bounded.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+ 		err = fmt.Errorf("%w: no answer within %s: %w", mail.ErrProvider, timeout, err)

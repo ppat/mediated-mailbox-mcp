@@ -1,0 +1,21 @@
+control: The read operations read the accounts and the policy the serving state holds in force, and a clock within thirty seconds of the real one when the read is made
+removes: the read operations are given a clock stopped at the zero time, behind every recorded instant, so a backoff that ended an hour ago reads as running
+packages: ./mediate/app
+tests: TestTheReadOperationsReadTheServingState
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..aaba0451 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -285,7 +285,7 @@ func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service
+ 		Accounts: served.accounts,
+ 		Policy:   served.policy,
+ 		Lookups:  lookups(),
+-		Now:      time.Now,
++		Now:      func() time.Time { return time.Time{} },
+ 		Bodies:   bodies,
+ 	}
+ }

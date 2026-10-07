@@ -12,21 +12,21 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## A deployable that opens credentials refuses to start unless its public key matches one of its private keys
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the keyring holds only the first private key named, so a public key matching a later one refuses the start
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
 - **Break (2):** the keyring seals to the public key the first private key derives, so the mounted public key is never compared
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`
 - **Break (3):** the start builds no keyring from the key files, so a public key matching none of the private keys goes unnoticed
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheEffectiveConfigurationIsLogged`, `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheEffectiveConfigurationIsLogged`, `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`
 - **Break (4):** the keyring holds only the first private key named, so a public key matching a later one refuses the start
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
 
 ## A deployable's configuration type is pinned field by field
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a section is added to backfill's root configuration type without updating the pinned field list
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAnEmptyHostRefusesTheStart`, `TestAnEmptyListOfPrivateKeysRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.link_words=[]`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.subject_threshold=0.9`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.window=0`, `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`, `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_first_of_two`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_only_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAnEmptyHostRefusesTheStart`, `TestAnEmptyListOfPrivateKeysRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.link_words=[]`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.subject_threshold=0.9`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.window=0`, `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`, `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_first_of_two`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_only_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
 - **Break (2):** a value is added to the credential section without updating the pinned field list
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/credential/core`:** `TestTheSectionIsPinned`
 - **Break (3):** a value of the database section is renamed without updating the pinned field list
@@ -34,7 +34,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 - **Break (4):** a value is added to the database section without updating the pinned field list
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/dbconnect/core`:** `TestTheSectionIsPinned`
 - **Break (5):** a value is added to the root configuration without updating the pinned field list
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`
 
 ## A grant whose mailbox's API is not enabled is refused with its cause, and nothing is stored
 
@@ -46,7 +46,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## A hand-over from a unit of work that started before the loader adopted a value someone else stored is discarded
 
-- **Date · evidence:** 2026-10-02 · [pull request #254](https://github.com/ppat/mediated-mailbox-mcp/pull/254)
+- **Date · evidence:** 2026-10-02 · [pull request #254](https://github.com/ppat/mediated-mailbox-mcp/pull/254), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** every hand-over is discarded, a rotation from the credential the loader holds included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/accountload`:** `TestAHandOverFromAReplacedCredentialIsDiscarded`, `TestOverlappingRotationsEachLand`
 - **Break (2):** a write-back of the loader's own counts as an outside value, so a rotation handed over by a unit that overlapped a landed one is discarded and lost
@@ -54,13 +54,13 @@ The demonstrations of the controls whose patches sit in more than one component'
 - **Break (3):** the hand-over writes what the unit holds whatever it started from
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/accountload`:** `TestAHandOverFromAReplacedCredentialIsDiscarded`
 - **Break (4):** delta sync hands its token over with no adoption stamp, so a tick that adopted the operator's credential and kept the refused one writes the refused one back
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickWhoseRebuildFailsLeavesTheReauthorization`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickWhoseRebuildFailsLeavesTheReauthorization`
 - **Break (5):** a tick that rebuilt its source over the re-read credential keeps the start's adoption stamp, so the hand-over of a rotation that source received is discarded
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestARotationAfterARereadIsWrittenBack`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestARotationAfterARereadIsWrittenBack`
 - **Break (6):** a run that built its source over the re-read credential keeps the snapshot's adoption stamp, so the hand-over of a rotation that source received is discarded
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARotationAfterARereadIsWrittenBack`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARotationAfterARereadIsWrittenBack`
 - **Break (7):** backfill hands its token over with no adoption stamp, so a unit of work that took its source before the loader adopted the operator's credential writes its own over it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential`
 
 ## A page made durable twice counts nothing twice
 
@@ -82,27 +82,27 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## A served account's token source is built from the OAuth client the account connects through and the account's own refresh token
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the client's secret is passed as its identifier
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
 - **Break (2):** every account is served with the OAuth client of the snapshot's first account rather than its own
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheCredentialsAreTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheCredentialsAreTheClientAndTheAccountsToken`
 - **Break (3):** the client's identifier is passed as its secret
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
 - **Break (4):** the client's secret is passed as the account's refresh token
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedWriteBackEndsTheRunInError`, `TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`, `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestTheCredentialsAreTheClientAndTheAccountsToken`, `TestTheSourcesRefreshTokenIsHandedOver`
 - **Break (5):** backfill's re-read after a refusal keeps the client the source was built with
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
 - **Break (6):** delta sync passes the client's secret as its identifier
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`
 - **Break (7):** delta sync serves every account with the OAuth client of the snapshot's first account rather than its own
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`
 - **Break (8):** delta sync passes the client's identifier as its secret
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`
 - **Break (9):** delta sync passes the client's secret as the account's refresh token
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`, `TestATickReSealsWhatItOpensWithAnOldKey`, `TestATickTakesItsAccountsFromTheDatabase`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`, `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`, `TestATickReSealsWhatItOpensWithAnOldKey`, `TestATickTakesItsAccountsFromTheDatabase`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`, `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`
 - **Break (10):** delta sync's re-read after a refusal keeps the client the source was built with
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
 
 ## An account identifier no screen or path could reach is refused, and nothing is stored
 
@@ -118,7 +118,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## An account of a provider that authenticates through an OAuth client is connected only through its own client
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** an account of a provider that authenticates through a client and names none is connected
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/accountload`:** `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`
 - **Break (2):** an account of a provider that authenticates through a client is connected when its client's secret did not open
@@ -129,15 +129,15 @@ The demonstrations of the controls whose patches sit in more than one component'
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/accountload`:** `TestAClientReadAgainThatDoesNotOpenLeavesItsAccountsNotConnected`
 - **Break (5):** an account left without its client still reads as connected, with its credential
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/accountload`:** `TestAClientReadAgainThatDoesNotOpenLeavesItsAccountsNotConnected`, `TestARereadPairsTheCredentialWithTheClientTheAccountMovedTo`, `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAnAccountWithoutAClientIsSkipped`, `TestTheProbesServeTheRunsSeries`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAnAccountNamingNoClientIsNotConnected`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickTakesItsAccountsFromTheDatabase`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAnAccountWithoutAClientIsSkipped`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestAnAccountNamingNoClientIsNotConnected`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickTakesItsAccountsFromTheDatabase`
 - **Break (6):** backfill names no provider as authenticating through a client, so the loader connects a Gmail account that names none
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAnAccountWithoutAClientIsSkipped`, `TestTheProbesServeTheRunsSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAnAccountWithoutAClientIsSkipped`
 - **Break (7):** the mediator names no provider as authenticating through a client, so the loader connects a Gmail account that names none
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAnAccountNamingNoClientIsNotConnected`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestAnAccountNamingNoClientIsNotConnected`
 - **Break (8):** delta sync names no provider as authenticating through a client, so the loader connects a Gmail account that names none
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickTakesItsAccountsFromTheDatabase`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickTakesItsAccountsFromTheDatabase`
 
 ## An added rule reaches the stored sender classes by its effect
 
@@ -155,21 +155,21 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## Delta sync decides under backfill's gate thresholds and records backfill's scanner version and revision
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** backfill's default scanner section differs from delta sync's, so its verdicts and masks record another revision
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_restating_the_scanner's_default`, `TestAVerdictsRevisionFollowsTheScannerSection/the_file_changing_the_scanner`, `TestTheDefaults`, `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_restating_the_scanner's_default`, `TestAVerdictsRevisionFollowsTheScannerSection/the_file_changing_the_scanner`, `TestTheDefaults`, `TestTheEffectiveConfigurationIsLogged`
 - **Break (2):** backfill's second pass decides under thresholds of its own
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`
 - **Break (3):** delta sync's default scanner section differs from backfill's, so its verdicts and masks record another revision
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickDecidesUnderBackfillsThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/[--scanner.window=8]`, `TestAVerdictsRevisionFollowsTheScannerSection/[--scanner.window=9]`, `TestTheDefaults`, `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickDecidesUnderBackfillsThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/[--scanner.window=8]`, `TestAVerdictsRevisionFollowsTheScannerSection/[--scanner.window=9]`, `TestTheDefaults`, `TestTheEffectiveConfigurationIsLogged`
 - **Break (4):** delta sync's gate decides under thresholds of its own
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickDecidesUnderBackfillsThresholdsAndScanner`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickDecidesUnderBackfillsThresholdsAndScanner`
 
 ## Each account spends under the lowered target its state row sets, and a target outside its range stops the run
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the run builds its limiter without the targets its accounts' state rows set
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAStoredTargetAboveHalfTheCeilingStopsTheRun`, `TestTheLimiterSpendsUnderTheStoredTarget`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAStoredTargetAboveHalfTheCeilingStopsTheRun`, `TestTheLimiterSpendsUnderTheStoredTarget`
 - **Break (2):** a target outside its range is taken as it is given
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAnOutOfRangeTargetRefusesTheLimiter`
 - **Break (3):** every account spends under the default target, whatever target it was given
@@ -177,9 +177,9 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the TLS mode defaults to prefer, which does not verify the server
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheDefaults`, `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheDefaults`, `TestTheEffectiveConfigurationIsLogged`
 - **Break (2):** the database name is left out of the connection string, so PGDATABASE sets it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/dbconnect`:** `TestTheConnectionIsTheConfigurations`
 - **Break (3):** the database name is rendered from the user value
@@ -245,9 +245,9 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## The credential section is validated before any key file is read
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the start loads the keyring without validating the credential section
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAnEmptyListOfPrivateKeysRefusesTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAnEmptyListOfPrivateKeysRefusesTheStart`
 - **Break (2):** an empty list of private keys is accepted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/credential/core`:** `TestAnUnusableValueIsRefused`, `TestAnUnusableValueIsRefused/an_empty_list_of_private_keys`, `TestAnUnusableValueIsRefused/no_private_key`
 - **Break (3):** an empty public key path is accepted
@@ -259,9 +259,9 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## The database section is validated before anything else starts
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the start configures the connection without validating the database section
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAnEmptyHostRefusesTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAnEmptyHostRefusesTheStart`
 - **Break (2):** the TLS mode allow, which the driver accepts, is refused
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/dbconnect/core`:** `TestAUsableValueIsAccepted`
 - **Break (3):** empty database name is accepted
@@ -283,25 +283,25 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## The messages whose sender could not be classified are counted per account
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** no message is marked as having an unclassified sender
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachPageIsAUnitOfWork`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachPageIsAUnitOfWork`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestDecide`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickAppliesTheChangesSinceItsCursor`
 - **Break (2):** a page's unclassified senders never reach the account's series
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachPageIsAUnitOfWork`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachPageIsAUnitOfWork`
 - **Break (3):** a tick's unclassified senders never reach delta sync's series
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
 - **Break (4):** a reconciliation adds its unclassified senders to the index without counting them in the tick's result
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
 
 ## The revision a verdict records is the scanner section's, and an empty revision is refused
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the scanner is built under a fixed revision, so a change to its section leaves the revision as it was
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/an_environment_variable_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/the_file_changing_the_scanner`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/an_environment_variable_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/the_file_changing_the_scanner`
 - **Break (2):** the scanner is built under the database section's revision
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_another_section`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/an_environment_variable_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/the_file_changing_the_scanner`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunDecidesUnderTheSharedThresholdsAndScanner`, `TestAVerdictsRevisionFollowsTheScannerSection`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_another_section`, `TestAVerdictsRevisionFollowsTheScannerSection/a_flag_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/an_environment_variable_changing_the_scanner`, `TestAVerdictsRevisionFollowsTheScannerSection/the_file_changing_the_scanner`
 - **Break (3):** an empty revision builds a scanner
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scan`:** `TestNewRefusesAnInvalidConfiguration`, `TestNewRefusesAnInvalidConfiguration/an_empty_revision`
 - **Break (4):** a verdict records no revision

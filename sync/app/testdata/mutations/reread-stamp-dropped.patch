@@ -1,0 +1,20 @@
+control: A hand-over from a unit of work that started before the loader adopted a value someone else stored is discarded
+removes: a tick that rebuilt its source over the re-read credential keeps the start's adoption stamp, so the hand-over of a rotation that source received is discarded
+packages: ./sync/app
+tests: TestARotationAfterARereadIsWrittenBack
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/session/session.go b/accountload/session/session.go
+index f4fb328a..d16ad21f 100644
+--- a/accountload/session/session.go
++++ b/accountload/session/session.go
+@@ -239,7 +239,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+ 		return out, errors.Join(err, cerr)
+ 	}
+ 	s.h.keep(s.account, creds, conn)
+-	s.built, s.adoption, s.conn, s.port = creds, reread.Adoption(), conn, port
++	s.built, s.adoption, s.conn, s.port = creds, s.adoption, conn, port
+ 	return call(ctx, port)
+ }
+ 

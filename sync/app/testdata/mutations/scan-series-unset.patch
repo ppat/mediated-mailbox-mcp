@@ -1,0 +1,20 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: a tick sets none of the key-scan series
+packages: ./sync/app
+tests: TestATickReSealsWhatItOpensWithAnOldKey TestTheProbesServeEverySeriesBetweenTicks
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/app/app.go b/sync/app/app.go
+index 7e99a2d2..3f573953 100644
+--- a/sync/app/app.go
++++ b/sync/app/app.go
+@@ -319,7 +319,7 @@ func (s *syncer) tick(ctx context.Context) error {
+ 		return err
+ 	}
+ 	s.loader.Reseal(ctx)
+-	s.keyScan.Set(s.loader.ResealClients(ctx, reseal.Writer(s.pool)))
++	s.loader.ResealClients(ctx, reseal.Writer(s.pool))
+ 	snapshot := s.loader.Snapshot()
+ 	var ids []string
+ 	for _, a := range snapshot.Accounts() {

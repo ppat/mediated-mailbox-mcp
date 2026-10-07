@@ -1,0 +1,19 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: a handler's ETag is kept
+packages: ./mediate/app
+tests: TestNoStoreOverridesAHandlersCaching
+scheduled-count: no
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..6247503f 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -555,7 +555,6 @@ func (w *noStoreWriter) WriteHeader(status int) {
+ 	if !w.wroteHeader {
+ 		w.wroteHeader = true
+ 		w.Header().Set("Cache-Control", "no-store")
+-		w.Header().Del("ETag")
+ 	}
+ 	w.ResponseWriter.WriteHeader(status)
+ }

@@ -1,0 +1,20 @@
+control: Every request to the client surface passes the bearer check before either root
+removes: a presented token is admitted when it begins with the token rather than equals it
+packages: ./mediate/app
+tests: TestEveryRequestPassesTheBearerCheckFirst/a_token_with_the_right_one_as_its_prefix
+scheduled-count: no
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..9c91f497 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -590,7 +590,7 @@ func bearer(tokenFile string, next http.Handler) http.Handler {
+ 		}
+ 		want = []byte(strings.TrimSpace(string(want)))
+ 		scheme, got, _ := strings.Cut(r.Header.Get("Authorization"), " ")
+-		if len(want) == 0 || !strings.EqualFold(scheme, "Bearer") || subtle.ConstantTimeCompare([]byte(got), want) != 1 {
++		if len(want) == 0 || !strings.EqualFold(scheme, "Bearer") || !strings.HasPrefix(got, string(want)) && subtle.ConstantTimeCompare([]byte(got), want) != 1 {
+ 			w.Header().Set("WWW-Authenticate", "Bearer")
+ 			http.Error(w, "unauthorized", http.StatusUnauthorized)
+ 			return

@@ -1,0 +1,35 @@
+control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
+removes: the account's token is handed over only once the pass ends, not after every page
+packages: ./backfill/app
+tests: TestEachPageIsAUnitOfWork
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index 1691e4f5..808eb389 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -396,7 +396,7 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+ 	var handOvers []error
+ 	for {
+ 		step, err := p.Next(ctx)
+-		if hoErr := handOver(ctx, account); hoErr != nil {
++		if hoErr := handOverAtEnd(ctx, handOver, account, err, step); hoErr != nil {
+ 			handOvers = append(handOvers, hoErr)
+ 		}
+ 		metrics.Count(account, step)
+@@ -475,6 +475,14 @@ func newLimiter(ctx context.Context, pool *pgxpool.Pool, accounts []string, metr
+ 	return limiter, nil
+ }
+ 
++// handOverAtEnd hands the account over only when the pass is over.
++func handOverAtEnd(ctx context.Context, handOver func(context.Context, string) error, account string, err error, step pass1.Step) error {
++	if err == nil && !step.Done {
++		return nil
++	}
++	return handOver(ctx, account)
++}
++
+ // loweredTargets returns the lower target each account's state row sets, a fraction of its
+ // provider's declared ceiling, leaving out the accounts that set none (ADR-0024).
+ func loweredTargets(ctx context.Context, db tx.Beginner, accounts []string) (map[string]float64, error) {

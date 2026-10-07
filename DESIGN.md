@@ -555,8 +555,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [decision-record index](./docs/adr/README.md)).
 - **Account context** — everything the system holds for one account and for no other: its
   credential, its provider connection, its policy overlay and its rate state. It is a concept, not a
-  Go `context.Context` and not one package. Its parts live apart, the account snapshot, the provider
-  adapter's connection, the policy snapshot and the rate limiter, each in its own home. Nothing
+  Go `context.Context` and not one package. Its parts live apart, the account snapshot, the account
+  session, the policy snapshot and the rate limiter, each in its own home. Nothing
   about an account is ambient. Every operation names one (ADR-0085, via the
   [decision-record index](./docs/adr/README.md)).
 - **Sealed credential** — an account's provider credential as the database stores it, encrypted so
@@ -574,6 +574,12 @@ top-level documents, a decision record, or a ticket from here without guessing.
   connects through where its provider has one, and their opened credentials that a process
   calling a provider works from, each job kind of the worker from its own (rule in ADR-0090, via the
   [decision-record index](./docs/adr/README.md)).
+- **Account session** — what a process calling a provider holds for an account while it calls the
+  account's provider, which is the credentials its token source was built from, their adoption
+  stamp, and the provider connection over them. At the end of each unit of work it hands the
+  credential over and records the latest authentication attempt. One package holds it for every
+  such process, and its case is [accountload/README.md](./accountload/README.md)'s (hand-over rules
+  in ADR-0089 and ADR-0097, via the [decision-record index](./docs/adr/README.md)).
 
 ### Data paths and mutation
 

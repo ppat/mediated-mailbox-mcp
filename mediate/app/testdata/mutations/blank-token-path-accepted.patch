@@ -1,0 +1,20 @@
+control: The mediator refuses a configuration it cannot serve with before anything is read or connected
+removes: a token file path of spaces is accepted
+packages: ./mediate/app
+tests: TestAConfigurationTheMediatorCannotServeWithIsRefused
+scheduled-count: no
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..6dbdf43f 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -146,7 +146,7 @@ func validate(c Configuration) error {
+ 			return fmt.Errorf("the mediator serves TLS unless tls_at_ingress is set, so it needs %s", strings.Join(missing, " and "))
+ 		}
+ 	}
+-	if strings.TrimSpace(c.TokenFile) == "" {
++	if c.TokenFile == "" {
+ 		return errors.New("token_file is empty")
+ 	}
+ 	if c.AccountReloadInterval <= 0 {

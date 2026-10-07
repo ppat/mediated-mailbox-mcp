@@ -1,6 +1,6 @@
 control: A stale subject is masked again under the scanner in force, each mask recorded under it
 removes: the first pass masks a stored subject again only when its scanner version differs, so a changed configuration revision leaves it as it was
-packages: ./backfill ./backfill/internal/pass1
+packages: ./backfill/app ./backfill/internal/pass1
 tests: TestAChangeOfScannerMasksAndScansAgain
 scheduled-count: no
 integration: yes

@@ -1,6 +1,6 @@
 control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
 removes: the prior hits of a sender whose verdicts returned to pending are not counted again, so a message flagged again counts twice
-packages: ./backfill
+packages: ./backfill/app
 tests: TestAChangeOfScannerMasksAndScansAgain
 scheduled-count: no
 integration: yes

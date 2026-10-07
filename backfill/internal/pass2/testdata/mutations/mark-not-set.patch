@@ -1,6 +1,6 @@
 control: A second pass resuming a stopped pass while the run-start step's mark is set starts over from the first waiting message
 removes: the run-start step reopens the second pass without marking it to start over
-packages: ./backfill
+packages: ./backfill/app
 tests: TestARevertedChangeOfScannerStillScansWhatItReturnedToPending TestAStoppedSecondPassKeepsItsRecordAndStartsOver
 scheduled-count: no
 integration: yes

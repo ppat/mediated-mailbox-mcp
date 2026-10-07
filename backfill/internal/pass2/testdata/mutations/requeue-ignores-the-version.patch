@@ -1,6 +1,6 @@
 control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
 removes: a verdict whose scanner version differs and whose revision matches stays in force
-packages: ./backfill
+packages: ./backfill/app
 tests: TestAChangeOfScannerVersionAloneMasksAndScansAgain
 scheduled-count: no
 integration: yes

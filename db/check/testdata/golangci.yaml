@@ -100,3 +100,18 @@ linters:
         facadeonly:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/fixturelib/facade$"
+
+        # A second library's list, naming a subsection, whose code imports the first library's package
+        # that runs its statements. It has no role, and a list with a role reaches it, so both libraries'
+        # statements are planned under that role.
+        chained:
+          files:
+          - "${base-path}/chainlib/**.go"
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease$"
+
+        # Admits the second library, and its role can run everything both libraries' subsections run.
+        outer:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/chainlib/chain$"

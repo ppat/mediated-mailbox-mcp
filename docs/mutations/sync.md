@@ -4,15 +4,15 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A credential the provider refuses is read again from its row before the refusal is reported
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a failed read of the refused credential is dropped and the refusal returned alone
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestAFailedReadOfTheRefusedCredentialIsReported`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`
 - **Break (2):** a refused call returns the refusal without reading the credential again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`
 - **Break (3):** the hand-over reads the source the tick started with, so the refused credential is written over the operator's
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARotationAfterARereadIsWrittenBack`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARotationAfterARereadIsWrittenBack`
 - **Break (4):** a refused credential the row still holds is used for a second call
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`
 
 ## A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
 
@@ -57,11 +57,11 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick hands its account over and records its latest authentication attempt when it ends
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** no tick records its source's authentication attempt
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`
 - **Break (2):** a tick that fails hands nothing over and records no attempt
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`
 
 ## A tick records as failed the account's tick and gap recovery a stopped process left running
 
@@ -99,46 +99,46 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Delta sync re-seals what it opens with an old key and scans every listed account and OAuth client
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the re-seal of a client secret writes nothing
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickReSealsWhatItOpensWithAnOldKey`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickReSealsWhatItOpensWithAnOldKey`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal`:** `TestAReSealNeverPutsBackAReplacedSecret`
 - **Break (2):** a client secret whose re-seal could not be written reads as done
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickReSealsWhatItOpensWithAnOldKey`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickReSealsWhatItOpensWithAnOldKey`
 
 ## Delta sync refuses a configuration it cannot tick with
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the interval is refused when it is positive and taken when it is not
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickThatCannotRunRefusesTheStart`, `TestATickThatCannotRunRefusesTheStart/--decisions_per_tick=0`, `TestATickThatCannotRunRefusesTheStart/--first_window=-1h`, `TestATickThatCannotRunRefusesTheStart/--sync_interval=0s`, `TestAnInvalidScannerSectionRefusesTheStart`, `TestTheEffectiveConfigurationIsLogged`, `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_only_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickThatCannotRunRefusesTheStart`, `TestATickThatCannotRunRefusesTheStart/--decisions_per_tick=0`, `TestATickThatCannotRunRefusesTheStart/--first_window=-1h`, `TestATickThatCannotRunRefusesTheStart/--sync_interval=0s`, `TestAnInvalidScannerSectionRefusesTheStart`, `TestTheEffectiveConfigurationIsLogged`, `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_only_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
 - **Break (2):** the interval, the first window and the bound on decisions are not validated
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickThatCannotRunRefusesTheStart`, `TestATickThatCannotRunRefusesTheStart/--decisions_per_tick=0`, `TestATickThatCannotRunRefusesTheStart/--first_window=-1h`, `TestATickThatCannotRunRefusesTheStart/--sync_interval=0s`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickThatCannotRunRefusesTheStart`, `TestATickThatCannotRunRefusesTheStart/--decisions_per_tick=0`, `TestATickThatCannotRunRefusesTheStart/--first_window=-1h`, `TestATickThatCannotRunRefusesTheStart/--sync_interval=0s`
 
 ## Delta sync refuses to start unless its public key matches one of its private keys
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the keyring holds only the first private key named, so a public key matching a later one refuses the start
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
 - **Break (2):** the keyring seals to the public key the first private key derives, so the mounted public key is never compared
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`
 
 ## Delta sync runs until stopped and serves every series between ticks
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a series whose account or client a later scan no longer holds stays reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal`:** `TestTheSeriesFollowTheLastScan`
 - **Break (2):** an account's gap series appears only at its first gap, so the rule's increase cannot see that gap
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestTheProbesServeEverySeriesBetweenTicks`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestTheProbesServeEverySeriesBetweenTicks`
 - **Break (3):** every adapter after the first counts on series of its own, so only the first tick's requests reach the metrics endpoint
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestTheProbesServeEverySeriesBetweenTicks`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestTheProbesServeEverySeriesBetweenTicks`
 - **Break (4):** the Gmail adapter's request cost and hard cap are registered on a registry the metrics endpoint does not serve
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestTheProbesServeEverySeriesBetweenTicks`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestTheProbesServeEverySeriesBetweenTicks`
 - **Break (5):** the rate limiter's series are registered on a registry the metrics endpoint does not serve
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestTheProbesServeEverySeriesBetweenTicks`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestTheProbesServeEverySeriesBetweenTicks`
 - **Break (6):** a tick sets none of the key-scan series
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestATickReSealsWhatItOpensWithAnOldKey`, `TestTheProbesServeEverySeriesBetweenTicks`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickReSealsWhatItOpensWithAnOldKey`, `TestTheProbesServeEverySeriesBetweenTicks`
 - **Break (7):** the syncer registers its series on a registry the metrics endpoint does not serve
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestTheProbesServeEverySeriesBetweenTicks`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestTheProbesServeEverySeriesBetweenTicks`
 
 ## Delta sync's re-seal of a client secret never puts back a value someone else replaced
 
@@ -150,19 +150,19 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Each tick takes the account snapshot again
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a tick serves the snapshot it held before its load, so an account connected since is ticked a tick late
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestATickTakesItsAccountsFromTheDatabase`, `TestATickWhoseRebuildFailsLeavesTheReauthorization`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`, `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`, `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`, `TestEachTickLoadsTheAccountSnapshot`, `TestNoBodyTextReachesTheIndexOrTheLogs`, `TestTheProbesServeEverySeriesBetweenTicks`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`, `TestATickTakesItsAccountsFromTheDatabase`, `TestATickWhoseRebuildFailsLeavesTheReauthorization`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`, `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`, `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`, `TestEachTickLoadsTheAccountSnapshot`, `TestNoBodyTextReachesTheIndexOrTheLogs`, `TestTheProbesServeEverySeriesBetweenTicks`
 - **Break (2):** only the first tick loads the account snapshot, so an account connected afterwards is never ticked
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickLoadsTheAccountSnapshot`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickLoadsTheAccountSnapshot`
 
 ## Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** delta sync sets an account's backlog series before backfill's second pass has ended
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
 - **Break (2):** a tick's backlog never reaches delta sync's backlog series
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
 - **Break (3):** a tick reports no backlog after its scanning
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestOnceTheSecondPassHasEndedATickScansWhatWaits`
 - **Break (4):** a tick decides every waiting message whatever its bound

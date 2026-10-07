@@ -1,0 +1,20 @@
+control: The configuration surface accepts no value that disables the gate, skips masking or weakens deny-by-default
+removes: the configuration gains a value switching the gate, which a flag then sets
+packages: ./mediate/app
+tests: TestNoConfigurationValueWeakensTheGate/a_flag_disabling_the_gate TestTheConfigurationTypeIsPinned
+scheduled-count: no
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..62b0c930 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -100,6 +100,9 @@ type Configuration struct {
+ 	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
+ 	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
+ 	Scanner scan.Config `yaml:"scanner"`
++	Gate    struct {
++		Enabled bool `yaml:"enabled"`
++	} `yaml:"gate"`
+ 	// ProviderTimeout bounds each provider call a body request makes, after which the call is the
+ 	// provider's failure (ADR-0101).
+ 	ProviderTimeout time.Duration `yaml:"provider_timeout"`

@@ -1,6 +1,6 @@
 control: A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
 removes: the body operation takes the active policy without having it loaded
-packages: ./mediate
+packages: ./mediate/app
 tests: TestANewlyListedDomainIsDeniedOnTheNextCall
 scheduled-count: no
 integration: yes

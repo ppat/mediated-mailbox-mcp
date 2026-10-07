@@ -1,5 +1,5 @@
-control: The analyser refuses a read of the environment outside a deployable's composition root
-removes: every file of a composition root's package is exempt, not only main.go
+control: The analyser refuses a read of the environment outside a deployable's main.go
+removes: every file of a deployable's package main is exempt, not only main.go
 packages: ./testsupport/analysis
 tests: TestEnvironment
 scheduled-count: no

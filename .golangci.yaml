@@ -239,6 +239,7 @@ linters:
           list-mode: strict
           files:
           - "${base-path}/accountload/**.go"
+          - "!${base-path}/accountload/session/**"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
@@ -253,6 +254,23 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+
+        # The account session, every file. It holds an account's provider connection over the account snapshot and
+        # records the latest authentication attempt, under the role of each deployable whose list admits it. It
+        # imports no provider adapter and no rate limiter, since each composition root passes it a connector per
+        # provider and leases inside each call (ADR-0089, ADR-0097).
+        accountload-session:
+          list-mode: strict
+          files:
+          - "${base-path}/accountload/session/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/pgtype$"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/mail$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
 
         # The credential library, every file.
         credential:
@@ -514,6 +532,7 @@ linters:
           allow:
           - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload/session$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/jackc/pgx/v5$"
@@ -523,12 +542,11 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
-          # The two passes' statements and the recording of the last authentication attempt. The writes sit
-          # in subsections the readers' lists do not admit, which backfill shares with delta sync apart from
-          # the completion flags, and the lowered target's read in db/accountstate (ADR-0075, ADR-0066,
-          # ADR-0097).
+          # The two passes' statements. The writes sit in subsections the readers' lists do not admit, which
+          # backfill shares with delta sync apart from the completion flags, and the lowered target's read in
+          # db/accountstate (ADR-0075, ADR-0066). The recording of the last authentication attempt runs in the
+          # account session, which accountload/session admits (ADR-0097).
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
@@ -571,6 +589,7 @@ linters:
           allow:
           - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload/session$"
           - "github.com/getkin/kin-openapi/openapi3$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
@@ -581,9 +600,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
-          # The recording of the last authentication attempt at the end of each body request, and the audit row of
-          # each body served or denied, writes only the mediator's list admits (ADR-0097, ADR-0016).
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
+          # The audit row of each body served or denied, a write only the mediator's list admits (ADR-0016). The
+          # recording of the last authentication attempt at the end of each body request runs in the account
+          # session, which accountload/session admits (ADR-0097).
           - "github.com/ppat/mediated-mailbox-mcp/db/auditlog/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
@@ -674,6 +693,7 @@ linters:
           allow:
           - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload/session$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/jackc/pgx/v5$"
@@ -683,13 +703,12 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           # A tick's statements. It adds and masks mail and records its runs as backfill's first pass does,
-          # decides and scans what waits as its second pass does, and records the last authentication
-          # attempt, through the subsections it shares with backfill. The change cursor, a change's labels,
-          # flags and removals, and the re-seal of a client secret sit in subsections only this list admits.
-          # The account's progress and lowered target are read in db/accountstate (ADR-0075, ADR-0066,
-          # ADR-0104, ADR-0092).
+          # and decides and scans what waits as its second pass does, through the subsections it shares with
+          # backfill. The change cursor, a change's labels, flags and removals, and the re-seal of a client
+          # secret sit in subsections only this list admits. The account's progress and lowered target are
+          # read in db/accountstate (ADR-0075, ADR-0066, ADR-0104, ADR-0092). The recording of the last
+          # authentication attempt runs in the account session, which accountload/session admits (ADR-0097).
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/cursor$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
@@ -788,7 +807,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          # The composition root's configuration (ADR-0078) and its database section, in ui/main.go.
+          # The composition root's configuration (ADR-0078) and its database section, in ui/app.
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/dbconnect/core$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
@@ -975,6 +994,7 @@ linters:
           allow:
           - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload/session$"
           - "github.com/JohannesKaufmann/html-to-markdown/v2/"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
@@ -1033,6 +1053,7 @@ linters:
           - "github.com/jackc/pgx/v5/"
           - "github.com/pganalyze/pg_query_go/v6$"
           - "github.com/ppat/mediated-mailbox-mcp/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/accountload/session$"
           - "github.com/ppat/mediated-mailbox-mcp/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/credential/core$"

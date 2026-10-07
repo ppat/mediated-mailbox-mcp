@@ -1,0 +1,20 @@
+control: The effective configuration is logged at start, each value with its source
+removes: the effective configuration is not logged
+packages: ./backfill/app
+tests: TestTheEffectiveConfigurationIsLogged
+scheduled-count: no
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index 1691e4f5..7e2fa2c4 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -99,9 +99,6 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ 	if err != nil {
+ 		return fmt.Errorf("loading the configuration: %w", err)
+ 	}
+-	for _, v := range loaded.Values {
+-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+-	}
+ 	c := loaded.Config
+ 	if err := dbconnectcore.Validate(c.Database); err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)

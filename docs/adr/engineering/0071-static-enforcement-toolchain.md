@@ -320,7 +320,7 @@ else broke ties.
   [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, the rules against
   package-level state and against a route registered around the UI's recording mux above, the rule
   [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) sets against reading the
-  environment outside a composition root and the rule
+  environment outside a deployable's `main.go` and the rule
   [ADR-0047](../data/0047-schema-first-data-access.md) sets that every generated data-access
   function runs inside the transaction helper, against their violation files.
 
@@ -349,7 +349,7 @@ grant check tests against the grants.
 | A rule cannot be switched off quietly | The suppression check refuses every directive, ignore comment and configuration setting that can reach a linter standing in for a control, anywhere in the repository, and allows an ordinary linter's suppression only in a form naming it. Each refused directive is proven by a violation file, and each refused configuration setting by a case in the ban-proof script's own tests |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
-| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core and against a route registered around the UI's recording mux, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a composition root and [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, which run beside it |
+| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core and against a route registered around the UI's recording mux, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a deployable's `main.go` and [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, which run beside it |
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and
@@ -660,7 +660,7 @@ probe routes on muxes with nothing recording them.
   composition root, so exempting those leaves the analyser refusing only a route registered in the
   MCP root's generator, a case no record names. The case left to review there, a route the
   composition root adds by hand, could be refused only by a list of the patterns the composition
-  root may mount, which would copy `mediate/main.go` into the analyser and drift from it, or by
+  root may mount, which would copy `mediate/app` into the analyser and drift from it, or by
   exempting the functions that mount them, which lets a route added inside them through. The
   mediator's routes stay with review.
 - **Moving the recording mux into a package of its own** was rejected. The compiler would then

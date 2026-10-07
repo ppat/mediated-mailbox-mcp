@@ -587,29 +587,29 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## The UI refuses plain HTTP unless its binary is built with the devloop build tag
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the tag's sense is inverted, so a binary built without it admits plain HTTP and one built with it refuses
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/serving`:** `TestPlainHTTPIsRefusedOutsideTheDevLoop`
 - **Break (2):** plain HTTP is admitted in every binary
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/serving`:** `TestPlainHTTPIsRefusedOutsideTheDevLoop`
 - **Break (3):** a binary built without the tag reports itself built with it, so every image admits plain HTTP
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui`:** `TestPlainHTTPRefusesTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestPlainHTTPRefusesTheStart`
 
 ## The UI refuses to start while PGPASSWORD or PGSSLPASSWORD is set
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the UI starts whatever PGPASSWORD and PGSSLPASSWORD hold
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui`:** `TestAPasswordVariableRefusesTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestAPasswordVariableRefusesTheStart`
 - **Break (2):** the refusal runs after the configuration is read, so a start whose configuration fails never reports the password variable
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui`:** `TestAPasswordVariableRefusesTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestAPasswordVariableRefusesTheStart`
 
 ## The UI's configuration type is pinned field by field
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a value's configuration path is renamed, so the file, the environment and the flags name another key than the one declared
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui`:** `TestPlainHTTPRefusesTheStart`, `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestPlainHTTPRefusesTheStart`, `TestTheEffectiveConfigurationIsLogged`
 - **Break (2):** a value is added to the UI's root configuration type without updating the pinned field list
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui`:** `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`
 
 ## The UI's one opening part opens a client's secret and never an account's credential
 

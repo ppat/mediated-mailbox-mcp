@@ -1,6 +1,6 @@
 control: The snippet and attachment filenames follow the body, and a denial releases none of them
 removes: a released body is served without its snippet
-packages: ./mediate
+packages: ./mediate/app
 tests: TestAReleasedBodyIsCleanMarkdown
 scheduled-count: no
 integration: yes

@@ -4,47 +4,47 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## A body the conversion refuses stays pending, never scanned, with a failed item
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a refusal is ignored, so the body is scanned as empty and recorded clean
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2`:** `TestABodyTheConversionRefusesStaysPending`
 - **Break (2):** a body the conversion refuses is scanned as its raw HTML and recorded scanned
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2`:** `TestABodyTheConversionRefusesStaysPending`
 
 ## A change of scanner reopens a pass whose stored work another scanner decided
 
-- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223)
+- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a pass that ended is skipped whether or not it is due again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass1`:** `TestBegin`, `TestBegin/a_pass_that_ended_and_is_due_again`, `TestBegin/a_pass_that_ended_and_is_due_again_with_a_run_left_running`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1`:** `TestAKilledRunResumesFromItsCheckpoint`, `TestAKilledRunResumesFromItsCheckpoint/rapid-draw`, `TestAKilledRunResumesFromItsCheckpoint/sampled-mix`
 - **Break (2):** a reopened first pass runs while it stays recorded as ended
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`
 - **Break (3):** a stored subject whose configuration revision differs and whose version matches does not make the first pass due again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAFailedHandOverFailsThePassAtItsEnd`, `TestAFailedHandOverFailsTheSecondPassAtItsEnd`, `TestAFailedPageIsStillHandedOver`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`, `TestEachPageIsAUnitOfWork`, `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAFailedHandOverFailsThePassAtItsEnd`, `TestAFailedHandOverFailsTheSecondPassAtItsEnd`, `TestAFailedPageIsStillHandedOver`, `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`, `TestEachPageIsAUnitOfWork`, `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
 - **Break (4):** a stored subject whose scanner version differs and whose revision matches does not make the first pass due again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
 
 ## A credential the provider refuses is read again from the account's row before the refusal is reported, and a replaced one is used for the call it refused
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a failed read of the refused credential is dropped, so the run reports the refusal alone
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedReadOfTheRefusedCredentialIsReported`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`
 - **Break (2):** an account whose row no longer holds a credential has the call made again with an empty one
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`
 - **Break (3):** the comparison is inverted, so a replaced credential is reported as refused and the refused one is used again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`
 - **Break (4):** the new source and its re-read's adoption stamp are not made the account's holding, so the hand-over keeps handing over the refused source with the snapshot's stamp, and a rotation of the credential read again is never written back
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARotationAfterARereadIsWrittenBack`
 - **Break (5):** the call is made again over the port the refused credential's source was built on, so the credential read again is never used
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`
 - **Break (6):** a refused credential the account's row still holds is made a new source of and the call made again with it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`
 - **Break (7):** the re-read's adoption stamp is made the account's holding but its new source is not, so the hand-over writes the refused credential over the one the operator stored
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARotationAfterARereadIsWrittenBack`
 - **Break (8):** a refused call is reported at once, so the credential is never read again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestAHandOverFromBeforeAnAdoptionLeavesTheOperatorsCredential`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`
 
 ## A failed body fetch is retried, recorded gone or abandoned, or stops the run, by its class
 
@@ -80,11 +80,11 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## A message the gate skipped whose subject is now masked returns to pending
 
-- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231), which regenerates break (1) against the statements it adds beside the one it breaks and demonstrates it again with the same tests red, first demonstrated by [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223)
+- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231), which regenerates break (1) against the statements it adds beside the one it breaks and demonstrates it again with the same tests red, first demonstrated by [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** every message the gate skipped returns to pending, whether or not its subject is masked
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
 - **Break (2):** a gate skip decided without the subject's signal the message now carries stays in force
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
 
 ## A page's rows, masking events, sender statistics and checkpoint become durable together or not at all
 
@@ -110,29 +110,29 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## A reopened first pass always leads to a run of the second pass
 
-- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231), which regenerates breaks (1) and (2) against the run-start step that also returns overturned gate skips and demonstrates the row again, first demonstrated by [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223)
+- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231), which regenerates breaks (1) and (2) against the run-start step that also returns overturned gate skips and demonstrates the row again, first demonstrated by [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the run-start step records the first pass as not ended in place of the second
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
 - **Break (2):** the run-start step reopens the second pass only when it returned a verdict to pending, not when the first pass is due again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAReopenedFirstPassLeadsToASecondPass`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAReopenedFirstPassLeadsToASecondPass`
 
 ## A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
 
-- **Date · evidence:** 2026-10-02 · [pull request #254](https://github.com/ppat/mediated-mailbox-mcp/pull/254)
+- **Date · evidence:** 2026-10-02 · [pull request #254](https://github.com/ppat/mediated-mailbox-mcp/pull/254), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a page that fails ends the pass before the hand-over, so a rotation made before the failure is lost
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedPageIsStillHandedOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedPageIsStillHandedOver`
 - **Break (2):** the account's token is handed over only once the pass ends, not after every page
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachPageIsAUnitOfWork`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachPageIsAUnitOfWork`
 - **Break (3):** a hand-over that fails is dropped, so the pass ends without an error
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedHandOverFailsThePassAtItsEnd`
-- **Break (4):** the hand-over hands over the source the run started with, so a source the unit of work replaced is never handed over
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedHandOverFailsThePassAtItsEnd`
+- **Break (4):** the hand-over hands over the source the run started with, so a source a re-read replaced is never handed over
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARotationAfterARereadIsWrittenBack`
 - **Break (5):** no refresh token is handed over, so a rotation never reaches the database
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedWriteBackEndsTheRunInError`, `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`, `TestTheSourcesRefreshTokenIsHandedOver`
-- **Break (6):** the hand-over the run gives its unit of work hands over no refresh token, so no source's token reaches the database
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedWriteBackEndsTheRunInError`, `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`, `TestTheSourcesRefreshTokenIsHandedOver`
+- **Break (6):** the run never ends a unit of work over an account's session, so no source's token reaches the database
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedWriteBackEndsTheRunInError`, `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`, `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestTheRunsHandOverReturnsAFailedRecording`
 - **Break (7):** a failed write-back is dropped, so the run ends as if the rotation had landed
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedWriteBackEndsTheRunInError`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedWriteBackEndsTheRunInError`
 
 ## A run resuming an enumeration made under another scanner starts it over from the first page
 
@@ -149,21 +149,21 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## A run serves only a connected account whose provider it has an adapter for and that connects through an OAuth client
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the connected accounts are skipped and the ones that are not connected are served
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARotationAfterARereadIsWrittenBack`, `TestARunHandsEachAccountOverWhenItsUnitEnds`, `TestARunTakesItsAccountsFromTheDatabase`, `TestAnAccountWithoutAClientIsSkipped`, `TestTheCredentialsAreTheClientAndTheAccountsToken`, `TestTheProbesServeTheRunsSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestARunHandsEachAccountOverWhenItsUnitEnds`, `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestARunTakesItsAccountsFromTheDatabase`, `TestAnAccountWithoutAClientIsSkipped`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
 - **Break (2):** an account of a provider backfill has no adapter for is served through the Gmail adapter
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunTakesItsAccountsFromTheDatabase`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunTakesItsAccountsFromTheDatabase`
 - **Break (3):** an account that is not connected is served with an empty refresh token
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunTakesItsAccountsFromTheDatabase`, `TestAnAccountWithoutAClientIsSkipped`, `TestTheProbesServeTheRunsSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunTakesItsAccountsFromTheDatabase`, `TestAnAccountWithoutAClientIsSkipped`
 
 ## A run takes its account snapshot once at the start, and a failed read stops it
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the policy is loaded only for the connected accounts rather than every listed one
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunTakesItsAccountsFromTheDatabase`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunTakesItsAccountsFromTheDatabase`, `TestAnAccountWithoutAClientIsSkipped`, `TestTheProbesServeTheRunsSeries`
 - **Break (2):** a load whose read fails is ignored, so the run goes on with no account
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedSnapshotReadStopsTheRun`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedSnapshotReadStopsTheRun`
 
 ## A scan verdict records its content flags, content rules, scanner version and configuration revision
 
@@ -175,15 +175,15 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## A second pass resuming a stopped pass while the run-start step's mark is set starts over from the first waiting message
 
-- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231), which regenerates break (3) against the comment it changes beside the statement it breaks and demonstrates it again with the tests it adds red too, first demonstrated by [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223)
+- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231), which regenerates break (3) against the comment it changes beside the statement it breaks and demonstrates it again with the tests it adds red too, first demonstrated by [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a second pass run resumes a stopped pass from its checkpoint whatever the mark, so what a run's start returned to pending before it waits for good
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2`:** `TestOver`, `TestOver/a_resumed_run_with_the_mark`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2`:** `TestAKilledSecondPassResumesFromItsCheckpoint`, `TestAKilledSecondPassResumesFromItsCheckpoint/rapid-draw`, `TestAKilledSecondPassResumesFromItsCheckpoint/sampled-mix`
 - **Break (2):** the second pass run that starts leaves the mark set, so every later run resuming the pass starts it over again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
 - **Break (3):** the run-start step reopens the second pass without marking it to start over
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
 
 ## A sender's first scan hit reaches the gate's decision on its next message, and no other sender's
 
@@ -196,80 +196,80 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## A stale subject is masked again under the scanner in force, each mask recorded under it
 
-- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223)
+- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a masking event is recorded with no scanner version or revision
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1`:** `TestACheckpointWithoutAPageCountResumes`, `TestAKilledRunIsResumedByTheNextRun`, `TestAKilledRunResumesFromItsCheckpoint`, `TestAKilledRunResumesFromItsCheckpoint/rapid-draw`, `TestAKilledRunResumesFromItsCheckpoint/sampled-mix`, `TestAPageFailingEveryAttemptFailsTheRun`, `TestAPassIndexesTheWholeMailbox`, `TestAPassStartedOverCountsNothingTwice`, `TestAThrottledPageIsRetriedAndRecorded`, `TestAnEnumerationStartedOverUnderAnotherScannerDropsItsPageCount`, `TestTheModelAgreesWithPostgreSQL`
 - **Break (2):** the first pass masks a stored subject again only when its scanner version differs, so a changed configuration revision leaves it as it was
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1`:** `TestAKilledRunResumesFromItsCheckpoint`, `TestAKilledRunResumesFromItsCheckpoint/rapid-draw`, `TestAnEnumerationStartedOverUnderAnotherScannerDropsItsPageCount`
 - **Break (3):** the first pass masks a stored subject again only when its configuration revision differs, so a changed scanner version leaves it as it was
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
 
 ## A stored gate skip the gate no longer decides as the same skip returns to pending at every backfill run's start
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a stored gate skip is decided again under the default thresholds rather than the ones the run holds
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2`:** `TestOverturned`, `TestOverturned/a_sender_the_policy_now_lists`, `TestOverturned/a_widened_high-volume_mark`, `TestOverturned/the_thresholds_the_skips_were_made_under`
 - **Break (2):** every stored gate skip is overturned, the ones the gate still decides as the same skip included
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2`:** `TestOverturned`, `TestOverturned/a_sender_the_policy_now_lists`, `TestOverturned/a_widened_high-volume_mark`, `TestOverturned/the_thresholds_the_skips_were_made_under`
 - **Break (3):** a stored gate skip is overturned only when the gate would now scan it, so a skip under thresholds that cannot decide or of a sender now restricted stays in force
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass2`:** `TestOverturned`, `TestOverturned/a_sender_the_policy_now_lists`, `TestOverturned/thresholds_that_cannot_decide`
 - **Break (4):** the run-start step reads the gate skips and returns none to pending, so every skip made under earlier thresholds stays in force
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
 - **Break (5):** the read of the stored gate skips drops the sender's prior hits, so a skip whose sender has since gained a hit stays in force
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestASkipWhoseSenderGainedAPriorHitIsScanned`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestASkipWhoseSenderGainedAPriorHitIsScanned`
 
 ## A stored subject the enumeration did not find is masked whole under the scanner in force
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a subject the enumeration did not find keeps its stored text under the scanner in force instead of being masked whole
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass1`:** `TestUnfound`
 - **Break (2):** a stored subject whose configuration revision alone differs is not found stale when the enumeration ends, so a removed message keeps a subject masked under the earlier revision
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAFailedHandOverFailsThePassAtItsEnd`, `TestAFailedHandOverFailsTheSecondPassAtItsEnd`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`, `TestEachPageIsAUnitOfWork`, `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAFailedHandOverFailsThePassAtItsEnd`, `TestAFailedHandOverFailsTheSecondPassAtItsEnd`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`, `TestEachPageIsAUnitOfWork`, `TestEachSecondPassPageIsAUnitOfWork`, `TestNoBodyTextReachesTheIndexOrTheLogs`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
 - **Break (3):** a stored subject whose scanner version alone differs is not found stale when the enumeration ends, so a removed message keeps a subject masked under the earlier version
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
 - **Break (4):** the run that ends the pass masks no subject the enumeration did not find, leaving it masked under the earlier scanner
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
 
 ## A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and break (1) again on 2026-10-02 with its patch regenerated for the same move, turning red `TestAChangeOfScannerMasksAndScansAgain`, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and break (1) again on 2026-10-02 with its patch regenerated for the same move, turning red `TestAChangeOfScannerMasksAndScansAgain`, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the prior hits of a sender whose verdicts returned to pending are not counted again, so a message flagged again counts twice
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`
 - **Break (2):** a verdict whose configuration revision differs and whose version matches stays in force
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
 - **Break (3):** a verdict whose scanner version differs and whose revision matches stays in force
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerVersionAloneMasksAndScansAgain`
 - **Break (4):** a verdict returned to pending keeps its content flags, content rules, scan time, version and revision
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`
 - **Break (5):** a backfill run leaves a verdict made under another scanner in force
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2`:** `TestAKilledSecondPassResumesFromItsCheckpoint`, `TestAKilledSecondPassResumesFromItsCheckpoint/rapid-draw`
 - **Break (6):** a backfill run returns no verdict to pending before its first pass, so stale verdicts keep releasing bodies
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAChangeOfScannerVersionAloneMasksAndScansAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`, `TestThresholdsThatCannotDecideReturnEverySkipToPending`
 - **Break (7):** a backfill run returns stale verdicts to pending only after its first pass ends, so they keep releasing bodies while it runs or fails
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestAReopenedFirstPassLeadsToASecondPass`, `TestARevertedChangeOfScannerStillScansWhatItReturnedToPending`
 
 ## An overturned gate skip reopens the second pass, marked to start over
 
-- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231)
+- **Date · evidence:** 2026-10-01 · [pull request #231](https://github.com/ppat/mediated-mailbox-mcp/pull/231), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the run-start step reopens the second pass only for a stale verdict or subject, so a skip it returned to pending after the pass ended waits for good
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`, `TestASkipWhoseSenderGainedAPriorHitIsScanned`
 - **Break (2):** the run-start step reopens the second pass for overturned skips without marking it to start over, so a stopped pass resumes past the skips returned before its checkpoint
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfThresholdsDecidesTheStoredSkipsAgain`, `TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned`
 
 ## Backfill serves the health probe and the reload-failure series on its metrics endpoint
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the health probe is not served
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheProbesServeTheRunsSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheProbesServeTheRunsSeries`
 - **Break (2):** the policy loader registers its reload-failure series on a registry of its own, off the metrics endpoint
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheProbesServeTheRunsSeries`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheProbesServeTheRunsSeries`
 
 ## Backfill's second pass never asks for a restricted sender's body
 
@@ -352,12 +352,12 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## No body text reaches the index or the workload's logs
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a scan records the body's text part among its content rules
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestNoBodyTextReachesTheIndexOrTheLogs`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync`:** `TestNoBodyTextReachesTheIndexOrTheLogs`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAChangeOfScannerMasksAndScansAgain`, `TestNoBodyTextReachesTheIndexOrTheLogs`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestNoBodyTextReachesTheIndexOrTheLogs`
 - **Break (2):** a refused body's failed item records the start of the body
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestNoBodyTextReachesTheIndexOrTheLogs`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestNoBodyTextReachesTheIndexOrTheLogs`
 
 ## Pass 1 sets its completion flag when it ends, and a pass that ended and is not due again does no work
 
@@ -370,51 +370,51 @@ The demonstrations of the controls whose patches sit in `backfill/`. [MUTATIONS.
 
 ## The effective configuration is logged at start, each value with its source
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the effective configuration is not logged
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheEffectiveConfigurationIsLogged`
 - **Break (2):** the password file's text is logged beside its path
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheEffectiveConfigurationIsLogged`
 - **Break (3):** each value is logged without the layer that set it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheEffectiveConfigurationIsLogged`
 
 ## The latest authentication attempt is recorded at the end of every unit of work, a failed one included, and a failed recording ends the pass in an error
 
-- **Date · evidence:** 2026-10-02 · [pull request #254](https://github.com/ppat/mediated-mailbox-mcp/pull/254)
-- **Break (1):** the hand-over the run gives its unit of work never reads the source's attempt, so it records none
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestTheRunsHandOverReturnsAFailedRecording`
+- **Date · evidence:** 2026-10-02 · [pull request #254](https://github.com/ppat/mediated-mailbox-mcp/pull/254), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Break (1):** the end of a unit of work never reads the source's attempt, so it records none
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedRecordingIsReturned`, `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestEachOutcomeIsRecordedAsReported`, `TestOnlyALaterAttemptIsRecorded`, `TestTheRunsHandOverReturnsAFailedRecording`
 - **Break (2):** every attempt is recorded as failed, whatever outcome the adapter reported
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachOutcomeIsRecordedAsReported`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachOutcomeIsRecordedAsReported`
 - **Break (3):** only an attempt that succeeded is recorded, so a refused or failed one never reaches the account's state row
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedRecordingIsReturned`, `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestEachOutcomeIsRecordedAsReported`, `TestOnlyALaterAttemptIsRecorded`, `TestTheRunsHandOverReturnsAFailedRecording`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedRecordingIsReturned`, `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestEachOutcomeIsRecordedAsReported`, `TestOnlyALaterAttemptIsRecorded`, `TestTheRunsHandOverReturnsAFailedRecording`
 - **Break (4):** a recording that fails is dropped, so the pass ends as if the attempt had been recorded
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAFailedRecordingIsReturned`, `TestTheRunsHandOverReturnsAFailedRecording`
-- **Break (5):** the hand-over the run gives its unit of work records the attempt but drops a recording that fails
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestTheRunsHandOverReturnsAFailedRecording`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAFailedRecordingIsReturned`, `TestTheRunsHandOverReturnsAFailedRecording`
+- **Break (5):** the end of a unit of work the run gives its passes records the attempt but drops a recording that fails
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestTheRunsHandOverReturnsAFailedRecording`
 - **Break (6):** an attempt is recorded at the instant it is recorded rather than the instant it started
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestEachOutcomeIsRecordedAsReported`, `TestOnlyALaterAttemptIsRecorded`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestARunRecordsEachAccountsAttemptWhenItsUnitEnds`, `TestEachOutcomeIsRecordedAsReported`, `TestOnlyALaterAttemptIsRecorded`
 
 ## The run-start step writes to no run's record
 
-- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223)
+- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break:** the run-start step records the stopped second pass run's progress as starting over, with a progress and a retry event, on that run's record
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAStoppedSecondPassKeepsItsRecordAndStartsOver`
 
 ## The scan backlog depth is emitted after each step of the second pass
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the backlog series is set under the run's identifier in place of the account
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachSecondPassPageIsAUnitOfWork`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachSecondPassPageIsAUnitOfWork`
 - **Break (2):** the backlog series is never set
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestEachSecondPassPageIsAUnitOfWork`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachSecondPassPageIsAUnitOfWork`
 
 ## The scanner's section is validated before the start
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the scanner is built from its shipped defaults rather than from its section
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAnInvalidScannerSectionRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.link_words=[]`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.subject_threshold=0.9`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.window=0`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAnInvalidScannerSectionRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.link_words=[]`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.subject_threshold=0.9`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.window=0`
 - **Break (2):** a scanner section the scanner refuses does not refuse the start
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill`:** `TestAnInvalidScannerSectionRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.link_words=[]`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.subject_threshold=0.9`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.window=0`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAnInvalidScannerSectionRefusesTheStart`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.link_words=[]`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.subject_threshold=0.9`, `TestAnInvalidScannerSectionRefusesTheStart/--scanner.window=0`
 
 ## The second pass sets its completion flag when it ends
 

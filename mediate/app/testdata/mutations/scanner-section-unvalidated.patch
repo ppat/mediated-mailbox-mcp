@@ -1,0 +1,19 @@
+control: The configuration surface accepts no value that disables the gate, skips masking or weakens deny-by-default
+removes: a scanner section the scanner refuses is accepted, so the serve-time check runs with nothing to match
+packages: ./mediate/app
+tests: TestNoConfigurationValueWeakensTheGate/a_scanner_section_with_nothing_to_match
+scheduled-count: no
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..7545bb10 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -186,7 +186,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+ 	scanner, err := scan.New(c.Scanner, loaded.Revisions[scannerSection])
+-	if err != nil {
++	if err != nil && false {
+ 		return fmt.Errorf("validating the configuration: scanner: %w", err)
+ 	}
+ 	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
