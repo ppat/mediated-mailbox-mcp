@@ -33,3 +33,6 @@ set. Its preamble carries the reading rules; hold these lines:
 - **Production is touched only at the production points**, and a proof that needs the real
   mailbox or the deployed system keys to one of them, never to a unit. A point names what is
   supplied there and nothing about how it is supplied.
+- **A production point's `Crossed:` line changes only on the operator's decision.** Once it
+  reads yes, no ticket is added to a value increment before that point (CLAUDE.md, Repository
+  process).

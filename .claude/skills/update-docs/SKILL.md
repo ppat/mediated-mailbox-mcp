@@ -13,8 +13,7 @@ disagree, and two disagreeing documents are worse than none. This skill exists s
 lands in the right place, in the right shape, and leaves the whole set coherent.
 
 Work through four steps, in order: **route → author → check the whole set → verify and commit.**
-The procedure files and the `coherence-check` skill carry detail this file only points at — read
-them when the step tells you to.
+The procedure files carry detail this file only points at. Read them when the step tells you to.
 
 ## Step 1 — Route: which document does this belong in?
 
@@ -29,7 +28,7 @@ Classify what you are about to write, before opening any file:
 | How the code is laid out and the conventions every component follows: the module, the components, organization inside a component, tests, static analysis and formatting, images, CI workflows, tool versions, editor settings | `CLAUDE.md`, its code layout section | Every agent working on code needs them, and the rules loaded when code is touched point at them. A choice with real alternatives that a record decides stays in the record, and CLAUDE.md cites it |
 | One library's own layout, or the case a narrow shared library argues for existing | That library's `README.md` (`accountload/`, `credential/`, `db/`, `dbconnect/`, `policyload/`, `provider/`, `ratelimit/`, `sanitize/`, `settings/`, `testsupport/`) | It belongs to that component alone, and ADR-0050 requires each narrow shared library to argue its own case |
 | A definition of a term used in more than one place | `DESIGN.md`'s Glossary | The single home for vocabulary |
-| Anything about what is built, when, in what order, or what work remains | `ROADMAP.md` | Build state is a roadmap fact, nowhere else |
+| Anything about what is built, when, in what order, or what work remains | `ROADMAP.md` | Build state is a roadmap fact, nowhere else, apart from a decision record's status as `docs/adr/README.md` states |
 | The header line and sections a ticket carries | `.github/ISSUE_TEMPLATE/ticket.md` | The template is the format's home. `CLAUDE.md`'s Repository process holds the rules and points at it |
 | How work moves through the repository: a change's release type, how a ticket is cut and when it is done | `CLAUDE.md`, its Repository process section | Every agent working here needs it, and it is process, not design or build state |
 | A change to which test kinds exist, when each applies, or how proof works | A decision record first, then `TESTING.md` in the same change | TESTING.md assembles the strategy and links the records that decide it |
@@ -39,10 +38,12 @@ Classify what you are about to write, before opening any file:
 
 The ambiguous cases, resolved the way this document set resolves them:
 
-- **A decision made but not yet ratified by the operator** → a decision record with status
-  Proposed, AND a row in the roadmap's Open decisions table naming what it gates. Both,
-  deliberately: the record so work can proceed against a stated answer, the roadmap row so the
-  ratification is not forgotten.
+- **A new record's status** is set to **Accepted**, in the pull request that implements it. So if a new
+  record is being created along with its implementation in the same PR, it gets ratified by approval
+  and landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with
+  the first PR whose implementation is at least partly influenced by that record. That is the general
+  practice though its not unacceptable to records to be ratified by prior to implementation, just
+  unnecessary.
 - **A pillar's limitation** → stated with the pillar itself, plus a pointer row in the design's
   Known limits table saying where the disposition lives. Pointer duplication is sanctioned; fact
   duplication is not.
@@ -114,11 +115,12 @@ axis table, the roadmap's unit pointers and mapping table, and which verificatio
 a superseded record invalidates link text in the index and possibly citations in three
 documents; a renamed heading breaks anchors repository-wide.
 
-Run the **`coherence-check` skill** and walk its checklist. Its core question, asked of the whole
-set: *could both of any two statements now be read as true by the same cold reader, and does every
-cross-reference still point at what it claims to?* Do not skip this step because the change was
-small — one-line changes have broken tables of contents, identifier schemes, and mapping tables
-before.
+Launch the **`coherence-check` skill** with the Skill tool and use it in full, walking its
+checklist by the approach it lays out, never bits and pieces of it.
+Its core question, asked of the whole set: *could both of any two statements now be read as true by
+the same cold reader, and does every cross-reference still point at what it claims to?* Do not skip
+this step because the change was small — one-line changes have broken tables of contents,
+identifier schemes, and mapping tables before.
 
 ## Step 4 — Verify and commit
 

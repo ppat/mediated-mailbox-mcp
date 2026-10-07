@@ -30,10 +30,12 @@ steps, and there are three. Between points, new versions flow as ordinary versio
 manual step. Each point names the units behind it, any precondition a build or a proof needs from
 the real mailbox or the deployed system, the inputs the chart declares that arrive there
 ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), the proofs, and the
-learning that can happen only there. The work of standing the system up, a module in the operator's
-repository homelab-ops-kubernetes-apps used from the repository homelab-ops-kubernetes-clusters, and
-its tickets belong to those repositories. *The real mailbox* and *production* are terms of
-[DESIGN.md's Glossary](./DESIGN.md#glossary).
+learning that can happen only there. Each point also carries a **Crossed:** line, which reads *no*
+until the operator alone decides the point is crossed and a pull request sets it to *yes*. This line
+is the authority on whether a point is crossed. The work of standing the system up, a module in the
+operator's repository homelab-ops-kubernetes-apps used from the repository
+homelab-ops-kubernetes-clusters, and its tickets belong to those repositories. *The real mailbox*
+and *production* are terms of [DESIGN.md's Glossary](./DESIGN.md#glossary).
 
 **Acceptance.** Every control's proving injection lives in
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units and production points below. A
@@ -926,6 +928,7 @@ holds, with an entry naming the point.
 
 ### Production point 1 — the read path
 
+- **Crossed:** no.
 - **After:** [F4](#delivered-mapped-to-outcomes) · [S1](#delivered-mapped-to-outcomes) ·
   [S2](#delivered-mapped-to-outcomes) · [S3](#delivered-mapped-to-outcomes) ·
   [F2](#delivered-mapped-to-outcomes) · [F5](#delivered-mapped-to-outcomes) ·
@@ -987,6 +990,7 @@ holds, with an entry naming the point.
 
 ### Production point 2 — the agent acts
 
+- **Crossed:** no.
 - **After:** [M1](#group-m--mutation-and-approval) · [M2](#group-m--mutation-and-approval) ·
   [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
   [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), the
@@ -1011,6 +1015,7 @@ holds, with an entry naming the point.
 
 ### Production point 3 — a second of everything
 
+- **Crossed:** no.
 - **After:** [X3](#group-x--expansion) · [X4](#group-x--expansion) · [R3](#group-r--packaging), the
   end of [V5](#v5--a-second-of-everything).
 - **Supplied there:**

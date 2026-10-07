@@ -22,7 +22,8 @@ paths:
 # Rules for every document in the set
 
 You are reading or editing part of this repository's document set. Before writing anything into
-it, invoke the `update-docs` skill — it routes content to the right document and carries the
+it, launch the `update-docs` skill with the Skill tool and use it in full, following the approach
+it lays out, never bits and pieces of it. It routes content to the right document and carries the
 authoring procedure. These rules bind even when the skill was not invoked.
 
 - **One home per fact.** No document restates another's content; cross-references point, never

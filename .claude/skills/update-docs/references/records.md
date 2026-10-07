@@ -8,6 +8,8 @@ off to [state-and-proof.md](state-and-proof.md) for each control's verification 
 ## Mint a new decision record
 
 1. Find the highest number in `docs/adr/README.md` across ALL groups; the new record takes the
+   next one. Never reuse, never leave gaps deliberately. When the control loop runs sessions in
+   parallel, the number is instead the one the control session grants on request, since several
    next one. Never reuse, never leave gaps deliberately.
 2. Pick the folder by theme (`redaction/`, `classification/`, `provider/`, `data/`, `mutation/`,
    `operability/`). Folders are navigation only — do not agonize; a record can move later without
@@ -40,9 +42,9 @@ off to [state-and-proof.md](state-and-proof.md) for each control's verification 
    controls' scope — disposition those too, typically as riding the existing rows). A record
    introducing N controls while the catalogue gains fewer than N dispositions is an unfinished
    mint.
-6. Status: `Accepted` if the operator has agreed to this decision (in conversation counts);
-   `Proposed` if adopted by the documents but awaiting ratification — and then also add a row to
-   ROADMAP.md's Open decisions table naming what it gates.
+6. Give the record the status `docs/adr/README.md`'s statuses rule sets, which depends on whether
+   the same pull request implements the decision. A `Proposed` record still awaiting the operator's
+   ratification also gets a row in ROADMAP.md's Open decisions table naming what it gates.
 7. Add the index row in `docs/adr/README.md`: number, link whose text is a shortened restatement
    of the decision, status (bold if not Accepted).
 8. If stable documents need to cite it, they cite "ADR-NNNN" with the number linked to the
@@ -76,8 +78,11 @@ escapes a name-only sweep — and re-point every one to the new home in the same
    whose Decision restates everything that now holds — the new record must stand alone, because
    readers are redirected away from the old one.
 2. Old record: change only the header line — `**Status:** Superseded — **Superseded by:**
-   [ADR-NNNN](./relative-link.md) ·`. Body untouched.
-3. New record's header may carry `(supersedes [ADR-MMMM](./relative-link.md))` after its status.
+   [ADR-NNNN](./relative-link.md) ·`. Body untouched. Make this change, step 4's for the old row
+   and step 5's re-pointing, only in the pull request where the new record becomes `Accepted`, as
+   `docs/adr/README.md`'s statuses state.
+3. New record's header may carry `(supersedes [ADR-MMMM](./relative-link.md))` after its status,
+   and must while it is `Proposed`, as `docs/adr/README.md`'s statuses state.
 4. Update both index rows.
 5. Hunt every citation of the old number in the stable documents and re-point or reword — a
    stable document citing a superseded record for a claim the successor changed is a coherence

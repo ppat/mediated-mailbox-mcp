@@ -18,7 +18,9 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
   `**ID — name** → <one outcome> · <value increment> · finishes at <tested | image | packaged>`;
   prose body naming the records whose mechanisms the unit carries, what proves it, and which of its
   proofs wait for a production point; `*Criteria:*` for observability riders. One outcome per unit
-  — a genuine exception is flagged in the group preamble, out loud.
+  — a genuine exception is flagged in the group preamble, out loud. A new unit never goes into a
+  value increment before a production point whose `Crossed:` line reads yes, since no ticket may
+  be added there, as CLAUDE.md's Repository process states.
 - New value increment: `**Units:** / **Value shipped:** / **Why it is …:**` — an increment that
   cannot name the value shipped is not an increment.
 - Update the mapping table (outcome ↔ units, with the Gaps column honest), the dependency table

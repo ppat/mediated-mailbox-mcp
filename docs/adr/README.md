@@ -5,7 +5,7 @@ alternatives it displaced, and its consequences. The split with [DESIGN.md](../.
 stated there and holds from both sides: the design document holds what would still be true if any
 individual reversible decision had gone the other way; a record here holds one such decision.
 Records state decisions; [ROADMAP.md](../../ROADMAP.md) tracks what is built versus pending —
-build state never lives here.
+build state never lives here, apart from a record's status, as the statuses below state.
 
 Documents cite records by number ("ADR-0007"), and every reference links to its target.
 Records are the fluid layer and may move folders, split, or be superseded, while a record's
@@ -41,6 +41,11 @@ moves it. Records themselves link freely and deep, into
   is a new number). An **Accepted** record may instead transition to **Deprecated**, meaning the
   decision no longer holds and nothing replaces it. A deprecated record is dead. It binds
   nothing, is cited by nothing as current authority, and is kept only so the trail stays whole.
+  A new record is set to **Accepted**, in the pull request that implements it. So if a new record
+  is being created along with its implementation in the same PR, it gets ratified by approval and
+  landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with
+  the first PR whose implementation is at least partly influenced by that record. That is the general practice
+  though its not unacceptable to records to be ratified by prior to implementation, just unnecessary.
 - **In-place change versus supersession.** An accepted record may change in place when the change
   stays true to the original decision in spirit and is backwards compatible with the previous
   interpretation — everything true or permitted under the old reading remains so (broadening a
