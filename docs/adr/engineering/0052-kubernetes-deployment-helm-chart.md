@@ -38,7 +38,10 @@ may assume about the user's cluster.
   [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) requires.** The chart passes
   the configuration file through as the text the operator wrote, gives each deployable only its own
   environment variables, sets `enableServiceLinks: false`, and restarts a deployable's pods when its
-  configuration changes.
+  configuration changes. For the worker that runs every background job kind
+  ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), a change to any
+  job kind's configuration therefore restarts every job it runs, and each resumes as a restart
+  allows ([ADR-0051](./0051-environment-contract.md)).
 - **Project-owned configuration and policy hardening ship in the chart; their enforcement is the
   platform's.** The pod security contexts are core fields and comply with the hardening
   posture ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). Admission machinery and

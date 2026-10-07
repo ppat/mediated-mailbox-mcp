@@ -8,21 +8,45 @@
 [ADR-0016](./0016-schema.md) closes with the rule this record implements: schema evolution is by
 migration, and the DDL's no-body comment binds every future one. A comment binds a reviewer only
 when a human-readable SQL diff is what review sees. The schema is also the authority the
-data-access layer is produced from ([ADR-0047](./0047-schema-first-data-access.md)), the store
-is rebuildable by re-backfill and never the system of record
-([ADR-0015](./0015-postgres-not-a-kv-store.md)), and all components version and deploy together
-in lockstep, so there is no long window in which old code runs against new schema.
+data-access layer is produced from ([ADR-0047](./0047-schema-first-data-access.md)), and all
+components version and deploy together in lockstep, so there is no long window in which old code
+runs against new schema.
+
+The store holds two kinds of data. Some of it is rebuildable, restored by a re-backfill or a
+recomputation. Some of it is the system of record, which nothing re-derives: sealed grants that
+come back only by re-consent and client setup
+([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md),
+[ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)), the operator's policy and
+its append-only history ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)),
+and the append-only audit log ([ADR-0016](./0016-schema.md)).
 
 ## Decision
 
 - **Migrations are hand-written SQL files, reviewed as code.** Nothing generates a migration
   from a model — the designed absences stay enforceable precisely because the reviewer sees
   every column a migration would add.
+- **Which data is which, split at the column where a table holds both.**
+
+  | Kind | Tables and columns |
+  | --- | --- |
+  | Rebuildable | the index (`messages`, `masking_events`, `scan_gate_decisions`), the sender statistics (`senders`), the runs (`job_runs`, `job_run_events`, `job_run_failures`), the rate state (`rate_state`, `rate_grants`), `account_state`'s progress and cursor columns, and its latest authentication attempt (`last_auth_at`, `last_auth_outcome`), which the next unit of work records again ([ADR-0097](../operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)) |
+  | System of record | `accounts`, `account_state`'s credential, remembered mailbox and lowered target rate, an operator's setting nothing re-derives, `oauth_clients`, the policy (`policy_rules`) and its history (`policy_changes`), the audit log, and, once reorganization and the heuristics write them, the plans, their operations and the op log, and the candidates |
+
 - **Forward-only.** There are no down migrations: recovery from a bad migration is a new
-  forward migration, and the worst case is re-backfilling an index that
-  [ADR-0015](./0015-postgres-not-a-kv-store.md) already establishes is rebuildable.
+  forward migration. For rebuildable data the worst case is a re-backfill or a recomputation. For
+  system-of-record data the worst case is a migration that must carry the data across, and on an
+  append-only table no migration can rewrite a row at all without undermining what the rows prove.
+  Backups, which the delivery posture leaves to the deployment, are the only recovery for
+  system-of-record data.
 - **The full chain applies from an empty database on every test run** — the real-Postgres
-  integration layer gets this for free, and it is the only migration test that never lies.
+  integration layer gets this for free. A migration that touches system-of-record data is also
+  tested over rows the chain before it wrote, since the chain from empty never exercises a
+  migration over rows an installation holds.
+- **A message column whose value comes from the provider is decided before the corpus that needs
+  it is ingested, or comes with a way to fetch it again.** It is rebuildable only by fetching the
+  corpus's metadata again, since the first pass leaves a message it already holds as it is
+  ([ADR-0017](./0017-two-pass-backfill.md)), so it is the expensive kind of rebuildable. A column
+  derived from what is stored costs a statement.
 - **Migrations run as their own step, under their own database role that owns the DDL.** The
   runtime roles hold no DDL rights — the same role discipline that scopes the approval
   surface's grants ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)),
@@ -44,17 +68,16 @@ in lockstep, so there is no long window in which old code runs against new schem
 - A brief unavailability during a migration is accepted: lockstep versioning dissolves
   expand-contract choreography, and this system's shape tolerates the pause.
 - Database extensions are versioned dependencies of the schema, with their upgrade cadence owned by
-  the platform's database, not by this repository. The migration role cannot create all of them,
-  because `vector` is not a trusted extension and only a superuser may create it. So a superuser
-  bootstrap runs before the chain. It creates the roles once per cluster and the extensions once per
-  database, and the chain's first migration keeps `CREATE EXTENSION IF NOT EXISTS` for each
-  extension, which then succeeds without doing anything and still records the dependency. Without
-  the bootstrap, that first migration stops with `permission denied to create extension "vector"`.
+  the platform's database, not by this repository. The schema needs only trusted extensions, which
+  the migration role, owning the database, creates itself in the chain's first migration, so no
+  step inside the application database needs a superuser. An extension that is not trusted would
+  bring that step back, so a schema change that needs one is decided with that cost in view.
 - Grant statements in migrations name roles literally. goose's environment substitution would let
   names vary, but the generator of [ADR-0066](./0066-data-access-generated-from-sql.md) reads the
   migration files directly and cannot parse the substitution markers, and a grant to a role that
-  does not exist yet fails, which is why the bootstrap creates the roles first.
-- Assumptions about other components: something outside the application runs the bootstrap as a
-  superuser, creates the application database owned by the migration role, grants the DDL-owning
-  role to the migration step and withholds it from the runtime roles. The deployment runs the
-  migration step before rolling the deployables, whatever the deployment mechanism is.
+  does not exist yet fails, which is why the roles are created before the chain runs.
+- Assumptions about other components: something outside the application creates the roles once per
+  cluster, which needs the privilege to create roles, creates the application database owned by the
+  migration role, grants the DDL-owning role to the migration step and withholds it from the runtime
+  roles, and backs up the database. The deployment runs the migration step before rolling the
+  deployables, whatever the deployment mechanism is.

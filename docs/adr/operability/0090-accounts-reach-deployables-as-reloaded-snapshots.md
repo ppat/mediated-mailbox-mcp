@@ -26,13 +26,16 @@ immutable snapshot that a process reloads and that a unit of work takes once
   An account's token source is built from its own client and from no other
   ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   The shared library [`accountload/`](../../../accountload/README.md) builds the snapshot. It
-  loads the snapshot at start. A process that runs until stopped, as the mediator does, reloads it
-  on a schedule its configuration sets
-  ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)). A workload
-  that runs and exits, as backfill does, takes it once at start. Delta sync runs until stopped and
-  loads the snapshot at the start of each tick, so it loads it within each five-minute run
-  ([ADR-0022](./0022-four-workloads.md),
-  [ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)).
+  loads the snapshot at start. A process that runs until stopped reloads it on a schedule its
+  configuration sets
+  ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)), as the
+  mediator does, and as the worker does with one loader for each job kind that calls a provider,
+  under that job kind's own role
+  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). Every unit of work
+  takes the latest snapshot its loader holds when it starts, whether the unit is a body request, a
+  tick of delta sync or a page of backfill ([ADR-0022](./0022-four-workloads.md),
+  [ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)). A process
+  that runs and exits takes the snapshot once at start.
 - **A unit of work takes the snapshot once** and never reads it again mid-flight.
 - **A reload whose read fails keeps the previous snapshot and is logged.** A read that succeeds and
   lists no account serves none, so a fault that empties the table fails closed rather than keeping
@@ -61,7 +64,7 @@ immutable snapshot that a process reloads and that a unit of work takes once
 
 ## Consequences
 
-- A new account starts being served within one reload interval, or at the next run of a workload
+- A new account starts being served within one reload interval, or at the next run of a process
   that runs and exits, and a re-authorized credential at its next refused call.
 - The policy loader and the mediator's set of served accounts take their account set from each
   snapshot, so they are built for a set that changes.

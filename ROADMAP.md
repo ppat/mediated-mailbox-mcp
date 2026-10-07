@@ -44,7 +44,9 @@ a unit and a production point is proven at the unit for the mechanism and at the
 An automatable control's acceptance also includes the mutation demonstration recorded in
 [docs/MUTATIONS.md](./docs/MUTATIONS.md)
 ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). A drill or manual
-exercise keyed to a production point is proven there, on its date.
+exercise keyed to a production point is proven there, on its date. A row keyed to a delivered unit
+as later work keys that later work, filed under the unit whose mechanism it concerns as a discovery
+is ([CLAUDE.md](./CLAUDE.md#repository-process)), and leaves the unit delivered.
 
 **Identifiers.** Outcomes
 ([C1](./USE_CASES.md#c1--metadata-always-visible)–[C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace),
@@ -54,8 +56,8 @@ exercise keyed to a production point is proven there, on its date.
 [O1](./USE_CASES.md#o1--rate-limited-politely)–[O6](./USE_CASES.md#o6--deployable)) are defined in
 [USE_CASES.md](./USE_CASES.md). Work units (S·F·D·M·X·R + number), value increments
 ([V1](#v1--the-safeguard-exists-before-anything-flows)–[V6](#v6--the-learned-tier)) and production
-points (1 to 3) are defined here. A retired unit identifier is never reused, and F1 and H1 are
-retired. Decisions are cited by number, each linked to its record, and indexed in the
+points (1 to 3) are defined here. A retired unit identifier is never reused, and F1, F7 and H1
+are retired. Decisions are cited by number, each linked to its record, and indexed in the
 [decision-record index](./docs/adr/README.md). Every reference in prose links to the section
 defining it. Table cells and dependency edges within this document may use bare identifiers.
 
@@ -65,7 +67,7 @@ sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), wh
 tickets by unit. The **Position** line below is re-dated whenever the checklists are reconciled
 against the tickets, so staleness is detectable instead of silent.
 
-**Position: 2026-10-03.**
+**Position: 2026-10-07.**
 
 ## Delivery posture
 
@@ -115,16 +117,89 @@ The same posture bounds quality scope in the other direction. First passes of de
 predicates and heuristics are expected to be tuned from observed traffic via the review loops, not
 perfected up front.
 
-## Where things stand, in one table
+## Where things stand
 
 | Layer | State |
 | --- | --- |
 | Documents (design, outcomes, decisions, this roadmap, verifications, mutations) | Authored **[measured]** |
-| Code | F4's layout and tooling, merged from pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138), [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), [#189](https://github.com/ppat/mediated-mailbox-mcp/pull/189), [#190](https://github.com/ppat/mediated-mailbox-mcp/pull/190), [#199](https://github.com/ppat/mediated-mailbox-mcp/pull/199) and [#198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), and S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer, merged from pull requests [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), S2's content scanner and subject masking, merged from pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), S3's body sanitization and serve-time pattern check, merged from pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), F2's schema, migration chain, runtime roles and transaction helper, merged from pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), F5's canonical model, Provider Port, provider fake and contract suite, merged from pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), F5's Gmail OAuth, mounted credentials and rotation write-back, merged from pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), F3's rate controller rules, merged from pull request [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156), F3's leases, Gmail cost profile, metrics and alerting rules, merged from pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), F5's Gmail adapter and its contract run against real Gmail, merged from pull request [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), D1's policy loader, merged from pull request [#160](https://github.com/ppat/mediated-mailbox-mcp/pull/160), and F3's runaway rule for every provider and its tunable rate target, merged from pull request [#161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), M3's golden-file helper, merged from pull request [#162](https://github.com/ppat/mediated-mailbox-mcp/pull/162), D1's configuration library with the `go vet` analyser against reading the environment outside a composition root and backfill's database connection taken from it, merged from pull request [#177](https://github.com/ppat/mediated-mailbox-mcp/pull/177), F6's accounts, OAuth clients and sealed credentials in the database, with the `credential/` and `accountload/` libraries and the Gmail adapter taking its credential from what a deployable supplies, merged from pull request [#178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), D3's operation registry, its two roots, the bearer check, TLS and the readiness state, merged from pull request [#171](https://github.com/ppat/mediated-mailbox-mcp/pull/171), and D1's reading of backfill's accounts and credentials from the database, with the database connection library `dbconnect/`, the credential section in `credential/core`, the `txhelper` analyser, the grant rule of ADR-0075's three lines with the data-access layout ADR-0066 derives from it, and the release job attaching signed key-generation binaries, merged from pull request [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and M3's UI server, its dataset registry and endpoint, the contract pipeline, the content security policy, the reads more than one screen makes and the server half of the event stream, merged from pull request [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182), with its route check, import list and sqlfluff configuration tightened by pull request [#193](https://github.com/ppat/mediated-mailbox-mcp/pull/193), and D3's read operations, identifier listings, system status and UTC timestamps, with the mediator's configuration, account snapshot reload and rate-state series, merged from pull request [#186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and M3's browser app shell, with the URL grammar and routing, the data cache, the global chrome, the lens shell at levels 0 and 3, the region patterns, the keyboard map, both palettes with the vendored fonts, and the stream client with its live indicator, with the mutation runner running browser tests under `bun test`, merged from pull request [#195](https://github.com/ppat/mediated-mailbox-mcp/pull/195), and D1's pass 1 over the full history with its per-page checkpoint, the run record, the scanner's section of the configuration, each account's lowered rate target handed to the rate limiter, the crash harness and the operation sampler, merged from pull request [#196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and M3's system screen, merged from pull request [#204](https://github.com/ppat/mediated-mailbox-mcp/pull/204), and M3's reads for the jobs and run screens, the `runs` and `failures` datasets with the dataset endpoint's levels 1 and 2, the `failures` row detail and the run summary endpoint, merged from pull request [#205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and F4's dedicated CI workflow proving every mutation patch still applies, merged from pull request [#211](https://github.com/ppat/mediated-mailbox-mcp/pull/211), and M3's jobs and run screens, with the message row, the page row, the bars, the run timeline, the lens shell's levels 1 and 2 with the group-by control, the Jobs item in the navigation with its running mark, the system screen's links to Jobs, the partial-index banner's link to Jobs, and the progress bars of the backfill card and the rate budget, merged from pull request [#208](https://github.com/ppat/mediated-mailbox-mcp/pull/208), and D1's record of the policy rule that set each message's sender class apart from its content rules, which a failure's panel shows, merged from pull request [#221](https://github.com/ppat/mediated-mailbox-mcp/pull/221), and D1's enumeration total on the Provider Port, reported by the provider fake when configured to and by the Gmail adapter on every page, with pass 1's checkpoint carrying the pages it implies, merged from pull request [#222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), and D3's recording of the last provider authentication outcome, with the Gmail token source reporting its latest attempt and backfill recording it, merged from pull request [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227), and the Gmail adapter's port error for a call that could not obtain an access token, a refused credential only for the token endpoint's refusal, merged from pull request [#232](https://github.com/ppat/mediated-mailbox-mcp/pull/232), and M3's home screen, with the attention endpoint and its backlog, masking, body-serves and sync-gap rules, the candidates' recorded signals typed, and one stream connection per account shared by a tab's live surfaces, merged from pull request [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230), and D1's re-read of a refused credential, with backfill reading a credential the provider refuses again from the account's row before it reports the refusal, merged from pull request [#233](https://github.com/ppat/mediated-mailbox-mcp/pull/233), M3's browser tests settling on the reads and effects pending, with the recorded answers read from memory, merged from pull request [#236](https://github.com/ppat/mediated-mailbox-mcp/pull/236), and D3's body release through the gate, the conversion and the release step, with the policy loaded for each body request, message text with no HTML form released as a code block, and the failure contract naming each failure's origin, merged from pull request [#235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and D3's start-up tests of the mediator holding the listeners they hand its start, with the composition root opening them before it serves, merged from pull request [#240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and F4's mutation runner running `go test` with `-trimpath`, so a demonstration's copies reuse the build cache, merged from pull request [#243](https://github.com/ppat/mediated-mailbox-mcp/pull/243), and D4's delta sync, with the decisions it shares with backfill moved to `core/index`, the shared `lease.Call`, the re-seal of an OAuth client's secret, the scan series and the cursor gap rule, merged from pull request [#239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and F4's mutation runner giving the go commands a demonstration's tests start `-trimpath` too, merged from pull request [#251](https://github.com/ppat/mediated-mailbox-mcp/pull/251), and D3's index reads, a search, a count that groups and the sender listing, selecting by an index query of the client surface's own and classifying senders under the policy in force, with the rebuild of the sender statistics and the counts of prior scan hits moved to a subsection the mediator does not admit, merged from pull request [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and M3's partial-index banner telling a backfill pass 1 a change of scanner re-opened apart from a first one, with the system endpoint naming when pass 1 last succeeded and no count reading as a count so far while a re-opened pass 1 runs, merged from pull request [#253](https://github.com/ppat/mediated-mailbox-mcp/pull/253), and D1's backfill handing each account's credential over with the adoption stamp of the credential its source holds, merged from pull request [#254](https://github.com/ppat/mediated-mailbox-mcp/pull/254), and M7's OAuth client setup and account setup, the request token, the consent package and the UI's client-secret part, merged from pull request [#256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and M8's policy management, the policy tables keyed by scope with the policy history, the base-policy transaction, the policy screens, import and export, and the restriction of the stored classes a rule added since restricts in backfill's second pass and delta sync, merged from pull request [#258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), none of it yet released. Backfill's composition root reads its database, credential and scanner sections and its probe address through the configuration library and validates them, loads its keyring and refuses to start when the public key matches none of its private keys, builds its connection pool, takes its accounts, the OAuth clients and the opened credentials from the database through `accountload/` once at the start of a run, loads the policy of every listed account, and builds a Gmail token source for each connected account it can serve. It runs pass 1 over each of them a page at a time, spending under the account's target, and hands the account's current refresh token back after every page with the adoption stamp of the credential its source was built over, so a rotated one is written to the account's state row unless the loader has since adopted a value someone else stored there, and records the account's latest provider authentication attempt there after every page too. A call the provider refuses as a refused credential has the account's credential read again from its row, and when the row holds another, the account's token source and port are built again over it and the call made once more, while a row holding the refused credential, or none, has the refusal reported. Once an account's pass 1 has ended it runs pass 2 over the account the same way, running the delisting transition and then the restriction of the stored classes a rule added since restricts, deciding each waiting message through the scan gate, fetching and scanning in memory the bodies the gate selects in the batch class, and setting the account's scan backlog series after every page, merged from pull request [#214](https://github.com/ppat/mediated-mailbox-mcp/pull/214). Each pass runs again when the scanner backfill runs with differs from the one the stored subjects or verdicts were decided under, a run returning the verdicts made under another scanner to pending before the first pass, the first pass masking those subjects again as it enumerates and the second returning the skips decided without their subject's signal to pending before its first page, merged from pull request [#223](https://github.com/ppat/mediated-mailbox-mcp/pull/223). Every run also decides each stored gate skip again before the first pass, under the thresholds it holds, and returns to pending each one the gate no longer decides as the same skip, reopening the second pass, merged from pull request [#231](https://github.com/ppat/mediated-mailbox-mcp/pull/231). It serves the health probe and the metrics endpoint while it runs, and logs as JSON. The mediator serves both roots, whose registry holds the reads of the index and of the recorded state, the search, counts and sender statistics of the index, and the body operation, which releases a body the gate lets through. It reads its configuration through the library, takes the accounts it serves from the account snapshot at start and on its reload interval, loads their policy at every reload and before every body request, and carries the rate-state series of each account it serves through the Gmail adapter on its metrics endpoint. The UI's composition root reads its configuration through the library, loads the key pair and logs the key identifier it seals to, builds the sender classifier's lookups, and serves its read API, the setups' requests, the policy writes, the import and export of the policy and the browser app, whose chrome frames the home screen, the system screen, the jobs screen, the run screen, the installation screens, account settings, the policy screens and the base policy screens. The home screen's running-work strip, the jobs screen and the run screen follow the event stream as live surfaces, and the chrome's partial-index banner follows it while the banner shows, every surface on a tab sharing one connection per account. Of the keys [docs/UI.md section 18.1](./docs/UI.md#181-the-configuration-the-ui-declares) declares, it reads `database`, `listen`, `probe_listen`, `tls_cert`, `tls_key`, `insecure_http`, `sync_interval`, `heuristics_interval`, `stream_interval`, `default_theme`, `stream_reconnect_max`, `stream_poll_interval`, `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `seal_public_key_file`, `private_key_files`, `token_key_file`, `consent_redirect`, `identity_header` and `operator_name`, which defaults to `operator`, with `default_theme`, `stream_reconnect_max`, `stream_poll_interval` and `consent_redirect` rendered into the entry document for the browser. Delta sync's composition root reads its configuration through the library, refuses to start when the public key matches none of its private keys, and runs until stopped, serving the health probe and the metrics endpoint between ticks as during them. Each tick takes the account snapshot again, re-seals what it opened with an old key and sets the scan series, applies every change set since each account's cursor, recovers a cursor gap in a run of its own, and once an account's backfill second pass has ended runs the delisting transition and the restriction of the stored classes, then decides and scans a bounded number of the messages waiting for a scan. The composition roots of the reorg workload and the Heuristics Job are still empty, so neither reads its configuration through the library or runs any of it **[measured]** |
+| Code | Merged to `main`, none of it yet released. What each pull request merged is the Code column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated), and what each deployable's composition root runs is [the table by composition root](#what-each-composition-root-runs) **[measured]** |
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
-| Verifications | Every row keyed to F4 is proven, by pull requests #60, [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131) and [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), and the rows of the `go vet` analysers' rules against package-level state in a pure core by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), the row for a `depguard` list that is not strict or carries a `deny` key by pull request [#189](https://github.com/ppat/mediated-mailbox-mcp/pull/189), and the row for importing, from code that ships, a package `./...` does not list by pull request [#190](https://github.com/ppat/mediated-mailbox-mcp/pull/190), and the rows for a file that ships whose build constraint keeps it from the gating lint and for a `go vet` step whose tags differ from the lint configuration's by pull request [#198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), and the row for a mutation patch's diff context going stale by pull request [#211](https://github.com/ppat/mediated-mailbox-mcp/pull/211). The S1 rows of the sensitivity types and the property-testing harness are proven by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and the rows on verdict types for the Mutation Authorizer's verdict by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The S2 rows, S2's part of the search of scanner output included, are proven by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), the S3 rows and S3's parts of the rows it shares with D3 by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), the F2 rows by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), the F5 row for the body fetch being the port's one body path by pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), the F5 rows for the grant's scope and mounted credentials, and F5's half of the rotation row, by pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), the F3 rows by pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and the rest of the F5 rows by pull request [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), two of them by hand against real Gmail. D1's rows for the policy loader are proven by pull request [#160](https://github.com/ppat/mediated-mailbox-mcp/pull/160), F3's rows for the runaway rule's emitted hard cap and the lowered target by pull request [#161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and D1's rows for layering configuration, logging the effective configuration and telling accounts from flags, and the parts of its rows for configuration mistakes, the environment and the database's password variables, pinned configuration fields and a section's revision that the configuration library and backfill's connection carry, by pull request [#177](https://github.com/ppat/mediated-mailbox-mcp/pull/177). F6's rows, and F6's parts of the rows it shares with D1, D3, D4, M2, M3, M7, R1 and production point 1, are proven by pull request [#178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), which also extends the F2 row for isolation across every account-keyed table to `account_state`. D1's part of the rotation row, D1's parts of the rows for a failed write-back, for a credential supplied outside the account's state row, for a public key matching none of the private keys, for loading the account snapshot at the start of a run, for the credentials a token source is built from, for the credential section's validation and fields and for an argument that is not a flag, its row for the data-access library's layout, and the part of the row for calling a data-access function in a transaction that did not set the account that the `txhelper` analyser carries, are proven by pull request [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), which also lands the key-generation release step whose run against a published release waits on R1. D3's rows for the operation registry, the MCP root's tools-only surface, the refusal of `MCPGODEBUG`, readiness, the account every operation names, the bound on a call's argument keys, the method and annotations derived from each effect class, the argument object both roots hand the service layer, the uncacheable responses with `HEAD` refused, and the registry's refusals of approval and of header bindings, and D3's parts of the rows for the approval transition and for a database password in the environment, are proven by pull request [#171](https://github.com/ppat/mediated-mailbox-mcp/pull/171). M3's rows for the registry's refusal, the content security policy's header and static scans, the contract drift, the statement-set check, the stream's whole-state events and the refusal of plain HTTP outside the dev loop, and M3's parts of the rows for per-account reads, the recorded fixtures' diff, the UI's read of account state, a database password in the environment and the pinned configuration type, are proven by pull request [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182). M3's part of the content security policy's static-scan row for the first built bundle of the browser app and for a font inlined as a `data:` URI is proven by pull request [#195](https://github.com/ppat/mediated-mailbox-mcp/pull/195), which also lands the page of the policy's drill, deferred to production point 1. That pull request also proves M3's part of the inert-rendering row for the lens shell's rows table, and the standing disposition for ADR-0064's shim fidelity by its drill in a real browser. M3's parts of the rows for the registry's refusal, per-account reads and the statement-set check, for the `runs` and `failures` datasets, the `failures` row-detail route and the run summary route, are proven by pull request [#205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), which also proves the new row that a group's filter word selects the rows the group counts. Pull request [#204](https://github.com/ppat/mediated-mailbox-mcp/pull/204) proves M3's part of the inert-rendering row for the system screen. M3's parts of the inert-rendering row for the jobs and run screens, the message row and the page row, and of the render-counter row for the jobs and run screens, are proven by pull request [#208](https://github.com/ppat/mediated-mailbox-mcp/pull/208). Pull request [#221](https://github.com/ppat/mediated-mailbox-mcp/pull/221) proves the inert-rendering row for the rule that set a failure's message's class. Pull request [#193](https://github.com/ppat/mediated-mailbox-mcp/pull/193) extends the proof of the registry's refusal to a route registered outside `/api` and to one registered on the probes listener, and pull request [#199](https://github.com/ppat/mediated-mailbox-mcp/pull/199) to a route registered in the UI other than through its recording mux by the calls the `go vet` routes analyser refuses. D3's rows for rejecting a non-UTC timestamp, serving timestamps in UTC and the system status carrying operational state only are proven by pull request [#186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), which also adds and proves D3's rows for the redaction matrix on served metadata, cursors and paging, the arguments a served operation takes, the read operations reading the serving state, the rate-state series on the mediator's metrics endpoint and the mediator's configuration refusals. It proves D3's parts of the rows for a public key matching none of the private keys and for reloading the account snapshot, for the accounts the mediator serves, and the mediator's parts of the rows for the argument object over every served operation, pinned configuration fields, the logged effective configuration and the reload-failure series its metrics endpoint serves. D1's rows for killing the backfill pod mid-run, for the mechanism, for a page's commit being one transaction and a page taken twice counting nothing twice, for the run record and the completion flag, and for masking, classification and the unclassified-sender volume at ingest, and the rows for the crash harness and the operation sampler, are proven by pull request [#196](https://github.com/ppat/mediated-mailbox-mcp/pull/196). It proves D1's parts of the rows for the rotation hand-over and a failed write-back, now after every page, for a lowered target read from the account's state row, for the reload-failure series on backfill's metrics endpoint, for the scanner's section's validation, pinned fields and revision, and for an empty revision refused by the scanner. Pull request [#214](https://github.com/ppat/mediated-mailbox-mcp/pull/214) proves D2's parts of the rows for the leak search over persisted rows and the workload's logs, for a restricted sender's body never asked for, for the delisting transition and for killing the backfill pod mid-run, and the rows for the scan gate over stored messages and the second pass's run record, a sender's first hit reaching its next message, both parts of a body scanned and a body the conversion refuses. Pull request [#222](https://github.com/ppat/mediated-mailbox-mcp/pull/222) proves D1's row for the contract suite's check of an enumeration total. Pull request [#223](https://github.com/ppat/mediated-mailbox-mcp/pull/223) proves D2's row for a change of scanner, and D2's parts of the rows for killing the backfill pod mid-run and for the leak search over persisted rows, for a change of scanner. Pull request [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227) adds and proves D3's rows for recording only the latest authentication attempt, for the outcome the Gmail adapter reports, part of it by hand against real Gmail, and backfill's part of the row for recording the attempt at the end of each unit of work. Pull request [#232](https://github.com/ppat/mediated-mailbox-mcp/pull/232) adds and proves F5's row for a token request the provider refuses surfacing as a refused credential and one that fails any other way before the call is cancelled or its deadline passes as a provider failure, part of it by hand against real Gmail. Pull request [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230) proves M3's parts of the rows for driving body fetches far above a plausible rate and for invalidating the sync cursor, the inert-rendering row and the render-counter row for the home screen, the per-account row for the attention route, and the row for a screen following its route and answers for the strip and the shared stream connection. Pull request [#231](https://github.com/ppat/mediated-mailbox-mcp/pull/231) proves D2's row for a change of the scan gate's thresholds. Pull request [#233](https://github.com/ppat/mediated-mailbox-mcp/pull/233) proves backfill's part of the row for picking up a replaced credential, a refused credential read again from the account's row and a replaced one used for the call that was refused. Pull request [#235](https://github.com/ppat/mediated-mailbox-mcp/pull/235) adds and proves D3's rows for the policy load each body request waits for and the one every reload runs, the snippet and filenames following the body, the audit of every serve and denial, message text with no HTML form, the serve-time check over everything released and over every message's filenames, the body counts, both roots' shapes, the interactive lease and the provider timeout, and proves D3's parts of the rows for a just-listed domain, the provider never contacted on a denial, the configuration surface, raw HTML served with no fetch at the network layer, a gate-skipped login link, an ex-restricted message pending its scan, each origin of a failure, the rotation hand-over and its failed write-back, the attempt recorded, a credential supplied outside the state row, the swapped client, the refused credential read again and the write-back that loses to a re-authorization. Pull request [#239](https://github.com/ppat/mediated-mailbox-mcp/pull/239) proves D4's rows and D4's parts of the rows it shares, among them the leak search over delta sync's logs, invalidating the sync cursor, the re-seal of a client secret with its series and how they reach the scrape, the snapshot load within each tick and the re-read of a refused credential, the credentials a token source is built from, the hand-over and the recorded attempt, the unclassified-sender volume, and the rows it adds for a tick's change application, its idempotency, an account's first reconciliation, a gap recovery's removal of what the provider no longer holds, a tick or recovery left running by a stopped process, scanning once backfill's second pass has ended, the gate thresholds and scanner it shares with backfill, and the sync class with the series between ticks, the adapter's request cost and hard cap among them. Pull request [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246) adds and proves D3's rows for a message whose body is denied staying in every count, group and search result, enumeration and counting reaching the whole corpus, and the sender class the index reads use being the policy in force's, and proves D3's parts of the rows for UTC input and output, the cursor and the argument names over the index reads. The rows for talking the live agent into requesting a restricted body and for sending it a prompt injection are proven by manual exercise on 2026-10-02, against this pull request's exercise harness, with every row keyed to D3 proven for D3's part. Pull request [#254](https://github.com/ppat/mediated-mailbox-mcp/pull/254) proves D1's part of the row for a write-back based on a credential the operator has since replaced, for backfill's hand-over. Pull request [#256](https://github.com/ppat/mediated-mailbox-mcp/pull/256) proves M7's rows and M7's parts of the rows it shares, and adds and proves the rows for a consent attempt's binding to its session, a client changed while an attempt runs, the UI's open of a credential refused and a client's secret reaching no answer, cookie or log line, with the check of OAuth client setup against the live Google Cloud console a manual exercise at production point 1. Pull request [#258](https://github.com/ppat/mediated-mailbox-mcp/pull/258) proves M8's rows and M8's parts of the rows it shares, and adds and proves the rows for the base-policy transaction, an added rule reaching the stored classes and a base edit landing mid-reload. Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
-| Mutations | The controls of the `go vet` analysers' rules against package-level state in a pure core are demonstrated by pull request [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), the ban-proof script's refusal of a `depguard` list that is not strict or carries a `deny` key by pull request [#189](https://github.com/ppat/mediated-mailbox-mcp/pull/189), the ban-proof script's refusal of a package the build of `./...` reaches that `./...` does not list by pull request [#190](https://github.com/ppat/mediated-mailbox-mcp/pull/190), the `go vet` routes analyser's refusal of a route the UI registers other than through its recording mux by pull request [#199](https://github.com/ppat/mediated-mailbox-mcp/pull/199), and the ban-proof script's refusals of a file a build that ships compiles that the gating lint does not read and of a `go vet` step whose tags differ from the lint configuration's by pull request [#198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), which reproduces the row of pull request #190 with three of its patches regenerated. The controls of S1's sensitivity types and property-testing harness are demonstrated, by pull request [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), those of the policy snapshot by pull request [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), those of the sender classifier by pull request [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), those of the Redaction Gate by pull request [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and those of the Mutation Authorizer by pull request [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150). The controls of S2's content scanner and subject masking are demonstrated by pull request [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151), those of S3's conversion, release step and the scanner's pattern entry point by pull request [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), those of F2's data layer by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), those of F5's canonical model, provider fake and contract suite by pull request [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), those of F5's Gmail OAuth and credential handling by pull request [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155), those of F3's rate controller rules by pull request [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156), those of F3's leases, alerting rules and the grant check's planning of a shared library's statements by pull request [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), those of F5's Gmail adapter, its contract run against real Gmail and the command that run requires by pull request [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), those of D1's policy loader by pull request [#160](https://github.com/ppat/mediated-mailbox-mcp/pull/160), and those of F3's runaway rule for every provider and its lowered target, with the rate limiter's rows reproduced, by pull request [#161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), those of M3's golden-file helper by pull request [#162](https://github.com/ppat/mediated-mailbox-mcp/pull/162), those of D1's configuration library, the analyser against reading the environment and backfill's database connection by pull request [#177](https://github.com/ppat/mediated-mailbox-mcp/pull/177), those of F6's sealing, key handling, account snapshot, compare-and-set write-back, re-seal and the values of its scan, account listing, the reads of `oauth_clients` and `account_state`, the Gmail token source's rotation, and the `provider/gmail` package's refusal to read a credential from the environment, with F2's row-level security row reproduced for `account_state`, by pull request [#178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and those of D3's registry, derivation of each operation's method and annotations, argument round trip, roots, account check, bound on argument keys, bearer check, TLS, uncacheable responses, readiness, refusals of approval, of header bindings, of `MCPGODEBUG` and of a database password in the environment, failure content, policy loading and approval grants by pull request [#171](https://github.com/ppat/mediated-mailbox-mcp/pull/171), and those of backfill's account snapshot, the accounts a run serves, keyring, token-source credentials and hand-over, the credential section, the `txhelper` analyser and the moved database connection by pull request [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), which also repeats the demonstrations of the accounts listing policy with its patch regenerated and of the effective configuration logged at start, and those of M3's UI server, its registry, contract pipeline, content security policy, event stream and configuration, and of the golden-file helper's refusal of a `GoldenAt` path that is absolute or not clean, by pull request [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182), with the route check's row reproduced and two breaks added, one registering a route outside `/api` and one registering a route after the server stores its mux, the rows of the content security policy and of a path claimed twice reproduced, and the new controls that the probes listener serves only its three routes and that `go vet` refuses a copy of a recording mux demonstrated, by pull request [#193](https://github.com/ppat/mediated-mailbox-mcp/pull/193), the latter's patch regenerated in pull request [#207](https://github.com/ppat/mediated-mailbox-mcp/pull/207). Pull request #182 adds the `GoldenAt` tests to the golden-file helper's rows for a differing file, a missing one and `-update` off by default, and adds two breaks to the account state grants' row, the UI's read of its account's progress widened to the credential and narrowed below what its statement reads. It reproduces the golden-file helper's row for a name leaving `testdata/golden`. The controls of D3's redaction matrix on served metadata, UTC timestamps in and out, cursors and paging, system status, argument refusals, the arguments a served operation takes, the read operations' sources, the mediator's configuration refusals, account reload, reload schedule and rate-state series, and the policy loader's changing account set are new and demonstrated by pull request [#186](https://github.com/ppat/mediated-mailbox-mcp/pull/186). That pull request adds breaks for the mediator, and its tests, to the rows for a public key matching none of the private keys and for the pinned configuration type. It adds its new tests to the rows for the argument object both roots hand the service layer, the registry's operations served on both roots, an operation failing generation, the account check, the structured failure, the approval vocabulary and policy loading, the last with its breaks regenerated against the reworked composition root and a break added that registers the reload-failure series off the metrics endpoint. It replaces the mediator's three breaks of its refusal of a database password in the environment with two, one that skips the refusal and one that moves it after the configuration is read, since `dbconnect/` carries the rest, moves the break of a missing key pair from the TLS row to the configuration refusals' row, and retires the account check's break of the seam that served no account. It reproduces the rows of S3's serve-time pattern check, release step and delimiters, and of D3's method and annotations, bound on argument keys, tools-only MCP root, build-time refusals, uncacheable responses, `MCPGODEBUG` refusal, bearer check and readiness. Pull request [#195](https://github.com/ppat/mediated-mailbox-mcp/pull/195) adds a break to the content security policy scan's row, the scan passing a font inlined as a `data:` URI, and reproduces the row with its patches regenerated. It demonstrates the new control that message-derived text renders inert, the first demonstration run under `bun test`, and reproduces the UI's rows for the refusal of the database's password variables and the pinned configuration type with their patches regenerated. The controls of D1's pass 1, its resume from the last checkpointed page, a page's commit being one transaction, a page taken twice counting nothing twice, the run record, the completion flag, masking and classification at ingest, the unclassified-sender volume, the hand-over after every page, the probes and the reload-failure series, the scanner's section and its revision, each account's lowered target, and the crash harness and the operation sampler, are new and demonstrated by pull request [#196](https://github.com/ppat/mediated-mailbox-mcp/pull/196). That pull request reproduces the rows for a scanner that refuses to decide, whose refusal of an invalid configuration now covers an empty revision, and for the scan verdict that carries no text, since the revision became a string, and reproduces F3's rows for the hard cap the declared ceiling gives, convergence, the stored cut, the ask instant and the one-second window, whose patches it regenerates against the limiter's targets for each account. It regenerates backfill's composition-root patches against the root's rewrite and reproduces their rows, those of the pinned configuration type, the logged effective configuration, the validated database and credential sections, the connection settings, the public key matching a private key, the account snapshot and the accounts a run serves, and the token source's credentials. The end-of-run hand-over's row is retired, and its breaks now demonstrate the hand-over after every page. Pull request [#204](https://github.com/ppat/mediated-mailbox-mcp/pull/204) adds three breaks of the system screen to the inert-rendering row. Pull request [#205](https://github.com/ppat/mediated-mailbox-mcp/pull/205) adds breaks to the rows of the dataset endpoint's refusal, which now covers filter values, the word naming a value stored empty and the row detail's parameters, of its refusal before any statement runs, of the statement-set check, which now covers row identities and dimensions named as parameters, of per-account reads and of a path claimed twice, demonstrates the new control that a group's filter word selects the rows the group counts, and reproduces the UI's server rows with their patches regenerated. Pull request [#214](https://github.com/ppat/mediated-mailbox-mcp/pull/214) demonstrates the fourteen controls of D2's second pass and delisting transition, and demonstrates again the first pass's and the composition root's breaks whose code it changed. Pull request [#223](https://github.com/ppat/mediated-mailbox-mcp/pull/223) demonstrates the ten controls of D2's re-scan after a change of scanner, among them the return of stale verdicts to pending before the first pass and both halves of every staleness comparison, and reproduces the rows of the first and second passes, whose code and crash harnesses it changed, with the patches whose code it changed regenerated, and an example test added for a resumed run whose enumeration had ended, which the crash harness no longer reaches at the gating case count. It also reproduces the inert-rendering row and the row that a streamed event redraws a live surface's text without re-rendering a component, since it changed the run screen's wording of a gone item, and reproduces from a run over every patch of each control the rows of the pinned configuration type, the connection settings, the validated database and credential sections, the public key matching a private key, a page made durable twice counting nothing twice, the revision a verdict records and each account's lowered target. Pull request [#208](https://github.com/ppat/mediated-mailbox-mcp/pull/208) adds breaks to the inert-rendering row for the message row, the page row, the bars, the timeline's hovers, a failure's panel and its subject, and the applying and last-applied plans' titles on the jobs screen, with the rows table's three breaks and the system screen's three regenerated, adds breaks to the row that a group's filter word selects the rows the group counts for the bars and the group table, demonstrates the new controls that a streamed event redraws a live surface's text without re-rendering a component and that a screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view, and reproduces the per-account row. Pull request [#221](https://github.com/ppat/mediated-mailbox-mcp/pull/221) adds the inert-rendering row's break for the rule that set a failure's message's class, with the row's other breaks reproduced, and demonstrates again the first pass's classification and unclassified-sender rows, whose code it changed. Pull request [#222](https://github.com/ppat/mediated-mailbox-mcp/pull/222) demonstrates the contract suite's check of an enumeration total, adds the profile read an enumeration page makes for its total as a break of Gmail's cost profile, and regenerates and demonstrates again the patches for an enumeration page past the hard cap, a page of threads holding two threads, an enumeration page logged whole and a page made durable keeping the token it was asked with, and demonstrates again, with the tests it changed, the rows for the body fetch being the port's one body path, for counting every Gmail request at its cost and for emitting the hard cap beside the count, and, with the tests it adds, the rows for the contract suite's promises of the port and for the first pass's completion flag, masking and classification, run record and page counted once. Pull request [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227) demonstrates the controls that the recorded authentication outcome is the latest attempt, that the Gmail token source reports a refusal, a failure and no attempt apart, and that backfill records the attempt at the end of every unit of work, and demonstrates again the rows of the token source's rotation and backfill's hand-over, with five of their patches regenerated, and of no credential read from the environment, with its six patches regenerated. Pull request [#232](https://github.com/ppat/mediated-mailbox-mcp/pull/232) demonstrates the control that a token request the provider refuses surfaces as a refused credential and one that fails any other way before the call is cancelled or its deadline passes as a provider failure, and demonstrates again, with the test it changed, the row for counting every Gmail request at its cost. Pull request [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230) demonstrates the body-serves rule and the sync-gap rule, adds breaks to the inert-rendering, render-counter, route-following and per-account rows for the home screen, its strip, the shared stream connection and the attention route, and demonstrates again those rows' browser breaks and the UI's configuration pinning, with the tests it changed. Pull request [#231](https://github.com/ppat/mediated-mailbox-mcp/pull/231) demonstrates the two controls of D2's re-decision of stored gate skips at every backfill run's start, and reproduces, with their patches regenerated, the rows for a reopened first pass leading to a second pass, for a stale verdict returning to pending, for a signalled skip returning to pending, for the second pass waiting for the first and for the mark that starts the second pass over, whose code it changed. Pull request [#233](https://github.com/ppat/mediated-mailbox-mcp/pull/233) demonstrates the control that a credential the provider refuses is read again from the account's row before the refusal is reported and a replaced one used for the call it refused, and demonstrates again the rows of backfill's snapshot load, hand-over and attempt recording, with eleven of their patches regenerated. Pull request [#235](https://github.com/ppat/mediated-mailbox-mcp/pull/235) demonstrates the controls of D3's body release and failure contract, and reproduces, with their patches regenerated, the rows for the release step, the failure classification, the mediator's reloads and its configuration, whose code it changed. Pull request [#240](https://github.com/ppat/mediated-mailbox-mcp/pull/240) closes the discovery [#238](https://github.com/ppat/mediated-mailbox-mcp/issues/238), so the mediator's start-up tests hold the listeners they hand the start instead of racing another process for a port they released, and demonstrates again the rows for the mediator's readiness, its scheduled reload, its TLS-only surface and its read operations' serving state, with the readiness row's start-marks-ready patch regenerated. Pull request [#239](https://github.com/ppat/mediated-mailbox-mcp/pull/239) demonstrates D4's controls, among them the gate thresholds and scanner delta sync shares with backfill, with a break on each side, and demonstrates again the rows of the decisions that moved from backfill to `core/index`, of the txhelper analyser's exemptions, of the grants on `oauth_clients`, of the unclassified-sender volume, of the credentials a token source is built from, of the contract suite's promises of the port, which gain the trash and spam, of backfill's composition root and of the account snapshot library, whose code it changed, with the patches the move left stale regenerated. Pull request [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246) demonstrates the controls of D3's index reads, the denied message kept in every result, the whole corpus reached and the sender class under the policy in force, adds the index reads' breaks to the rows for the cursor and the argument names, and demonstrates again the rows for UTC timestamps, the cursor and the argument names, whose tests or code it changed, and one break each of the rows for approval, a flagged message's prior hit, a verdict made under another scanner and a page made durable twice, whose patches it regenerated. Pull request [#254](https://github.com/ppat/mediated-mailbox-mcp/pull/254) closes the discovery [#250](https://github.com/ppat/mediated-mailbox-mcp/issues/250), demonstrating backfill's breaks of the control that discards a hand-over from before an adoption, and demonstrates again the rows of that control, of backfill's hand-over, of its recorded attempt and of its re-read of a refused credential, which gains a break handing the refused source over with the re-read's stamp, whose code it changed, with the patches the change left stale regenerated. Pull request [#256](https://github.com/ppat/mediated-mailbox-mcp/pull/256) demonstrates every control M7 delivered, and reproduces the demonstrations of the consent, the token source and the grants its move of Gmail's consent and its grants touched. Pull request [#258](https://github.com/ppat/mediated-mailbox-mcp/pull/258) demonstrates every control M8 delivered, and reproduces the demonstrations of the policy snapshot's validation, the sender classifier, the transaction helper's analyser, the policy loader, the delisting transition, delta sync's scanning, the row-level security, the consent redirect's check and the pinned configuration, whose code or tests it changed. See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
+| Verifications | The rows each pull request proved are the Verifications column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
+| Mutations | The demonstrations each pull request recorded are the Mutations column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
 | **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7 and M8, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
+
+### What each pull request landed, proved and demonstrated
+
+One row per pull request, or per group of pull requests a unit merged together, in the order of
+their numbers. A new pull request adds its row. "—" means the pull request recorded nothing in that
+column.
+
+| Pull request | Unit | Code merged | Verification rows proven | Mutation demonstrations |
+| --- | --- | --- | --- | --- |
+| [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60), [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131), [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132), [#134](https://github.com/ppat/mediated-mailbox-mcp/pull/134), [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137), [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) | F4 | F4's layout and tooling, with the F4 pull requests #149, #189, #190, #198 and #199 below | Every row keyed to F4 is proven, by #60, #131 and #137, and by the F4 pull requests below for the rows each names | — |
+| [#141](https://github.com/ppat/mediated-mailbox-mcp/pull/141), [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143), [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144), [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150) | S1 | S1's marker text, synthetic fixtures, sensitivity types, property-testing harness, policy snapshot, sender classifier, Redaction Gate and Mutation Authorizer | The S1 rows of the sensitivity types and the property-testing harness by #142, those of the policy snapshot by #143, those of the sender classifier by #144, those of the Redaction Gate by #145, and the rows on verdict types for the Mutation Authorizer's verdict by #150 | The controls of S1's sensitivity types and property-testing harness by #142, those of the policy snapshot by #143, those of the sender classifier by #144, those of the Redaction Gate by #145, and those of the Mutation Authorizer by #150 |
+| [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149) | F4 | Part of F4's layout and tooling | The rows of the `go vet` analysers' rules against package-level state in a pure core | The controls of the `go vet` analysers' rules against package-level state in a pure core |
+| [#151](https://github.com/ppat/mediated-mailbox-mcp/pull/151) | S2 | S2's content scanner and subject masking | The S2 rows, S2's part of the search of scanner output included | The controls of S2's content scanner and subject masking |
+| [#152](https://github.com/ppat/mediated-mailbox-mcp/pull/152) | S3 | S3's body sanitization and serve-time pattern check | The S3 rows and S3's parts of the rows it shares with D3 | Those of S3's conversion, release step and the scanner's pattern entry point |
+| [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153) | F2 | F2's schema, migration chain, runtime roles and transaction helper | The F2 rows | Those of F2's data layer |
+| [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154) | F5 | F5's canonical model, Provider Port, provider fake and contract suite | The F5 row for the body fetch being the port's one body path | Those of F5's canonical model, provider fake and contract suite |
+| [#155](https://github.com/ppat/mediated-mailbox-mcp/pull/155) | F5 | F5's Gmail OAuth, mounted credentials and rotation write-back | The F5 rows for the grant's scope and mounted credentials, and F5's half of the rotation row | Those of F5's Gmail OAuth and credential handling |
+| [#156](https://github.com/ppat/mediated-mailbox-mcp/pull/156) | F3 | F3's rate controller rules | — | Those of F3's rate controller rules |
+| [#157](https://github.com/ppat/mediated-mailbox-mcp/pull/157) | F3 | F3's leases, Gmail cost profile, metrics and alerting rules | The F3 rows | Those of F3's leases, alerting rules and the grant check's planning of a shared library's statements |
+| [#158](https://github.com/ppat/mediated-mailbox-mcp/pull/158) | F5 | F5's Gmail adapter and its contract run against real Gmail | The rest of the F5 rows, two of them by hand against real Gmail | Those of F5's Gmail adapter, its contract run against real Gmail and the command that run requires |
+| [#160](https://github.com/ppat/mediated-mailbox-mcp/pull/160) | D1 | D1's policy loader | D1's rows for the policy loader | Those of D1's policy loader |
+| [#161](https://github.com/ppat/mediated-mailbox-mcp/pull/161) | F3 | F3's runaway rule for every provider and its tunable rate target | F3's rows for the runaway rule's emitted hard cap and the lowered target | Those of F3's runaway rule for every provider and its lowered target, with the rate limiter's rows reproduced |
+| [#162](https://github.com/ppat/mediated-mailbox-mcp/pull/162) | M3 | M3's golden-file helper | — | Those of M3's golden-file helper |
+| [#171](https://github.com/ppat/mediated-mailbox-mcp/pull/171) | D3 | D3's operation registry, its two roots, the bearer check, TLS and the readiness state | D3's rows for the operation registry, the MCP root's tools-only surface, the refusal of `MCPGODEBUG`, readiness, the account every operation names, the bound on a call's argument keys, the method and annotations derived from each effect class, the argument object both roots hand the service layer, the uncacheable responses with `HEAD` refused, and the registry's refusals of approval and of header bindings, and D3's parts of the rows for the approval transition and for a database password in the environment | Those of D3's registry, derivation of each operation's method and annotations, argument round trip, roots, account check, bound on argument keys, bearer check, TLS, uncacheable responses, readiness, refusals of approval, of header bindings, of `MCPGODEBUG` and of a database password in the environment, failure content, policy loading and approval grants |
+| [#177](https://github.com/ppat/mediated-mailbox-mcp/pull/177) | D1 | D1's configuration library with the `go vet` analyser against reading the environment outside a composition root and backfill's database connection taken from it | D1's rows for layering configuration, logging the effective configuration and telling accounts from flags, and the parts of its rows for configuration mistakes, the environment and the database's password variables, pinned configuration fields and a section's revision that the configuration library and backfill's connection carry | Those of D1's configuration library, the analyser against reading the environment and backfill's database connection |
+| [#178](https://github.com/ppat/mediated-mailbox-mcp/pull/178) | F6 | F6's accounts, OAuth clients and sealed credentials in the database, with the `credential/` and `accountload/` libraries and the Gmail adapter taking its credential from what a deployable supplies | F6's rows, and F6's parts of the rows it shares with D1, D3, D4, M2, M3, M7, R1 and production point 1. It also extends the F2 row for isolation across every account-keyed table to `account_state` | Those of F6's sealing, key handling, account snapshot, compare-and-set write-back, re-seal and the values of its scan, account listing, the reads of `oauth_clients` and `account_state`, the Gmail token source's rotation, and the `provider/gmail` package's refusal to read a credential from the environment, with F2's row-level security row reproduced for `account_state` |
+| [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181) | D1 | D1's reading of backfill's accounts and credentials from the database, with the database connection library `dbconnect/`, the credential section in `credential/core`, the `txhelper` analyser, the grant rule of [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)'s three lines with the data-access layout [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md) derives from it, and the release job attaching signed key-generation binaries | D1's part of the rotation row, D1's parts of the rows for a failed write-back, for a credential supplied outside the account's state row, for a public key matching none of the private keys, for loading the account snapshot at the start of a run, for the credentials a token source is built from, for the credential section's validation and fields and for an argument that is not a flag, its row for the data-access library's layout, and the part of the row for calling a data-access function in a transaction that did not set the account that the `txhelper` analyser carries. It also lands the key-generation release step, whose run against a published release waits on R1 | Those of backfill's account snapshot, the accounts a run serves, keyring, token-source credentials and hand-over, the credential section, the `txhelper` analyser and the moved database connection. It also repeats the demonstrations of the accounts listing policy with its patch regenerated and of the effective configuration logged at start |
+| [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182) | M3 | M3's UI server, its dataset registry and endpoint, the contract pipeline, the content security policy, the reads more than one screen makes and the server half of the event stream | M3's rows for the registry's refusal, the content security policy's header and static scans, the contract drift, the statement-set check, the stream's whole-state events and the refusal of plain HTTP outside the dev loop, and M3's parts of the rows for per-account reads, the recorded fixtures' diff, the UI's read of account state, a database password in the environment and the pinned configuration type | Those of M3's UI server, its registry, contract pipeline, content security policy, event stream and configuration, and of the golden-file helper's refusal of a `GoldenAt` path that is absolute or not clean. It adds the `GoldenAt` tests to the golden-file helper's rows for a differing file, a missing one and `-update` off by default, and adds two breaks to the account state grants' row, the UI's read of its account's progress widened to the credential and narrowed below what its statement reads. It reproduces the golden-file helper's row for a name leaving `testdata/golden` |
+| [#186](https://github.com/ppat/mediated-mailbox-mcp/pull/186) | D3 | D3's read operations, identifier listings, system status and UTC timestamps, with the mediator's configuration, account snapshot reload and rate-state series | D3's rows for rejecting a non-UTC timestamp, serving timestamps in UTC and the system status carrying operational state only. It also adds and proves D3's rows for the redaction matrix on served metadata, cursors and paging, the arguments a served operation takes, the read operations reading the serving state, the rate-state series on the mediator's metrics endpoint and the mediator's configuration refusals. It proves D3's parts of the rows for a public key matching none of the private keys and for reloading the account snapshot, for the accounts the mediator serves, and the mediator's parts of the rows for the argument object over every served operation, pinned configuration fields, the logged effective configuration and the reload-failure series its metrics endpoint serves | The controls of D3's redaction matrix on served metadata, UTC timestamps in and out, cursors and paging, system status, argument refusals, the arguments a served operation takes, the read operations' sources, the mediator's configuration refusals, account reload, reload schedule and rate-state series, and the policy loader's changing account set are new and demonstrated. It adds breaks for the mediator, and its tests, to the rows for a public key matching none of the private keys and for the pinned configuration type. It adds its new tests to the rows for the argument object both roots hand the service layer, the registry's operations served on both roots, an operation failing generation, the account check, the structured failure, the approval vocabulary and policy loading, the last with its breaks regenerated against the reworked composition root and a break added that registers the reload-failure series off the metrics endpoint. It replaces the mediator's three breaks of its refusal of a database password in the environment with two, one that skips the refusal and one that moves it after the configuration is read, since `dbconnect/` carries the rest, moves the break of a missing key pair from the TLS row to the configuration refusals' row, and retires the account check's break of the seam that served no account. It reproduces the rows of S3's serve-time pattern check, release step and delimiters, and of D3's method and annotations, bound on argument keys, tools-only MCP root, build-time refusals, uncacheable responses, `MCPGODEBUG` refusal, bearer check and readiness |
+| [#189](https://github.com/ppat/mediated-mailbox-mcp/pull/189) | F4 | Part of F4's layout and tooling | The row for a `depguard` list that is not strict or carries a `deny` key | The ban-proof script's refusal of a `depguard` list that is not strict or carries a `deny` key |
+| [#190](https://github.com/ppat/mediated-mailbox-mcp/pull/190) | F4 | Part of F4's layout and tooling | The row for importing, from code that ships, a package `./...` does not list | The ban-proof script's refusal of a package the build of `./...` reaches that `./...` does not list |
+| [#193](https://github.com/ppat/mediated-mailbox-mcp/pull/193) | M3 | The route check, import list and sqlfluff configuration of [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182) tightened | It extends the proof of the registry's refusal to a route registered outside `/api` and to one registered on the probes listener | The route check's row reproduced and two breaks added, one registering a route outside `/api` and one registering a route after the server stores its mux, the rows of the content security policy and of a path claimed twice reproduced, and the new controls that the probes listener serves only its three routes and that `go vet` refuses a copy of a recording mux demonstrated, the latter's patch regenerated in [#207](https://github.com/ppat/mediated-mailbox-mcp/pull/207) |
+| [#195](https://github.com/ppat/mediated-mailbox-mcp/pull/195) | M3 | M3's browser app shell, with the URL grammar and routing, the data cache, the global chrome, the lens shell at levels 0 and 3, the region patterns, the keyboard map, both palettes with the vendored fonts, and the stream client with its live indicator, with the mutation runner running browser tests under `bun test` | M3's part of the content security policy's static-scan row for the first built bundle of the browser app and for a font inlined as a `data:` URI. It also lands the page of the policy's drill, deferred to production point 1. It also proves M3's part of the inert-rendering row for the lens shell's rows table, and the standing disposition for [ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)'s shim fidelity by its drill in a real browser | It adds a break to the content security policy scan's row, the scan passing a font inlined as a `data:` URI, and reproduces the row with its patches regenerated. It demonstrates the new control that message-derived text renders inert, the first demonstration run under `bun test`, and reproduces the UI's rows for the refusal of the database's password variables and the pinned configuration type with their patches regenerated |
+| [#196](https://github.com/ppat/mediated-mailbox-mcp/pull/196) | D1 | D1's pass 1 over the full history with its per-page checkpoint, the run record, the scanner's section of the configuration, each account's lowered rate target handed to the rate limiter, the crash harness and the operation sampler | D1's rows for killing the backfill pod mid-run (now "Kill the process running backfill mid-run" in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)), for the mechanism, for a page's commit being one transaction and a page taken twice counting nothing twice, for the run record and the completion flag, and for masking, classification and the unclassified-sender volume at ingest, and the rows for the crash harness and the operation sampler. It proves D1's parts of the rows for the rotation hand-over and a failed write-back, now after every page, for a lowered target read from the account's state row, for the reload-failure series on backfill's metrics endpoint, for the scanner's section's validation, pinned fields and revision, and for an empty revision refused by the scanner | The controls of D1's pass 1, its resume from the last checkpointed page, a page's commit being one transaction, a page taken twice counting nothing twice, the run record, the completion flag, masking and classification at ingest, the unclassified-sender volume, the hand-over after every page, the probes and the reload-failure series, the scanner's section and its revision, each account's lowered target, and the crash harness and the operation sampler, are new and demonstrated. It reproduces the rows for a scanner that refuses to decide, whose refusal of an invalid configuration now covers an empty revision, and for the scan verdict that carries no text, since the revision became a string, and reproduces F3's rows for the hard cap the declared ceiling gives, convergence, the stored cut, the ask instant and the one-second window, whose patches it regenerates against the limiter's targets for each account. It regenerates backfill's composition-root patches against the root's rewrite and reproduces their rows, those of the pinned configuration type, the logged effective configuration, the validated database and credential sections, the connection settings, the public key matching a private key, the account snapshot and the accounts a run serves, and the token source's credentials. The end-of-run hand-over's row is retired, and its breaks now demonstrate the hand-over after every page |
+| [#198](https://github.com/ppat/mediated-mailbox-mcp/pull/198) | F4 | Part of F4's layout and tooling | The rows for a file that ships whose build constraint keeps it from the gating lint and for a `go vet` step whose tags differ from the lint configuration's | The ban-proof script's refusals of a file a build that ships compiles that the gating lint does not read and of a `go vet` step whose tags differ from the lint configuration's, reproducing the row of [#190](https://github.com/ppat/mediated-mailbox-mcp/pull/190) with three of its patches regenerated |
+| [#199](https://github.com/ppat/mediated-mailbox-mcp/pull/199) | F4 | Part of F4's layout and tooling | It extends the proof of the registry's refusal to a route registered in the UI other than through its recording mux by the calls the `go vet` routes analyser refuses | The `go vet` routes analyser's refusal of a route the UI registers other than through its recording mux |
+| [#204](https://github.com/ppat/mediated-mailbox-mcp/pull/204) | M3 | M3's system screen | M3's part of the inert-rendering row for the system screen | It adds three breaks of the system screen to the inert-rendering row |
+| [#205](https://github.com/ppat/mediated-mailbox-mcp/pull/205) | M3 | M3's reads for the jobs and run screens, the `runs` and `failures` datasets with the dataset endpoint's levels 1 and 2, the `failures` row detail and the run summary endpoint | M3's parts of the rows for the registry's refusal, per-account reads and the statement-set check, for the `runs` and `failures` datasets, the `failures` row-detail route and the run summary route. It also proves the new row that a group's filter word selects the rows the group counts | It adds breaks to the rows of the dataset endpoint's refusal, which now covers filter values, the word naming a value stored empty and the row detail's parameters, of its refusal before any statement runs, of the statement-set check, which now covers row identities and dimensions named as parameters, of per-account reads and of a path claimed twice, demonstrates the new control that a group's filter word selects the rows the group counts, and reproduces the UI's server rows with their patches regenerated |
+| [#207](https://github.com/ppat/mediated-mailbox-mcp/pull/207) | — | — | — | The patch of the control that `go vet` refuses a copy of a recording mux, demonstrated by [#193](https://github.com/ppat/mediated-mailbox-mcp/pull/193), regenerated |
+| [#208](https://github.com/ppat/mediated-mailbox-mcp/pull/208) | M3 | M3's jobs and run screens, with the message row, the page row, the bars, the run timeline, the lens shell's levels 1 and 2 with the group-by control, the Jobs item in the navigation with its running mark, the system screen's links to Jobs, the partial-index banner's link to Jobs, and the progress bars of the backfill card and the rate budget | M3's parts of the inert-rendering row for the jobs and run screens, the message row and the page row, and of the render-counter row for the jobs and run screens | It adds breaks to the inert-rendering row for the message row, the page row, the bars, the timeline's hovers, a failure's panel and its subject, and the applying and last-applied plans' titles on the jobs screen, with the rows table's three breaks and the system screen's three regenerated, adds breaks to the row that a group's filter word selects the rows the group counts for the bars and the group table, demonstrates the new controls that a streamed event redraws a live surface's text without re-rendering a component and that a screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view, and reproduces the per-account row |
+| [#211](https://github.com/ppat/mediated-mailbox-mcp/pull/211) | F4 | F4's dedicated CI workflow proving every mutation patch still applies | The row for a mutation patch's diff context going stale | — |
+| [#214](https://github.com/ppat/mediated-mailbox-mcp/pull/214) | D2 | Backfill's second pass, as [the table by composition root](#what-each-composition-root-runs) states | D2's parts of the rows for the leak search over persisted rows and the workload's logs, for a restricted sender's body never asked for, for the delisting transition and for killing the backfill pod mid-run (now "Kill the process running backfill mid-run"), and the rows for the scan gate over stored messages and the second pass's run record, a sender's first hit reaching its next message, both parts of a body scanned and a body the conversion refuses | The fourteen controls of D2's second pass and delisting transition, and demonstrates again the first pass's and the composition root's breaks whose code it changed |
+| [#221](https://github.com/ppat/mediated-mailbox-mcp/pull/221) | D1 | D1's record of the policy rule that set each message's sender class apart from its content rules, which a failure's panel shows | The inert-rendering row for the rule that set a failure's message's class | It adds the inert-rendering row's break for the rule that set a failure's message's class, with the row's other breaks reproduced, and demonstrates again the first pass's classification and unclassified-sender rows, whose code it changed |
+| [#222](https://github.com/ppat/mediated-mailbox-mcp/pull/222) | D1 | D1's enumeration total on the Provider Port, reported by the provider fake when configured to and by the Gmail adapter on every page, with pass 1's checkpoint carrying the pages it implies | D1's row for the contract suite's check of an enumeration total | It demonstrates the contract suite's check of an enumeration total, adds the profile read an enumeration page makes for its total as a break of Gmail's cost profile, and regenerates and demonstrates again the patches for an enumeration page past the hard cap, a page of threads holding two threads, an enumeration page logged whole and a page made durable keeping the token it was asked with, and demonstrates again, with the tests it changed, the rows for the body fetch being the port's one body path, for counting every Gmail request at its cost and for emitting the hard cap beside the count, and, with the tests it adds, the rows for the contract suite's promises of the port and for the first pass's completion flag, masking and classification, run record and page counted once |
+| [#223](https://github.com/ppat/mediated-mailbox-mcp/pull/223) | D2 | Backfill's re-run of each pass after a change of scanner, as [the table by composition root](#what-each-composition-root-runs) states | D2's row for a change of scanner, and D2's parts of the rows for killing the backfill pod mid-run (now "Kill the process running backfill mid-run") and for the leak search over persisted rows, for a change of scanner | The ten controls of D2's re-scan after a change of scanner, among them the return of stale verdicts to pending before the first pass and both halves of every staleness comparison, and reproduces the rows of the first and second passes, whose code and crash harnesses it changed, with the patches whose code it changed regenerated, and an example test added for a resumed run whose enumeration had ended, which the crash harness no longer reaches at the gating case count. It also reproduces the inert-rendering row and the row that a streamed event redraws a live surface's text without re-rendering a component, since it changed the run screen's wording of a gone item, and reproduces from a run over every patch of each control the rows of the pinned configuration type, the connection settings, the validated database and credential sections, the public key matching a private key, a page made durable twice counting nothing twice, the revision a verdict records and each account's lowered target |
+| [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227) | D3 | D3's recording of the last provider authentication outcome, with the Gmail token source reporting its latest attempt and backfill recording it | It adds and proves D3's rows for recording only the latest authentication attempt, for the outcome the Gmail adapter reports, part of it by hand against real Gmail, and backfill's part of the row for recording the attempt at the end of each unit of work | The controls that the recorded authentication outcome is the latest attempt, that the Gmail token source reports a refusal, a failure and no attempt apart, and that backfill records the attempt at the end of every unit of work, and demonstrates again the rows of the token source's rotation and backfill's hand-over, with five of their patches regenerated, and of no credential read from the environment, with its six patches regenerated |
+| [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230) | M3 | M3's home screen, with the attention endpoint and its backlog, masking, body-serves and sync-gap rules, the candidates' recorded signals typed, and one stream connection per account shared by a tab's live surfaces | M3's parts of the rows for driving body fetches far above a plausible rate and for invalidating the sync cursor, the inert-rendering row and the render-counter row for the home screen, the per-account row for the attention route, and the row for a screen following its route and answers for the strip and the shared stream connection | It demonstrates the body-serves rule and the sync-gap rule, adds breaks to the inert-rendering, render-counter, route-following and per-account rows for the home screen, its strip, the shared stream connection and the attention route, and demonstrates again those rows' browser breaks and the UI's configuration pinning, with the tests it changed |
+| [#231](https://github.com/ppat/mediated-mailbox-mcp/pull/231) | D2 | Backfill's re-decision of every stored gate skip, as [the table by composition root](#what-each-composition-root-runs) states | D2's row for a change of the scan gate's thresholds | The two controls of D2's re-decision of stored gate skips at every backfill run's start, and reproduces, with their patches regenerated, the rows for a reopened first pass leading to a second pass, for a stale verdict returning to pending, for a signalled skip returning to pending, for the second pass waiting for the first and for the mark that starts the second pass over, whose code it changed |
+| [#232](https://github.com/ppat/mediated-mailbox-mcp/pull/232) | F5 | The Gmail adapter's port error for a call that could not obtain an access token, a refused credential only for the token endpoint's refusal | It adds and proves F5's row for a token request the provider refuses surfacing as a refused credential and one that fails any other way before the call is cancelled or its deadline passes as a provider failure, part of it by hand against real Gmail | The control that a token request the provider refuses surfaces as a refused credential and one that fails any other way before the call is cancelled or its deadline passes as a provider failure, and demonstrates again, with the test it changed, the row for counting every Gmail request at its cost |
+| [#233](https://github.com/ppat/mediated-mailbox-mcp/pull/233) | D1 | D1's re-read of a refused credential, with backfill reading a credential the provider refuses again from the account's row before it reports the refusal | Backfill's part of the row for picking up a replaced credential, a refused credential read again from the account's row and a replaced one used for the call that was refused | The control that a credential the provider refuses is read again from the account's row before the refusal is reported and a replaced one used for the call it refused, and demonstrates again the rows of backfill's snapshot load, hand-over and attempt recording, with eleven of their patches regenerated |
+| [#235](https://github.com/ppat/mediated-mailbox-mcp/pull/235) | D3 | D3's body release through the gate, the conversion and the release step, with the policy loaded for each body request, message text with no HTML form released as a code block, and the failure contract naming each failure's origin | It adds and proves D3's rows for the policy load each body request waits for and the one every reload runs, the snippet and filenames following the body, the audit of every serve and denial, message text with no HTML form, the serve-time check over everything released and over every message's filenames, the body counts, both roots' shapes, the interactive lease and the provider timeout, and proves D3's parts of the rows for a just-listed domain, the provider never contacted on a denial, the configuration surface, raw HTML served with no fetch at the network layer, a gate-skipped login link, an ex-restricted message pending its scan, each origin of a failure, the rotation hand-over and its failed write-back, the attempt recorded, a credential supplied outside the state row, the swapped client, the refused credential read again and the write-back that loses to a re-authorization | The controls of D3's body release and failure contract, and reproduces, with their patches regenerated, the rows for the release step, the failure classification, the mediator's reloads and its configuration, whose code it changed |
+| [#236](https://github.com/ppat/mediated-mailbox-mcp/pull/236) | M3 | M3's browser tests settling on the reads and effects pending, with the recorded answers read from memory | — | — |
+| [#239](https://github.com/ppat/mediated-mailbox-mcp/pull/239) | D4 | D4's delta sync, with the decisions it shares with backfill moved to `core/index`, the shared `lease.Call`, the re-seal of an OAuth client's secret, the scan series and the cursor gap rule | D4's rows and D4's parts of the rows it shares, among them the leak search over delta sync's logs, invalidating the sync cursor, the re-seal of a client secret with its series and how they reach the scrape, the snapshot load within each tick and the re-read of a refused credential, the credentials a token source is built from, the hand-over and the recorded attempt, the unclassified-sender volume, and the rows it adds for a tick's change application, its idempotency, an account's first reconciliation, a gap recovery's removal of what the provider no longer holds, a tick or recovery left running by a stopped process, scanning once backfill's second pass has ended, the gate thresholds and scanner it shares with backfill, and the sync class with the series between ticks, the adapter's request cost and hard cap among them | D4's controls, among them the gate thresholds and scanner delta sync shares with backfill, with a break on each side, and demonstrates again the rows of the decisions that moved from backfill to `core/index`, of the txhelper analyser's exemptions, of the grants on `oauth_clients`, of the unclassified-sender volume, of the credentials a token source is built from, of the contract suite's promises of the port, which gain the trash and spam, of backfill's composition root and of the account snapshot library, whose code it changed, with the patches the move left stale regenerated |
+| [#240](https://github.com/ppat/mediated-mailbox-mcp/pull/240) | D3 | D3's start-up tests of the mediator holding the listeners they hand its start, with the composition root opening them before it serves | — | It closes the discovery [#238](https://github.com/ppat/mediated-mailbox-mcp/issues/238), so the mediator's start-up tests hold the listeners they hand the start instead of racing another process for a port they released, and demonstrates again the rows for the mediator's readiness, its scheduled reload, its TLS-only surface and its read operations' serving state, with the readiness row's start-marks-ready patch regenerated |
+| [#243](https://github.com/ppat/mediated-mailbox-mcp/pull/243) | F4 | F4's mutation runner running `go test` with `-trimpath`, so a demonstration's copies reuse the build cache | — | — |
+| [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246) | D3 | D3's index reads, a search, a count that groups and the sender listing, selecting by an index query of the client surface's own and classifying senders under the policy in force, with the rebuild of the sender statistics and the counts of prior scan hits moved to a subsection the mediator does not admit | It adds and proves D3's rows for a message whose body is denied staying in every count, group and search result, enumeration and counting reaching the whole corpus, and the sender class the index reads use being the policy in force's, and proves D3's parts of the rows for UTC input and output, the cursor and the argument names over the index reads. The rows for talking the live agent into requesting a restricted body and for sending it a prompt injection are proven by manual exercise on 2026-10-02, against this pull request's exercise harness, with every row keyed to D3 proven for D3's part | The controls of D3's index reads, the denied message kept in every result, the whole corpus reached and the sender class under the policy in force, adds the index reads' breaks to the rows for the cursor and the argument names, and demonstrates again the rows for UTC timestamps, the cursor and the argument names, whose tests or code it changed, and one break each of the rows for approval, a flagged message's prior hit, a verdict made under another scanner and a page made durable twice, whose patches it regenerated |
+| [#251](https://github.com/ppat/mediated-mailbox-mcp/pull/251) | F4 | F4's mutation runner giving the go commands a demonstration's tests start `-trimpath` too | — | — |
+| [#253](https://github.com/ppat/mediated-mailbox-mcp/pull/253) | M3 | M3's partial-index banner telling a backfill pass 1 a change of scanner re-opened apart from a first one, with the system endpoint naming when pass 1 last succeeded and no count reading as a count so far while a re-opened pass 1 runs | — | — |
+| [#254](https://github.com/ppat/mediated-mailbox-mcp/pull/254) | D1 | D1's backfill handing each account's credential over with the adoption stamp of the credential its source holds | D1's part of the row for a write-back based on a credential the operator has since replaced, for backfill's hand-over | It closes the discovery [#250](https://github.com/ppat/mediated-mailbox-mcp/issues/250), demonstrating backfill's breaks of the control that discards a hand-over from before an adoption, and demonstrates again the rows of that control, of backfill's hand-over, of its recorded attempt and of its re-read of a refused credential, which gains a break handing the refused source over with the re-read's stamp, whose code it changed, with the patches the change left stale regenerated |
+| [#256](https://github.com/ppat/mediated-mailbox-mcp/pull/256) | M7 | M7's OAuth client setup and account setup, the request token, the consent package and the UI's client-secret part | M7's rows and M7's parts of the rows it shares, and it adds and proves the rows for a consent attempt's binding to its session, a client changed while an attempt runs, the UI's open of a credential refused and a client's secret reaching no answer, cookie or log line, with the check of OAuth client setup against the live Google Cloud console a manual exercise at production point 1 | Every control M7 delivered, and reproduces the demonstrations of the consent, the token source and the grants its move of Gmail's consent and its grants touched |
+| [#258](https://github.com/ppat/mediated-mailbox-mcp/pull/258) | M8 | M8's policy management, the policy tables keyed by scope with the policy history, the base-policy transaction, the policy screens, import and export, and the restriction of the stored classes a rule added since restricts in backfill's second pass and delta sync | M8's rows and M8's parts of the rows it shares, and it adds and proves the rows for the base-policy transaction, an added rule reaching the stored classes and a base edit landing mid-reload | Every control M8 delivered, and reproduces the demonstrations of the policy snapshot's validation, the sender classifier, the transaction helper's analyser, the policy loader, the delisting transition, delta sync's scanning, the row-level security, the consent redirect's check and the pinned configuration, whose code or tests it changed |
+
+### What each composition root runs
+
+What the code on `main` runs today, per composition root, none of it yet released **[measured]**.
+
+| Composition root | What it runs |
+| --- | --- |
+| Backfill | It reads its database, credential and scanner sections and its probe address through the configuration library and validates them, loads its keyring and refuses to start when the public key matches none of its private keys, builds its connection pool, takes its accounts, the OAuth clients and the opened credentials from the database through `accountload/` once at the start of a run, loads the policy of every listed account, and builds a Gmail token source for each connected account it can serve. It runs pass 1 over each of them a page at a time, spending under the account's target, and hands the account's current refresh token back after every page with the adoption stamp of the credential its source was built over, so a rotated one is written to the account's state row unless the loader has since adopted a value someone else stored there, and records the account's latest provider authentication attempt there after every page too. A call the provider refuses as a refused credential has the account's credential read again from its row, and when the row holds another, the account's token source and port are built again over it and the call made once more, while a row holding the refused credential, or none, has the refusal reported. Once an account's pass 1 has ended it runs pass 2 over the account the same way, running the delisting transition and then the restriction of the stored classes a rule added since restricts, deciding each waiting message through the scan gate, fetching and scanning in memory the bodies the gate selects in the batch class, and setting the account's scan backlog series after every page, merged from pull request [#214](https://github.com/ppat/mediated-mailbox-mcp/pull/214). Each pass runs again when the scanner backfill runs with differs from the one the stored subjects or verdicts were decided under, a run returning the verdicts made under another scanner to pending before the first pass, the first pass masking those subjects again as it enumerates and the second returning the skips decided without their subject's signal to pending before its first page, merged from pull request [#223](https://github.com/ppat/mediated-mailbox-mcp/pull/223). Every run also decides each stored gate skip again before the first pass, under the thresholds it holds, and returns to pending each one the gate no longer decides as the same skip, reopening the second pass, merged from pull request [#231](https://github.com/ppat/mediated-mailbox-mcp/pull/231). It serves the health probe and the metrics endpoint while it runs, and logs as JSON |
+| The mediator | It serves both roots, whose registry holds the reads of the index and of the recorded state, the search, counts and sender statistics of the index, and the body operation, which releases a body the gate lets through. It reads its configuration through the library, takes the accounts it serves from the account snapshot at start and on its reload interval, loads their policy at every reload and before every body request, and carries the rate-state series of each account it serves through the Gmail adapter on its metrics endpoint |
+| The UI | It reads its configuration through the library, loads the key pair and logs the key identifier it seals to, builds the sender classifier's lookups, and serves its read API, the setups' requests, the policy writes, the import and export of the policy and the browser app, whose chrome frames the home screen, the system screen, the jobs screen, the run screen, the installation screens, account settings, the policy screens and the base policy screens. The home screen's running-work strip, the jobs screen and the run screen follow the event stream as live surfaces, and the chrome's partial-index banner follows it while the banner shows, every surface on a tab sharing one connection per account. Of the keys [docs/UI.md section 18.1](./docs/UI.md#181-the-configuration-the-ui-declares) declares, it reads `database`, `listen`, `probe_listen`, `tls_cert`, `tls_key`, `insecure_http`, `sync_interval`, `heuristics_interval`, `stream_interval`, `default_theme`, `stream_reconnect_max`, `stream_poll_interval`, `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `seal_public_key_file`, `private_key_files`, `token_key_file`, `consent_redirect`, `identity_header` and `operator_name`, which defaults to `operator`, with `default_theme`, `stream_reconnect_max`, `stream_poll_interval` and `consent_redirect` rendered into the entry document for the browser |
+| Delta sync | It reads its configuration through the library, refuses to start when the public key matches none of its private keys, and runs until stopped, serving the health probe and the metrics endpoint between ticks as during them. Each tick takes the account snapshot again, re-seals what it opened with an old key and sets the scan series, applies every change set since each account's cursor, recovers a cursor gap in a run of its own, and once an account's backfill second pass has ended runs the delisting transition and the restriction of the stored classes, then decides and scans a bounded number of the messages waiting for a scan |
+| The reorg workload and the Heuristics Job | Still empty, so neither reads its configuration through the library or runs any of it |
 
 ## Delivered, mapped to outcomes
 
@@ -223,7 +298,10 @@ perfected up front.
   calls a statement writes, together with the grants that statement needs. The map from component to
   database role, whose entries arrive with the first import list that admits a data-access
   subsection, because the check refuses a role that no such list names. Backfill and the UI connect
-  to the database through their runtime roles.
+  to the database through their runtime roles. **Later work.** After
+  [production point 3](#production-point-3--a-second-of-everything), row-level security is
+  reconsidered, with the label and subject indexes it rules out, since no index over an operator
+  that is not leakproof serves a runtime role ([ADR-0016](./docs/adr/data/0016-schema.md)).
 - [x] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at tested
   Delivered by pull requests [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154),
@@ -292,7 +370,10 @@ perfected up front.
   which is [D1](#delivered-mapped-to-outcomes)'s. How delta sync's request count reaches the runaway rule,
   which [D4](#delivered-mapped-to-outcomes) delivered by running delta sync until stopped. The real ceiling for the account, which reveals itself at
   [production point 1](#production-point-1--the-read-path). No deployable spends from the budget
-  yet.
+  yet. **Later work.** After [production point 1](#production-point-1--the-read-path), with
+  [M1](#group-m--mutation-and-approval), a provider call costs one lease transaction rather than
+  two, as [ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md) describes the
+  lease.
 - [x] **F6 — Accounts and their sealed credentials in the database** →
   [P3](./USE_CASES.md#p3--multi-account) · [V2](#v2--the-corpus-can-be-acquired) · finished at
   tested
@@ -356,7 +437,9 @@ perfected up front.
   [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182) and never covers the credential.
   The rotation
   write-back against the real provider, proven at
-  [production point 1](#production-point-1--the-read-path).
+  [production point 1](#production-point-1--the-read-path). **Later work.** Before production
+  point 1, a known-answer test proves this build still opens values sealed by an earlier one
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)).
 - [x] **S1 — Redaction Gate + Sender Classifier + Mutation Authorizer, isolated** →
   [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -398,7 +481,9 @@ perfected up front.
   [M1](#group-m--mutation-and-approval), which also decides which sender class a mutation is
   authorized against and fails a whole batch by authorization class. The policy loader that reads
   the policy tables, built in [D1](#delivered-mapped-to-outcomes). None of its cores runs in a deployable
-  yet.
+  yet. **Later work.** After [production point 1](#production-point-1--the-read-path), once the
+  policy reaches hundreds of suffixes or [X3](#group-x--expansion) lands, the sender classifier
+  normalizes the policy's suffixes once per snapshot rather than on every call.
 - [x] **S2 — Content Scanner tiers 1–2 + subject masking** →
   [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -511,8 +596,13 @@ perfected up front.
   [#97](https://github.com/ppat/mediated-mailbox-mcp/issues/97) of
   [M3](#group-m--mutation-and-approval) takes up. The key-generation release step's run against a
   published release, which waits on [R1](#group-r--packaging). Meeting the real corpus, killing the
-  pod mid-run on real substrate, the rotation write-back against the real provider and watching the
+  process running backfill mid-run on real substrate, the rotation write-back against the real provider and watching the
   rate gauge for the real ceiling, all at [production point 1](#production-point-1--the-read-path).
+  **Later work.** Before production point 1, messages carry their attachment types from ingest,
+  through the adapter and the canonical model, since a column whose value comes from the provider
+  costs a refetch of the corpus once the corpus is ingested
+  ([ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md),
+  [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)).
 
 - [x] **D2 — Scan gate + backfill pass 2** → [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at image
@@ -561,8 +651,14 @@ perfected up front.
   is a release. How messages returned to pending are scanned once backfill has ended, and the scan
   backlog emitted after that, which [D4](#delivered-mapped-to-outcomes) delivered, as it did the
   leak search over delta sync's logs. Reviewing the skip rates before the residual is trusted, tuning the scanner
-  against the real mail, and killing the backfill pod mid-run on real substrate, all at
-  [production point 1](#production-point-1--the-read-path).
+  against the real mail, and killing the process running backfill mid-run on real substrate, all at
+  [production point 1](#production-point-1--the-read-path). **Later work.** Before production
+  point 1, the second pass walks newest first, so the mail an agent most likely asks for is readable
+  first. A change of scanner re-masks from the store every stale subject stored unmasked and
+  fetches again only those stored masked, by identifier, so a change no longer re-enumerates the
+  mailbox ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
+  And a known-answer test pins the scanner section's revision, so a change that re-scans the index
+  is a decision taken in review ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)).
 
 - [x] **D4 — Delta sync** → [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image
@@ -624,7 +720,10 @@ perfected up front.
   The chart's deployment of delta sync, which is [R1](#group-r--packaging)'s.
   The sync-gap rule that shows a recovery to the operator, which
   [M3](#group-m--mutation-and-approval) delivered through pull request
-  [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230).
+  [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230). **Later work.** After production
+  point 1 and before [production point 2](#production-point-2--the-agent-acts), the index reflects
+  messages deleted from the account, whether through this system or outside it, by the operator's
+  placement at the design review of 2026-10-07. Its design is its own.
 
 - [x] **D3 — Client surface (API + thin MCP adapter), read-only** →
   [G1](./USE_CASES.md#g1--whole-mailbox-visibility) · [V3](#v3--the-agent-arrives-read-only) ·
@@ -701,6 +800,11 @@ perfected up front.
   [F6](#delivered-mapped-to-outcomes)'s discovery
   [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244). Running against the real mailbox
   and a real agent session, at [production point 1](#production-point-1--the-read-path).
+  **Later work.** Before production point 1, the audit row records what a body decision rests on,
+  in typed and checked columns, with reason tokens for the agent, and sender domains are matched
+  through one normalizer in Go, with the sender-class filter as a semi-join over normal domains
+  ([ADR-0016](./docs/adr/data/0016-schema.md)). After it, the mediator's index reads run under a
+  statement timeout, on a pool of a configured size, with custom plans.
 
 - [x] **M7 — The UI's OAuth client setup and account setup** → [O6](./USE_CASES.md#o6--deployable)
   · [V3](#v3--the-agent-arrives-read-only) · finished at image
@@ -768,9 +872,12 @@ perfected up front.
   and connecting the real mailbox, also at production point 1. The parts that read the base policy
   with no account named, the installation endpoint's count of base rules, the getting-started
   list's base policy item, the installation's Base policy navigation and the base policy sentence a
-  connection's success adds, which [M8](#delivered-mapped-to-outcomes) delivered. The
-  signals that tell each workload of a connected account and a replaced credential with no manual
-  step, which are [F7](#group-f--foundation)'s.
+  connection's success adds, which [M8](#delivered-mapped-to-outcomes) delivered. Each workload
+  picking up a connected account and a replaced credential with no manual step, which the worker of
+  [F10](#group-f--foundation) does within a reload, beside the mediator's own reload. **Later
+  work.** Before production point 1, account identifiers follow one grammar, in the UI's proposal,
+  the server's check and the database, and the UI names its key files as the credential section
+  does.
 
 - [x] **M8 — The UI's policy management** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
@@ -815,16 +922,16 @@ perfected up front.
   `operator`, and the sender classifier's lookups, so the unit finished at image. Every
   verification row keyed to it is proven for M8's part, and every control it delivered has its
   mutation demonstration. **What it did not deliver.** Importing the real policy, at
-  [production point 1](#production-point-1--the-read-path). The signals that tell each process of
-  a policy edit with no manual step, which are [F7](#group-f--foundation)'s, so an edit takes
-  effect at each process's own next reload. The `senders` analysis lens, its groupable dimensions
-  and its range, which are [M6](#group-m--mutation-and-approval)'s. A confirmed candidate's rule and
+  [production point 1](#production-point-1--the-read-path). Any signal telling a process of a
+  policy edit, which none needs, since an edit takes effect at each process's own next reload,
+  within a minute in the mediator and in [F10](#group-f--foundation)'s worker. The `senders`
+  analysis lens, its groupable dimensions and its range, which are [M6](#group-m--mutation-and-approval)'s. A confirmed candidate's rule and
   its history row, which are [M5](#group-m--mutation-and-approval)'s.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. The mediator's API
 and MCP roots serve the reads of the index and the recorded state, release the bodies the gate lets
 through, and change nothing. The UI's server serves its read API, the setups' requests, the policy writes and the browser app's screens that the
-Code row of [Where things stand](#where-things-stand-in-one-table) names, and no OAuth client has
+[table by composition root](#what-each-composition-root-runs) names, and no OAuth client has
 been set up against the real Google Cloud console. Backfill builds the index and delta sync keeps it current against the provider fake and a real
 database, and neither has run against the real mailbox. There is no deployment. The properties and checks whose verification rows
 are marked proven are demonstrated by the code of the pull requests those rows name. Every other
@@ -873,7 +980,8 @@ redesign after agent workflows exist.
 
 **Units:** [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
 [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
-[M8](#delivered-mapped-to-outcomes) · [F7](#group-f--foundation) · [R1](#group-r--packaging), then
+[M8](#delivered-mapped-to-outcomes) · [F9](#group-f--foundation) · [F10](#group-f--foundation) ·
+[F11](#group-f--foundation) · [R1](#group-r--packaging), then
 [production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
 the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
 invariant proven against a live adversary (an agent the operator, or a session on the operator's
@@ -935,20 +1043,29 @@ holds, with an entry naming the point.
   [F3](#delivered-mapped-to-outcomes) · [F6](#delivered-mapped-to-outcomes) · [D1](#delivered-mapped-to-outcomes) ·
   [D2](#delivered-mapped-to-outcomes) · [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
   [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
-  [M8](#delivered-mapped-to-outcomes) · [F7](#group-f--foundation) · [R1](#group-r--packaging),
-  the end of [V3](#v3--the-agent-arrives-read-only).
+  [M8](#delivered-mapped-to-outcomes) · [F9](#group-f--foundation) · [F10](#group-f--foundation) ·
+  [F11](#group-f--foundation) · [R1](#group-r--packaging), the end of
+  [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
+  [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
+  [D3](#delivered-mapped-to-outcomes), [F6](#delivered-mapped-to-outcomes),
+  [M3](#group-m--mutation-and-approval) and [M7](#delivered-mapped-to-outcomes) that is placed before
+  this point.
 - **Supplied there:**
-  - PostgreSQL with the superuser bootstrap, the migration role, and the credentials of the runtime
-    roles the mediator, backfill, delta sync and the UI connect as
+  - PostgreSQL with the roles created, which needs the privilege to create roles and no superuser
+    step inside the application database, the migration role, and the credentials of the runtime
+    roles the mediator, the UI and the worker's backfill and delta sync job kinds connect as, each
+    delivered to the process that connects as it, the worker receiving those of its backfill and
+    delta sync job kinds
     ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
-    [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)).
+    [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md),
+    [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
   - The client bearer token and TLS material
     ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md)).
   - The policy data, imported through the UI once the system runs
     ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)), so no policy is supplied
     at deployment.
   - The key pair that seals account credentials, as mounted files, the public key and the private
-    key to the UI and to the deployables that call a provider
+    key to the UI, the mediator and the worker
     ([ADR-0079](./docs/adr/operability/0079-secrets-arrive-as-mounted-files.md),
     [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). The Gmail OAuth
     client is set up and the mailbox connected through the UI once the system runs
@@ -966,7 +1083,8 @@ holds, with an entry naming the point.
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), rotation
   write-back to the database against the real provider
   ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)), backfill
-  killed mid-run on real substrate ([O3](./USE_CASES.md#o3--survives-its-failure-modes)), the
+  killed mid-run on real substrate, as a kill of the worker
+  ([O3](./USE_CASES.md#o3--survives-its-failure-modes)), the
   retirement step of a key replacement exercised by hand, which waits while one account's scan series
   is missing and completes once every series reads 0
   ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)), and the
@@ -986,7 +1104,13 @@ holds, with an entry naming the point.
   [ADR-0005](./docs/adr/classification/0005-tiered-detection.md)), the skip-rate review before the
   residual is trusted ([ADR-0093](./docs/adr/redaction/0093-composite-scan-gate.md)), and whether
   the index drifts from the provider over days of delta sync beside backfill
-  ([ADR-0018](./docs/adr/data/0018-delta-sync-polls.md)).
+  ([ADR-0018](./docs/adr/data/0018-delta-sync-polls.md)). Two checks run there too. One renames in
+  Gmail a label older messages carry that will not otherwise change, and after the next delta sync
+  tick reads one of those messages and the labels, to see whether its stored label path goes stale
+  and whether the history feed reported anything for it, an answer the reorganization unit
+  [M2](#group-m--mutation-and-approval) decides on. The other reads
+  `SELECT message_id, sent_at FROM messages ORDER BY message_id LIMIT 20` against the real index, to
+  see whether message identifiers are ordered by time.
 
 ### Production point 2 — the agent acts
 
@@ -998,12 +1122,14 @@ holds, with an entry naming the point.
 - **Preconditions:** [production point 1](#production-point-1--the-read-path) has run long enough
   for the index to hold the real corpus and the review loops to have traffic.
 - **Supplied there:**
-  - The database role credentials of the reorganization workload and the heuristics job
-    ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)).
+  - The worker's two new role credentials, for its reorganization and heuristics job kinds
+    ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md),
+    [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
   - Re-consent on the first account's grant for the calendar scope, through the UI
     ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md),
     [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)).
-  - The module's change for the two new deployables, with its tickets in the sibling repositories.
+  - The module's change delivering those two credentials to the worker, with its tickets in the
+    sibling repositories.
 - **Proven only there:** rollback of a real plan of around a thousand messages before any plan of
   corpus scale is trusted
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md)), apply after a
@@ -1039,7 +1165,9 @@ and the gate-passing misses
 ([ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md)). Confirming an example
 needs a feedback verb on masking and gate events, which [X1](#group-x--expansion) builds first, and
 training starts once a few hundred confirmed examples exist. After
-[production point 3](#production-point-3--a-second-of-everything) nothing new is supplied.
+[production point 3](#production-point-3--a-second-of-everything) nothing new is supplied, and
+row-level security is reconsidered then, with the label and subject indexes it rules out, as later
+work of [F2](#delivered-mapped-to-outcomes) ([ADR-0016](./docs/adr/data/0016-schema.md)).
 [X1](#group-x--expansion) and every later change ship as version bumps, [X1](#group-x--expansion)
 behind the scanner-version flag
 ([ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md),
@@ -1068,28 +1196,115 @@ check runs inside the sanitization step
 
 ### Group F — foundation
 
-What everything runs on. The tooling, the store, the adapter, the budget, and where accounts and
-their credentials are kept. F1 is retired. Its application half lives in
-[F5](#delivered-mapped-to-outcomes) and its platform half at [production
-point 1](#production-point-1--the-read-path). F4, F2, F5, F3 and F6 are delivered and sit in the
-[delivered register](#delivered-mapped-to-outcomes), and F7 remains. F5 also
-carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the scope
-that excludes permanent delete, because the grant is the adapter's.
+What everything runs on. The tooling, the store, the adapter, the budget, where accounts and their
+credentials are kept, how the code is organized, the background worker and the schema production
+point 1 locks in. F1 is retired. Its application half lives in [F5](#delivered-mapped-to-outcomes)
+and its platform half at [production point 1](#production-point-1--the-read-path). F7 is retired.
+Its criterion, that an account newly connected, a credential replaced by re-authorization and a
+policy edit each reach every process that acts on them with no manual step and no restart, is met
+by [F10](#group-f--foundation)'s worker, which picks each change up within one reload and starts an
+account's backfill when the account appears, beside the reloads the mediator already makes
+([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+[ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), so
+no signal between deployables is built. F4, F2, F5, F3 and F6 are delivered and sit in the
+[delivered register](#delivered-mapped-to-outcomes), and F9, F10 and F11 remain, in that order. F5
+also carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the
+scope that excludes permanent delete, because the grant is the adapter's.
+[F10](#group-f--foundation) serves [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) and
+also carries [O6](./USE_CASES.md#o6--deployable)'s connection of an account with no manual step,
+which F7 held, because the worker's reload of accounts is what starts a new account's backfill,
+flagged here rather than split. [F11](#group-f--foundation) serves
+[O3](./USE_CASES.md#o3--survives-its-failure-modes) and also carries
+[O2](./USE_CASES.md#o2--observable)'s checked spellings on the append-only policy history, because
+the schema's checks are one baseline.
 
-- [ ] **F7 — Signals between deployables** → [O6](./USE_CASES.md#o6--deployable) ·
+- [ ] **F9 — The code organized for growth** →
+  [O3](./USE_CASES.md#o3--survives-its-failure-modes) · [V3](#v3--the-agent-arrives-read-only) ·
+  finishes at image
+  The code reorganized with every deployable's behaviour held. One package for the rules every
+  provider-calling composition root repeats today, pairing an account with its credentials, holding
+  a token source, re-reading a refused credential and retrying once, handing the credential over
+  with its adoption stamp and recording the latest authentication attempt, so they are written once
+  where three copies drifted
+  ([ADR-0089](./docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md),
+  [ADR-0097](./docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
+  An exported entry package per deployable, which `main.go` calls
+  ([ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md)), with
+  [CLAUDE.md](./CLAUDE.md#inside-a-component)'s composition-root convention changed in the same
+  pull request. The shared libraries grouped into families by the
+  rules against sprawl of [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md),
+  named under [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md)'s
+  convention, with the pure-core match at any depth
+  ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)), with
+  [CLAUDE.md](./CLAUDE.md#inside-a-component)'s pure-core row and its rules mirror changed in the
+  second pull request, which makes the match at any depth true, and package names unique inside
+  the data-access library. The second pull request also writes each family's README, which argues
+  the family's case once and says what belongs in it and what does not, as ADR-0050 requires. Its records and conventions are in place, and the code
+  moves in two pull requests, the session package with the entry packages first, then the families.
+  The inter-component import rules are selected again when the lists are first rewritten for the
+  regrouping, the pure-core rule staying on `depguard`, and the commit taxonomy's reading of what
+  ships becomes the non-test build graph of an image's binary at that layout change
+  ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)).
+  It changes the composition roots, so it finishes at image. What proves it is every existing test
+  and mutation demonstration a move touches run again, since a move of a path alone is a change
+  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)), and the
+  verification row for a pure core at any depth. *Criteria:* none of the shared account-handling
+  functions appears in any composition root afterwards, and what each binary links is unchanged.
+- [ ] **F10 — The background worker** →
+  [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
   [V3](#v3--the-agent-arrives-read-only) · finishes at image
-  A way for one deployable to tell the others that something they hold has changed, so a change
-  the operator makes in the UI reaches the workloads with no manual step and no restart. The
-  operator asked for it on 2026-10-01, before [production point 1](#production-point-1--the-read-path),
-  and named the changes it carries at least: an account newly connected, which backfill and the
-  other workloads then start serving, a credential replaced by re-authorization, which the
-  workloads take up, and a policy edit, which each process loads. How a signal travels, which
-  deployables send and receive it, and which other changes use it are decided where it is built.
-  The UI's designs assume it for those three changes
-  ([docs/UI.md sections 8.7 and 8.12](./docs/UI.md#812-connect-an-account-and-re-authorize)). It
-  changes the composition roots of the deployables that send or receive a signal, so it finishes
-  at image. *Criteria:* each of the three changes reaches every deployable that acts on it with no
-  manual step and no restart.
+  One deployable runs every background job kind, backfill and delta sync from the start and reorg
+  apply and the heuristics run as their units build them, in one process with a database role,
+  a connection pool and an import list per job kind
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md),
+  [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). Its
+  scheduler stores nothing, asks each job kind's pure due decision when to run, coalesces wakes,
+  holds one run per job, recovers a panic in the run that raised it, and backs off on failure, and
+  each credential-holding job kind has its own account and policy loader
+  ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
+  A running second pass makes the delisting and added-rule comparisons again when the policy it
+  holds changes ([ADR-0037](./docs/adr/redaction/0037-delisting-transition.md),
+  [ADR-0113](./docs/adr/redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
+  Its series carry the job kind, the shared library series included, its logs carry the job kind
+  and the account, and the stopped-worker rule and the rule per job kind on a last success that has
+  aged ship with the chart
+  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). It reads one
+  configuration tree with a section per job kind
+  ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It
+  replaces the backfill and delta sync deployables and the reorganization and heuristics
+  deployables' empty roots, so it finishes at image. What proves it is its rows over the provider
+  fake and a real database, the scheduler's timing tested under `testing/synctest`
+  ([TESTING.md](./TESTING.md)). The worker killed mid-run on real substrate waits for
+  [production point 1](#production-point-1--the-read-path). *Criteria:* every job kind's series
+  attributable to it, each job's time of last success emitted, and the two alerting rules firing
+  above their bounds and silent below them.
+- [ ] **F11 — The schema baseline for production** →
+  [O3](./USE_CASES.md#o3--survives-its-failure-modes) · [V3](#v3--the-agent-arrives-read-only) ·
+  finishes at tested
+  The migration chain flattened, before its first production apply makes every file in it
+  history, into a baseline of every table in its final shape, its row-level security and its
+  grants per role, with two migrations after it, one altering the accounts table over the rows the
+  baseline wrote and one adding the run and audit indexes over populated tables
+  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
+  [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)). It carries every schema change of
+  [ADR-0016](./docs/adr/data/0016-schema.md)'s DDL whose writer no other unit owns, the sender
+  domains as lowercase `text`, the checks in their three tiers, `job_runs.pass` not null and the
+  five indexes, with pgvector, the embedding column, the label and subject indexes and `pg_trgm`
+  removed, so no step inside the application database needs a superuser
+  ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md),
+  [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md),
+  [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). The typed audit
+  row, the domain normalizer, attachment types and the identifier grammar's other places are the
+  later work of [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
+  [M7](#delivered-mapped-to-outcomes), whose writers they are. It changes no composition root, so
+  it finishes at tested. The documents that describe the superuser bootstrap change with it,
+  `.claude/rules/db.md` (lines 17 and 18), `db/README.md` (lines 9 and 10) and
+  `testsupport/README.md` (line 30), and so does `pgrun`, which creates the roles and applies the
+  chain with no bootstrap, as [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)
+  describes. What proves it is its rows, the two migrations tested over rows the chain
+  before them wrote, and the patches whose diff context a migration file carries regenerated and
+  demonstrated again. *Criteria:* every grant of a role in one section, and the generated
+  data-access code changed only where a column's type or nullability changed.
 
 ### Group D — data flows
 
@@ -1120,7 +1335,7 @@ reversibility are built as one piece. [M5](#group-m--mutation-and-approval) serv
 [G3](./USE_CASES.md#g3--reorganization) and also carries
 [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace)'s candidate review and
 [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer)'s decision screens, because the four
-decision requests are one write surface
+decision requests and the rollback request are one write surface
 ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)) and are built as
 one piece. [M1](#group-m--mutation-and-approval) serves
 [A1](./USE_CASES.md#a1--asymmetric-mutation) and also carries
@@ -1178,7 +1393,8 @@ classifications already stored in the index they follow
   2](#production-point-2--the-agent-acts).
 - [ ] **M2 — Reorg engine** → [G3](./USE_CASES.md#g3--reorganization) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
-  The reorg workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) and the plan
+  Reorg apply and rollback as a job kind of the worker
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)) and the plan
   lifecycle of [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md), plan
   storage with flows, validation at creation and re-validation at apply with the plan-age check
   ([ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md)), the client operation that
@@ -1189,21 +1405,25 @@ classifications already stored in the index they follow
   read-only plan tools on the client surface, checkpointed apply spending from
   [F3](#delivered-mapped-to-outcomes)'s budget in the batch class
   ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), the op log, and rollback
-  as exact replay. How an approved plan starts applying, and how a rollback is requested, are an
-  [open decision](#open-decisions) settled where the reorg workload is built, and neither is a
-  request the UI makes
-  ([docs/UI.md](./docs/UI.md)). Apply and rollback are the crash harness's first target by payoff
+  as exact replay. Apply starts from APPROVED by a compare-and-set on the plan's status, and a
+  rollback is requested as a plan status the UI writes within its existing grant, both read by the
+  apply job's due decision ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
+  [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
+  The rollback request's status value and the interval at which apply checks are settled here, and
+  apply's role gains the update of the last authentication columns the other provider-calling roles
+  hold ([ADR-0097](./docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
+  Apply and rollback are the crash harness's first target by payoff
   ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). *Criteria:* saving a plan
   writes its operations as rows with their flows, apply and rollback runs are recorded with their
   per-operation failures, and every operation that apply or rollback performs is checked by the
-  authorizer, spends from the batch class, writes its audit row and is counted as a metric, and the workload serves
-  the health probe, the metrics endpoint and structured logs
+  authorizer, spends from the batch class, writes its audit row and is counted as a metric, and its
+  series and logs carry its job kind
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
   [ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0016](./docs/adr/data/0016-schema.md),
-  [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The reorg workload takes its
-  account snapshot at the start of a run and refuses to start unless its public key matches one of
-  its private keys
+  [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The apply job kind takes its
+  account snapshot from its own loader at each batch, and the worker refuses to start unless its
+  public key matches one of its private keys
   ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
   [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Approval is a
   hand-written database update until [M5](#group-m--mutation-and-approval) lands. The maximum plan
@@ -1271,11 +1491,15 @@ classifications already stored in the index they follow
   Pull request [#253](https://github.com/ppat/mediated-mailbox-mcp/pull/253) closed the discovery
   [#225](https://github.com/ppat/mediated-mailbox-mcp/issues/225), so the partial-index banner tells
   a backfill pass 1 that a change of scanner re-opened apart from a first one, and no count reads as
-  a count so far while a re-opened pass 1 runs.
+  a count so far while a re-opened pass 1 runs. Before production point 1, the UI's route words
+  become a closed list a test pins. After it, the UI's dataset reads run under a statement timeout,
+  on a pool of a configured size, with custom plans.
 - [ ] **M4 — Heuristics job + embeddings** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
-  The heuristics workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) proposing
+  The heuristics run, a job kind of the worker held by code isolation away from every credential,
+  provider and account session
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)), proposing
   candidates into the review queue from the heuristics of
   [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md), over the sender statistics
   [D1](#delivered-mapped-to-outcomes) builds. It runs headless, and [M5](#group-m--mutation-and-approval) is
@@ -1287,19 +1511,22 @@ classifications already stored in the index they follow
   [M8](#delivered-mapped-to-outcomes) settled
   ([ADR-0113](./docs/adr/redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)),
   so a confirmed candidate's rule reaches the stored classes the same way. This unit and M5 follow
-  that answer. How the heuristics workload finds its accounts, since no account comes from
-  configuration, is an [open decision](#open-decisions) settled here.
-  *Criteria:* each run is recorded, and the workload serves the health probe, the metrics endpoint
-  and structured logs ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
+  that answer. How the heuristics run finds its accounts, since no account comes from
+  configuration, is an [open decision](#open-decisions) settled here, and so is how embeddings are
+  stored, if they are, since the schema holds no vector column and needs no extension
+  ([ADR-0016](./docs/adr/data/0016-schema.md)). Its runs name a pass in `job_runs`.
+  *Criteria:* each run is recorded, and its series and logs carry its job kind
+  ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)).
 - [ ] **M5 — The UI's decisions** → [G3](./USE_CASES.md#g3--reorganization) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
   The plan reviewer with approve and reject, and the review queue with confirm and dismiss, the four
-  decision requests ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)),
+  decision requests, and the rollback request for an applied plan
+  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)),
   with the second confirmation a plan touching more than a quarter of the corpus demands
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md)), and whether a plan
   touching exactly a quarter also needs it is an [open decision](#open-decisions) settled here. The
-  four requests are each bound to the session's request token, which
+  four requests and the rollback request are each bound to the session's request token, which
   [M7](#delivered-mapped-to-outcomes) built
   ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)), and the declared
   identity, each one transaction written by the UI's own code
@@ -1355,8 +1582,8 @@ the adapter.
   The calendar port and the Google Calendar adapter on the first account's grant, participant-set
   classification and private-event restriction through the same gate, the join link as a content
   flag, and mutation rights mirroring mail in the authorization matrix
-  ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)), wired into the mediator,
-  backfill and delta sync deployables with dry-run on each calendar mutation
+  ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)), wired into the mediator and
+  the worker's backfill and delta sync job kinds with dry-run on each calendar mutation
   ([ADR-0031](./docs/adr/mutation/0031-dry-run-on-mutating-operations.md)). The index gains
   calendar tables, whose schema is decided and recorded when they are built beside
   [ADR-0016](./docs/adr/data/0016-schema.md). Where the adapter is built, two
@@ -1380,7 +1607,13 @@ the adapter.
   composition root changes and the unit finishes at tested. Two fixture accounts run the
   adversarial cross-account injection. The real second mailbox and its independent grant arrive
   at [production point 3](#production-point-3--a-second-of-everything). If anything above the port
-  needs changing, the model was wrong, and finding out here, cheaply, is the point.
+  needs changing, the model was wrong, and finding out here, cheaply, is the point. With the second
+  account, the mediator loads only the requesting account's policy before each body request, which
+  keeps loading before each request, as
+  [ADR-0099](./docs/adr/engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)
+  requires, while removing a cost that grows with every account's rules. Each account's background
+  work runs in parallel with the other's, as separate jobs of the worker
+  ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
 - [ ] **X4 — The Fastmail backend** → [P2](./USE_CASES.md#p2--backend-swap) ·
   [V5](#v5--a-second-of-everything) · finishes at image
   The JMAP mail adapter and the CalDAV calendar adapter, with scoped tokens per protocol
@@ -1388,7 +1621,9 @@ the adapter.
   [ADR-0027](./docs/adr/provider/0027-calendar-classification.md)) and the JMAP rate profile
   ([ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md)), passing the same contract
   suite ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)), selected per account by the
-  provider its row names and wired into every deployable that calls a provider
+  provider its row names, through the connector per provider that
+  [F9](#group-f--foundation)'s account session package takes, so the dispatch is written once for
+  the mediator and the worker
   ([ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md)), and
   connected through the UI's account setup, which takes the Fastmail tokens and seals them
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)). Whether a
@@ -1410,7 +1645,7 @@ the adapter.
   confirms its examples, and whether its weights ship in the binary or beside it in the image, are
   open against this unit. The feedback verb is built first, before any training, because the
   confirmed examples accumulate only once it exists, and it needs its own record, since it is a
-  third decision beside the UI's two
+  decision beside the UI's two and its rollback request
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
   [docs/UI.md](./docs/UI.md#20-what-remains-open)). The scanner-version flag itself is built here, since
   the tier is the first thing to ship behind it. Shipping the tier re-scans the stored index with
@@ -1422,9 +1657,9 @@ The chart of [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-c
 the assembled system, so its templates, its Helm tests and the chainsaw suite are built once per
 production point rather than once per deployable. Each unit finishes packaged, which needs a
 release, because the chainsaw suite deploys the images published for a version. Until
-[R2](#group-r--packaging) lands the chart stands up the migration step, the read path's three
-deployables, the mediator, backfill and delta sync, and the UI, and no other, whatever else a
-release's images carry, and from [R2](#group-r--packaging) it stands up every deployable, as
+[R2](#group-r--packaging) lands the chart stands up the migration step, the read path's
+deployables, the mediator and the worker running backfill and delta sync, and the UI, and no
+other, whatever else a release's images carry, and from [R2](#group-r--packaging) it stands up every deployable, as
 [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) requires.
 [R3](#group-r--packaging) adds inputs only. What proves an R unit is the chainsaw suite passing
 against its release, as [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)
@@ -1433,31 +1668,35 @@ about its cluster.
 
 - [ ] **R1 — Package the read path** → [O6](./USE_CASES.md#o6--deployable) ·
   [V3](#v3--the-agent-arrives-read-only) · finishes at packaged
-  Templates, Helm tests and chainsaw tests for the migration step, the mediator, backfill, delta
-  sync and the UI, with the UI's separate deployment and database role
+  Templates, Helm tests and chainsaw tests for the migration step, the mediator, the worker and the
+  UI, with the UI's separate deployment and database role
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)), the pod security
   contexts of [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md), the secrets
-  mounted as files, the public key to the UI and the deployables that call a provider and the
-  private key only to those deployables and the UI, whose one isolated part opens an OAuth client's
+  mounted as files, the public key to the UI, the mediator and the worker and the private key only
+  to those processes, whose one isolated part opens an OAuth client's
   secret with it
   ([ADR-0079](./docs/adr/operability/0079-secrets-arrive-as-mounted-files.md),
   [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), memory-backed
-  scratch space for the workloads that handle bodies
-  ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), backfill's first
-  start by hand ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)), delta sync as one process that runs until stopped, never two at once, a rollout
-  included ([ADR-0103](./docs/adr/operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)), and
+  scratch space for the processes that handle bodies
+  ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), the worker as one
+  process that runs until stopped, never two at once, a rollout included, delivered the credential
+  of each role its job kinds run as
+  ([ADR-0103](./docs/adr/operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md),
+  [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), and
   every input supplied as values or pre-existing objects
   ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). How the chart runs
   the migration step is open against this unit
   ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)). One
   [open decision](#open-decisions) is settled here, which pull request closes a packaging ticket
-  whose proof needs a release published after it merges. The chart also includes a run of backfill,
-  with no manual step,
-  after each release and each change to the scanner's section, which
-  [D2](#delivered-mapped-to-outcomes)'s re-scan after a change of scanner needs
-  ([ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md)), as does its
-  re-decision of the gate skips after a change of the gate's thresholds, which today ships in a
-  release ([ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)).
+  whose proof needs a release published after it merges. The chart restarts the worker on each
+  release and each change to its configuration, which starts backfill's run-start comparisons with
+  no manual step, as [D2](#delivered-mapped-to-outcomes)'s re-scan after a change of scanner and
+  its re-decision of the gate skips after a change of the gate's thresholds need
+  ([ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md),
+  [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md),
+  [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). It builds on
+  [F9](#group-f--foundation), [F10](#group-f--foundation) and [F11](#group-f--foundation), whose
+  worker, schema and roles it packages, and has no extension bootstrap to run.
   Against the first
   release that attaches the key-generation binaries, the binary is downloaded, its keyless signature
   verified and a tampered copy refused, and the pair it writes is one the library seals and opens with
@@ -1465,14 +1704,16 @@ about its cluster.
   The bare-cluster install proof stands from here.
 - [ ] **R2 — Package the action path and calendar** → [O6](./USE_CASES.md#o6--deployable) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at packaged
-  Templates, Helm tests and chainsaw tests for the reorg and heuristics deployables, with the reorg
-  workload under the same pod security contexts and the same mounted private key as the read
-  path's provider-calling deployables
+  The chart and its suites gain the reorganization and heuristics job kinds' inputs, the worker
+  delivered their two role credentials
+  ([ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), the
+  worker already holding the pod security contexts and the mounted private key
   ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md),
-  [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), the two
-  workloads' invocation, the
-  heuristics job on its schedule and reorg apply on approval
-  ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)), and the calendar scope's inputs
+  [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), and no new
+  deployable to package, since the worker schedules the heuristics run and starts apply on
+  approval itself
+  ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)),
+  and the calendar scope's inputs
   ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)), added to the chart and its
   suites.
 - [ ] **R3 — Package the second account and the Fastmail backend** →
@@ -1493,7 +1734,7 @@ about its cluster.
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | — | The data layer landed with F2, the adapter with F5 and the client surface with D3, all delivered |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | — | The full-history index landed with D1, and the agent's reads over sender aggregates and label distribution with D3, both delivered |
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M5 | — |
-| [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | — | Delta sync landed with D4, which is delivered |
+| [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | F10 | Delta sync landed with D4, which is delivered. F10 keeps it fresh inside the worker, with the alert on a sync job whose last success has aged |
 | [P1](./USE_CASES.md#p1--one-contract) one contract | — | No dedicated unit, correctly. The contract is authored in the decision records, first compiled by F5, which is delivered, and proven by X4 |
 | [P2](./USE_CASES.md#p2--backend-swap) backend swap | X4 | — |
 | [P3](./USE_CASES.md#p3--multi-account) multi-account | X3 | Accounts and their sealed credentials in the database landed with F6, which is delivered. The identifier-discoverability criterion ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) landed with D3, which is delivered |
@@ -1502,11 +1743,11 @@ about its cluster.
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | M3 | The conversion, the delimiters and the serve-time check landed with S3, which is delivered. Serving every body through them landed with D3, a G1 unit, which is delivered. The volume alert rides M3, an O4 unit, as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), over the audit rows D3 writes |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | — | The rate limiter and the Gmail cost profile landed with F3, which is delivered. The real ceiling reveals itself at production point 1 |
-| [O2](./USE_CASES.md#o2--observable) observable | — | No dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
-| [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | No dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
+| [O2](./USE_CASES.md#o2--observable) observable | — | No dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carries the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
+| [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F9 · F11 | F9 writes the account-handling rules once where copies drifted, and F11 settles the schema before production point 1 makes the chain history. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
-| [O6](./USE_CASES.md#o6--deployable) deployable | F7 · R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the workloads taking up what the UI changes with no manual step is F7's |
+| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step rides F10, a G4 unit, flagged in Group F's preamble |
 
 ## Dependencies
 
@@ -1527,14 +1768,19 @@ lands in is the [value path](#the-value-path)'s.
 | F6 → D4 | The keyring and the re-seal delta sync runs, and the scan of what is sealed to an old key ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)) |
 | F6 → D1, F6 → D3 | The accounts, their state rows and the sealed credentials the first provider-calling deployables read, the library that opens them, and `accountload/`, which builds the account snapshot from them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
 | F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, the several clients per provider F6's discovery [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244) landed, and the UI's server and browser app its screens live in |
-| M7 → F7, M8 → F7, D4 → F7 | The changes the UI makes that F7 carries, a connected account and a replaced credential (M7) and a policy edit (M8), and delta sync, the last read-path workload to receive them |
-| F7 → R1 | Whatever the signals need from the deployment, which the chart packages |
+| F9 → F10 | The entry package per deployable, the account session package and the families, which the worker's composition root composes and its job kinds' import lists name |
+| D1 → F10, D2 → F10, D4 → F10 | Backfill's two passes and delta sync, the job kinds the worker runs from the start |
+| D2's re-mask later work → F10 | [ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) accepted, with [ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md) superseded, before F10 accepts [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md), since ADR-0096's step at every backfill run would otherwise stand Accepted beside a worker that makes it once per process and account |
+| M7 → F10, M8 → F10 | The changes the UI makes that the worker's reloads pick up, a connected account and a replaced credential (M7) and a policy edit (M8) |
+| F9 → F11, D3 → F11 | The families whose paths the chain's tests and patches name, and the one Go normalizer of sender domains that D3's later work lands, so every writer lowercases before the domain columns become `text` |
+| F9 → R1, F10 → R1, F11 → R1 | The worker, its roles and the schema with no extension bootstrap, which the chart packages |
+| F10 → M2, F10 → M4, F11 → M4, F10 → X2, F9 → X2, F10 → X3, F9 → X4, F10 → X4 | The worker each background job kind runs in, with its scheduler, role, pool and loaders, the schema baseline the heuristics run's candidates and pass are written into, and the account session package through which a provider's connector is passed once |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
 | F2 → every later unit that holds a database role | The runtime database roles, created with the schema, that each unit's component connects to the database as |
 | S1 → M3, S1 → F5 | The marker text and synthetic fixtures the UI's recorded fixtures, the provider fake and the adapter's tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | S1 → M8, D1 → M8, D2 → M8 | The policy snapshot validation a reload applies to every published edit, the stored senders the search picks from, and how a removed rule reaches the delisting transition |
 | M7 → M8 | The request token every policy request is bound to ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
-| D2 → R1 | The re-scan after a change of scanner and the re-decision of the gate skips after a change of the gate's thresholds, which the packaged read path runs by running backfill after each release and each change to the scanner's section ([ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md), [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)) |
+| D2 → R1 | The re-scan after a change of scanner and the re-decision of the gate skips after a change of the gate's thresholds, which the packaged read path runs because the chart restarts the worker after each release and each change to its configuration, and the worker makes backfill's run-start step at its start ([ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md), [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)) |
 | S1 → D1, S2 → D1 | Sender classification, the policy snapshot the policy loader builds on, and subject masking, which pass 1 applies |
 | F2 → D1, F3 → D1, F5 → D1 | The schema backfill writes through, the budget it spends from, the adapter it reads with |
 | F3 → D1, F3 → D4 | The form conditions are raised in, an alerting rule over emitted metrics ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The policy loader's reload-failure alarm and delta sync's gap alert take the same form |
@@ -1555,14 +1801,14 @@ lands in is the [value path](#the-value-path)'s.
 | M6 → X1, M5 → X1 | The masking-events and gate views and the UI's decision path the feedback verb joins |
 | S1 → D2, S1 → M1, S1 → M2, S1 → X2 | The pure cores these units run, the classifier, the gate and the authorization matrix |
 | F2 → M1, F2 → M2, F2 → M4, F2 → X2, F2 → D4 | The schema each writes through |
-| F2 → R2 | The runtime database roles the reorg and heuristics deployables connect as |
+| F2 → R2 | The runtime database roles the worker's reorganization and heuristics job kinds connect as |
 | M7 → X3 | The account setup a second account is connected through |
-| M1 → X3, M2 → X3, D4 → X3, M4 → X3, X2 → X3 | The mutation the cross-account injection attempts, the reorg, delta sync and heuristics workloads a second account also configures, and the calendar client every account holds, which the injection also covers |
+| M1 → X3, M2 → X3, D4 → X3, M4 → X3, X2 → X3 | The mutation the cross-account injection attempts, the reorg, delta sync and heuristics job kinds a second account also runs, and the calendar client every account holds, which the injection also covers |
 | S1 → F2, and S1 → every later unit | The marker text and synthetic fixtures later tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the provider fake, the convention for running the suite against the real provider, the rate limiter the Fastmail backend spends through, the deployables that call a provider, how a label is renamed and deleted at the provider, and the calendar side of the port the CalDAV adapter implements. The Fastmail wiring also follows the answers on how a running deployable learns of a new account or a replaced credential and on recording the authentication outcome |
 | S2 → X1, D2 → X1, D4 → X1 | The tier boundary and the scanner version tier 3 fits into, the masking events and gate decisions its training examples come from, the re-scan that ships it, and the scanning workloads it runs in |
 | F2 → R1, D1 → R1, D3 → R1, D4 → R1, M3 → R1, M7 → R1, M8 → R1 | The migration chain the step runs, the runtime database role the UI connects as, the read path's deployables and the UI with its account setup, to which the chart mounts the public key and the private key its client-secret part opens a client's secret with, and its policy management, whose writes the UI's role is granted |
-| M2 → R2, M4 → R2, X2 → R2, R1 → R2 | The action path's deployables, the calendar inputs, and the chart and suites R2 adds to |
+| M2 → R2, M4 → R2, X2 → R2, R1 → R2 | The action path's job kinds and their roles, the calendar inputs, and the chart and suites R2 adds to |
 | X4 → R3, R2 → R3 | The Fastmail backend, and the chart and suites R3 would add to |
 | R1 → R2, R1 → R3 | Which pull request closes a packaging ticket whose proof needs a release published after it merges, which R2 and R3 follow |
 
@@ -1590,13 +1836,15 @@ supplies, including edges another edge implies.
 | M8 | M7 · D2 |
 | D4 | D2 · D3 |
 | M1 | D3 |
-| X2 | D4 · M1 |
-| M2 | M1 |
+| X2 | M1 · F10 |
+| M2 | M1 · F10 |
 | X3 | M2 · M4 · X2 |
 | X4 | M2 · X2 |
-| F7 | D4 · M8 |
-| R1 | F7 |
-| M4 | M8 |
+| F9 | D4 · M8 |
+| F10 | F9 · D2's re-mask later work |
+| F11 | F9 |
+| R1 | F10 · F11 |
+| M4 | F10 · F11 |
 | M6 | M3 · M2 |
 | M5 | M6 · M8 |
 | R2 | M2 · M4 · X2 |
@@ -1621,14 +1869,17 @@ flowchart LR
     M3 --> M7
     M7 --> M8
     D2 --> M8
-    M8 --> F7
-    F7 --> R1
+    M8 --> F9
+    F9 --> F10
+    D2 -- re-mask later work --> F10
+    F9 --> F11
+    F10 --> R1
+    F11 --> R1
     S2 --> D1
     F3 --> D1
     F6 --> D1
     D1 --> D2
     S3 --> D2
-    M8 --> M4
     M8 --> M5
     S3 --> D3
     D1 --> D3
@@ -1636,12 +1887,15 @@ flowchart LR
     D3 --> D4
     D3 --> M1
     M1 --> X2
-    D4 --> X2
     M1 --> M2
     M2 --> X3
     M4 --> X3
     X2 --> X3
-    D4 --> F7
+    D4 --> F9
+    F10 --> M2
+    F10 --> M4
+    F11 --> M4
+    F10 --> X2
     M2 --> R2
     X2 --> R2
     M4 --> R2
@@ -1689,14 +1943,13 @@ index](./docs/adr/README.md).
 | The feedback verb on masking and gate events | X1 | [ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md) takes its confirmed examples from corrections the operator makes in the UI's masking-events view, and [docs/UI.md](./docs/UI.md#20-what-remains-open) leaves that verb to a record that does not exist yet. No unit produces a confirmed example until the verb exists, so X1 builds the verb and writes its record first. Training waits for the examples the verb then produces |
 | How the audit of every applied and refused mutation is guaranteed | M1 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the violation to refuse, a mutation reaching the provider with no audit row. It has no injection for it until a record decides between two mechanisms, writing the audit row before the provider call, or a structural check that refuses any path without an audit row. M1 writes the first audited mutation, so it decides, and M2's apply follows the same answer |
 | Maximum plan age | M2 | [ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md) requires rejecting plans older than a maximum age at apply time. The value has not been chosen. The UI reads the same value from configuration ([docs/UI.md](./docs/UI.md)), and the value settled here is also that key's default, so the plans screens M6 builds follow this answer |
-| How an approved plan starts applying, and how a rollback is requested | M2 | [ADR-0022](./docs/adr/operability/0022-four-workloads.md) starts apply on human approval and [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) rolls back by replaying the op log, and neither says what starts either one. The UI only writes the plan's status and never calls the mediator ([docs/UI.md](./docs/UI.md)). The reorg workload's composition root depends on the answer, so it is decided where that root is built |
 | Whether R3 keeps any work or is retired | X4, R3 | R3 packaged the inputs a second account and the Fastmail backend needed. Accounts and their credentials are now connected through the UI ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), which leaves it no input named anywhere. Whether X4 adds anything to the chart is known once the JMAP adapter is built, so it is decided there |
 | Which pull request closes a packaging ticket whose proof needs a release published after it merges | R1 | An R unit is proven by running the chainsaw suite against the images published for a release ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), and that release is only cut after the pull request that changes the chart has merged. [CLAUDE.md](./CLAUDE.md#repository-process) says a ticket is closed by the pull request that meets its part of the unit's acceptance. Nothing says which pull request closes a packaging ticket in that case, or who starts the chainsaw run. It is decided where the first packaging unit is built, and R2 and R3 follow it |
-| What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet |
+| What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet. Whoever first extends a rule's shape, this switch or any other field, meets two facts. Importing a policy file is making the scope's rules equal to the file ([ADR-0110](./docs/adr/mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md)), so importing an older file that lacks the new key silently resets that key on every rule to its default. And `policy_changes` records only a rule's suffixes before and after ([ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md)), so a later rule field needs columns there for its history |
 | How a reorganization renames and deletes a label at the provider | M2 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) plans creating, renaming and deleting labels, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md)'s port has `ensure_label` and `mutate` and nothing to rename or delete a label. It is decided where apply is built, together with any addition to the port, the provider fake and the contract suite |
 | Whether a plan touching exactly a quarter of the corpus needs the second confirmation | M5 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) requires it for a plan touching more than a quarter, and [docs/UI.md](./docs/UI.md#82-plan-reviewer) for a plan touching a quarter or more. It is decided where approve, and the server's recalculation of the plan's share, are built |
 | How a reorganization or batch operation is represented in Go | M1 | [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) leaves the representation undecided. The shared validation core used by both the mediator and the reorg workload depends on it, so it is decided where that core is first built |
-| Whether the heuristics' embeddings run in Go or in a separate deployable | M4 | [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md) allows either. It is decided where the heuristics workload is built |
+| Whether the heuristics' embeddings run in Go or in a separate deployable, and how they are stored if they are | M4 | [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md) allows either, and a model runtime that needs cgo runs outside the worker ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). The schema holds no vector column and needs no extension, so stored embeddings take a column of their own in a migration of M4's ([ADR-0016](./docs/adr/data/0016-schema.md)). It is decided where the heuristics workload is built |
 | The calendar index schema | X2 | [ADR-0016](./docs/adr/data/0016-schema.md) has no calendar table, and storing calendar data needs one. It is decided, and recorded beside ADR-0016, where the tables are built, before calendar is wired into the deployables |
 | The calendar side of the provider port and the canonical calendar model | X2 | [ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md) puts a calendar provider on each account, [ADR-0027](./docs/adr/provider/0027-calendar-classification.md) adds a calendar part to the data model, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md) defines only the mail side of the port. The Google Calendar adapter is the first work that implements it, so it is decided there. Calendar classification, the calendar tables, the calendar operations and the CalDAV adapter follow it |
 | How calendar calls share an account's rate budget | X2 | [ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md) gives an account one rate profile and one rate controller, [ADR-0016](./docs/adr/data/0016-schema.md) keeps one rate-state row per account, and [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) defines costs for mail calls only. No record says what a calendar call costs, or how throttling on calendar calls affects the account's controller. The Google Calendar adapter makes the first calendar calls, so it is decided there. The calendar wiring, the CalDAV adapter and the Fastmail wiring follow it |
@@ -1708,3 +1961,6 @@ index](./docs/adr/README.md).
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
 | How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which row-level security confines to one account, so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role joins ADR-0091's list of roles |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |
+| How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. No runtime role may delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep every read of them fast through the first year ([F11](#group-f--foundation)). So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |
+| Ratifying [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md), [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) and [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | F10 | The operator ruled each on 2026-10-07, and each is Proposed until the first pull request whose implementation it shapes, which sets it Accepted, marks [ADR-0022](./docs/adr/operability/0022-four-workloads.md), [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) and [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) superseded, and re-points their citations ([docs/adr/README.md](./docs/adr/README.md)) |
+| Ratifying [ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) | D2, as later work | The operator ruled it on 2026-10-07, and it is Proposed until the pull request that builds the re-mask from the store, which sets it Accepted, marks [ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md) superseded, and re-points its citations ([docs/adr/README.md](./docs/adr/README.md)) |

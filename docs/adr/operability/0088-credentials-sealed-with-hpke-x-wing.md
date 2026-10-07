@@ -86,11 +86,13 @@ released recently and none is deprecated.
   standard tool writes X-Wing keys. It ships as static binaries attached to each GitHub release,
   at the lockstep release version and signed with the same keyless signing the release applies to
   the images and the chart ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)). An
-  operator command sits under its library, and a library holds no Dockerfile, so it has no image
-  of its own. Carrying it in an existing image would give that image a second, unrelated job. The
-  UI must never carry key material, and the migration image holds none of this project's Go code
-  by design. A signed release binary is a published artifact, so the
-  system still comes up from published artifacts alone
+  operator command sits under its library as `cmd/<name>`, and a library holds no Dockerfile
+  ([ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md)), so it has no
+  image of its own. Wherever the credential library sits, the command sits under it. Carrying it in
+  an existing image would give that image a second, unrelated job. The UI must never carry key
+  material, and the migration image holds none of this project's Go code by design. A signed
+  release binary is a published artifact, so the system still comes up from published artifacts
+  alone
   ([O6](../../../USE_CASES.md#o6--deployable)). Which platforms the binaries are built for is left
   to the release step that builds them.
 

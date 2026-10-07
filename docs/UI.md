@@ -11,11 +11,10 @@ directory carries its own notes.
 The decisions behind this design that had alternatives live as decision records, indexed at
 [docs/adr/README.md](./adr/README.md), and are cited here by number. The outcome the UI serves is
 [O4](../USE_CASES.md#o4--the-operator-can-see-and-steer). The rules that bound it are ADR-0084's,
-via the [decision-record index](./adr/README.md). The UI carries two decisions, OAuth client setup,
-account setup and policy management as its only writes, is read-mostly, and never displays a
-message body. Build
-state lives in [ROADMAP.md](../ROADMAP.md), never here. Vocabulary is defined in
-[DESIGN.md's Glossary](../DESIGN.md#glossary), never here.
+via the [decision-record index](./adr/README.md). The UI carries two decisions, a rollback request,
+OAuth client setup, account setup and policy management as its only writes, is read-mostly, and
+never displays a message body. Build state lives in [ROADMAP.md](../ROADMAP.md), never here.
+Vocabulary is defined in [DESIGN.md's Glossary](../DESIGN.md#glossary), never here.
 
 The split with [DESIGN.md](../DESIGN.md) is one of altitude. The design document holds the system.
 This document holds one component's design at the same rate of change and by the same split test,
@@ -278,8 +277,11 @@ outside the account in the path.
 
 **Decisions.** Two, each with two outcomes. A plan is approved or rejected, a candidate is
 confirmed or dismissed. Four requests carry them, all by database grant (ADR-0084), which calls
-them its two decision verbs. No request exists for retrying a job, triggering a rollback, or
-editing policy other than through the policy management of [section 8.7](#87-policy).
+them its two decision verbs. Beside them, the operator requests the rollback of an applied plan,
+which the UI writes as a plan status within its grant on a plan's status (ADR-0020, ADR-0084).
+Where that request sits and how it reads are designed where rollback is built. No request exists
+for retrying a job, or editing policy other than through the policy management of
+[section 8.7](#87-policy).
 
 **OAuth client setup and account setup.** Two separate flows over two separate stored records
 are the UI's other writes (ADR-0080, ADR-0084, ADR-0106, ADR-0107). OAuth client setup runs once
@@ -297,7 +299,8 @@ Their screens are [sections 8.10](#810-installation) to [8.13](#813-account-sett
 keep), the Fastmail backend (nothing changes above the port and nothing in the UI), rollback runs
 (already `runs`), agent activity (audit rows by actor and session), and dashboards (either lenses
 here or links to the metrics stack). A feedback decision on masking and gate events (marking a
-true or false positive) would be a third decision and needs its own record first. The row-detail
+true or false positive) would be a decision beside the two and the rollback request, and needs its
+own record first. The row-detail
 layout leaves room for it.
 
 ## 6. Global chrome
@@ -966,9 +969,10 @@ account's own rules (Import and export, below), and a search box, the `rules` da
 holds a domain. With no overlay rule, the account's part of the table reads "No rules for
 {account} alone. The base rules above apply to every account."
 
-A policy edit reaches every process with no manual step and no restart, through the signal between
-deployables of ROADMAP's unit [F7](../ROADMAP.md#group-f--foundation), and each process then loads
-the policy. This screen's sentences about a process's next policy reload rest on that.
+A policy edit reaches every process with no manual step and no restart. Each process picks it up
+within a minute, at its next scheduled policy reload, and the mediator before each body request
+(ADR-0090, ADR-0099, ADR-0119). This screen's sentences about a process's next policy reload rest
+on that.
 
 Every change to policy is made through the UI (ADR-0004), and every change is recorded in the
 policy history (ADR-0102). This section designs adding, editing and lifting rules, picking stored
@@ -1575,10 +1579,10 @@ On success, connecting writes the account's two rows in one transaction (ADR-009
 connects through (ADR-0106), its credential sealed (ADR-0081), the mailbox the consent confirmed
 (ADR-0080), and the code exchange's
 authentication attempt as the account's latest (ADR-0097). The page reads "Connected
-{identifier} ({mailbox})." and says what comes next, "Every workload is told of {identifier} and
-serves it, and backfill starts indexing it. Nothing more needs doing." Each workload learns of the
-account with no manual step through the signal between deployables of ROADMAP's unit
-[F7](../ROADMAP.md#group-f--foundation). The page then adds "The base policy's {n} rules apply to
+{identifier} ({mailbox})." and says what comes next, "Every workload picks up {identifier} within a
+minute and serves it, and backfill starts indexing it. Nothing more needs doing." Each workload
+learns of the account with no manual step at its next account reload, and backfill starts the
+account's run then (ADR-0090, ADR-0119). The page then adds "The base policy's {n} rules apply to
 {identifier} from the start. Rules made for one account do not. Review {identifier}'s policy.",
 linking to the account's policy ([section 8.7](#87-policy)), {n} the count of base rules, which
 belongs to no account. It links to the account's Home.
@@ -1597,9 +1601,9 @@ with its old credential.
 
 A re-authorization's success, a move's included, replaces the stored credential, records the code
 exchange's authentication attempt as the account's latest (ADR-0097), so a refused
-credential's banner clears, and reads "Re-authorized {identifier}. Every workload is told of the
-new credential and uses it from its next call." Each workload takes it up without waiting for a
-refusal, through the signal of [F7](../ROADMAP.md#group-f--foundation). An account with no
+credential's banner clears, and reads "Re-authorized {identifier}. Every workload picks up the new
+credential within a minute." Each workload takes it up at its next account reload, and at once
+when the provider refuses the old one (ADR-0090). An account with no
 mailbox remembered, one with no state row or one stored before the mailbox was kept, is connected
 here too: step 1 then asks for the mailbox once, the grant is checked against it, and success
 writes the state row, or the credential and the mailbox into it, so the mailbox the consent
@@ -2543,8 +2547,7 @@ used. What is still open, and where it is tracked:
 | --- | --- |
 | The maximum plan age value, which `expires_at` and the expiry rule of [section 8.1](#81-home) read from configuration | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) |
 | The "worth a look" rules and thresholds of [section 8.1](#81-home), which are this design's starting values and nothing else defines | this document, until traffic tunes them |
-| How a newly connected account, a credential replaced by re-authorization and a policy edit reach the workloads with no manual step and no restart, which [sections 8.7](#87-policy) and [8.12](#812-connect-an-account-and-re-authorize) assume | ROADMAP.md's unit [F7](../ROADMAP.md#group-f--foundation), the signals between deployables |
-| A feedback verb on masking and gate events, which would be a third decision and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
+| A feedback verb on masking and gate events, which would be a decision beside the two and the rollback request and needs its own record before it exists | [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions), gated to the unit that builds the learned tier |
 
 ## 21. The mockups
 

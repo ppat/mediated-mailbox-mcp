@@ -65,7 +65,7 @@ decisions take everything as parameters
   ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
 - **One data-access library, produced from the one schema, serves every component** — so drift
   between the schema, the queries, and the result types is a build failure everywhere at once rather
-  than a runtime discovery in one workload. The library is impure shared code, deliberately outside
+  than a runtime discovery in one component. The library is impure shared code, deliberately outside
   the shared pure library. It is a narrow, single-concern library, organized in subsections by
   concern that each component imports selectively ([db/README.md](../../../db/README.md)). Whether
   its accessors are generated or hand-written under the same discipline, and by which tool, was left
@@ -91,7 +91,7 @@ decisions take everything as parameters
   let exist.
 - **Hand-written string SQL scattered through each component.** The case for it: no build step,
   no shared artifact. Rejected: drift between DDL and queries is then caught only at runtime,
-  near-identical queries duplicate across the workloads, and each copy drifts separately — the
+  near-identical queries duplicate across the components, and each copy drifts separately — the
   dual-schema problem multiplied by the number of components.
 
 ## Consequences

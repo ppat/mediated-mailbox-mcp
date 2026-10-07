@@ -84,7 +84,13 @@ longer holds that.
   record in place. A conflict between a record and the work goes to the main session, never resolved
   on your own.
 - **Decide at the first consumer.** A mechanism or choice the documents leave open is settled in the
-  first change that needs it, by that change, never ahead of it.
+  first change that needs it, by that change, never ahead of it. It does not cover where code goes.
+  Placement follows the rules against sprawl in
+  [ADR-0050](../../../docs/adr/engineering/0050-shared-code-pure-or-narrow.md) and the naming
+  convention in
+  [ADR-0054](../../../docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md),
+  which are applications of rules ruled once, so placing a concern by them creates nothing ahead of
+  its consumer and is not busy work.
 - **No relaxed check, no widening without a consumer.** Never relax a check the records require. No
   import list, grant, ban, allow entry or expected finding is loosened unless something in the same
   change needs it, and never beyond what the records allow.
@@ -103,15 +109,17 @@ longer holds that.
 
 Building never waits on a choice. Make it, keep going, and put it in the report for review.
 
-- **Names.** The operator names components, directories, packages, labels and tables. When the work
-  needs a new one, pick a name that is coherent with the whole document set and the code as they
-  stand, use it, and report it with the reasoning and the alternatives considered, each with its
-  reason, so the operator can approve or rename at review. A rename at review is a mechanical change,
-  so it costs less than a stalled build.
+- **Names.** The builder chooses names for components, directories, packages, labels and tables,
+  under the naming convention in ADR-0054, and the operator approves them in the pull request that
+  introduces them. When the work needs a new one, pick a name that is coherent with the whole
+  document set and the code as they stand, use it, and report it with the reasoning and the
+  alternatives considered, each with its reason, so the operator can approve or rename at review. A
+  rename at review is a mechanical change, so it costs less than a stalled build.
 - **Libraries and tools.** Every choice of a library or a tool launches the
   `select-framework-or-tool` skill with the Skill tool and uses it in full, following the approach
   it lays out, never bits and pieces of it. Nothing is picked in passing.
-- **Design questions the documents leave open.** Decide as the first consumer, record the decision
+- **Design questions the documents leave open.** Decide as the first consumer, which covers
+  mechanisms and choices, not where code goes, record the decision
   with its alternative through the `update-docs` skill, launched with the Skill tool and used in
   full, following the approach it lays out, never bits and pieces of it, and list it in the report
   for ruling. A choice the operator made earlier is not reopened.

@@ -49,8 +49,8 @@ What pass 2 scans of a gated-in body, and what it records when it cannot:
 
 Properties the split buys:
 
-- **Resumable at page granularity.** The cursor is checkpointed to the database every page, so a
-  pod eviction costs one page of rework, not a run.
+- **Resumable at page granularity.** The cursor is checkpointed to the database every page, so
+  killing or evicting the process that runs backfill costs one page of rework, not a run.
 - **Pass 1 delivers value immediately.** Before pass 2 finishes, the agent can already answer
   "what patterns already exist here": label distributions, senders with no label, the observation
   that receipts are filed by vendor but newsletters by topic, the two hundred threads accounting
@@ -69,9 +69,9 @@ Properties the split buys:
 - **Recent-window backfill, extending on demand.** Rejected: it fails historical understanding
   outright — the design commits to full history precisely so corpus-wide analysis is possible —
   and it would make sender statistics unrepresentative exactly where the gate leans on them.
-- **Restart-from-zero on interruption.** Rejected: pod eviction during a long run is an expected
-  condition, not a hypothetical; the checkpoint turns it into a page of rework. Its proving
-  injection (kill the pod mid-run, confirm clean resume) is catalogued in
+- **Restart-from-zero on interruption.** Rejected: eviction of the process running backfill during
+  a long run is an expected condition, not a hypothetical; the checkpoint turns it into a page of
+  rework. Its proving injection (kill the process mid-run, confirm clean resume) is catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - **Scanning only the HTML part's Markdown.** Its case is that the scanner reads Markdown, which
   is what the converter produces. Rejected, because a body with no HTML part, or whose text

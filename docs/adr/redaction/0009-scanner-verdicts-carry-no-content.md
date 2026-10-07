@@ -52,7 +52,9 @@ runs on every message and the body scan does not
 **Residue: nothing body-derived persists or spills.**
 
 - Bodies live in memory only: no body to disk, no spill path, memory-backed scratch space
-  (`emptyDir: {medium: Memory}`) for anything that could spill, short-lived process.
+  (`emptyDir: {medium: Memory}`) for anything that could spill. How long the process holding a
+  body lives adds nothing to this guard, since the mediator and the process running delta sync run
+  until stopped.
 - Nothing body-derived is persisted except the masked subject and the flags — no matched text, no
   offsets, no excerpts. Scanner logs record counts and rule identifiers only.
 - `scanner_version` is stamped on every verdict so that when rules improve, affected rows are

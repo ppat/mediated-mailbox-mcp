@@ -81,6 +81,8 @@ moves it. Records themselves link freely and deep, into
 | 0100 | [Message text with no HTML form is released as a fenced code block that shows it exactly](./redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md) | Accepted |
 | 0104 | [Once backfill's second pass has ended, each delta sync tick decides and scans what waits for a scan, a bounded number per tick](./redaction/0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md) | Accepted |
 | 0113 | [An added rule reaches the stored sender classes by its effect, through the comparison every scanning workload already makes](./redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md) | Accepted |
+| 0120 | [A change of scanner re-masks unmasked stored subjects from the store and fetches again only the masked ones, by identifier](./redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) | **Proposed** |
+| 0121 | [Backfill's run-start step, made once per process and account, decides each stored gate skip again](./redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | **Proposed** |
 
 ## Classification — `classification/`
 
@@ -122,6 +124,7 @@ moves it. Records themselves link freely and deep, into
 | 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
 | 0105 | [A cursor gap re-enumerates from an hour before the last cursor was written, with no cap, and an account with no cursor is reconciled over a first window](./data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md) | Accepted |
 | 0112 | [The base policy is read and written in a transaction of its own, which names no account and reaches only the base policy's rows](./data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md) | Accepted |
+| 0118 | [Each deployable, and inside the worker each job kind, connects as a runtime role of its own](./data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) | **Proposed** |
 
 ## Mutation — `mutation/`
 
@@ -132,7 +135,7 @@ moves it. Records themselves link freely and deep, into
 | 0021 | [The approval surface writes the database directly: two verbs, no credentials](./mutation/0021-approval-surface.md) | **Superseded** |
 | 0031 | [Every mutating operation is dry-runnable — a preflight that writes nothing](./mutation/0031-dry-run-on-mutating-operations.md) | Accepted |
 | 0032 | [All validation precedes the first write; saved plans validate at creation, re-validate at apply, and expire](./mutation/0032-whole-batch-validation.md) | Accepted |
-| 0084 | [The UI writes the database directly for two decisions, OAuth client setup, account setup and policy management, and seals credentials its code never opens](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
+| 0084 | [The UI writes the database directly for two decisions, a rollback request, OAuth client setup, account setup and policy management, and seals credentials its code never opens](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
 | 0102 | [Every change to the policy is appended to a history no runtime role can rewrite](./mutation/0102-policy-changes-recorded-in-an-append-only-history.md) | Accepted |
 | 0110 | [A policy file holds one scope's rules and imports into any scope, making that scope's rules equal to the file after a preview and one confirmation of every lift, and a rule's identifier is unique within its scope](./mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md) | Accepted |
 
@@ -159,7 +162,7 @@ moves it. Records themselves link freely and deep, into
 | 0059 | [The UI ships two palettes derived in OKLCH and checked for contrast](./operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md) | Accepted |
 | 0061 | [A state-changing request is accepted only with a token bound to the session that loaded the page](./operability/0061-ui-browser-security-posture.md) | Accepted |
 | 0062 | [The UI serves under a content security policy allowing one origin and no inline script](./operability/0062-ui-content-security-policy.md) | Accepted |
-| 0077 | [Rate collapse, rate runaway, a failed reload and a cursor gap are alerting rules, shipped with the chart and tested in CI](./operability/0077-conditions-raised-as-alerting-rules.md) | Accepted |
+| 0077 | [Rate collapse, rate runaway, a failed reload, a cursor gap, a stopped worker and a job's aged last success are alerting rules, shipped with the chart and tested in CI](./operability/0077-conditions-raised-as-alerting-rules.md) | Accepted |
 | 0079 | [Every secret other than an account's provider credential arrives as a mounted file](./operability/0079-secrets-arrive-as-mounted-files.md) | Accepted |
 | 0081 | [A stored credential is sealed to a public key; only code that calls a provider opens an account's credential, and one isolated part of the UI opens an OAuth client's secret](./operability/0081-credentials-sealed-to-a-public-key.md) | Accepted |
 | 0082 | [A rotated credential is sealed and written back to the account's state row](./operability/0082-rotation-writeback-to-the-database.md) | Accepted |
@@ -174,6 +177,8 @@ moves it. Records themselves link freely and deep, into
 | 0108 | [The index reads select messages by an index query of the client surface's own, never by the Provider Port's canonical query](./operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) | Accepted |
 | 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
 | 0111 | [A consent attempt travels in a cookie the UI server seals, bound to the session that started it](./operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md) | Accepted |
+| 0117 | [One background worker runs every job kind, with each job kind's code, role and observability kept apart inside it](./operability/0117-one-background-worker-runs-every-job-kind.md) | **Proposed** |
+| 0119 | [The worker's jobs are scheduled by an in-process scheduler that stores nothing, from recorded state, with no messaging through PostgreSQL](./operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) | **Proposed** |
 
 ## Engineering — `engineering/`
 

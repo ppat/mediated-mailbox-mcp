@@ -25,7 +25,10 @@ project is intended for eventual open sourcing.
   library is told apart from a deployable only by having no Dockerfile and by documentation,
   a convention accepted in place of structure for the simpler layout. The UI's directory
   holds both of its halves ([ADR-0042](./0042-implementation-stack.md)), the browser app as a
-  subdirectory, arranged at authoring time.
+  subdirectory, arranged at authoring time. A top-level component may be a family, one shared
+  library holding several packages of one concept with depth below its directory
+  ([ADR-0050](./0050-shared-code-pure-or-narrow.md)), so the top level stays a flat list of
+  components while a component has depth.
 - **The Helm chart sits at `packaging/chart/`**, under a common `packaging/` directory so a
   later packaging format lands beside it and nothing moves.
 - **Tests sit with what they test.** A deployable's tests live in its own directory, a library's in
@@ -45,14 +48,52 @@ project is intended for eventual open sourcing.
   [ADR-0049](./0049-image-per-component-lockstep.md)'s own-code-only posture holds at the source as
   well as in the image.
 - **One convention names everything the project publishes.** A deployable and its image share
-  one name, `mediated-mailbox-` plus the deployable's one job in one plain word, and the job word for the
-  reorganization workload is organize. Libraries take the same shape named by their single
+  one name, `mediated-mailbox-` plus the deployable's role in one plain word, and the role word for
+  the reorganization workload is organize. Libraries take the same shape named by their single
   concern, and the shared pure library publishes as `mediated-mailbox-core`. In-repo directories carry the
   bare role, because the repository scopes them and the prefix binds published artifacts. The
   chart stands up the whole system rather than any one deployable, so it carries the project's
   name, `mediated-mailbox`. A library whose chosen name a package registry already holds takes
   an alternate name under the same convention, and images publish under a registry namespace
   and cannot collide. The convention extends to any future component by naming its role.
+- **Names inside the code follow a convention that guides, and builders choose them.** The
+  operator asked for "some convention and generally applicable pattern that isn't overtly
+  prescriptive nor presumptive nor unnecessarily inhibitive but generally guides towards naming
+  based on our lessons from here", so that the operator is presented with the chosen names for
+  approval with the pull request that implements them, and implementation is never blocked on the
+  operator picking names. It replaces the operator naming each library and directory one at a time.
+  The convention guides and does not dictate, and a builder's judgement of fit decides inside it.
+  - **Fit comes first.** A name says what the code provides or holds. As guidance from the lessons
+    below, a family is named for its concept and a package for what it provides, and one plain word
+    is used where one fits, with no abbreviations.
+  - **Collisions are a light touch.** A name that clashes with another is a cost to weigh, not a
+    ban, because avoiding a name already in use can push toward one that fits worse. A clash is
+    avoided only where the two same-named packages would routinely be imported in the same files,
+    as Go's `context` would be beside a package named `context`. Otherwise an import alias is an
+    acceptable price for a name that fits.
+  - **The ban on `util`, `common` and `helpers` stays**
+    ([CLAUDE.md](../../../CLAUDE.md#inside-a-component)), since those names fail on fit.
+  - **Fixed names stay fixed**: `core` for pure code, by the operator's rule for pure code, a
+    deployable's entry package, and `cmd/<name>` for commands. The entry package's name is chosen,
+    under this convention, by the pull request that builds the entry packages, and is the same in
+    every deployable from then on.
+  - **Moved packages keep their names** where those names still fit, to keep churn down.
+  - **Builders choose names, and the operator approves them** in the pull request that introduces
+    them, which lists each name with what it holds and the alternatives considered.
+
+  The lessons it draws on. Names approved one at a time, with no shared pattern behind them, made
+  every name a ticket-local decision. Collisions between package names forced import aliases in
+  non-test code, `dbconnectcore` 4 times, `ratecore` 4, `credentialcore` 3, `senderclasses` 3 and
+  `clientsetup` 3. A name invented inside a ticket did not last, as `policyload` was invented in a
+  ticket, removed, and named by the operator eight days later, and one unit waited a night for
+  names. A name that clashes with a standard-library package the same files routinely import costs
+  an alias in nearly every file, as `context` would have beside Go's `context.Context`, and
+  `runtime` beside Go's `runtime`. The Glossary's own term "account context" proved misleading,
+  since "context" reads as Go's `context.Context` and no package holds the bundle it named, so a
+  name does not lean on a term just because it exists. A name must fit every caller, so
+  `requestcontext` misfit the batch jobs, which serve no request. And `policyload` kept its name
+  because `policy` would clash with `core/policy`, which files routinely import beside it, the case
+  where a clash was a real cost.
 - **The repository keeps its current name.** The `-mcp` suffix names the system for its
   protocol adapter even though the serving layer is an API
   ([ADR-0030](../operability/0030-api-core-mcp-thin-adapter.md)), and a rename is nearly free
@@ -68,7 +109,15 @@ project is intended for eventual open sourcing.
   accepted, allow-list filters and a conventional distinction.
 - **A different naming scheme.** No case for another scheme was tabled. The convention was
   adopted as recommended, with the one substitution the Decision records, organize as the
-  reorganization workload's job word.
+  reorganization workload's role word.
+- **The operator names each library, directory and package.** The case for it: names are taste, and
+  taste is the operator's. Not chosen, because approving names one at a time, with no pattern
+  behind them, made every name a ticket-local decision and blocked work while names waited.
+- **A naming grammar ruled once, from which a builder derives each name**, a family named by the
+  Glossary's noun for its concept, never a standard-library package's name, and each package's name
+  unique within its family. The case for it: names follow mechanically, with the operator ruling
+  the grammar once. Not chosen as a rule, because a grammar that dictates pushes toward a name that
+  fits worse wherever its rule and fit disagree. Its points survive in the convention as guidance.
 
 ## Consequences
 

@@ -410,8 +410,9 @@ rather than the documented one, and never lets background work starve interactiv
   through one cost abstraction the adapter declares.
 - Background backfill starving the agent's live queries. Interactive requests must keep a
   guaranteed reservation while batch work absorbs any rate reduction first.
-- Concurrent workers across separate processes (mediator, backfill, sync) collectively exceeding
-  the budget. The limit is per account, shared across processes, not per process.
+- Concurrent spenders across separate processes, the mediator and the worker running backfill and
+  delta sync, collectively exceeding the budget. The limit is per account, shared across processes,
+  not per process.
 
 ### O2 — Observable
 
@@ -438,8 +439,9 @@ a metric that exists is a configuration change.
 
 *Falsified by any of:*
 
-- A backfill pod killed mid-run that restarts from scratch instead of resuming cleanly from its
-  checkpoint. Mid-migration pod eviction is an expected condition, not a hypothetical.
+- The process running backfill killed mid-run, and restarting from scratch instead of resuming
+  cleanly from its checkpoint. Mid-migration pod eviction is an expected condition, not a
+  hypothetical.
 - A refresh-token rotation that is not written back to where the credential is stored, so a
   restart after rotation loses mailbox access. This is the most common quiet death of a system
   like this, and a recovery path that must be exercised deliberately.

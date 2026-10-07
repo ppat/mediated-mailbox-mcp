@@ -51,7 +51,7 @@ Each derives from a record that already binds, named beside it.
 | Type coverage now | Case-insensitive text, text arrays, JSON, timestamps with zone, big serial | [ADR-0016](./0016-schema.md) |
 | Trust-anchor footprint | What the choice adds to the processes holding full-mailbox credentials | [ADR-0028](../operability/0028-trust-anchor-hardening.md) |
 | Long-term fit | Governance, release cadence, breaking-change record, and what abandonment costs | The project outlives any tool it picks |
-| Vector column | [ADR-0016](./0016-schema.md) declares a nullable vector column and [ADR-0048](./0048-forward-only-migrations.md) creates its extension before the chain and records it in the chain's first migration, so the generator maps the type from the start. Only populating the column waits for the heuristics work | [ADR-0016](./0016-schema.md), [ADR-0004](../classification/0004-sender-list-decides.md) |
+| Vector column | Weighed when [ADR-0016](./0016-schema.md) declared a nullable vector column. The schema no longer declares one and no extension provides the type, so it is no longer a requirement. The grades below keep the row as it was weighed | [ADR-0016](./0016-schema.md), [ADR-0004](../classification/0004-sender-list-decides.md) |
 | Crash-harness fit | Data access callable with plain values, with transaction boundaries the harness controls | [ADR-0045](../engineering/0045-crash-injection-testing.md) |
 | Idiom pull | Whether a tool's ordinary path leads toward what these records forbid | The records above, taken together |
 
@@ -104,6 +104,14 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   suppression is refused wherever a check stands in for a control
   ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). It cannot reach the parse-tree
   pass, which is the project's.
+- **An indexed column is compared only with leakproof operators.** Every runtime role reads under
+  row-level security ([ADR-0016](./0016-schema.md)), and PostgreSQL uses a predicate as an index
+  condition ahead of a policy only when every function it applies to the row's columns is
+  leakproof. Equality and range on `text`, numbers, `boolean`, `timestamptz` and `uuid` are.
+  Case-insensitive text, array operators, `ILIKE`, patterns and JSON operators are not, so an index
+  over a column compared with one of them goes unused by every runtime role. A value matched
+  without regard to case is therefore stored in one normalized form as `text`, as the sender domains
+  are ([ADR-0016](./0016-schema.md)).
 - **Generated code sits in the one data-access directory, in subsections organized by concern rather
   than per role.** One generated package per subsection, all from the one schema. A statement may be
   needed by more than one role, so grouping by role would duplicate it. The role boundary is held by
@@ -114,11 +122,14 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   not allow fails naming the list, the statement and the role. Which role each component connects as
   is [ADR-0075](./0075-one-runtime-role-per-deployable.md)'s, and the check reads that mapping from
   one place in `db/check`, failing a deployable's list that names subsections without a role and a
-  role whose deployable's list reaches no subsection, directly or through a shared library. A shared
-  library connects as no role of its own. Its statements run under the role of each deployable whose
-  list admits the library, and the check plans them under each of those roles, reading which
-  deployables admit it from their lists. A table's statements sit in the table's subsection. A
-  statement that a role admitted to that subsection may not be granted under
+  role whose deployable's list reaches no subsection, directly or through a shared library. Inside
+  the worker, each job kind has a list and a role of its own, and the mapping holds per job kind as
+  it holds per deployable
+  ([ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). A shared library
+  connects as no role of its own. Its statements run under the role of each deployable, or in the
+  worker of each job kind, whose list admits the library, and the check plans them under each of
+  those roles, reading which admit it from their lists. A table's statements sit in the table's
+  subsection. A statement that a role admitted to that subsection may not be granted under
   [ADR-0075](./0075-one-runtime-role-per-deployable.md)'s three lines sits one directory further
   down, in a subsection named for what it holds, which only the roles that may run it admit. Three
   rules hold that layout, each checked in `db/check`. No package of the data-access library imports
@@ -141,7 +152,7 @@ throughput and latency, because the corpus assumption puts them out of reach of 
 | Type coverage now | All five map without custom overrides or type registration |
 | Trust-anchor footprint | The generator is a build-time binary contributing no run-time modules. Generated code imports the driver, not the generator |
 | Long-term fit | Abandonment costs a generator. The statement files are the authored artifact and the generated Go keeps compiling |
-| Vector column | Supported, conditional on the native driver target this record chooses. Three open defects apply, one of them to the nullable vector column this schema declares |
+| Vector column | No longer a requirement, since the schema declares no vector column. When it was weighed, it was supported, conditional on the native driver target this record chooses, with three open defects, one of them to a nullable vector column |
 | Crash-harness fit | Accessors are callable with plain values, and an emitted interface gives the harness something to wrap |
 | Idiom pull | Every default that breaks a record here is enumerable, and each is closed by a check rather than by memory |
 

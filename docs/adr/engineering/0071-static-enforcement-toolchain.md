@@ -98,13 +98,24 @@ else broke ties.
     `golang.org/x/net/publicsuffix` fails it too, because it imports `net/http/cookiejar`.
 
     The list covers the pure-core packages inside deployables and libraries as well as the shared
-    pure library, matched by path. Admitting a package is review discipline, recorded as the
-    closure row in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), because no tool checks it.
+    pure library, matched by path. A pure-core package is one whose path, from the repository root,
+    holds an element named `core` at any depth, so a pure core is matched wherever a component's
+    layout puts it, a library holding several packages of one concept included
+    ([ADR-0050](./0050-shared-code-pure-or-narrow.md)). Admitting a package is review discipline,
+    recorded as the closure row in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), because no tool
+    checks it.
   - **Each deployable.** A deployable may import its own code, the shared pure library, the
     data-access subsections its list names, and the other named libraries of
     [ADR-0050](./0050-shared-code-pure-or-narrow.md) it uses, beside the standard library and the
     outside modules its own code needs, and nothing belonging to another deployable
-    ([ADR-0054](./0054-one-repository-flat-layout-naming-convention.md)).
+    ([ADR-0054](./0054-one-repository-flat-layout-naming-convention.md)). In the worker that runs
+    every background job kind
+    ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), each job kind
+    has a list of its own, inside the deployable's, so the isolation of one job kind's code from
+    another's is checked rather than conventional. A job kind that needs no credential, no provider
+    and no account session imports none of them, and each job kind's list names the data-access
+    subsections its own role is granted
+    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
   - **Each shared library.** The data-access library, the provider library, the rate limiter and the
     shared test support each have a list. A component's list names each data-access subsection it
     may use, so the grant check of [ADR-0066](../data/0066-data-access-generated-from-sql.md) can
@@ -693,7 +704,12 @@ probe routes on muxes with nothing recording them.
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - **The lists now form a graph of many components**, the condition under which the architecture
   linter is worth reopening for the rules about this project's own packages. It is never worth
-  reopening for the pure-core rule, for the reason the alternatives give.
+  reopening for the pure-core rule, for the reason the alternatives give. The condition is acted on
+  the first time the lists are rewritten for a merge of deployables or a regrouping of libraries,
+  since that change rewrites the inter-component rules anyway. That change selects the tool for the
+  inter-component rules again, weighing real alternatives, and the pure-core rule stays on
+  `depguard` whatever it finds. If the tool changes, every list rule is proven again by a violation
+  file the new tool refuses.
 - **Assumptions about other components.** Continuous integration can install a pinned command and
   run it over the whole module whenever a change reaches Go code or the configuration. The packages
   a pure core is permitted to import reach nothing of this project's, which is what makes checking

@@ -70,9 +70,15 @@ exercises, be provable exhaustively and cheaply.
   ([ADR-0032](../mutation/0032-whole-batch-validation.md)) is collecting every verdict before
   the shell enacts anything; fail-closed paths are exercised by feeding error states in and
   asserting deny-verdicts out — plain data against pure functions.
-- Composition happens in each component's own shell, and a deployable's composition root and wiring
-  are never shared with another deployable. The only impure code shared between deployables is the
-  narrow named libraries of [ADR-0050](./0050-shared-code-pure-or-narrow.md). The testing strategy's
+- Composition happens in each component's own shell, and a deployable's composition is never shared
+  with another deployable. Its choice of pieces and how they connect, which pool and role each uses
+  and the order they start are its own, written by hand in its composition root. Reusable assembly,
+  logic several roots would otherwise repeat because it encodes a rule each of them applies, is
+  library code that each root calls explicitly, so nothing resolves it at run time and the question
+  this record keeps answerable by reading the root stays answerable. A composition root may be an
+  importable package that `main.go` calls, so a root other than the deployable's own can compose
+  it. The only impure code shared between deployables is the narrow named libraries of
+  [ADR-0050](./0050-shared-code-pure-or-narrow.md). The testing strategy's
   division of labour — exhaustive cheap tests on cores, few integration tests on shells — leans on
   exactly this shape.
 - Assumptions about other components: every enforcement component exposes its decision logic in

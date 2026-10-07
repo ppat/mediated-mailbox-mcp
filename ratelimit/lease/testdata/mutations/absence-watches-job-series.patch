@@ -1,5 +1,5 @@
 control: Missing account-level series fire the absence rule rather than reading as a healthy account
-removes: the absence rule watches a job workload's series, which are absent between runs by design
+removes: the absence rule watches a job workload's series rather than the mediator's account-level ones
 packages: ./ratelimit/lease
 tests: TestAlertingRules
 scheduled-count: no

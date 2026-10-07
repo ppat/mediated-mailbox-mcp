@@ -90,11 +90,14 @@ carries the bare word.
 | `packaging/chart/` | Packaging | `mediated-mailbox` | The Helm chart ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)) |
 | `tests/chainsaw/` | System tests | | The chainsaw suite ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)) |
 
-A deployable's job word is a verb for what it does, following `organize`. `ui` keeps the directory
+A deployable's role word is a verb for what it does, following `organize`. `ui` keeps the directory
 the Glossary gives it. Shared code is the shared pure library, or a narrow, named library that
 argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
 requires. The data-access library's case is ADR-0047's, and each of the other nine argues its case
-in its README.
+in its README. Where shared code goes, and when a library or a family of packages is founded, are
+the rules against sprawl in [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md).
+How a component, a family or a package is named, and who chooses the name, is the naming convention
+in [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md).
 
 ### Inside a component
 

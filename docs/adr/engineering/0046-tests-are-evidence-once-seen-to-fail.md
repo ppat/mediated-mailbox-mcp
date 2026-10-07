@@ -58,7 +58,10 @@ that stands in for a control.
   when the control lands and reproduced when the control, its tests, or a generator its tests
   draw from changes, at no other time. A generator is named because one edited until its report
   passed moved a planted failure out of the gating run's reach while every test stayed green
-  ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). Controls are defined in the
+  ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). A move of the control's code or
+  its tests is a change, a move of a path alone included, so the affected tests and mutation
+  demonstrations run again after it. There is no exemption for a move that changes only paths,
+  which the operator ruled on 2026-10-07. Controls are defined in the
   design, or when an outcome (or feature) is added, and verifications are
   defined with them. A mutation demonstration proves the control and its verification work, and
   lands at implementation time. This binds the demonstration alone, proving a control's tests go

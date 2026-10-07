@@ -21,8 +21,7 @@ per question. The project needs a store for the metadata index as well as its ow
 | Transactional bulk update during reorg | native | no multi-key transactions with rollback |
 | Durable audit log, append-only by grant | ordinary table, time-indexed, grants that withhold update and delete | awkward |
 | Schema evolution | migrations | rewrite key layout |
-| Subject search | trigram indexes (`pg_trgm`) | none |
-| Sender embeddings | `pgvector` | separate store |
+| Subject search | pattern matching in SQL, filtered after the account index ([ADR-0016](./0016-schema.md)) | none |
 | Backup to existing object storage | native with CNPG | snapshot juggling |
 
 The decisive row is none of them singly but what they share: the access pattern is **exploratory

@@ -14,7 +14,8 @@ more fluid than the design.
   never "test that X works." The *Proves* column names the claim, cites the decision record by
   number, and where it earns its keep, names the wrong reading the injection rules out.
 - **Statuses**: pending rows name the roadmap unit that delivers the control, or the production
-  point at which a drill or manual exercise runs; proven rows carry the date and a pointer to
+  point at which a drill or manual exercise runs, or a delivered unit whose later work delivers it,
+  marked as later work; proven rows carry the date and a pointer to
   the evidence; parked rows carry the standing reason. A row's kind decides whether its proof
   stays current or holds only for its date (ADR-0046). An automatable injection becomes a
   permanent CI test with continuous proof. A drill or a manual exercise is a claim about its

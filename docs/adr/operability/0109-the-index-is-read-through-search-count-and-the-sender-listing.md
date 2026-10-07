@@ -57,9 +57,11 @@ index query.
   Redaction Gate's under the policy in force, restricted when any address of the domain the index
   holds is restricted, and never the class stored with the statistics. A domain whose statistics
   outlive every message the index holds for it is classified by its domain alone, as the classifier
-  classifies any address at that domain, and is restricted when the classifier cannot read the domain. The prior scan hits and the
-  embedding are not served. The hits are a signal derived from bodies that no outcome needs a client
-  to read, and the embedding serves the heuristics alone.
+  classifies any address at that domain, and is restricted when the classifier cannot read the
+  domain. The prior scan hits are not served. The hits are a signal derived from bodies that no
+  outcome needs a client to read. The statistics hold no embedding
+  ([ADR-0016](../data/0016-schema.md)), and one the heuristics store later serves the heuristics
+  alone, so it is not served either.
 - **Everything served is metadata the redaction matrix shows for every sensitivity state**
   ([ADR-0001](../redaction/0001-redaction-matrix.md)). A searched message is the same served
   message, with its sender class and body availability decided under the policy the call took once,
@@ -84,8 +86,7 @@ index query.
   no stored message sits in its own subsection for a message's changes, which the mediator does not
   admit either. The mediator's role gains a read of the
   sender domain on messages and of the statistics' columns, apart from the stored sender class
-  ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)), the prior scan hits and the
-  embedding.
+  ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)) and the prior scan hits.
 
 ## Alternatives considered
 

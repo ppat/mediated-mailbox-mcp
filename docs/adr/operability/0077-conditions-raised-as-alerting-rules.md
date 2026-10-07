@@ -1,8 +1,8 @@
-# 0077. Rate collapse, rate runaway, a failed policy reload and a cursor gap are Prometheus alerting rules, shipped with the chart and tested in CI
+# 0077. Rate collapse, rate runaway, a failed policy reload, a cursor gap, a stopped worker and a job whose last success has aged are Prometheus alerting rules, shipped with the chart and tested in CI
 
 **Status:** Accepted ·
 **Pillar:** [An accepted risk that is not measured is an unmeasured risk](../../../DESIGN.md#an-accepted-risk-that-is-not-measured-is-an-unmeasured-risk) ·
-**Serves:** [O2](../../../USE_CASES.md#o2--observable), [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
+**Serves:** [O2](../../../USE_CASES.md#o2--observable), [O3](../../../USE_CASES.md#o3--survives-its-failure-modes), [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)
 
 ## Context
 
@@ -10,8 +10,10 @@ Several records name a condition that must reach a person.
 [ADR-0024](./0024-conservative-target-aimd.md) names two for the rate limiter, collapse and
 runaway, and says runaway must page rather than show on a dashboard.
 [ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md) wants a failed policy reload loud
-and immediate, and [ADR-0018](../data/0018-delta-sync-polls.md) alerts on a cursor gap. None of
-them says how a condition leaves the application.
+and immediate, and [ADR-0018](../data/0018-delta-sync-polls.md) alerts on a cursor gap. The
+worker's job mechanism ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md))
+names two more, a stopped worker and a job whose last success has aged. None of them says how a
+condition leaves the application.
 
 [ADR-0051](../engineering/0051-environment-contract.md) bounds the answer. The application emits
 metrics and logs, and collecting them and routing anything to a person are the platform's. The
@@ -38,9 +40,9 @@ paged.
   account's rate-state row and emits the rate, the floor, the bucket's level, how long since any
   class last asked and how long since the last grant. A worker still waiting asks again at least
   once a lease period, so an abandoned request stops counting as demand within a minute. The
-  workloads that run and exit run only now and then, so their series are absent between runs by
-  design. A rule that fires when the mediator's series are absent covers missing data, so it
-  never reads as a healthy account.
+  account-level series are read from the stored rate state, so they stay with the mediator rather
+  than with whichever process spends. A rule that fires when the mediator's series are absent
+  covers missing data, so it never reads as a healthy account.
 - **The runaway rule reads the cost of provider requests counted where each request is sent,**
   never a figure derived from lease accounting, because a runaway is the failure in which lease
   accounting is wrong. Each spending process emits its own count, and the rule sums them for the
@@ -62,6 +64,13 @@ paged.
   repository proves the signal and the rule.
 - **The policy loader's reload alarm and delta sync's gap alert follow the same form**, each a rule
   over a metric its unit emits.
+- **A stopped worker, and a job whose last success has aged past a bound, are rules of the same
+  form**, over the series the worker emits per job kind and per job
+  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). One rule fires when
+  the worker stops, so every job stopping together is loud. One rule per job kind fires when a job's
+  time of last success grows older than that job kind's bound. For delta sync that rule is what
+  catches [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a chronically stuck
+  sync job looks healthy". Each bound is a value of the rule, set where the rule is written.
 
 ## Alternatives considered
 
