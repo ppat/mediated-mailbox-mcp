@@ -1,0 +1,20 @@
+control: every cookie the UI sets is Secure, HttpOnly and SameSite=Strict
+removes: the session cookie is set without Secure, so it travels over a plain-HTTP browser hop
+packages: ./ui/internal/api
+tests: TestEveryCookieTheUISetsIsSecureHttpOnlyAndStrict
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/session.go b/ui/internal/api/session.go
+index 56bb9534..c4a93070 100644
+--- a/ui/internal/api/session.go
++++ b/ui/internal/api/session.go
+@@ -91,7 +91,7 @@ func withSession(next http.Handler) http.Handler {
+ 		} else {
+ 			s = session{id: rand.Text() + rand.Text()}
+ 			http.SetCookie(w, &http.Cookie{
+-				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
++				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode,
+ 			})
+ 		}
+ 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, s)))

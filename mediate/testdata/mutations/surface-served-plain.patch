@@ -1,7 +1,7 @@
-control: The client surface is served over TLS unless an ingress in front is declared to terminate it, with the key pair read from its mounted files
+control: The client surface is served over TLS when a key pair is named and over plain HTTP when none is, with the key pair read from its mounted files
 removes: the client surface is served over plain HTTP whatever its settings
 packages: ./mediate
-tests: TestTheSurfaceIsServedOverTLSOnly
+tests: TestWithAKeyPairTheSurfaceIsServedOverTLSOnly
 scheduled-count: no
 
 

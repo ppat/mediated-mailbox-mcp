@@ -42,7 +42,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/serving"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/devloop"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
@@ -58,7 +57,6 @@ type Configuration struct {
 	ProbeListen        string               `yaml:"probe_listen"`
 	TLSCert            string               `yaml:"tls_cert"`
 	TLSKey             string               `yaml:"tls_key"`
-	InsecureHTTP       bool                 `yaml:"insecure_http"`
 	SyncInterval       time.Duration        `yaml:"sync_interval"`
 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
 	StreamInterval     time.Duration        `yaml:"stream_interval"`
@@ -93,10 +91,10 @@ type Configuration struct {
 // reading which mailbox granted it.
 const providerTimeout = 30 * time.Second
 
-// defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is
-// the one that fails closed, the two listen addresses are the mediator's, the intervals shown on the
-// jobs cards are ADR-0018's sync interval and ADR-0022's daily heuristics run, and the stream polls
-// every two seconds. The browser follows the OS theme, and its stream client backs off to 30 seconds
+// defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075). No TLS file is
+// named, so the UI serves plain HTTP until a certificate and a key are (ADR-0118). The two listen
+// addresses are the mediator's, the intervals shown on the jobs cards are ADR-0018's sync interval
+// and ADR-0022's daily heuristics run, and the stream polls every two seconds. The browser follows the OS theme, and its stream client backs off to 30 seconds
 // and polls every 5 seconds after its fallback (ADR-0058). The worth-a-look thresholds are section 8.1's
 // starting values. A consent redirects to 127.0.0.1 on a high port a web server on the operator's
 // computer is unlikely to answer on, which an installation may name otherwise (section 8.12). With no
@@ -155,13 +153,13 @@ func run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
 	if err := serving.Validate(serving.Config{
-		Listen: c.Listen, ProbeListen: c.ProbeListen, TLSCert: c.TLSCert, TLSKey: c.TLSKey, InsecureHTTP: c.InsecureHTTP,
+		Listen: c.Listen, ProbeListen: c.ProbeListen, TLSCert: c.TLSCert, TLSKey: c.TLSKey,
 		SyncInterval: int64(c.SyncInterval), HeuristicsInterval: int64(c.HeuristicsInterval), StreamInterval: int64(c.StreamInterval),
 		DefaultTheme: c.DefaultTheme, StreamReconnectMax: int64(c.StreamReconnectMax), StreamPollInterval: int64(c.StreamPollInterval),
 		AttentionBacklogShare: c.AttentionBacklogShare, AttentionMaskCount: c.AttentionMaskCount,
 		AttentionServeFactor: c.AttentionServeFactor, AttentionGapDays: c.AttentionGapDays,
 		ConsentRedirect: c.ConsentRedirect,
-	}, devloop.Enabled()); err != nil {
+	}); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
 	bundle, err := fs.Sub(embedded, "browser/dist")
@@ -246,10 +244,11 @@ func loadTokenKey(path string) ([]byte, error) {
 	return key, nil
 }
 
-// serve runs the UI's listener, TLS unless the dev loop's plain HTTP is configured, and the probes'
-// plain-HTTP listener, until ctx ends or either fails, then shuts both down.
+// serve runs the UI's listener, over TLS when a certificate and a key are named and over plain HTTP
+// when neither is (ADR-0118), and the probes' plain-HTTP listener, until ctx ends or either fails,
+// then shuts both down.
 func serve(ctx context.Context, c Configuration, server *api.Server, logger *slog.Logger) error {
-	if !c.InsecureHTTP {
+	if c.TLSCert != "" {
 		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
 			return fmt.Errorf("loading the TLS key pair: %w", err)
 		}
@@ -271,15 +270,9 @@ func serve(ctx context.Context, c Configuration, server *api.Server, logger *slo
 	}
 	probes := &http.Server{Handler: server.Probes(), ReadHeaderTimeout: 10 * time.Second}
 	errs := make(chan error, 2)
-	go func() {
-		if c.InsecureHTTP {
-			errs <- ui.Serve(uiListener)
-			return
-		}
-		errs <- ui.ServeTLS(uiListener, "", "")
-	}()
+	go func() { errs <- serveUI(ui, uiListener) }()
 	go func() { errs <- probes.Serve(probeListener) }()
-	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", !c.InsecureHTTP)
+	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", ui.TLSConfig != nil)
 	select {
 	case <-ctx.Done():
 	case err = <-errs:
@@ -292,9 +285,22 @@ func serve(ctx context.Context, c Configuration, server *api.Server, logger *slo
 	return errors.Join(err, ui.Shutdown(shutdown), probes.Shutdown(shutdown))
 }
 
+// serveUI serves the UI on ln until it is shut down, over TLS unless srv has no TLS configuration,
+// which a configuration naming no key pair leaves it without (ADR-0118).
+func serveUI(srv *http.Server, ln net.Listener) error {
+	if srv.TLSConfig == nil {
+		return srv.Serve(ln)
+	}
+	return srv.ServeTLS(ln, "", "")
+}
+
 // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate is
-// served without a restart, as the mediator's client surface does (docs/UI.md section 15).
+// served without a restart, as the mediator's client surface does (docs/UI.md section 15). It returns
+// none when no key pair is named.
 func tlsConfig(certFile, keyFile string) *tls.Config {
+	if certFile == "" {
+		return nil
+	}
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

@@ -1,0 +1,19 @@
+control: the UI serves TLS when a key pair is named and plain HTTP when none is, with the key pair read from its mounted files
+removes: the UI is served over plain HTTP whatever its settings
+packages: ./ui
+tests: TestWithAKeyPairTheUIIsServedOverTLSOnly
+scheduled-count: no
+
+diff --git a/ui/main.go b/ui/main.go
+index 001bdb6c..c176a051 100644
+--- a/ui/main.go
++++ b/ui/main.go
+@@ -291,7 +291,7 @@ func serveUI(srv *http.Server, ln net.Listener) error {
+ 	if srv.TLSConfig == nil {
+ 		return srv.Serve(ln)
+ 	}
+-	return srv.ServeTLS(ln, "", "")
++	return srv.Serve(ln)
+ }
+ 
+ // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate is

@@ -1,0 +1,19 @@
+control: The mediator refuses a configuration it cannot serve with before anything is read or connected
+removes: a key named without its certificate is accepted
+packages: ./mediate
+tests: TestAConfigurationTheMediatorCannotServeWithIsRefused
+scheduled-count: no
+
+diff --git a/mediate/main.go b/mediate/main.go
+index be7955fc..7fef86ce 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -137,7 +137,7 @@ func validate(c Configuration) error {
+ 	switch {
+ 	case c.TLSCert != "" && c.TLSKey == "":
+ 		return errors.New("tls_cert is named without tls_key, and the mediator serves TLS with both or plain HTTP with neither")
+-	case c.TLSKey != "" && c.TLSCert == "":
++	case false && c.TLSKey != "" && c.TLSCert == "":
+ 		return errors.New("tls_key is named without tls_cert, and the mediator serves TLS with both or plain HTTP with neither")
+ 	}
+ 	if strings.TrimSpace(c.TokenFile) == "" {

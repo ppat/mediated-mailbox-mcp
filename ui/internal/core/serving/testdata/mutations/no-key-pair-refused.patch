@@ -1,0 +1,19 @@
+control: the UI's TLS files are named both or neither
+removes: a configuration naming neither TLS file is refused, so the UI never serves plain HTTP
+packages: ./ui/internal/core/serving
+tests: TestTheTLSFilesAreNamedBothOrNeither
+scheduled-count: no
+
+diff --git a/ui/internal/core/serving/serving.go b/ui/internal/core/serving/serving.go
+index 9d3ac86b..5b8dedab 100644
+--- a/ui/internal/core/serving/serving.go
++++ b/ui/internal/core/serving/serving.go
+@@ -43,7 +43,7 @@ func Validate(c Config) error {
+ 		return refusal("listen is empty")
+ 	case strings.TrimSpace(c.ProbeListen) == "":
+ 		return refusal("probe_listen is empty")
+-	case c.TLSCert != "" && c.TLSKey == "":
++	case c.TLSKey == "":
+ 		return refusal("tls_cert is named without tls_key, and the UI serves TLS with both or plain HTTP with neither")
+ 	case c.TLSKey != "" && c.TLSCert == "":
+ 		return refusal("tls_key is named without tls_cert, and the UI serves TLS with both or plain HTTP with neither")

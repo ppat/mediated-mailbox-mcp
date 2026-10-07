@@ -207,14 +207,9 @@ func writeKeyPair(t *testing.T, certFile, keyFile string, serial int64) *x509.Ce
 	return cert
 }
 
-// The client surface is served over TLS only. A plain HTTP request never reaches a root, a TLS request
-// with the token does, and a key pair rotated in its mounted files serves the next handshake.
-func TestTheSurfaceIsServedOverTLSOnly(t *testing.T) {
-	dir := t.TempDir()
-	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
-	first := writeKeyPair(t, certFile, keyFile, 1)
-	reg, calls := counted(t)
-	srv := &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig(certFile, keyFile, false), ReadHeaderTimeout: 5 * time.Second}
+// serveOn serves srv on a loopback listener until the test ends, and returns its address.
+func serveOn(t *testing.T, srv *http.Server) string {
+	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -226,53 +221,93 @@ func TestTheSurfaceIsServedOverTLSOnly(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	addr := ln.Addr().String()
+	return ln.Addr().String()
+}
 
-	post := func(client *http.Client, scheme string) (*http.Response, error) {
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, scheme+"://"+addr+"/api/accounts/acct-a/echo", http.NoBody)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Set("Authorization", "Bearer s3cret")
-		return client.Do(req)
+// over sends r to the surface at base, the scheme and the address, through client, and returns the
+// response's status and the certificate the server presented, if any.
+func over(t *testing.T, client *http.Client, base string, r request) (int, *x509.Certificate, error) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), r.method, base+r.path, strings.NewReader(r.body))
+	if err != nil {
+		t.Fatal(err)
 	}
-	trusting := func(cert *x509.Certificate) *http.Client {
-		pool := x509.NewCertPool()
-		pool.AddCert(cert)
-		return &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	if r.authorization != "" {
+		req.Header.Set("Authorization", r.authorization)
 	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	_, readErr := io.Copy(io.Discard, resp.Body)
+	if err := errors.Join(readErr, resp.Body.Close()); err != nil {
+		t.Error(err)
+	}
+	var cert *x509.Certificate
+	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+		cert = resp.TLS.PeerCertificates[0]
+	}
+	return resp.StatusCode, cert, nil
+}
 
-	if resp, err := post(&http.Client{}, "http"); err == nil {
-		body, readErr := io.ReadAll(resp.Body)
-		if err := errors.Join(readErr, resp.Body.Close()); err != nil {
-			t.Error(err)
-		}
-		if resp.StatusCode == http.StatusOK {
-			t.Errorf("a plain HTTP request was served: %s", body)
+// trusting returns a client that trusts cert alone and opens a new connection, so a new handshake,
+// for every request.
+func trusting(cert *x509.Certificate) *http.Client {
+	pool := x509.NewCertPool()
+	pool.AddCert(cert)
+	return &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
+}
+
+// With a key pair named, the client surface is served over TLS only (ADR-0118). A plain HTTP request
+// carrying the token never reaches a root. Over TLS each root refuses a request without the token
+// and serves one with it, and a key pair rotated in its mounted files serves the next handshake.
+func TestWithAKeyPairTheSurfaceIsServedOverTLSOnly(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
+	first := writeKeyPair(t, certFile, keyFile, 1)
+	reg, calls := counted(t)
+	addr := serveOn(t, &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig(certFile, keyFile), ReadHeaderTimeout: 5 * time.Second})
+
+	for _, r := range []request{apiCall.with("Bearer s3cret"), mcpCall.with("Bearer s3cret")} {
+		if got, _, err := over(t, &http.Client{}, "http://"+addr, r); err == nil && got == http.StatusOK {
+			t.Errorf("a plain HTTP request to %s was served", r.path)
 		}
 	}
 	if n := calls.Load(); n != 0 {
 		t.Fatalf("a plain HTTP request reached the operation %d times", n)
 	}
 
-	for i := range 2 {
-		cert := first
-		if i == 1 {
-			cert = writeKeyPair(t, certFile, keyFile, 2)
-		}
-		resp, err := post(trusting(cert), "https")
+	statuses := map[string]int{}
+	for name, r := range map[string]request{
+		"the API root without the token": apiCall, "the MCP root without the token": mcpCall,
+		"the API root with the token": apiCall.with("Bearer s3cret"), "the MCP root with the token": mcpCall.with("Bearer s3cret"),
+	} {
+		got, _, err := over(t, trusting(first), "https://"+addr, r)
 		if err != nil {
-			t.Fatalf("handshake %d with the key pair then in the files: %v", i+1, err)
+			t.Fatalf("%s: %v", name, err)
 		}
-		if err := resp.Body.Close(); err != nil {
-			t.Error(err)
-		}
-		if resp.StatusCode != http.StatusOK || resp.TLS == nil || resp.TLS.PeerCertificates[0].SerialNumber.Int64() != cert.SerialNumber.Int64() {
-			t.Errorf("handshake %d: status %d with certificate serial %v, want 200 with serial %v", i+1, resp.StatusCode, resp.TLS.PeerCertificates[0].SerialNumber, cert.SerialNumber)
-		}
+		statuses[name] = got
 	}
-	if n := calls.Load(); n != 2 {
-		t.Errorf("the operation ran %d times over TLS, want 2", n)
+	want := map[string]int{
+		"the API root without the token": 401, "the MCP root without the token": 401,
+		"the API root with the token": 200, "the MCP root with the token": 200,
+	}
+	if diff := cmp.Diff(want, statuses, compare.Options); diff != "" {
+		t.Errorf("statuses over TLS (-want +got):\n%s", diff)
+	}
+
+	second := writeKeyPair(t, certFile, keyFile, 2)
+	got, cert, err := over(t, trusting(second), "https://"+addr, apiCall.with("Bearer s3cret"))
+	if err != nil {
+		t.Fatalf("the handshake after the key pair was rotated: %v", err)
+	}
+	if got != http.StatusOK || cert == nil || cert.SerialNumber.Int64() != 2 {
+		t.Errorf("after the rotation: status %d with certificate %v, want 200 with serial 2", got, cert)
+	}
+	if n := calls.Load(); n != 3 {
+		t.Errorf("the operation ran %d times over TLS, want 3", n)
 	}
 }
 
@@ -304,45 +339,32 @@ func TestTheProbes(t *testing.T) {
 	}
 }
 
-// With an ingress in front declared to terminate TLS, the client surface is served over plain HTTP,
-// still behind the bearer check (ADR-0087).
-func TestTheSurfaceBehindADeclaredIngressIsPlain(t *testing.T) {
+// With no key pair named, the client surface is served over plain HTTP, behind whatever terminates
+// TLS in front of it, and each root still refuses a request without the token and serves one with it
+// (ADR-0030, ADR-0118).
+func TestWithNoKeyPairTheSurfaceIsServedOverPlainHTTP(t *testing.T) {
 	reg, calls := counted(t)
-	srv := &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig("", "", true), ReadHeaderTimeout: 5 * time.Second}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	served := make(chan error, 1)
-	go func() { served <- serveSurface(srv, ln) }()
-	t.Cleanup(func() {
-		if err := errors.Join(srv.Shutdown(context.Background()), <-served); err != nil {
-			t.Error(err)
-		}
-	})
+	addr := serveOn(t, &http.Server{Handler: mustSurface(t, reg, tokenFile(t, "s3cret")), TLSConfig: tlsConfig("", ""), ReadHeaderTimeout: 5 * time.Second})
 	statuses := map[string]int{}
-	for name, token := range map[string]string{"with the token": "Bearer s3cret", "without": ""} {
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+ln.Addr().String()+"/api/accounts/acct-a/echo", http.NoBody)
+	for name, r := range map[string]request{
+		"the API root without the token": apiCall, "the MCP root without the token": mcpCall,
+		"the API root with the token": apiCall.with("Bearer s3cret"), "the MCP root with the token": mcpCall.with("Bearer s3cret"),
+	} {
+		got, _, err := over(t, &http.Client{}, "http://"+addr, r)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%s: %v", name, err)
 		}
-		if token != "" {
-			req.Header.Set("Authorization", token)
-		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := resp.Body.Close(); err != nil {
-			t.Error(err)
-		}
-		statuses[name] = resp.StatusCode
+		statuses[name] = got
 	}
-	if diff := cmp.Diff(map[string]int{"with the token": 200, "without": 401}, statuses, compare.Options); diff != "" {
-		t.Errorf("statuses (-want +got):\n%s", diff)
+	want := map[string]int{
+		"the API root without the token": 401, "the MCP root without the token": 401,
+		"the API root with the token": 200, "the MCP root with the token": 200,
 	}
-	if n := calls.Load(); n != 1 {
-		t.Errorf("the operation ran %d times, want once", n)
+	if diff := cmp.Diff(want, statuses, compare.Options); diff != "" {
+		t.Errorf("statuses over plain HTTP (-want +got):\n%s", diff)
+	}
+	if n := calls.Load(); n != 2 {
+		t.Errorf("the operation ran %d times, want once per root", n)
 	}
 }
 
@@ -352,7 +374,6 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/mediate", "Configuration",
 		"Listen string",
 		"ProbeListen string",
-		"TLSAtIngress bool",
 		"TLSCert string",
 		"TLSKey string",
 		"TokenFile string",
@@ -367,7 +388,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
 // The mediator's defaults are its two listeners, a reload each minute, the port, its own runtime role,
-// the TLS mode that fails closed, the scanner configuration the application ships and a provider
+// no TLS files, the scanner configuration the application ships and a provider
 // timeout of thirty seconds. The token file, the database host, name and password file and the key
 // files are required.
 func TestTheDefaults(t *testing.T) {
@@ -396,7 +417,7 @@ func valid() Configuration {
 }
 
 // The configuration the mediator cannot serve with is refused before anything is read or connected.
-// TLS files are required unless an ingress is declared to terminate TLS, and refused when one is. No
+// The TLS files are named both or neither, so a half-mounted key pair never goes plain. No
 // account reaches the mediator from its configuration (ADR-0080).
 func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 	cases := []struct {
@@ -405,10 +426,9 @@ func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 		want   string
 	}{
 		{"TLS at the listener", func(*Configuration) {}, ""},
-		{"TLS at an ingress", func(c *Configuration) { c.TLSAtIngress, c.TLSCert, c.TLSKey = true, "", "" }, ""},
-		{"no key pair", func(c *Configuration) { c.TLSCert, c.TLSKey = "", "" }, "the mediator serves TLS unless tls_at_ingress is set, so it needs tls_cert and tls_key"},
-		{"no key", func(c *Configuration) { c.TLSKey = "" }, "the mediator serves TLS unless tls_at_ingress is set, so it needs tls_key"},
-		{"a certificate beside an ingress", func(c *Configuration) { c.TLSAtIngress, c.TLSKey = true, "" }, "tls_at_ingress declares that the mediator serves no TLS, so it takes no tls_cert or tls_key"},
+		{"plain HTTP, with no key pair", func(c *Configuration) { c.TLSCert, c.TLSKey = "", "" }, ""},
+		{"a certificate without its key", func(c *Configuration) { c.TLSKey = "" }, "tls_cert is named without tls_key, and the mediator serves TLS with both or plain HTTP with neither"},
+		{"a key without its certificate", func(c *Configuration) { c.TLSCert = "" }, "tls_key is named without tls_cert, and the mediator serves TLS with both or plain HTTP with neither"},
 		{"a blank token file path", func(c *Configuration) { c.TokenFile = " " }, "token_file is empty"},
 		{"a reload interval of zero", func(c *Configuration) { c.AccountReloadInterval = 0 }, "account_reload_interval 0s is not positive"},
 		{"a negative reload interval", func(c *Configuration) { c.AccountReloadInterval = -time.Second }, "account_reload_interval -1s is not positive"},
@@ -439,10 +459,8 @@ func TestAnAccountArgumentIsRefused(t *testing.T) {
 	}
 }
 
-// serving names a token file and declares TLS at an ingress, so a start reaches the credential and
-// database sections.
+// serving names a token file and no key pair, so a start reaches the credential and database sections.
 var servingArgs = []string{
-	"--tls_at_ingress=true",
 	"--token_file=/absent/token",
 }
 
@@ -510,7 +528,6 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=scanner.weights.position source=default value=1`,
 		`level=INFO msg=configuration path=scanner.weights.proximity source=default value=1`,
 		`level=INFO msg=configuration path=scanner.window source=default value=8`,
-		`level=INFO msg=configuration path=tls_at_ingress source="flag --tls_at_ingress" value=true`,
 		`level=INFO msg=configuration path=tls_cert source=default value=""`,
 		`level=INFO msg=configuration path=tls_key source=default value=""`,
 		`level=INFO msg=configuration path=token_file source="flag --token_file" value=/absent/token`,
@@ -656,7 +673,7 @@ func TestMCPGODEBUGStopsTheStart(t *testing.T) {
 	}
 }
 
-// The mediator reports ready only once the TLS key pair, when it serves TLS itself, and the bearer
+// The mediator reports ready only once the TLS key pair, when one is named, and the bearer
 // token load. A mount that cannot serve a client leaves it not ready and stops the start.
 func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
 	dir := t.TempDir()
@@ -670,11 +687,11 @@ func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
 		want bool
 	}{
 		{"TLS at the listener, with the key pair and a token", Configuration{TLSCert: certFile, TLSKey: keyFile, TokenFile: token}, true},
-		{"TLS at an ingress, with a token", Configuration{TLSAtIngress: true, TokenFile: token}, true},
+		{"plain HTTP, with a token", Configuration{TokenFile: token}, true},
 		{"a certificate that is absent", Configuration{TLSCert: absent, TLSKey: keyFile, TokenFile: token}, false},
 		{"a key that does not match", Configuration{TLSCert: certFile, TLSKey: token, TokenFile: token}, false},
 		{"a token file that is absent", Configuration{TLSCert: certFile, TLSKey: keyFile, TokenFile: absent}, false},
-		{"a token file holding no token", Configuration{TLSAtIngress: true, TokenFile: empty}, false},
+		{"a token file holding no token", Configuration{TokenFile: empty}, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -749,7 +766,7 @@ func TestAStartThatCannotServeFailsAndNeverReportsReady(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	reg, _ := counted(t)
-	c := Configuration{TLSAtIngress: true, TokenFile: tokenFile(t, "\n"), AccountReloadInterval: time.Hour}
+	c := Configuration{TokenFile: tokenFile(t, "\n"), AccountReloadInterval: time.Hour}
 	done := make(chan error, 1)
 	go func() {
 		done <- serve(ctx, c, surfaceListener, probeListener, &serving{registry: reg, logger: discard()}, prometheus.NewRegistry(), discard())

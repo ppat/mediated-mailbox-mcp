@@ -1,4 +1,4 @@
-control: The mediator reports ready only once its TLS key pair and bearer token load
+control: The mediator reports ready only once its TLS key pair, when one is named, and its bearer token load
 removes: a token file holding no token counts as loaded
 packages: ./mediate
 tests: TestReadyOnlyOnceTheKeysLoad/a_token_file_holding_no_token

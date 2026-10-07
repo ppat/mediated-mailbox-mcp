@@ -77,4 +77,6 @@ account.
 - Assumptions about other components. Every replica of one installation mounts the same
   `token_key_file` when more than one runs
   ([docs/UI.md section 18.1](../../UI.md#181-the-configuration-the-ui-declares)), and the browser
-  keeps a cookie of a few hundred bytes for the session.
+  keeps a cookie of a few hundred bytes for the session. The browser reaches the UI over HTTPS,
+  terminated by the UI or by the platform in front of it, so the `Secure` cookie is stored
+  ([ADR-0118](./0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)).

@@ -45,8 +45,8 @@ show no account's data ([section 8.10](#810-installation), ADR-0056).
 
 The UI has no authentication of its own in the first version. A deployment may place it behind
 an ingress that forwards to an authenticating proxy and passes the identity in a declared header,
-and the UI's own authentication may come later (ADR-0084). TLS holds
-([section 15](#15-security-of-the-ui-itself)).
+and the UI's own authentication may come later (ADR-0084). TLS holds on the browser's hop, served
+by the UI or by the platform in front of it ([section 15](#15-security-of-the-ui-itself)).
 
 The UI is desktop-first. It is designed at 1440 pixels wide with a floor of about 1280, and the
 first version has no mobile layout.
@@ -2003,9 +2003,20 @@ compromised UI process holds the key that opens every stored refresh token, whil
 reads none (ADR-0081). What remains is the browser, the transport, the database connection, the two
 decisions, the two setups, and the policy writes.
 
-- **TLS, and the same posture as the client surface** (ADR-0084). The UI serves TLS from the
-  material its configuration declares ([section 18.1](#181-the-configuration-the-ui-declares)).
-  The "own auth" half of ADR-0084's posture is, for the first version, the operator's ruling of
+- **TLS, and the same posture as the client surface** (ADR-0084, ADR-0118). The UI serves TLS when
+  its configuration names a certificate and a key, and plain HTTP when it names neither, behind a
+  platform that terminates TLS in front of it
+  ([section 18.1](#181-the-configuration-the-ui-declares)). Naming one without the other refuses
+  the start. The browser reaches the UI over HTTPS either way, a requirement the deployment
+  declares, because the UI's cookies are `Secure` in both modes. Over a plain-HTTP browser hop the
+  browser stores neither cookie, so every state-changing request is refused with `stale_page` and
+  the UI fails closed rather than carrying its session in clear. Dropping `Secure` when the UI
+  serves plain HTTP was the alternative, and its case was a session that works over any hop. It was
+  not chosen because behind a platform that terminates TLS the browser's hop is HTTPS, where
+  `Secure` works, and on a genuinely plain hop the session cookie would travel in clear. A browser
+  that treats a loopback origin as secure, as Chrome and Firefox do, stores the cookies there,
+  which is what the dev loop runs on ([section 18](#18-repository-and-build-layout)). The "own
+  auth" half of ADR-0084's posture is, for the first version, the operator's ruling of
   no authentication of the UI's own with an optional authenticating proxy in front
   ([section 1](#1-what-the-ui-is-for)).
 - **Content security policy** (ADR-0062). `default-src 'self'`, `script-src 'self'`,
@@ -2410,7 +2421,6 @@ ui/
     clientsecret/       opens an OAuth client's sealed secret for a consent's code exchange, the one part
                         of the UI that opens a stored value (ADR-0081)
     core/               pure-core packages private to the UI
-    devloop/            whether the binary was built with the devloop build tag
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
   browser/              the TypeScript app, with its manifest, lock file, runner, compiler, lint and format settings
     codegen/            the type generation step's own package (ADR-0065)
@@ -2438,10 +2448,9 @@ ui/
   and the browser types and the descriptor table from the document. A stale document, stale types,
   or a stale descriptor table fails the build (ADR-0065).
 - **Dev loop.** The Go server runs against a local Postgres with the synthetic fixtures, in plain
-  HTTP under `insecure_http: true`, which the server refuses unless its binary is built with the
-  `devloop` build tag. No image build sets the tag. The browser app runs under
-  bun's dev server proxying `/api` to the Go server, with the same request token and identity
-  rules in force. The dev server serves no policy header, so the policy of
+  HTTP with neither `tls_cert` nor `tls_key` named, on a loopback address the browser treats as a
+  secure origin ([section 15](#15-security-of-the-ui-itself)). The browser app runs under bun's dev
+  server proxying `/api` to the Go server, with the same request token and identity rules in force. The dev server serves no policy header, so the policy of
   [section 15](#15-security-of-the-ui-itself) is exercised only against the built output the Go
   server serves (ADR-0064).
 - **Tests.** The Go side tests the registry, the queries, the error contract, the decisions, and the
@@ -2481,10 +2490,9 @@ and finds no pasted address to be the redirect's.
 | `database` | the section ADR-0078 declares for every deployable, the Postgres connection settings for the UI's own role (ADR-0084) rendered into the connection string, with the password read from the file `database.password_file` names and `database.user` defaulting to that role | yes |
 | `listen` | the address and port the UI serves on | no, defaults to `:8443`, as the mediator's does |
 | `probe_listen` | the address and port the health and readiness probes and the metrics endpoint serve on, in plain HTTP | no, defaults to `:8080`, as the mediator's does |
-| `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the mediator's are, so a renewed certificate needs no restart | yes, unless `insecure_http` |
+| `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the mediator's are, so a renewed certificate needs no restart. With both named the UI serves TLS, and with neither it serves plain HTTP behind a platform that terminates TLS in front of it (ADR-0118). The start is refused when one is named without the other | no, both or neither |
 | `seal_public_key_file` | the path of the mounted public key the UI seals credentials to (ADR-0081) | yes |
 | `private_key_files` | the paths of every mounted private key, the keyring the deployables that call a provider hold, with which the UI's client-secret package opens a client's secret for a consent's code exchange (ADR-0081, ADR-0092). The start is refused unless the public key matches one of them | yes |
-| `insecure_http` | `true` serves plain HTTP, refused unless the binary is built with the `devloop` build tag ([section 18](#18-repository-and-build-layout)) | no |
 | `identity_header` | the header name an authenticating proxy forwards. When it is set, its value is recorded on decisions and policy writes, and a decision or a policy write without it is refused | no |
 | `operator_name` | the identity recorded on decisions and policy writes when no header is declared | no, defaults to `operator` |
 | `consent_redirect` | the loopback address a consent redirects the browser to, where nothing listens, which the consent request and the code exchange name, the pasted address is checked against, and the browser reads from the entry document to picture it and check a paste ([section 8.12](#812-connect-an-account-and-re-authorize)). The start is refused unless it is an `http` address whose host is a loopback IP literal, `127.0.0.1` or another in `127.0.0.0/8`, or `[::1]`, with an explicit port, and no path but `/`, no query, fragment or user. A desktop client accepts a loopback redirect on any port, so changing it needs nothing at Google | no, defaults to `http://127.0.0.1:47823/`, a high port a web server on the operator's computer is unlikely to answer on |
@@ -2504,7 +2512,7 @@ read latency by dataset and level, stream subscriber count, and decision outcome
 result, as `mediated_mailbox_ui_read_duration_seconds` by `dataset` and `level`,
 `mediated_mailbox_ui_stream_subscribers`, and the decision outcomes' series where the decisions are
 built. The health and readiness probes and the metrics endpoint serve on their own plain-HTTP
-listener, `probe_listen`, apart from the UI's TLS listener, and the UI reports ready only while the
+listener, `probe_listen`, apart from the UI's own listener, and the UI reports ready only while the
 database answers its role. No log line and no metric label ever carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
 
 ## 19. Building it

@@ -28,7 +28,8 @@ are thin protocol adapters over one shared service library.
   a separate future decision. The OpenAPI contract and the tool descriptions are contract-grade
   text, reviewed like code.
 - **Same transport posture on both roots**: bearer-token authentication, TLS — same controls
-  applied to both (API and MCP) identically.
+  applied to both (API and MCP) identically. Where TLS ends, at the mediator's listener or in front
+  of it, is [ADR-0118](./0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)'s.
 - **Every client of the serving surface is untrusted.** The trust posture keys on "any client,"
   not "the agent": the agent over MCP today; any caller of the API tomorrow. Every control that
   assumed a persuadable agent assumes a hostile client generally.

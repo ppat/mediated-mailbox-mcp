@@ -47,7 +47,7 @@ var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.L
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui", "Configuration",
 		"Database core.Config", "Listen string", "ProbeListen string", "TLSCert string", "TLSKey string",
-		"InsecureHTTP bool", "SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
+		"SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
 		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
 		"SealPublicKeyFile string", "PrivateKeyFiles []string", "TokenKeyFile string",
@@ -56,7 +56,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The UI's defaults are the port, its own runtime role, the TLS mode that fails closed, the mediator's
+// The UI's defaults are the port, its own runtime role, no TLS file, the mediator's
 // listen addresses and the records' intervals, and the database's host, name and password file are
 // required (docs/UI.md section 18.1).
 func TestTheDefaults(t *testing.T) {
@@ -88,31 +88,22 @@ func TestTheDefaults(t *testing.T) {
 	}
 }
 
-// A binary built without the devloop build tag, which every test binary and every image is, refuses
-// plain HTTP at start, before it touches the database (docs/UI.md section 18).
-func TestPlainHTTPRefusesTheStart(t *testing.T) {
-	args := []string{
-		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent",
-		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true", "--seal_public_key_file=/absent",
-		"--private_key_files=[/absent]",
-	}
-	err := run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard())
-	want := "validating the configuration: insecure_http is true, and a binary built without the devloop build tag serves TLS only"
-	if err == nil || err.Error() != want {
-		t.Errorf("run returned %v, want %q", err, want)
-	}
-}
-
-// TLS needs both its files unless plain HTTP is configured.
-func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
-	args := []string{
-		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
-		"--tls_cert=/tls/cert", "--seal_public_key_file=/absent", "--private_key_files=[/absent]",
-	}
-	err := run(t.Context(), args, nil, discard())
-	want := "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true"
-	if err == nil || err.Error() != want {
-		t.Errorf("run returned %v, want %q", err, want)
+// A TLS file named without the other refuses the start before it touches the database, so a
+// half-mounted key pair never goes plain (ADR-0118, docs/UI.md section 18.1).
+func TestATLSFileWithoutTheOtherRefusesTheStart(t *testing.T) {
+	for file, want := range map[string]string{
+		"--tls_cert=/tls/cert": "validating the configuration: tls_cert is named without tls_key, and the UI serves TLS with both or plain HTTP with neither",
+		"--tls_key=/tls/key":   "validating the configuration: tls_key is named without tls_cert, and the UI serves TLS with both or plain HTTP with neither",
+	} {
+		args := []string{
+			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent",
+			"--listen=:8443", "--probe_listen=:8080", file, "--seal_public_key_file=/absent",
+			"--private_key_files=[/absent]",
+		}
+		err := run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard())
+		if err == nil || err.Error() != want {
+			t.Errorf("with %s, run returned %v, want %q", file, err, want)
+		}
 	}
 }
 
@@ -160,15 +151,13 @@ func writeKeyPair(t *testing.T, certFile, keyFile string, serial int64) *x509.Ce
 	return cert
 }
 
-// A key pair rotated in its mounted files serves the next handshake without a restart, as the
-// mediator's client surface does (docs/UI.md section 15).
-func TestARotatedKeyPairServesTheNextHandshake(t *testing.T) {
-	dir := t.TempDir()
-	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
-	first := writeKeyPair(t, certFile, keyFile, 1)
+// served serves a handler answering 204 to every request through serveUI, under config, on a
+// loopback listener until the test ends, and returns its address.
+func served(t *testing.T, config *tls.Config) string {
+	t.Helper()
 	srv := &http.Server{
 		Handler:           http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }),
-		TLSConfig:         tlsConfig(certFile, keyFile),
+		TLSConfig:         config,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	var lc net.ListenConfig
@@ -176,13 +165,42 @@ func TestARotatedKeyPairServesTheNextHandshake(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	served := make(chan error, 1)
-	go func() { served <- srv.ServeTLS(ln, "", "") }()
+	done := make(chan error, 1)
+	go func() { done <- serveUI(srv, ln) }()
 	t.Cleanup(func() {
-		if err := errors.Join(srv.Shutdown(context.Background()), ignoreClosed(<-served)); err != nil {
+		if err := errors.Join(srv.Shutdown(context.Background()), ignoreClosed(<-done)); err != nil {
 			t.Error(err)
 		}
 	})
+	return ln.Addr().String()
+}
+
+// get sends a GET for / to address through client and returns the response's status and its TLS
+// connection state, nil over plain HTTP.
+func get(t *testing.T, client *http.Client, address string) (int, *tls.ConnectionState, error) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, address+"/", http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	return resp.StatusCode, resp.TLS, resp.Body.Close()
+}
+
+// With a key pair named, the UI is served over TLS only (ADR-0118). A plain HTTP request is not
+// served, and a key pair rotated in its mounted files serves the next handshake without a restart, as
+// the mediator's client surface does (docs/UI.md section 15).
+func TestWithAKeyPairTheUIIsServedOverTLSOnly(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
+	first := writeKeyPair(t, certFile, keyFile, 1)
+	addr := served(t, tlsConfig(certFile, keyFile))
+	if status, _, err := get(t, &http.Client{}, "http://"+addr); err == nil && status == http.StatusNoContent {
+		t.Error("a plain HTTP request was served")
+	}
 	for i, cert := range []*x509.Certificate{first, nil} {
 		if cert == nil {
 			cert = writeKeyPair(t, certFile, keyFile, 2)
@@ -190,20 +208,26 @@ func TestARotatedKeyPairServesTheNextHandshake(t *testing.T) {
 		pool := x509.NewCertPool()
 		pool.AddCert(cert)
 		client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://"+ln.Addr().String()+"/", http.NoBody)
-		if err != nil {
-			t.Fatal(err)
-		}
-		resp, err := client.Do(req)
+		status, state, err := get(t, client, "https://"+addr)
 		if err != nil {
 			t.Fatalf("handshake %d with the key pair then in the files: %v", i+1, err)
 		}
-		if err := resp.Body.Close(); err != nil {
-			t.Error(err)
+		if got := state.PeerCertificates[0].SerialNumber.Int64(); status != http.StatusNoContent || got != cert.SerialNumber.Int64() {
+			t.Errorf("handshake %d: status %d with serial %d, want 204 with serial %d", i+1, status, got, cert.SerialNumber.Int64())
 		}
-		if got := resp.TLS.PeerCertificates[0].SerialNumber.Int64(); got != cert.SerialNumber.Int64() {
-			t.Errorf("handshake %d served serial %d, want %d", i+1, got, cert.SerialNumber.Int64())
-		}
+	}
+}
+
+// With no key pair named, the UI is served over plain HTTP, behind whatever terminates TLS in front of
+// it (ADR-0118).
+func TestWithNoKeyPairTheUIIsServedOverPlainHTTP(t *testing.T) {
+	addr := served(t, tlsConfig("", ""))
+	status, state, err := get(t, &http.Client{}, "http://"+addr)
+	if err != nil {
+		t.Fatalf("a plain HTTP request: %v", err)
+	}
+	if status != http.StatusNoContent || state != nil {
+		t.Errorf("status %d over TLS %v, want 204 over plain HTTP", status, state != nil)
 	}
 }
 
@@ -230,6 +254,25 @@ func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	err = serve(bounded(t), c, s, discard())
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
 		t.Fatalf("serve returned %v, want the key pair refused", err)
+	}
+}
+
+// With no key pair named, the start loads none and serves until it is stopped, so a UI behind a
+// platform that terminates TLS in front of it starts (ADR-0118).
+func TestWithNoKeyPairTheStartServesUntilStopped(t *testing.T) {
+	c := defaults()
+	c.Listen, c.ProbeListen = "127.0.0.1:0", "127.0.0.1:0"
+	s, err := api.New(api.Options{
+		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: discard(),
+		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
+	defer cancel()
+	if err := serve(ctx, c, s, discard()); err != nil {
+		t.Fatalf("serve returned %v, want nil once stopped", err)
 	}
 }
 
@@ -274,7 +317,6 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=default_theme source=default value=system`,
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
 		`level=INFO msg=configuration path=identity_header source=default value=""`,
-		`level=INFO msg=configuration path=insecure_http source=default value=false`,
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
 		`level=INFO msg=configuration path=operator_name source=default value=operator`,
 		`level=INFO msg=configuration path=private_key_files source="flag --private_key_files" value=[` + privateKeyFile + `]`,

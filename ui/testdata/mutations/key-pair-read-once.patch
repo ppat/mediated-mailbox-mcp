@@ -1,15 +1,14 @@
-control: The client surface is served over TLS when a key pair is named and over plain HTTP when none is, with the key pair read from its mounted files
+control: the UI serves TLS when a key pair is named and plain HTTP when none is, with the key pair read from its mounted files
 removes: the key pair is read once, when the configuration is built, so a rotated pair never serves
-packages: ./mediate
-tests: TestWithAKeyPairTheSurfaceIsServedOverTLSOnly
+packages: ./ui
+tests: TestWithAKeyPairTheUIIsServedOverTLSOnly
 scheduled-count: no
 
-
-diff --git a/mediate/main.go b/mediate/main.go
-index be7955fc..ded38af8 100644
---- a/mediate/main.go
-+++ b/mediate/main.go
-@@ -611,10 +611,10 @@ func tlsConfig(certFile, keyFile string) *tls.Config {
+diff --git a/ui/main.go b/ui/main.go
+index 001bdb6c..7b4f1ee3 100644
+--- a/ui/main.go
++++ b/ui/main.go
+@@ -301,10 +301,10 @@ func tlsConfig(certFile, keyFile string) *tls.Config {
  	if certFile == "" {
  		return nil
  	}

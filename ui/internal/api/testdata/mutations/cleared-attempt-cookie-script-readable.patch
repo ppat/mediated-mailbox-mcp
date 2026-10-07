@@ -1,0 +1,19 @@
+control: every cookie the UI sets is Secure, HttpOnly and SameSite=Strict
+removes: the consent attempt cookie is cleared without HttpOnly as an attempt ends
+packages: ./ui/internal/api
+tests: TestEveryCookieTheUISetsIsSecureHttpOnlyAndStrict
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/attempt.go b/ui/internal/api/attempt.go
+index 4e5569dd..72126c69 100644
+--- a/ui/internal/api/attempt.go
++++ b/ui/internal/api/attempt.go
+@@ -103,6 +103,6 @@ func keepAttempt(w http.ResponseWriter, value string) {
+ // endAttempt clears the session's attempt once a finish has stored what it was for.
+ func endAttempt(w http.ResponseWriter) {
+ 	http.SetCookie(w, &http.Cookie{
+-		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
++		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, Secure: true, SameSite: http.SameSiteStrictMode,
+ 	})
+ }

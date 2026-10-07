@@ -9,11 +9,9 @@ version: "2"
 run:
   # Files carrying these build tags are linted. Without a tag listed here, depguard and forbidigo skip every
   # file that needs it. banproof adds its own tag on the command line, which golangci-lint appends to these.
-  # devloop compiles ui/internal/devloop/on.go, the one file the UI's dev loop adds.
   build-tags:
   - integration
   - gmail_live
-  - devloop
 
 issues:
   # The defaults hide a second finding on a line and cap repeated findings, which would drop a finding

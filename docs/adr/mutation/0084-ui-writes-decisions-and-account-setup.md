@@ -81,10 +81,11 @@ Constraints that keep it safe to exist:
 - **It never displays message bodies**, structurally, because it reads a database with no body
   columns ([ADR-0016](../data/0016-schema.md)). Stated here so nobody later adds a "preview"
   feature by proxying through the mediator.
-- **TLS**, same posture as the client surface. **Authentication is not in the first version.** The
-  operator may place the UI behind an ingress that forwards to an authentication service and sets
-  a cookie, with the identity header above. The UI's own authentication (OpenID Connect, say) may
-  come later.
+- **TLS**, same posture as the client surface, served by the UI or by the platform in front of it
+  ([ADR-0118](../operability/0118-tls-when-given-a-certificate-and-plain-http-otherwise.md)).
+  **Authentication is not in the first version.** The operator may place the UI behind an ingress
+  that forwards to an authentication service and sets a cookie, with the identity header above. The
+  UI's own authentication (OpenID Connect, say) may come later.
 
 The shape is a small single-page app over a thin read API. Its value is legibility, two decisions,
 connecting accounts and keeping the policy. Its design is [docs/UI.md](../../UI.md).

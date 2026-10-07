@@ -169,6 +169,7 @@ moves it. Records themselves link freely and deep, into
 | 0108 | [The index reads select messages by an index query of the client surface's own, never by the Provider Port's canonical query](./operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) | Accepted |
 | 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
 | 0111 | [A consent attempt travels in a cookie the UI server seals, bound to the session that started it](./operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md) | Accepted |
+| 0118 | [The mediator and the UI serve TLS when given a certificate and key, and plain HTTP when given neither](./operability/0118-tls-when-given-a-certificate-and-plain-http-otherwise.md) | Accepted |
 
 ## Engineering — `engineering/`
 

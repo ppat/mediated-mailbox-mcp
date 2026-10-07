@@ -1,0 +1,20 @@
+control: The client surface is served over TLS when a key pair is named and over plain HTTP when none is, with the key pair read from its mounted files
+removes: the surface is served over TLS even when no key pair is named
+packages: ./mediate
+tests: TestWithNoKeyPairTheSurfaceIsServedOverPlainHTTP
+scheduled-count: no
+
+diff --git a/mediate/main.go b/mediate/main.go
+index be7955fc..d2edc4bc 100644
+--- a/mediate/main.go
++++ b/mediate/main.go
+@@ -608,9 +608,6 @@ func bearer(tokenFile string, next http.Handler) http.Handler {
+ // mounted files on each handshake, or none when no key pair is named, so the surface is served over
+ // plain HTTP behind whatever terminates TLS in front of it (ADR-0118).
+ func tlsConfig(certFile, keyFile string) *tls.Config {
+-	if certFile == "" {
+-		return nil
+-	}
+ 	return &tls.Config{
+ 		MinVersion: tls.VersionTLS12,
+ 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

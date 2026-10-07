@@ -1,4 +1,4 @@
-control: The mediator reports ready only once its TLS key pair and bearer token load
+control: The mediator reports ready only once its TLS key pair, when one is named, and its bearer token load
 removes: the key pair is not loaded before the mediator is marked ready
 packages: ./mediate
 tests: TestReadyOnlyOnceTheKeysLoad/a_certificate_that_is_absent TestReadyOnlyOnceTheKeysLoad/a_key_that_does_not_match
@@ -6,14 +6,14 @@ scheduled-count: no
 
 
 diff --git a/mediate/main.go b/mediate/main.go
-index 9a59611..ec84919 100644
+index be7955fc..54c0f5be 100644
 --- a/mediate/main.go
 +++ b/mediate/main.go
-@@ -417,7 +417,7 @@ func refuseEnvironment(environ []string) error {
- // terminates TLS, and the bearer token load, so a pod whose mounts cannot serve a client never
- // reports ready. They are read again on each handshake and each request.
+@@ -486,7 +486,7 @@ func refuseEnvironment(environ []string) error {
+ // bearer token load, so a pod whose mounts cannot serve a client never reports ready. They are read
+ // again on each handshake and each request.
  func markReadyWhenServable(ready *readiness.State, c Configuration) error {
--	if !c.TLSAtIngress {
+-	if c.TLSCert != "" {
 +	if false {
  		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
  			return fmt.Errorf("loading the TLS key pair: %w", err)
