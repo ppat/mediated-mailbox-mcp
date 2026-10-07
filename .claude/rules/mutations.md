@@ -1,17 +1,19 @@
 ---
 paths:
   - "docs/MUTATIONS.md"
+  - "docs/mutations/*.md"
 ---
 
 # Rules for docs/MUTATIONS.md
 
 You are touching the mutation ledger, the per-control record that breaking a mechanism made its
-tests go red. ADR-0046 holds the decision. Scenario rows belong to docs/VERIFICATIONS.md, and
-only demonstrations belong here.
+tests go red. The ledger is docs/MUTATIONS.md and the files under docs/mutations/ it lists, and
+docs/MUTATIONS.md states a row's form and which file holds it. ADR-0046 holds the decision.
+Scenario rows belong to docs/VERIFICATIONS.md, and only demonstrations belong here.
 
 - **No row exists before implementation.** A row names the control, how its mechanism was
   broken, once so it does less and once so it does the wrong thing, the tests that went red, the
-  date, and an evidence pointer. The table is the whole artifact, never a pass rate or a score.
+  date, and an evidence pointer. The rows are the whole artifact, never a pass rate or a score.
 - **A surviving mutant keeps its row open as a defect.** The row closes when the tests are
   fixed or the mechanism is deliberately deleted as redundant, and never by being dropped
   quietly.

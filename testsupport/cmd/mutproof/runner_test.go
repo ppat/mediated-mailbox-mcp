@@ -132,8 +132,9 @@ func TestRemovedMechanismTurnsTheRequiredTestRed(t *testing.T) {
 	if diff := cmp.Diff(want, outcomeOf(res), compare.Options); diff != "" {
 		t.Errorf("outcome (-want +got):\n%s", diff)
 	}
-	rows := []string{"| The gate refuses flagged items | Allow returns true without reading the flag | `TestRefusesFlagged` in `fixture/gate` | " +
-		time.Now().Format("2006-01-02") + " · EVIDENCE |"}
+	rows := []string{"## The gate refuses flagged items\n\n- **Date · evidence:** " + time.Now().Format("2006-01-02") + " · EVIDENCE\n" +
+		"- **Break:** Allow returns true without reading the flag\n" +
+		"  - **Went red in `fixture/gate`:** `TestRefusesFlagged`"}
 	got, _ := ledgerRows([]ledgerEntry{{res.preamble.control, &res}})
 	if diff := cmp.Diff(rows, got, compare.Options); diff != "" {
 		t.Errorf("ledger rows (-want +got):\n%s", diff)
@@ -262,7 +263,9 @@ func TestRunAllReportsEachPatch(t *testing.T) {
 		"PASS " + patchPath(root, "gate", "red"),
 		"FAIL " + patchPath(root, "gate", "survive"),
 		"  surviving mutant: every test stayed green",
-		"Ledger rows for docs/MUTATIONS.md\n| The gate refuses flagged items | (1) Allow returns true without reading the flag<br>(2) Allow is rewritten to the same logic |",
+		"Ledger rows, each for the file under docs/mutations/ that docs/MUTATIONS.md assigns to its control\n\n## The gate refuses flagged items\n\n- **Date · evidence:** ",
+		" · EVIDENCE · open, a surviving mutant\n- **Break (1):** Allow returns true without reading the flag\n  - **Went red in `fixture/gate`:** `TestRefusesFlagged`\n" +
+			"- **Break (2):** Allow is rewritten to the same logic\n  - **Went red:** none, a surviving mutant\n\n",
 	} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("output lacks %q:\n%s", want, out.String())
@@ -419,8 +422,13 @@ func TestLedgerRowsOnePerCompleteControl(t *testing.T) {
 		{},
 	}
 	wantRows := []string{
-		"| Gate \\| refuses | (1) Allow returns true<br>(2) Allow ignores the flag | (1) `TestA`, `TestB` in `m/gate`, `TestC` in `m/other`<br>(2) none, a surviving mutant | 2026-09-18 · EVIDENCE · open, a surviving mutant |",
-		"| Redaction | Redact returns its input | `TestR` in `m/redact` | 2026-09-18 · EVIDENCE |",
+		"## Gate | refuses\n\n- **Date · evidence:** 2026-09-18 · EVIDENCE · open, a surviving mutant\n" +
+			"- **Break (1):** Allow returns true\n" +
+			"  - **Went red in `m/gate`:** `TestA`, `TestB`\n" +
+			"  - **Went red in `m/other`:** `TestC`\n" +
+			"- **Break (2):** Allow ignores the flag\n" +
+			"  - **Went red:** none, a surviving mutant",
+		"## Redaction\n\n- **Date · evidence:** 2026-09-18 · EVIDENCE\n- **Break:** Redact returns its input\n  - **Went red in `m/redact`:** `TestR`",
 	}
 	rows, incomplete := ledgerRows(entries)
 	if diff := cmp.Diff(wantRows, rows, compare.Options); diff != "" {

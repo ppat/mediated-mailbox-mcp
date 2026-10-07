@@ -29,8 +29,10 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
 
 ## Verification rows
 
-- Shape: `| <deliberate violation> → <expected refusal> | what it proves, ADR-NNNN, and the wrong
-  reading it rules out | <unit link> |`. Pending rows key to the unit that delivers the control, or
+- Shape: a list item of three lines, `- **Injection:** <deliberate violation> → <expected
+  refusal>`, then nested under it `- **Proves:** what it proves, ADR-NNNN, and the wrong reading it
+  rules out` and `- **Status:** <unit link>`, with a blank line between rows. The document's
+  preamble is the format authority. Pending rows key to the unit that delivers the control, or
   to the production point at which a drill or manual exercise runs, or a delivered unit whose later
   work delivers it, marked as later work; unit identifiers link to their
   roadmap group anchors and production points to their sections.
@@ -51,14 +53,16 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
   catalogue: a row in its parked/answerable section naming the control, the disposition, and
   where the proof rides. The catalogue claims every control; a disposition living only in a
   record is invisible from the catalogue's side.
-- A new control lands with its row in the same change. Proving a row later: its Status cell gains
+- A new control lands with its row in the same change. Proving a row later: its Status line gains
   the date and an evidence pointer, and the row stays where it is.
 - Parking a row: the standing reason goes in the row; re-opening appends, never rewrites.
 
 ## Mutation-ledger rows
 
-- The ledger's own preamble is the format authority. A row names the control, how the
-  mechanism was broken both ways, the tests that went red, the date, and an evidence pointer.
+- The ledger's own preamble, in `docs/MUTATIONS.md`, is the format authority. A row names the
+  control, how the mechanism was broken both ways, the tests that went red, the date, and an
+  evidence pointer, in the form `go tool mutproof` prints, and sits in the file under
+  `docs/mutations/` that the preamble names for the component holding the control's patches.
 - A row is written at implementation time, when its control lands, and rewritten only when the
   control, its tests, or a generator its tests draw from changes.
 - A surviving mutant keeps its row open as a defect until the tests are fixed or the mechanism

@@ -11,7 +11,7 @@ more fluid than the design.
 - **A new control lands with its injection row** — in the same change that introduces the
   control, never later. An uninstrumented control is an unproven claim.
 - **Rows are violation injections**: written as `<deliberate violation> → <expected refusal>`,
-  never "test that X works." The *Proves* column names the claim, cites the decision record by
+  never "test that X works." The *Proves* field names the claim, cites the decision record by
   number, and where it earns its keep, names the wrong reading the injection rules out.
 - **Statuses**: pending rows name the roadmap unit that delivers the control, or the production
   point at which a drill or manual exercise runs, or a delivered unit whose later work delivers it,
@@ -19,9 +19,9 @@ more fluid than the design.
   the evidence; parked rows carry the standing reason. A row's kind decides whether its proof
   stays current or holds only for its date (ADR-0046). An automatable injection becomes a
   permanent CI test with continuous proof. A drill or a manual exercise is a claim about its
-  date, and re-runs after relevant change belong to the affected unit, not this table.
-- An automatable control also owes its mutation demonstration to `docs/MUTATIONS.md`
-  (ADR-0046). This document never carries it.
+  date, and re-runs after relevant change belong to the affected unit, not this catalogue.
+- An automatable control also owes its mutation demonstration to the mutation ledger,
+  `docs/MUTATIONS.md` and the files it lists (ADR-0046). This document never carries it.
 - Rows are **rekeyed, not rewritten**, when the work breakdown changes; a recut ticket inherits
   its rows and a passed row keeps its evidence pointer.
 - The how-to detail of running an injection lives with the implementation, never here.

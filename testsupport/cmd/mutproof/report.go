@@ -48,11 +48,13 @@ type ledgerEntry struct {
 	res     *result
 }
 
-// ledgerRows returns one row of the table in docs/MUTATIONS.md per control, in the order the
-// controls first appear. A row names each removal of the control with the tests it turned red, and
-// a surviving mutant marks the row open, as the ledger keeps it until the tests are fixed. A control
-// gets a row only when every one of its patches held or survived. The others are returned as
-// incomplete. The evidence pointer is left for the author to fill in.
+// ledgerRows returns one row of the ledger docs/MUTATIONS.md defines per control, in the order the
+// controls first appear, each in the form that file states: a section headed by the control, a line
+// for the date and evidence, and under each removal of the control a line per package naming the
+// tests it turned red. A surviving mutant marks the row open, as the ledger keeps it until the tests
+// are fixed or the mechanism is deleted as redundant. A control gets a row only when every one of
+// its patches held or survived. The others are returned as incomplete. The evidence pointer is left
+// for the author to fill in.
 func ledgerRows(entries []ledgerEntry) (rows, incomplete []string) {
 	var controls []string
 	byControl := map[string][]ledgerEntry{}
@@ -71,47 +73,43 @@ func ledgerRows(entries []ledgerEntry) (rows, incomplete []string) {
 			incomplete = append(incomplete, c)
 			continue
 		}
-		var removals, reds []string
+		var breaks []string
 		open := false
 		for i, e := range es {
 			r := e.res
-			number := ""
+			label := "Break"
 			if len(es) > 1 {
-				number = fmt.Sprintf("(%d) ", i+1)
+				label = fmt.Sprintf("Break (%d)", i+1)
 			}
-			removals = append(removals, number+cell(r.preamble.removes))
+			lines := []string{fmt.Sprintf("- **%s:** %s", label, r.preamble.removes)}
 			if r.surviving() {
 				open = true
-				reds = append(reds, number+"none, a surviving mutant")
-				continue
+				lines = append(lines, "  - **Went red:** none, a surviving mutant")
+			} else {
+				lines = append(lines, redTests(r.red)...)
 			}
-			reds = append(reds, number+redTests(r.red))
+			breaks = append(breaks, strings.Join(lines, "\n"))
 		}
 		date := es[0].res.date.Format("2006-01-02") + " · EVIDENCE"
 		if open {
 			date += " · open, a surviving mutant"
 		}
-		rows = append(rows, fmt.Sprintf("| %s | %s | %s | %s |", cell(c), strings.Join(removals, "<br>"), strings.Join(reds, "<br>"), date))
+		rows = append(rows, fmt.Sprintf("## %s\n\n- **Date · evidence:** %s\n%s", c, date, strings.Join(breaks, "\n")))
 	}
 	return rows, incomplete
 }
 
-// redTests names the tests that went red, grouped by package.
-func redTests(red []testID) string {
+// redTests names the tests that went red, one line per package.
+func redTests(red []testID) []string {
 	byPackage := map[string][]string{}
 	for _, id := range red {
-		byPackage[id.pkg] = append(byPackage[id.pkg], "`"+cell(id.name)+"`")
+		byPackage[id.pkg] = append(byPackage[id.pkg], "`"+id.name+"`")
 	}
-	var parts []string
+	var lines []string
 	for _, pkg := range slices.Sorted(maps.Keys(byPackage)) {
-		parts = append(parts, strings.Join(byPackage[pkg], ", ")+" in `"+cell(pkg)+"`")
+		lines = append(lines, "  - **Went red in `"+pkg+"`:** "+strings.Join(byPackage[pkg], ", "))
 	}
-	return strings.Join(parts, ", ")
-}
-
-// cell escapes the one character that ends a table cell.
-func cell(s string) string {
-	return strings.ReplaceAll(s, "|", `\|`)
+	return lines
 }
 
 func indent(s string) string {

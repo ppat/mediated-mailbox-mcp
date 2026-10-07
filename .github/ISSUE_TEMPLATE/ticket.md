@@ -24,7 +24,7 @@ about: One pull request's worth of work under one roadmap unit
 | | |
 | --- | --- |
 | Decision records | `<the records whose mechanisms land here, cited by number and linked>` |
-| Verifications | `<the rows keyed to the unit that this ticket proves, for the part they key to it, each named by the violation its injection cell states>` |
+| Verifications | `<the rows keyed to the unit that this ticket proves, for the part they key to it, each named by the violation its injection states>` |
 | Mutations | `<the demonstrations this ticket owes, one per automatable control it lands>` |
 | Tests | `<the kinds TESTING.md requires for the code it adds>` |
 | Blocked by | `<the tickets that must land first, or the units whose tickets are not yet cut, from inside the unit or the roadmap's dependency table, or none>` |

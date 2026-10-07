@@ -22,7 +22,8 @@ proof system.
   The change to the record and the change to this document land together. This document moves
   when the strategy's records move, never ahead of them.
 - **No scenario rows and no demonstrations.** A concrete injection belongs in
-  docs/VERIFICATIONS.md, and a mutation table belongs in docs/MUTATIONS.md.
+  docs/VERIFICATIONS.md, and a mutation table belongs in the mutation ledger, docs/MUTATIONS.md
+  and the files it lists.
 - **No build state.** Which tests exist and which rows are proven are ROADMAP.md and
   docs/VERIFICATIONS.md facts.
 - **An awaited-items section exists only while something is awaited.** When a change lands a

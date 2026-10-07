@@ -41,8 +41,8 @@ and *production* are terms of [DESIGN.md's Glossary](./DESIGN.md#glossary).
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units and production points below. A
 unit is not done while the rows keyed to it are unproven for the part they key to it. A row keyed to
 a unit and a production point is proven at the unit for the mechanism and at the point for the rest.
-An automatable control's acceptance also includes the mutation demonstration recorded in
-[docs/MUTATIONS.md](./docs/MUTATIONS.md)
+An automatable control's acceptance also includes the mutation demonstration recorded in the
+mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists
 ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). A drill or manual
 exercise keyed to a production point is proven there, on its date. A row keyed to a delivered unit
 as later work keys that later work, filed under the unit whose mechanism it concerns as a discovery
@@ -188,6 +188,7 @@ column.
 | [#254](https://github.com/ppat/mediated-mailbox-mcp/pull/254) | D1 | D1's backfill handing each account's credential over with the adoption stamp of the credential its source holds | D1's part of the row for a write-back based on a credential the operator has since replaced, for backfill's hand-over | It closes the discovery [#250](https://github.com/ppat/mediated-mailbox-mcp/issues/250), demonstrating backfill's breaks of the control that discards a hand-over from before an adoption, and demonstrates again the rows of that control, of backfill's hand-over, of its recorded attempt and of its re-read of a refused credential, which gains a break handing the refused source over with the re-read's stamp, whose code it changed, with the patches the change left stale regenerated |
 | [#256](https://github.com/ppat/mediated-mailbox-mcp/pull/256) | M7 | M7's OAuth client setup and account setup, the request token, the consent package and the UI's client-secret part | M7's rows and M7's parts of the rows it shares, and it adds and proves the rows for a consent attempt's binding to its session, a client changed while an attempt runs, the UI's open of a credential refused and a client's secret reaching no answer, cookie or log line, with the check of OAuth client setup against the live Google Cloud console a manual exercise at production point 1 | Every control M7 delivered, and reproduces the demonstrations of the consent, the token source and the grants its move of Gmail's consent and its grants touched |
 | [#258](https://github.com/ppat/mediated-mailbox-mcp/pull/258) | M8 | M8's policy management, the policy tables keyed by scope with the policy history, the base-policy transaction, the policy screens, import and export, and the restriction of the stored classes a rule added since restricts in backfill's second pass and delta sync | M8's rows and M8's parts of the rows it shares, and it adds and proves the rows for the base-policy transaction, an added rule reaching the stored classes and a base edit landing mid-reload | Every control M8 delivered, and reproduces the demonstrations of the policy snapshot's validation, the sender classifier, the transaction helper's analyser, the policy loader, the delisting transition, delta sync's scanning, the row-level security, the consent redirect's check and the pinned configuration, whose code or tests it changed |
+| [#271](https://github.com/ppat/mediated-mailbox-mcp/pull/271) | F9 | F9's mutation runner printing each ledger row in the form [docs/MUTATIONS.md](./docs/MUTATIONS.md) defines, a section per control with a line per field | — | — |
 
 ### What each composition root runs
 
@@ -1237,13 +1238,19 @@ the schema's checks are one baseline.
   convention, with the pure-core match at any depth
   ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)), with
   [CLAUDE.md](./CLAUDE.md#inside-a-component)'s pure-core row and its rules mirror changed in the
-  second pull request, which makes the match at any depth true, and package names unique inside
-  the data-access library. The second pull request also writes each family's README, which argues
-  the family's case once and says what belongs in it and what does not, as ADR-0050 requires. Its records and conventions are in place, and the code
-  moves in two pull requests, the session package with the entry packages first, then the families.
-  The inter-component import rules are selected again when the lists are first rewritten for the
-  regrouping, the pure-core rule staying on `depguard`, and the commit taxonomy's reading of what
-  ships becomes the non-test build graph of an image's binary at that layout change
+  families' pull request, which makes the match at any depth true, and package names unique inside
+  the data-access library. The families' pull request also writes each family's README, which
+  argues the family's case once and says what belongs in it and what does not, as ADR-0050
+  requires. The proof ledgers take a form with a line per field,
+  [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) one file in its sections and the mutation rows in
+  a file per component under `docs/mutations/` with [docs/MUTATIONS.md](./docs/MUTATIONS.md) as
+  their index, and `go tool mutproof` prints each row in that form
+  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). Its work lands
+  in four pull requests. Its records and conventions, and then the proof ledgers' form, are in
+  place, and the code moves in the other two, the session package with the entry packages first,
+  then the families. The inter-component import rules are selected again when the lists are first
+  rewritten for the regrouping, the pure-core rule staying on `depguard`, and the commit taxonomy's
+  reading of what ships becomes the non-test build graph of an image's binary at that layout change
   ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)).
   It changes the composition roots, so it finishes at image. What proves it is every existing test
   and mutation demonstration a move touches run again, since a move of a path alone is a change

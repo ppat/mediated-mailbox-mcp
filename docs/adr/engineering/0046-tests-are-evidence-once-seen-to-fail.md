@@ -76,7 +76,8 @@ that stands in for a control.
   on real infrastructure or by a manual exercise stay claims about their date, as that
   document records them.
 - **The demonstrations live beside [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), in their
-  own document, [docs/MUTATIONS.md](../../MUTATIONS.md).** The split is by authoring moment.
+  own ledger, [docs/MUTATIONS.md](../../MUTATIONS.md) and the files it lists.** The split is by
+  authoring moment.
   A verification row is minted at design time, when the control is decided. A demonstration
   can exist only at implementation time, once a mechanism exists to remove and tests exist to
   fail.

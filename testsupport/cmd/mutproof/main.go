@@ -1,7 +1,7 @@
 // Command mutproof runs mutation demonstrations, the proof ADR-0046 requires of an automatable
 // control's tests. A demonstration removes the control's mechanism with a checked-in patch,
-// requires the tests it names to go red, and records which tests went red for the ledger in
-// docs/MUTATIONS.md.
+// requires the tests it names to go red, and records which tests went red for the mutation ledger,
+// docs/MUTATIONS.md and the files it lists.
 //
 // Each patch is one mutant and is applied alone. A control whose mechanism is broken more than one
 // way, such as a break that makes the code do less and a break that makes it do the wrong thing,
@@ -197,7 +197,7 @@ func runAll(ctx context.Context, w io.Writer, root string, environ, pgrun, patch
 	rows, incomplete := ledgerRows(entries)
 	var b strings.Builder
 	if len(rows) > 0 {
-		fmt.Fprintf(&b, "Ledger rows for docs/MUTATIONS.md\n%s\n", strings.Join(rows, "\n"))
+		fmt.Fprintf(&b, "Ledger rows, each for the file under docs/mutations/ that docs/MUTATIONS.md assigns to its control\n\n%s\n\n", strings.Join(rows, "\n\n"))
 	}
 	for _, c := range incomplete {
 		fmt.Fprintf(&b, "No ledger row for %q, because its demonstration is incomplete. A patch of it did not hold or survive, or never ran\n", c)
