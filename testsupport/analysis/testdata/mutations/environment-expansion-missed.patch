@@ -1,4 +1,4 @@
-control: The analyser refuses a read of the environment outside a deployable's composition root
+control: The analyser refuses a read of the environment outside a deployable's main.go
 removes: os.ExpandEnv is not reported
 packages: ./testsupport/analysis
 tests: TestEnvironment

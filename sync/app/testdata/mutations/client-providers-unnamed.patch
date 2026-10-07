@@ -1,0 +1,20 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: delta sync names no provider as authenticating through a client, so the loader connects a Gmail account that names none
+packages: ./sync/app
+tests: TestATickTakesItsAccountsFromTheDatabase
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/app/app.go b/sync/app/app.go
+index 7e99a2d2..e4b272d8 100644
+--- a/sync/app/app.go
++++ b/sync/app/app.go
+@@ -277,7 +277,7 @@ func newSyncer(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, c C
+ 		return nil, err
+ 	}
+ 	s := &syncer{
+-		pool: pool, loader: accountload.New(pool, keys, logger, []string{gmailProvider}), registry: registry, scanner: scanner, config: c,
++		pool: pool, loader: accountload.New(pool, keys, logger, nil), registry: registry, scanner: scanner, config: c,
+ 		logger: logger, ports: p, ticks: ticks, keyScan: keyScan, leases: leases,
+ 		source: func(c gmail.Credentials) *gmail.TokenSource { return gmail.NewTokenSource(http.DefaultClient, c) },
+ 	}

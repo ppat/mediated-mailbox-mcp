@@ -1,0 +1,20 @@
+control: The database section is validated before anything else starts
+removes: the start configures the connection without validating the database section
+packages: ./backfill/app
+tests: TestAnEmptyHostRefusesTheStart
+scheduled-count: no
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index 1691e4f5..46ae9709 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -103,9 +103,6 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
+ 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+ 	}
+ 	c := loaded.Config
+-	if err := dbconnectcore.Validate(c.Database); err != nil {
+-		return fmt.Errorf("validating the configuration: %w", err)
+-	}
+ 	if err := credentialcore.Validate(c.Credential); err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}

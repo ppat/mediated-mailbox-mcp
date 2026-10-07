@@ -1,6 +1,6 @@
 control: A change of scanner reopens a pass whose stored work another scanner decided
 removes: a pass that ended is skipped whether or not it is due again
-packages: ./backfill/internal/core/pass1 ./backfill ./backfill/internal/pass1 ./backfill/internal/pass2
+packages: ./backfill/internal/core/pass1 ./backfill/app ./backfill/internal/pass1 ./backfill/internal/pass2
 tests: TestBegin TestAChangeOfScannerMasksAndScansAgain
 scheduled-count: no
 integration: yes

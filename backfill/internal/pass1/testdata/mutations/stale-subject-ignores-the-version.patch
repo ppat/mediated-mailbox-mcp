@@ -1,6 +1,6 @@
 control: A change of scanner reopens a pass whose stored work another scanner decided
 removes: a stored subject whose scanner version differs and whose revision matches does not make the first pass due again
-packages: ./backfill
+packages: ./backfill/app
 tests: TestAChangeOfScannerVersionAloneMasksAndScansAgain
 scheduled-count: no
 integration: yes

@@ -1,0 +1,19 @@
+control: The mediator's token source is built from the OAuth client the account connects through and the account's stored credential, and from nothing else
+removes: the re-read after a refusal keeps the client the source was built with
+packages: ./mediate/app
+tests: TestARereadAfterAMoveBuildsTheSourceFromTheNewClient
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/session/session.go b/accountload/session/session.go
+index f4fb328a..6249904c 100644
+--- a/accountload/session/session.go
++++ b/accountload/session/session.go
+@@ -230,6 +230,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+ 	refused := s.built
+ 	refused.Credential = s.conn.source.Credential()
+ 	creds := credentials(reread)
++	creds.ClientID, creds.ClientSecret = refused.ClientID, refused.ClientSecret
+ 	if !reread.Connected() || same(creds, refused) {
+ 		return out, err
+ 	}

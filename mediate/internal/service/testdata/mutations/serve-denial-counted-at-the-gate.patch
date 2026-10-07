@@ -1,6 +1,6 @@
 control: Served and denied bodies are counted, a denial by the stage that decided it
 removes: a serve-time denial is counted as a gate denial
-packages: ./mediate
+packages: ./mediate/app
 tests: TestTheServeTimeCheckReadsEverythingReleased TestABodyTheConversionRefusesIsDenied
 scheduled-count: no
 integration: yes

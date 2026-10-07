@@ -1,0 +1,27 @@
+control: The mediator serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+removes: a reload whose policy load fails returns before serving its snapshot, so an account it dropped stays served
+packages: ./mediate/app
+tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..e021db4a 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -350,11 +350,13 @@ func (s *serving) reload(ctx context.Context) error {
+ 	}
+ 	next := s.loader.Snapshot()
+ 	ids := idsOf(next)
+-	failed := s.loadPolicy(ctx, ids)
++	if failed := s.loadPolicy(ctx, ids); failed != nil {
++		return failed
++	}
+ 	s.snapshot.Store(next)
+ 	s.registry.Serve(ids)
+ 	s.logger.Info("accounts served", "accounts", len(ids))
+-	return failed
++	return nil
+ }
+ 
+ // loadPolicy sets the accounts the shared policy loader reads to accounts and has it load, through

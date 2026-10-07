@@ -87,9 +87,9 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (2):** a go:linkname directive naming a pure core's symbol goes unreported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 
-## The analyser refuses a read of the environment outside a deployable's composition root
+## The analyser refuses a read of the environment outside a deployable's main.go
 
-- **Date · evidence:** 2026-09-26 · [pull request #177](https://github.com/ppat/mediated-mailbox-mcp/pull/177)
+- **Date · evidence:** 2026-09-26 · [pull request #177](https://github.com/ppat/mediated-mailbox-mcp/pull/177), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** (*exec.Cmd).Environ is not reported, so a command's inherited environment escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestEnvironment`
 - **Break (2):** os.ExpandEnv is not reported
@@ -102,7 +102,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestEnvironment`
 - **Break (6):** any function named like a reader of package os is reported, whatever package declares it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestEnvironment`
-- **Break (7):** every file of a composition root's package is exempt, not only main.go
+- **Break (7):** every file of a deployable's package main is exempt, not only main.go
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestEnvironment`
 - **Break (8):** no read of the environment is reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestEnvironment`

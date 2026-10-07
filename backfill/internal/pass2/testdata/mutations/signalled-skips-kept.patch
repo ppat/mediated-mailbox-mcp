@@ -1,6 +1,6 @@
 control: A message the gate skipped whose subject is now masked returns to pending
 removes: a gate skip decided without the subject's signal the message now carries stays in force
-packages: ./backfill ./backfill/internal/pass2
+packages: ./backfill/app ./backfill/internal/pass2
 tests: TestAChangeOfScannerMasksAndScansAgain
 scheduled-count: no
 integration: yes

@@ -1,0 +1,20 @@
+control: A credential the provider refuses is read again from its row before the refusal is reported
+removes: a failed read of the refused credential is dropped and the refusal returned alone
+packages: ./sync/app
+tests: TestAFailedReadOfTheRefusedCredentialIsReported
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/session/session.go b/accountload/session/session.go
+index f4fb328a..ada3f4c2 100644
+--- a/accountload/session/session.go
++++ b/accountload/session/session.go
+@@ -225,7 +225,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+ 	}
+ 	reread, rerr := s.h.config.Loader.Reread(ctx, s.account)
+ 	if rerr != nil {
+-		return out, errors.Join(err, fmt.Errorf("reading the refused credential again: %w", rerr))
++		return out, err
+ 	}
+ 	refused := s.built
+ 	refused.Credential = s.conn.source.Credential()

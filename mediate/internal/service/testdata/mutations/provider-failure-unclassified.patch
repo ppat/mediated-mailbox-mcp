@@ -1,6 +1,6 @@
 control: Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
 removes: a provider call's failure is returned as it is, so it reads as the mediator's
-packages: ./mediate
+packages: ./mediate/app
 tests: TestEachOriginIsToldApartOnBothRoots TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported
 scheduled-count: no
 integration: yes

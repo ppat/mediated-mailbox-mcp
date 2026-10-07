@@ -1,6 +1,6 @@
 control: Served and denied bodies are counted, a denial by the stage that decided it
 removes: a served body is not counted
-packages: ./mediate
+packages: ./mediate/app
 tests: TestAReleasedBodyIsCleanMarkdown
 scheduled-count: no
 integration: yes

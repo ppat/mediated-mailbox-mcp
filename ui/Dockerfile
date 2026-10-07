@@ -25,6 +25,7 @@ COPY ratelimit ratelimit
 COPY sanitize sanitize
 COPY settings settings
 COPY ui/main.go ui/main.go
+COPY ui/app ui/app
 COPY ui/internal ui/internal
 COPY --from=bundle /src/ui/browser/dist ui/browser/dist
 # The embed pattern also compiles over the placeholder alone, which is how Go tooling works on a fresh clone.

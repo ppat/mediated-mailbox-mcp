@@ -1,6 +1,6 @@
 control: The messages whose sender could not be classified are counted per account
 removes: a reconciliation adds its unclassified senders to the index without counting them in the tick's result
-packages: ./sync
+packages: ./sync/app
 tests: TestEachTickFeedsItsUnclassifiedAndBacklogSeries
 scheduled-count: no
 integration: yes

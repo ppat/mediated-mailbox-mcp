@@ -1,0 +1,20 @@
+control: The mediator serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+removes: a reload loads the snapshot and never hands its accounts to the registry
+packages: ./mediate/app
+tests: TestTheMediatorServesTheAccountsEachReloadLists
+scheduled-count: no
+integration: yes
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..1cf2a385 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -352,7 +352,6 @@ func (s *serving) reload(ctx context.Context) error {
+ 	ids := idsOf(next)
+ 	failed := s.loadPolicy(ctx, ids)
+ 	s.snapshot.Store(next)
+-	s.registry.Serve(ids)
+ 	s.logger.Info("accounts served", "accounts", len(ids))
+ 	return failed
+ }

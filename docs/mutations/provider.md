@@ -28,7 +28,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A rotated refresh token is held, sent on the next refresh and handed to the deployable
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a refresh response that leaves the refresh token out counts as rotating it to an empty token
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestARefreshThatDoesNotRotateKeepsTheToken`, `TestARefreshThatDoesNotRotateKeepsTheToken/field_left_out`, `TestARotatedRefreshTokenIsHeldSentAndHandedOver`, `TestAnAccessTokenIsUsedUntilItNearlyExpires`
 - **Break (2):** a rotation holds the new access token as the refresh token
@@ -47,7 +47,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A token request the provider refuses is reported as refused, one that gets no answer as failed, and a cancelled request or a held access token as no attempt
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** every token endpoint answer other than success counts as a refusal, whatever its status
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent`:** `TestARefreshsOutcome`
 - **Break (2):** the token endpoint's answer loses its status, so a refusal reads as an attempt that failed
@@ -113,7 +113,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## No credential is read from the environment
 
-- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and again on 2026-10-01 after an import the token source gained moved the context its patches carry, with all six patches regenerated, [pull request #227](https://github.com/ppat/mediated-mailbox-mcp/pull/227)
+- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and again on 2026-10-01 after an import the token source gained moved the context its patches carry, with all six patches regenerated, [pull request #227](https://github.com/ppat/mediated-mailbox-mcp/pull/227), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** an empty refresh token falls back to an environment variable, read through a dot import
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestNoSourceFileReadsTheEnvironment`
 - **Break (2):** an empty refresh token falls back to an environment variable, read inside the receiver of a method call

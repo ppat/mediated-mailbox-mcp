@@ -2404,7 +2404,8 @@ half is Go and the browser half is TypeScript. How much of it is built is tracke
 
 ```text
 ui/
-  main.go               the composition root. It embeds browser/dist and hands it to the server
+  main.go               embeds browser/dist and hands it, with the arguments and the environment, to app
+  app/                  the composition root, the entry package that builds the server and serves it
   Dockerfile            the bundle stage, then the Go stage, then a minimal base
   internal/
     registry/           the dataset registry entries, each pointing at the data-access accessors it reads

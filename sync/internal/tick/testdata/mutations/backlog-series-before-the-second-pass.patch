@@ -1,6 +1,6 @@
 control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
 removes: delta sync sets an account's backlog series before backfill's second pass has ended
-packages: ./sync
+packages: ./sync/app
 tests: TestEachTickFeedsItsUnclassifiedAndBacklogSeries
 scheduled-count: no
 integration: yes

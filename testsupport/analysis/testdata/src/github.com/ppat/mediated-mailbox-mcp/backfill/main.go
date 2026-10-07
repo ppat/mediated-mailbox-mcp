@@ -1,4 +1,4 @@
-// A deployable's composition root, which may read the environment.
+// A deployable's main.go, which may read the environment.
 package main
 
 import "os"

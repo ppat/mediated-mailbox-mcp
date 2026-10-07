@@ -14,31 +14,31 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the composition root hands the body operation the active policy and loads nothing for the request
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestANewlyListedDomainIsDeniedOnTheNextCall`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestANewlyListedDomainIsDeniedOnTheNextCall`
 - **Break (2):** a request whose policy load fails is decided under the policy that restricts every sender rather than the active valid one
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestANewlyListedDomainIsDeniedOnTheNextCall`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestANewlyListedDomainIsDeniedOnTheNextCall`
 - **Break (3):** the body operation takes the active policy without having it loaded
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestANewlyListedDomainIsDeniedOnTheNextCall`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestANewlyListedDomainIsDeniedOnTheNextCall`
 
 ## A body request's provider calls lease in the interactive class, and a gate denial leases nothing
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the body request's provider calls take no lease
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyFetchSpendsFromTheInteractiveReservation`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`
 - **Break (2):** the body request's provider calls lease in the batch class
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyFetchSpendsFromTheInteractiveReservation`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`
 
 ## A body with no HTML part, the snippet and each filename are released as fenced code blocks showing the text exactly
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a body with no HTML part is released as its text part, unfenced
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAReleasedBodyIsCleanMarkdown`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`
 - **Break (2):** the snippet is released as the provider gave it, unfenced
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAReleasedBodyIsCleanMarkdown`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`
 - **Break (3):** each filename is released as the provider gave it, unfenced
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAReleasedBodyIsCleanMarkdown`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`
 
 ## A call's arguments hold at most 1024 top-level keys
 
@@ -106,21 +106,21 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A provider call that does not answer within the provider timeout is the provider's failure
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a provider call has no deadline of the mediator's, so a provider that does not answer holds the request
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`
 - **Break (2):** a call whose deadline passed is returned as the context's error, which reads as the mediator's failure
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`
 
 ## A refused credential is read again from its row before the refusal is reported
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** an account the re-read finds not connected has the call made again over a source built from empty credentials
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`
 - **Break (2):** a refusal is reported without reading the credential again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
 - **Break (3):** the call is made again over the credential read again, but later requests go back to the refused one
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`
 
 ## A released body sits inside delimiters it cannot close
 
@@ -138,11 +138,11 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A served body fetches nothing and holds no image a client could fetch
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** images are no longer on the conversion's list of dropped elements, so a served body keeps a remote image
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAReleasedBodyIsCleanMarkdown`, `TestAServedBodyFetchesNoImage`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`, `TestAServedBodyFetchesNoImage`
 - **Break (2):** the mediator itself requests each image source in the HTML it fetched before converting it, so serving a body reaches the URL the message names
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAServedBodyFetchesNoImage`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAServedBodyFetchesNoImage`
 
 ## A served operation takes only the arguments its input schema declares, in exactly that case, and never as null
 
@@ -218,13 +218,13 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Approval is not in the client surface's vocabulary
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and break (1) again on 2026-10-02 with its patch regenerated, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and break (1) again on 2026-10-02 with its patch regenerated, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the registry carries an operation that approves a plan
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAServedOperationTakesOnlyTheArgumentsItDeclares`, `TestTheSurfaceHasNoApprovalVocabulary`
 - **Break (2):** the mediator's role is granted the columns a plan's approval writes
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMediatorCannotApproveAPlan`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorCannotApproveAPlan`
 - **Break (3):** the mediator's role is granted inserting plans, an approved one included
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMediatorCannotApproveAPlan`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorCannotApproveAPlan`
 
 ## Both roots hand the service layer the same argument object
 
@@ -258,17 +258,17 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Each body request hands its account's credential over and records the latest authentication attempt when it ends
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a body request hands over the credential it started from rather than the one its source holds, so a rotation is never written back
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestARotationWhoseWriteBackFailedIsKept`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARotationWhoseWriteBackFailedIsKept`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`
 - **Break (2):** a body request hands its source's credential over without naming the adoption it started from, so a credential replaced while it ran is put back
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAStaleHandOverLeavesTheReauthorization`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAStaleHandOverLeavesTheReauthorization`
 - **Break (3):** a body request ends without recording the attempt
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEachBodyRequestHandsOverAndRecordsTheAttempt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEachBodyRequestHandsOverAndRecordsTheAttempt`
 
 ## Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the API root answers a provider failure with 500, as it answers a fault of its own
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestEachFailureNamesItsOrigin`
 - **Break (2):** the API root answers an argument refusal with 500, as it answers a fault of its own
@@ -277,7 +277,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestEachFailureNamesItsOrigin`, `TestTheRootRefusesWhatItCannotBind`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp`:** `TestAToolCallRunsTheOperation`
 - **Break (4):** a provider call's failure is returned as it is, so it reads as the mediator's
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestEachOriginIsToldApartOnBothRoots`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestEachOriginIsToldApartOnBothRoots`
 - **Break (5):** a provider failure's message carries the provider's own error text
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestEachFailureNamesItsOrigin`
 - **Break (6):** an argument refusal is classified as the mediator's failure, which says only that the call failed
@@ -301,13 +301,13 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every body serve and denial writes its audit row, and nothing is released without it
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a release whose audit write fails is served all the same
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEachOriginIsToldApartOnBothRoots`, `TestNoBodyIsReleasedWithoutItsAuditRow`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEachOriginIsToldApartOnBothRoots`, `TestNoBodyIsReleasedWithoutItsAuditRow`
 - **Break (2):** a gate denial writes no audit row
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`
 - **Break (3):** a serve-time denial is audited as a read
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyTheConversionRefusesIsDenied`, `TestTheServeTimeCheckReadsEverythingReleased`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyTheConversionRefusesIsDenied`, `TestTheServeTimeCheckReadsEverythingReleased`
 
 ## Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
 
@@ -325,29 +325,29 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every request to the client surface passes the bearer check before either root
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a token file holding no token admits a request whose bearer token is empty
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/a_token_file_that_is_absent`, `TestEveryRequestPassesTheBearerCheckFirst/an_empty_token_file`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/a_token_file_that_is_absent`, `TestEveryRequestPassesTheBearerCheckFirst/an_empty_token_file`
 - **Break (2):** the MCP root is served beside the bearer check rather than behind it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/an_empty_token_file_and_a_token`, `TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_with_a_wrong_token`, `TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_without_a_token`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/an_empty_token_file_and_a_token`, `TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_with_a_wrong_token`, `TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_without_a_token`
 - **Break (3):** a request carrying no Authorization header is admitted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/a_path_outside_both_roots,_unauthenticated`, `TestEveryRequestPassesTheBearerCheckFirst/the_API_root_without_a_token`, `TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_without_a_token`, `TestTheSurfaceBehindADeclaredIngressIsPlain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/a_path_outside_both_roots,_unauthenticated`, `TestEveryRequestPassesTheBearerCheckFirst/the_API_root_without_a_token`, `TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_without_a_token`, `TestTheSurfaceBehindADeclaredIngressIsPlain`
 - **Break (4):** a presented token is admitted when it begins with the token rather than equals it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/a_token_with_the_right_one_as_its_prefix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/a_token_with_the_right_one_as_its_prefix`
 
 ## Every response of the client surface is uncacheable, and HEAD is refused
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a HEAD request is served as the GET it matches
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestTheRootRefusesWhatItCannotBind`, `TestTheRootRefusesWhatItCannotBind/HEAD_on_a_read`, `TestTheRootRefusesWhatItCannotBind/HEAD_on_the_accounts_listing`
 - **Break (2):** a response whose handler writes only its body keeps the caching headers the handler set
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEveryResponseIsUncacheable`, `TestNoStoreOverridesAHandlersCaching`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryResponseIsUncacheable`, `TestNoStoreOverridesAHandlersCaching`
 - **Break (3):** a handler's ETag is kept
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestNoStoreOverridesAHandlersCaching`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestNoStoreOverridesAHandlersCaching`
 - **Break (4):** a response whose handler writes nothing carries no Cache-Control
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestNoStoreOverridesAHandlersCaching`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestNoStoreOverridesAHandlersCaching`
 - **Break (5):** the client surface is served without the no-store wrapper
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEveryResponseIsUncacheable`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryResponseIsUncacheable`
 
 ## Every timestamp the client surface serves is UTC with the Z suffix
 
@@ -359,37 +359,37 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Served and denied bodies are counted, a denial by the stage that decided it
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a serve-time denial is counted as a gate denial
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyTheConversionRefusesIsDenied`, `TestTheServeTimeCheckReadsEverythingReleased`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyTheConversionRefusesIsDenied`, `TestTheServeTimeCheckReadsEverythingReleased`
 - **Break (2):** a served body is not counted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAReleasedBodyIsCleanMarkdown`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`
 
 ## The client surface is served over TLS unless an ingress in front is declared to terminate it, with the key pair read from its mounted files
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the surface is served over TLS even when an ingress is declared to terminate it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheSurfaceBehindADeclaredIngressIsPlain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheSurfaceBehindADeclaredIngressIsPlain`
 - **Break (2):** the key pair is read once, when the configuration is built, so a rotated pair never serves
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheSurfaceIsServedOverTLSOnly`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheSurfaceIsServedOverTLSOnly`
 - **Break (3):** the client surface is served over plain HTTP whatever its settings
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheSurfaceIsServedOverTLSOnly`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheSurfaceIsServedOverTLSOnly`
 
 ## The configuration surface accepts no value that disables the gate, skips masking or weakens deny-by-default
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the configuration gains a value switching the gate, which a flag then sets
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestNoConfigurationValueWeakensTheGate`, `TestNoConfigurationValueWeakensTheGate/a_flag_disabling_the_gate`, `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestNoConfigurationValueWeakensTheGate`, `TestNoConfigurationValueWeakensTheGate/a_flag_disabling_the_gate`, `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`
 - **Break (2):** a scanner section the scanner refuses is accepted, so the serve-time check runs with nothing to match
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestNoConfigurationValueWeakensTheGate`, `TestNoConfigurationValueWeakensTheGate/a_scanner_section_with_nothing_to_match`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestNoConfigurationValueWeakensTheGate`, `TestNoConfigurationValueWeakensTheGate/a_scanner_section_with_nothing_to_match`
 
 ## The gate decides every body request from the index, and a denial never reaches the provider
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the body is fetched from the provider before the gate decides, and dropped on a denial
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`
 - **Break (2):** a body the gate denies is released all the same
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestEachOriginIsToldApartOnBothRoots`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-bank`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-flagged`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-oldrestricted`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-pending`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestEachOriginIsToldApartOnBothRoots`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-bank`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-flagged`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-oldrestricted`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-pending`
 
 ## The MCP root offers tools and nothing else
 
@@ -405,107 +405,107 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator loads the policy of the accounts it serves, and of none when it serves none
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the mediator's role is not granted the policy rules' columns
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyTheConversionRefusesIsDenied`, `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheCredentialsAreTheClientAndTheAccountsToken`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheMediatorServesTheAccountsEachReloadLists`, `TestTheMetricsEndpointCarriesEachServedAccountsRateState`, `TestTheReadOperationsReadTheServingState`, `TestTheServeTimeCheckReadsEverythingReleased`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyTheConversionRefusesIsDenied`, `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAServedBodyFetchesNoImage`, `TestAStaleHandOverLeavesTheReauthorization`, `TestAnAccountNamingNoClientIsNotConnected`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheCredentialsAreTheClientAndTheAccountsToken`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheMediatorServesTheAccountsEachReloadLists`, `TestTheMetricsEndpointCarriesEachServedAccountsRateState`, `TestTheReadOperationsReadTheServingState`, `TestTheServeTimeCheckReadsEverythingReleased`
 - **Break (2):** the policy loader's reload-failure series is registered on a registry the mediator does not serve, so its metrics endpoint never carries the alarm's series
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`
 - **Break (3):** the policy loader is built even with no account served, which it refuses
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`
 
 ## The mediator refuses a configuration it cannot serve with before anything is read or connected
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a token file path of spaces is accepted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
 - **Break (2):** the database section is never validated
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
 - **Break (3):** a key pair given beside a declared ingress is accepted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
 - **Break (4):** the mediator starts with no key pair and no ingress declared
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
 - **Break (5):** a reload interval of zero is accepted, on which the schedule never ticks
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
 
 ## The mediator refuses to start while MCPGODEBUG is set
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the mediator starts whatever MCPGODEBUG holds
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestMCPGODEBUGStopsTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestMCPGODEBUGStopsTheStart`
 - **Break (2):** an MCPGODEBUG set to the empty string is taken as unset
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestMCPGODEBUGStopsTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestMCPGODEBUGStopsTheStart`
 
 ## The mediator refuses to start while PGPASSWORD or PGSSLPASSWORD is set
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the refusal runs after the configuration is read, logged and validated, so a start whose environment sets a password variable reads its configuration first
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAPasswordInTheEnvironmentStopsTheStart`, `TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead`, `TestMCPGODEBUGStopsTheStart`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAPasswordInTheEnvironmentStopsTheStart`, `TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead`, `TestMCPGODEBUGStopsTheStart`
 - **Break (2):** the start never checks the environment for a database password
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAPasswordInTheEnvironmentStopsTheStart`, `TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAPasswordInTheEnvironmentStopsTheStart`, `TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead`
 
 ## The mediator reports ready only once its TLS key pair and bearer token load
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a token file holding no token counts as loaded
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAStartThatCannotServeFailsAndNeverReportsReady`, `TestReadyOnlyOnceTheKeysLoad`, `TestReadyOnlyOnceTheKeysLoad/a_token_file_holding_no_token`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAStartThatCannotServeFailsAndNeverReportsReady`, `TestReadyOnlyOnceTheKeysLoad`, `TestReadyOnlyOnceTheKeysLoad/a_token_file_holding_no_token`
 - **Break (2):** the key pair is not loaded before the mediator is marked ready
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestReadyOnlyOnceTheKeysLoad`, `TestReadyOnlyOnceTheKeysLoad/a_certificate_that_is_absent`, `TestReadyOnlyOnceTheKeysLoad/a_key_that_does_not_match`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestReadyOnlyOnceTheKeysLoad`, `TestReadyOnlyOnceTheKeysLoad/a_certificate_that_is_absent`, `TestReadyOnlyOnceTheKeysLoad/a_key_that_does_not_match`
 - **Break (3):** the mediator is marked ready before the key pair and token are loaded
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestReadyOnlyOnceTheKeysLoad`, `TestReadyOnlyOnceTheKeysLoad/a_certificate_that_is_absent`, `TestReadyOnlyOnceTheKeysLoad/a_key_that_does_not_match`, `TestReadyOnlyOnceTheKeysLoad/a_token_file_holding_no_token`, `TestReadyOnlyOnceTheKeysLoad/a_token_file_that_is_absent`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestReadyOnlyOnceTheKeysLoad`, `TestReadyOnlyOnceTheKeysLoad/a_certificate_that_is_absent`, `TestReadyOnlyOnceTheKeysLoad/a_key_that_does_not_match`, `TestReadyOnlyOnceTheKeysLoad/a_token_file_holding_no_token`, `TestReadyOnlyOnceTheKeysLoad/a_token_file_that_is_absent`
 - **Break (4):** the start marks the mediator ready without loading the key pair and the token
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAStartThatCannotServeFailsAndNeverReportsReady`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAStartThatCannotServeFailsAndNeverReportsReady`
 
 ## The mediator serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a reload listing no account keeps the accounts served before it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMediatorServesTheAccountsEachReloadLists`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorServesTheAccountsEachReloadLists`
 - **Break (2):** a reload whose policy load fails returns before serving its snapshot, so an account it dropped stays served
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`
 - **Break (3):** a reload loads the policy only when its accounts differ from the ones the last load was tried for, so a load that failed is never retried and a policy edit never reaches the metadata reads
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestEveryReloadLoadsThePolicy`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestEveryReloadLoadsThePolicy`
 - **Break (4):** a reload whose read fails stops serving every account
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`
 - **Break (5):** the policy is loaded at the first reload that serves an account only, so an account a later reload lists is served under no policy of its own and a policy edit never reaches the metadata reads
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestEveryReloadLoadsThePolicy`, `TestTheMediatorServesTheAccountsEachReloadLists`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestEveryReloadLoadsThePolicy`, `TestTheMediatorServesTheAccountsEachReloadLists`
 - **Break (6):** the registry keeps the first set of accounts it was given, whatever a reload serves
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyTheConversionRefusesIsDenied`, `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-bank`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-flagged`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-pending`, `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`, `TestTheReadOperationsReadTheServingState`, `TestTheServeTimeCheckReadsEverythingReleased`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyTheConversionRefusesIsDenied`, `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAServedBodyFetchesNoImage`, `TestAnAccountNamingNoClientIsNotConnected`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-bank`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-flagged`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-oldrestricted`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-pending`, `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`, `TestTheReadOperationsReadTheServingState`, `TestTheServeTimeCheckReadsEverythingReleased`
 - **Break (7):** a reload loads the snapshot and never hands its accounts to the registry
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyTheConversionRefusesIsDenied`, `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-bank`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-flagged`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-pending`, `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`, `TestTheReadOperationsReadTheServingState`, `TestTheServeTimeCheckReadsEverythingReleased`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyTheConversionRefusesIsDenied`, `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAServedBodyFetchesNoImage`, `TestAnAccountNamingNoClientIsNotConnected`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-bank`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-flagged`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-oldrestricted`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider/m-pending`, `TestTheMediatorReloadsOnItsInterval`, `TestTheMediatorServesTheAccountsEachReloadLists`, `TestTheReadOperationsReadTheServingState`, `TestTheServeTimeCheckReadsEverythingReleased`
 
 ## The mediator's metrics endpoint carries F3's rate-state series for each account it serves through the Gmail adapter
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the rate-state collector is built and never registered on the metrics endpoint
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMetricsEndpointCarriesEachServedAccountsRateState`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMetricsEndpointCarriesEachServedAccountsRateState`
 - **Break (2):** an account of a provider the mediator has no rate profile for is reported with the Gmail ceiling
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMetricsEndpointCarriesEachServedAccountsRateState`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMetricsEndpointCarriesEachServedAccountsRateState`
 
 ## The mediator's token source is built from the OAuth client the account connects through and the account's stored credential, and from nothing else
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the client's identifier and secret are swapped
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
 - **Break (2):** every account is served with the OAuth client of the snapshot's first account rather than its own
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheCredentialsAreTheClientAndTheAccountsToken`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheCredentialsAreTheClientAndTheAccountsToken`
 - **Break (3):** an account whose state row holds no credential takes one from the environment
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAnAccountWithoutAStoredCredentialIsNotConnected`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAnAccountWithoutAStoredCredentialIsNotConnected`
 - **Break (4):** the re-read after a refusal keeps the client the source was built with
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`
 
 ## The read operations read the accounts and the policy the serving state holds in force, and a clock within thirty seconds of the real one when the read is made
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the read operations are given an accounts listing that lists none
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheReadOperationsReadTheServingState`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheReadOperationsReadTheServingState`
 - **Break (2):** the read operations are given a clock ten minutes behind the real one, so a sync cursor written an hour ago reads fifty minutes old
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheReadOperationsReadTheServingState`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheReadOperationsReadTheServingState`
 - **Break (3):** the read operations are given a clock stopped at the zero time, behind every recorded instant, so a backoff that ended an hour ago reads as running
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheReadOperationsReadTheServingState`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheReadOperationsReadTheServingState`
 - **Break (4):** the read operations are given a clock two hours ahead of the real one, so a backoff recorded to end within the hour reads as over
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheReadOperationsReadTheServingState`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheReadOperationsReadTheServingState`
 - **Break (5):** the read operations are given no policy, so every sender reads restricted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestEveryReloadLoadsThePolicy`, `TestTheReadOperationsReadTheServingState`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryReloadLoadsThePolicy`, `TestTheReadOperationsReadTheServingState`
 
 ## The registry refuses at build time anything that could express approval or bind an argument to a header
 
@@ -599,19 +599,19 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The serving mediator reloads its account snapshot on the interval its configuration sets
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** the serving mediator starts no scheduled reload
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMediatorReloadsOnItsInterval`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorReloadsOnItsInterval`
 - **Break (2):** each tick of the schedule passes without a reload
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheMediatorReloadsOnItsInterval`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorReloadsOnItsInterval`
 
 ## The snippet and attachment filenames follow the body, and a denial releases none of them
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
 - **Break (1):** a serve-time denial carries the snippet it withheld
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestTheServeTimeCheckReadsEverythingReleased`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheServeTimeCheckReadsEverythingReleased`
 - **Break (2):** a released body is served without its snippet
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate`:** `TestAReleasedBodyIsCleanMarkdown`, `TestTheServeTimeCheckReadsEverythingReleased`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`, `TestTheServeTimeCheckReadsEverythingReleased`
 
 ## The system status carries recorded operational state only
 

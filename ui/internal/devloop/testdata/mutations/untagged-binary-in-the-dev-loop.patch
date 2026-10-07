@@ -1,6 +1,6 @@
 control: the UI refuses plain HTTP unless its binary is built with the devloop build tag
 removes: a binary built without the tag reports itself built with it, so every image admits plain HTTP
-packages: ./ui
+packages: ./ui/app
 tests: TestPlainHTTPRefusesTheStart
 scheduled-count: no
 

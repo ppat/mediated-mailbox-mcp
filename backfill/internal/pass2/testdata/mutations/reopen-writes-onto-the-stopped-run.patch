@@ -1,6 +1,6 @@
 control: The run-start step writes to no run's record
 removes: the run-start step records the stopped second pass run's progress as starting over, with a progress and a retry event, on that run's record
-packages: ./backfill
+packages: ./backfill/app
 tests: TestAStoppedSecondPassKeepsItsRecordAndStartsOver
 scheduled-count: no
 integration: yes

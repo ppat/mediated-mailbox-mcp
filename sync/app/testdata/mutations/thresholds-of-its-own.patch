@@ -1,0 +1,19 @@
+control: Delta sync decides under backfill's gate thresholds and records backfill's scanner version and revision
+removes: delta sync's gate decides under thresholds of its own
+packages: ./sync/app
+tests: TestATickDecidesUnderBackfillsThresholdsAndScanner
+scheduled-count: no
+
+diff --git a/sync/app/app.go b/sync/app/app.go
+index 7e99a2d2..44aeb106 100644
+--- a/sync/app/app.go
++++ b/sync/app/app.go
+@@ -408,7 +408,7 @@ func (s *syncer) tickDeps(account string, provider tick.Provider, policy policyl
+ 		Provider:    provider,
+ 		Policy:      policy.For(account),
+ 		Lookups:     classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+-		Gate:        scangate.DefaultConfig(),
++		Gate:        scangate.Config{SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 1},
+ 		Scanner:     s.scanner,
+ 		FirstWindow: s.config.FirstWindow,
+ 		Decisions:   s.config.DecisionsPerTick,

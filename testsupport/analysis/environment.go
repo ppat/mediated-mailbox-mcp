@@ -9,12 +9,12 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// Environment reports a read of the environment outside a deployable's composition root, the rule
-// ADR-0078 sets so that every setting passes through the configuration library's layers and
-// refusals. It covers the deployables and the shared libraries by covering every package of this
-// module outside testsupport, the test tooling. It exempts test files, and a deployable's
-// composition root, the file main.go of a package main one directory below the module's root,
-// which hands the environment to the library.
+// Environment reports a read of the environment outside a deployable's main.go, the rule ADR-0078
+// sets so that every setting passes through the configuration library's layers and refusals. It
+// covers the deployables and the shared libraries by covering every package of this module outside
+// testsupport, the test tooling. It exempts test files, and a deployable's main.go, the file main.go
+// of a package main one directory below the module's root, which hands the environment to the
+// deployable's composition root, its entry package, and so to the library.
 //
 // The refused functions are every standard-library function that returns an environment
 // variable's value by a name its caller gives, or returns the environment as a whole. Those are
@@ -27,11 +27,11 @@ import (
 // called.
 var Environment = &analysis.Analyzer{
 	Name: "environment",
-	Doc:  "reports a read of the environment outside a deployable's composition root",
+	Doc:  "reports a read of the environment outside a deployable's main.go",
 	Run:  runEnvironment,
 }
 
-const environmentMessage = "%s outside a deployable's composition root, so the setting would bypass the configuration library's layers and refusals. Take it from the configuration the composition root loads (ADR-0078)"
+const environmentMessage = "%s outside a deployable's main.go, so the setting would bypass the configuration library's layers and refusals. Take it from the configuration the composition root loads (ADR-0078)"
 
 // environmentReaders are the refused functions by their full names, each with the finding's
 // opening words.

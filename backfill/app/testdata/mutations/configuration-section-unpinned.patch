@@ -1,0 +1,18 @@
+control: A deployable's configuration type is pinned field by field
+removes: a section is added to backfill's root configuration type without updating the pinned field list
+packages: ./backfill/app
+tests: TestTheConfigurationTypeIsPinned
+scheduled-count: no
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index 1691e4f5..7ee99fff 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -67,6 +67,7 @@ type Configuration struct {
+ 	Database    dbconnectcore.Config  `yaml:"database"`
+ 	Credential  credentialcore.Config `yaml:"credential"`
+ 	Scanner     scan.Config           `yaml:"scanner"`
++	Extra       dbconnectcore.Config  `yaml:"extra"`
+ }
+ 
+ // defaults are backfill's defaults. The user is backfill's own runtime role (ADR-0075), and the TLS

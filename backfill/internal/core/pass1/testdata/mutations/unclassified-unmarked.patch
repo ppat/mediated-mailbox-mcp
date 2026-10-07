@@ -1,6 +1,6 @@
 control: The messages whose sender could not be classified are counted per account
 removes: no message is marked as having an unclassified sender
-packages: ./core/index ./backfill ./sync/internal/tick
+packages: ./core/index ./backfill/app ./sync/internal/tick
 tests: TestDecide TestEachPageIsAUnitOfWork TestATickAppliesTheChangesSinceItsCursor
 scheduled-count: no
 integration: yes

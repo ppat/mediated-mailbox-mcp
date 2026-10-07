@@ -1,6 +1,6 @@
 control: Every body serve and denial writes its audit row, and nothing is released without it
 removes: a gate denial writes no audit row
-packages: ./mediate
+packages: ./mediate/app
 tests: TestTheGateDeniesFromTheIndexWithoutReachingTheProvider
 scheduled-count: no
 integration: yes

@@ -45,7 +45,7 @@ var environmentReaders = map[string][]string{
 
 // No non-test file of this package calls a function that reads the environment, under whatever
 // name its package is imported, dot imports included. A lint ban cannot carry this rule, because
-// forbidigo matches in every file of the module and ADR-0051 lets a composition root read its
+// forbidigo matches in every file of the module and ADR-0051 lets a deployable's main.go read its
 // configuration from the environment, while banproof refuses the exclusion rule that would narrow
 // the ban to this package.
 func TestNoSourceFileReadsTheEnvironment(t *testing.T) {

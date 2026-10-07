@@ -1,0 +1,20 @@
+control: Each body request hands its account's credential over and records the latest authentication attempt when it ends
+removes: a body request hands its source's credential over without naming the adoption it started from, so a credential replaced while it ran is put back
+packages: ./mediate/app
+tests: TestAStaleHandOverLeavesTheReauthorization
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/session/session.go b/accountload/session/session.go
+index f4fb328a..dcc07159 100644
+--- a/accountload/session/session.go
++++ b/accountload/session/session.go
+@@ -250,7 +250,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+ // It returns the hand-over's error and the recording's apart, for the caller to return or log. A
+ // session may end several units of work, one after each.
+ func (s *Session) End(ctx context.Context) (handOver, record error) {
+-	_, handOver = s.h.config.Loader.HandOver(ctx, s.account, s.adoption, s.conn.source.Credential())
++	_, handOver = s.h.config.Loader.Persist(ctx, s.account, s.conn.source.Credential())
+ 	return handOver, recordAttempt(ctx, s.h.config.DB, s.account, s.conn.source.LastAttempt())
+ }
+ 

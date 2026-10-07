@@ -8,9 +8,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 )
 
-// This file reaches a pure core's error value from the composition root on purpose, and banproof
-// requires the wants below from go vet. With the value nil, NewBody would refuse a withheld body
-// with no error, and a caller would take the empty body as released.
+// This file reaches a pure core's error value from the mediator's package main on purpose, and
+// banproof requires the wants below from go vet. With the value nil, NewBody would refuse a withheld
+// body with no error, and a caller would take the empty body as released.
 func init() {
 	sensitivity.ErrBodyWithheld = nil // want vetcheck "writes ErrBodyWithheld, a pure core's package-level variable"
 }

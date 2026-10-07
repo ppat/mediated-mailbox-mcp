@@ -1,6 +1,6 @@
 control: Every body serve and denial writes its audit row, and nothing is released without it
 removes: a release whose audit write fails is served all the same
-packages: ./mediate
+packages: ./mediate/app
 tests: TestNoBodyIsReleasedWithoutItsAuditRow TestEachOriginIsToldApartOnBothRoots
 scheduled-count: no
 integration: yes

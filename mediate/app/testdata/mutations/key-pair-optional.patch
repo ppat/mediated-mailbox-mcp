@@ -1,0 +1,20 @@
+control: The mediator refuses a configuration it cannot serve with before anything is read or connected
+removes: the mediator starts with no key pair and no ingress declared
+packages: ./mediate/app
+tests: TestAConfigurationTheMediatorCannotServeWithIsRefused
+scheduled-count: no
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..41e31288 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -142,7 +142,7 @@ func validate(c Configuration) error {
+ 		if c.TLSKey == "" {
+ 			missing = append(missing, "tls_key")
+ 		}
+-		if len(missing) > 0 {
++		if false && len(missing) > 0 {
+ 			return fmt.Errorf("the mediator serves TLS unless tls_at_ingress is set, so it needs %s", strings.Join(missing, " and "))
+ 		}
+ 	}

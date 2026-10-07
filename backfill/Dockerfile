@@ -16,6 +16,7 @@ COPY ratelimit ratelimit
 COPY sanitize sanitize
 COPY settings settings
 COPY backfill/main.go backfill/main.go
+COPY backfill/app backfill/app
 COPY backfill/internal backfill/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-backfill ./backfill
 

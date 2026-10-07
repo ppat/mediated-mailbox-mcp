@@ -1,6 +1,6 @@
 control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
 removes: a verdict returned to pending keeps its content flags, content rules, scan time, version and revision
-packages: ./backfill ./backfill/internal/pass2
+packages: ./backfill/app ./backfill/internal/pass2
 tests: TestAChangeOfScannerMasksAndScansAgain
 scheduled-count: no
 integration: yes

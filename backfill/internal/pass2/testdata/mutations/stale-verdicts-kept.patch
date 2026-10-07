@@ -1,6 +1,6 @@
 control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
 removes: a backfill run leaves a verdict made under another scanner in force
-packages: ./backfill ./backfill/internal/pass2
+packages: ./backfill/app ./backfill/internal/pass2
 tests: TestAChangeOfScannerMasksAndScansAgain
 scheduled-count: no
 integration: yes

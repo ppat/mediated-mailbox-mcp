@@ -1,6 +1,6 @@
 control: A body the conversion refuses stays pending, never scanned, with a failed item
 removes: a body the conversion refuses is scanned as its raw HTML and recorded scanned
-packages: ./backfill/internal/pass2 ./backfill
+packages: ./backfill/internal/pass2 ./backfill/app
 tests: TestABodyTheConversionRefusesStaysPending TestEachSecondPassPageIsAUnitOfWork TestNoBodyTextReachesTheIndexOrTheLogs
 scheduled-count: no
 integration: yes

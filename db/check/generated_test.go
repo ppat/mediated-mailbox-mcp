@@ -259,12 +259,13 @@ func TestSubsectionImportersReported(t *testing.T) {
 }
 
 // A directory an import list's glob names is no exemption. Run as the real library runs, with no
-// component set, the test library's fixturelib, which the library list's glob names, is reported like
-// any other package that imports a subsection.
+// component set, the test library's fixturelib and chainlib, which the library lists' globs name, are
+// reported like any other package that imports a subsection.
 func TestAListGlobExemptsNoDirectory(t *testing.T) {
 	lib := testLibrary
 	lib.components = nil
 	requireProblems(t, subsectionImporters(t, lib, lib.subsections(t)), []string{
+		"testdata/chainlib/chain/chain.go imports the subsection github.com/ppat/mediated-mailbox-mcp/db/listing and is no subsection itself, so it could wrap the subsection's statements",
 		"testdata/fixturelib/lease/lease.go imports the subsection github.com/ppat/mediated-mailbox-mcp/db/counting and is no subsection itself, so it could wrap the subsection's statements",
 		"testdata/helper/helper.go imports the subsection github.com/ppat/mediated-mailbox-mcp/db/listing and is no subsection itself, so it could wrap the subsection's statements",
 	})

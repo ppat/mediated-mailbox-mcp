@@ -1,6 +1,6 @@
 control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
 removes: a tick's backlog never reaches delta sync's backlog series
-packages: ./sync
+packages: ./sync/app
 tests: TestEachTickFeedsItsUnclassifiedAndBacklogSeries
 scheduled-count: no
 integration: yes

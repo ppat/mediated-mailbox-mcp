@@ -1,0 +1,20 @@
+control: The mediator refuses a configuration it cannot serve with before anything is read or connected
+removes: a reload interval of zero is accepted, on which the schedule never ticks
+packages: ./mediate/app
+tests: TestAConfigurationTheMediatorCannotServeWithIsRefused
+scheduled-count: no
+
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index 8f9657ee..1be5147a 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -149,7 +149,7 @@ func validate(c Configuration) error {
+ 	if strings.TrimSpace(c.TokenFile) == "" {
+ 		return errors.New("token_file is empty")
+ 	}
+-	if c.AccountReloadInterval <= 0 {
++	if c.AccountReloadInterval < 0 {
+ 		return fmt.Errorf("account_reload_interval %s is not positive", c.AccountReloadInterval)
+ 	}
+ 	if c.ProviderTimeout <= 0 || c.ProviderTimeout > maxProviderTimeout {

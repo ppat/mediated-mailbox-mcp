@@ -117,8 +117,8 @@ calls for one and the second because policy lives in the database.
   configuration is logged at start with each value's source. The scanner's revision stamped on every
   verdict is the library's revision of the scanner's section, so a change in any layer changes it.
 - **The environment is read in one place.** In the deployables and the shared libraries, outside
-  test files and the test tooling, the environment is read only by a deployable's composition root,
-  and handed to the library from there.
+  test files and the test tooling, the environment is read only by a deployable's `main.go`, and
+  handed through its composition root to the library from there.
 - **The library is the project's own**, `settings/`, about five hundred lines on
   `go.yaml.in/yaml/v3` and the standard library. The grid below does not separate it from the
   flag-layer koanf column on any gate, so this is a preference. It adds no module beyond the YAML
@@ -146,7 +146,7 @@ What the ordinary path of the libraries measured does that this record forbids:
 | An unknown file key accepted and zero-valued | A misspelled setting silently takes its default | The strict decode, with a test and a mutation patch |
 | A case-insensitive key match | `Triggers` and `triggers` race | Exact matching, with a test |
 | A stray `PGPASSWORD` | It overrides the mounted password file | The refusal at start, with a test and a mutation patch |
-| A standard-library function that returns an environment variable's value by a name its caller gives, or the environment as a whole, which is `os.Getenv`, `os.LookupEnv`, `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` or `(*exec.Cmd).Environ`, used in a deployable or a shared library outside a composition root | A setting bypasses the layers and their refusals | A `go vet` analyser under [ADR-0071](./0071-static-enforcement-toolchain.md), scoped by path to the deployables and the shared libraries outside composition roots, test files and the test tooling, proven by a violation file. A `forbidigo` rule cannot carry that scope, because exempting files from it takes an exclusion naming a linter that stands in for a control, which ADR-0071 refuses. Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, `os.TempDir` and `http.ProxyFromEnvironment`, carry no setting and stay allowed |
+| A standard-library function that returns an environment variable's value by a name its caller gives, or the environment as a whole, which is `os.Getenv`, `os.LookupEnv`, `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` or `(*exec.Cmd).Environ`, used in a deployable or a shared library outside a deployable's `main.go` | A setting bypasses the layers and their refusals | A `go vet` analyser under [ADR-0071](./0071-static-enforcement-toolchain.md), scoped by path to the deployables and the shared libraries outside each deployable's `main.go`, test files and the test tooling, proven by a violation file. A `forbidigo` rule cannot carry that scope, because exempting files from it takes an exclusion naming a linter that stands in for a control, which ADR-0071 refuses. Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, `os.TempDir` and `http.ProxyFromEnvironment`, carry no setting and stay allowed |
 
 | Requirement | Met by |
 | --- | --- |

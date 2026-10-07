@@ -1,0 +1,20 @@
+control: The latest authentication attempt is recorded at the end of every unit of work, a failed one included, and a failed recording ends the pass in an error
+removes: the end of a unit of work never reads the source's attempt, so it records none
+packages: ./backfill/app
+tests: TestARunRecordsEachAccountsAttemptWhenItsUnitEnds
+scheduled-count: no
+integration: yes
+
+diff --git a/accountload/session/session.go b/accountload/session/session.go
+index f4fb328a..7af93a18 100644
+--- a/accountload/session/session.go
++++ b/accountload/session/session.go
+@@ -251,7 +251,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+ // session may end several units of work, one after each.
+ func (s *Session) End(ctx context.Context) (handOver, record error) {
+ 	_, handOver = s.h.config.Loader.HandOver(ctx, s.account, s.adoption, s.conn.source.Credential())
+-	return handOver, recordAttempt(ctx, s.h.config.DB, s.account, s.conn.source.LastAttempt())
++	return handOver, recordAttempt(ctx, s.h.config.DB, s.account, mail.AuthAttempt{})
+ }
+ 
+ // recordAttempt records the latest authentication attempt the account's source reported on the

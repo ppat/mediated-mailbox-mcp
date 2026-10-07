@@ -1,6 +1,6 @@
 control: A second pass resuming a stopped pass while the run-start step's mark is set starts over from the first waiting message
 removes: a second pass run resumes a stopped pass from its checkpoint whatever the mark, so what a run's start returned to pending before it waits for good
-packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2 ./backfill
+packages: ./backfill/internal/core/pass2 ./backfill/internal/pass2 ./backfill/app
 tests: TestOver TestAKilledSecondPassResumesFromItsCheckpoint TestAStoppedSecondPassKeepsItsRecordAndStartsOver TestARevertedChangeOfScannerStillScansWhatItReturnedToPending
 scheduled-count: no
 integration: yes

@@ -1,7 +1,7 @@
 // Package analysis holds the project's go vet analysers, as a library. Placement carries the rules
 // ADR-0069 sets on property tests, Globals the rule ADR-0071 sets against package-level state in a
 // pure core, Environment the rule ADR-0078 sets against reading the environment outside a
-// deployable's composition root, TxHelper the rule ADR-0047 sets that every generated data-access
+// deployable's main.go, TxHelper the rule ADR-0047 sets that every generated data-access
 // function runs inside the transaction helper, Routes the rule ADR-0071 sets against a route the UI
 // registers other than through its recording mux, and RawSQL the rule ADR-0071 sets against a
 // statement the UI runs other than through the data-access library. The program under testsupport/cmd/vetcheck

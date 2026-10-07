@@ -1,6 +1,6 @@
 control: The messages whose sender could not be classified are counted per account
 removes: a tick's unclassified senders never reach delta sync's series
-packages: ./sync
+packages: ./sync/app
 tests: TestEachTickFeedsItsUnclassifiedAndBacklogSeries
 scheduled-count: no
 integration: yes

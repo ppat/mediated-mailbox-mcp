@@ -1,6 +1,6 @@
 control: Every body serve and denial writes its audit row, and nothing is released without it
 removes: a serve-time denial is audited as a read
-packages: ./mediate
+packages: ./mediate/app
 tests: TestTheServeTimeCheckReadsEverythingReleased TestABodyTheConversionRefusesIsDenied
 scheduled-count: no
 integration: yes

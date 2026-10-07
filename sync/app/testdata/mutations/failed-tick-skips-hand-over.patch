@@ -1,0 +1,24 @@
+control: A tick hands its account over and records its latest authentication attempt when it ends
+removes: a tick that fails hands nothing over and records no attempt
+packages: ./sync/app
+tests: TestEachTickHandsItsAccountOverAndRecordsItsAttempt
+scheduled-count: no
+integration: yes
+
+diff --git a/sync/app/app.go b/sync/app/app.go
+index 7e99a2d2..5bfa794a 100644
+--- a/sync/app/app.go
++++ b/sync/app/app.go
+@@ -395,8 +395,11 @@ func (s *syncer) tickAccount(ctx context.Context, snapshot *accountload.Snapshot
+ 		s.logger.Info("the account's tick ended", "account", account, "run", result.Run, "recovery", result.Recovery, "gap", result.Gap,
+ 			"added", c.Added, "modified", c.Modified, "removed", c.Removed, "decided", c.Decided, "scanned", c.Scanned, "skipped", c.Skipped)
+ 	}
++	if err != nil {
++		return err
++	}
+ 	handedOver, recorded := sess.End(ctx)
+-	return errors.Join(err, handedOver, recorded)
++	return errors.Join(handedOver, recorded)
+ }
+ 
+ // tickDeps returns what the account's tick runs with over provider. The gate decides under the

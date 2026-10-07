@@ -16,6 +16,7 @@ COPY ratelimit ratelimit
 COPY sanitize sanitize
 COPY settings settings
 COPY mediate/main.go mediate/main.go
+COPY mediate/app mediate/app
 COPY mediate/internal mediate/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-mediate ./mediate
 

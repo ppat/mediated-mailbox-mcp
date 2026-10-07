@@ -1,6 +1,6 @@
 control: An overturned gate skip reopens the second pass, marked to start over
 removes: the run-start step reopens the second pass for overturned skips without marking it to start over, so a stopped pass resumes past the skips returned before its checkpoint
-packages: ./backfill ./backfill/internal/pass2
+packages: ./backfill/app ./backfill/internal/pass2
 tests: TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned
 scheduled-count: no
 integration: yes
