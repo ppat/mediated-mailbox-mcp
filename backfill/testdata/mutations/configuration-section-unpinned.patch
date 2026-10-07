@@ -5,12 +5,13 @@ tests: TestTheConfigurationTypeIsPinned
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
+index 4464b9d0..c7843b1e 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -63,6 +63,7 @@ type Configuration struct {
- 	Database    dbconnectcore.Config  `yaml:"database"`
+@@ -78,6 +78,7 @@ type Configuration struct {
  	Credential  credentialcore.Config `yaml:"credential"`
  	Scanner     scan.Config           `yaml:"scanner"`
+ 	Log         logcore.Config        `yaml:"log"`
 +	Extra       dbconnectcore.Config  `yaml:"extra"`
  }
  

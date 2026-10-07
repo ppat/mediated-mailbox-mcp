@@ -5,15 +5,15 @@ tests: TestARunDecidesUnderTheSharedThresholdsAndScanner
 scheduled-count: no
 
 diff --git a/backfill/main.go b/backfill/main.go
-index b788c81..4a38c1e 100644
+index 4464b9d0..71ef487a 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -83,7 +83,7 @@ func defaults() Configuration {
+@@ -88,7 +88,7 @@ func defaults() Configuration {
  	return Configuration{
  		ProbeListen: ":8080",
  		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
 -		Scanner:     scan.DefaultConfig(),
 +		Scanner:     func() scan.Config { c := scan.DefaultConfig(); c.Window++; return c }(),
+ 		Log:         logcore.Default(),
  	}
  }
- 

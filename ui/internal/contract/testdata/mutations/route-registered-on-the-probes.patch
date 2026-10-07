@@ -3,13 +3,12 @@ removes: a route other than the three probes is registered on the probes listene
 packages: ./ui/internal/contract
 tests: TestTheProbesListenerServesOnlyTheProbes
 scheduled-count: no
-
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 626acce..460cb19 100644
+index 47e717ed..99ec7a63 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -162,6 +162,7 @@ func New(opts Options) (*Server, error) {
- 		answer(w, r, http.StatusOK, "ok")
+@@ -241,6 +241,7 @@ func New(opts Options) (*Server, error) {
+ 		answer(opts.Logger, w, r, http.StatusOK, "ok")
  	}))
  	probes.Handle("GET /readyz", http.HandlerFunc(s.ready))
 +	probes.Handle("GET /export", http.HandlerFunc(s.getSystem))

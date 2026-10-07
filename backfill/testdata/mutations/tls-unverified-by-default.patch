@@ -3,16 +3,16 @@ removes: the TLS mode defaults to prefer, which does not verify the server
 packages: ./backfill
 tests: TestTheDefaults
 scheduled-count: no
-
 diff --git a/backfill/main.go b/backfill/main.go
+index 4464b9d0..b91592cd 100644
 --- a/backfill/main.go
 +++ b/backfill/main.go
-@@ -71,7 +71,7 @@ type Configuration struct {
+@@ -87,7 +87,7 @@ type Configuration struct {
  func defaults() Configuration {
  	return Configuration{
  		ProbeListen: ":8080",
 -		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
 +		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "prefer"},
  		Scanner:     scan.DefaultConfig(),
+ 		Log:         logcore.Default(),
  	}
- }

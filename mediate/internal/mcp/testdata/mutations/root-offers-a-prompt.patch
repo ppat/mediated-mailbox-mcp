@@ -3,15 +3,13 @@ removes: the MCP root also offers a prompt, surface the API root does not carry
 packages: ./mediate/internal/mcp
 tests: TestTheRootOffersToolsOnly
 scheduled-count: no
-
-
 diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
-index 526f5ce..c14d13d 100644
+index ad899385..f4a69a69 100644
 --- a/mediate/internal/mcp/mcp.go
 +++ b/mediate/internal/mcp/mcp.go
-@@ -32,6 +32,9 @@ func Handler(reg service.Registry, version string) http.Handler {
+@@ -33,6 +33,9 @@ func Handler(reg service.Registry, version string, logger *slog.Logger) http.Han
  			Annotations:  annotations(op.Annotations),
- 		}, call(reg, op.Name))
+ 		}, call(reg, op.Name, logger))
  	}
 +	server.AddPrompt(&sdk.Prompt{Name: "summarize"}, func(context.Context, *sdk.GetPromptRequest) (*sdk.GetPromptResult, error) {
 +		return &sdk.GetPromptResult{}, nil

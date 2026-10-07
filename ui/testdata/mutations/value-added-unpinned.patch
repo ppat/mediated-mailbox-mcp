@@ -5,13 +5,13 @@ tests: TestTheConfigurationTypeIsPinned TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/ui/main.go b/ui/main.go
-index 268be745..b03e5ced 100644
+index 74a86727..20d1ef03 100644
 --- a/ui/main.go
 +++ b/ui/main.go
-@@ -87,6 +87,7 @@ type Configuration struct {
- 	// (ADR-0084), so every write has one.
- 	IdentityHeader string `yaml:"identity_header"`
+@@ -92,6 +92,7 @@ type Configuration struct {
  	OperatorName   string `yaml:"operator_name"`
+ 	// Log is the log section, which sets the level the UI logs at (ADR-0119).
+ 	Log logcore.Config `yaml:"log"`
 +	AttemptLifetime time.Duration `yaml:"attempt_lifetime"`
  }
  
