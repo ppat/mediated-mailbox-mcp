@@ -35,8 +35,9 @@ longer holds what it verified, or when the operator asks.
 
 ### The brief
 
-Tell the reviewer to follow part 2 of this skill, then fill this in. A brief carries reasoning to
-test, not verdicts to comply with.
+Tell the reviewer to launch this skill with the Skill tool and use part 2 in full, following the
+approach it lays out, never bits and pieces of it, then fill this in. A brief
+carries reasoning to test, not verdicts to comply with.
 
 ```text
 Pull request, pinned commit, branch, and the base it was built on.
@@ -75,7 +76,7 @@ flowchart TD
     O -->|fix| F
     O -->|no change| R
     F --> R
-    A -->|nothing stands| S[rebase, squash, CI green, mergeable, mark ready]
+    A -->|nothing stands| S[rebase, squash, coherence-check on the final commit, CI green, mergeable, mark ready]
 ```
 
 ### Presenting
@@ -85,8 +86,13 @@ When the rebase met a conflict, list each one with what each side meant and how 
 and send the rebased tree to the same reviewer for a round on the rebase, since that is the tree
 that lands. Squash to one commit whose message, like the pull request's title and body, describes
 the whole change for a cold reader. Commit on its own, confirm the new commit exists and that its
-diff against `main` equals the reviewed diff, then push with a lease. Wait for every check, confirm
-GitHub reports the pull request mergeable and clean, then mark it ready.
+diff against `main` equals the reviewed diff, then push with a lease. Launch the `coherence-check`
+skill with the Skill tool and use it in full on that final commit, following the approach it lays
+out, never bits and pieces of it, since it is the tree that lands.
+Its report file, naming that commit, is the evidence that the check ran, and the main session gives
+that file's path and the commit when it reports the pull request ready. A finding it raises sends
+the pull request back through the loop. Wait for every check, confirm GitHub reports the pull
+request mergeable and clean, then mark it ready.
 
 After anything lands on `main`, re-check the mergeability of every pull request already presented
 as ready. One that conflicts goes back through the rebase and its review before it is presented
@@ -239,8 +245,10 @@ out a case you found the code misses. The artifact is one row per claim.
   are the rows of `docs/VERIFICATIONS.md` whose proof is review, the rules under `.claude/rules/`
   and the decision records that assign a check to review, and every list of what stays with review
   in `CLAUDE.md` and in the code's comments. Find each one the change touches and apply it.
-- **The whole-set coherence check.** Run the `coherence-check` skill over the entire document set,
-  not only the diff.
+- **The whole-set coherence check.** Launch the `coherence-check` skill with the Skill tool and use
+  it in full over the entire document set and the code, not only the diff, following the approach
+  it lays out, never bits and pieces of it. It writes its report
+  file, which names the commit it checked.
 
 The artifact is each finding with the passage and both readings where a reading splits.
 
@@ -255,10 +263,14 @@ the paths touched, and the mechanical checks (lychee, markdownlint and pre-commi
 1. **Close each earlier finding with evidence.** For every finding of the last round, show from the
    tree that it is fixed as ruled, or say why it is not. The artifact is one row per earlier
    finding.
-2. **Hunt what the fix broke.** Read the diff since the last pinned commit, and run passes 2 to 7
+2. **Hunt what the fix broke.** Read the diff since the last pinned commit, and run passes 2 to 6
    over it. Sweep each class the round's findings named, in case the fix closed one instance only.
-3. **Re-run pass 8.**
-4. **Apply new operator instructions** from the brief to the whole change, not only to the diff.
+3. **Run the `coherence-check` skill again,** launched afresh with the Skill tool and used in full
+   over the whole repository at the round's pinned commit, following the approach it lays out,
+   never bits and pieces of it, and writing its report file. A run from an
+   earlier round does not cover the fix.
+4. **Re-run pass 8.**
+5. **Apply new operator instructions** from the brief to the whole change, not only to the diff.
 
 ### The report
 

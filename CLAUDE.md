@@ -10,7 +10,7 @@ conventions. It points at the documents and never repeats them, so every fact ha
 | [USE_CASES.md](./USE_CASES.md) | What the system is for: the outcomes on five axes, each with a falsifiable acceptance criterion |
 | [DESIGN.md](./DESIGN.md) | The pillars and invariants — and the **Glossary**, the single home for vocabulary. If a term needs defining, it gets defined there, never locally |
 | [docs/UI.md](./docs/UI.md) | The UI's design: the lens model, the zoom ladder, the screens, the palettes, the framework requirements, and the build guidance. Same split test as DESIGN.md, one component |
-| [ROADMAP.md](./ROADMAP.md) | All the work in one place: delivery posture, value path, units with their finish lines, production points, dependencies, open decisions. The only top-level document that tracks build state |
+| [ROADMAP.md](./ROADMAP.md) | All the work in one place: delivery posture, value path, units with their finish lines, production points, dependencies, open decisions. The only top-level document that tracks build state, apart from a decision record's status ([docs/adr/README.md](./docs/adr/README.md)) |
 | [docs/adr/README.md](./docs/adr/README.md) | The decision records: index, record format, statuses, and the granularity rule (one decision per record, cut by the re-argue test) |
 | [TESTING.md](./TESTING.md) | What tests a piece of work must have and what proves it done, linking the records that decide it |
 | [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) | Every control's proving injection, past and pending. A new control lands with its injection row |
@@ -24,8 +24,9 @@ Design questions resolve there, in that order: outcome → pillar/glossary → d
 When something new comes up during ANY work — a decision made in conversation, a fact learned
 while implementing, a plan change, a new term, a discovered risk — updating the relevant document
 is part of that work, not a follow-up. Nothing about the system lives only in chat, code, or
-commit messages. Use the **`update-docs` skill** to do it: it routes content to the right
-document, carries the authoring procedures, and ends with a whole-set coherence check.
+commit messages. To do it, launch the **`update-docs` skill** with the Skill tool and use it in
+full, following the approach it lays out, never bits and pieces of it. It routes content to the
+right document, carries the authoring procedures, and ends with a whole-set coherence check.
 
 The whole-set coherence check is its own skill, **`coherence-check`**. It keeps the entire
 repository internally consistent, documents and implementation alike, and applies to implementation
@@ -40,10 +41,10 @@ record index.
 How the code is laid out and the conventions every component follows. The decisions behind them that
 had alternatives live in the records, cited by number. What tests a piece of work needs is
 [TESTING.md](./TESTING.md)'s, which controls exist and how each is proven is
-[docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s.
-The UI's own layout is [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The
-data-access library and the nine narrow shared libraries each describe themselves in a README in
-their own directory.
+[docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s,
+apart from a decision record's status. The UI's own layout is
+[docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The data-access library and
+the nine narrow shared libraries each describe themselves in a README in their own directory.
 
 ### The Go module
 
@@ -366,13 +367,18 @@ checks that gate the commit vocabulary carry no condition.
   commit type and scope, followed by the word unit and the unit's identifier in parentheses. Its
   links are full URLs to files on `main`. A discovery is a ticket under the unit whose mechanism it
   concerns, whether or not the unit is delivered, and work no unit covers gets its unit in
-  ROADMAP.md first, since build state has no other home and documents change before code. #118's
-  body, meaning its rows and each ticket's State, is written only by the control session that
-  [.claude/loop.md](./.claude/loop.md) runs. It marks a ticket in-progress when it launches the
-  ticket's session, and built only once the ticket's pull request has merged, so no dependent ticket
-  starts before its blocker is on `main`. A session that cuts a ticket links it as a sub-issue and
-  sends the control session its row. The control session derives every State again on each
-  iteration, so a change made while none runs is caught when it next runs.
+  ROADMAP.md first, since what is built and in what order has no other home and documents change
+  before code. No ticket is added to a value increment before a production point whose `Crossed:`
+  line in ROADMAP.md reads yes. Work whose unit sits in such an increment, a discovery included,
+  goes under a unit in a later increment, and gets its unit there in ROADMAP.md first when none
+  covers it. #118's body, meaning its rows, each ticket's State and its copy of each production
+  point's `Crossed:` line, is written only by the control session that
+  [.claude/loop.md](./.claude/loop.md) runs. A ticket the operator holds carries the State `hold`,
+  and is not launched until the operator lifts the hold. The control session marks a ticket
+  in-progress when it launches the ticket's session, and built only once the ticket's pull request
+  has merged, so no dependent ticket starts before its blocker is on `main`. A session that cuts a
+  ticket links it as a sub-issue and sends the control session its row. The control session derives
+  every State again on each iteration, so a change made while none runs is caught when it next runs.
 - **A ticket is done** when its pull request has merged with CI green, the unit's acceptance in
   [ROADMAP.md](./ROADMAP.md) is met for the part keyed to what the ticket lands, and every document
   its work touched is updated in that pull request, with its GitHub labels matching its diff. The
@@ -380,11 +386,15 @@ checks that gate the commit vocabulary carry no condition.
   at its finish line also carries the unit's move to the roadmap's delivered register. A closed
   ticket means its work has merged to `main`. Released and deployed are later states, tracked apart
   in ROADMAP.md.
-- **A builder subagent builds a pull request through the `builder` skill,** which holds the brief
-  a builder gets, the order it works in, the proof and gates it runs, and the report it hands back.
+- **A builder subagent builds a pull request through the `builder` skill,** launched with the
+  Skill tool and used in full, following the approach it lays out, never bits and pieces of it. The
+  skill holds the brief a builder gets, the order it works in, the proof and gates it runs, and the
+  report it hands back.
 - **A pull request an agent builds leaves draft** only once the **`adversarial-review` skill**'s
   loop has found nothing that stands, its CI is green, and it merges cleanly onto current `main`.
-  The skill holds who reviews, what every review checks and how findings are ruled on.
+  The main session launches that skill with the Skill tool and uses it in full, following the
+  approach it lays out, never bits and pieces of it. The skill holds who reviews, what every
+  review checks and how findings are ruled on.
 - **GitHub labels.** A ticket carries `unit:<ID>` for the unit it serves and one
   `component:<directory>` per component of the [component table](#components) it touches, with the
   directory spelled as that table's first column spells it without the trailing slash, so

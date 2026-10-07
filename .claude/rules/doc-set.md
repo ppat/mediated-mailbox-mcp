@@ -22,7 +22,8 @@ paths:
 # Rules for every document in the set
 
 You are reading or editing part of this repository's document set. Before writing anything into
-it, invoke the `update-docs` skill — it routes content to the right document and carries the
+it, launch the `update-docs` skill with the Skill tool and use it in full, following the approach
+it lays out, never bits and pieces of it. It routes content to the right document and carries the
 authoring procedure. These rules bind even when the skill was not invoked.
 
 - **One home per fact.** No document restates another's content; cross-references point, never
@@ -47,7 +48,8 @@ authoring procedure. These rules bind even when the skill was not invoked.
   change that renames or relocates it. USE_CASES.md cites no individual records at all. Every
   identifier (C1, G2, ADR-0015, S1, V3, …) links to the section defining it, except inside
   this document set's tables and dependency edges where bare identifiers are allowed.
-- **Build state lives only in ROADMAP.md.** Never in DESIGN.md, never in a decision record.
+- **Build state lives only in ROADMAP.md.** Never in DESIGN.md, and never in a decision record
+  apart from its status, whose rule `docs/adr/README.md` states.
 - Nobody hand-edits `CHANGELOG.md` — release tooling generates it.
 - Before committing document changes, run the offline link/anchor check and markdown lint (the
   `update-docs` skill's verification step has the commands).

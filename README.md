@@ -11,7 +11,8 @@ mailbox credential can be scoped to express it.
 **Status: early implementation.** The design, its decisions, the delivery plan, the testing
 strategy, the verification catalogue, and the mutation ledger are authored. The component layout
 with its build, test and static-analysis tooling is merged, and the safeguard machinery is being
-built. Build state is [ROADMAP.md](./ROADMAP.md)'s.
+built. Build state is [ROADMAP.md](./ROADMAP.md)'s, apart from a decision record's status
+([docs/adr/README.md](./docs/adr/README.md)).
 
 ## Where everything lives
 

@@ -11,8 +11,15 @@ ontologically coherent. Concretely — no two statements a cold reader could not
 once; no reference pointing at something that no longer says what the reference claims; no term
 meaning two things; no claim whose evidence the change just removed.
 
-Scale the walk to the blast radius, not the diff size: a one-line rename can have a larger radius
-than a new section. For each check, actually open the files involved — do not assert from memory.
+Everything a pull request changes or adds, documents and implementation alike, goes through the
+full check, for the logical, epistemic and ontological coherence the obligation names, against the
+entire document set and the code as the pull request leaves them. A change confined to code is
+checked against every document that describes that code, and a change confined to documents
+against the code they describe.
+
+Walk every section in order. Scale the walk to the blast radius, not the diff size: a one-line
+rename can have a larger radius than a new section. For each check, actually open the files
+involved — do not assert from memory.
 
 ## 1. Direct contradictions
 
@@ -100,7 +107,8 @@ reconcile them in the same change:
 
 ## 5. Register and rate-of-change
 
-- Nothing landed in a document whose burden it does not meet: build state outside the roadmap,
+- Nothing landed in a document whose burden it does not meet: build state outside the roadmap
+  (a decision record's status apart, as `docs/adr/README.md` states),
   alternatives-weighing outside records, mechanisms in the outcome contract, an outcome-level
   promise buried in a record's Consequences.
 - If the change effectively promises something new (a guarantee, an invariant), it went through
@@ -116,3 +124,14 @@ text is the failure mode that survives every other check.
 For a newly minted record, this pass is claim-by-claim and written down (see the mint
 procedure's source walk in the update-docs skill's `references/records.md`): every Decision bullet
 and every Consequence names its source line before commit. "It obviously follows" is not a source.
+
+## 7. The report file
+
+Each run in a review round of the `adversarial-review` skill, and the run on the final commit before
+a pull request is reported ready, writes a report file in the session notes of whoever ran it. Other
+runs, such as those inside `update-docs` before anything is committed, write none. The file names
+the commit the run checked and the branch. It then has one entry for each of sections 1 to 6,
+recording the files opened, the enumerations with their ledgers, and each finding with its
+disposition. A section with nothing to check says so in one line. A file with a verdict and no
+entries behind it does not count as a run. A later run on a new commit writes a new file, or a new
+section in the same file naming that commit.

@@ -21,7 +21,8 @@ made without re-deriving it.
 
 ### The brief
 
-Tell the builder to follow part 2 of this skill, and part 3 when the change touches the browser.
+Tell the builder to launch this skill with the Skill tool and use part 2 in full, and part 3 when
+the change touches the browser, following the approach they lay out, never bits and pieces of them.
 Then fill this in.
 
 ```text
@@ -37,7 +38,7 @@ Where to write the report.
 ### What comes back
 
 Rule on every question the report raises before the review starts, and take to the operator what is
-the operator's, which includes every name and unratified decision the builder reports (part 2,
+the operator's, which includes every name and every decision the builder reports (part 2,
 [Choices the builder makes](#choices-the-builder-makes)).
 Send every fix round to the **same builder** through `SendMessage`, since it holds what it built and
 why. A new builder is started only when the old one's context has drifted or been compacted so it no
@@ -53,16 +54,25 @@ longer holds that.
    before the first commit, since the pre-commit formatter hook fails without them.
 2. **Read the sources,** the ticket, the records and documents it rests on, and the code it changes,
    before writing anything. Derive the constraints from the records' own words.
-3. **Change the documents first,** through the `update-docs` skill, invoked with the Skill tool and
-   not paraphrased. It ends with the `coherence-check` skill, which covers the implementation as much
-   as the documents. Every document the work touches changes in the same pull request. `ROADMAP.md`'s
-   state changes and section moves for this change land in it too, written for the state after it
-   merges. A decision that lives only in code is a defect.
+3. **Change the documents first,** through the `update-docs` skill, launched with the Skill tool and
+   used in full, following the approach it lays out, never bits and pieces of it or a paraphrase. It
+   ends by launching the `coherence-check` skill with the Skill tool and using it in full,
+   following the approach it lays out, never bits and pieces of it, and that check covers the
+   implementation as much as the documents. Every document the work touches changes in the same pull request. Writing a new
+   decision record or changing an existing one goes through the `update-docs` skill, launched with
+   the Skill tool and used in full, following the approach it lays out, never bits and pieces of it,
+   whenever in the work it happens. A decision record's
+   status follows the statuses rule in `docs/adr/README.md`, which depends on whether this pull
+   request implements the record. When the work makes anything in `ROADMAP.md` untrue, this same
+   pull request corrects it, written for the state after the pull request merges. That includes
+   its state changes, units and sections moved as items get built, and sections rewritten. A
+   decision that lives only in code is a defect.
 4. **Build** to the documents. When building shows a document is wrong, fix the document first, then
    the code.
 5. **Prove it** ([Proof](#proof)).
-6. **Run the `coherence-check` skill again** over the whole repository as the change now leaves it,
-   since step 3 ran before the code existed.
+6. **Run the `coherence-check` skill again,** launched afresh with the Skill tool and used in full
+   over the whole repository as the change now leaves it, following the approach it lays out, never
+   bits and pieces of it, since step 3 ran before the code existed.
 7. **Run the gates** ([Gates](#gates)).
 8. **Open the draft pull request** ([The pull request](#the-pull-request)).
 9. **Report** ([The report](#the-report)).
@@ -98,11 +108,13 @@ Building never waits on a choice. Make it, keep going, and put it in the report 
   stand, use it, and report it with the reasoning and the alternatives considered, each with its
   reason, so the operator can approve or rename at review. A rename at review is a mechanical change,
   so it costs less than a stalled build.
-- **Libraries and tools.** Every choice of a library or a tool runs the `select-framework-or-tool`
-  skill in full. Nothing is picked in passing.
+- **Libraries and tools.** Every choice of a library or a tool launches the
+  `select-framework-or-tool` skill with the Skill tool and uses it in full, following the approach
+  it lays out, never bits and pieces of it. Nothing is picked in passing.
 - **Design questions the documents leave open.** Decide as the first consumer, record the decision
-  the way `update-docs` routes a decision the operator has not yet ratified, with its alternative,
-  and list it in the report for ruling. A choice the operator made earlier is not reopened.
+  with its alternative through the `update-docs` skill, launched with the Skill tool and used in
+  full, following the approach it lays out, never bits and pieces of it, and list it in the report
+  for ruling. A choice the operator made earlier is not reopened.
 
 ### Proof
 
@@ -174,10 +186,10 @@ Rebase conflicts: each with what each side meant and the resolution.
 ### Fix rounds
 
 A round's rulings come from the main session. Fix as ruled, documents first. When a finding names a
-class, fix every instance of it, not only the one reported. Re-run the `coherence-check` skill, the
-gates and every patch the fix touched, and report the new commit, what each ruling changed, and any
-line of `main` the fix removed. A ruling you believe is wrong is argued back with evidence, not
-quietly left undone.
+class, fix every instance of it, not only the one reported. Launch the `coherence-check` skill
+again, afresh with the Skill tool, and use it in full, following the approach it lays out, never
+bits and pieces of it. Then re-run the gates and every patch the fix touched, and report the new
+commit, what each ruling changed, and any line of `main` the fix removed. A ruling you believe is wrong is argued back with evidence, not quietly left undone.
 
 ## Part 3. Browser work
 
