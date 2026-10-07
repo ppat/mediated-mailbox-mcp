@@ -15,14 +15,10 @@ these are the tripwires that must hold even in a drive-by edit:
   or permitted (broadening a referent, clarifying, adding a consequence the decision always
   implied). When a change fails that test — it reverses, narrows, or re-argues what was decided —
   the decision is superseded instead: a NEW record at the next global number, the old record's
-  header gaining `**Superseded by:** ADR-NNNN`, its body otherwise untouched. The old record is
-  marked only in the pull request where the new one becomes Accepted, as `docs/adr/README.md`'s
-  statuses state. When you cannot tell which side of the test a change is on, ask the operator; do
-  not guess.
+  header gaining `**Superseded by:** ADR-NNNN`, its body otherwise untouched. When you cannot tell
+  which side of the test a change is on, ask the operator; do not guess.
 - **Numbers are global, minted in order, never reused.** Folders are navigation only — a record
   may move folders without renumbering. Check the index for the highest number before minting.
-  When the control loop runs sessions in parallel, every new record's number is instead the one the
-  control session grants on request, since several open pull requests can each take the next one.
 - **Every record update updates the index** (`docs/adr/README.md`) in the same change: the group
   table row, the link text (a shortened restatement of the decision, not the filename), and the
   status (non-Accepted statuses bolded).
@@ -42,5 +38,4 @@ these are the tripwires that must hold even in a drive-by edit:
 - **TESTING.md carries an awaited-items section only while something is awaited.** A change
   landing a record such a section identifies as awaited updates TESTING.md in the same change,
   and the section is removed once nothing remains awaited.
-- **No build state in records** apart from the status, whose rule `docs/adr/README.md` states.
-  Which unit builds a record, and when, is roadmap business.
+- **No build state in records** — which unit builds it and when is roadmap business.

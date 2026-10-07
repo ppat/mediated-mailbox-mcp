@@ -9,9 +9,9 @@ You are touching the one top-level document that tracks build state — the fast
 set. Its preamble carries the reading rules; hold these lines:
 
 - **This is the only home for build state**: what is delivered, remaining, sequenced, or
-  blocked. The one exception is a decision record's status, whose rule `docs/adr/README.md` states.
-  Status vocabulary distinguishes authored → merged → released → deployed-and-observed — never
-  collapsed. Claims are **[measured]** (read from a repo, an API, or a record) or **[inferred]**.
+  blocked. Status vocabulary distinguishes authored → merged → released → deployed-and-observed —
+  never collapsed. Claims are **[measured]** (read from a repo, an API, or a record) or
+  **[inferred]**.
 - **Re-date the `Position:` line whenever the checklists are reconciled against reality** — the
   date is the staleness beacon; an un-re-dated reconciliation defeats it.
 - **Each work unit serves exactly one outcome** (`→` in its header line); where machinery for a

@@ -48,8 +48,7 @@ authoring procedure. These rules bind even when the skill was not invoked.
   change that renames or relocates it. USE_CASES.md cites no individual records at all. Every
   identifier (C1, G2, ADR-0015, S1, V3, …) links to the section defining it, except inside
   this document set's tables and dependency edges where bare identifiers are allowed.
-- **Build state lives only in ROADMAP.md.** Never in DESIGN.md, and never in a decision record
-  apart from its status, whose rule `docs/adr/README.md` states.
+- **Build state lives only in ROADMAP.md.** Never in DESIGN.md, never in a decision record.
 - Nobody hand-edits `CHANGELOG.md` — release tooling generates it.
 - Before committing document changes, run the offline link/anchor check and markdown lint (the
   `update-docs` skill's verification step has the commands).

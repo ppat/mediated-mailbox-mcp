@@ -44,7 +44,7 @@ moves it. Records themselves link freely and deep, into
   A new record is set to **Accepted**, in the pull request that implements it. So if a new record
   is being created along with its implementation in the same PR, it gets ratified by approval and
   landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with 
-  the first PR whose implementation is partly influenced by that record. That is the general practice
+  the first PR whose implementation is at least partly influenced by that record. That is the general practice
   though its not unacceptable to records to be ratified by prior to implementation, just unnecessary.
 - **In-place change versus supersession.** An accepted record may change in place when the change
   stays true to the original decision in spirit and is backwards compatible with the previous
