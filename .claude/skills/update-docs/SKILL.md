@@ -38,16 +38,12 @@ Classify what you are about to write, before opening any file:
 
 The ambiguous cases, resolved the way this document set resolves them:
 
-- **A decision made but not yet ratified by the operator, which the pull request recording it
-  does not implement** → a decision record with status Proposed, AND a row in the roadmap's Open
-  decisions table naming what it gates. Both, deliberately: the record so work can proceed against
-  a stated answer, the roadmap row so the ratification is not forgotten.
-- **A decision the operator has agreed, which the pull request recording it does not implement**
-  → a decision record with status Proposed, as `docs/adr/README.md`'s statuses state, and no Open
-  decisions row, since nothing is left for the operator to ratify.
-- **A decision that the same pull request implements** → a decision record with status Accepted,
-  as `docs/adr/README.md`'s statuses state, even when the decision was made during the work. The
-  pull request presents it with its alternatives for the operator's review.
+- **A new record's status** is set to **Accepted**, in the pull request that implements it. So if a new  
+  record is being created along with its implementation in the same PR, it gets ratified by approval 
+  and landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with 
+  the first PR whose implementation is at least partly influenced by that record. That is the general 
+  practice though its not unacceptable to records to be ratified by prior to implementation, just 
+  unnecessary.
 - **A pillar's limitation** → stated with the pillar itself, plus a pointer row in the design's
   Known limits table saying where the disposition lives. Pointer duplication is sanctioned; fact
   duplication is not.
