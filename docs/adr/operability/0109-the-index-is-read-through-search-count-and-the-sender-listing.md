@@ -54,11 +54,9 @@ operation one route, a structured read a `:search` route, and a read with only s
 - **The sender listing serves the statistics backfill builds**, the domain, its number of messages,
   its first and last message, the share of its messages carrying a `List-Id`, its label
   distribution, and its sampled display names and address local parts. Its sender class is the
-  Redaction Gate's under the policy in force, restricted when any address of the domain the index
-  holds is restricted, and never the class stored with the statistics. A domain whose statistics
-  outlive every message the index holds for it is classified by its domain alone, as the classifier
-  classifies any address at that domain, and is restricted when the classifier cannot read the
-  domain. The prior scan hits are not served. The hits are a signal derived from bodies that no
+  Redaction Gate's under the policy in force, decided from its domain as the classifier classifies
+  every address at that domain, restricted when the classifier cannot read the domain, and never
+  the class stored with the statistics. The prior scan hits are not served. The hits are a signal derived from bodies that no
   outcome needs a client to read. The statistics hold no embedding
   ([ADR-0016](../data/0016-schema.md)), and one the heuristics store later serves the heuristics
   alone, so it is not served either.
@@ -69,13 +67,13 @@ operation one route, a structured read a `:search` route, and a read with only s
   ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Counts, group keys and sender
   statistics carry no body-derived field.
 - **Each operation reads one snapshot of the index.** A search, a count and a page of the sender
-  listing run their statements, the read of the sender addresses the classification takes included,
+  listing run their statements, the read of the sender domains the classification takes included,
   in one transaction at the repeatable-read isolation level, read-only, which the transaction helper
   opens for them ([db/README.md](../../../db/README.md)). The class a call selects or groups by, the
   class it serves, a count's summary and its groups and the page they sit beside all describe the
-  same index, while a workload commits meanwhile. In the sender listing the snapshot changes nothing
-  a client can see, since a domain the address read missed is classified by its domain alone, as its
-  addresses would be, so its use there is held by review rather than by a test.
+  same index, while a workload commits meanwhile. A page of the sender listing runs one statement
+  and classifies each domain it reads, so there the snapshot changes nothing a client can see, and
+  its use there is held by review rather than by a test.
 - **Every timestamp crossing the three is UTC with the `Z` suffix**, and one given with any other
   offset is refused ([ADR-0033](./0033-utc-only-timestamps.md)).
 - **The mediator reads the statistics through the data-access subsection for senders, and the
@@ -125,11 +123,14 @@ operation one route, a structured read a `:search` route, and a read with only s
   client does not count as filing.
 - The statements the three run are one rows statement, one summary, one statement per grouping
   dimension apart from the class, which runs the summary once per class, the summary once more for
-  the no-label group of a grouping by label, the read of the distinct sender addresses the
-  classification needs, and one page of the statistics.
+  the no-label group of a grouping by label, the read of the sender domains the class term and a
+  grouping by class classify, from the statistics, and one page of the statistics.
 - Assumptions about other components. Backfill builds the statistics from the stored messages and
-  every workload that adds or changes messages rebuilds the statistics of each domain it touched, so
-  the listing follows the index. The index keeps a message's labels as an array and its flags as
+  every workload that adds, changes or removes messages rebuilds the statistics of each domain it
+  touched, and removes those of a domain left with no message, in the same transaction, so the
+  listing follows the index and the statistics hold exactly the domains the index stores, which the
+  sender class term's read of the domains relies on
+  ([ADR-0108](./0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)). The index keeps a message's labels as an array and its flags as
   `read` and `starred` booleans. The policy snapshot the call takes is the one the reads of messages
   take ([ADR-0099](../engineering/0099-a-body-request-loads-the-policy-before-it-decides.md) governs
   only the body request).

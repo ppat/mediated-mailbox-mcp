@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
@@ -168,11 +169,26 @@ type failureFilters struct {
 	pageInNone, pageOutNone                                    bool
 }
 
+// storedDomains returns each of domains in the form the index stores a sender domain in, nil for nil.
+func storedDomains(domains []string) []string {
+	if domains == nil {
+		return nil
+	}
+	out := make([]string, len(domains))
+	for i, d := range domains {
+		out[i] = index.StoredDomain(d)
+	}
+	return out
+}
+
 func failureFiltersOf(r Read) (failureFilters, error) {
 	var f failureFilters
 	f.errorClassIn, f.errorClassOut = split(r.Request, "error_class")
 	f.dispositionIn, f.dispositionOut = split(r.Request, "disposition")
 	f.sender = splitNullable(r.Request, "sender")
+	// The sender filter matches the domains the index stores, so each value is given in their form
+	// (ADR-0016).
+	f.sender.in, f.sender.out = storedDomains(f.sender.in), storedDomains(f.sender.out)
 	page := splitNullable(r.Request, "page_number")
 	f.pageInNone, f.pageOutNone = page.inNone, page.outNone
 	var err error
@@ -327,7 +343,7 @@ func failuresBySender(ctx context.Context, q Queries, r Read) (any, error) {
 	out := make([]SensitiveGroup, 0, len(rows))
 	for _, row := range rows {
 		// The statement marks the group of items with no message, and keys every other group by its
-		// domain as the database lowers it, a stored empty domain included.
+		// domain as stored, a stored empty domain included.
 		var key any
 		if !row.NoDomain {
 			key = row.FromDomain

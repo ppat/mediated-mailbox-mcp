@@ -70,6 +70,17 @@ being unique in the library.
 `db/check` runs these checks over the library's own files.
 
 - The statement constraints and the suppression-annotation ban.
+- The check on folding a sender domain's case in SQL ([ADR-0016](../docs/adr/data/0016-schema.md)).
+  It refuses `lower()`, `upper()`, `casefold()` or `initcap()` over an expression holding a domain
+  column, or in one direct operand of a comparison or a function call whose other direct operand
+  holds one, and `ILIKE`, `NOT ILIKE`, `~*` or `!~*` with a domain column in either operand. It
+  matches a domain column by its name, `domain` or `from_domain`, whatever table, alias or common
+  table expression qualifies it. These forms are outside what it matches and held by review: a fold
+  inside a nested query whose output is compared with a domain, a domain column read under another
+  name, a `::citext` cast on a domain comparison, which the case-insensitive cast check also admits
+  for a parameter, the `'i'` flag of the regular expression functions, an embedded `(?i)` in a
+  pattern, a case-insensitive collation, and any other form that folds case or matches approximately,
+  full-text search among them.
 - The migration lint.
 - The derived account-keyed table list and its exceptions.
 - The no-table-types assertion.

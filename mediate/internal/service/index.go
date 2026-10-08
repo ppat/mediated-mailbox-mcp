@@ -21,7 +21,7 @@ import (
 // as the redaction matrix allows it, and a message whose body is denied stays in every result
 // (ADR-0001). Whatever they decide by sender class is decided under the policy the call took once, the
 // one the messages they serve are presented under (ADR-0002). Each runs its statements in one snapshot
-// of the index, so the addresses it classifies are the ones its statements read (ADR-0109).
+// of the index, so the domains it classifies are the ones its statements read (ADR-0109).
 
 // indexOperations returns the index reads.
 func (s Sources) indexOperations() []Operation {
@@ -150,7 +150,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
 	var rows []messages.SearchPageRow
 	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
 		q := messages.New(t)
-		c, err := s.classesFor(ctx, q, account, sel.needsClasses(), p)
+		c, err := s.classesFor(ctx, senders.New(t), account, sel.needsClasses(), p)
 		if err != nil {
 			return err
 		}
@@ -192,20 +192,21 @@ func withFilter(p *messages.SearchPageParams, f messages.SearchSummaryParams) {
 	p.FromEmails, p.FromDomains = f.FromEmails, f.FromDomains
 	p.Labels, p.ExcludedLabels, p.LabelsWithin = f.Labels, f.ExcludedLabels, f.LabelsWithin
 	p.SubjectPatterns, p.Unread, p.Starred, p.HasAttachments = f.SubjectPatterns, f.Unread, f.Starred, f.HasAttachments
-	p.Restricted, p.NormalSenders = f.Restricted, f.NormalSenders
+	p.Restricted, p.NormalDomains = f.Restricted, f.NormalDomains
 }
 
-// classesFor classifies the account's senders under p when needed is set, and otherwise returns no
-// classes, which no term reads.
-func (s Sources) classesFor(ctx context.Context, q *messages.Queries, account string, needed bool, p policy.Composed) (classes, error) {
+// classesFor classifies the account's sender domains under p when needed is set, and otherwise returns
+// no classes, which no term reads. The domains are read from the sender statistics, which hold exactly
+// the domains the account's messages are stored under (ADR-0109).
+func (s Sources) classesFor(ctx context.Context, q *senders.Queries, account string, needed bool, p policy.Composed) (classes, error) {
 	if !needed {
 		return classes{}, nil
 	}
-	rows, err := q.SenderAddresses(ctx, account)
+	domains, err := q.SenderDomains(ctx, account)
 	if err != nil {
 		return classes{}, err
 	}
-	return classifySenders(rows, p, s.Lookups), nil
+	return classifyDomains(domains, p, s.Lookups), nil
 }
 
 // group is the counts of one group of messages, or of a whole selection, whose key is null.
@@ -257,7 +258,7 @@ func (s Sources) countMessages(ctx context.Context, account string, input json.R
 	var next *string
 	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
 		q := messages.New(t)
-		c, err := s.classesFor(ctx, q, account, sel.needsClasses() || args.GroupBy == "sender_class", p)
+		c, err := s.classesFor(ctx, senders.New(t), account, sel.needsClasses() || args.GroupBy == "sender_class", p)
 		if err != nil {
 			return err
 		}
@@ -319,7 +320,7 @@ func (s Sources) pagedGroups(ctx context.Context, q *messages.Queries, by string
 		params.FromEmails, params.FromDomains = f.FromEmails, f.FromDomains
 		params.Labels, params.ExcludedLabels, params.LabelsWithin = f.Labels, f.ExcludedLabels, f.LabelsWithin
 		params.SubjectPatterns, params.Unread, params.Starred, params.HasAttachments = f.SubjectPatterns, f.Unread, f.Starred, f.HasAttachments
-		params.Restricted, params.NormalSenders = f.Restricted, f.NormalSenders
+		params.Restricted, params.NormalDomains = f.Restricted, f.NormalDomains
 		rows, err := q.CountBySender(ctx, params)
 		if err != nil {
 			return nil, err
@@ -335,7 +336,7 @@ func (s Sources) pagedGroups(ctx context.Context, q *messages.Queries, by string
 	params.FromEmails, params.FromDomains = f.FromEmails, f.FromDomains
 	params.Labels, params.ExcludedLabels, params.LabelsWithin = f.Labels, f.ExcludedLabels, f.LabelsWithin
 	params.SubjectPatterns, params.Unread, params.Starred, params.HasAttachments = f.SubjectPatterns, f.Unread, f.Starred, f.HasAttachments
-	params.Restricted, params.NormalSenders = f.Restricted, f.NormalSenders
+	params.Restricted, params.NormalDomains = f.Restricted, f.NormalDomains
 	rows, err := q.CountBySenderDomain(ctx, params)
 	if err != nil {
 		return nil, err
@@ -387,7 +388,7 @@ func (s Sources) wholeGroups(ctx context.Context, q *messages.Queries, by string
 			}
 			one := f
 			one.Restricted = []bool{class == "restricted"}
-			one.NormalSenders = c.normal
+			one.NormalDomains = c.normal
 			row, err := q.SearchSummary(ctx, one)
 			if err != nil {
 				return nil, err
@@ -470,12 +471,8 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
 	params := senders.SenderPageParams{AccountID: account, FirstPage: !found, AfterCount: from.Count, AfterDomain: from.Key, PageSize: pageSize}
 	p := s.Policy(account)
 	var rows []senders.SenderPageRow
-	var c classes
 	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
 		var err error
-		if c, err = s.classesFor(ctx, messages.New(t), account, true, p); err != nil {
-			return err
-		}
 		rows, err = senders.New(t).SenderPage(ctx, params)
 		return err
 	})
@@ -484,10 +481,9 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
 	}
 	out := make([]senderStats, 0, len(rows))
 	for _, r := range rows {
-		restricted, known := c.domains[strings.ToLower(r.Domain)]
-		if !known {
-			restricted = classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
-		}
+		// A domain's class is the class of every address at it, and one the classifier cannot read is
+		// restricted (ADR-0109).
+		restricted := classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
 		class := "normal"
 		if restricted {
 			class = "restricted"

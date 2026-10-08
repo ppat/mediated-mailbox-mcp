@@ -18,9 +18,10 @@ const (
 	checkPagedSort  = "paged-sort-identity"
 	checkAccount    = "account-predicate"
 	checkSuppress   = "suppression-annotation"
+	checkDomainCase = "domain-sql-case"
 )
 
-var statementChecks = []string{checkStar, checkGroupCase, checkCitextCast, checkPagedSort, checkAccount, checkSuppress}
+var statementChecks = []string{checkStar, checkGroupCase, checkCitextCast, checkPagedSort, checkAccount, checkSuppress, checkDomainCase}
 
 // suppressionAnnotation is sqlc's per-query switch that turns its rule surface off. ADR-0066 bans it
 // from statement files, and it cannot reach this pass.
@@ -38,6 +39,7 @@ func checkStatements(s schema, f sqlFile) []finding {
 		c := &statementCheck{file: f, raw: raw, schema: s, name: statementName(f, raw)}
 		c.starSelects()
 		c.groupingCases()
+		c.domainCases()
 		c.query(raw.GetStmt(), nil)
 		c.resolveObligations()
 		out = append(out, c.findings...)
@@ -104,6 +106,118 @@ func (c *statementCheck) starSelects() {
 		if ref := n.GetColumnRef(); ref != nil && slices.ContainsFunc(ref.GetFields(), func(f *pg.Node) bool { return f.GetAStar() != nil }) {
 			c.report(ref.GetLocation(), checkStar, "a star select gains every column a future migration adds")
 		}
+		return true
+	})
+}
+
+// domainColumns are the names of the columns that hold a sender domain, which every writer stores in
+// the one form the Go domain normalizer gives (ADR-0016). A column is matched by its name alone,
+// whatever table or alias qualifies it, so a column read through a common table expression or a
+// subquery is matched too.
+var domainColumns = []string{"domain", "from_domain"}
+
+// caseFunctions are the SQL functions that fold case.
+var caseFunctions = []string{"lower", "upper", "casefold", "initcap"}
+
+// caseOperators are the operators that match without regard to case, ILIKE and NOT ILIKE spelled as
+// their operators, and the case-insensitive regular expression matches.
+var caseOperators = []string{"~~*", "!~~*", "~*", "!~*"}
+
+// domainCases refuses the forms of folding a sender domain's case in SQL that it matches (ADR-0016).
+// It reports a case-folding function applied to an expression holding a domain column, a
+// case-folding function in one direct operand of a comparison or a function call whose other operand
+// holds a domain column, such as a parameter lowered to match a domain or a domain searched for a
+// lowered parameter, and a case-insensitive match with a domain column in either operand.
+// PostgreSQL's lower() is not the Go normalizer and depends on the database's collation, and none of
+// these is leakproof on an indexed column, so under row-level security each turns the index off
+// (ADR-0066). Outside what it matches, and held by review, are a fold inside a nested query whose
+// output is compared with a domain, a domain column read under another name, a cast to the
+// case-insensitive type on a domain comparison, which the case-insensitive cast check also admits for
+// a parameter, the 'i' flag of the regular expression functions, an embedded (?i) in a pattern, a
+// case-insensitive collation, and any other form that folds case or matches approximately, full-text
+// search among them.
+func (c *statementCheck) domainCases() {
+	reported := map[int32]bool{}
+	reportAt := func(location int32, what string) {
+		if !reported[location] {
+			reported[location] = true
+			c.report(location, checkDomainCase, "%s folds a sender domain's case in SQL, where the stored form and every bound domain come from the Go normalizer", what)
+		}
+	}
+	report := func(fc *pg.FuncCall) {
+		reportAt(fc.GetLocation(), names(fc.GetFuncname())[len(fc.GetFuncname())-1]+"()")
+	}
+	walk(c.raw.GetStmt(), func(n *pg.Node) bool {
+		var operands []*pg.Node
+		switch {
+		case isCaseFunction(n):
+			if anyDomainColumn(n.GetFuncCall().GetArgs()) {
+				report(n.GetFuncCall())
+			}
+			operands = n.GetFuncCall().GetArgs()
+		case n.GetFuncCall() != nil && !isParameter(n):
+			operands = n.GetFuncCall().GetArgs()
+		case n.GetAExpr() != nil && !isParameter(n):
+			a := n.GetAExpr()
+			operands = []*pg.Node{a.GetLexpr(), a.GetRexpr()}
+			if isCaseOperator(a) && anyDomainColumn(operands) {
+				reportAt(a.GetLocation(), "a case-insensitive match")
+			}
+		}
+		for i, operand := range operands {
+			others := append(slices.Clone(operands[:i]), operands[i+1:]...)
+			if !anyDomainColumn(others) {
+				continue
+			}
+			within(operand, func(m *pg.Node) {
+				if isCaseFunction(m) {
+					report(m.GetFuncCall())
+				}
+			})
+		}
+		return true
+	})
+}
+
+// isCaseFunction reports whether n calls lower() or upper().
+func isCaseFunction(n *pg.Node) bool {
+	fc := n.GetFuncCall()
+	if fc == nil {
+		return false
+	}
+	fn := names(fc.GetFuncname())
+	return len(fn) > 0 && slices.Contains(caseFunctions, fn[len(fn)-1])
+}
+
+// isCaseOperator reports whether a matches without regard to case.
+func isCaseOperator(a *pg.A_Expr) bool {
+	op := names(a.GetName())
+	return len(op) > 0 && slices.Contains(caseOperators, op[len(op)-1])
+}
+
+// anyDomainColumn reports whether any of nodes holds a reference to a domain column.
+func anyDomainColumn(nodes []*pg.Node) bool {
+	found := false
+	for _, n := range nodes {
+		within(n, func(m *pg.Node) {
+			if ref := m.GetColumnRef(); ref != nil {
+				fields := names(ref.GetFields())
+				found = found || (len(fields) > 0 && slices.Contains(domainColumns, fields[len(fields)-1]))
+			}
+		})
+	}
+	return found
+}
+
+// within visits n and every node under it that belongs to the same expression, stopping at a nested
+// query, which domainCases reaches on its own, and at a parameter, since @domain parses as an operator
+// applied to a column reference of that name.
+func within(n *pg.Node, visit func(*pg.Node)) {
+	walk(n, func(m *pg.Node) bool {
+		if m.GetSelectStmt() != nil || isParameter(m) {
+			return false
+		}
+		visit(m)
 		return true
 	})
 }

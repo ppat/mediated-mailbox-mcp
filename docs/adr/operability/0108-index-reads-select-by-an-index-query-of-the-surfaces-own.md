@@ -64,11 +64,18 @@ client's question, not the surface's.
   [G1](../../../USE_CASES.md#g1--whole-mailbox-visibility)'s third falsifier held by the query's
   shape.
 - **The sender class term is decided as the Redaction Gate decides a message's sender class.** The
-  service layer classifies every sender address the account's messages hold under the policy the
-  call took once, the policy the messages it serves are presented under, and passes the addresses it
-  classified normal into the statement. A domain listed after its messages were stored as normal
-  selects as restricted on the next call ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)).
-- **An address the call did not classify counts as restricted.** The statement treats every address
+  service layer classifies every sender domain the account's sender statistics hold under the
+  policy the call took once, the policy the messages it serves are presented under, and passes the
+  domains it classified normal into the statement, which matches each message's stored domain
+  against them. The classifier reads only the part of an address after its last `@`, and the index
+  stores that part through the one domain normalizer, which keeps whatever the classifier reads
+  ([ADR-0016](../data/0016-schema.md)), so classifying a stored domain classifies every address at
+  it. The statistics hold exactly the domains the index stores, since every workload that adds or
+  removes messages rebuilds or removes the statistics of each domain it touched in the same
+  transaction ([ADR-0109](./0109-the-index-is-read-through-search-count-and-the-sender-listing.md)).
+  A domain listed after its messages were stored as normal selects as restricted on the next call
+  ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)).
+- **A domain the call did not classify counts as restricted.** The statement treats every domain
   outside the normal set as restricted, so a set and a statement that ever disagree fail closed, as
   the classifier fails closed on an address it cannot read
   ([Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere)). The classification and
@@ -108,9 +115,18 @@ client's question, not the surface's.
   single term. Against it, which labels file a message differs by provider and by operator, and
   naming `SENT`, `DRAFT` or Gmail's categories above the adapter couples the surface to one provider.
   `labels_within` lets the client name the set from the labels listing.
-- **The restricted addresses passed into the statement, every other address counting as normal.** For
-  it, the set passed is usually the smaller one. Against it, an address the call did not classify,
-  such as one written after the classification read, counts as normal, which fails open.
+- **Every distinct sender address classified, and the normal addresses passed into the statement.**
+  For it, the statement matches the address itself and relies on nothing about the stored domain.
+  Against it, the addresses are several times the domains, about 21,000 against about 2,850 in a
+  seeded corpus of 100,000 messages, read by a distinct scan of the messages rather than from the
+  statistics. Matched as a membership test over the passed list, the planner left the list
+  unhashed, and once the server switched the prepared statement to a generic plan no form of the
+  test was hashed, so a statement took about 80 seconds, past common proxy and client deadlines.
+  The domains, matched by a join over the passed list, which the planner hashes in custom and
+  generic plans alike, took about 28 milliseconds.
+- **The restricted domains passed into the statement, every other domain counting as normal.** For
+  it, the set passed is usually the smaller one. Against it, a domain the call did not classify,
+  such as one first written after the classification read, counts as normal, which fails open.
 - **The sender class term read from the class the index stored.** For it, one column in the
   statement and no classification per call. Against it, a domain listed after its messages were
   stored would select as normal while the same message is served as restricted, the disagreement
@@ -125,17 +141,18 @@ client's question, not the surface's.
 - Every term is a null-guarded parameter of fixed statements, so the set of terms is closed per
   statement, as [ADR-0066](../data/0066-data-access-generated-from-sql.md) shapes the UI's dataset
   filters. A new term is a change to every statement that takes the query.
-- The sender class term classifies every distinct sender address of the account on each call that
-  uses it. At the corpus [ADR-0016](../data/0016-schema.md) assumes, about a hundred thousand
-  messages, that is at most as many addresses, classified in memory. A corpus an order of magnitude
-  larger re-argues it.
+- The sender class term classifies every sender domain of the account on each call that uses it.
+  At the corpus [ADR-0016](../data/0016-schema.md) assumes, about a hundred thousand messages, that
+  is a few thousand domains, classified in memory. A corpus an order of magnitude larger re-argues
+  it.
 - A cursor is bound to the query it paged, so a policy change between two pages of a sender class
   selection moves messages in or out of the pages that follow. The next call reads the policy in
   force, as every read does.
 - Assumptions about other components. The index stores the subject already masked
   ([ADR-0003](../redaction/0003-subject-masking.md)). A message's flags record `read` and `starred`
-  as booleans, as backfill writes them. The classifier decides a sender's class from its address and
-  the policy alone ([ADR-0004](../classification/0004-sender-list-decides.md)).
+  as booleans, as backfill writes them. The classifier decides a sender's class from the domain of
+  its address and the policy alone ([ADR-0004](../classification/0004-sender-list-decides.md)), and
+  the sender statistics hold exactly the domains the index stores.
 - The controls this record states, that a message whose body is denied stays selected and that the
   sender class term is the policy in force's, are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

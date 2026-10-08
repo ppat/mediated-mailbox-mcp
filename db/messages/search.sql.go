@@ -43,7 +43,12 @@ WHERE
     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
     AND (
         $13::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest($14::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any($13::boolean[])
     )
 GROUP BY l.label
 ORDER BY messages DESC, l.label ASC
@@ -63,7 +68,7 @@ type CountByLabelParams struct {
 	Starred         []bool
 	HasAttachments  []bool
 	Restricted      []bool
-	NormalSenders   []string
+	NormalDomains   []string
 }
 
 type CountByLabelRow struct {
@@ -95,7 +100,7 @@ func (q *Queries) CountByLabel(ctx context.Context, arg CountByLabelParams) ([]C
 		arg.Starred,
 		arg.HasAttachments,
 		arg.Restricted,
-		arg.NormalSenders,
+		arg.NormalDomains,
 	)
 	if err != nil {
 		return nil, err
@@ -161,7 +166,12 @@ FROM (
         AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
         AND (
             $13::boolean[] IS NULL
-            OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
+            OR (
+                NOT EXISTS (
+                    SELECT 1 FROM unnest($14::text[]) AS n (d)
+                    WHERE n.d = m.from_domain::text
+                )
+            ) = any($13::boolean[])
         )
 ) AS g
 GROUP BY g.month
@@ -182,7 +192,7 @@ type CountByMonthParams struct {
 	Starred         []bool
 	HasAttachments  []bool
 	Restricted      []bool
-	NormalSenders   []string
+	NormalDomains   []string
 }
 
 type CountByMonthRow struct {
@@ -214,7 +224,7 @@ func (q *Queries) CountByMonth(ctx context.Context, arg CountByMonthParams) ([]C
 		arg.Starred,
 		arg.HasAttachments,
 		arg.Restricted,
-		arg.NormalSenders,
+		arg.NormalDomains,
 	)
 	if err != nil {
 		return nil, err
@@ -273,7 +283,12 @@ WHERE
     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
     AND (
         $13::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest($14::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any($13::boolean[])
     )
 GROUP BY m.from_email
 HAVING
@@ -298,7 +313,7 @@ type CountBySenderParams struct {
 	Starred         []bool
 	HasAttachments  []bool
 	Restricted      []bool
-	NormalSenders   []string
+	NormalDomains   []string
 	FirstPage       bool
 	AfterCount      int64
 	AfterKey        string
@@ -332,7 +347,7 @@ func (q *Queries) CountBySender(ctx context.Context, arg CountBySenderParams) ([
 		arg.Starred,
 		arg.HasAttachments,
 		arg.Restricted,
-		arg.NormalSenders,
+		arg.NormalDomains,
 		arg.FirstPage,
 		arg.AfterCount,
 		arg.AfterKey,
@@ -395,7 +410,12 @@ WHERE
     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
     AND (
         $13::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest($14::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any($13::boolean[])
     )
 GROUP BY m.from_domain
 HAVING
@@ -420,7 +440,7 @@ type CountBySenderDomainParams struct {
 	Starred         []bool
 	HasAttachments  []bool
 	Restricted      []bool
-	NormalSenders   []string
+	NormalDomains   []string
 	FirstPage       bool
 	AfterCount      int64
 	AfterKey        string
@@ -454,7 +474,7 @@ func (q *Queries) CountBySenderDomain(ctx context.Context, arg CountBySenderDoma
 		arg.Starred,
 		arg.HasAttachments,
 		arg.Restricted,
-		arg.NormalSenders,
+		arg.NormalDomains,
 		arg.FirstPage,
 		arg.AfterCount,
 		arg.AfterKey,
@@ -522,7 +542,12 @@ WHERE
     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
     AND (
         $13::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest($14::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any($13::boolean[])
     )
     AND (
         $15::boolean
@@ -588,7 +613,7 @@ type SearchPageParams struct {
 	Starred         []bool
 	HasAttachments  []bool
 	Restricted      []bool
-	NormalSenders   []string
+	NormalDomains   []string
 	FirstPage       bool
 	SortBy          string
 	Descending      bool
@@ -632,7 +657,7 @@ func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]Searc
 		arg.Starred,
 		arg.HasAttachments,
 		arg.Restricted,
-		arg.NormalSenders,
+		arg.NormalDomains,
 		arg.FirstPage,
 		arg.SortBy,
 		arg.Descending,
@@ -703,7 +728,12 @@ WHERE
     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
     AND (
         $13::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest($14::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any($13::boolean[])
     )
 `
 
@@ -721,7 +751,7 @@ type SearchSummaryParams struct {
 	Starred         []bool
 	HasAttachments  []bool
 	Restricted      []bool
-	NormalSenders   []string
+	NormalDomains   []string
 }
 
 type SearchSummaryRow struct {
@@ -751,7 +781,7 @@ func (q *Queries) SearchSummary(ctx context.Context, arg SearchSummaryParams) (S
 		arg.Starred,
 		arg.HasAttachments,
 		arg.Restricted,
-		arg.NormalSenders,
+		arg.NormalDomains,
 	)
 	var i SearchSummaryRow
 	err := row.Scan(
@@ -763,40 +793,4 @@ func (q *Queries) SearchSummary(ctx context.Context, arg SearchSummaryParams) (S
 		&i.NewestAt,
 	)
 	return i, err
-}
-
-const senderAddresses = `-- name: SenderAddresses :many
-SELECT DISTINCT
-    m.from_email,
-    m.from_domain
-FROM messages AS m
-WHERE m.account_id = $1
-ORDER BY m.from_email, m.from_domain
-`
-
-type SenderAddressesRow struct {
-	FromEmail  string
-	FromDomain string
-}
-
-// Every distinct sender address the account's messages hold, with its domain, which the service layer
-// classifies under the policy in force before a read that filters, groups or lists by sender class.
-func (q *Queries) SenderAddresses(ctx context.Context, accountID string) ([]SenderAddressesRow, error) {
-	rows, err := q.db.Query(ctx, senderAddresses, accountID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []SenderAddressesRow
-	for rows.Next() {
-		var i SenderAddressesRow
-		if err := rows.Scan(&i.FromEmail, &i.FromDomain); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

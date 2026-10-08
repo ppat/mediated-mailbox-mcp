@@ -1,0 +1,19 @@
+control: Every caller that binds a sender domain to a statement binds the one domain normalizer's output
+removes: the failures dataset's sender filter is bound as the operator typed it, leaving case to the database
+packages: ./ui/internal/api
+tests: TestADomainTypedInAnyCaseFindsItsStoredForm
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/registry/failures.go b/ui/internal/registry/failures.go
+index ae06e8dc..f341b813 100644
+--- a/ui/internal/registry/failures.go
++++ b/ui/internal/registry/failures.go
+@@ -189,7 +189,6 @@ func failureFiltersOf(r Read) (failureFilters, error) {
+ 	f.sender = splitNullable(r.Request, "sender")
+ 	// The sender filter matches the domains the index stores, so each value is given in their form
+ 	// (ADR-0016).
+-	f.sender.in, f.sender.out = storedDomains(f.sender.in), storedDomains(f.sender.out)
+ 	page := splitNullable(r.Request, "page_number")
+ 	f.pageInNone, f.pageOutNone = page.inNone, page.outNone
+ 	var err error

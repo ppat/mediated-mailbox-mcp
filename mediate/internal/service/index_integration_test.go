@@ -28,11 +28,20 @@ type indexed struct {
 	read, starred, attachments      bool
 	flags                           []string
 	scan, storedClass               string
+	// domain is the domain stored for the sender, the part of its address after the last @ lowered
+	// when it is empty.
+	domain string
 }
 
+// put stores m in the index with its sender's statistics, in one statement, as a workload stores a
+// message and rebuilds its sender's statistics in one transaction, so the statistics hold exactly the
+// domains the index stores.
 func put(t *testing.T, conn *pgx.Conn, account string, m indexed) {
 	t.Helper()
-	domain := strings.ToLower(m.from[strings.LastIndexByte(m.from, '@')+1:])
+	domain := m.domain
+	if domain == "" {
+		domain = strings.ToLower(m.from[strings.LastIndexByte(m.from, '@')+1:])
+	}
 	class, scan, thread := m.storedClass, m.scan, m.thread
 	if class == "" {
 		class = "normal"
@@ -48,9 +57,12 @@ func put(t *testing.T, conn *pgx.Conn, account string, m indexed) {
 		types = []string{"pdf"}
 	}
 	flags := fmt.Sprintf(`{"read": %v, "starred": %v}`, m.read, m.starred)
-	must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, sent_at, labels,
+	must(t, conn, `WITH stored AS (
+		INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, sent_at, labels,
 		flags, has_attachments, attachment_types, sender_class, content_flags, rule_ids, scan_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, '{}', $14)`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, '{}', $14) RETURNING account_id, from_domain)
+		INSERT INTO senders (account_id, domain, message_count) SELECT account_id, from_domain, 1 FROM stored
+		ON CONFLICT (account_id, domain) DO UPDATE SET message_count = senders.message_count + 1`,
 		account, m.id, thread, m.from, domain, m.subject, m.sent, orEmpty(m.labels), flags, m.attachments, orEmpty(types),
 		class, orEmpty(m.flags), scan)
 }
@@ -307,7 +319,12 @@ func TestTheIndexReadsClassifySendersUnderThePolicyInForce(t *testing.T) {
 		has_list_id_ratio, label_distribution, scan_hit_count, sender_class) VALUES
 		($1, 'bank.example', '{alerts,statements}', '{Bank}', 2, '2025-03-10T11:00:00+02:00', '2025-03-11T09:00:00Z', 0.5, '{"Finance": 2, "INBOX": 1}', 7, 'normal'),
 		($1, 'old.example', '{legacy}', '{}', 1, '2025-03-12T09:00:00Z', '2025-03-12T09:00:00Z', NULL, '{}', 0, 'restricted'),
-		($1, 'archive.bank.example', '{}', '{}', 1, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', NULL, '{}', 0, 'normal')`, account)
+		($1, 'archive.bank.example', '{}', '{}', 1, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', NULL, '{}', 0, 'normal')
+		ON CONFLICT (account_id, domain) DO UPDATE SET local_part_sample = excluded.local_part_sample,
+		display_names = excluded.display_names, message_count = excluded.message_count, first_seen = excluded.first_seen,
+		last_seen = excluded.last_seen, has_list_id_ratio = excluded.has_list_id_ratio,
+		label_distribution = excluded.label_distribution, scan_hit_count = excluded.scan_hit_count,
+		sender_class = excluded.sender_class`, account)
 	restrict(t, conn, account, "bank.example")
 	reg := reads(t, account)
 
@@ -433,6 +450,45 @@ func TestEachQueryTermSelectsItsMessages(t *testing.T) {
 	}
 }
 
+// The domain term matches a sender domain given in any case against the domain the index stores, a
+// dotted capital I among its letters, because the service gives the statement the domain in the form
+// the index stores it in rather than leaving case to the database (ADR-0016). A rule written with the
+// dotted capital I restricts the domain stored from it and not the domain spelled with a plain i, in
+// the class term, in the sender listing and in the messages served (ADR-0108, ADR-0109).
+func TestTheDomainAndClassTermsReadTheStoredForm(t *testing.T) {
+	conn := superuser(t)
+	account := newAccount(t, conn)
+	restrict(t, conn, account, "B\u0130NK.example")
+	put(t, conn, account, indexed{id: "m-dotted", from: "alerts@B\u0130NK.example", domain: "bi\u0307nk.example", subject: "s", sent: "2025-03-10T09:00:00Z"})
+	put(t, conn, account, indexed{id: "m-plain", from: "alerts@bink.example", subject: "s", sent: "2025-03-11T09:00:00Z"})
+	reg := reads(t, account)
+	for query, want := range map[string][]string{
+		`{"from_domain":"B\u0130NK.EXAMPLE"}`:  {"m-dotted"},
+		`{"from_domain":"bi\u0307nk.example"}`: {"m-dotted"},
+		`{"from_domain":"BINK.EXAMPLE"}`:       {"m-plain"},
+		`{"sender_class":"restricted"}`:        {"m-dotted"},
+		`{"sender_class":"normal"}`:            {"m-plain"},
+	} {
+		served := searched(t, reg, account, query, "")
+		if diff := cmp.Diff(want, ids(served), compare.Options); diff != "" {
+			t.Errorf("search %s (-want +got):\n%s", query, diff)
+		}
+		for _, m := range served {
+			if class := map[string]string{"m-dotted": "restricted", "m-plain": "normal"}[m.MessageID]; m.Sensitivity.SenderClass != class {
+				t.Errorf("search %s served %s as %s, want %s", query, m.MessageID, m.Sensitivity.SenderClass, class)
+			}
+		}
+	}
+	listed, _ := senderPage(t, reg, `{"account_id":"`+account+`"}`)
+	classes := map[string]string{}
+	for _, row := range listed {
+		classes[row.Domain] = row.SenderClass
+	}
+	if diff := cmp.Diff(map[string]string{"bi\u0307nk.example": "restricted", "bink.example": "normal"}, classes, compare.Options); diff != "" {
+		t.Errorf("the sender listing's classes (-want +got):\n%s", diff)
+	}
+}
+
 // An index query term named in another case than the schema declares, one the schema does not
 // declare, a null term, an empty address, a sender class outside the two, and a sort, an order or a
 // grouping outside its set are refused before anything is read (ADR-0087).
@@ -478,8 +534,9 @@ func TestAnIndexReadPagesThroughEveryRowOnce(t *testing.T) {
 			sent: base.Add(time.Duration(i/4) * time.Minute).Format(time.RFC3339), labels: []string{fmt.Sprintf("L%03d", i)},
 		})
 	}
+	// The sender listing pages more statistics than the messages' domains, its own rows apart from them.
 	must(t, conn, `INSERT INTO senders (account_id, domain, message_count) SELECT $1, 'd' || lpad(i::text, 3, '0') || '.example', 4
-		FROM generate_series(0, 230) AS i`, account)
+		FROM generate_series(0, 230) AS i ON CONFLICT (account_id, domain) DO NOTHING`, account)
 	reg := reads(t, account, other)
 
 	for _, sortOrder := range []string{"", `,"order":"ascending"`, `,"sort":"sender"`, `,"sort":"sender","order":"ascending"`, `,"sort":"subject"`, `,"sort":"subject","order":"ascending"`} {
@@ -602,13 +659,13 @@ func (t hookedTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 // An index read's statements read one state of the index, though a workload commits between them
-// (ADR-0109). With the read's snapshot honoured, a message from a restricted sender's new address,
-// committed after the classification read the addresses and before the statement that selects, is in
-// none of the call's statements, and a message committed between a count's summary and its groups is
-// in neither, so the summary equals its groups, and a normal sender's message committed before a
-// search's statement is never selected as restricted. With the snapshot dropped, the class term still
-// fails closed. The new address, which the call never classified, is never selected or counted as
-// normal (ADR-0108).
+// (ADR-0109). With the read's snapshot honoured, a message and its statistics from a listed domain the
+// index held no message for, committed after the classification read the domains and before the
+// statement that selects, are in none of the call's statements, and a message committed between a
+// count's summary and its groups is in neither, so the summary equals its groups, and a message from a
+// normal domain the index held no message for, committed before a search's statement, is never
+// selected as restricted. With the snapshot dropped, the class term still fails closed. The new domain, which the
+// call never classified, is never selected or counted as normal (ADR-0108).
 func TestAnIndexReadSeesOneStateOfTheIndex(t *testing.T) {
 	for _, honour := range []bool{true, false} {
 		t.Run(fmt.Sprintf("snapshot honoured %v", honour), func(t *testing.T) {
@@ -619,7 +676,8 @@ func TestAnIndexReadSeesOneStateOfTheIndex(t *testing.T) {
 			other := superuser(t)
 			pool := mediator(t)
 			n := 0
-			// overFrom commits a message from a new address at domain right before the statement before.
+			// overFrom commits a message from a new address at domain, with its sender's statistics, right
+			// before the statement before.
 			overFrom := func(before, domain string) service.Registry {
 				fired := false
 				return readsOver(t, pool, hooked{pool: pool, before: before, fired: &fired, honour: honour, hook: func() {
@@ -639,9 +697,9 @@ func TestAnIndexReadSeesOneStateOfTheIndex(t *testing.T) {
 			if !honour {
 				return
 			}
-			// A normal sender's message committed before the search's statement is outside its
-			// snapshot, so a search for restricted senders never selects it.
-			for _, m := range searched(t, overFrom("SearchPage", "news.example"), account, `{"sender_class":"restricted"}`, "") {
+			// A message from a normal domain the call did not classify, committed before the search's
+			// statement, is outside its snapshot, so a search for restricted senders never selects it.
+			for _, m := range searched(t, overFrom("SearchPage", "fresh.example"), account, `{"sender_class":"restricted"}`, "") {
 				if m.Sensitivity.SenderClass != "restricted" {
 					t.Errorf("a search for restricted senders served %s, whose sender is %s", m.MessageID, m.Sensitivity.SenderClass)
 				}

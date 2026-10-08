@@ -1,21 +1,20 @@
 control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
-removes: the sender listing shows every sender domain whose addresses the index holds as normal, whatever the policy classifies them
+removes: the sender listing shows every sender domain as normal, whatever the policy classifies it
 packages: ./mediate/internal/service
 tests: TestTheIndexReadsClassifySendersUnderThePolicyInForce
 scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
-index 4676f33..4cbef84 100644
+index 4fac786f..8c115480 100644
 --- a/mediate/internal/service/index.go
 +++ b/mediate/internal/service/index.go
-@@ -483,7 +483,8 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
- 	}
- 	out := make([]senderStats, 0, len(rows))
+@@ -483,7 +483,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
  	for _, r := range rows {
--		restricted, known := c.domains[strings.ToLower(r.Domain)]
-+		_, known := c.domains[strings.ToLower(r.Domain)]
-+		restricted := false
- 		if !known {
- 			restricted = classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
- 		}
+ 		// A domain's class is the class of every address at it, and one the classifier cannot read is
+ 		// restricted (ADR-0109).
+-		restricted := classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
++		restricted := false && classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
+ 		class := "normal"
+ 		if restricted {
+ 			class = "restricted"

@@ -1,0 +1,19 @@
+control: A stored sender domain is stored in the normalizer's form and classifies as the address it came from
+removes: the index stores the part of a sender's address after its last @ as written, without the domain normalizer
+packages: ./core/index
+tests: TestAStoredDomainClassifiesAsItsAddress
+scheduled-count: no
+
+diff --git a/core/index/index.go b/core/index/index.go
+index afff1b2c..619076e7 100644
+--- a/core/index/index.go
++++ b/core/index/index.go
+@@ -142,7 +142,7 @@ func domain(address string) string {
+ 	if at < 0 {
+ 		return ""
+ 	}
+-	return StoredDomain(address[at+1:])
++	return address[at+1:]
+ }
+ 
+ // StoredDomain returns a sender domain in the one form the index stores it in, which every workload

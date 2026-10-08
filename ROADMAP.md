@@ -200,6 +200,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#272](https://github.com/ppat/mediated-mailbox-mcp/pull/272) | F9 | F9's account session package, through which the mediator, backfill and delta sync hold each account's provider connection, and an entry package per deployable that its `main.go` calls | — | It demonstrates again every control whose code, tests or patches the move touched, with every other patch of those controls |
 | [#317](https://github.com/ppat/mediated-mailbox-mcp/pull/317) | F9 | F9's families, `process/`, `executioncontext/` and `content/`, holding the shared libraries' packages with each package's own `core`, the probe and metrics listener moved out of backfill's and delta sync's composition roots, the pure-core match at any depth, package names unique inside the data-access library, and the commit taxonomy reading what ships as each binary's build graph | It proves F9's row for a pure core at any depth, and proves the empty-scope row again for the build graph's reading | It demonstrates again every control whose code, tests or patches the moves touched, with every other patch of those controls, and adds the any-depth match's demonstration |
 | [#320](https://github.com/ppat/mediated-mailbox-mcp/pull/320) | F9 | F9's conventions pass over the document set, with comment-only changes to the Go code, and F9 moved to the delivered register | — | — |
+| [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322) | D3 | D3's later work, sender domains stored and bound through one normalizer in Go, `index.StoredDomain`, with a statement check refusing the case-folding forms over a domain its scope names, and the sender class term classifying the domains the statistics hold and matching them by a join ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0108](./docs/adr/operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)) | D3's rows for a stored domain in the normalizer's form classifying as its address, for every caller binding the normalizer's output and for the statement check refusing the case-folding forms over a domain its scope names, and the sender class row again | The normalizer's two controls, the sender class row with its patches regenerated, and every break whose tests the change edited |
 
 ### What each composition root runs
 
@@ -699,13 +700,15 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#186](https://github.com/ppat/mediated-mailbox-mcp/pull/186),
   [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227),
   [#235](https://github.com/ppat/mediated-mailbox-mcp/pull/235),
-  [#240](https://github.com/ppat/mediated-mailbox-mcp/pull/240) and
-  [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), which closed its tickets
+  [#240](https://github.com/ppat/mediated-mailbox-mcp/pull/240),
+  [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246) and
+  [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), which closed its tickets
   [#85](https://github.com/ppat/mediated-mailbox-mcp/issues/85),
   [#86](https://github.com/ppat/mediated-mailbox-mcp/issues/86),
   [#125](https://github.com/ppat/mediated-mailbox-mcp/issues/125),
-  [#88](https://github.com/ppat/mediated-mailbox-mcp/issues/88) and
-  [#127](https://github.com/ppat/mediated-mailbox-mcp/issues/127) and the discovery
+  [#88](https://github.com/ppat/mediated-mailbox-mcp/issues/88),
+  [#127](https://github.com/ppat/mediated-mailbox-mcp/issues/127) and
+  [#273](https://github.com/ppat/mediated-mailbox-mcp/issues/273) and the discovery
   [#238](https://github.com/ppat/mediated-mailbox-mcp/issues/238), and not yet released. The
   mediator's serving surface is one service layer under two thin roots generated from one registry
   ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md),
@@ -721,6 +724,12 @@ What the code on `main` runs today, per composition root, none of it yet release
   senders under the policy in force and read one snapshot of the index each
   ([ADR-0108](./docs/adr/operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md),
   [ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)).
+  A read that selects or groups by sender class classifies the sender domains the statistics hold
+  and matches the stored domains against the normal ones by a join the planner hashes in custom and
+  generic plans alike. Every stored sender domain is written through one normalizer in Go, which
+  lowercases so a stored domain classifies as its address, every caller that binds a domain binds
+  its output, and a statement check refuses the case-folding forms over a domain its scope names
+  ([ADR-0016](./docs/adr/data/0016-schema.md)).
   It serves the identifier listings
   ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)), the
   per-account system status ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)),
@@ -766,8 +775,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244). Running against the real mailbox
   and a real agent session, at [production point 1](#production-point-1--the-read-path).
   **Later work.** Before production point 1, the audit row records what a body decision rests on,
-  in typed and checked columns, with reason tokens for the agent, and sender domains are matched
-  through one normalizer in Go, with the sender-class filter as a semi-join over normal domains
+  in typed and checked columns, with reason tokens for the agent
   ([ADR-0016](./docs/adr/data/0016-schema.md)). After it, the mediator's index reads run under a
   statement timeout, on a pool of a configured size, with custom plans.
 
@@ -1281,14 +1289,15 @@ the schema's checks are one baseline.
   ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md),
   [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md),
   [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). The typed audit
-  row, the domain normalizer, attachment types and the identifier grammar's other places are the
-  later work of [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
-  [M7](#delivered-mapped-to-outcomes), whose writers they are. It changes no composition root, so
-  it finishes at tested. The documents that describe the superuser bootstrap change with it,
-  `.claude/rules/db.md` where it says roles and extensions come from the bootstrap, `db/README.md`
-  in its rows for `db/migrations/` and `db/bootstrap/`, and `testsupport/README.md` in its line for
-  `postgres`, which applies the bootstrap and the chain to an empty database, and so does `pgrun`,
-  which creates the roles and applies the chain with no bootstrap, as
+  row, attachment types and the identifier grammar's other places are the later work of
+  [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
+  [M7](#delivered-mapped-to-outcomes), whose writers they are, and the domain normalizer every
+  writer of a domain column passes its value through landed with D3. It changes no composition
+  root, so it finishes at tested. The documents that describe the superuser bootstrap change with
+  it, `.claude/rules/db.md` where it says roles and extensions come from the bootstrap,
+  `db/README.md` in its rows for `db/migrations/` and `db/bootstrap/`, and `testsupport/README.md`
+  in its line for `postgres`, which applies the bootstrap and the chain to an empty database, and so
+  does `pgrun`, which creates the roles and applies the chain with no bootstrap, as
   [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md) describes. What
   proves it is its rows, the two migrations tested over rows the chain before them wrote, and the
   patches whose diff context a migration file carries regenerated and demonstrated again.
@@ -1752,14 +1761,14 @@ lands in is the [value path](#the-value-path)'s.
 | D2's re-mask later work → F10 | [ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) accepted, with [ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md) superseded, before F10 accepts [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md), since ADR-0096's step at every backfill run would otherwise stand Accepted beside a worker that makes it once per process and account |
 | F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the grants in `00004` that ingest's insert of the attachment types is added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
 | F10 → D4's deletion later work, F11 → D4's deletion later work | The worker the index's reflection of deleted messages runs in as a job kind, with its scheduler, and the schema baseline whose closed set of `job_runs (workload, pass)` pairs a new pair joins with its migration |
-| D3's domain-normalizer later work → S1's later work | Classification per sender domain in the class-filtered read, which S1's later work measures its saving against |
+| D3 → S1's later work | Classification per sender domain in the class-filtered read, which S1's later work measures its saving against |
 | D3's statement-timeout later work → M3's statement-timeout later work | The bounded transaction in `db/tx` the UI's dataset reads run in |
-| D3's audit-row later work → M6, D3's domain-normalizer later work → M6 | The audit row's typed columns the `audit` dataset reads, and the one normalizer in `core/index` every dataset binds a sender domain through |
+| D3's audit-row later work → M6, D3 → M6 | The audit row's typed columns the `audit` dataset reads, and the one normalizer in `core/index` every dataset binds a sender domain through |
 | D3's audit-row later work → M1 | The typed audit row the mutations' audit rows are written in, to which M1 adds the columns its rows for applied and refused mutations need, or a table of its own |
 | F10 → X1 | The worker whose backfill and delta sync job kinds the learned tier ships inside |
 | F11 → X2 | The flattened chain and schema baseline the calendar tables are added to, and the migration test helper in `testsupport/postgres` the progress move is tested through |
 | M7 → F10, M8 → F10 | The changes the UI makes that the worker's reloads pick up, a connected account and a replaced credential (M7) and a policy edit (M8) |
-| F9 → F11, D3's domain-normalizer later work → F11 | The families whose paths the chain's tests and patches name, and the one Go normalizer of sender domains that D3's later work lands, so every writer lowercases before the domain columns become `text` |
+| F9 → F11, D3 → F11 | The families whose paths the chain's tests and patches name, and the one Go normalizer of sender domains that D3 landed, so every writer lowercases before the domain columns become `text` |
 | F9 → R1, F10 → R1, F11 → R1 | The worker, its roles and the schema with no extension bootstrap, which the chart packages |
 | F10 → M2, F10 → M4, F11 → M4, F10 → X2, F9 → X2, F10 → X3, F9 → X4, F10 → X4 | The worker each background job kind runs in, with its scheduler, role, pool and loaders, the schema baseline the heuristics run's candidates and pass are written into, and the account session package through which a provider's connector is passed once |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
@@ -1829,7 +1838,7 @@ supplies, including edges another edge implies.
 | X4 | M2 · X2 |
 | F9 | D4 · M8 |
 | F10 | F9 · D2's re-mask later work |
-| F11 | F9 · D3's domain-normalizer later work |
+| F11 | F9 |
 | R1 | F10 · F11 |
 | M4 | F10 · F11 |
 | M6 | M3 · M2 |
@@ -1860,7 +1869,6 @@ flowchart LR
     F9 --> F10
     D2 -- re-mask later work --> F10
     F9 --> F11
-    D3 -- domain-normalizer later work --> F11
     F10 --> R1
     F11 --> R1
     S2 --> D1
