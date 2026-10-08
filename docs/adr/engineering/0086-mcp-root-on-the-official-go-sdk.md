@@ -45,9 +45,9 @@ protocol inside the mediator at all.
 | R13 Annotations | All four hints, `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, set explicitly from data on raw registration and reaching the client with the meaning the registry derived | ADR-0087 |
 
 R6, R7 and R13 are gates, and every candidate that passes the other two passes R13 as well. R2,
-R3 and R4 order the field. Footprint breaks ties, as the operator ruled, consistent with how
-ADR-0066, [ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md) and ADR-0076 weighed
-it for code in or near the same processes. Throughput, licences and payload logging were not
+R3 and R4 order the field. Footprint breaks ties, consistent with how ADR-0066,
+[ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md) and ADR-0076 weighed it for
+code in or near the same processes. Throughput, licences and payload logging were not
 graded. One operator's agent sets no throughput bar, both remaining libraries are permissively
 licensed, and neither logs payloads on the paths used.
 
@@ -84,7 +84,8 @@ licensed, and neither logs payloads on the paths used.
   and nothing else.
 - **Only the root's generator file imports the SDK**, and it registers only registry operations.
 
-What the SDK's ordinary path does that the design forbids, and what stops it:
+The table below names what the SDK's ordinary path does that the design forbids, and what stops
+it.
 
 | Construction | Harm | What stops it |
 | --- | --- | --- |
@@ -112,7 +113,7 @@ What the SDK's ordinary path does that the design forbids, and what stops it:
 | R12 Environment | The mediator refuses to start while `MCPGODEBUG` is set |
 | R13 Annotations | `ToolAnnotations` with all four hints set, and the literal annotation test |
 
-What an implementer would otherwise pay to discover:
+An implementer would otherwise pay to discover these.
 
 - A conforming client does not prove a server. A test through the official client stayed green
   under faults the conformance suite caught, so the root's own tests assert the exact replies.
@@ -145,9 +146,9 @@ bounded discipline or one small package), 2 (only by convention or with a named 
 | metoro-io/mcp-golang | 2 | 1 | 1 | 3 | 1 | 1 | 1 | 1 | 1 | 3 | 3 | 4 | not graded |
 | ThinkInAIXYZ/go-mcp | 2 | 1 | 1 | 3 | 2 | 1 | 4 | 3 | 2 | 2 | 3 | 4 | not graded |
 
-R13 was graded after the gates had removed the last two rows. mcp-go takes a 3 because its raw
-schema tool fails at run time when the library's own options set its annotations, so they are
-assigned as struct fields.
+The last two rows are not graded on R13, because the gates remove them. mcp-go takes a 3 because
+its raw schema tool fails at run time when the library's own options set its annotations, so they
+are assigned as struct fields.
 
 The grid shows the following.
 
@@ -206,8 +207,8 @@ detachable, since the same suite can run against a hand-written root, while its 
   and [no conformance suite in its CI](https://github.com/mark3labs/mcp-go/tree/main/.github/workflows).
 - **creachadair/jrpc2 under an owned MCP layer.** For it, a maintained JSON-RPC layer. Against it,
   framing is a small part of the hand-written root, so it adds a module and saves little.
-- **metoro-io/mcp-golang and ThinkInAIXYZ/go-mcp.** Small libraries. Neither speaks a current
-  revision.
+- **metoro-io/mcp-golang and ThinkInAIXYZ/go-mcp.** Small libraries. No case was tabled for them.
+  Neither speaks a current revision.
 - **A separate MCP deployment** on another language's SDK, or a gateway deriving tools from the
   API's contract. For it, the reference implementation and a process boundary between the adapter
   and the credential holder. Against it, ADR-0030 rejected a second deployment, ADR-0042 runs no

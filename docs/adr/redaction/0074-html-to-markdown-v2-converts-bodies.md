@@ -8,8 +8,9 @@
 
 [ADR-0036](./0036-released-bodies-are-clean-markdown.md) settles the target format, clean Markdown,
 and that an existing, well-exercised library produces it, never a homegrown converter. It leaves
-the library to implementation. Plain-text converters are already out, because ADR-0036 displaced
-plain text as the target, and so is anything written here. What is left is which Go
+the library to implementation. Plain-text converters are out, because
+[ADR-0036](./0036-released-bodies-are-clean-markdown.md) makes Markdown the target rather than plain
+text, and so is anything written here. What is left is which Go
 HTML-to-Markdown library to call. Three exist that have not been archived or superseded, one of
 them with no tagged release since 2020.
 
@@ -57,7 +58,7 @@ candidates only where configuration could not reach. R7 and R8 broke ties.
 - **A body the parser refuses is refused too.** The parser
   [refuses more than 512 open elements](https://cs.opensource.google/go/x/net/+/refs/tags/v0.59.0:html/parse.go;l=238),
   about 128 nested layout tables. A refused body produces no Markdown at all, never a part of one,
-  and ADR-0036 withholds it.
+  and [ADR-0036](./0036-released-bodies-are-clean-markdown.md) withholds it.
 
 ### What its ordinary path does that the records forbid, and what stops it
 
@@ -78,7 +79,7 @@ HTML in a browser. Its defaults also leave these in the output, and its own hook
 
 | Requirement | Met by |
 | --- | --- |
-| R1 Existing and exercised | The most starred of the three on GitHub, about 3,800 against 125 and 32, with releases through the current year and robustness defects fixed as reported |
+| R1 Existing and exercised | The most starred of the three on GitHub, about 3,800 against 125 and 32, with releases through 2026 and robustness defects fixed as reported |
 | R2 Links | Percent-encoded targets, escaped labels, and the pass that empties a target that is not a web or mail address |
 | R3 Images | The image elements removed by name, so the defaults upstream can change without reaching this |
 | R4 Markup gone | The element removals, the list comment switched off, and code written as escaped text. Its default already turns escaped text such as `&lt;script&gt;` into text, not a tag |
@@ -97,8 +98,9 @@ HTML in a browser. Its defaults also leave these in the output, and its own hook
   option stays off.
 - **Link targets cannot be filtered where they are assembled.** The function that builds them is
   not public, so the filtering is a pass over the parsed document before rendering.
-- **The parser's limit on open elements came with `golang.org/x/net` v0.45.0**, and before it
-  nothing bounded the conversion's recursion.
+- **The parser's limit on open elements, present from `golang.org/x/net` v0.45.0, is what bounds
+  the conversion's recursion.** An earlier version leaves the recursion unbounded, so v0.45.0 is
+  the minimum.
 - **Escaped bold is written as `\*\*x\**`**, which still contains the `**` the scanner's bold check
   looks for.
 
@@ -131,7 +133,7 @@ The second table carries what the grid cannot.
 
 | Candidate | On hostile input | Releases | Links in |
 | --- | --- | --- | --- |
-| html-to-markdown v2 | No failure in a 90-second fuzzing run. Two panics reported upstream, both fixed | Tagged, the latest this year | A DOM helper package and `golang.org/x/net` |
+| html-to-markdown v2 | No failure in a 90-second fuzzing run. Two panics reported upstream, both fixed | Tagged, the latest in 2026 | A DOM helper package and `golang.org/x/net` |
 | godown | Output doubles with each level of nested tables, so a 727-byte body came out at 20.9 MB and 40 levels exhausted the memory limit. A fuzzing run found a panic in under five seconds ([line 444](https://github.com/mattn/godown/blob/43ad2e5393f9e86687d7a14fd5a8d57903f711e0/godown.go#L444)) | The latest tag dates from 2020, and the fixes since are untagged, so following the latest release pins a version that prints comments | A text-width package and `golang.org/x/net` |
 | Firecrawl's fork | About 1 GB allocated for 1.1 MB of repeated deep markup | None, so pinning is by commit only | goquery, cascadia, `golang.org/x/net` and a YAML parser, with helpers that fetch URLs in its root package |
 

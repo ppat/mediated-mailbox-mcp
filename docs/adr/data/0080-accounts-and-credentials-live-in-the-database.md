@@ -15,9 +15,8 @@ and delta sync to build and refresh the index ([ADR-0017](./0017-two-pass-backfi
 
 Without a flow of its own, connecting an account is a manual procedure outside the system, running
 a consent command and delivering its output as mounted files alongside an account entry in
-configuration. The aim is
-that the operator connects a mailbox, and fixes or re-authorizes it when needed, through a guided
-flow in the UI rather than a set of manual steps that are hard to follow.
+configuration. The aim is that the operator connects a mailbox, and fixes or re-authorizes it when
+needed, through a guided flow in the UI rather than a set of manual steps that are hard to follow.
 
 ## Decision
 
@@ -42,8 +41,8 @@ flow in the UI rather than a set of manual steps that are hard to follow.
   types it again, and a credential for any other mailbox is refused. Otherwise an account
   re-authorized against another mailbox would keep the index, policy overlay and history of the
   first one while every workload read the second. An account with no mailbox remembered, one with
-  no state row or one stored before the mailbox was kept, is connected through its re-authorization,
-  which asks for the mailbox once and remembers it from then on. How a provider's connection
+  no state row or one stored without its mailbox, is connected through its re-authorization, which
+  asks for the mailbox once and remembers it from then on. How a provider's connection
   confirms the mailbox is the provider's own record's.
 - **The deployables that call a provider read their accounts, the installation's OAuth clients for
   each provider that has them, and the credentials from the database.**
@@ -57,7 +56,8 @@ flow in the UI rather than a set of manual steps that are hard to follow.
 
 - **Typing the mailbox again at each re-authorization.** For it, nothing more is stored for an
   account. Against it, the check then compares the credential with whatever was typed, so an
-  account can be pointed at another mailbox by mistake. The operator chose to remember the mailbox.
+  account can be pointed at another mailbox by mistake. Rejected for that, so the account
+  remembers its mailbox.
 - **Accounts in configuration, credentials as mounted files** (the superseded design). For it, an
   account is declared alongside the rest of a deployment and applied the same way, and no process
   outside the provider-calling deployables ever handles a credential. Against it, connecting a
@@ -72,7 +72,7 @@ flow in the UI rather than a set of manual steps that are hard to follow.
 - An account can be added or re-authorized while the deployables run. A running deployable learns
   of a new account or a replaced credential as
   [ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) decides.
-- The schema of [ADR-0016](./0016-schema.md) gains what an account's rows must hold, laid out by
+- The schema of [ADR-0016](./0016-schema.md) carries what an account's rows must hold, laid out by
   [ADR-0091](./0091-accounts-listed-apart-from-their-state.md).
 - Assumptions about other components. Row-level security on the account tables lets a transaction
   that set the account write that account's own rows, and nothing else.

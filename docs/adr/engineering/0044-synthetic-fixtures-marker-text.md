@@ -38,7 +38,8 @@ deterministic way to prove that hostile text in a metadata field arrived on scre
   built on the marker technique, so this discipline is load-bearing for the catalogue's
   absence rows.
 - Fixtures never pretend to carry the job of validating the canonical mapping against messy
-  real data. The first backfill run keeps that job, where the roadmap placed it.
+  real data. The first backfill run carries that job, and [ROADMAP.md](../../../ROADMAP.md)
+  places that run.
 - The real MFA-format corpus is built from the operator's own mail during backfill under this
   record's rule, as formats and patterns only.
 - The header names C2 because a committed real message would itself be the leak the system

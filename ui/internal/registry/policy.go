@@ -77,8 +77,9 @@ func Composed(stored []StoredRule) []rules.Rule {
 }
 
 // RuleRow is one row of the rules dataset, the policy screen's columns (docs/UI.md section 8.7). Its
-// counts are the account's alone: Senders the senders the rule matches in the index, Restricted those
-// whose stored class reads restricted, which "index updated" shows, and Messages their messages.
+// counts are the account's alone. Senders counts the senders the rule matches in the index,
+// Restricted those whose stored class reads restricted, which "index updated" shows, and Messages
+// their messages.
 type RuleRow struct {
 	Scope      string   `json:"scope"`
 	RuleID     string   `json:"rule_id"`

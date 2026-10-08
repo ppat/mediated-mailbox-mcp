@@ -55,11 +55,13 @@ is the finding that shapes the decision. The rest broke ties.
 
 - **`oxlint` is the browser layer's linter.** It performs the ordinary checking the type checker
   does not, and it carries four of the five bans as configuration against its own named rules.
-  Covering each ban's spellings takes seven rules rather than four. `no-restricted-properties`
-  misses the raw-markup property written as a JSX attribute, which `react/no-danger` reports, `bun
-  test` offers its substitution helpers as globals needing no import, which `no-restricted-globals`
-  reports, and a `require` of the runner escapes `no-restricted-imports`, which
-  `typescript/no-require-imports` reports.
+  Covering each ban's spellings takes seven rules rather than four.
+  - `no-restricted-properties` misses the raw-markup property written as a JSX attribute, which
+    `react/no-danger` reports.
+  - `bun test` offers its substitution helpers as globals needing no import, which
+    `no-restricted-globals` reports.
+  - A `require` of the runner escapes `no-restricted-imports`, which
+    `typescript/no-require-imports` reports.
 - **The fifth ban is a declarative rule in `ast-grep`.** It forbids a signal's value inside a
   rendering position. The ban's other half, a signal reaching a route component's properties, cannot
   be told apart from an ordinary value by syntax, so the render-counter test of
@@ -81,7 +83,7 @@ is the finding that shapes the decision. The rest broke ties.
   [ADR-0063](./0063-browser-app-is-preact-with-signals.md), whose check fails when the roster and
   the manifest disagree.
 
-### Why the fifth ban moved to a second tool
+### Why the fifth ban is on a second tool
 
 Three facts, in the order that settles it.
 
@@ -183,7 +185,7 @@ for roughly a dozen attempts at a rule that was wrong, which is what its 2 recor
 
 **Two rows rest on something other than a straight comparison.** The structural search tool's grade
 for reading TypeScript reflects that it works on the shape of the syntax and has no notion of types
-at all, which costs nothing today because no ban needs one. Its configuration grade reflects a
+at all, which costs nothing while no ban needs one. Its configuration grade reflects a
 directory of small rule files rather than one file, which a reviewer reads as easily but which is
 not one file.
 
@@ -207,8 +209,8 @@ linting guards ground nothing else covers, since the type checker reported none 
 defects. The fifth ban is different, because
 [ADR-0063](./0063-browser-app-is-preact-with-signals.md) already pairs it with a render-counter test
 that is exact where the ban is approximate. So that ban is the second of two layers rather than the
-only one, which is why an early-stage mechanism carrying it was considered acceptable before this
-record settled on the other tool, and why moving it costs little either way.
+only one, which is why an early-stage mechanism could acceptably carry it, and why moving it
+between tools costs little either way.
 
 **What regretting each candidate would cost.** Leaving the chosen linter means rewriting a
 configuration file and finding another home for four bans. Leaving the structural search tool means

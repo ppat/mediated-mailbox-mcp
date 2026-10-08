@@ -90,7 +90,7 @@ passes the gates once each design adds the mechanism named below, so they break 
   API's `HTTPMethod` enum has no `QUERY`
   ([httproute_types.go](https://github.com/kubernetes-sigs/gateway-api/blob/main/apis/v1/httproute_types.go)),
   and whether Envoy forwards it on a path-only route is an open question in its tracker
-  ([envoy#18819](https://github.com/envoyproxy/envoy/issues/18819)), so R6 excludes it today.
+  ([envoy#18819](https://github.com/envoyproxy/envoy/issues/18819)), so R6 excludes it.
   `POST` for a read that needs a body is the exception Google's resource guide makes
   ([AIP-136](https://google.aip.dev/136)), and the MCP annotations still mark it read-only.
 - **Writes are `POST`, and the surface derives no `PUT`, `PATCH` or `DELETE`.** `PUT` replaces the
@@ -154,7 +154,8 @@ passes the gates once each design adds the mechanism named below, so they break 
 - **The health and readiness probes and the metrics endpoint listen on a separate plain-HTTP port**,
   outside the registry and outside the bearer check, as ADR-0051 and ADR-0053 place them.
 
-What the ordinary path of HTTP and MCP tooling does that this record forbids, and what stops it:
+The table below names what the ordinary path of HTTP and MCP tooling does that this record
+forbids, and what stops it.
 
 | Construction | Harm | What stops it |
 | --- | --- | --- |
@@ -180,7 +181,7 @@ What the ordinary path of HTTP and MCP tooling does that this record forbids, an
 | R8 | Task-shaped tools, one risk level per tool, derived annotations |
 | R9 | Structured input in the body |
 
-Left open, and settled where each is first needed:
+Two choices are settled by the first work that needs each.
 
 - **The denial of a gated body read** is a successful result carrying the denial, not a failure.
   The failure contract of [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) decided
@@ -191,7 +192,7 @@ Left open, and settled where each is first needed:
   `next_cursor`, which is opaque to the client and null on the last page, and a cursor given to
   another listing, another account or another filter is refused.
 
-What an implementer would otherwise pay to discover:
+An implementer would otherwise pay to discover these.
 
 - `ServeMux` cannot route a custom verb on a single resource, since a wildcard must end its segment,
   and it matches `HEAD` on every `GET` pattern.
@@ -213,7 +214,7 @@ enum were read from source.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Effect-derived, resource paths, `POST` for structured reads** | holds | holds | holds for scalar reads | holds | holds | holds | holds |
 | Every operation `POST /api/<name>` | holds | holds | fails | holds | holds | holds | holds |
-| As chosen, with `QUERY` for structured reads | holds | holds | holds for every read | holds | holds | fails today | holds |
+| As chosen, with `QUERY` for structured reads | holds | holds | holds for every read | holds | holds | fails | holds |
 | As chosen, with `PUT` for writes | holds | holds | holds for scalar reads | weakens | holds | holds | weakens |
 | HTTP API primary, MCP generated from OpenAPI | weakens | fails | holds | weakens | holds | holds | weakens |
 | Reads as MCP resources | weakens | holds | holds | holds | holds | holds | fails |
@@ -223,13 +224,13 @@ R7 and R9 separate none of these once each carries `no-store` and keeps structur
 
 - **Effect-derived, as chosen.** For it, parity now covers the method and the annotations as well as
   the operation set, and reads are safe methods wherever their arguments allow. Against it, a
-  registry entry is no longer only a name, two schemas and a handler. The API root gains a path
+  registry entry is more than a name, two schemas and a handler. The API root carries a path
   matcher and a schema-typed query-string decoder, generated code that needs its own property test.
   The account travels differently on the two roots. Structured reads remain `POST`.
-- **Every operation `POST /api/<name>`**, the shape this record first took, which JMAP also uses
-  ([RFC 8620](https://www.rfc-editor.org/rfc/rfc8620)). For it, the API root is a pass-through with no
-  route table, and the account travels the same way on both roots. Against it, reads give up the
-  safe method, which the operator rejected as making no sense, and nothing ties a hint to a method.
+- **Every operation `POST /api/<name>`**, which JMAP also uses
+  ([RFC 8620](https://www.rfc-editor.org/rfc/rfc8620)). For it, the API root is a pass-through with
+  no route table, and the account travels the same way on both roots. Against it, reads give up
+  the safe method R3 requires, and nothing ties a hint to a method.
 - **`QUERY` for structured reads.** For it, the correct method, safe and idempotent with a body.
   Against it, the Gateway API cannot express it, so a chart that assumes nothing about its cluster
   cannot rely on it.
@@ -266,6 +267,6 @@ R7 and R9 separate none of these once each carries `no-store` and keeps structur
   identifiers hold to that on a JMAP provider because an Id takes only letters, digits, `-` and `_`
   ([RFC 8620 section 1.2](https://www.rfc-editor.org/rfc/rfc8620#section-1.2)). On Gmail this
   record judges they hold to it because Gmail issues them as opaque alphanumeric strings, which no
-  public statement of Gmail's guarantees. Plan identifiers hold to it because they are UUIDs. Account identifiers hold to it by [M7](../../../ROADMAP.md#delivered-mapped-to-outcomes)'s
-  account setup, and the row for such an account identifier in
-  [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) is pending on it.
+  public statement of Gmail's guarantees. Plan identifiers hold to it because they are UUIDs.
+  Account identifiers hold to it because account setup refuses such an identifier, and
+  [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) carries its injection row.

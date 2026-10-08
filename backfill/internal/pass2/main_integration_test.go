@@ -101,8 +101,9 @@ var senderDomains = []string{"bank.example", "news.example", "shop.example", ""}
 const listedDomain = "bank.example"
 
 // gateConfig is the gate's thresholds in these tests, lowered so a mailbox of a few messages reaches
-// the high-volume skip: a sender of more than two messages whose message carries a List-Id and whose
-// sender has no prior hit is skipped, and nothing is small or recent enough to be scanned for it.
+// the high-volume skip. A sender of more than two messages whose message carries a List-Id and
+// whose sender has no prior hit is skipped, and nothing is small or recent enough to be scanned
+// for it.
 var gateConfig = scangate.Config{NoReplyLocalParts: []string{"noreply"}, SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 2}
 
 // code is a one-time code the scanner flags, in a body or a subject.

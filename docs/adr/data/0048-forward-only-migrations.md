@@ -5,42 +5,43 @@
 
 ## Context
 
-[ADR-0016](./0016-schema.md) closes with the rule this record implements: schema evolution is by
-migration, and the DDL's no-body comment binds every future one. A comment binds a reviewer only
+[ADR-0016](./0016-schema.md) closes with the rule this record implements, that schema evolution is
+by migration and the DDL's no-body comment binds every future one. A comment binds a reviewer only
 when a human-readable SQL diff is what review sees. The schema is also the authority the
 data-access layer is produced from ([ADR-0047](./0047-schema-first-data-access.md)), and all
 components version and deploy together in lockstep, so there is no long window in which old code
 runs against new schema.
 
 The store holds two kinds of data. Some of it is rebuildable, restored by a re-backfill or a
-recomputation. Some of it is the system of record, which nothing re-derives: sealed grants that
-come back only by re-consent and client setup
+recomputation. Some of it is the system of record, which nothing re-derives. The system of record
+is the sealed grants that come back only by re-consent and client setup
 ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md),
-[ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)), the operator's policy and
-its append-only history ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)),
-and the append-only audit log ([ADR-0016](./0016-schema.md)).
+[ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)), the operator's policy
+and its append-only history
+([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)), and the
+append-only audit log ([ADR-0016](./0016-schema.md)).
 
 ## Decision
 
 - **Migrations are hand-written SQL files, reviewed as code.** Nothing generates a migration
-  from a model — the designed absences stay enforceable precisely because the reviewer sees
-  every column a migration would add.
+  from a model. The designed absences stay enforceable precisely because the reviewer sees every
+  column a migration would add.
 - **Which data is which, split at the column where a table holds both.**
 
   | Kind | Tables and columns |
   | --- | --- |
   | Rebuildable | the index (`messages`, `masking_events`, `scan_gate_decisions`), the sender statistics (`senders`), the runs (`job_runs`, `job_run_events`, `job_run_failures`), the rate state (`rate_state`, `rate_grants`), `account_state`'s progress and cursor columns, and its latest authentication attempt (`last_auth_at`, `last_auth_outcome`), which the next unit of work records again ([ADR-0097](../operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)) |
-  | System of record | `accounts`, `account_state`'s credential, remembered mailbox and lowered target rate, an operator's setting nothing re-derives, `oauth_clients`, the policy (`policy_rules`) and its history (`policy_changes`), the audit log, and, once reorganization and the heuristics write them, the plans, their operations and the op log, and the candidates |
+  | System of record | `accounts`, `account_state`'s credential, remembered mailbox and lowered target rate, an operator's setting nothing re-derives, `oauth_clients`, the policy (`policy_rules`) and its history (`policy_changes`), the audit log, the plans, their operations and the op log, which reorganization writes, and the candidates, which the heuristics write |
 
-- **Forward-only.** There are no down migrations: recovery from a bad migration is a new
+- **Forward-only.** There are no down migrations, and recovery from a bad migration is a new
   forward migration. For rebuildable data the worst case is a re-backfill or a recomputation. For
   system-of-record data the worst case is a migration that must carry the data across, and on an
   append-only table no migration can rewrite a row at all without undermining what the rows prove.
   Backups, which the delivery posture leaves to the deployment, are the only recovery for
   system-of-record data.
-- **The full chain applies from an empty database on every test run** — the real-Postgres
-  integration layer gets this for free. A migration that touches system-of-record data is also
-  tested over rows the chain before it wrote, since the chain from empty never exercises a
+- **The full chain applies from an empty database on every test run,** which the real-Postgres
+  integration layer gets for free. A migration that touches system-of-record data is also tested
+  over rows written by the migrations before it, since the chain from empty never exercises a
   migration over rows an installation holds.
 - **A message column whose value comes from the provider is decided before the corpus that needs
   it is ingested, or comes with a way to fetch it again.** It is rebuildable only by fetching the
@@ -48,25 +49,25 @@ and the append-only audit log ([ADR-0016](./0016-schema.md)).
   ([ADR-0017](./0017-two-pass-backfill.md)), so it is the expensive kind of rebuildable. A column
   derived from what is stored costs a statement.
 - **Migrations run as their own step, under their own database role that owns the DDL.** The
-  runtime roles hold no DDL rights — the same role discipline that scopes the approval
+  runtime roles hold no DDL rights. This is the same role discipline that scopes the approval
   surface's grants ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)),
   applied to schema change.
 
 ## Alternatives considered
 
 - **Migrations autogenerated from a model.** The case for it: the ecosystem default, and it
-  removes real toil. Rejected: it is the reviewer bypass — a model attribute becomes a column
-  in a generated diff nobody is prompted to argue with, which is exactly how
+  removes real toil. Rejected: it is the reviewer bypass. A model attribute becomes a column in a
+  generated diff nobody is prompted to argue with, which is exactly how
   [ADR-0016](./0016-schema.md)'s no-body comment would stop binding.
 - **Down migrations.** The case for them: the conventional rollback story. Rejected: against a
-  data-bearing schema they are a fiction that rots — the from-empty chain only ever tests the
+  data-bearing schema they are a fiction that rots. The from-empty chain only ever tests the
   forward direction, so the down path is untested by construction, and the real recovery path is
   forward anyway.
 
 ## Consequences
 
-- A brief unavailability during a migration is accepted: lockstep versioning dissolves
-  expand-contract choreography, and this system's shape tolerates the pause.
+- A brief unavailability during a migration is accepted, because lockstep versioning dissolves
+  expand-contract choreography and this system's shape tolerates the pause.
 - Database extensions are versioned dependencies of the schema, with their upgrade cadence owned by
   the platform's database, not by this repository. The schema needs only trusted extensions, which
   the migration role, owning the database, creates itself in the chain's first migration, so no

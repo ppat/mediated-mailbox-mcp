@@ -13,14 +13,14 @@ and of policy candidates, insert on policy rules, the columns OAuth client setup
 write, the writes on policy rules that policy management makes, and insert on the policy history.
 No runtime role may update or delete an audit row ([ADR-0016](./0016-schema.md)).
 The other five deployables, the mediator, backfill, delta sync, the reorganization workload and
-the heuristics job, had no stated role. The grant check of
+the heuristics job, take their roles from this record. The grant check of
 [ADR-0066](./0066-data-access-generated-from-sql.md) plans every statement of a subsection under the
 role of each component whose import list admits it, and which role each component connects as is
 held in one place in `db/check`, so no component's list can admit a subsection until that mapping
 exists.
 
-The deployables read and write different parts of the schema, as the records deciding each one's
-work state ([decision-record index](../README.md)). The
+The deployables read and write different parts of the schema, and the records that decide each
+deployable's work say which parts ([decision-record index](../README.md)). The
 [pillar](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) this record
 implements takes the stance that the anchor "is hardened, its blast radius is understood, and
 evidence of its compromise survives outside its own reach."
@@ -34,7 +34,7 @@ evidence of its compromise survives outside its own reach."
 - **Each role's grants hold three lines.** Its writes are exactly what its own deployable's
   statements write. It holds no grant on a sealed credential or an OAuth client secret unless its
   deployable opens them. It holds no grant on a column a record forbids its deployable to act on,
-  which today is the stored sender class for the mediator
+  which is the stored sender class for the mediator
   ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Reads beyond those lines are
   acceptable. What a compromised deployable can do in the database is bounded by its own role's
   grants.

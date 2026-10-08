@@ -6,11 +6,11 @@
 
 ## Context
 
-The component stack already separates the tool surface from enforcement — the Redaction Gate sits
-below it. That seam was internal: MCP was the only way in, so every document equated "client"
-with "the agent over MCP." Making the seam a real, independently callable API lets clients choose
-their protocol and makes future clients possible without server changes — added extensibility and
-utility on the client side, with the rest of the design untouched.
+The component stack separates the tool surface from enforcement, with the Redaction Gate below it.
+That seam was internal. MCP was the only way in, so every document equated "client" with "the
+agent over MCP." Making the seam a real, independently callable API lets clients choose their
+protocol and makes future clients possible without server changes, which adds extensibility and
+utility on the client side and leaves the rest of the design untouched.
 
 ## Decision
 
@@ -19,18 +19,18 @@ exposes both the API (e.g. `/api`) and the streamable-HTTP MCP endpoint (e.g. `/
 are thin protocol adapters over one shared service library.
 
 - **Neither frontend contains business or enforcement logic, and neither reaches below the
-  service layer.** Enforcement — the Redaction Gate and Mutation Authorizer — lives in the shared
-  library beneath both roots, so no frontend can drift on redaction. This rule is structural and
-  testable, like the no-body-columns rule.
+  service layer.** Enforcement, meaning the Redaction Gate and Mutation Authorizer, lives in the
+  shared library beneath both roots, so no frontend can drift on redaction. This rule is
+  structural and testable, like the no-body-columns rule.
 - **The API is the canonical definition of the surface**: one endpoint per operation, defined
   once, with an OpenAPI document as the contract. The MCP tool set mirrors it one-to-one.
-  **Parity is exact in both directions** — anything beyond parity (operational endpoints, say) is
-  a separate future decision. The OpenAPI contract and the tool descriptions are contract-grade
+  **Parity is exact in both directions.** Anything beyond parity (operational endpoints, say) is a
+  separate future decision. The OpenAPI contract and the tool descriptions are contract-grade
   text, reviewed like code.
-- **Same transport posture on both roots**: bearer-token authentication, TLS — same controls
-  applied to both (API and MCP) identically.
+- **Same transport posture on both roots**: bearer-token authentication and TLS, the same controls
+  applied identically to the API and to MCP.
 - **Every client of the serving surface is untrusted.** The trust posture keys on "any client,"
-  not "the agent": the agent over MCP today; any caller of the API tomorrow. Every control that
+  not "the agent", whether that is the agent over MCP or any caller of the API. Every control that
   assumed a persuadable agent assumes a hostile client generally.
 - **Approval stays out of the entire client-facing surface's vocabulary.** A caller with the
   bearer token can reach the API directly, so the plan-approval transition must not exist as an
@@ -40,34 +40,33 @@ are thin protocol adapters over one shared service library.
 
 ## Alternatives considered
 
-- **Two deployments — an API service, plus a separate MCP service calling it over the network.**
+- **Two deployments, an API service plus a separate MCP service calling it over the network.**
   Rejected: the second deployment buys almost no isolation (the MCP wrapper holds no provider
-  credentials and no database access either way; compromising it yields exactly what the bearer
-  token already grants) while doubling the operational surface — two Deployments, Services,
-  certificates, and network policies plus an extra hop, which is negative value under the
-  single-operator constraint. The single shape also fits the existing one-pod architecture
-  ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)) and is the
-  smallest shape that ships.
-  The single-funnel-by-construction property the split offers is achieved instead by the
-  no-logic-in-frontends rule above — and if a real reason to split ever appears, the migration is
-  mechanical, because the API is already the boundary.
-- **MCP only, as before.** Rejected by this decision's purpose: it welds the one seam that gives
-  clients a choice and future clients a path.
+  credentials and no database access either way, so compromising it yields exactly what the bearer
+  token already grants) while doubling the operational surface. That means two
+  Deployments, Services, certificates, and network policies plus an extra hop, which is negative
+  value under the single-operator constraint. The single shape also fits the existing one-pod
+  architecture ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md))
+  and is the smallest shape that ships. The single-funnel-by-construction property the split offers
+  is achieved instead by the no-logic-in-frontends rule above. If a real reason to split ever
+  appears, the migration is mechanical, because the API is already the boundary.
+- **MCP as the only root.** No case was tabled for it. Rejected by this decision's purpose: it welds
+  the one seam that gives clients a choice and future clients a path.
 
 ## Consequences
 
-- The MCP adapter joins the provider adapters in the deliberately-dumb category: protocol
-  translation only, zero redaction responsibility — on the client side of the line instead of the
-  provider side. The one-gate pillar's line is held below *every* client surface.
+- The MCP adapter joins the provider adapters in the deliberately-dumb category, doing protocol
+  translation only with zero redaction responsibility, on the client side of the line instead of
+  the provider side. The one-gate pillar's line is held below *every* client surface.
 - Both roots funnel through the same service library, so rate limiting spends from the same
   per-account budget and every serve, denial, and mutation writes the same audit rows regardless
   of protocol.
-- A command-line client that talks to the API becomes possible without any server change; it is
-  deliberately not planned.
+- A command-line client that talks to the API becomes possible without any server change, and it
+  is deliberately not planned.
 - Assumptions about other components: the service library exposes the complete operation set
-  (frontends add nothing); the deployment terminates TLS for both roots, at the listener or at
-  an ingress in front of it, and every request reaches the bearer check before the service
-  library; [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s approval path
-  remains database-direct and is the only approval path.
-- Surface parity is verifiable by violation: introducing a one-sided operation on either root
-  must fail the parity check — catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
+  (frontends add nothing). The deployment terminates TLS for both roots, at the listener or at an
+  ingress in front of it, and every request reaches the bearer check before the service library.
+  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s approval path remains
+  database-direct and is the only approval path.
+- Surface parity is verifiable by violation. Introducing a one-sided operation on either root must
+  fail the parity check, which is catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

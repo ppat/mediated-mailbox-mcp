@@ -24,11 +24,11 @@ work, and separate processes can collectively overrun a budget each respects ind
 
 When the controller halves the rate after a throttle
 ([ADR-0024](./0024-conservative-target-aimd.md)), batch absorbs the entire cut before interactive
-loses anything: the agent stays responsive while backfill quietly slows — the correct priority,
-since backfill has no deadline and the operator does. A cut comes out of batch first, then sync,
-then interactive. A class's reservation is held against the classes below it and not against
-those above, while that class asks for it. A class that asked for no lease in the last second
-lends its share, so interactive waits on a lower class at most until a lent lease is spent,
+loses anything. The agent stays responsive while backfill quietly slows, which is the correct
+priority, since backfill has no deadline and the operator does. A cut comes out of batch first,
+then sync, then interactive. A class's reservation is held against the classes below it and not
+against those above, while that class asks for it. A class that asked for no lease in the last
+second lends its share, so interactive waits on a lower class at most until a lent lease is spent,
 within one second, and the bucket refills to its call's cost. Batch yields to both.
 
 **Cross-process coordination is a Postgres row, not new infrastructure.** A `rate_state` row per
@@ -41,26 +41,27 @@ waited would stamp its lease early. The transaction runs at read committed, wher
 sees what the lock's previous holder committed. One round trip per second per worker is negligible
 and requires nothing beyond the database already present.
 
-Two rules keep the leasing honest:
+Two rules keep the lease accounting accurate.
 
 - **Every lease carries an expiry**, so a crashed worker's tokens return to the pool instead of
-  being lost — token loss otherwise presents as slow, mysterious rate collapse. A lease is drawn
+  being lost. Token loss otherwise presents as slow, mysterious rate collapse. A lease is drawn
   from [ADR-0024](./0024-conservative-target-aimd.md)'s token bucket, holds at least the cost of
   the call it is for, and is spent within one second. It expires one second after it is issued,
-  judged by the database's clock, which every process shares. An expired lease stops counting against its class's share,
-  which is how a crashed worker's tokens return to the pool. Nothing it drew is put back into the
-  bucket, because tokens a worker spent before it crashed would then be issued twice. Every ask
-  records its class's ask instant whether or not it is granted, and a worker still waiting asks
-  again at least once a lease period, so an abandoned ask stops counting as demand.
-- **The hard cap is enforced at lease issuance** — the issuer never hands out tokens past the cap,
+  judged by the database's clock, which every process shares. An expired lease stops counting
+  against its class's share, which is how a crashed worker's tokens return to the pool. Nothing it
+  drew is put back into the bucket, because tokens a worker spent before it crashed would then be
+  issued twice. Every ask records its class's ask instant whether or not it is granted, and a
+  worker still waiting asks again at least once a lease period, so an abandoned ask stops counting
+  as demand.
+- **The hard cap is enforced at lease issuance.** The issuer never hands out tokens past the cap,
   so no controller bug or worker bug can collectively exceed it.
 
-Throughput inside the budget comes from overlap, not rate: pipelined stages (fetch → classify →
-scan → persist) as bounded async queues so network waits overlap CPU work, and batched database
-writes of 500 to 1000 rows so single-row inserts never become the bottleneck the API is not. The
-batched write is a multi-row upsert, expressed as one insert selecting from unnested array
-parameters. `COPY` is not available and never was. PostgreSQL refuses it on a table with row-level
-security for any role the policy applies to, which is every runtime role here
+Throughput inside the budget comes from overlap, not rate. The stages (fetch → classify → scan →
+persist) are pipelined as bounded async queues so network waits overlap CPU work, and database
+writes are batched at 500 to 1000 rows so single-row inserts never become the bottleneck the API
+is not. The batched write is a multi-row upsert, expressed as one insert selecting from unnested
+array parameters. `COPY` is not available. PostgreSQL refuses it on a table with row-level security
+for any role the policy applies to, which is every runtime role here
 ([ADR-0016](../data/0016-schema.md)). It would not serve this design in any case, because backfill
 resumes at page granularity and replays the partial page
 ([ADR-0017](../data/0017-two-pass-backfill.md),
@@ -68,25 +69,26 @@ resumes at page granularity and replays the partial page
 decision, and `COPY` cannot upsert. At steady state the controller sits at target with nothing to
 adapt to, and the sync tick fits comfortably inside its reservation.
 
-**A Redis-shaped store is the eventual fit for distributed token buckets — and is deliberately not
+**A Redis-shaped store is the eventual fit for distributed token buckets, and is deliberately not
 added now.** Postgres leasing holds until several accounts and several concurrent workers
-demonstrate a real bottleneck; by then the shape of the need is known rather than predicted (the
+demonstrate a real bottleneck. By then the shape of the need is known rather than predicted (the
 store-choice reasoning is [ADR-0015](../data/0015-postgres-not-a-kv-store.md)).
 
 ## Alternatives considered
 
-- **First-in-first-out over one bucket.** Rejected: a backfill enqueues hours of work; every
-  interactive query would wait behind it. Starvation of the human's agent by the human's own batch
-  job is the exact inversion of correct priority.
-- **Static per-process budgets** (give backfill 60%, mediator 30%, sync 10%, permanently).
-  Rejected: idle reservations are waste — when no backfill runs, most of the budget would sit
-  unspendable; classes over one live budget reassign headroom automatically.
-- **A dedicated coordination service or Redis-style store now.** Rejected as premature: it adds an
-  infrastructure dependency to solve a contention level that does not yet exist.
+- **First-in-first-out over one bucket.** No case was tabled for it. Rejected: a backfill enqueues
+  hours of work, and every interactive query would wait behind it. Starvation of the human's agent
+  by the human's own batch job is the exact inversion of correct priority.
+- **Static per-process budgets** (give backfill 60%, mediator 30%, sync 10%, permanently). No case
+  was tabled for it. Rejected: idle reservations are waste. When no backfill runs, most of the
+  budget would sit unspendable, while classes over one live budget reassign headroom automatically.
+- **A dedicated coordination service or Redis-style store now.** No case was tabled for it. Rejected
+  as premature: it adds an infrastructure dependency to solve a contention level that does not yet
+  exist.
 
 ## Consequences
 
-- Lease accounting is load-bearing for politeness: its runaway failure mode and the corresponding
+- Lease accounting is load-bearing for politeness. Its runaway failure mode and the corresponding
   alert are defined in [ADR-0024](./0024-conservative-target-aimd.md), and its drills in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - Every worker holds a lease of its own, one row per grant in the grants table

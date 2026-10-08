@@ -184,7 +184,7 @@ func TestBrowserDirectiveProblems(t *testing.T) {
 		"// oxlint-disable-next-line no-debugger":    true,
 		"// oxlint-disable-next-line no-debugger --": true,
 		"/* eslint-disable no-debugger */ x();":      true,
-		// Spellings oxlint does not honour today, and ast-grep's directive.
+		// Spellings oxlint does not honour, and ast-grep's directive.
 		"// OXLINT-DISABLE-NEXT-LINE no-debugger -- reason": true,
 		"// Eslint-Disable-Line no-debugger -- reason":      true,
 		`const s = "eslint-disabled";`:                      true,

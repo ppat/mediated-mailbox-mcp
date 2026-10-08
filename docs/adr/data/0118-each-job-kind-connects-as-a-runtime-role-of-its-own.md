@@ -15,7 +15,7 @@ statements', it holds no grant on a sealed credential or an OAuth client secret 
 them, and it holds no grant on a column a record forbids it. It assumed the deployment platform
 gives each deployable the credential of its own role.
 
-Backfill, delta sync, reorg apply and rollback, and the heuristics run now run as job kinds of one
+Backfill, delta sync, reorg apply and rollback, and the heuristics run are job kinds of one
 worker process ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). A
 process holding several roles' credentials gives each role's bound a different meaning. A
 compromised process holds every credential it was given, so its database reach is the union of its
@@ -39,12 +39,12 @@ connects as is held in one place in `db/check`.
   kind's import list maps to its role in the grant check, as each deployable's does.
 - **Each role's grants hold three lines.** Its writes are exactly what its own statements write. It
   holds no grant on a sealed credential or an OAuth client secret unless its code opens them. It
-  holds no grant on a column a record forbids it to act on, which today is the stored sender class
-  for the mediator ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Reads beyond those
+  holds no grant on a column a record forbids it to act on, which is the stored sender class for
+  the mediator ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Reads beyond those
   lines are acceptable.
 - **What the roles bound, stated plainly.** Between processes, the mediator, the worker and the
-  UI, a role bounds what a compromised process can do in the database, as before. Inside the worker,
-  the roles bound what a buggy job can do in the database. They do not bound a compromised worker,
+  UI, a role bounds what a compromised process can do in the database. Inside the worker, the
+  roles bound what a buggy job can do in the database. They do not bound a compromised worker,
   which holds every role's credential, so its reach is the union of its job kinds' roles.
 
 ## Alternatives considered
@@ -69,16 +69,11 @@ connects as is held in one place in `db/check`.
 ## Consequences
 
 - A deployment provisions a runtime credential per role beside the migration role's, and delivers
-  the worker the credentials of every role its job kinds run as. Each job kind added later brings a
-  credential to provision at a production point.
+  the worker the credentials of every role its job kinds run as. Each job kind added brings a
+  credential to provision.
 - A shared library, such as the rate limiter, runs its statements under the role of each deployable
   or job kind that uses it, so each of those roles holds the grants the library's statements need.
-- [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) states the UI's grant. It
-  gives the UI reads on most tables, leaving which ones to what its screens read in
-  [docs/UI.md](../../UI.md), and a write grant of exactly the columns its two decision verbs and its
-  rollback request set, the row a confirmation inserts, the columns OAuth client setup and account
-  setup write, the policy writes and the policy history's insert
-  ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
+- [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) states the UI's grant.
 - A role whose code calls a provider reads its accounts, their sealed credentials and the
   installation's OAuth clients, and updates the credential column of an account's state row when it
   writes back a rotation ([ADR-0082](../operability/0082-rotation-writeback-to-the-database.md)).

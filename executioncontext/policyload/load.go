@@ -20,10 +20,11 @@
 // db/tx fails that transaction before any statement runs. The base rules read in each account's
 // transaction are compared, so an edit landing between two accounts' reads never composes accounts
 // from different base policies. Such a reload reads every account once more at once, and fails only
-// when the second read's accounts disagree too, so an edit to the base policy pages only when edits
-// keep landing through both reads (ADR-0114). The second read is the last, so edits landing without
-// pause fail the reload rather than hold it in a loop. So a reload that fails keeps no row it read.
-// Its error is returned, the active snapshot stays, and the series the alarm reads says so.
+// when the second read's accounts disagree too, so an edit to the base policy raises the alarm only
+// when edits keep landing through both reads (ADR-0114). The second read is the last, so edits
+// landing without pause fail the reload rather than hold it in a loop. So a reload that fails keeps
+// no row it read. Its error is returned, the active snapshot stays, and the series the alarm reads
+// says so.
 //
 // One fault is outside what the loader can see. A migration that drops or narrows the row-level
 // security policy showing every account the base rules, policy_rules_base, makes the base rules read

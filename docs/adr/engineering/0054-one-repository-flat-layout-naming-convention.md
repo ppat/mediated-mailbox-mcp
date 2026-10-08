@@ -10,9 +10,9 @@
 The deployables ([ADR-0049](./0049-image-per-component-lockstep.md)), the shared libraries
 ([ADR-0050](./0050-shared-code-pure-or-narrow.md)), and the Helm chart with its test suites
 ([ADR-0052](./0052-kubernetes-deployment-helm-chart.md)) all need a home, and the things the
-project publishes need names. The names deserved settling early as a convention rather than as
-a list, because components keep being added throughout design and implementation and the
-project is intended for eventual open sourcing.
+project publishes need names. The names are settled as a convention rather than as a list,
+because components keep being added throughout design and implementation and the project is
+intended for eventual open sourcing.
 
 ## Decision
 
@@ -57,12 +57,12 @@ project is intended for eventual open sourcing.
   an alternate name under the same convention, and images publish under a registry namespace
   and cannot collide. The convention extends to any future component by naming its role.
 - **Names inside the code follow a convention that guides, and builders choose them.** The
-  operator asked for "some convention and generally applicable pattern that isn't overtly
-  prescriptive nor presumptive nor unnecessarily inhibitive but generally guides towards naming
-  based on our lessons from here", so that the operator is presented with the chosen names for
-  approval with the pull request that implements them, and implementation is never blocked on the
-  operator picking names. It replaces the operator naming each library and directory one at a time.
-  The convention guides and does not dictate, and a builder's judgement of fit decides inside it.
+  convention is a generally applicable pattern that guides naming by the lessons below without
+  being overtly prescriptive, presumptive or unnecessarily inhibitive. The operator is presented
+  with the chosen names for approval with the pull request that implements them, so
+  implementation is never blocked on the operator picking names, and the operator does not name
+  each library and directory one at a time. The convention guides and does not dictate, and a
+  builder's judgement of fit decides inside it.
   - **Fit comes first.** A name says what the code provides or holds. As guidance from the lessons
     below, a family is named for its concept and a package for what it provides, and one plain word
     is used where one fits, with no abbreviations.
@@ -73,11 +73,10 @@ project is intended for eventual open sourcing.
     acceptable price for a name that fits.
   - **The ban on `util`, `common` and `helpers` stays**
     ([CLAUDE.md](../../../CLAUDE.md#inside-a-component)), since those names fail on fit.
-  - **Fixed names stay fixed**: `core` for pure code, by the operator's rule for pure code, a
-    deployable's entry package, and `cmd/<name>` for commands. The entry package's name is chosen,
-    under this convention, by the pull request that builds the entry packages, and is the same in
-    every deployable from then on.
-  - **Moved packages keep their names** where those names still fit, to keep churn down.
+  - **Fixed names stay fixed.** They are `core` for pure code, a deployable's entry package,
+    whose name is the same in every deployable and is the one
+    [CLAUDE.md](../../../CLAUDE.md#inside-a-component) gives, and `cmd/<name>` for commands.
+  - **A package that moves keeps its name** where that name still fits, to keep churn down.
   - **Builders choose names, and the operator approves them** in the pull request that introduces
     them, which lists each name with what it holds and the alternatives considered.
 
@@ -94,25 +93,23 @@ project is intended for eventual open sourcing.
   `requestcontext` misfit the batch jobs, which serve no request. And `policyload` kept its name
   because `policy` would clash with `core/policy`, which files routinely import beside it, the case
   where a clash was a real cost.
-- **The repository keeps its current name.** The `-mcp` suffix names the system for its
-  protocol adapter even though the serving layer is an API
+- **The repository keeps its name.** The `-mcp` suffix names the system for its protocol adapter
+  even though the serving layer is an API
   ([ADR-0030](../operability/0030-api-core-mcp-thin-adapter.md)), and a rename is nearly free
   whenever taken, so the question waits for the open-sourcing phase.
 
 ## Alternatives considered
 
-- **More than one repository.** No case was tabled. The question was raised so the single
-  repository would be a decision rather than drift.
-- **Grouping directories, one for deployables and one for libraries.** The tabled
-  recommendation. Its case was a structural deployable-versus-library distinction and coarse
-  one-directory path filters. The operator ruled for the flat form with both costs named and
-  accepted, allow-list filters and a conventional distinction.
-- **A different naming scheme.** No case for another scheme was tabled. The convention was
-  adopted as recommended, with the one substitution the Decision records, organize as the
-  reorganization workload's role word.
+- **More than one repository.** No case was tabled. It is listed so that the single repository
+  is a decision rather than drift.
+- **Grouping directories, one for deployables and one for libraries.** The case for it: a
+  structural deployable-versus-library distinction and coarse one-directory path filters. Not
+  chosen, for the simpler flat layout, with both of its costs accepted, which are allow-list
+  filters and a conventional rather than structural distinction.
+- **A different naming scheme.** No case for another scheme was tabled.
 - **The operator names each library, directory and package.** The case for it: names are taste, and
   taste is the operator's. Not chosen, because approving names one at a time, with no pattern
-  behind them, made every name a ticket-local decision and blocked work while names waited.
+  behind them, makes every name a ticket-local decision and blocks work while names wait.
 - **A naming grammar ruled once, from which a builder derives each name**, a family named by the
   Glossary's noun for its concept, never a standard-library package's name, and each package's name
   unique within its family. The case for it: names follow mechanically, with the operator ruling

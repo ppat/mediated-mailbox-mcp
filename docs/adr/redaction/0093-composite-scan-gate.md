@@ -6,26 +6,27 @@
 
 ## Context
 
-Content flags require reading bodies, and scanning every body is not performant — it is a latency,
+Content flags require reading bodies, and scanning every body is not performant. It is a latency,
 memory-exposure, and CPU cost paid mostly on messages (newsletters, high-volume senders) that never
-carry a secret. Something must decide which non-restricted bodies are worth scanning. Facts that
-constrain the answer:
+carry a secret. Something must decide which non-restricted bodies are worth scanning. These facts
+constrain the answer.
 
 - Restricted-sender bodies are already denied and never scanned
-  ([ADR-0008](./0008-restricted-senders-are-never-scanned.md)); the gate governs *normal* senders
-  only.
+  ([ADR-0008](./0008-restricted-senders-are-never-scanned.md)), so the gate governs *normal*
+  senders only.
 - Gmail charges the same quota for a metadata fetch as for a full fetch (see the cost table in
-  [ADR-0023](../operability/0023-adapter-declares-cost.md)) — **body fetch is quota-free relative
-  to metadata fetch**, so the gate is not a quota optimization and can afford to be generous.
-- The metadata index already holds cheap, high-signal predicates: sender volume, `List-Id`
-  presence, local-part patterns, prior scan hits.
+  [ADR-0023](../operability/0023-adapter-declares-cost.md)). **A body fetch is therefore quota-free
+  relative to a metadata fetch**, so the gate is not a quota optimization and can afford to be
+  generous.
+- The metadata index already holds cheap, high-signal predicates, which are sender volume,
+  `List-Id` presence, local-part patterns and prior scan hits.
 
 ## Decision
 
-A composite predicate over metadata already in the index decides scan or skip, evaluated
-cost-ascending — the full chain: `List-Id` check → sender-volume lookup → subject pattern → body
-fetch → Tier 1 → Tier 2 → Tier 3, each stage eliminating most of what reaches it, so Tier 3 should
-be rare — with **scan as the default** and the skip branches explicit and narrow:
+A composite predicate over metadata already in the index decides scan or skip, with **scan as the
+default** and the skip branches explicit and narrow. It is evaluated cost-ascending, along the full
+chain `List-Id` check → sender-volume lookup → subject pattern → body fetch → Tier 1 → Tier 2 →
+Tier 3. Each stage eliminates most of what reaches it, so Tier 3 should be rare. The rules are these.
 
 ```
 skip if sender_class == RESTRICTED           → SKIPPED_RESTRICTED
@@ -61,23 +62,23 @@ The rules above read their inputs, and the gate records its decisions, as follow
 - **The gate evaluates every message it decides.** No decision is memoized
   ([ADR-0094](./0094-scan-gate-decisions-are-not-memoized.md)).
 
-A message's relation to the scanner is a first-class state, because "not scanned" has three
-distinct meanings with different consequences:
+A message's relation to the scanner is a state of its own, because "not scanned" has three
+distinct meanings with different consequences.
 
 | State | Meaning | Body available? |
 | --- | --- | --- |
 | `SCANNED` | Scanner ran, verdict recorded | Yes, if no flags and sender normal |
 | `SKIPPED_RESTRICTED` | Sender restricted; scan pointless | No — denied by sender class |
 | `SKIPPED_GATE` | Gate said don't scan | **Yes** — accepted risk, after the serve-time pattern check ([ADR-0002](./0002-fetch-time-re-evaluation.md)) |
-| `PENDING` | Not yet scanned: backfill or sync has not reached it, delisting re-queued it ([ADR-0037](./0037-delisting-transition.md)), a change of scanner re-queued it ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)), or a gate skip the gate no longer decides as the same skip was re-queued ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)) | No — fail closed |
+| `PENDING` | Not yet scanned. Backfill or sync has not reached it, or delisting ([ADR-0037](./0037-delisting-transition.md)), a change of scanner ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)) or a gate skip the gate no longer decides as the same skip ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)) re-queued it | No — fail closed |
 
-`SKIPPED_GATE` is the compromise made explicit in the type system: the one state where a body is
+`SKIPPED_GATE` is the compromise made explicit in the type system, the one state where a body is
 released without having been scanned.
 
-**What this costs, honestly.** The residual leak is the intersection of: *non-sensitive sender* ×
-*MFA code or login link present* × *subject and metadata give no signal* — typically a SaaS tool
-sending `"Hello from Acme"` with the code body-only. Two layers make this acceptable rather than
-merely tolerable:
+**What this costs.** The residual leak is the intersection of three conditions, *non-sensitive
+sender* × *MFA code or login link present* × *subject and metadata give no signal*. A typical case
+is a SaaS tool sending `"Hello from Acme"` with the code in the body only. Two layers make this
+acceptable rather than merely tolerable.
 
 | Layer | Catches | Miss mode |
 | --- | --- | --- |
@@ -87,36 +88,36 @@ merely tolerable:
 The load-bearing argument is not that reputable senders have predictable subjects. It is that **the
 value of a leaked code is proportional to what it unlocks**, and the high-value senders are caught
 by sender classification regardless of subject. A leaked code for a newsletter signup is close to
-harmless. The compromise degrades precisely where the stakes are lowest. A later decision narrows
-this residual further: a gate-skipped body is pattern-checked at serve time and denied on a hit
-([ADR-0002](./0002-fetch-time-re-evaluation.md)).
+harmless. The compromise degrades precisely where the stakes are lowest.
+[ADR-0002](./0002-fetch-time-re-evaluation.md) narrows this residual further. A gate-skipped body
+is pattern-checked at serve time and denied on a hit.
 
-**Making it auditable.** Every skip is recorded with its reason; the UI surfaces skip rates by
+**Making it auditable.** Every skip is recorded with its reason, and the UI surfaces skip rates by
 reason and by sender, so the gate is tuned from evidence. A growing `PENDING` backlog is its own
-failure mode — it silently converts messages into body-denials that read like permission bugs — so
+failure mode. It silently converts messages into body-denials that read like permission bugs, so
 backlog depth is a watched metric, and the denial envelope for pending messages says "pending
 content scan" so the agent explains rather than misreports.
 
 ## Alternatives considered
 
-- **Scan every body.** Rejected on latency, memory exposure, and CPU — but note it is *not*
-  rejected on quota: if the gate proves too leaky in practice it can be widened substantially
-  without approaching a quota wall. The latency, memory-exposure, and CPU costs that motivated the
-  gate still bind as it widens.
-- **A subject-only gate** (scan only when the subject pattern fires). Rejected: materially worse
-  recall at the same quota cost — the composite predicate exists because body fetch being
-  quota-free makes generosity affordable.
-- **No gate state, just a nullable scanned-at timestamp.** Rejected: it collapses three
-  consequentially different "not scanned" meanings into one, and the release decision needs them
-  distinguished.
+- **Scan every body.** No case was tabled for it. Rejected on latency, memory exposure, and CPU. It
+  is *not* rejected on quota. If the gate proves too leaky in practice it can be widened
+  substantially without approaching a quota wall. The latency, memory-exposure, and CPU costs that
+  motivated the gate still bind as it widens.
+- **A subject-only gate** (scan only when the subject pattern fires). No case was tabled for it.
+  Rejected: materially worse recall at the same quota cost. The composite predicate exists because a
+  body fetch being quota-free makes generosity affordable.
+- **No gate state, just a nullable scanned-at timestamp.** No case was tabled for it. Rejected: it
+  collapses three consequentially different "not scanned" meanings into one, and the release
+  decision needs them distinguished.
 
 ## Consequences
 
 - An accepted residual exists by design and is bounded, measured, and tunable. Its measurement is
-  part of the acceptance: unmeasured, this decision would be out of compliance with
+  part of the acceptance. Unmeasured, this decision would be out of compliance with
   [C3](../../../USE_CASES.md#c3--content-based-secrets-caught) even with zero leaks.
 - The gate needs sender statistics to evaluate, which is why backfill runs metadata-first
-  ([ADR-0017](../data/0017-two-pass-backfill.md)) — the gate cannot run on a cold index.
+  ([ADR-0017](../data/0017-two-pass-backfill.md)). The gate cannot run on a cold index.
 - Widening or narrowing the gate is a policy change with observable effect, not a redesign. A
   change of thresholds reaches the skips already stored at the next backfill run
   ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)).

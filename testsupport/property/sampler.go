@@ -12,10 +12,10 @@ import (
 // can hide a failure of another. A fresh set per sequence reaches mixes no fixed set does.
 //
 // The weights are drawn from rapid's own random stream, so a sequence rapid replays while reducing it
-// is drawn under the same weights (row 12 of ADR-0069's ordinary-path table). They exist only inside
-// the draw. A stored failing case holds the operations drawn and never the weights, and a failure
-// report describes the operations, because reduction flattens the weights while keeping the sequence
-// (rows 13 and 14).
+// is drawn under the same weights, as ADR-0069 requires. They exist only inside the draw. A stored
+// failing case holds the operations drawn and never the weights, and a failure report describes the
+// operations, because reduction flattens the weights while keeping the sequence, which ADR-0069
+// requires too.
 type Sampler struct {
 	names   []string
 	weights []float64

@@ -502,7 +502,7 @@ func TestATickRestrictsTheStoredClassOfAnAddedRulesSender(t *testing.T) {
 }
 
 // A throttled body fetch ends the tick's scanning for the account. The message is recorded as a failed
-// item, and nothing from it on is decided: it and every message after it stay waiting with no gate
+// item, and nothing from it on is decided. It and every message after it stay waiting with no gate
 // decision, since the gate would decide them without the hits their unscanned bodies hold. The tick
 // still succeeds with its checkpoint at the last message decided, so the next tick asks for the
 // throttled body first and goes on (ADR-0104).

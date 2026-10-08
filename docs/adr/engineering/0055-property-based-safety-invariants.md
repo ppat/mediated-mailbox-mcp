@@ -176,10 +176,10 @@ the other checks just named.
 
 - **A property-based test executes a rule the documents already state.** The outcome contract, the
   design, and [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) say what must hold and what must never
-  happen, and a property turns one such statement into a test over generated inputs. Two committed
-  examples are that no message-body value carrying restricted sensitivity can be constructed, and
-  that no scanner output or log ever contains fixture body text. Nobody searches the code for new
-  things to assert. A rule worth testing is worth stating in the documents first.
+  happen, and a property turns one such statement into a test over generated inputs. Two such
+  statements are that no message-body value carrying restricted sensitivity can be constructed,
+  and that no scanner output or log ever contains fixture body text. Nobody searches the code for
+  new things to assert. A rule worth testing is worth stating in the documents first.
 - **The kinds marked yes above are the ones written here, and each test says which kind it is.**
   Naming the kind is what lets a reviewer check that the test does not work out the answer the way
   the code does.

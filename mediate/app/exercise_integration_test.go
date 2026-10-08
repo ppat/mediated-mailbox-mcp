@@ -65,12 +65,12 @@ func exerciseCorpus() []exerciseMessage {
 // The manual exercises of the live agent against the invariant (docs/VERIFICATIONS.md, unit D3) run
 // against this harness. It serves one account holding the exercise corpus through the client surface
 // as the composition root builds it, over the provider fake, with the bank's domain restricted by a
-// base rule. The index is written as backfill's two passes write it: each subject masked, each sender
-// classified under the policy, each unrestricted body scanned and its verdict stored, and each
-// sender's statistics built. The harness listens on the address the variable names, over plain HTTP,
-// prints the account, the bearer token and the routes, and serves until it is interrupted, then
-// prints every audit row the exercise wrote. The surface it serves is the shipped one, so nothing that
-// ships carries a switch to a fake provider.
+// base rule. The index is written as backfill's two passes write it, with each subject masked,
+// each sender classified under the policy, each unrestricted body scanned and its verdict stored,
+// and each sender's statistics built. The harness listens on the address the variable names, over
+// plain HTTP, prints the account, the bearer token and the routes, and serves until it is
+// interrupted, then prints every audit row the exercise wrote. The surface it serves is the shipped
+// one, so nothing that ships carries a switch to a fake provider.
 func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	address := os.Getenv(exerciseVariable)
 	if address == "" {

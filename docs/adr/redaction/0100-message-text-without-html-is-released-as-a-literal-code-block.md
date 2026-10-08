@@ -7,9 +7,10 @@
 ## Context
 
 Every released body is clean Markdown, converted from its HTML by the shared conversion
-([ADR-0036](./0036-released-bodies-are-clean-markdown.md), [ADR-0074](./0074-html-to-markdown-v2-converts-bodies.md)).
-ADR-0036 leaves one case to where serving is built: a body with no HTML part must not pass through
-the conversion as HTML, which would drop any text in angle brackets. The same question reaches two
+([ADR-0036](./0036-released-bodies-are-clean-markdown.md),
+[ADR-0074](./0074-html-to-markdown-v2-converts-bodies.md)). ADR-0036 leaves one case to this
+record. A body with no HTML part must not pass through the conversion as HTML, which would drop any
+text in angle brackets. The same question reaches two
 fields the redaction matrix releases with the body
 ([ADR-0001](./0001-redaction-matrix.md)). The snippet is the provider's plain-text preview, and the
 Gmail adapter decodes its character references, so it can hold any characters, markup included. An
@@ -40,8 +41,8 @@ through. Each one falsifies [A4](../../../USE_CASES.md#a4--released-bodies-are-c
   changed, and the serve-time pattern check of
   [ADR-0002](./0002-fetch-time-re-evaluation.md) would read a text different from the one backfill's
   scanner read, which scans the text part as it arrived.
-- **Release the text as it is.** For it, nothing changes it. Against it, raw HTML and a Markdown
-  remote image reach the client, which A4 names as falsifying.
+- **Release the text as it is.** For it, the text reaches the client unchanged. Against
+  it, raw HTML and a Markdown remote image reach the client, which A4 names as falsifying.
 - **Deny a body with no HTML part.** For it, nothing to decide. Against it, every plain-text message
   is withheld though the gate released it, which is over-redaction with no safety gained.
 - **Release the snippet and filenames as plain JSON strings.** For it, short values need no

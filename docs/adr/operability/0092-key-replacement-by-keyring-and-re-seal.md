@@ -8,14 +8,16 @@
 
 Stored credentials and each stored OAuth client's secret are sealed to a public key and name that
 key ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md),
-[ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)). A key is replaced now and then, and
-every stored value then has to be sealed again to the new key before the old private key can go.
+[ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)). A key is replaced when the operator
+decides to, and every stored value then has to be sealed again to the new key before the old
+private key can go.
 Re-sealing needs the plaintext, so only a process holding the private key can do it, and only the
 four deployables that call a provider and the UI hold it
 ([ADR-0079](./0079-secrets-arrive-as-mounted-files.md)). Each of those processes serves every
 account ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)), and
-delta sync runs every five minutes ([ADR-0022](./0022-four-workloads.md)) and opens every account's
-credential and each stored client secret each time it loads its accounts
+delta sync runs on its sync interval ([ADR-0022](./0022-four-workloads.md),
+[ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) and opens every
+account's credential and each stored client secret each time it loads its accounts
 ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 
 ## Decision

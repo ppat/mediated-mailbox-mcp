@@ -28,17 +28,17 @@ is impractical to run inside the suite every change runs.
   an instance of the fake.** It is the same contract plus a throttle schedule. One test asset,
   not two.
 - **Every real adapter also passes the contract suite against its real provider**, on an account
-  set aside for testing, never the real mailbox. The suite assumes nothing about what that account
-  already holds and never deletes from it. Before it adds anything, the run confirms the credential
-  belongs to the account named as the test account and stops if it does not. Each run adds the messages it needs through the grant
-  the adapter holds, marks them as that run's, and checks and reports only what it added, since the
-  account's other mail is unknown and the run's logs may be public. When a case ends, the run
-  takes off every message the case added the labels it added the message with, so no later run's
-  listing reaches it, then moves the message to the trash and leaves it there for the provider to
-  purge. A case that
-  needs a message gone from the account runs against the fake alone, because nothing in this
-  system deletes mail. How each provider's run is credentialed is settled with its adapter. When
-  the run happens is [TESTING.md](../../../TESTING.md)'s.
+  set aside for testing, never the real mailbox. The suite assumes nothing about what that
+  account already holds and never deletes from it. Before it adds anything, the run confirms the
+  credential belongs to the account named as the test account and stops if it does not. Each run
+  adds the messages it needs through the grant the adapter holds, marks them as that run's, and
+  checks and reports only what it added, since the account's other mail is unknown and the run's
+  logs may be public. When a case ends, the run removes, from each message the case added,
+  the labels it added the message with, so no later run's listing reaches it, and then moves the
+  message to the trash and leaves it there for the provider to purge. A case that needs a message
+  gone from the account runs against the fake alone, because nothing in this system deletes mail.
+  How each provider's run is credentialed is settled with its adapter. When the run happens is
+  [TESTING.md](../../../TESTING.md)'s.
 
 ## Alternatives considered
 

@@ -85,10 +85,10 @@ func TestTheStatementSetCheckReportsEachMismatch(t *testing.T) {
 	}
 }
 
-// A candidate's stored signals are read entry by entry, and nothing stored is refused or dropped: a key
-// of the wrong type is null, an entry without a string identifier has an empty one, an identifier
-// outside the five is sent as stored, and a value that is not a list is one entry (docs/UI.md section
-// 17.1).
+// A candidate's stored signals are read entry by entry, and nothing stored is refused or dropped.
+// A key of the wrong type is null, an entry without a string identifier has an empty one, an
+// identifier outside the five is sent as stored, and a value that is not a list is one entry
+// (docs/UI.md section 17.1).
 func TestStoredSignalsAreReadEntryByEntry(t *testing.T) {
 	text := func(s string) *string { return &s }
 	score := 0.87

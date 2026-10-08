@@ -639,9 +639,10 @@ func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, r, out)
 }
 
-// BaseSuffixMatch is what one suffix typed in Add a base rule is, read with no account named: whether
-// the policy's checks take it, whether it is itself a public suffix, and the base rules already
-// matching it (docs/UI.md section 8.14). It carries no count, since counts are each account's.
+// BaseSuffixMatch is what one suffix typed in Add a base rule is, read with no account named. It
+// says whether the policy's checks take it, whether it is itself a public suffix, and the base
+// rules already matching it (docs/UI.md section 8.14). It carries no count, since counts are each
+// account's.
 type BaseSuffixMatch struct {
 	Suffix       string     `json:"suffix"`
 	Valid        bool       `json:"valid"`

@@ -91,8 +91,9 @@ type Card struct {
 	MaskRule string
 }
 
-// Cards decides every card the inputs fire under the thresholds, in section 8.1's order: a card with no
-// since first, then by since, newest first, then in the rules' order, masking cards by sender and rule.
+// Cards decides every card the inputs fire under the thresholds, in section 8.1's order, which puts
+// a card with no since first, then orders by since, newest first, then in the rules' order, masking
+// cards by sender and rule.
 func Cards(t Thresholds, in Inputs) []Card {
 	var cards []Card
 	if c, ok := backlog(t, in); ok {

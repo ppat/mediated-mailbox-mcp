@@ -11,10 +11,10 @@ read API's contract with drift failing the build, and
 [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md) makes the dataset registry
 and the list of bespoke handlers the two sources that feed one contract generator, so a route
 outside both fails the build. [docs/UI.md](../../UI.md#17-the-read-api) fixes the document's home
-and the direction, Go code to document to browser types, and left the tools to the builder. The
-tools are independently reversible from the framework of
-[ADR-0063](./0063-browser-app-is-preact-with-signals.md), so they are their own record. They were
-researched on 2026-09-10 and the operator accepted this decision the same day.
+and the direction, Go code to document to browser types, and leaves the tools open. The tools
+are independently reversible from the framework of
+[ADR-0063](./0063-browser-app-is-preact-with-signals.md), so they are their own record. The facts
+about the tools below are as they stood on 2026-09-10.
 
 ## Decision
 
@@ -42,11 +42,11 @@ researched on 2026-09-10 and the operator accepted this decision the same day.
 - **The drift check is regenerate and diff, three times.** The document from the registry, the
   types from the document, the descriptor table from the document, each compared to what is
   checked in, and any difference fails CI. It is a reproducibility check and is recorded as one.
-  It proves the checked-in artifacts equal what today's generator produces, never that the
+  It proves the checked-in artifacts equal what the checked-in generator produces, never that the
   generator is right, and never that the served response matches the document. The Go
   integration tests against the real handlers carry those two claims.
 
-The pipeline, stage by stage:
+The table gives the pipeline stage by stage.
 
 | Stage | Tool | What the drift check compares |
 | --- | --- | --- |
@@ -78,8 +78,10 @@ The pipeline, stage by stage:
   generator bug passes every time, and a registry change that serializes identically passes
   silently. Both are the Go tests' business.
 - Assumptions about other components: every registry entry declares its row type explicitly with
-  closed value sets (ADR-0057). The generator tool runs under bun, which the spike of ADR-0063
-  exercised. The fixtures of [ADR-0064](./0064-browser-tests-run-under-bun-against-a-dom-shim.md)
-  are typed by these generated types, which is what makes them contract-checked.
+  closed value sets ([ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md)).
+  The generator tool runs under bun, which the spike of
+  [ADR-0063](./0063-browser-app-is-preact-with-signals.md) exercised. The fixtures of
+  [ADR-0064](./0064-browser-tests-run-under-bun-against-a-dom-shim.md) are typed by these
+  generated types, which is what makes them contract-checked.
 - The drift check is a control. Its violation injection is catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

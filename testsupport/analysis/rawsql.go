@@ -16,12 +16,12 @@ import (
 // is never served.
 //
 // Any use of a method that runs a statement is reported, a call or a method value alike, whatever
-// type declares it, matched by its name and by how its parameters open: Query, QueryRow, Exec and
-// ExecParams given a context.Context and a statement's text, Prepare given a context, a name and a
-// statement's text, SendBatch and ExecBatch given the driver's batches, CopyFrom given the driver's
-// table identifier or a reader and a statement, CopyTo given a writer and a statement, and
-// StartPipeline returning the driver's pipeline. So the driver's connection, pool, transaction and
-// lower-level connection are reported, and so are a generated subsection's DBTX interface, an
+// type declares it, matched by its name and by how its parameters open. Those are Query, QueryRow,
+// Exec and ExecParams given a context.Context and a statement's text, Prepare given a context, a
+// name and a statement's text, SendBatch and ExecBatch given the driver's batches, CopyFrom given
+// the driver's table identifier or a reader and a statement, CopyTo given a writer and a statement,
+// and StartPipeline returning the driver's pipeline. So the driver's connection, pool, transaction
+// and lower-level connection are reported, and so are a generated subsection's DBTX interface, an
 // interface embedding it, and a wrapper or interface the UI declares itself. A parameter spelled
 // through an alias counts as the type it stands for. The generated statements sit under db/,
 // outside the scope. Not reported are a statement run through reflection, written to the wire
@@ -50,10 +50,10 @@ const (
 )
 
 // statementRunners are the methods that run a statement, or start a batch or a pipeline that does,
-// by name, each with the shapes its parameters may open with: the statement's text, a batch, the
-// table rows are copied into, or the reader or writer a copy runs over beside its statement. The
-// driver's connection, pool and transaction and its lower-level connection declare them, and any
-// type declared with the same names and parameters is matched alike.
+// by name, each with the shapes its parameters may open with, which are the statement's text, a
+// batch, the table rows are copied into, or the reader or writer a copy runs over beside its
+// statement. The driver's connection, pool and transaction and its lower-level connection declare
+// them, and any type declared with the same names and parameters is matched alike.
 var statementRunners = map[string][]shape{
 	"Query":         {{params: []string{ctxType, "string"}}},
 	"QueryRow":      {{params: []string{ctxType, "string"}}},

@@ -489,15 +489,15 @@ func TestATickReSealsWhatItOpensWithAnOldKey(t *testing.T) {
 // D4's parts of VERIFICATIONS' rows for replacing a key and stopping a series, how the series reach
 // the scrape, and for the series between ticks. Delta sync is built through assemble, as its
 // composition root builds it, and runs until stopped serving its series between ticks. A scrape
-// long after a tick finds every series delta sync emits: the scan series of every listed account and
-// OAuth client, the tick's gap, unclassified and backlog series, the reload-failure series, the
-// rate limiter's series, and the Gmail adapter's request cost of two ticks' adapters summed with the
-// hard cap beside it. Each Gmail request goes through a proxy nothing listens on after it was
-// counted. users.getProfile costs 1 unit, and the hard cap is 80% of Gmail's 6,000 units a minute,
-// 80 units a second. The limiter's rate is its target, half that ceiling, 50 units a second, and the
-// tick over an empty mailbox leased two calls in the sync class, its current cursor and the first
-// window's one listing page, each costing the provider fake 1 (ADR-0103, ADR-0092, ADR-0077,
-// ADR-0023, ADR-0024).
+// long after a tick finds every series delta sync emits, which are the scan series of every listed
+// account and OAuth client, the tick's gap, unclassified and backlog series, the reload-failure
+// series, the rate limiter's series, and the Gmail adapter's request cost of two ticks' adapters
+// summed with the hard cap beside it. Each Gmail request goes through a proxy nothing listens on
+// after it was counted. users.getProfile costs 1 unit, and the hard cap is 80% of Gmail's 6,000
+// units a minute, 80 units a second. The limiter's rate is its target, half that ceiling, 50 units
+// a second, and the tick over an empty mailbox leased two calls in the sync class, its current
+// cursor and the first window's one listing page, each costing the provider fake 1 (ADR-0103,
+// ADR-0092, ADR-0077, ADR-0023, ADR-0024).
 func TestTheProbesServeEverySeriesBetweenTicks(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)

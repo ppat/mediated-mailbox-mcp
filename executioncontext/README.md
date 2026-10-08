@@ -8,14 +8,14 @@ conventions it shares with every component are
 [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
 Its concept is the [execution context](../DESIGN.md#glossary), what a job or a request executes
-with: the account snapshot with its opened credentials, the account session over it, the policy
-snapshot, and the sealed credentials they are opened from. The decision it hides is how a process
-loads, holds and reloads what it executes with, so a read it cannot trust never replaces what it
-holds, and how the credentials inside are opened, rotated and handed back. These sit together
-because they change together. The account snapshot and the credential code have changed in the same
-pull requests, the policy snapshot is loaded, held and reloaded exactly as the account snapshot is,
-and the same composition roots link both. The account session is the repeated assembly of the
-concept, the steps every provider-calling root repeated around the snapshot.
+with, which is the account snapshot with its opened credentials, the account session over it, the
+policy snapshot, and the sealed credentials they are opened from. The decision it hides is how a
+process loads, holds and reloads what it executes with, so a read it cannot trust never replaces
+what it holds, and how the credentials inside are opened, rotated and handed back. These sit
+together because they change together. The account snapshot and the credential code have changed in
+the same pull requests, the policy snapshot is loaded, held and reloaded exactly as the account
+snapshot is, and the same composition roots link both. The account session is the repeated assembly
+of the concept, the steps every provider-calling root repeated around the snapshot.
 
 | Package | Holds |
 | --- | --- |
@@ -26,26 +26,26 @@ concept, the steps every provider-calling root repeated around the snapshot.
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
-component may import. A package added here without a list of its own falls under the list over files outside every
-component, which admits only the standard library.
+component may import. A package added here without a list of its own falls under the list over
+files outside every component, which admits only the standard library.
 
 **What does not belong.** The rate limiter, whose leases are shared across processes and which
 changes for different reasons, is `ratelimit/`'s. Editing or importing the policy is the UI's and
 `db/policyrules`'s, never the policy loader's, which only holds a snapshot. Scanning is
 `core/scan`'s, and no provider adapter belongs here, since a composition root passes the session a
-connector per provider. The failure to watch is the session growing policy, scanning or leasing code,
-or the policy loader growing behaviour unrelated to holding a snapshot. Either shows first as an entry
-its import list does not hold.
+connector per provider. The failure to watch is the session growing policy, scanning or leasing
+code, or the policy loader growing behaviour unrelated to holding a snapshot. Either shows first as
+an entry its import list does not hold.
 
-The family connects to the database as no role of its own. Its statements run under the role of each
-deployable that imports the package running them
+The family connects to the database as no role of its own. Its statements run under the role of
+each deployable that imports the package running them
 ([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)), which `db/check` tests. When a
 process reloads is its caller's. Each loader loads when asked and swaps only on a read it can trust.
 
 ## The account snapshot, `accountload`
 
-The mediator, backfill, delta sync and the reorg workload each hold their accounts, each paired
+The mediator, backfill, delta sync and the reorg job kind each hold their accounts, each paired
 with the OAuth client it connects through where its provider has one
 ([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
 and the opened credentials as one account snapshot
@@ -91,8 +91,8 @@ noticing.
 - **Only delta sync re-seals, and its scan never passes on silence.** It reports a series for every
   account and every stored client secret, and a missing series never reads as done.
 
-Four copies of these rules would drift, and one that got any of them wrong would fail silently.
-Written once, they hold in every deployable that calls a provider.
+Copies of these rules in each deployable would drift, and one that got any of them wrong would
+fail silently. Written once, they hold in every deployable that calls a provider.
 
 The listing comes from `db/accounts` and each account's credential from `db/accountstate/credential`
 ([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)). The re-seal of an
@@ -122,8 +122,8 @@ It is one mechanism with two parameters, so it never branches on which deployabl
 - **How long a held source lives.** For one unit of work, or across units while the stored
   credential is the one the source was built from or the one it rotated to. The mediator holds
   across requests, so an access token the provider issued serves the requests after it. Backfill
-  holds for its run, which is the same rule over one run's life. Delta sync builds a fresh source for
-  each tick.
+  holds for its run, which is the same rule over one run's life. Delta sync builds a fresh source
+  for each tick.
 - **Which units run concurrently.** Only the mediator runs concurrent units for one account, so the
   holder takes a lock around what it holds, which costs the batch callers nothing.
 
@@ -164,7 +164,7 @@ belongs to the rate budget rather than to the account's credential.
 
 ## The policy loader, `policyload`
 
-Backfill, the mediator, delta sync, the reorg workload and the heuristics workload each hold the
+Backfill, the mediator, delta sync, the reorg job kind and the heuristics job kind each hold the
 active policy as one immutable snapshot and replace it only with an update that validates
 ([ADR-0041](../docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). The validation, the
 composition of the base policy with an account's overlay and the atomic swap are pure and sit in
@@ -172,17 +172,17 @@ composition of the base policy with an account's overlay and the atomic swap are
 each account's overlay rows from the policy tables, hands them to the pure half, and raises the
 reload-failure alarm when a reload fails, whether the read or the validation.
 
-The case for one package over per-deployable glue is one rule the glue could get wrong. The pure half
-accepts a policy with no rules as valid. A read of the tables that failed, or returned nothing
+The case for one package over per-deployable glue is one rule the glue could get wrong. The pure
+half accepts a policy with no rules as valid. A read of the tables that failed, or returned nothing
 because of a fault, looks like that empty policy. Treated as one, it would classify the senders the
-active policy lists as normal and release content the previous snapshot withheld. So the package tells
-a read it cannot trust apart from a policy that is empty, and a read it cannot trust never replaces the
-active snapshot. Written once, that rule holds in every deployable that loads policy. Written five
-times, one copy that gets it wrong fails open.
+active policy lists as normal and release content the previous snapshot withheld. So the package
+tells a read it cannot trust apart from a policy that is empty, and a read it cannot trust never
+replaces the active snapshot. Written once, that rule holds in every deployable that loads policy.
+Written in each deployable, one copy that gets it wrong fails open.
 
-The alarm is the other shared part. Each loading process emits the same series, and one alerting rule
-reads it ([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)), so the
-series is defined once, in this package.
+The alarm is the other shared part. Each loading process emits the same series, and one alerting
+rule reads it ([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)), so
+the series is defined once, in this package.
 
 | Series | Kind | Emitted by | Read by |
 | --- | --- | --- | --- |
@@ -198,10 +198,11 @@ accounts change between its account snapshots sets the new ones, and the next re
 It reads each account's own rules and the base rules in one statement, and a reload whose accounts
 read different base rules reads every account once more. Only when the second read's accounts
 disagree too is the read one it cannot trust, so an edit to the base policy landing midway never
-composes accounts from two versions of it, and pages only when edits keep landing through both reads
+composes accounts from two versions of it, and raises the alarm only when edits keep landing
+through both reads
 ([ADR-0114](../docs/adr/engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md)).
-A reload stopped because its caller cancelled it keeps the active policy and raises no alarm, and one
-that ran out of time is a failed read like any other.
+A reload stopped because its caller cancelled it keeps the active policy and raises no alarm, and
+one that ran out of time is a failed read like any other.
 
 ## The sealed credentials, `credential`
 
@@ -209,7 +210,7 @@ An account's provider credential is stored in the database sealed to a public ke
 ([ADR-0080](../docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
 [ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). The UI seals a
 credential when an account is connected or re-authorized. Backfill, the mediator, delta sync and the
-reorg workload open it with the private key, and seal a rotated one before writing it back
+reorg job kind open it with the private key, and seal a rotated one before writing it back
 ([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). The UI's
 `ui/internal/clientsecret` opens an OAuth client's secret with the same keys, for a consent's code
 exchange, and nothing else. These packages are that sealing and opening, the loading of each key
@@ -218,14 +219,14 @@ from its mounted file, and the configuration section naming those files with its
 
 The case for one copy over per-deployable code is that a mistake here fails open or loses every
 mailbox. A copy that accepted an altered credential, opened one sealed to a key it should not hold,
-or sealed to the wrong key would do it silently, and five copies would drift. Written once, the
-construction and its refusals hold in every deployable that touches a credential.
+or sealed to the wrong key would do it silently, and copies in each deployable would drift. Written
+once, the construction and its refusals hold in every deployable that touches a credential.
 
 Its packages are cut so an import list can admit the sealing half without the opening half, so the
 UI's code outside its one opening part links no code that opens a value. `seal` seals to the current
 public key. `open` holds the keyring of private keys and opens a value by the key its header names.
-`core` holds the configuration section naming the key files a deployable loads. `cmd/keygen` writes a
-key pair, since no standard tool writes X-Wing keys. The construction and the sealed value's bytes
+`core` holds the configuration section naming the key files a deployable loads. `cmd/keygen` writes
+a key pair, since no standard tool writes X-Wing keys. The construction and the sealed value's bytes
 are [ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a key
 is replaced is
 [ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)'s. Every write of
@@ -253,5 +254,6 @@ value ([ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re
 
 `credential/cmd/keygen` takes two flags, both required. `-private-key-file` names the file the
 32-byte seed is written to with mode 0600, and `-public-key-file` the file the 1216-byte public key
-is written to with mode 0644. Each file holds the raw key and nothing else, and the command refuses a
-path that already exists, so a key in use is never overwritten. It prints the new key's identifier.
+is written to with mode 0644. Each file holds the raw key and nothing else, and the command refuses
+a path that already exists, so a key in use is never overwritten. It prints the new key's
+identifier.

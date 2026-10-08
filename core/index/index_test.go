@@ -216,8 +216,8 @@ func TestListed(t *testing.T) {
 	}
 }
 
-// skipped is a message the high-volume rule skips under the thresholds below: a List-Id, a sender
-// above the high-volume mark with no prior hit, and nothing else asking for a scan.
+// skipped is a message the high-volume rule skips under the thresholds below, with a List-Id, a
+// sender above the high-volume mark with no prior hit, and nothing else asking for a scan.
 func skipped() index.Waiting {
 	return index.Waiting{
 		ID: "m1", From: "news@list.example", Domain: "list.example", ListID: true,

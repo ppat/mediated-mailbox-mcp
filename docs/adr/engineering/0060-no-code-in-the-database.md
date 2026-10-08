@@ -11,11 +11,11 @@ The UI's decisions ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-
 more than one row written per decision. A confirmed candidate becomes a policy rule
 ([ADR-0004](../classification/0004-sender-list-decides.md)), and the design wants the
 identity behind every decision recorded. The first UI design met that with database triggers
-running as a privileged definer, so that the UI's grant could stay at the two column sets
-ADR-0021 named while the trigger wrote the rest. That put logic inside the database, invisible
-from the code that caused it, versioned by migration rather than with the code that depends on
-it, and firing on every write path whether intended or not. The operator ruled against the
-whole class rather than the instance.
+running as a privileged definer, so that the UI's grant could stay at the two column sets its
+verbs set while the trigger wrote the rest. That put logic inside the database, invisible from the
+code that caused it, versioned by migration rather than with the code that depends on it, and
+firing on every write path whether intended or not. This record rules out the whole class rather
+than the instance.
 
 ## Decision
 
@@ -41,11 +41,11 @@ whole class rather than the instance.
 
 - **Definer-owned triggers writing the companion rows.** The case for it was that the audit row
   and the rule row are written by code the low-privilege role cannot alter, atomically with the
-  status change, and the role's grant stays literally two column sets. Rejected by the operator
-  on 2026-09-10 on the class of problems database-resident code brings. Hidden control flow,
-  separate versioning, side effects on every write path, and troubleshooting that starts
-  somewhere other than where the symptom shows. In the operator's words, "we can avoid a
-  multiple classes of problems and troubleshooting them just by avoiding them all together."
+  status change, and the role's grant stays literally two column sets. Rejected on the classes of
+  problems database-resident code brings, which are hidden control flow, separate versioning,
+  side effects on every write path, and troubleshooting that starts somewhere other than where
+  the symptom shows. Avoiding such code altogether avoids all of those problems and the
+  troubleshooting they bring.
 - **Stored procedures as the write API**, so the application calls one procedure per verb. The
   case for it was one place per verb. Rejected for the same reason. It moves the verb's logic out
   of the application and into the database.

@@ -424,9 +424,9 @@ func (s *Postgres) CommitScan(ctx context.Context, account, runID string, outcom
 // writing the same account could cause.
 var errNotWaiting = errors.New("the message no longer waits for a scan")
 
-// commitOutcome records what the tick did with one message, as backfill's second pass records it:
-// the gate's decision when it decided, and the verdict or skip state it leads to. A message the gate
-// could not decide, or whose body was not scanned, stays waiting.
+// commitOutcome records what the tick did with one message, as backfill's second pass records it,
+// which is the gate's decision when it decided, and the verdict or skip state it leads to. A
+// message the gate could not decide, or whose body was not scanned, stays waiting.
 func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, account string, o index.Outcome) error {
 	if !o.Verdict.Decided() {
 		return nil

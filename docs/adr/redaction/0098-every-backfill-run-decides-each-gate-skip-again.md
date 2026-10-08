@@ -8,11 +8,10 @@
 
 The scan gate's thresholds are values the gate is given, tuned from the recorded skip rates, and
 widening or narrowing the gate is a policy change with observable effect
-([ADR-0093](./0093-composite-scan-gate.md)). The first change of thresholds is expected after the
-skip-rate review at [production point 1](../../../ROADMAP.md#production-point-1--the-read-path). A
-skip is the one state that releases a body no scanner read, and the gate has one skip of its own,
-`high_volume_no_hits`, stored as `SKIPPED_GATE`. A skip as restricted follows the sender's class,
-and the delisting transition already decides it again when the class changes
+([ADR-0093](./0093-composite-scan-gate.md)). A skip is the one state that releases a body no
+scanner read, and the gate has one skip of its own, `high_volume_no_hits`, stored as
+`SKIPPED_GATE`. A skip as restricted follows the sender's class, and the delisting transition
+already decides it again when the class changes
 ([ADR-0037](./0037-delisting-transition.md)).
 
 Backfill's second pass decides a message once, when it reads it waiting for a scan
@@ -23,7 +22,7 @@ re-decides no stored skip, and every message skipped under the earlier threshold
 unscanned, in the residual the change meant to narrow.
 
 The thresholds have no identity a stored decision could record. Backfill's composition root passes
-ADR-0093's defaults, no configuration section carries them, and so today a change of thresholds is a
+ADR-0093's defaults, no configuration section carries them, and so a change of thresholds is a
 release. The delisting transition and a change of scanner met the same shape of problem, stored
 state that a change elsewhere made wrong, by comparing what the index stores with what the workload
 runs with at the start of its runs ([ADR-0037](./0037-delisting-transition.md),
@@ -100,8 +99,8 @@ next run.
   as pending its content scan, which is over-redaction for that time.
 - Assumptions about other components. Every workload that runs the gate runs it under the same
   thresholds as backfill, or each returns to pending the skips the other made. Something runs
-  backfill after each change of thresholds, which today is a release
-  ([ADR-0051](../engineering/0051-environment-contract.md)). If the thresholds later come from
-  configuration, a change to that configuration needs a backfill run after it the same way.
+  backfill after each change of thresholds, which is a release while no configuration section
+  carries them ([ADR-0051](../engineering/0051-environment-contract.md)). If the thresholds come
+  from configuration, a change to that configuration needs a backfill run after it the same way.
 - The rules above are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

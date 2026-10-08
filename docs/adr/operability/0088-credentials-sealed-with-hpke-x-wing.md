@@ -16,10 +16,10 @@ bytes a sealed value carries so its key can be found and a key can be replaced.
 
 Symmetric encryption and encryption inside PostgreSQL are ruled out by ADR-0081. ADR-0081 also has
 the UI seal with a public key and the deployables that call a provider and the UI open with a
-private key they hold as a mounted file, so the private key is in those processes and nowhere else. A key service
-such as a cloud KMS or Vault, which holds the key itself and decrypts on request, is a different
-shape from that decision. The field is the public-key constructions a Go program can run in
-process.
+private key they hold as a mounted file, so the private key is in those processes and nowhere
+else. A key service such as a cloud KMS or Vault, which holds the key itself and decrypts on
+request, is a different shape from that decision. The field is the public-key constructions a Go
+program can run in process.
 
 The choice looks like a question of which library to trust with encryption. It is mostly a question
 of time. A sealed value is a full-mailbox grant that stays valid until it is revoked, so a copy of
@@ -38,7 +38,7 @@ than a preference.
 | R7 | Confidentiality against later decryption | A stolen database copy stays sealed against an attacker with a quantum computer | This record |
 | R8 | Keys from a standard tool | An operator can generate the key pair without project code | This record |
 | R9 | The sealing half importable alone | The UI's code outside its one opening part links no code that opens a value | ADR-0081, [executioncontext/README.md](../../../executioncontext/README.md#the-sealed-credentials-credential) |
-| R10 | Maintained and current | Released and maintained today | This record |
+| R10 | Maintained and current | Released recently and maintained | This record |
 
 R1 is a gate. R2, R4, R5, R6 and R7 order the field. R7 orders it because of the lifetime argument
 above. R3 and R8 break ties. R9 and R10 separated no candidate. Every candidate ships sealing and
@@ -83,20 +83,20 @@ released recently and none is deprecated.
   that public key ([ADR-0082](./0082-rotation-writeback-to-the-database.md)) and a mismatched one
   would store values no opener can read.
 - **A command beside the credential code, `executioncontext/credential/cmd/keygen`, generates the
-  key pair**, because no standard tool writes X-Wing keys. It ships as static binaries attached to each GitHub release,
-  at the lockstep release version and signed with the same keyless signing the release applies to
-  the images and the chart ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)). An
-  operator command sits under its library as `cmd/<name>`, and a library holds no Dockerfile
+  key pair**, because no standard tool writes X-Wing keys. It ships as static binaries attached to
+  each GitHub release, at the lockstep release version and signed with the same keyless signing the
+  release applies to the images and the chart
+  ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)). An operator command sits under
+  its library as `cmd/<name>`, and a library holds no Dockerfile
   ([ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md)), so it has no
   image of its own. Wherever the credential code sits, the command sits under it. Carrying it in
   an existing image would give that image a second, unrelated job. The UI must never carry key
   material, and the migration image holds none of this project's Go code by design. A signed
   release binary is a published artifact, so the system still comes up from published artifacts
-  alone
-  ([O6](../../../USE_CASES.md#o6--deployable)). Which platforms the binaries are built for is left
-  to the release step that builds them.
+  alone ([O6](../../../USE_CASES.md#o6--deployable)). The platforms the binaries are built for are
+  the release workflow's ([CLAUDE.md](../../../CLAUDE.md#ci-workflows)).
 
-What the ordinary path does that the design forbids, and what stops it:
+The table below names what the ordinary path does that the design forbids, and what stops it.
 
 | Construction | Harm | What stops it |
 | --- | --- | --- |
@@ -121,13 +121,14 @@ What the ordinary path does that the design forbids, and what stops it:
 | R9 | The library's sealing and opening subsections |
 | R10 | The Go release the module pins |
 
-What an implementer would otherwise pay to discover:
+An implementer would otherwise pay to discover these.
 
 - OpenSSL generates ML-KEM and X25519 keys but has no encoder for an X-Wing key, so the key pair
   comes from the library's command.
 - A seal-only binary links no HPKE opening code, but it does link ML-KEM decapsulation primitives
-  through the standard library's self-test. That does not breach the rule that the UI's code outside its
-  one opening part links no opening code, which concerns this project's opening subsection.
+  through the standard library's self-test. That does not breach the rule that the UI's code
+  outside its one opening part links no opening code, which concerns this project's opening
+  subsection.
 - Base mode authenticates the value, not who sealed it. Anyone holding the public key and able to
   write a row can plant a validly sealed value for that row. ADR-0081 claims only that an altered
   value is refused, and that holds.
@@ -172,8 +173,8 @@ behind the post-quantum one, so that a break in ML-KEM alone leaves the stored g
 valued above a published primitive and keys from a standard tool. A reader who weighs the published
 primitive higher lands on ML-KEM-768, with the same header and the same exit.
 
-Every other candidate has a weaker cell on something it cannot fix from outside: R7 for
-DHKEM(X25519) and `nacl/box`, footprint and missing additional data for age, footprint and key
+Every other candidate has a weaker cell on something it cannot fix from outside, R7 for
+DHKEM(X25519) and `nacl/box`, footprint and missing additional data for age, and footprint and key
 loading for Tink. Of the chosen row's strengths, the sealing cut is guarded elsewhere too, by the
 UI's import list, while the context binding of R3 is guarded nowhere else. Tink's one outright
 win, key identity, is had without Tink through the header. Its costs, protobuf and an API marked
@@ -185,7 +186,7 @@ version byte and a re-seal, since the header, the key identifier and the key rep
   failure of either half. Against it, its HPKE binding is a working-group draft and X-Wing's own
   specification is an individual draft
   ([draft-connolly-cfrg-xwing-kem](https://datatracker.ietf.org/doc/draft-connolly-cfrg-xwing-kem/)),
-  so the standard it rests on is not yet an RFC. A later Go release that follows a changed
+  so the standard it rests on is not an RFC. A later Go release that follows a changed
   specification could stop opening values sealed under the draft, so moving past such a release
   takes a re-seal while the old one still opens them. No standard tool writes its keys, so the
   project owns that command. The suite as a whole is not a FIPS-approved construction, though its
@@ -221,8 +222,7 @@ version byte and a re-seal, since the header, the key identifier and the key rep
 - The context binds a value to its row, so moving a value, or changing an account's identifier,
   means re-sealing it.
 - Losing the private key loses every stored credential and every OAuth client's secret, and the
-  operator recovers as ADR-0081 states, by setting up each OAuth client again and re-authorizing
-  each account.
+  operator recovers as [ADR-0081](./0081-credentials-sealed-to-a-public-key.md) states.
 - Assumptions about other components. The deployables that open credentials pin a Go release with
   `crypto/hpke`. The platform mounts the seed only into those deployables and the UI, and the public
   key into the UI and them.

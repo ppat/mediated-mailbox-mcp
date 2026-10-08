@@ -7,10 +7,10 @@
 
 ## Context
 
-The schema's most load-bearing property is an absence: no body, snippet, or excerpt column
+The schema's most load-bearing property is an absence. No body, snippet, or excerpt column
 exists anywhere, and [ADR-0016](./0016-schema.md)'s DDL comment makes a future migration adding
 one a violation, not an extension. An absence is enforceable only while the DDL is the single
-authority on stored shape — a second authority in memory, from which the schema could be
+authority on stored shape. A second authority in memory, from which the schema could be
 regenerated, is where such absences quietly stop binding. Meanwhile every table keys on
 `account_id` and there is no implicit current account
 ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)), and
@@ -19,14 +19,15 @@ decisions take everything as parameters
 
 ## Decision
 
-- **The database schema — the migration set — is the single authority on stored shape.** No
-  in-memory entity model exists: no construct that owns the schema, generates DDL from classes,
-  holds an identity map or cache of rows, or lazily fetches relations at attribute access.
-- **Reads go through per-query result types: each query has its own result shape.** A metadata
-  query's row type therefore has no body field to populate — there is no field a body could
-  hide in, which is the unconstructability pillar's own wording, landed on the data layer.
+- **The database schema, meaning the migration set, is the single authority on stored shape.**
+  No in-memory entity model exists, so there is no construct that owns the schema, generates DDL
+  from classes, holds an identity map or cache of rows, or lazily fetches relations at attribute
+  access.
+- **Reads go through per-query result types, so each query has its own result shape.** A
+  metadata query's row type therefore has no body field to populate. There is no field a body
+  could hide in, which is the unconstructability pillar's own wording, applied to the data layer.
 - **Every data-access signature requires the account identifier.** The repository-layer rule
-  [ADR-0016](./0016-schema.md) states becomes a fact of the function signatures; omitting the
+  [ADR-0016](./0016-schema.md) states becomes a fact of the function signatures, so omitting the
   account is a compile error, not a runtime surprise.
 - **And every statement against an account-keyed table carries an account predicate.** The
   signature rule above guarantees the account reaches the function. It does not guarantee the
@@ -35,15 +36,16 @@ decisions take everything as parameters
   layers, between the signature the compiler checks and the row-level security
   [ADR-0016](./0016-schema.md) keeps behind both. The rule reaches every statement, insert and
   delete included, where an insert supplies the account as a column value rather than as a
-  predicate. Three exceptions are stated. They are exceptions to this predicate rule, and
-  [ADR-0016](./0016-schema.md) names apart the tables excepted from its own keying and isolation
-  rule, because a table can be keyed on the account and still be reached without a predicate of
-  its own. Base policy rows carry a null account and are inherited by every account, so the
-  predicate there is the account or null
+  predicate. The rule has three exceptions, and they are exceptions to this predicate rule alone.
+  [ADR-0016](./0016-schema.md) names separately the tables excepted from its own keying and
+  isolation rule, because a table can be keyed on the account and still be reached without a
+  predicate of its own. Base policy rows carry a null account and are inherited by every
+  account, so the predicate there is the account or null
   ([ADR-0004](../classification/0004-sender-list-decides.md)). The accounts listing is
   deliberately unscoped ([docs/UI.md](../../UI.md#17-the-read-api),
-  [ADR-0091](./0091-accounts-listed-apart-from-their-state.md)). And the operation log carries no
-  account column at all, so it is reached through its plan rather than by a predicate of its own.
+  [ADR-0091](./0091-accounts-listed-apart-from-their-state.md)). And the operation log carries
+  no account column at all, so it is reached through its plan rather than by a predicate of its
+  own.
   **How the rule is checked is a mechanism question and belongs to
   [ADR-0066](./0066-data-access-generated-from-sql.md)**, which also records why a query set
   declared as files is checkable by a build step where statements assembled at run time are not.
@@ -55,21 +57,22 @@ decisions take everything as parameters
   is set.** The verification is not ceremony. [ADR-0016](./0016-schema.md) records why the
   database cannot raise here and why the resulting deny is silent, and this is where the
   compensating assertion lives. The accounts listing, the read of `oauth_clients`, delta sync's
-  re-seal of a client secret and the UI's OAuth client setup are exempt, each written as one
-  chained call, which are not account-scoped
+  re-seal of a client secret and the UI's OAuth client setup are not account-scoped, so they are
+  exempt, and each is written as one chained call
   ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md),
   [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md),
   [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   The base policy, which belongs to no account, is read and written through the helper's second
   entry point, which sets no account and verifies that, and runs only the base policy's statements
   ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
-- **One data-access library, produced from the one schema, serves every component** — so drift
-  between the schema, the queries, and the result types is a build failure everywhere at once rather
-  than a runtime discovery in one component. The library is impure shared code, deliberately outside
-  the shared pure library. It is a narrow, single-concern library, organized in subsections by
-  concern that each component imports selectively ([db/README.md](../../../db/README.md)). Whether
-  its accessors are generated or hand-written under the same discipline, and by which tool, was left
-  to its own record and is decided by [ADR-0066](./0066-data-access-generated-from-sql.md).
+- **One data-access library, produced from the one schema, serves every component,** so drift
+  between the schema, the queries, and the result types is a build failure everywhere at once
+  rather than a runtime discovery in one component. The library is impure shared code,
+  deliberately outside the shared pure library. It is a narrow, single-concern library, organized
+  in subsections by concern that each component imports selectively
+  ([db/README.md](../../../db/README.md)). Whether its accessors are generated or hand-written
+  under the same discipline, and by which tool, is decided by
+  [ADR-0066](./0066-data-access-generated-from-sql.md).
 - **Row-level security stays the independent third layer**, behind the signature rule and the
   predicate rule, exactly as [ADR-0016](./0016-schema.md) names it. Nothing here substitutes for
   it.
@@ -78,29 +81,28 @@ decisions take everything as parameters
 
 - **An object-relational entity model.** The case for it: real scaffolding productivity, the
   ecosystem default, and the honest defense that in-memory/relational mapping is genuinely hard
-  and hand-rolling it has historically gone worse. Rejected on four collisions with landed
-  decisions: it inverts the schema authority (a model attribute *creates* a column, so the
-  violating migration ships as a routine generated diff no reviewer is prompted about); its
-  idiomatic account scoping is an ambient session — the implicit current account
-  [ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md) forbids; lazy
+  and hand-rolling it has historically gone worse. Rejected on four collisions with the design's
+  decisions. It inverts the schema authority, because a model attribute *creates* a column, so
+  the violating migration ships as a routine generated diff no reviewer is prompted about. Its
+  idiomatic account scoping is an ambient session, the implicit current account
+  [ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md) forbids. Lazy
   loading fires I/O at attribute access, which lands *after* the gate has run and makes "the last
-  hop" undefinable; and its identity map or cache can return a previously materialized row without
+  hop" undefinable. Its identity map or cache can return a previously materialized row without
   re-entering the decision path, bypassing fetch-time re-evaluation
   ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). The partial-object shape is the
-  fifth: one shared entity type would hand metadata paths a body field the design refuses to
-  let exist.
+  fifth, because one shared entity type would hand metadata paths a body field the design refuses
+  to let exist.
 - **Hand-written string SQL scattered through each component.** The case for it: no build step,
   no shared artifact. Rejected: drift between DDL and queries is then caught only at runtime,
-  near-identical queries duplicate across the components, and each copy drifts separately — the
-  dual-schema problem multiplied by the number of components.
+  near-identical queries duplicate across the components, and each copy drifts separately, which
+  is the dual-schema problem multiplied by the number of components.
 
 ## Consequences
 
 - General-purpose scaffolding is forgone. If a broad create-read-update-delete surface over
-  many tables is ever genuinely wanted, that trade gets re-argued then — it is not this
-  system's shape today (reads are projections and aggregates; writes are a deliberately small
-  set).
+  many tables is ever genuinely wanted, that trade gets re-argued then. It is not this system's
+  shape, since reads are projections and aggregates and writes are a deliberately small set.
 - Assumptions about other components: the migration set exists as reviewable SQL and is the
-  artifact the data-access layer is produced from — the evolution rule is
-  [ADR-0048](./0048-forward-only-migrations.md); every component takes its database access
+  artifact the data-access layer is produced from, under the evolution rule of
+  [ADR-0048](./0048-forward-only-migrations.md), and every component takes its database access
   through the shared library rather than opening its own SQL surface.

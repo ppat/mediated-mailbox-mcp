@@ -9,8 +9,7 @@ off to [state-and-proof.md](state-and-proof.md) for each control's verification 
 
 1. Find the highest number in `docs/adr/README.md` across ALL groups; the new record takes the
    next one. Never reuse, never leave gaps deliberately. When the control loop runs sessions in
-   parallel, the number is instead the one the control session grants on request, since several
-   next one. Never reuse, never leave gaps deliberately.
+   parallel, the number is instead the one the control session grants on request.
 2. Pick the folder by theme (`redaction/`, `classification/`, `provider/`, `data/`, `mutation/`,
    `operability/`). Folders are navigation only — do not agonize; a record can move later without
    renumbering. Filename: `NNNN-short-slug.md`.

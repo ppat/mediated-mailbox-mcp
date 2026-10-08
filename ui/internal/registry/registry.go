@@ -187,11 +187,11 @@ func Descriptors(datasets []Dataset) []lens.Descriptor {
 }
 
 // Check reports every dataset whose statements do not match what it declares, counted rather than
-// read: a summary and a rows statement for every dataset, one aggregate statement per groupable
-// dimension, none for a dimension that is not groupable or not declared, and a provenance query exactly
-// where a row identity is declared (ADR-0066). It also reports a dimension named as a common parameter
-// or as the dataset's parent filter, which a URL could not tell apart from it. It is the statement-set
-// check, and the registry's test requires it clean.
+// read. It expects a summary and a rows statement for every dataset, one aggregate statement per
+// groupable dimension, none for a dimension that is not groupable or not declared, and a provenance
+// query exactly where a row identity is declared (ADR-0066). It also reports a dimension named as a
+// common parameter or as the dataset's parent filter, which a URL could not tell apart from it. It
+// is the statement-set check, and the registry's test requires it clean.
 func Check(datasets []Dataset) []string {
 	var problems []string
 	seen := map[string]bool{}

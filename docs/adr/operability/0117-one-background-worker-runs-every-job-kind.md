@@ -8,11 +8,12 @@
 
 [ADR-0022](./0022-four-workloads.md) split the background work into four workloads, backfill,
 delta sync, reorg apply and the heuristics run, because they differ on runtime, trigger,
-reversibility and whether they write to the provider, and it named the settling row: reorg apply
-is the only provider-mutating path, and its approval and rollback machinery would burden the
+reversibility and whether they write to the provider. It named the settling row, that reorg apply
+is the only provider-mutating path and its approval and rollback machinery would burden the
 read-only paths. It rejected one process carrying all four.
 
-Read guard by guard, the process boundary carried less of that reasoning than the record says.
+Read guard by guard, the process boundary carries less of that reasoning than
+[ADR-0022](./0022-four-workloads.md) gives it, as the table shows.
 
 | What the four-way split guards | What carries it |
 | --- | --- |
@@ -39,9 +40,9 @@ thresholds only by both composition roots passing
 [ADR-0093](../redaction/0093-composite-scan-gate.md)'s defaults. A newly connected account waits
 for a backfill started by hand.
 
-And growth is coming. Many background jobs will be added, among them Google Drive's jobs and
-possibly the send of an approved email, and a process per job kind would multiply deployables,
-images, chart objects and roles with each one. The operator ruled the topology on 2026-10-07.
+Many job kinds are still to come, among them Google Drive's jobs and possibly the send of an
+approved email, and a process per job kind would multiply deployables, images, chart objects and
+roles with each one.
 
 ## Decision
 
@@ -51,7 +52,8 @@ images, chart objects and roles with each one. The operator ruled the topology o
   background work, the unit `job_runs.workload` records ([ADR-0016](../data/0016-schema.md)). How
   the worker starts, schedules and stops its jobs is
   [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)'s.
-- **The job kinds keep their differences as facts of the job kind**, not of a process:
+- **The job kinds keep their differences as facts of the job kind**, not of a process, as the
+  table shows.
 
   | | Backfill | Delta sync | Reorg apply and rollback | Heuristics |
   | --- | --- | --- | --- | --- |
@@ -66,24 +68,25 @@ images, chart objects and roles with each one. The operator ruled the topology o
   bound what a buggy job can do in the database. They do not bound a compromised process, which
   holds every role's credential.
 - **The heuristics run is a job kind inside the worker.** The rule that a process which calls no
-  provider holds no credential is reinterpreted as code isolation per job kind, not process
-  isolation. This is a trade, stated as one. The heuristics run reads text any sender chooses,
-  display names, domains and subjects, and inside the worker that text reaches code running in a
-  process that holds the private key and every opened credential. A parsing or inference bug
-  reachable from that text then pays off in credentials, where outside the worker it paid off in
+  provider holds no credential, one of the four-way split's guards in the table above, becomes code
+  isolation per job kind, not process isolation. This is a trade, stated as one. The heuristics run
+  reads text any sender chooses, display names, domains and subjects, and inside the worker that
+  text reaches code running in a process that holds the private key and every opened credential. A
+  parsing or inference bug reachable from that text then pays off in credentials, where outside the
+  worker it paid off in
   nothing. The anchor already parses attacker-chosen input on a larger scale, converting and
   scanning hostile bodies, so the added surface is the heuristics run's own tokenizer and any model
   runtime it brings.
-- **Code isolation per job kind is checkable, not conventional.** For each job kind:
-  - its own import list, so a job kind that needs no credential, no provider and no account session
-    imports none of them ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md));
-  - its own role's grants
-    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md));
-  - an entry constructor that takes only what the job needs, pinned by the parameter checks the
-    project already runs;
-  - no cgo in the worker's build, and no `unsafe` in this project's own code or in any dependency
-    added for a job. The standard library and today's dependencies already import `unsafe`, so the
-    rule applies to what gets added.
+- **Code isolation per job kind is checkable, not conventional.** Each job kind has these four.
+  - Its own import list, so a job kind that needs no credential, no provider and no account session
+    imports none of them ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)).
+  - Its own role's grants
+    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+  - An entry constructor that takes only what the job needs, pinned by the parameter checks the
+    project already runs.
+  - No cgo in the worker's build, and no `unsafe` in this project's own code or in any dependency
+    added for a job. The standard library and the dependencies the module already holds import
+    `unsafe`, so the rule applies to what gets added.
 
   Memory safety is what makes code isolation hold, which is why the last line is part of it. A
   model runtime that needs cgo runs outside the worker, as
@@ -133,7 +136,7 @@ images, chart objects and roles with each one. The operator ruled the topology o
   stored credentials. Not chosen, because backfill, delta sync and apply would then share reach,
   which the role per job kind keeps apart at no more than two extra credentials.
 - **Several worker replicas.** The case for it: throughput across accounts and a shorter outage on
-  a node loss. Not built. Each account has one rate budget
+  a node loss. Not chosen. Each account has one rate budget
   ([ADR-0025](./0025-priority-classes-and-leases.md)), so replicas add throughput only across
   accounts, and they would need a claim per job that a killed replica releases. What they would
   change is [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)'s.
@@ -141,7 +144,7 @@ images, chart objects and roles with each one. The operator ruled the topology o
 ## Consequences
 
 - **What the worker gives up, and what replaces it.** One job's out-of-memory kill or a deadlock
-  that fails the liveness probe stops every job, so the failure of an unrelated job can now make
+  that fails the liveness probe stops every job, so the failure of an unrelated job can make
   [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s staleness bound reachable. A
   panic is recovered in the run that raised it, each job kind has its own pool, and the alert on a
   stopped worker and the alert on a job whose last success has aged make it loud
@@ -150,19 +153,19 @@ images, chart objects and roles with each one. The operator ruled the topology o
 - **A configuration change restarts every job.** The chart restarts a deployable's pods when its
   configuration changes ([ADR-0052](../engineering/0052-kubernetes-deployment-helm-chart.md)), so a
   change to any job kind's setting restarts them all, and each resumes from its checkpoint.
-- **One memory limit** is sized for the jobs that run at once, against today's limit per process,
-  and a concurrency limit per job kind bounds the bodies held in memory
-  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
+- **One memory limit** is sized for the jobs that run at once, against the limit each process would
+  have with a process per job kind, and a concurrency limit per job kind bounds the bodies held in
+  memory ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
 - **The worker's image holds the code of every job kind**, so exactness of image contents holds for
   the worker as a whole ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)), and which
   process can open a stored credential stays a property of which processes receive the private key's
   file, and within the worker of each job kind's code
   ([ADR-0079](./0079-secrets-arrive-as-mounted-files.md),
   [ADR-0081](./0081-credentials-sealed-to-a-public-key.md)).
-- **The trust anchor gains the heuristics run's code and loses processes.** Once reorganization is
-  built, the processes holding credentials are the mediator, the worker and the UI, against five
-  with a process per job kind. Each still yields the full mailbox, so fewer of them lowers the
-  places an attacker can enter without raising what any one yields
+- **The trust anchor gains the heuristics run's code and loses processes.** The processes holding
+  credentials are the mediator, the worker and the UI, against five with a process per job kind.
+  Each still yields the full mailbox, so fewer of them lowers the places an attacker can enter
+  without raising what any one yields
   ([ADR-0028](./0028-trust-anchor-hardening.md)).
 - **What the scanner and the thresholds must agree on is read once.** Backfill's and delta sync's
   scanner section comes from one configuration load, and their gate thresholds are one value in
@@ -171,8 +174,8 @@ images, chart objects and roles with each one. The operator ruled the topology o
   budget, so leases stay in the database ([ADR-0025](./0025-priority-classes-and-leases.md)).
 - **Undoing it is a packaging change.** Each job kind keeps its own entry, so moving one out of the
   worker later moves its wiring into a root of its own, and the role per job kind already exists.
-  What cannot be undone is what a window records: series written without a job label, and a
-  credential exposed while the heuristics run sat inside the anchor, whose remedy is revoke and
+  What cannot be undone is what a window records, which is series written without a job label, and
+  a credential exposed while the heuristics run sat inside the anchor, whose remedy is revoke and
   reissue.
 - Assumptions about other components. The platform runs one copy of the worker at a time, a rollout
   included, keeps it running and restarts it when it stops

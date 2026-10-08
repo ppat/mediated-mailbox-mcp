@@ -17,9 +17,9 @@ this record applies the same requirement to the tests. The stakes peak at the co
 fail-closed pillar names its own limit. Its paths are exercised by tests or not at all, and where
 tests are the only evidence, a test that proves nothing is worse than none, since
 [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) would show a green row over a hole in the
-invariant's proof. The scopes below are deliberate. The stance binds every test in the suite and no
-coverage percentage is imposed anywhere, the never-retire rule binds the tests that prove
-verification rows, the mutation table binds only an automatable control's tests, the
+invariant's proof. The rules below are scoped deliberately. The stance binds every test in the
+suite and no coverage percentage is imposed anywhere, the never-retire rule binds the tests that
+prove verification rows, the mutation table binds only an automatable control's tests, the
 independent-expectation rule binds a control's tests, and the violation-file rule binds a lint ban
 that stands in for a control.
 
@@ -48,9 +48,9 @@ that stands in for a control.
   ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) measured both in its crash
   harness). The harness is a checked-in patch per break and a script that applies each, runs the
   tests, demands red, and records which tests went red before restoring green. The table is the
-  whole artifact, and a pass rate never is. A control with no standing
-  automated test carries no table, since nothing exists to demand red from, and proof only by drill
-  or by manual exercise is that case.
+  whole artifact, and a pass rate never is. A control with no standing automated test carries no
+  table, since nothing exists to demand red from, and proof only by drill or by manual exercise is
+  that case.
 - **A surviving mutant is a defect on the spot.** Either the tests are vacuous or the
   mechanism is redundant, and each finding demands its own action. A mechanism not worth
   testing well is a candidate for removal.
@@ -58,18 +58,17 @@ that stands in for a control.
   when the control lands and reproduced when the control, its tests, or a generator its tests
   draw from changes, at no other time. A generator is named because one edited until its report
   passed moved a planted failure out of the gating run's reach while every test stayed green
-  ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). A move of the control's code or
-  its tests is a change, a move of a path alone included, so the affected tests and mutation
-  demonstrations run again after it. There is no exemption for a move that changes only paths,
-  which the operator ruled on 2026-10-07. Controls are defined in the
-  design, or when an outcome (or feature) is added, and verifications are
-  defined with them. A mutation demonstration proves the control and its verification work, and
-  lands at implementation time. This binds the demonstration alone, proving a control's tests go
-  red with its mechanism removed. Whether a patch still applies, a narrower and different
-  question the event-driven rule never answered, is guarded on every pull request instead. An
-  unrelated later change can edit code a patch's diff context spans and leave the patch unable
-  to apply without touching the control, its tests, or a generator, so nothing about the
-  demonstration's own trigger would ever catch it.
+  ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). A move of the control's
+  code or its tests is a change, a move of a path alone included, so the affected tests and
+  mutation demonstrations run again after it. There is no exemption for a move that changes only
+  paths. A control is defined in the design, or when an outcome or feature is added, and its
+  verification is defined with it. A mutation demonstration proves the control and its
+  verification work, and lands at implementation time. This binds the demonstration alone,
+  proving a control's tests go red with its mechanism removed. Whether a patch still applies is a
+  narrower and different question, which the event-driven rule does not answer, and it is guarded
+  on every pull request instead. An unrelated later change can edit code a patch's diff context
+  spans and leave the patch unable to apply without touching the control, its tests, or a
+  generator, so nothing about the demonstration's own trigger would ever catch it.
 - **A test that proves a [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) row never retires.**
   Once it passes for the first time, it runs in CI on every change from then on, so the proof
   stays current instead of decaying into a claim about one past date. Rows proven by a drill
@@ -77,10 +76,9 @@ that stands in for a control.
   document records them.
 - **The demonstrations live beside [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), in their
   own ledger, [docs/MUTATIONS.md](../../MUTATIONS.md) and the files it lists.** The split is by
-  authoring moment.
-  A verification row is minted at design time, when the control is decided. A demonstration
-  can exist only at implementation time, once a mechanism exists to remove and tests exist to
-  fail.
+  authoring moment. A verification row is minted at design time, when the control is decided. A
+  demonstration can exist only at implementation time, once a mechanism exists to remove and
+  tests exist to fail.
 
 ## Alternatives considered
 
@@ -92,11 +90,11 @@ that stands in for a control.
   one fact that matters, namely which control's tests survived.
 - **Reading a test's expected value from the code under test.** The case for it is one home for a
   constant such as a policy string. Rejected because a test that compares a served value to the
-  constant it was built from stays green when the constant is broken, which the first policy test
-  written in the spike of [ADR-0063](./0063-browser-app-is-preact-with-signals.md) demonstrated.
+  constant it was built from stays green when the constant is broken, as the first policy test
+  written in the spike of [ADR-0063](./0063-browser-app-is-preact-with-signals.md) demonstrates.
 - **Trusting a lint ban's selector as written.** The case for it is no extra files to keep. Rejected
-  because a ban can read correctly and match nothing, which a ban on the browser's raw-markup hatch
-  demonstrated in the same spike by catching nothing until a violation file exposed it.
+  because a ban can read correctly and match nothing, as a ban on the browser's raw-markup hatch
+  demonstrates in the same spike, catching nothing until a violation file exposes it.
 - **A mutation column on the verification rows.** The case for it is one fewer document.
   Rejected because most row kinds could never fill it, controls with no standing automated
   test having no table, and because it braids a design-time table into an
@@ -104,9 +102,9 @@ that stands in for a control.
 
 ## Consequences
 
-- The ledger starts empty and stays empty until implementation.
-  [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) began the same way, and that is the correct
-  starting state.
+- The ledger holds a demonstration only for a control whose mechanism and tests exist, written
+  when its demonstration runs at implementation time. A control that is decided and not yet built
+  has its row in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) and none in the ledger.
 - A red that cannot be demonstrated again is a memory, not a proof, which is why the proving
   tests never retire.
 - Attributing a red to the removed mechanism assumes each control's tests run in isolation

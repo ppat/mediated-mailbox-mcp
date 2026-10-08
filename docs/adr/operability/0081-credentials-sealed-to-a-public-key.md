@@ -43,13 +43,12 @@ needs the secret of the client a consent was issued to.
   ([ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)). The UI's import lists admit the
   opening half of the credential code, and the read of a client's sealed secret, to that package
   alone. They admit to the rest of the UI's shipped code only the packages under `crypto/` it
-  uses, so it links none of the public-key code an opening is built on. The
-  project's own `go vet` analyser refuses a statement the UI's shipped code runs other than through
-  the data-access library
-  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), so the role's read of the
-  secret stays with that package too. The plaintext secret lives for the exchange that asked for it, and for client setup's check
-  of a secret the operator brought back, and reaches no log line, no response and no cookie. The
-  operator ruled this on 2026-10-02.
+  uses, so it links none of the public-key code an opening is built on. The project's own `go vet`
+  analyser refuses a statement the UI's shipped code runs other than through the data-access
+  library ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), so the role's read of
+  the secret stays with that package too. The plaintext secret lives for the exchange that asked
+  for it, and for client setup's check of a secret the operator brought back, and reaches no log
+  line, no response and no cookie.
 - **The construction is an authenticated one, as standard practice has it**, so an altered sealed
   credential is refused rather than opened.
 - **The keys are secrets delivered as mounted files**
@@ -68,10 +67,10 @@ needs the secret of the client a consent was issued to.
   would open every stored value through the operation it seals with, with nothing telling an
   account's credential from a client's secret.
 - **A key pair of the UI's own for client secrets, apart from the credentials' key.** For it, a
-  compromised UI process would hold no key that opens a refresh token. Against it, the operator
-  chose the one key, with the UI's access isolated by code.
+  compromised UI process would hold no key that opens a refresh token. Not chosen. The decision
+  keeps one key, and isolates the UI's access by code.
 - **The client's secret stored a second time, in a form the UI reads.** For it, no private key in
-  the UI. Against it, the operator ruled the secret stays in its one sealed column.
+  the UI. Not chosen. The decision keeps the secret in its one sealed column.
 - **Encryption inside PostgreSQL.** No case was tabled for it. The key would have to reach the
   database, and [ADR-0060](../engineering/0060-no-code-in-the-database.md) keeps the system's logic
   out of it.
@@ -84,8 +83,8 @@ needs the secret of the client a consent was issued to.
   since it runs that exchange
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - **The cost.** A compromised UI process holds the private key that opens every stored refresh
-  token, since it is the same key. The guarantee that the UI opens no credential is its code's and
-  no longer key custody, so code an attacker runs inside the UI's process is held by neither. Its
+  token, since it is the same key. The guarantee that the UI opens no credential is its code's,
+  not key custody, so code an attacker runs inside the UI's process is held by neither. Its
   database role still never reads a stored credential
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), so the key yields a
   refresh token only with a credential's bytes taken from somewhere else.
@@ -93,11 +92,12 @@ needs the secret of the client a consent was issued to.
   opening part by what it links and what statements it runs. Code that sets out to get around them
   is held by review alone. Such code would open a value with primitives written from scratch, or
   reached through `go:linkname` or `unsafe`, with the key files whose paths the composition root
-  holds, or run a statement through the paths the analyser leaves to review, which ADR-0071 lists. Test
-  code is outside both rules, since it is never served. The same holds for a job kind of the worker
-  that calls no provider. Its import list holds it to the code it may link, and code that sets out
-  to read the process's memory or its key files is held by Go's memory safety and review, which is
-  why the worker's build carries no cgo and no dependency added for a job uses `unsafe`
+  holds, or run a statement through the paths the analyser leaves to review, which
+  [ADR-0071](../engineering/0071-static-enforcement-toolchain.md) lists. Test code is outside both
+  rules, since it is never served. The same holds for a job kind of the worker that calls no
+  provider. Its import list holds it to the code it may link, and code that sets out to read the
+  process's memory or its key files is held by Go's memory safety and review, which is why the
+  worker's build carries no cgo and no dependency added for a job uses `unsafe`
   ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)).
 - Losing the private key loses every stored credential and every OAuth client's secret. The
   operator recovers by setting up each OAuth client again and re-authorizing each account through

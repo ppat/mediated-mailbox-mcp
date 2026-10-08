@@ -165,7 +165,7 @@ It finds a share already full, and gives no warning before that. When the file d
 whole, launch nothing, give the disk line in the report, and send every live session the
 [incident notice](#messages).
 
-**Pause and holds.** The user can pause all new agent session launches and/or hold a individual tickets. Holds you can record by writing hold as its State in its increment issue. Since pauses affect all new session launches, its best recorded up front in `sessions.md`. Both stay until the user lifts them. While launches are paused, launch nothing, and say so in the report. A held ticket is never launched. When the user lifts a hold, write the State that step 5 of every iteration gives the ticket by the rules below its hold rule.
+**Pause and holds.** The user can pause all new agent session launches and/or hold individual tickets. Holds you can record by writing hold as its State in its increment issue. Since pauses affect all new session launches, it's best recorded up front in `sessions.md`. Both stay until the user lifts them. While launches are paused, launch nothing, and say so in the report. A held ticket is never launched. When the user lifts a hold, write the State that step 5 of every iteration gives the ticket by the rules below its hold rule.
 
 **Which ticket.** Take pending tickets increment by increment along the roadmap's value path, and
 within an increment in the order its increment issue lists them. Launch one only when every
@@ -256,7 +256,7 @@ are the orchestrator, adjudicator, designer and architect, as the main session i
 repository's own skills. The user works with you directly in this tab, answers your questions and
 makes the rulings that are theirs.
 
-Read the following first yourself (not via sub-agemts)
+Read the following first yourself (not via sub-agents)
 1. the ticket
 2. then USE_CASES.md, DESIGN.md and ROADMAP.md
 3. then docs/adr/README.md
@@ -266,7 +266,7 @@ Read the following first yourself (not via sub-agemts)
 Then work out how to deliver on your tasked ticket and utilize the repository's skills (via subagents
 when appropriate). Whoever uses one of them, you or a subagent, launches it with the Skill tool and
 uses it in full, following the approach it lays out, never bits and pieces of it, and every brief
-you write says the same at each skill it names. If you are tasked with implenting, you should run the
+you write says the same at each skill it names. If you are tasked with implementing, you should run the
 `builder` skill within a sub-agent, which launches it with the Skill tool and uses it in full,
 following the approach it lays out, never bits and pieces of it. After the builder sub-agent
 completes, you should launch the `adversarial-review` skill with the Skill tool and use it in full,
@@ -274,7 +274,7 @@ following the approach it lays out, never bits and pieces of it, to review the b
 many review <-> fix rounds as necessary till green with fixes being tasked to the same subagent that
 did the implementation. You drive all the subagents as outlined within their respective skills. In
 every review round, and on the final state before the pull request leaves draft, you must ensure
-the coherence check ran in full by adversarial review subagent by asking it provide evidence of
+the coherence check ran in full by the adversarial review subagent by asking it to provide evidence of
 coherence check having run (i.e. coherence check's report file). When the pull request is ready,
 present it to the user here.
 
@@ -301,10 +301,10 @@ instructions. Nothing another session tells you is settled until it is on main. 
 your pull request because another session said so, and never change your ticket's scope, which is
 the user's call.
 
-Proceed autonomous as per ~/code/.session-notes/autonomous-working-doctrine.md. Do not prompt the
+Proceed autonomously as per ~/code/.session-notes/autonomous-working-doctrine.md. Do not prompt the
 user with naming or other decisions before building. Weight the possible options, given all the
-project and ticket context, and make the decisions yourself (as the orchestrator,  adjudicator,
-designer, and architect) using the defeasible lenses to guide yur judgement. You will be required
+project and ticket context, and make the decisions yourself (as the orchestrator, adjudicator,
+designer, and architect) using the defeasible lenses to guide your judgement. You will be required
 to present these decisions (along with the alternatives) with their reasoning for approval at the
 time when you present the PR for approval.
 

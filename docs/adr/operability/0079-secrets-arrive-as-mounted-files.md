@@ -40,9 +40,10 @@ restarts.
 - **Secrets in environment variables.** No case was tabled for them. Rejected for the leak surfaces
   above.
 - **Secrets baked into the configuration repository (sealed or encrypted).** No case was tabled for
-  it. ADR-0038 rejected it on an argument about rotation write-back, which concerns account
-  credentials only, and no argument was made for these secrets either way. The rule carries over
-  from ADR-0038 unchanged.
+  it. [ADR-0038](./0038-credentials-as-mounted-files.md) rejected it on an argument about rotation
+  write-back, which concerns account credentials only, and no argument was made for these secrets
+  either way. The rule carries over from [ADR-0038](./0038-credentials-as-mounted-files.md)
+  unchanged.
 
 ## Consequences
 

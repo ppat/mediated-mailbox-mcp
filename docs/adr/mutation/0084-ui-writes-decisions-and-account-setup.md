@@ -39,37 +39,41 @@ decision verbs, a rollback request, OAuth client setup, account setup and policy
 The screens themselves, how they are organized, and what they read are the UI's design in
 [docs/UI.md](../../UI.md).
 
-Constraints that keep it safe to exist:
+These constraints keep it safe to exist.
 
 - **Writes go directly to Postgres, never through the client surface**, preserving every client's
   structural inability to approve its own plans.
 - **Separate Deployment, ServiceAccount, and database role.** It is read-only on most tables. Its
   read of `account_state` arrives with the statement that needs it and never covers `credential`
-  ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Its write grant is exactly the columns each decision verb sets, `reorg_plans(status, approved_at,
-  approved_by)` and `policy_candidates(status, reviewed_at, reviewed_by)`, the first of which also
-  carries the rollback request, a plan status
-  ([ADR-0020](./0020-reorg-plan-approve-apply-rollback.md)), insert on
-  `policy_rules` for the one row confirming a candidate emits
-  ([ADR-0004](../classification/0004-sender-list-decides.md)), and the columns OAuth client setup
-  and account setup write, among them the two last-authentication columns of `account_state`, where
-  the UI records the attempt its own code exchange made while completing a consent
-  ([ADR-0097](../operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)),
-  delete on `oauth_clients` for removing a client no account connects through
-  ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
-  and a read of a client's sealed secret for the one part of the UI that opens it
-  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)),
-  the writes on `policy_rules` that policy management makes, which is
-  importing, adding, editing and removing rules (ADR-0004), as insert, update of `domain_suffix` and
-  delete, and insert on `policy_changes` for the
-  history row each policy write appends
-  ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), and nothing else. The
-  setup columns are named where the tables holding the client and the account are designed, and
-  added to this grant then. The base policy's rules and history rows are written only in a transaction of the base policy's own
-  ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). The limit is enforced by
-  database permissions, so a UI bug cannot become a mailbox mutation. A write is made by the UI's own code in one transaction, with no
-  database-resident code ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The
-  identity a decision records is the value of a header the deployment declares an authenticating
-  proxy sets, else a configured operator name.
+  ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Beyond those reads, its
+  grant is exactly the following, and nothing else.
+  - The columns each decision verb sets, `reorg_plans(status, approved_at, approved_by)` and
+    `policy_candidates(status, reviewed_at, reviewed_by)`. The first also carries the rollback
+    request, a plan status ([ADR-0020](./0020-reorg-plan-approve-apply-rollback.md)).
+  - Insert on `policy_rules` for the one row confirming a candidate emits
+    ([ADR-0004](../classification/0004-sender-list-decides.md)).
+  - The columns OAuth client setup and account setup write. Among them are the two
+    last-authentication columns of `account_state`, where the UI records the attempt its own code
+    exchange made while completing a consent
+    ([ADR-0097](../operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
+    The setup columns are named where the tables holding the client and the account are designed.
+  - Delete on `oauth_clients`, for removing a client no account connects through
+    ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
+  - A read of a client's sealed secret, for the one part of the UI that opens it
+    ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)).
+  - The writes on `policy_rules` that policy management makes, which are importing, adding, editing
+    and removing rules ([ADR-0004](../classification/0004-sender-list-decides.md)), as insert,
+    update of `domain_suffix` and delete.
+  - Insert on `policy_changes`, for the history row each policy write appends
+    ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)).
+
+  The base policy's rules and history rows are written only in a transaction of the base policy's
+  own ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
+  The limit is enforced by database permissions, so a UI bug cannot become a mailbox mutation. A
+  write is made by the UI's own code in one transaction, with no database-resident code
+  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The identity a decision records is
+  the value of a header the deployment declares an authenticating proxy sets, else a configured
+  operator name.
 - **It seals credentials and its code never opens one.** The UI runs a provider's consent exchange
   when an account is connected or re-authorized
   ([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)),
@@ -83,10 +87,10 @@ Constraints that keep it safe to exist:
 - **It never displays message bodies**, structurally, because it reads a database with no body
   columns ([ADR-0016](../data/0016-schema.md)). Stated here so nobody later adds a "preview"
   feature by proxying through the mediator.
-- **TLS**, same posture as the client surface. **Authentication is not in the first version.** The
-  operator may place the UI behind an ingress that forwards to an authentication service and sets
-  a cookie, with the identity header above. The UI's own authentication (OpenID Connect, say) may
-  come later.
+- **TLS**, same posture as the client surface. **The UI carries no authentication of its own.**
+  The operator may place the UI behind an ingress that forwards to an authentication service and
+  sets a cookie, with the identity header above. Authentication by the UI itself (OpenID Connect,
+  say) is left open.
 
 The shape is a small single-page app over a thin read API. Its value is legibility, two decisions,
 a rollback request, connecting accounts and keeping the policy. Its design is
@@ -94,14 +98,16 @@ a rollback request, connecting accounts and keeping the policy. Its design is
 
 ## Alternatives considered
 
-- **Approval through the mediator's client surface (a privileged human token).** Rejected. It puts
-  the approval verb back into the surface clients speak, one credential-handling bug away from a
-  client's reach. Separate surface, separate process, separate identity.
+- **Approval through the mediator's client surface (a privileged human token).** No case was tabled
+  for it. Rejected. It puts the approval verb back into the surface clients speak, one
+  credential-handling bug away from a client's reach. Separate surface, separate process, separate
+  identity.
 - **CLI-only approval, no UI.** Workable for the approve verb alone, and acceptable as an interim.
   It fails the legibility half, since skip rates, masking events, and candidate evidence need
   visual review, and an unmeasured accepted risk is the thing this design refuses to carry.
-- **A full-featured mail client UI.** Rejected. Every feature added to a surface with write access
-  is blast radius, and a small write surface is what keeps the UI boring, which is the goal.
+- **A full-featured mail client UI.** No case was tabled for it. Rejected. Every feature added to a
+  surface with write access is blast radius, and a small write surface is what keeps the UI boring,
+  which is the goal.
 - **A separate deployable owning provider and account setup.** For it, the UI stays free of every
   credential. Against it, one more component, image and chart entry, holding the same plaintext
   moment the UI would.
@@ -117,12 +123,12 @@ a rollback request, connecting accounts and keeping the policy. Its design is
   ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). Policy management can lift
   restrictions, every account's included, and each lift is recorded in a history no runtime role
   can rewrite ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), so the
-  evidence of it survives. Setup lets it replace a
-  client or an account's credential, or capture a grant while a connection or re-authorization is
-  under way. Its code cannot open a stored credential, serve a body, or mutate mail directly. A
-  compromised UI process holds the private key that opens every stored credential, the cost
+  evidence of it survives. Setup lets it replace a client or an account's credential, or capture
+  a grant while a connection or re-authorization is under way. Its code cannot open a stored
+  credential, serve a body, or mutate mail directly. A compromised UI process holds the private key
+  that opens every stored credential, the cost
   [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md) states.
-- With no authentication in the first version, anyone who reaches the UI can set up a client,
+- With no authentication of the UI's own, anyone who reaches the UI can set up a client,
   connect an account or replace a credential. The request token of
   [ADR-0061](../operability/0061-ui-browser-security-posture.md) stops another site from forging
   those requests through the operator's browser. It does not stop a person on the network.

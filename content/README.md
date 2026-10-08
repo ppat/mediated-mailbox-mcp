@@ -15,14 +15,15 @@ is how content is converted, so every component that reads it reads the same for
 | --- | --- |
 | `markdown/` | The conversion of a body's HTML to clean Markdown, and the literal form of a body that has no HTML |
 
-The root package `content` holds no code. Its list, `content-without-converter` in `.golangci.yaml`,
-covers every file of the family outside `markdown`, so the converter is admitted in `markdown` alone.
+The root package `content` holds no code. Its list, `content-without-converter` in
+`.golangci.yaml`, covers every file of the family outside `markdown`, so the converter is admitted
+in `markdown` alone.
 
 **What does not belong.** Anything that stores content, any statement, and any decision about what
 is released. What is released around the Markdown, the untrusted-content delimiters and the
-serve-time pattern check ([ADR-0002](../docs/adr/redaction/0002-fetch-time-re-evaluation.md)), is the
-mediator's alone and sits in its own pure core, and what is withheld is the Content Scanner's and the
-gates'.
+serve-time pattern check ([ADR-0002](../docs/adr/redaction/0002-fetch-time-re-evaluation.md)), is
+the mediator's alone and sits in its own pure core, and what is withheld is the Content Scanner's
+and the gates'.
 
 ## The conversion to Markdown, `markdown`
 
@@ -33,8 +34,9 @@ The mediator converts a body when it serves it, and backfill and delta sync conv
 scanning. A verdict recorded at either is trusted when the mediator later serves the body, so the
 conversions must produce the same Markdown from the same HTML. The conversion calls outside code, so
 it cannot sit in `core/`, and a copy of its configuration in each deployable could drift apart
-unseen. So one package holds it, `content/markdown`, and all three deployables import it. Text from a
-message that has no HTML form is released as a fenced code block that shows it exactly
+unseen. So one package holds it, `content/markdown`, and the mediator, backfill and delta sync each
+import it. Text from a message that has no HTML form is released as a fenced code block that shows
+it exactly
 ([ADR-0100](../docs/adr/redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md)),
 and that form is `content/markdown`'s too, so every Markdown a client receives from a message comes
 from this package.

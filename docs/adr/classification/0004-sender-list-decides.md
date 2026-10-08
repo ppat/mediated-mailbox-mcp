@@ -6,11 +6,11 @@
 
 ## Context
 
-Sender classification carries the highest stakes in the system: it is the input that decides
-whether a body can ever be released. Three facts constrain the answer:
+Sender classification carries the highest stakes in the system, since it is the input that decides
+whether a body can ever be released. Three facts constrain the answer.
 
-- The set of sensitive senders is personal and open-ended — the operator adds domains over time.
-- The classification must be auditable after the fact: "why was this body released" needs an
+- The set of sensitive senders is personal and open-ended, and the operator adds domains over time.
+- The classification must be auditable after the fact, so "why was this body released" needs an
   answer better than a model score.
 - Institutions send from domains their customers have never heard of (`chase.com` customers
   receive mail from `chasealerts.com`), so a purely manual list goes stale silently.
@@ -18,16 +18,16 @@ whether a body can ever be released. Three facts constrain the answer:
 ## Decision
 
 **An explicit, operator-editable list is the only authority on sender class. Heuristics generate
-candidates for that list; nothing they emit takes effect without operator confirmation.**
+candidates for that list, and nothing they emit takes effect without operator confirmation.**
 
 A probabilistic model deciding whether the operator's brokerage is sensitive would be strictly
-worse than a list: unauditable, non-reproducible, and silently altered by retraining.
+worse than a list, being unauditable, non-reproducible, and silently altered by retraining.
 
 The list is a gazetteer with normalization and suffix matching. It lives in the database as rows,
 one per rule ([ADR-0016](../data/0016-schema.md)'s `policy_rules`), and every process takes it as
 an immutable snapshot ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). A file
 form exists for import and export. Every change to the list is made through the UI, which imports
-and exports that file and adds and edits rules. The file form is the one shown here:
+and exports that file and adds and edits rules. The file form is the one shown here.
 
 ```yaml
 rules:
@@ -50,7 +50,7 @@ a domain with none is classified restricted. Matching is on domain suffix at lab
 **Candidate generation** runs as a periodic job writing to a review queue the operator confirms
 through the UI. Confirmation inserts a policy rule row, written by the UI itself in the same
 transaction as the candidate's status
-([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)):
+([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)). The heuristics are these.
 
 | Heuristic | Signal | Cost |
 | --- | --- | --- |
@@ -60,46 +60,46 @@ transaction as the candidate's status
 | Transactional pattern | no `List-Id` + `noreply@` + never labeled | free |
 | Embedding similarity | vector over (domain tokens, display name, subject distribution) vs. the confirmed-sensitive centroid — one embedding per **sender**, not per message | cheap |
 
-The embedding row is where machine learning earns its place — surfacing candidates from a corpus
-nobody would hand-review — and its output is a ranked list for confirmation, never an autonomous
+The embedding row is where machine learning earns its place, by surfacing candidates from a corpus
+nobody would hand-review, and its output is a ranked list for confirmation, never an autonomous
 classification.
 
-**Spoofing posture.** The `From` header is forgeable, but note the attack's actual shape: spoofing
-*into* the deny list yields more redaction, not less. The real risk is the inverse — the unlisted
-co-brand domain. The list alone decides a sender's class. SPF, DKIM and DMARC results and display
-names are not inputs to the classification, so an authentication failure can never downgrade a
-listed sender and a display name can never make a sender restricted. A display name suggesting a
-listed institution is a signal for the display-name heuristic above, which proposes a candidate.
+**Spoofing posture.** The `From` header is forgeable, but the attack's actual shape matters.
+Spoofing *into* the deny list yields more redaction, not less. The real risk is the inverse, the
+unlisted co-brand domain. The list alone decides a sender's class. SPF, DKIM and DMARC results and
+display names are not inputs to the classification, so an authentication failure can never
+downgrade a listed sender and a display name can never make a sender restricted. A display name
+suggesting a listed institution is a signal for the display-name heuristic above, which proposes a
+candidate.
 
 ## Alternatives considered
 
-- **ML classifier as the authority.** Rejected on stakes: the highest-consequence decision in the
-  system would become unauditable and non-reproducible, and would shift under retraining without
-  anyone deciding anything.
-- **Static list with no candidate generation.** Rejected: the list decays as institutions add
-  sending domains, and the decay is invisible until a leak reveals it. The heuristics exist
-  precisely to make staleness observable and cheap to correct.
-- **A configuration file as the store, hot-reloaded.** The original decision, and the default
-  shape a hot-reload implementation takes. The operator ruled on 2026-09-10 that the policy lives
-  in the database, with a file only for import and export. The candidate confirmation is the
-  reason that shows. A confirmed candidate becomes a rule by one row written in the same
-  transaction as the decision, with nothing to copy into a file and no process to own the copy.
-- **Exact-domain matching without normalization.** Rejected: it multiplies rules per institution
-  and turns every new subdomain into a silent gap.
+- **ML classifier as the authority.** No case was tabled for it. Rejected on stakes: the
+  highest-consequence decision in the system would become unauditable and non-reproducible, and
+  would shift under retraining without anyone deciding anything.
+- **Static list with no candidate generation.** No case was tabled for it. Rejected: the list decays
+  as institutions add sending domains, and the decay is invisible until a leak reveals it. The
+  heuristics exist precisely to make staleness observable and cheap to correct.
+- **A configuration file as the store, hot-reloaded.** Its case is that it is the default shape a
+  hot-reload implementation takes. Rejected, because a confirmed candidate becomes a rule by one
+  row written in the same transaction as the decision, with nothing to copy into a file and no
+  process to own the copy. The policy lives in the database, with a file only for import and
+  export.
+- **Exact-domain matching without normalization.** No case was tabled for it. Rejected: it
+  multiplies rules per institution and turns every new subdomain into a silent gap.
 - **Authentication results and display names as inputs to classification.** The case for it is
   that mail from an unlisted co-brand domain that fails SPF, DKIM or DMARC and carries a listed
   institution's display name would be restricted at once, rather than released until the operator
-  confirms that domain as a candidate. Rejected by the operator on 2026-09-23. The list alone
-  decides, and a display name suggesting a listed institution is a signal for the display-name
-  heuristic, which proposes the domain as a candidate. That window of release until confirmation is
-  the accepted cost.
+  confirms that domain as a candidate. Rejected, because the list alone decides, and a display name
+  suggesting a listed institution is a signal for the display-name heuristic, which proposes the
+  domain as a candidate. That window of release until confirmation is the accepted cost.
 
 ## Consequences
 
-- Classification is deterministic and reproducible: the same message against the same policy
+- Classification is deterministic and reproducible. The same message against the same policy
   always classifies identically, and every classification names the rule that produced it.
-- The operator inherits a small standing duty — reviewing the candidate queue — in exchange for
-  the guarantee that nothing reclassifies itself.
+- The operator inherits a small standing duty, reviewing the candidate queue, in exchange for the
+  guarantee that nothing reclassifies itself.
 - Full-history backfill makes the first candidate report comprehensive on day one rather than
   accumulating over months, which is when list staleness would otherwise bite hardest.
 - Assumptions about other components: the classifier is a pure core

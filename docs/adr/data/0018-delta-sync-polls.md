@@ -6,13 +6,14 @@
 
 ## Context
 
-The index must track the live mailbox: new mail classified and masked promptly, label changes
-reflected, cursors advanced. Providers offer push notification (Gmail via Pub/Sub webhooks) and
+The index must track the live mailbox, with new mail classified and masked promptly, label changes
+reflected and cursors advanced. Providers offer push notification (Gmail via Pub/Sub webhooks) and
 pull (change feeds from a cursor).
 
 ## Decision
 
-**A recurring sync job polls every 5 minutes:**
+**Delta sync polls every 5 minutes**, the sync interval's default
+([ADR-0103](../operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)).
 
 ```
 changes_since(cursor) → ChangeSet{added, modified, removed}
@@ -23,34 +24,35 @@ changes_since(cursor) → ChangeSet{added, modified, removed}
   └─ advance cursor; on gap → bounded re-enumeration + alert
 ```
 
-Short, idempotent, cheap. Push gains little at 5-minute staleness tolerance — mail triage is not a
-real-time problem — and would require the inbound path the transport decision removed.
+Each tick is short, idempotent and cheap. Push gains little at 5-minute staleness tolerance, since
+mail triage is not a real-time problem, and it would require the inbound path the transport
+decision removed.
 
 **Cursor gaps are an expected condition with a bounded recovery.** Gmail invalidates history
-cursors older than roughly a week; JMAP signals `cannotCalculateChanges`. Both mean the same
-thing — resync: detect the gap, re-enumerate over a bounded window, and alert, because *frequent*
-gaps signal a stuck sync job rather than provider behavior.
+cursors older than roughly a week, and JMAP signals `cannotCalculateChanges`. Both mean the same
+thing, a resync. Sync detects the gap, re-enumerates over a bounded window, and alerts, because
+*frequent* gaps signal a stuck sync job rather than provider behavior.
 
-At steady state the tick is small — 50–200 new messages per 5-minute tick — well inside the sync
-class's 20% reservation ([ADR-0025](../operability/0025-priority-classes-and-leases.md)), each run
-a few seconds dominated by API latency. Scanning is a backfill-scale concern, not a steady-state
-one.
+At steady state the tick is small, 50–200 new messages per 5-minute tick, well inside the sync
+class's 20% reservation ([ADR-0025](../operability/0025-priority-classes-and-leases.md)), with
+each run a few seconds dominated by API latency. Scanning is a backfill-scale concern, not a
+steady-state one.
 
 ## Alternatives considered
 
 - **Push via Pub/Sub webhook.** Rejected: requires public inbound delivery (or an outbound
   long-poll bridge to emulate it), adds a cloud dependency and its failure modes, and buys
   freshness beneath the staleness anyone notices.
-- **Faster polling (sub-minute).** Rejected: cost without benefit at this problem's tempo;
-  the cadence spends from the same budget as everything else.
-- **Sync via periodic full re-enumeration.** Rejected: full traversal is the backfill primitive,
-  deliberately separate from the delta feed on the port
-  ([ADR-0010](../provider/0010-one-provider-port.md)); using it for sync would pay corpus-scale
+- **Faster polling (sub-minute).** No case was tabled for it. Rejected: cost without benefit at this
+  problem's tempo, since the cadence spends from the same budget as everything else.
+- **Sync via periodic full re-enumeration.** No case was tabled for it. Rejected: full traversal is
+  the backfill primitive, deliberately separate from the delta feed on the port
+  ([ADR-0010](../provider/0010-one-provider-port.md)), and using it for sync would pay corpus-scale
   cost per tick.
 
 ## Consequences
 
-- Freshness is bounded by the cadence: a new message may be up to one tick stale before it is
+- Freshness is bounded by the cadence, so a new message may be up to one tick stale before it is
   classified and visible. Accepted.
 - A message the change feed reports removed is removed from the index, with its sender's
   statistics rebuilt, since the index tracks the live mailbox
@@ -60,5 +62,6 @@ one.
 - How a gap's window is chosen, and how an account with no cursor starts, is
   [ADR-0105](./0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md). Delta sync's
   process form is [ADR-0103](../operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md).
-- Gap recovery plus idempotency make the sync job safe to run alongside backfill; reconciling
-  counts against the provider during early operation is the drift check.
+- Gap recovery plus idempotency make the sync job safe to run alongside backfill. Reconciling
+  counts against the provider is the drift check, and [ROADMAP.md](../../../ROADMAP.md) holds when
+  it runs.

@@ -17,7 +17,8 @@ requires that one deployable cannot import another's code. Neither names a tool 
 [ADR-0070](./0070-unit-comparison-through-one-options-value.md) and
 [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) each ban calls to named functions,
 which is not a kind [ADR-0042](./0042-implementation-stack.md) lists and still needs an analyser to
-refuse, and ADR-0069 confines a test library to named packages, so this record hosts those too.
+refuse, and [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md) confines a test library
+to named packages, so this record hosts those too.
 
 These are not style checks. Several of them are controls with rows in
 [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), so they are judged by the standard
@@ -55,8 +56,7 @@ standard-library package came first, because the pure-core rule is almost entire
 packages and a candidate that cannot reach them cannot carry the rule at all. Expressing a rule as
 what is permitted came second, because the rule makes a claim about everything and a forbidden list
 is a guess about the future. Working on the current Go version ordered the separate question of
-whether to run the analysers individually or under one command, and did so unexpectedly. Everything
-else broke ties.
+whether to run the analysers individually or under one command. Everything else broke ties.
 
 ## Decision
 
@@ -305,24 +305,26 @@ else broke ties.
   reports ill-formed or insufficient directives, so a well-formed directive naming a linter and
   carrying an explanation silences a ban while `nolintlint` at its strictest settings reports
   nothing. The aggregator offers no option to stop honouring the directives.
-- **Six checks are written here, because no tool offers them.** The rules against package-level
-  state in a pure core above. The rule above against a route the UI registers other than through its
-  recording mux. The check above that the build of `./...` reaches only packages
-  `./...` lists and compiles only files the lint reads. The suppression check above, written to
-  follow the aggregator's own reading of a directive so it refuses exactly what the aggregator would
-  honour, and refusing the spellings the aggregator ignores today as well, so a later release
-  honouring them cannot admit one silently. A package that must not compile, loaded with
-  `golang.org/x/tools/go/packages` through one helper in the shared test support, which requires the
-  exact type error rather than the presence of one. And the ban-proof script, which runs the
-  analysers, the suppression check and the build-graph check against the checked-in files violating
-  each ban and each list, requiring each expected finding and no other. The script also runs the
-  project's `go vet` analysers, for
-  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, the rules against
-  package-level state and against a route registered around the UI's recording mux above, the rule
+- **Seven checks are written here, because no tool offers them.** The rules against package-level
+  state in a pure core above. The rule above against a route the UI registers other than through
+  its recording mux. The rule above against a statement the UI runs other than through the
+  data-access library. The check above that the build of `./...` reaches only packages `./...`
+  lists and compiles only files the lint reads. The suppression check above, written to follow the
+  aggregator's own reading of a directive so it refuses exactly what the aggregator would honour,
+  and refusing the spellings the aggregator ignores as well, so a later release honouring them
+  cannot admit one silently. A package that must not compile, loaded with
+  `golang.org/x/tools/go/packages` through one helper in the shared test support, which requires
+  the exact type error rather than the presence of one. And the ban-proof script, which runs the
+  analysers, the suppression check and the build-graph check against the checked-in files
+  violating each ban and each list, requiring each expected finding and no other. The script also
+  runs the project's `go vet` analysers against their violation files, for
+  [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, the rules above
+  against package-level state, against a route registered around the UI's recording mux and
+  against a statement the UI runs around the data-access library, the rule
   [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) sets against reading the
-  environment outside a deployable's `main.go` and the rule
+  environment outside a deployable's `main.go`, and the rule
   [ADR-0047](../data/0047-schema-first-data-access.md) sets that every generated data-access
-  function runs inside the transaction helper, against their violation files.
+  function runs inside the transaction helper.
 
 ### What each tool's ordinary path does that other records forbid
 
@@ -349,7 +351,7 @@ grant check tests against the grants.
 | A rule cannot be switched off quietly | The suppression check refuses every directive, ignore comment and configuration setting that can reach a linter standing in for a control, anywhere in the repository, and allows an ordinary linter's suppression only in a form naming it. Each refused directive is proven by a violation file, and each refused configuration setting by a case in the ban-proof script's own tests |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
-| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core and against a route registered around the UI's recording mux, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a deployable's `main.go` and [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, which run beside it |
+| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core, against a route registered around the UI's recording mux and against a statement the UI runs around the data-access library, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a deployable's `main.go` and [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, which run beside it |
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and
@@ -424,13 +426,13 @@ of the same function as well.
   `go vet` analysers and the grant check all passed with propose's list unchanged, so a role
   [ADR-0075](../data/0075-one-runtime-role-per-deployable.md) bars from the credential reached its
   statements. The same held, measured, for these:
-  - a package at `propose/internal/_u`, one at `propose/internal/.d`, and one under
-    `ui/browser/node_modules`, which `go.mod` ignores;
-  - a symbolic link at `propose/internal/link` to a `testdata` directory;
-  - a nested module at `propose/internal/sub`, reached through a local `replace`, through a
-    `go.work` using it, or published under this module's path and fetched from a proxy;
-  - a module with another path at `tools/other`, reached through a `go.work` alone;
-  - a module replaced by a directory outside the repository.
+  - A package at `propose/internal/_u`, one at `propose/internal/.d`, and one under
+    `ui/browser/node_modules`, which `go.mod` ignores.
+  - A symbolic link at `propose/internal/link` to a `testdata` directory.
+  - A nested module at `propose/internal/sub`, reached through a local `replace`, through a
+    `go.work` using it, or published under this module's path and fetched from a proxy.
+  - A module with another path at `tools/other`, reached through a `go.work` alone.
+  - A module replaced by a directory outside the repository.
 
   A pure core's list admits `core/` by prefix in the same way, so the soundness above also rests on
   the build-graph check.
@@ -441,10 +443,10 @@ of the same function as well.
   package whose only file is named for `darwin`, were each left out of the files `go list` selects
   with the configuration's tags for Linux on amd64 with cgo, which is what the lint job reads, while
   a build for a configuration code ships in compiled it. The script refuses each. A constraint that
-  is a plain negation of a tag was already refused before this check, by the rule that only
-  violation files may depend on the `banproof` tag, since that rule evaluates a constraint with
-  every other tag set. The file names, the positive `darwin` constraint, the disjunction, the legacy
-  line and the package are what this check adds. It passes a file carrying `!banproof`, which the
+  is a plain negation of a tag is also refused by the rule that only violation files may depend on
+  the `banproof` tag, since that rule evaluates a constraint with every other tag set. The file
+  names, the positive `darwin` constraint, the disjunction, the legacy line and the package are
+  refused by this check alone. It passes a file carrying `!banproof`, which the
   gating lint reads because it sets no such tag, `!integration || devloop`, which the lint's tags
   make true, and `ignore`, `integration` or a name for `windows`, which no configuration code ships
   in compiles.
@@ -554,17 +556,17 @@ purpose-built tool would not.
 
 **`go-arch-lint`.** The strongest rival on shape. Allow-list expression is its only mode, so the
 denylist verb does not exist to reach for, and it names components once and declares a dependency
-graph between them rather than repeating globs. It was released days before this decision. It is
-rejected on a single fact that no setting changes: every standard-library import is allowed
-unconditionally, before any permission check runs, which was confirmed by reading the code that
-does it and by watching a core package import a networking package without being reported. Since
+graph between them rather than repeating globs. It is rejected on a single fact that no setting
+changes, which is that every standard-library import is allowed unconditionally, before any
+permission check runs. That was confirmed by reading the code that does it and by watching a core
+package import a networking package without being reported. Since
 the pure-core rule is almost entirely about standard-library packages, that is disqualifying here
 while leaving the tool perfectly good at the rule it does carry.
 
 **A check written here.** Its case is real and it is the reason this was close. It would walk
 whatever set the project decided rather than the imports written in one file, and it would have no
 suppression mechanism because none would be written. What decides against it is not capability but
-accumulation. This change already writes the suppression check, a compile-failure assertion and the
+accumulation. This record already writes the suppression check, a compile-failure assertion and the
 ban-proof script, and each owned mechanism is cheap alone while the set of them is a standing
 maintenance surface with no upstream. Spending that budget on the one rule an existing tool already
 expresses correctly is the wrong trade.
@@ -603,17 +605,17 @@ has no target here, which is why [ADR-0042](./0042-implementation-stack.md) name
 rather than a fourth covering closed sets of types. It also carries a second hazard worth recording.
 The `//sumtype:decl` annotation is what gives it anything to check, and removing that annotation
 leaves it reporting nothing rather than complaining, so the analyser would sit idle without saying
-so. No record in the set declares a closed set of types or sketches one. The one candidate structure
-found while checking, an operation in a reorganization plan where one field belongs to a single kind
-of operation, is not a sensitivity-carrying or verdict type, so that record's rules do not reach it,
-and its representation is undecided.
+so. No record in the set declares a closed set of types or sketches one. The only structure found
+that could take that shape is an operation in a reorganization plan where one field belongs to a
+single kind of operation. It is not a sensitivity-carrying or verdict type, so
+[ADR-0042](./0042-implementation-stack.md)'s rules do not reach it, and its representation is open.
 
 **How to assert that a package does not compile.** No tool does this. Two mechanisms were built and
 each was taken from failing to passing and back. One runs `go build` against a directory named
 `testdata`, which the toolchain excludes from ordinary builds, and requires a non-zero exit. The
 other loads the package with `golang.org/x/tools/go/packages` from inside an ordinary test and
-requires type errors to be present. Both are about fifteen lines. The second is
-chosen because it makes the assertion a test like any other rather than a separate step.
+requires type errors to be present. Both are about fifteen lines. The second is chosen because it
+makes the assertion a test like any other rather than a separate step.
 
 **How to prove a ban fires.** `analysistest`, from `golang.org/x/tools/go/analysis`, asserts
 expected diagnostics from comments in a fixture file. It works on any analyser exposed as a library
@@ -628,19 +630,20 @@ thirty-seven legitimate package-level variables outside pure cores, so it would 
 pure-core files by an exclusion rule, and the ban-proof script refuses any exclusion rule naming a
 linter that stands in for a control. It also admits exported error values, which a composition root
 can overwrite, so `reassign` would run beside it over the whole repository, and neither refuses a
-pure core overwriting its own error value. The operator chose on 2026-09-23 the rules in the
-project's own `go vet` analysers, which need no carve-out and refuse that write too.
+pure core overwriting its own error value. The rules sit in the project's own `go vet` analysers
+instead, which need no carve-out and refuse that write too.
 
 **How to refuse a package `./...` does not list.** Three mechanisms were weighed.
 
-- **An import list** cannot carry it. Allow entries are prefixes, and the packages to refuse sit
-  under the prefixes the lists admit.
+- **An import list** cannot carry it, because allow entries are prefixes and the packages to
+  refuse sit under the prefixes the lists admit. No case was tabled for it.
 - **A `go vet` analyser** reads each import as written and matches the path against the ways a
   package escapes `./...`. Those are a `testdata` element, a leading `_` or dot, the `ignore`
-  entries, a nested `go.mod`, a local `replace` and a `go.work`. It was built and mutation-tested.
-  Each review of it then found another way the build reached an unlisted package, a symbolic link
-  and a nested module published under this module's path among them. An analyser sees one package's files, so it can
-  only enumerate those ways, and the list is complete only until the next one is found.
+  entries, a nested `go.mod`, a local `replace` and a `go.work`. It was built and mutation-tested,
+  and review still found further ways the build reaches an unlisted package, a symbolic link and a
+  nested module published under this module's path among them. An analyser sees one package's
+  files, so it can only enumerate those ways, and the list is complete only until the next one is
+  found. No case was tabled for it.
 - **The build-graph check in the ban-proof script** was chosen, because it states the rule itself.
   It compares what the build reaches with what `./...` lists, so it needs no list of ways. Measured
   against every case above, it refused each one and passed the tree as it stands, in about two
@@ -708,13 +711,13 @@ the only mechanism holding a control.
 package importing `net/http`, or a test-only library reaching shipped code, would pass without a
 finding. The check written here loses as it did above, on accumulation rather than capability.
 `depguard` stays, for the inter-component rules as for the pure-core rule, and no list changed tool,
-so no list was proven again for a new one. Its cost is the one named above: its rules repeat file
-globs where a graph of components would declare each once.
+so no list was proven again for a new one. Its cost is the one named above, that its rules repeat
+file globs where a graph of components would declare each once.
 
 ## Consequences
 
 - **What leaving these choices would cost.** A configuration file, in every case. The rules
-  themselves are stated in the records that require them and survive any change of tool. The six
+  themselves are stated in the records that require them and survive any change of tool. The seven
   checks written here are each small enough to rewrite in an afternoon.
 - **What would re-argue this decision.** The aggregator's central argument is that it rebuilds
   analysers their own maintainers have not released against a current toolchain. If those projects
@@ -731,7 +734,7 @@ globs where a graph of components would declare each once.
   not itself govern makes the pure-core rule unsound without any check failing. That is review
   discipline on the configuration and is dispositioned in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
-- **The lists now form a graph of many components**, the condition under which the architecture
+- **The lists form a graph of many components**, the condition under which the architecture
   linter is worth reopening for the rules about this project's own packages. It is never worth
   reopening for the pure-core rule, for the reason the alternatives give. The condition is acted on
   the first time the lists are rewritten for a merge of deployables or a regrouping of libraries,

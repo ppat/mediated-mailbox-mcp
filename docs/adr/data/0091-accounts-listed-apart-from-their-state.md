@@ -16,9 +16,8 @@ readers also need the client the account connects through
 The account snapshot builds each account's token source from that client, and the UI's
 installation screens name the accounts a client serves before it is replaced or removed. The
 mediator's accounts listing gives its clients the identifier and provider alone. No listing needs
-anything else. An account also carries its own state, the
-backfill flags, the sync cursor and the last authentication, and the sealed credential and rate
-target the account setup writes
+anything else. An account also carries its own state, the backfill flags, the sync cursor and the
+last authentication, and the sealed credential and rate target the account setup writes
 ([ADR-0080](./0080-accounts-and-credentials-live-in-the-database.md)).
 
 A read policy that showed every row of one table holding both would show every column the listing
@@ -28,16 +27,15 @@ column grant cannot tell the two reads apart.
 ## Decision
 
 - **`accounts` holds each account's identifier, its provider and the OAuth client it connects
-  through, and nothing else.** The roles that list accounts
-  read all of its rows. They are the UI's, for its account selector, and the mediator's, backfill's,
-  delta sync's and the reorg workload's, for their account snapshots. How the heuristics job finds
-  its accounts is decided where it is built. Writes stay confined to the transaction's account, as
-  on every other account-keyed table.
+  through, and nothing else.** The roles that list accounts read all of its rows. They are the
+  UI's, for its account selector, and the mediator's, backfill's, delta sync's and the reorg
+  workload's, for their account snapshots. How the heuristics job finds its accounts is not decided
+  here and is tracked in [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions). Writes
+  stay confined to the transaction's account, as on every other account-keyed table.
 - **`account_state` holds everything else an account carries**, one row per account under the
   per-account row-level security policy. That is the sealed credential, the mailbox address it
-  remembers, the rate target, the backfill flags, the sync cursor and the last
-  authentication. The account setup writes both rows
-  in one transaction.
+  remembers, the rate target, the backfill flags, the sync cursor and the last authentication. The
+  account setup writes both rows in one transaction.
 - **A reader that finds an account with no state row treats it as not connected.**
 
 ## Alternatives considered

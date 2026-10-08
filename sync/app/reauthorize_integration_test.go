@@ -25,7 +25,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
-// provider plays Google for one account over the provider fake: it honours one refresh token, and
+// provider plays Google for one account over the provider fake. It honours one refresh token, and
 // refuses every call made over a port built on a source holding any other as a refused credential,
 // counting the calls it refuses. Google's token endpoint is out of reach without a stand-in for it
 // (ADR-0043), so the refusal is the fake's schedule, the same contract plus a schedule. When operator

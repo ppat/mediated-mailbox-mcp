@@ -121,7 +121,8 @@ func baselineDays() []string {
 // The baseline is the seven whole UTC days 2026-09-02 to 2026-09-08. Ten more serves at 01:00 on
 // 2026-09-02, before the time of day the 24 hours start at, make that day 11 and the median 5. A rolling
 // week, the 7 times 24 hours before the 24 hours start, would leave those ten out and take in the one serve
-// at 06:16 on 2026-09-09, a median of 4, so 10 serves tell the two apart: silent against 5, firing against 4.
+// at 06:16 on 2026-09-09, a median of 4, so 10 serves tell the two apart, silent against 5 and
+// firing against 4.
 func TestTheBodyServeRuleFiresFarAboveItsMedian(t *testing.T) {
 	// Outside the baseline sit five hundred serves at noon on 2026-09-01 and one in the hours of
 	// 2026-09-09 before the 24 hours start, which no median of whole days reads.
