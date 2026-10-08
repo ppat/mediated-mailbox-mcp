@@ -1,0 +1,20 @@
+control: Every caller that binds a sender domain to a statement binds the one domain normalizer's output
+removes: the index query's domain term is lowercased by Go's simple mapping instead of passing through the domain normalizer
+packages: ./mediate/internal/service
+tests: TestTheDomainAndClassTermsReadTheStoredForm
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
+index 2c5d937b..c8a773d1 100644
+--- a/mediate/internal/service/query.go
++++ b/mediate/internal/service/query.go
+@@ -112,7 +112,7 @@ func readQuery(account string, raw json.RawMessage) (selection, error) {
+ 		sel.params.FromEmails = []string{*q.From}
+ 	}
+ 	if q.FromDomain != nil {
+-		sel.params.FromDomains = []string{index.StoredDomain(*q.FromDomain)}
++		sel.params.FromDomains = []string{strings.ToLower(*q.FromDomain) + index.StoredDomain("")}
+ 	}
+ 	sel.params.Labels = q.Labels
+ 	sel.params.ExcludedLabels = q.ExcludedLabels

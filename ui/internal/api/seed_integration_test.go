@@ -88,7 +88,7 @@ func seed(t *testing.T) {
 			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, sender_class, content_flags, scan_state) VALUES
 			($1, 'm-bank', 't-bank', $2, 'bank.example', $3, $4, $5, '{}', true, 'restricted', '{}', 'skipped_restricted'),
 			($1, 'm-news', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'scanned'),
-			($1, 'm-news2', 't-news', $6, 'Newsletter.Example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'pending'),
+			($1, 'm-news2', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'pending'),
 			($1, 'm-empty', 't-empty', 'nobody@', '', $7, $8, $9, '{}', false, 'normal', '{}', 'scanned'),
 			($1, 'm-mask', 't-mask', 'codes@' || $12::text, $12::text, $7, $8, $9, '{}', false, 'normal', '{mfa_code}', 'scanned'),
 			($10, 'm-other', 't-other', $11::text, 'other.example', $11::text, $11::text, $9, '{}', false, 'normal', '{}', 'pending')`,

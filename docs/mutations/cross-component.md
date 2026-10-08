@@ -179,6 +179,18 @@ The demonstrations of the controls whose patches sit in more than one component'
 - **Break (3):** every account spends under the default target, whatever target it was given
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestALoweredTargetBoundsOnlyItsOwnAccount`
 
+## Every caller that binds a sender domain to a statement binds the one domain normalizer's output
+
+- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
+- **Break (1):** the index query's domain term is bound as the client typed it, leaving case to the database
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheDomainAndClassTermsReadTheStoredForm`
+- **Break (2):** the index query's domain term is lowercased by Go's simple mapping instead of passing through the domain normalizer
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheDomainAndClassTermsReadTheStoredForm`
+- **Break (3):** the failures dataset's sender filter is bound as the operator typed it, leaving case to the database
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestADomainTypedInAnyCaseFindsItsStoredForm`
+- **Break (4):** the senders dataset's search is bound as the operator typed it, so it no longer ignores case
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestADomainTypedInAnyCaseFindsItsStoredForm`
+
 ## Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
 
 - **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
@@ -287,7 +299,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## The messages whose sender could not be classified are counted per account
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** no message is marked as having an unclassified sender
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestEachPageIsAUnitOfWork`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestDecide`

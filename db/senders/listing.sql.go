@@ -11,6 +11,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const senderDomains = `-- name: SenderDomains :many
+SELECT s.domain
+FROM senders AS s
+WHERE s.account_id = $1
+ORDER BY s.domain
+`
+
+// Every sender domain the account's statistics hold, which are exactly the domains its messages are
+// stored under, since every workload that adds or removes messages rebuilds or removes the statistics
+// of each domain it touched in the same transaction (ADR-0109). The service layer classifies each under
+// the policy in force before a read that selects or groups by sender class, and passes the normal ones
+// to the statement (ADR-0108).
+func (q *Queries) SenderDomains(ctx context.Context, accountID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, senderDomains, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
+			return nil, err
+		}
+		items = append(items, domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const senderPage = `-- name: SenderPage :many
 SELECT
     s.domain,

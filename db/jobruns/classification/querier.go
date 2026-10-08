@@ -34,11 +34,10 @@ type Querier interface {
 	// FailuresByErrorClass, with the items that have none in a null group.
 	FailuresByPage(ctx context.Context, arg FailuresByPageParams) ([]FailuresByPageRow, error)
 	// Every group of a run's failures by the domain of the item's message, as FailuresByErrorClass,
-	// with the items that have none in a null group, which no_domain marks. The domain is
-	// case-insensitive, so the spellings of one domain are one group, and its key is the domain lowered by
-	// the same function the case-insensitive comparison uses, so the key names the group whatever the
-	// spellings and the database's locale. The sender filter compares case-insensitively and matches
-	// every spelling. A stored empty domain is a group of its own, keyed empty, apart from the null group.
+	// with the items that have none in a null group, which no_domain marks. Every writer stores a domain in
+	// the one form the domain normalizer gives, so each domain has one spelling and its key is that
+	// spelling, and the sender filter is given its values in the same form (ADR-0016). A stored empty
+	// domain is a group of its own, keyed empty, apart from the null group.
 	FailuresBySender(ctx context.Context, arg FailuresBySenderParams) ([]FailuresBySenderRow, error)
 }
 

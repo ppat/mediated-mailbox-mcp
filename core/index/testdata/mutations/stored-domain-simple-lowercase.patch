@@ -1,0 +1,19 @@
+control: A stored sender domain is stored in the normalizer's form and classifies as the address it came from
+removes: the domain normalizer lowercases by Go's simple mapping, which lowers the dotted capital I to a plain i where the classifier reads i followed by U+0307
+packages: ./core/index
+tests: TestStoredDomain TestAStoredDomainClassifiesAsItsAddress TestEveryCodePointStoresAsTheClassifierReadsIt
+scheduled-count: no
+
+diff --git a/core/index/index.go b/core/index/index.go
+index afff1b2c..0b6043af 100644
+--- a/core/index/index.go
++++ b/core/index/index.go
+@@ -156,7 +156,7 @@ func domain(address string) string {
+ // the simple mapping alone, a rule listing a domain written with U+0130 would restrict the address
+ // but not the stored domain.
+ func StoredDomain(domain string) string {
+-	return strings.ToLower(strings.ReplaceAll(domain, "\u0130", "i\u0307"))
++	return strings.ToLower(domain)
+ }
+ 
+ // StoredFlags returns a message's flags in the form the index stores them, an object keyed read and

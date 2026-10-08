@@ -62,7 +62,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again, (9) to (13) for the index reads, on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again, (9) to (13) for the index reads, on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 1, 2, 3, 9, 10, 11, 12 and 13 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** a cursor another account's listing returned is taken
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAListingPagesThroughEveryRowOnce`, `TestAnIndexReadPagesThroughEveryRowOnce`
 - **Break (2):** a cursor a listing with another filter returned is taken
@@ -92,9 +92,9 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A message whose body is denied stays in every count, group and search result of the index reads
 
-- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** the search leaves out every message whose body the gate denies
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestTheDomainAndClassTermsReadTheStoredForm`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
 - **Break (2):** the summary of a selection leaves out the messages pending their content scan
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`
 - **Break (3):** the summary counts as a selection's messages only those whose body could be released, scanned with no content flag
@@ -146,7 +146,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A served operation takes only the arguments its input schema declares, in exactly that case, and never as null
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and breaks (1) and (2) again and (3) and (4) for the index query on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and breaks (1) and (2) again and (3) and (4) for the index query on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 3 and 4 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** a key naming no declared argument reaches the decoder, which matches it to one in another case
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp`:** `TestAServedToolTakesOnlyTheArgumentsItDeclares`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAServedOperationTakesOnlyTheArgumentsItDeclares`
@@ -289,7 +289,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Enumeration and counting reach the whole corpus, not a recent window
 
-- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** the search selects only the messages of the last five years
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEnumerationReachesTheWholeCorpus`
 - **Break (2):** the summary counts only the messages of the last five years
@@ -541,20 +541,20 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
 
-- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
-- **Break (1):** the sender class term is never resolved to the addresses classified normal, so it selects every message
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_false`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`, `TestEveryMessageStaysInEveryIndexRead`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
-- **Break (2):** the index reads classify the senders under no policy, which restricts every sender, instead of the policy the call took
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_false`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`, `TestEveryMessageStaysInEveryIndexRead`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
-- **Break (3):** the sender listing shows every sender domain whose addresses the index holds as normal, whatever the policy classifies them
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
-- **Break (4):** the sender listing shows a domain the index holds no address for as normal, without classifying it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
+- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, with the class term classifying domains, the fourth break replaced since the sender listing no longer falls back for a domain with no address · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
+- **Break (1):** the sender class term is never resolved to the domains classified normal, so it selects every message
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_false`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`, `TestEveryMessageStaysInEveryIndexRead`, `TestTheDomainAndClassTermsReadTheStoredForm`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
+- **Break (2):** the index reads classify the sender domains under no policy, which restricts every sender, instead of the policy the call took
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_false`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`, `TestEveryMessageStaysInEveryIndexRead`, `TestTheDomainAndClassTermsReadTheStoredForm`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
+- **Break (3):** the sender listing shows every sender domain as normal, whatever the policy classifies it
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheDomainAndClassTermsReadTheStoredForm`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
+- **Break (4):** the sender listing classifies each domain under no policy, which restricts every sender, instead of the policy the call took
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheDomainAndClassTermsReadTheStoredForm`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
 - **Break (5):** a grouping by sender class counts both classes whatever class the query selects, so a group holds messages outside the selection
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
 - **Break (6):** the transaction helper opens an index read's transaction at the default isolation level, so each statement reads the state committed when it starts
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`
-- **Break (7):** the class term passes the addresses classified restricted and counts every other address as normal, so an address the call did not classify fails open
+- **Break (7):** the class term passes the domains classified restricted and counts every other domain as normal, so a domain the call did not classify fails open
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_false`
 - **Break (8):** the search runs its statements outside the snapshot, so each reads the state committed when it starts
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`

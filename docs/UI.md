@@ -529,7 +529,7 @@ rule's name in the table. What each rule reads, and what its number and since ar
 | Rule | Reads | Number | Since | Cards |
 | --- | --- | --- | --- | --- |
 | Backlog | the messages pending scan against every message the index holds, as of the read | the messages pending scan | none, and the card shows "now" | one, and none while the index is empty |
-| Masking | the masking events of the last 7 days whose scanner version and revision equal those their subject was masked under ([section 8.5](#85-the-analysis-lenses)), each counted under its rule and the domain of its message's sender, lowered as the `sender` dimension lowers it ([section 17.1](#171-the-dataset-endpoint)) | the pair's events | the pair's first event in the 7 days | one per sender and rule above the threshold |
+| Masking | the masking events of the last 7 days whose scanner version and revision equal those their subject was masked under ([section 8.5](#85-the-analysis-lenses)), each counted under its rule and the domain of its message's sender, keyed as the `sender` dimension keys it ([section 17.1](#171-the-dataset-endpoint)) | the pair's events | the pair's first event in the 7 days | one per sender and rule above the threshold |
 | Body serves | the `READ_BODY` audit rows of the last 24 hours, against the median of the daily `READ_BODY` counts over the seven whole UTC days before the 24 hours start, a day without one counting 0 | the bodies served in the 24 hours | the first of them | one |
 | Sync gap | the delta-sync runs whose pass is `gap_recovery`, that succeeded and started within the rule's days | the recoveries | the first one's start | one, its sentence worded from the latest recovery |
 
@@ -2155,13 +2155,15 @@ restricted) and `flagged` (rows whose message carries a content flag), so every 
 sensitivity without a second request. Both read `messages.sender_class` and
 `messages.content_flags` at read time, the index's current values. `senders` carries neither, and
 its rows carry the sender's class. Group keys are the dimension values as stored, with `null` for
-the unfiled label group and for an audit row with no message. A case-insensitive dimension, such as
-`sender`, groups every spelling of a value together, so its key is the value as the database lowers
-it, by the function its case-insensitive comparison uses, and a filter naming that key matches every
-spelling. Sending one stored spelling was the alternative, and which spelling names the group would
-then be the database's arbitrary pick. A value stored empty, such as an empty domain, is a group of
-its own keyed by the empty string, apart from the null group, and a filter names it `empty`, since
-`dim=` with no value is a removed default filter
+the unfiled label group and for an audit row with no message. The `sender` dimension's values are
+sender domains, which every writer stores in the one form the domain normalizer gives
+([ADR-0016](./adr/data/0016-schema.md)), so each has one spelling and its key is that spelling. The
+server passes each value a filter names through the same normalizer, so a filter matches a domain
+whatever case it is typed in. Lowering the key and the filter in the database was the alternative,
+and PostgreSQL's `lower()` depends on the database's collation, so a key and a stored domain could
+differ on one database and agree on another. A value stored empty, such as an empty domain, is a
+group of its own keyed by the empty string, apart from the null group, and a filter names it
+`empty`, since `dim=` with no value is a removed default filter
 ([section 5](#5-information-architecture-and-the-url)) and the endpoint refuses an empty value. A
 dimension declares whether it can hold a value stored empty, and `empty` is refused on one that
 cannot, as `none` is on one with no null group. Of the dimensions served, `sender` alone can,

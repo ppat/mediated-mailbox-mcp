@@ -319,6 +319,20 @@ func count(t tb, conn *pgx.Conn, sql string, args ...any) int {
 	return n
 }
 
+// texts returns the text a query reads from each row, in order.
+func texts(t tb, conn *pgx.Conn, sql string, args ...any) []string {
+	t.Helper()
+	rows, err := conn.Query(context.Background(), sql, args...)
+	if err != nil {
+		t.Fatalf("%s: %v", sql, err)
+	}
+	out, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		t.Fatalf("%s: %v", sql, err)
+	}
+	return out
+}
+
 // mustTick runs one tick and fails the test on an error.
 func mustTick(t tb, d tick.Deps, account string) tick.Result {
 	t.Helper()

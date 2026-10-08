@@ -103,7 +103,9 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   The generator's own per-query suppression annotation appears in no statement file, because a
   suppression is refused wherever a check stands in for a control
   ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). It cannot reach the parse-tree
-  pass, which is the project's.
+  pass, which is the project's. The same pass also refuses the case-folding functions and the
+  case-insensitive matches over a sender domain column that its scope names, for a rule
+  [ADR-0016](./0016-schema.md) states ([db/README.md](../../../db/README.md#the-checks)).
 - **An indexed column is compared only with leakproof operators.** Every runtime role reads under
   row-level security ([ADR-0016](./0016-schema.md)), and PostgreSQL uses a predicate as an index
   condition ahead of a policy only when every function it applies to the row's columns is

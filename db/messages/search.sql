@@ -37,7 +37,12 @@ WHERE
     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
     AND (
         @restricted::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any(@restricted::boolean[])
     )
     AND (
         @first_page::boolean
@@ -121,7 +126,12 @@ WHERE
     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
     AND (
         @restricted::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any(@restricted::boolean[])
     );
 
 -- name: CountBySender :many
@@ -157,7 +167,12 @@ WHERE
     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
     AND (
         @restricted::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any(@restricted::boolean[])
     )
 GROUP BY m.from_email
 HAVING
@@ -200,7 +215,12 @@ WHERE
     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
     AND (
         @restricted::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any(@restricted::boolean[])
     )
 GROUP BY m.from_domain
 HAVING
@@ -246,7 +266,12 @@ WHERE
     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
     AND (
         @restricted::boolean[] IS NULL
-        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
+        OR (
+            NOT EXISTS (
+                SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                WHERE n.d = m.from_domain::text
+            )
+        ) = any(@restricted::boolean[])
     )
 GROUP BY l.label
 ORDER BY messages DESC, l.label ASC;
@@ -293,18 +318,13 @@ FROM (
         AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
         AND (
             @restricted::boolean[] IS NULL
-            OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
+            OR (
+                NOT EXISTS (
+                    SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                    WHERE n.d = m.from_domain::text
+                )
+            ) = any(@restricted::boolean[])
         )
 ) AS g
 GROUP BY g.month
 ORDER BY messages DESC, g.month ASC;
-
--- name: SenderAddresses :many
--- Every distinct sender address the account's messages hold, with its domain, which the service layer
--- classifies under the policy in force before a read that filters, groups or lists by sender class.
-SELECT DISTINCT
-    m.from_email,
-    m.from_domain
-FROM messages AS m
-WHERE m.account_id = @account_id
-ORDER BY m.from_email, m.from_domain;

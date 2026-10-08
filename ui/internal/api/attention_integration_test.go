@@ -204,15 +204,15 @@ func TestTheSyncGapRuleShowsTheRecovery(t *testing.T) {
 }
 
 // TestTheMaskingRuleCountsEachSenderAndRule fires on the seeded sender masked 21 times under one rule,
-// stays silent on a sender at exactly the count, counts every spelling of a domain together, counts no
-// event whose message the index no longer holds and no event of a masking a change of scanner replaced,
+// stays silent on a sender at exactly the count, counts a domain's messages together whatever case
+// their addresses are written in, counts no event whose message the index no longer holds and no event of a masking a change of scanner replaced,
 // and never counts the other account's events.
 func TestTheMaskingRuleCountsEachSenderAndRule(t *testing.T) {
 	statements := []string{
 		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state) VALUES
-		($1, 'm-shop1', 't-shop', 'a@Shop.Example', 'Shop.Example', $2, false, 'normal', 'scanned'),
+		($1, 'm-shop1', 't-shop', 'a@Shop.Example', 'shop.example', $2, false, 'normal', 'scanned'),
 		($1, 'm-shop2', 't-shop', 'b@shop.example', 'shop.example', $2, false, 'normal', 'scanned')`,
-		// Twenty events on the shop under one rule, eleven and nine across the two spellings, is at the count.
+		// Twenty events on the shop under one rule, eleven and nine across its two messages, is at the count.
 		`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at)
 		SELECT $1, CASE WHEN n < 11 THEN 'm-shop1' ELSE 'm-shop2' END, 'subject', 'content.link', 1, $2::timestamptz - make_interval(hours => n + 1)
 		FROM generate_series(0, 19) AS n`,
@@ -239,7 +239,7 @@ func TestTheMaskingRuleCountsEachSenderAndRule(t *testing.T) {
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("masking (-want +got):\n%s", diff)
 	}
-	// One more event on the shop takes it above the count, and both spellings count as one sender.
+	// One more event on the shop takes it above the count, and both messages count as one sender.
 	more := append(statements, `INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at) VALUES ($1, 'm-shop2', 'subject', 'content.link', 1, $2)`)
 	got = only(cardsUnder(t, starting(), more...), "masking")
 	// The shop's first event, 20 hours ago, is newer than the seeded sender's, so its card comes first.

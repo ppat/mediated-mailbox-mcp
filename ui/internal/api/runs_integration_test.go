@@ -217,9 +217,9 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 	if want := []string{"newsletter.example=2", "none=2", "bank.example=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by sender the groups are %v, want %v, the page item and the gone message in none last among equals", g.counts(), want)
 	}
-	// The domain is case-insensitive, and the seed spells the newsletter's domain two ways. The group
-	// holds both, and a filter naming either spelling, or a third, returns the group's rows, and an
-	// exclusion in any spelling drops them all.
+	// The newsletter's two messages are stored under one domain, as the domain normalizer writes it. A
+	// filter naming the domain in any case returns the group's rows, and an exclusion in any case drops
+	// them all, since the server gives the filter its values in the stored form.
 	var items struct {
 		Total struct {
 			Count int64 `json:"count"`
@@ -232,7 +232,7 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 		}
 		read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=3&sender=!"+spelling, &items)
 		if items.Total.Count != 3 {
-			t.Errorf("sender=!%s leaves %d items, want 3 with both spellings dropped", spelling, items.Total.Count)
+			t.Errorf("sender=!%s leaves %d items, want 3 with the group's 2 dropped", spelling, items.Total.Count)
 		}
 	}
 	// A message stored with an empty domain is a group of its own, keyed empty, apart from the null

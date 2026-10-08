@@ -45,7 +45,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick applies each change set in the transaction that advances the cursor past it
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 2, 3 and 4 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** the cursor is stored in a transaction of its own before the change set's writes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestTheCursorNeverRunsAheadOfTheIndex`
 - **Break (2):** a change set's application stores no cursor, so the next tick asks for the same changes again
@@ -83,7 +83,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## An account with no cursor is reconciled over the first window inside its tick
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** an account's first reconciliation is reported as a cursor gap, so the gap series and its alert count a cursor that was never lost
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickAppliesTheChangesSinceItsCursor`
 - **Break (2):** an account with no cursor takes the current cursor and lists only what is dated after it
@@ -158,7 +158,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 10 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** delta sync sets an account's backlog series before backfill's second pass has ended
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
 - **Break (2):** a tick's backlog never reaches delta sync's backlog series

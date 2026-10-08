@@ -69,6 +69,20 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 	d := deps(t, syncPool(t), p, listing(t, "bank.example"), account)
 
 	first := mustTick(t, d, account)
+	// The statistics hold exactly the domains the index stores, which the mediator's sender class term
+	// reads the domains it classifies from (ADR-0109).
+	sameDomains := func(after string, want []string) {
+		t.Helper()
+		for what, sql := range map[string]string{
+			"the statistics": "SELECT domain::text FROM senders WHERE account_id = $1 ORDER BY 1",
+			"the index":      "SELECT DISTINCT from_domain::text FROM messages WHERE account_id = $1 ORDER BY 1",
+		} {
+			if got := texts(t, conn, sql, account); !slices.Equal(got, want) {
+				t.Errorf("after the %s tick %s holds the domains %q, want %q", after, what, got, want)
+			}
+		}
+	}
+	sameDomains("first", []string{"gone.example", "shop.example"})
 
 	cursor, written := cursorOf(t, conn, account)
 	if cursor != "h0" || written == nil {
@@ -93,6 +107,7 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 	}
 
 	second := mustTick(t, d, account)
+	sameDomains("second", []string{"", "bank.example", "security.example", "shop.example"})
 
 	got := index(t, conn, account)
 	want := map[string]stored{

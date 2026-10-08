@@ -430,15 +430,26 @@ The shape enforces these properties.
     kinds grow on rebuildable rows an update can fix, the gate decision's reason, a run event's
     kind, a failure's class, item kind and disposition, and a masking event's tier.
 - **Sender domains are stored as lowercase `text`.** Every stored domain is written through one
-  normalizer in Go that lowercases it, and no statement lowercases in SQL, because PostgreSQL's
-  `lower()` differs from Go's and depends on the database's collation, so a statement that lowered
-  in SQL would match some stored values on one database and miss them on another. The check
-  `x = lower(x COLLATE "C")` is a guard, not the definition. It refuses an ASCII capital, the
-  plausible bug of a writer skipping the normalizer, and means the same on every database, since
-  the `C` collation folds only A to Z, and it refuses nothing Go's function produces. A domain
-  written in punycode is stored in punycode and one written in Unicode in Unicode. Case-insensitive
-  text stays only where display case must be kept and matching needs no index, which is
-  `from_email`.
+  normalizer in Go, `index.StoredDomain`, and every caller that binds a domain to a statement binds
+  its output. The normalizer applies Go's simple lowercase mapping, with U+0130 (`İ`) taken to `i`
+  followed by U+0307 as Unicode's SpecialCasing.txt does, the one unconditional entry there whose
+  lowercase differs from the simple mapping's `i`. It applies none of that file's conditional
+  entries, such as the final sigma, because the sender classifier's UTS #46 mapping
+  ([ADR-0004](../classification/0004-sender-list-decides.md)) maps each character the same wherever
+  it stands and takes no language, and takes U+0130 the same way. So a stored domain classifies as
+  the address it came from, which classifying senders by domain relies on
+  ([ADR-0108](../operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)).
+  No statement folds a domain's case in SQL, because PostgreSQL's `lower()` differs from Go's and
+  depends on the database's collation, so a statement that lowered in SQL would match some stored
+  values on one database and miss them on another, and with one spelling of each domain stored a
+  grouping has nothing for it to merge. The parse-tree pass over the statement files refuses the
+  forms its scope names ([db/README.md](../../../db/README.md#the-checks)), and review holds the
+  rest of the rule. The check `x = lower(x COLLATE "C")` is a guard, not the definition. It refuses
+  an ASCII capital, the plausible bug of a writer skipping the normalizer, and means the same on
+  every database, since the `C` collation folds only A to Z, and it refuses nothing the normalizer
+  produces. A domain written in punycode is stored in punycode and one written in Unicode in
+  Unicode. Case-insensitive text stays only where display case must be kept and matching needs no
+  index, which is `from_email`.
 - **The audit row records what a body decision rests on, in typed columns**: the stage that
   decided, the reason, the sender class with the rule behind it and that rule's scope, the content
   flags with the scanner rules behind them kept apart from the serve-time check's, the scan state,

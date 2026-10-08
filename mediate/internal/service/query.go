@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 )
@@ -66,7 +67,7 @@ const queryDescription = "query selects messages by every term it holds, and an 
 	"A message whose body is denied is selected like any other."
 
 // selection is an index query read and checked, as the statements take it, and its canonical text,
-// which a cursor is bound to. The sender class term is not yet resolved to addresses.
+// which a cursor is bound to. The sender class term is not yet resolved to domains.
 type selection struct {
 	params messages.SearchSummaryParams
 	class  *string
@@ -111,7 +112,7 @@ func readQuery(account string, raw json.RawMessage) (selection, error) {
 		sel.params.FromEmails = []string{*q.From}
 	}
 	if q.FromDomain != nil {
-		sel.params.FromDomains = []string{*q.FromDomain}
+		sel.params.FromDomains = []string{index.StoredDomain(*q.FromDomain)}
 	}
 	sel.params.Labels = q.Labels
 	sel.params.ExcludedLabels = q.ExcludedLabels
@@ -174,36 +175,34 @@ func oneOf(b *bool) []bool {
 	return []bool{*b}
 }
 
-// classes are the sender classes the policy a call took gives the senders the account's messages hold,
-// decided as the Redaction Gate decides a message's (ADR-0002).
+// classes are the sender classes the policy a call took gives the sender domains the account's
+// statistics hold, decided as the Redaction Gate decides a message's (ADR-0002). The classifier reads
+// only the domain of an address, and the index stores it in the form index.StoredDomain gives, which keeps
+// what the classifier reads, so a domain's class is the class of every address at it (ADR-0108).
 type classes struct {
-	// normal are the addresses classified normal. A statement counts every other address as
-	// restricted, so an address the call did not classify fails closed (ADR-0108).
+	// normal are the domains classified normal. A statement counts every other domain as restricted,
+	// so a domain the call did not classify fails closed (ADR-0108).
 	normal []string
-	// domains holds, for each sender domain, whether any of its addresses is restricted.
-	domains map[string]bool
 }
 
-// classifySenders classifies every sender address rows hold under p.
-func classifySenders(rows []messages.SenderAddressesRow, p policy.Composed, l classify.Lookups) classes {
-	c := classes{normal: []string{}, domains: map[string]bool{}}
-	for _, r := range rows {
-		restricted := classify.Classify(p, r.FromEmail, l).Class().Restricted()
-		if !restricted {
-			c.normal = append(c.normal, r.FromEmail)
+// classifyDomains classifies every sender domain under p.
+func classifyDomains(domains []string, p policy.Composed, l classify.Lookups) classes {
+	c := classes{normal: []string{}}
+	for _, d := range domains {
+		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
+			c.normal = append(c.normal, d)
 		}
-		c.domains[strings.ToLower(r.FromDomain)] = c.domains[strings.ToLower(r.FromDomain)] || restricted
 	}
 	return c
 }
 
-// resolve returns the selection's parameters with the sender class term resolved to the addresses c
+// resolve returns the selection's parameters with the sender class term resolved to the domains c
 // classifies normal.
 func (s selection) resolve(c classes) messages.SearchSummaryParams {
 	p := s.params
 	if s.class != nil {
 		p.Restricted = []bool{*s.class == "restricted"}
-		p.NormalSenders = c.normal
+		p.NormalDomains = c.normal
 	}
 	return p
 }

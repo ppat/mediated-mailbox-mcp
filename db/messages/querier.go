@@ -52,9 +52,6 @@ type Querier interface {
 	// with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
 	// was read counts as unread.
 	SearchSummary(ctx context.Context, arg SearchSummaryParams) (SearchSummaryRow, error)
-	// Every distinct sender address the account's messages hold, with its domain, which the service layer
-	// classifies under the policy in force before a read that filters, groups or lists by sender class.
-	SenderAddresses(ctx context.Context, accountID string) ([]SenderAddressesRow, error)
 	// Every message of one of the account's threads, oldest first, with the same columns as a page. No
 	// row means the account holds no such thread.
 	ThreadMessages(ctx context.Context, arg ThreadMessagesParams) ([]ThreadMessagesRow, error)

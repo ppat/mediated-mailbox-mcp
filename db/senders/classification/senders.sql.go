@@ -57,7 +57,7 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = $1
-    AND ($2::text = '' OR strpos(lower(s.domain::text), lower($2::text)) > 0)
+    AND ($2::text = '' OR strpos(s.domain::text, $2::text) > 0)
 `
 
 type SenderSearchFiguresParams struct {
@@ -71,8 +71,9 @@ type SenderSearchFiguresRow struct {
 }
 
 // The senders dataset's figures under its search filter, the senders it matches and their messages
-// (docs/UI.md section 8.7). The search is a case-insensitive substring of the domain, and a null
-// search matches every sender.
+// (docs/UI.md section 8.7). The search is a substring of the stored domain, given in the form the
+// index stores a domain in, so it ignores case as the domains do with no statement lowercasing
+// (ADR-0016). An empty search matches every sender.
 func (q *Queries) SenderSearchFigures(ctx context.Context, arg SenderSearchFiguresParams) (SenderSearchFiguresRow, error) {
 	row := q.db.QueryRow(ctx, senderSearchFigures, arg.AccountID, arg.Search)
 	var i SenderSearchFiguresRow
@@ -92,7 +93,7 @@ SELECT
 FROM senders AS s
 WHERE
     s.account_id = $1
-    AND ($2::text = '' OR strpos(lower(s.domain::text), lower($2::text)) > 0)
+    AND ($2::text = '' OR strpos(s.domain::text, $2::text) > 0)
 ORDER BY
     CASE WHEN $3::boolean THEN s.message_count END DESC,
     CASE WHEN NOT $3::boolean THEN s.message_count END ASC,

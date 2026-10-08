@@ -22,3 +22,14 @@ WHERE
     )
 ORDER BY s.message_count DESC, s.domain ASC
 LIMIT @page_size;
+
+-- name: SenderDomains :many
+-- Every sender domain the account's statistics hold, which are exactly the domains its messages are
+-- stored under, since every workload that adds or removes messages rebuilds or removes the statistics
+-- of each domain it touched in the same transaction (ADR-0109). The service layer classifies each under
+-- the policy in force before a read that selects or groups by sender class, and passes the normal ones
+-- to the statement (ADR-0108).
+SELECT s.domain
+FROM senders AS s
+WHERE s.account_id = @account_id
+ORDER BY s.domain;

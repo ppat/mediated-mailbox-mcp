@@ -102,7 +102,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## A group's filter word selects the rows the group counts
 
-- **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205) for (1) and (2), and 2026-09-30 · [pull request #208](https://github.com/ppat/mediated-mailbox-mcp/pull/208), which adds (3) to (7), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205) for (1) and (2), and 2026-09-30 · [pull request #208](https://github.com/ppat/mediated-mailbox-mcp/pull/208), which adds (3) to (7), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 1 and 2 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
 - **Break (1):** the word empty is compiled to the null group's word, so sender=empty selects the items with no message instead of the one stored with an empty domain
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheEmptyGroupsWordSelectsTheRowsItCounts`
 - **Break (2):** the word empty reaches the statements as it is written instead of as the empty string, so sender=empty selects no row of the group it names

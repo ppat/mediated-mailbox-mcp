@@ -1,0 +1,25 @@
+control: Every caller that binds a sender domain to a statement binds the one domain normalizer's output
+removes: the senders dataset's search is bound as the operator typed it, so it no longer ignores case
+packages: ./ui/internal/api
+tests: TestADomainTypedInAnyCaseFindsItsStoredForm
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/registry/policy.go b/ui/internal/registry/policy.go
+index 074b10e7..be854310 100644
+--- a/ui/internal/registry/policy.go
++++ b/ui/internal/registry/policy.go
+@@ -749,11 +749,11 @@ func domainSearchOf(r Read) string {
+ }
+ 
+ func sendersSearchFigures(r Read) senderclassification.SenderSearchFiguresParams {
+-	return senderclassification.SenderSearchFiguresParams{AccountID: r.Account, Search: domainSearchOf(r)}
++	return senderclassification.SenderSearchFiguresParams{AccountID: r.Account, Search: searchOf(r)}
+ }
+ 
+ func sendersSearchRows(r Read, first int32) senderclassification.SenderSearchRowsParams {
+-	return senderclassification.SenderSearchRowsParams{AccountID: r.Account, Search: domainSearchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
++	return senderclassification.SenderSearchRowsParams{AccountID: r.Account, Search: searchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
+ }
+ 
+ // senders is the account's stored senders as the sender picker of docs/UI.md section 8.7 reads them,

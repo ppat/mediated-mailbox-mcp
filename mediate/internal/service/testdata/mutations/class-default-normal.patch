@@ -1,136 +1,136 @@
 control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
-removes: the class term passes the addresses classified restricted and counts every other address as normal, so an address the call did not classify fails open
+removes: the class term passes the domains classified restricted and counts every other domain as normal, so a domain the call did not classify fails open
 packages: ./mediate/internal/service
 tests: TestAnIndexReadSeesOneStateOfTheIndex
 scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index a35c48d..3ec8c3d 100644
+index 5e7f198f..62d20a45 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -37,7 +37,7 @@ WHERE
-     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
+@@ -38,7 +38,7 @@ WHERE
      AND (
          @restricted::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
-+        OR coalesce(m.from_email = any(@normal_senders::citext[]), FALSE) = any(@restricted::boolean[])
-     )
-     AND (
-         @first_page::boolean
-@@ -121,7 +121,7 @@ WHERE
-     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
-     AND (
-         @restricted::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
-+        OR coalesce(m.from_email = any(@normal_senders::citext[]), FALSE) = any(@restricted::boolean[])
-     );
- 
- -- name: CountBySender :many
-@@ -157,7 +157,7 @@ WHERE
-     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -127,7 +127,7 @@ WHERE
      AND (
          @restricted::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
-+        OR coalesce(m.from_email = any(@normal_senders::citext[]), FALSE) = any(@restricted::boolean[])
-     )
- GROUP BY m.from_email
- HAVING
-@@ -200,7 +200,7 @@ WHERE
-     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -168,7 +168,7 @@ WHERE
      AND (
          @restricted::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
-+        OR coalesce(m.from_email = any(@normal_senders::citext[]), FALSE) = any(@restricted::boolean[])
-     )
- GROUP BY m.from_domain
- HAVING
-@@ -246,7 +246,7 @@ WHERE
-     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -216,7 +216,7 @@ WHERE
      AND (
          @restricted::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
-+        OR coalesce(m.from_email = any(@normal_senders::citext[]), FALSE) = any(@restricted::boolean[])
-     )
- GROUP BY l.label
- ORDER BY messages DESC, l.label ASC;
-@@ -293,7 +293,7 @@ FROM (
-         AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -267,7 +267,7 @@ WHERE
+     AND (
+         @restricted::boolean[] IS NULL
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -319,7 +319,7 @@ FROM (
          AND (
              @restricted::boolean[] IS NULL
--            OR (NOT coalesce(m.from_email = any(@normal_senders::citext[]), FALSE)) = any(@restricted::boolean[])
-+            OR coalesce(m.from_email = any(@normal_senders::citext[]), FALSE) = any(@restricted::boolean[])
-         )
- ) AS g
- GROUP BY g.month
+             OR (
+-                NOT EXISTS (
++                EXISTS (
+                     SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                     WHERE n.d = m.from_domain::text
+                 )
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index 57129f5..57d71d2 100644
+index f739f454..c35eb618 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -43,7 +43,7 @@ WHERE
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+@@ -44,7 +44,7 @@ WHERE
      AND (
          $13::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
-+        OR coalesce(m.from_email = any($14::citext[]), FALSE) = any($13::boolean[])
-     )
- GROUP BY l.label
- ORDER BY messages DESC, l.label ASC
-@@ -161,7 +161,7 @@ FROM (
-         AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -167,7 +167,7 @@ FROM (
          AND (
              $13::boolean[] IS NULL
--            OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
-+            OR coalesce(m.from_email = any($14::citext[]), FALSE) = any($13::boolean[])
-         )
- ) AS g
- GROUP BY g.month
-@@ -273,7 +273,7 @@ WHERE
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+             OR (
+-                NOT EXISTS (
++                EXISTS (
+                     SELECT 1 FROM unnest($14::text[]) AS n (d)
+                     WHERE n.d = m.from_domain::text
+                 )
+@@ -284,7 +284,7 @@ WHERE
      AND (
          $13::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
-+        OR coalesce(m.from_email = any($14::citext[]), FALSE) = any($13::boolean[])
-     )
- GROUP BY m.from_email
- HAVING
-@@ -395,7 +395,7 @@ WHERE
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -411,7 +411,7 @@ WHERE
      AND (
          $13::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
-+        OR coalesce(m.from_email = any($14::citext[]), FALSE) = any($13::boolean[])
-     )
- GROUP BY m.from_domain
- HAVING
-@@ -522,7 +522,7 @@ WHERE
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -543,7 +543,7 @@ WHERE
      AND (
          $13::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
-+        OR coalesce(m.from_email = any($14::citext[]), FALSE) = any($13::boolean[])
-     )
-     AND (
-         $15::boolean
-@@ -703,7 +703,7 @@ WHERE
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+@@ -729,7 +729,7 @@ WHERE
      AND (
          $13::boolean[] IS NULL
--        OR (NOT coalesce(m.from_email = any($14::citext[]), FALSE)) = any($13::boolean[])
-+        OR coalesce(m.from_email = any($14::citext[]), FALSE) = any($13::boolean[])
-     )
- `
- 
+         OR (
+-            NOT EXISTS (
++            EXISTS (
+                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
 diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
-index c5cd2ae..38e6300 100644
+index 2c5d937b..e46a378e 100644
 --- a/mediate/internal/service/query.go
 +++ b/mediate/internal/service/query.go
-@@ -189,7 +189,7 @@ func classifySenders(rows []messages.SenderAddressesRow, p policy.Composed, l cl
- 	c := classes{normal: []string{}, domains: map[string]bool{}}
- 	for _, r := range rows {
- 		restricted := classify.Classify(p, r.FromEmail, l).Class().Restricted()
--		if !restricted {
-+		if restricted {
- 			c.normal = append(c.normal, r.FromEmail)
+@@ -189,7 +189,7 @@ type classes struct {
+ func classifyDomains(domains []string, p policy.Composed, l classify.Lookups) classes {
+ 	c := classes{normal: []string{}}
+ 	for _, d := range domains {
+-		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
++		if classify.Classify(p, "@"+d, l).Class().Restricted() {
+ 			c.normal = append(c.normal, d)
  		}
- 		c.domains[strings.ToLower(r.FromDomain)] = c.domains[strings.ToLower(r.FromDomain)] || restricted
+ 	}

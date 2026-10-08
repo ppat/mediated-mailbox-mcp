@@ -90,6 +90,14 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 - **Break (2):** a domain with no registrable domain is classified against the rules like any other
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/classify`:** `TestClassify`, `TestClassify/a_leading_dot`, `TestClassify/a_public_suffix_alone`, `TestClassify/an_empty_label_after_the_trailing_dot`, `TestClassify/an_empty_label_inside`
 
+## A stored sender domain is stored in the normalizer's form and classifies as the address it came from
+
+- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
+- **Break (1):** the index stores the part of a sender's address after its last @ as written, without the domain normalizer
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestAStoredDomainClassifiesAsItsAddress`
+- **Break (2):** the domain normalizer lowercases by Go's simple mapping, which lowers the dotted capital I to a plain i where the classifier reads i followed by U+0307
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestAStoredDomainClassifiesAsItsAddress`, `TestEveryCodePointStoresAsTheClassifierReadsIt`, `TestStoredDomain`
+
 ## A stored state no message can be in is denied as invalid, never as pending
 
 - **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145)

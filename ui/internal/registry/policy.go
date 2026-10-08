@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
@@ -741,12 +742,19 @@ func searchOf(r Read) string {
 	return ""
 }
 
+// domainSearchOf is the read's search in the form the index stores a sender domain in, which the senders
+// statements find inside each stored domain as written, so the search ignores case without a statement
+// lowercasing in SQL (ADR-0016).
+func domainSearchOf(r Read) string {
+	return index.StoredDomain(searchOf(r))
+}
+
 func sendersSearchFigures(r Read) senderclassification.SenderSearchFiguresParams {
-	return senderclassification.SenderSearchFiguresParams{AccountID: r.Account, Search: searchOf(r)}
+	return senderclassification.SenderSearchFiguresParams{AccountID: r.Account, Search: domainSearchOf(r)}
 }
 
 func sendersSearchRows(r Read, first int32) senderclassification.SenderSearchRowsParams {
-	return senderclassification.SenderSearchRowsParams{AccountID: r.Account, Search: searchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
+	return senderclassification.SenderSearchRowsParams{AccountID: r.Account, Search: domainSearchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
 }
 
 // senders is the account's stored senders as the sender picker of docs/UI.md section 8.7 reads them,
