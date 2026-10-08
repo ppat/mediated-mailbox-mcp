@@ -1,5 +1,5 @@
 // Package release holds the mediator's release step for a body the Redaction Gate has released and
-// the provider has returned, already converted to Markdown by sanitize/markdown. It makes two
+// the provider has returned, already converted to Markdown by content/markdown. It makes two
 // decisions and returns them as one value the shell enacts (ADR-0040).
 //
 //   - The serve-time pattern check (ADR-0002). A body released without being scanned, because the

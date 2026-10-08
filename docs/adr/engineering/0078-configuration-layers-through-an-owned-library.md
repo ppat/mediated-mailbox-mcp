@@ -119,7 +119,7 @@ calls for one and the second because policy lives in the database.
 - **The environment is read in one place.** In the deployables and the shared libraries, outside
   test files and the test tooling, the environment is read only by a deployable's `main.go`, and
   handed through its composition root to the library from there.
-- **The library is the project's own**, `settings/`, about five hundred lines on
+- **The library is the project's own**, `process/settings/`, about five hundred lines on
   `go.yaml.in/yaml/v3` and the standard library. The grid below does not separate it from the
   flag-layer koanf column on any gate, so this is a preference. It adds no module beyond the YAML
   decoder, already in `go.mod`, to the processes that hold full-mailbox credentials, and every
@@ -304,8 +304,8 @@ preference holds by a smaller margin.
 
 ## Consequences
 
-- `settings/` is a narrow shared library under
-  [ADR-0050](./0050-shared-code-pure-or-narrow.md), arguing its case in its README. Every deployable
+- `process/settings/` is a package of the process family, a narrow shared library under
+  [ADR-0050](./0050-shared-code-pure-or-narrow.md) arguing its case in its README. Every deployable
   that reads configuration imports it.
 - A configuration change takes a restart. A pod of an older version refuses a value it does not
   know, so a value a release adds is set only once no pod of an older version will start again.

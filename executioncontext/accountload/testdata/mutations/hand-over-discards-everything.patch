@@ -1,0 +1,19 @@
+control: A hand-over from a unit of work that started before the loader adopted a value someone else stored is discarded
+removes: every hand-over is discarded, a rotation from the credential the loader holds included
+packages: ./executioncontext/accountload
+tests: TestAHandOverFromAReplacedCredentialIsDiscarded
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/accountload/writeback.go b/executioncontext/accountload/writeback.go
+--- a/executioncontext/accountload/writeback.go
++++ b/executioncontext/accountload/writeback.go
+@@ -48,7 +48,7 @@
+ func (l *Loader) HandOver(ctx context.Context, account string, adoption uint64, current []byte) ([]byte, error) {
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+-	if h, ok := l.accounts[account]; ok && h.adoption != adoption {
++	if h, ok := l.accounts[account]; ok || h.adoption != adoption {
+ 		return slices.Clone(h.plaintext), nil
+ 	}
+ 	return l.persist(ctx, account, current)

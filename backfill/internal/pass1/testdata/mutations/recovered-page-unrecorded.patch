@@ -11,7 +11,7 @@ diff --git a/backfill/internal/pass1/postgres.go b/backfill/internal/pass1/postg
 @@ -183,7 +183,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
  			}
  		}
- 		q := record.New(t)
+ 		q := runrecord.New(t)
 -		if recovered != nil {
 +		if false && recovered != nil {
  			if err := recordFailure(ctx, q, account, runID, *recovered); err != nil {

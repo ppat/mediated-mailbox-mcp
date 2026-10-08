@@ -5,10 +5,10 @@ tests: TestARunTakesItsAccountsFromTheDatabase
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/session/session.go b/accountload/session/session.go
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
 index f4fb328a..3192fd3e 100644
---- a/accountload/session/session.go
-+++ b/accountload/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
 @@ -129,7 +129,7 @@ func credentials(a accountload.Account) Credentials {
  func (h *Holder) Accounts(snapshot *accountload.Snapshot) []string {
  	var out []string

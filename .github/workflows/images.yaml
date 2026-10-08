@@ -10,21 +10,18 @@ on:
     - .github/workflows/images.yaml
     - go.mod
     - go.sum
-    - accountload/**
     - backfill/**
+    - content/**
     - core/**
-    - credential/**
     - db/**
-    - dbconnect/**
+    - executioncontext/**
     - mediate/**
     - migrate/**
     - organize/**
-    - policyload/**
+    - process/**
     - propose/**
     - provider/**
     - ratelimit/**
-    - sanitize/**
-    - settings/**
     - sync/**
     - ui/**
   workflow_dispatch:

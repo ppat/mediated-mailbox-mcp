@@ -30,10 +30,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
-	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/readiness"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )

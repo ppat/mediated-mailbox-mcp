@@ -16,10 +16,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"

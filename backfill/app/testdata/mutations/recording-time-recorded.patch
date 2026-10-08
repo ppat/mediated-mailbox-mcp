@@ -5,10 +5,10 @@ tests: TestEachOutcomeIsRecordedAsReported
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/session/session.go b/accountload/session/session.go
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
 index f4fb328a..ebc30608 100644
---- a/accountload/session/session.go
-+++ b/accountload/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
 @@ -264,7 +264,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
  	}
  	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {

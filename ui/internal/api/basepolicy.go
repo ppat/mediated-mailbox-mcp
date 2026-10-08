@@ -14,13 +14,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
+	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
-	senderclasses "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
+	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -34,8 +34,8 @@ func (s *Server) inAccount(ctx context.Context, account string, fn func(q regist
 		// The statements are built here, from the transaction that set the account (ADR-0047).
 		return fn(registry.Queries{
 			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-			Runs: jobruns.New(t), Failures: classification.New(t), Audit: auditlog.New(t),
-			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclasses.New(t), Accounts: accounts.New(t),
+			Runs: jobruns.New(t), Failures: runclassification.New(t), Audit: auditlog.New(t),
+			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
 		})
 	})
 }

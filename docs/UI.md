@@ -2001,7 +2001,7 @@ it before storing it, and runs under the trust anchor's hardening for that reaso
 holds the private key, because Google refuses a desktop client's code exchange without the
 client's secret, and one isolated package of its server, `ui/internal/clientsecret`, opens with it
 the secret of the client a consent was issued to and nothing else. Its import lists admit the
-opening half of the credential library there alone, its one operation takes a client's name and
+opening half of the credential code there alone, its one operation takes a client's name and
 no sealing context, and the plaintext secret reaches no log line, no response and no cookie. A
 compromised UI process holds the key that opens every stored refresh token, while its database role
 reads none (ADR-0081). What remains is the browser, the transport, the database connection, the two

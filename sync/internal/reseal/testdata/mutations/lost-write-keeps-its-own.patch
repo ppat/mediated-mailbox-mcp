@@ -5,10 +5,10 @@ tests: TestAReSealNeverPutsBackAReplacedSecret
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/reseal.go b/accountload/reseal.go
+diff --git a/executioncontext/accountload/reseal.go b/executioncontext/accountload/reseal.go
 index 44084b4b..218518e9 100644
---- a/accountload/reseal.go
-+++ b/accountload/reseal.go
+--- a/executioncontext/accountload/reseal.go
++++ b/executioncontext/accountload/reseal.go
 @@ -102,7 +102,7 @@ func (l *Loader) ResealClients(ctx context.Context, write ClientWriter) Scan {
  		if err == nil && changed {
  			var landed bool

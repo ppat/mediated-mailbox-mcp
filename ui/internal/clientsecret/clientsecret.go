@@ -7,7 +7,7 @@
 // client-secret purpose and that client's row. No exported function or method takes a sealing context
 // or a sealed value, so no caller can ask it to open an account credential, and a credential's bytes
 // copied into a client's row fail to open, since the purpose is part of what the value was sealed to
-// (ADR-0088). The UI's import lists admit the opening half of the credential library here alone.
+// (ADR-0088). The UI's import lists admit the opening half of the credential code here alone.
 //
 // The plaintext secret it returns lives for the exchange that asked for it. It is never logged, sent in
 // a response, or put in the consent attempt's cookie.
@@ -18,9 +18,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ppat/mediated-mailbox-mcp/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 )
 
 // Opener opens an OAuth client's secret from its row.

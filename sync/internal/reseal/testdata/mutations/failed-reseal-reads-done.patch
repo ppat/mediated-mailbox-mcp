@@ -5,10 +5,10 @@ tests: TestATickReSealsWhatItOpensWithAnOldKey
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/reseal.go b/accountload/reseal.go
+diff --git a/executioncontext/accountload/reseal.go b/executioncontext/accountload/reseal.go
 index 44084b4b..d0c2de56 100644
---- a/accountload/reseal.go
-+++ b/accountload/reseal.go
+--- a/executioncontext/accountload/reseal.go
++++ b/executioncontext/accountload/reseal.go
 @@ -113,6 +113,7 @@ func (l *Loader) ResealClients(ctx context.Context, write ClientWriter) Scan {
  		}
  		if err != nil {

@@ -46,8 +46,13 @@ The requirements a vocabulary must meet here:
 - **Scopes name the internal maintenance surfaces, and the empty scope is the shipped surface and
   the repository-level residue.** The scopes are `release`, `renovate`, `github-actions`,
   `internal-dependencies`, `internal-workflows` and `agents`, the names every ppat repository
-  shares, applied in that order and stopping at the first match. Something ships if an image's
-  Dockerfile copies it in, if it is a Dockerfile, or if it sits in the chart's directory.
+  shares, applied in that order and stopping at the first match. Something ships if a release puts
+  it in front of a consumer. That is a file of the non-test build graph of a binary the release
+  publishes, each image's and each release asset's, as `go list -deps` reads it, anything else an
+  image's Dockerfile copies in that holds none of this module's Go code, such as `go.mod`, the
+  browser bundle's sources and the migration chain, a Dockerfile itself, and anything in the chart's
+  directory. A test file, a violation file, a mutation patch or a README inside a directory a
+  Dockerfile copies whole therefore does not ship, because no binary links it.
 - **The component is never in the scope.** The `component:` labels carry it, one per component a
   diff touches, and a workflow produces them from the diff, as
   [CLAUDE.md's Repository process](../../../CLAUDE.md#repository-process) states.
@@ -104,6 +109,11 @@ The requirements a vocabulary must meet here:
   multi-valued and corrected to the diff, which a single-valued scope cannot. The enum would track
   the component table as components are added, and two component directories contain a `/`, which
   commitlint reads as a scope delimiter, so they would need names of their own.
+- **What ships read as what an image's Dockerfile copies in.** The case for it: one regular
+  expression over the Dockerfiles, and no go command in the check. Not kept, because a Dockerfile
+  copies a shared library's directory whole, its tests, violation files, mutation patches and README
+  with it, so a claim type over any of those read as shipped, and grouping the libraries into
+  families made every such directory larger. The build graph reads what each binary links.
 - **Advisory checks.** One ppat repository keeps its commit lint deliberately unrequired. The case
   for it: the taxonomy exists to tell authors what to write, not to block a merge. Rejected by the
   operator: this repository's pull requests are agent-authored and review-ready when presented, and

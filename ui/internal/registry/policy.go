@@ -12,7 +12,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
-	"github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
+	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -740,12 +740,12 @@ func searchOf(r Read) string {
 	return ""
 }
 
-func sendersSearchFigures(r Read) classification.SenderSearchFiguresParams {
-	return classification.SenderSearchFiguresParams{AccountID: r.Account, Search: searchOf(r)}
+func sendersSearchFigures(r Read) senderclassification.SenderSearchFiguresParams {
+	return senderclassification.SenderSearchFiguresParams{AccountID: r.Account, Search: searchOf(r)}
 }
 
-func sendersSearchRows(r Read, first int32) classification.SenderSearchRowsParams {
-	return classification.SenderSearchRowsParams{AccountID: r.Account, Search: searchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
+func sendersSearchRows(r Read, first int32) senderclassification.SenderSearchRowsParams {
+	return senderclassification.SenderSearchRowsParams{AccountID: r.Account, Search: searchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
 }
 
 // senders is the account's stored senders as the sender picker of docs/UI.md section 8.7 reads them,

@@ -1,0 +1,20 @@
+control: An account is loaded with the OAuth client it names, and an account that names none with none
+removes: a credential read again keeps the client the snapshot held rather than the one the account now names
+packages: ./executioncontext/accountload
+tests: TestARereadPairsTheCredentialWithTheClientTheAccountMovedTo
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/accountload/writeback.go b/executioncontext/accountload/writeback.go
+index e98dafce..501dbae4 100644
+--- a/executioncontext/accountload/writeback.go
++++ b/executioncontext/accountload/writeback.go
+@@ -137,7 +137,7 @@ func (l *Loader) Reread(ctx context.Context, account string) (Account, error) {
+ 	}
+ 	name := a.clientName
+ 	if listed != nil {
+-		a.provider, name = listed.AccountProvider, listed.OauthClient.String
++		a.provider = listed.AccountProvider
+ 	}
+ 	opened := map[string]Client{}
+ 	for _, c := range clients {

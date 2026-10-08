@@ -18,13 +18,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
-	"github.com/ppat/mediated-mailbox-mcp/sanitize/markdown"
 	core "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/tick"
 )
 

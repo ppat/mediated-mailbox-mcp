@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/app/app.go b/backfill/app/app.go
-index 1691e4f5..1d5a1616 100644
+index 7f611a28..aef55916 100644
 --- a/backfill/app/app.go
 +++ b/backfill/app/app.go
-@@ -396,6 +396,9 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+@@ -367,6 +367,9 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
  	var handOvers []error
  	for {
  		step, err := p.Next(ctx)

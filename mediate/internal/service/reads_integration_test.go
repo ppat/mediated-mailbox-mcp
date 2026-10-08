@@ -22,8 +22,8 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
-	"github.com/ppat/mediated-mailbox-mcp/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"

@@ -15,14 +15,14 @@ func TestPlacement(t *testing.T) {
 }
 
 // The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for a pure core, a
-// deployable's internal pure core, a library's pure core, a composition root writing and linking to
-// them from outside, a directory whose name only starts with core, and a directory named core two
-// levels down, which is not a pure core either.
+// deployable's internal pure core, a library's pure core, a pure core whose core element sits at
+// depth three, a composition root writing and linking to them from outside, and two directories
+// whose names only start or end with core, which are not pure cores.
 func TestGlobals(t *testing.T) {
 	const m = "github.com/ppat/mediated-mailbox-mcp/"
 	analysistest.Run(t, analysistest.TestData(), analysis.Globals,
 		m+"core/state", m+"mediate/internal/core/plan", m+"ratelimit/core/limits", m+"mediate/wiring",
-		m+"corex/lookalike", m+"tools/extra/core/nested")
+		m+"corex/lookalike", m+"tools/hardcore/lookalike", m+"tools/extra/core/nested")
 }
 
 // The cases under testdata/src stand for a deployable's composition root and the rest of its
@@ -32,7 +32,7 @@ func TestGlobals(t *testing.T) {
 func TestEnvironment(t *testing.T) {
 	const m = "github.com/ppat/mediated-mailbox-mcp"
 	analysistest.Run(t, analysistest.TestData(), analysis.Environment,
-		m, m+"/backfill", m+"/backfill/internal/run", m+"/settings", m+"/testsupport/tool",
+		m, m+"/backfill", m+"/backfill/internal/run", m+"/process/settings", m+"/testsupport/tool",
 		m+"/provider/gmail/cmd/consent", m+"/core/names", "example.com/other")
 }
 

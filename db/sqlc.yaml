@@ -50,7 +50,7 @@ sql:
   queries: oauthclients/setup
   gen:
     go:
-      package: setup
+      package: clientsetup
       out: oauthclients/setup
       sql_package: pgx/v5
       emit_interface: true
@@ -60,7 +60,7 @@ sql:
   queries: accounts/setup
   gen:
     go:
-      package: setup
+      package: accountsetup
       out: accounts/setup
       sql_package: pgx/v5
       emit_interface: true
@@ -110,7 +110,7 @@ sql:
   queries: jobruns/classification
   gen:
     go:
-      package: classification
+      package: runclassification
       out: jobruns/classification
       sql_package: pgx/v5
       emit_interface: true
@@ -120,7 +120,7 @@ sql:
   queries: maskingevents/senders
   gen:
     go:
-      package: senders
+      package: maskingsenders
       out: maskingevents/senders
       sql_package: pgx/v5
       emit_interface: true
@@ -200,7 +200,7 @@ sql:
   queries: messages/classification
   gen:
     go:
-      package: classification
+      package: messageclassification
       out: messages/classification
       sql_package: pgx/v5
       emit_interface: true
@@ -220,7 +220,7 @@ sql:
   queries: auditlog/record
   gen:
     go:
-      package: record
+      package: auditrecord
       out: auditlog/record
       sql_package: pgx/v5
       emit_interface: true
@@ -230,7 +230,7 @@ sql:
   queries: maskingevents/record
   gen:
     go:
-      package: record
+      package: maskingrecord
       out: maskingevents/record
       sql_package: pgx/v5
       emit_interface: true
@@ -240,7 +240,7 @@ sql:
   queries: jobruns/record
   gen:
     go:
-      package: record
+      package: runrecord
       out: jobruns/record
       sql_package: pgx/v5
       emit_interface: true
@@ -290,7 +290,7 @@ sql:
   queries: senders/classification
   gen:
     go:
-      package: classification
+      package: senderclassification
       out: senders/classification
       sql_package: pgx/v5
       emit_interface: true
@@ -340,7 +340,7 @@ sql:
   queries: scangatedecisions/record
   gen:
     go:
-      package: record
+      package: gaterecord
       out: scangatedecisions/record
       sql_package: pgx/v5
       emit_interface: true

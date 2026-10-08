@@ -17,4 +17,4 @@ index 53b4947..c2a5aaf 100644
 +		if err := error(nil); err != nil {
  			return fmt.Errorf("clearing the mark that starts the pass over: %w", err)
  		}
- 		return pass1.StartRun(ctx, record.New(t), account, pass1.Starting{
+ 		return pass1.StartRun(ctx, runrecord.New(t), account, pass1.Starting{

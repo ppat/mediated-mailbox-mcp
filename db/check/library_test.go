@@ -7,6 +7,7 @@ import (
 	"os"
 	pathpkg "path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -81,10 +82,14 @@ var (
 // concern.
 type subsection struct {
 	// name is the subsection's directory under the library's root, one or more segments joined by /,
-	// which is also its import path below the library's. Its last segment is the package name.
+	// which is also its import path below the library's. The package's name ends with its last
+	// segment and is unique in the library.
 	name string
 	dir  string
 }
+
+// packageName matches a package name the layout allows, lower-case letters only.
+var packageName = regexp.MustCompile(`^[a-z]+$`)
 
 // subsectionPath reports whether dir is a directory below the library's root a subsection may be
 // generated into, one or more non-empty segments joined by /, none holding a dot or a backslash.
@@ -108,7 +113,9 @@ func (lib library) subsections(t *testing.T) []subsection {
 
 // layout reads the library's sqlc.yaml and checks that every block follows the one layout the checks
 // rely on. Each block reads the migration chain and generates into the directory holding its statement
-// files. A block breaking that layout is reported and is no subsection.
+// files a package whose name ends with the directory's last segment and that no other block gives its
+// package, so no two of the library's packages share a name and none needs an alias where both are
+// imported. A block breaking that layout is reported and is no subsection.
 //
 // sqlc refuses a configuration without a block and a block without a statement file, so a library
 // holding no statement file has no sqlc.yaml. That returns no subsection. A statement file added
@@ -147,13 +154,19 @@ func (lib library) layout(t *testing.T) (subs []subsection, problems []string) {
 		}
 		chain = append(chain, filepath.ToSlash(rel))
 	}
+	named := map[string]int{}
+	for _, block := range config.SQL {
+		named[block.Gen.Go.Package]++
+	}
 	for i, block := range config.SQL {
 		gen := block.Gen.Go
 		switch {
 		case block.Engine != "postgresql" || !slices.Equal(stringList(block.Schema), chain):
 			problems = append(problems, fmt.Sprintf("%s block %d must read the migration chain %v, with engine postgresql", path, i, chain))
-		case block.Queries != gen.Out || !subsectionPath(gen.Out) || gen.Package != pathpkg.Base(gen.Out):
-			problems = append(problems, fmt.Sprintf("%s block %d must generate package %q into the directory %q, which holds its statement files", path, i, pathpkg.Base(gen.Out), gen.Out))
+		case block.Queries != gen.Out || !subsectionPath(gen.Out) || !packageName.MatchString(gen.Package) || !strings.HasSuffix(gen.Package, pathpkg.Base(gen.Out)):
+			problems = append(problems, fmt.Sprintf("%s block %d must generate a package whose name ends with %q into the directory %q, which holds its statement files", path, i, pathpkg.Base(gen.Out), gen.Out))
+		case named[gen.Package] > 1:
+			problems = append(problems, fmt.Sprintf("%s block %d generates package %q, a name another block gives its package too", path, i, gen.Package))
 		default:
 			subs = append(subs, subsection{name: gen.Out, dir: filepath.Join(lib.dir, filepath.FromSlash(gen.Out))})
 		}
@@ -167,9 +180,11 @@ func TestSubsectionLayoutReported(t *testing.T) {
 	requireProblems(t, problems, []string{
 		"testdata/layout/sqlc.yaml block 1 must read the migration chain " + chain + ", with engine postgresql",
 		"testdata/layout/sqlc.yaml block 2 must read the migration chain " + chain + ", with engine postgresql",
-		`testdata/layout/sqlc.yaml block 3 must generate package "moved" into the directory "moved", which holds its statement files`,
-		`testdata/layout/sqlc.yaml block 4 must generate package "named" into the directory "named", which holds its statement files`,
-		`testdata/layout/sqlc.yaml block 5 must generate package "dir" into the directory "nested/dir", which holds its statement files`,
+		`testdata/layout/sqlc.yaml block 3 must generate a package whose name ends with "moved" into the directory "moved", which holds its statement files`,
+		`testdata/layout/sqlc.yaml block 4 must generate a package whose name ends with "named" into the directory "named", which holds its statement files`,
+		`testdata/layout/sqlc.yaml block 5 must generate a package whose name ends with "dir" into the directory "nested/dir", which holds its statement files`,
+		`testdata/layout/sqlc.yaml block 7 generates package "twice", a name another block gives its package too`,
+		`testdata/layout/sqlc.yaml block 8 generates package "twice", a name another block gives its package too`,
 	})
 	var names []string
 	for _, s := range subs {

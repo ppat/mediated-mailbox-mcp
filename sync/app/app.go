@@ -19,26 +19,26 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 
-	"github.com/ppat/mediated-mailbox-mcp/accountload"
-	"github.com/ppat/mediated-mailbox-mcp/accountload/session"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
-	credentialcore "github.com/ppat/mediated-mailbox-mcp/credential/core"
-	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/policyload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
+	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/probes"
+	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
-	"github.com/ppat/mediated-mailbox-mcp/settings"
 	"github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal"
 	"github.com/ppat/mediated-mailbox-mcp/sync/internal/tick"
 )
@@ -180,7 +180,7 @@ func assemble(ln net.Listener, pool *pgxpool.Pool, keys *open.Keyring, scanner s
 	if err != nil {
 		return nil, nil, err
 	}
-	return s, serveProbes(ln, registry, logger), nil
+	return s, probes.Serve(ln, registry, logger), nil
 }
 
 // buildScanner builds the scanner from its section of the loaded configuration, under the
@@ -194,35 +194,6 @@ func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
 		return scan.Scanner{}, fmt.Errorf("scanner: %w", err)
 	}
 	return s, nil
-}
-
-// serveProbes serves the health probe and the metrics endpoint on ln until the returned function
-// stops them (ADR-0051). /healthz answers 200 while the process runs, and /metrics serves the
-// process's registry, between ticks as during them (ADR-0103).
-func serveProbes(ln net.Listener, registry *prometheus.Registry, logger *slog.Logger) func() error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		if _, err := fmt.Fprintln(w, "ok"); err != nil {
-			logger.WarnContext(r.Context(), "writing a probe answer failed", "error", err)
-		}
-	})
-	mux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
-	served := make(chan error, 1)
-	go func() {
-		err := srv.Serve(ln)
-		if errors.Is(err, http.ErrServerClosed) {
-			err = nil
-		}
-		served <- err
-	}()
-	logger.Info("serving the probes", "listen", ln.Addr().String())
-	return func() error {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		return errors.Join(srv.Shutdown(ctx), <-served)
-	}
 }
 
 // ports builds the Provider Port an account's tick calls, from the account's token source.

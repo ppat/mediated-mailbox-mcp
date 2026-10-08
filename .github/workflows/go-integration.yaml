@@ -13,21 +13,18 @@ on:
     - go.sum
     - mise.lock
     - mise.toml
-    - accountload/**
     - backfill/**
+    - content/**
     - core/**
-    - credential/**
     - db/**
-    - dbconnect/**
+    - executioncontext/**
     - mediate/**
     - organize/**
-    - policyload/**
     - packaging/chart/alerting-rules.yaml
+    - process/**
     - propose/**
     - provider/**
     - ratelimit/**
-    - sanitize/**
-    - settings/**
     - sync/**
     - testsupport/**
     - ui/*.go

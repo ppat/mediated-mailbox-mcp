@@ -15,7 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
 	"github.com/ppat/mediated-mailbox-mcp/db/maskingevents"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
-	"github.com/ppat/mediated-mailbox-mcp/db/messages/classification"
+	messageclassification "github.com/ppat/mediated-mailbox-mcp/db/messages/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
@@ -136,7 +136,7 @@ func (s *Server) getSystem(w http.ResponseWriter, r *http.Request) {
 		out.AsOf = registry.Stamp(now)
 		return s.system(r.Context(), systemQueries{
 			state: accountstate.New(t), rate: ratestate.New(t), runs: jobruns.New(t), messages: messages.New(t),
-			classification: classification.New(t), audit: auditlog.New(t), masking: maskingevents.New(t),
+			classification: messageclassification.New(t), audit: auditlog.New(t), masking: maskingevents.New(t),
 			gate: scangatedecisions.New(t), plans: reorgplans.New(t), candidates: policycandidates.New(t),
 		}, account, now, &out)
 	})
@@ -154,7 +154,7 @@ type systemQueries struct {
 	rate           *ratestate.Queries
 	runs           *jobruns.Queries
 	messages       *messages.Queries
-	classification *classification.Queries
+	classification *messageclassification.Queries
 	audit          *auditlog.Queries
 	masking        *maskingevents.Queries
 	gate           *scangatedecisions.Queries

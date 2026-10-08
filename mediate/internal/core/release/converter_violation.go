@@ -7,5 +7,5 @@ package release
 // subsection, so the pure-core list reports it, and so does the list keeping HTTP out of the
 // mediator's packages, which admits only what those packages import.
 import (
-	_ "github.com/ppat/mediated-mailbox-mcp/sanitize/markdown" // want depguard "import 'github.com/ppat/mediated-mailbox-mcp/sanitize/markdown' is not allowed from list 'pure-core'" depguard "list 'mediate-no-http'"
+	_ "github.com/ppat/mediated-mailbox-mcp/content/markdown" // want depguard "import 'github.com/ppat/mediated-mailbox-mcp/content/markdown' is not allowed from list 'pure-core'" depguard "list 'mediate-no-http'"
 )

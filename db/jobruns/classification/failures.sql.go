@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: failures.sql
 
-package classification
+package runclassification
 
 import (
 	"context"

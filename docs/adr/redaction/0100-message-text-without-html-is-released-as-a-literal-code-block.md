@@ -28,7 +28,7 @@ through. Each one falsifies [A4](../../../USE_CASES.md#a4--released-bodies-are-c
 - **It applies to three texts.** The text part of a body that has no HTML part, the snippet, and each
   attachment filename. A body that has an HTML part is released as that part's conversion, and its
   text part is not released.
-- **The form lives beside the conversion,** in `sanitize/markdown`, so every Markdown a client
+- **The form lives beside the conversion,** in `content/markdown`, so every Markdown a client
   receives from a message comes from one library, and its proof reads the output with the same
   independent CommonMark parser the conversion's proof uses.
 

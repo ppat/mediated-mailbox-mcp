@@ -160,7 +160,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The recorded authentication outcome is the latest attempt, and recording an older one changes nothing
 
-- **Date · evidence:** 2026-10-01 · [pull request #227](https://github.com/ppat/mediated-mailbox-mcp/pull/227), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #227](https://github.com/ppat/mediated-mailbox-mcp/pull/227), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the statement replaces the stored attempt only with an older one, so a later attempt never replaces an earlier one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestOnlyALaterAttemptIsRecorded`
 - **Break (2):** the statement drops its predicate on the stored attempt's time, so the last write wins and an older attempt replaces a later one

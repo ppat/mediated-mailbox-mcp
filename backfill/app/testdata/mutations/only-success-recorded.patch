@@ -5,10 +5,10 @@ tests: TestARunRecordsEachAccountsAttemptWhenItsUnitEnds TestOnlyALaterAttemptIs
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/session/session.go b/accountload/session/session.go
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
 index f4fb328a..ea0d07d7 100644
---- a/accountload/session/session.go
-+++ b/accountload/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
 @@ -259,7 +259,7 @@ func (s *Session) End(ctx context.Context) (handOver, record error) {
  // statement keeps a later attempt another deployable recorded (ADR-0097). A recording that fails is
  // returned, and the next unit of work records the attempt again.

@@ -13,9 +13,9 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	"github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders"
+	maskingsenders "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
-	"github.com/ppat/mediated-mailbox-mcp/db/messages/classification"
+	messageclassification "github.com/ppat/mediated-mailbox-mcp/db/messages/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -70,7 +70,7 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 		now := s.opts.Clock()
 		out.AsOf = registry.Stamp(now)
 		in, err := s.attentionInputs(r.Context(), attentionQueries{
-			messages: messages.New(t), classification: classification.New(t), masking: senders.New(t),
+			messages: messages.New(t), classification: messageclassification.New(t), masking: maskingsenders.New(t),
 			audit: auditlog.New(t), runs: jobruns.New(t),
 		}, account, now)
 		if err != nil {
@@ -97,8 +97,8 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 // transaction helper (ADR-0047).
 type attentionQueries struct {
 	messages       *messages.Queries
-	classification *classification.Queries
-	masking        *senders.Queries
+	classification *messageclassification.Queries
+	masking        *maskingsenders.Queries
 	audit          *auditlog.Queries
 	runs           *jobruns.Queries
 }
@@ -120,7 +120,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, accoun
 		in.Pending, in.Messages = pending, corpus.Messages
 	}
 	if th.MaskCount > 0 {
-		pairs, err := q.masking.MaskingPairsAbove(ctx, senders.MaskingPairsAboveParams{
+		pairs, err := q.masking.MaskingPairsAbove(ctx, maskingsenders.MaskingPairsAboveParams{
 			AccountID: account, Since: at(now.Add(-maskingWindow)), Above: th.MaskCount,
 		})
 		if err != nil {

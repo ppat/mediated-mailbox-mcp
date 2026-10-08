@@ -37,7 +37,7 @@ than a preference.
 | R6 | A standard construction | Specified publicly with test vectors, so it is not the project's own cryptography | ADR-0081 |
 | R7 | Confidentiality against later decryption | A stolen database copy stays sealed against an attacker with a quantum computer | This record |
 | R8 | Keys from a standard tool | An operator can generate the key pair without project code | This record |
-| R9 | The sealing half importable alone | The UI's code outside its one opening part links no code that opens a value | ADR-0081, [credential/README.md](../../../credential/README.md) |
+| R9 | The sealing half importable alone | The UI's code outside its one opening part links no code that opens a value | ADR-0081, [executioncontext/README.md](../../../executioncontext/README.md#the-sealed-credentials-credential) |
 | R10 | Maintained and current | Released and maintained today | This record |
 
 R1 is a gate. R2, R4, R5, R6 and R7 order the field. R7 orders it because of the lifetime argument
@@ -82,13 +82,13 @@ released recently and none is deprecated.
   start unless its mounted public key matches one, because an opener seals rotated credentials to
   that public key ([ADR-0082](./0082-rotation-writeback-to-the-database.md)) and a mismatched one
   would store values no opener can read.
-- **A command in the library, `credential/cmd/keygen`, generates the key pair**, because no
-  standard tool writes X-Wing keys. It ships as static binaries attached to each GitHub release,
+- **A command beside the credential code, `executioncontext/credential/cmd/keygen`, generates the
+  key pair**, because no standard tool writes X-Wing keys. It ships as static binaries attached to each GitHub release,
   at the lockstep release version and signed with the same keyless signing the release applies to
   the images and the chart ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)). An
   operator command sits under its library as `cmd/<name>`, and a library holds no Dockerfile
   ([ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md)), so it has no
-  image of its own. Wherever the credential library sits, the command sits under it. Carrying it in
+  image of its own. Wherever the credential code sits, the command sits under it. Carrying it in
   an existing image would give that image a second, unrelated job. The UI must never carry key
   material, and the migration image holds none of this project's Go code by design. A signed
   release binary is a published artifact, so the system still comes up from published artifacts

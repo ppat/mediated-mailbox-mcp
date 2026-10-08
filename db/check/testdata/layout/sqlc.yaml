@@ -3,8 +3,9 @@
 # and it names no statement file.
 #
 # Blocks 0 and 6 follow the layout and were never generated, so their directories hold no db.go, which the
-# assertion must report. Block 6 generates into a directory two segments down, named for its last segment.
-# Every other block breaks one clause of the layout, which the layout check must report.
+# assertion must report. Block 6 generates into a directory two segments down, a package whose name ends with
+# its last segment. Every other block breaks one clause of the layout, which the layout check must report, and
+# blocks 7 and 8 each follow it alone but give their packages one name.
 version: "2"
 sql:
 - engine: postgresql
@@ -54,5 +55,19 @@ sql:
   queries: nested/ungenerated
   gen:
     go:
-      package: ungenerated
+      package: nestedungenerated
       out: nested/ungenerated
+- engine: postgresql
+  schema: [../../../migrations, ../migrations]
+  queries: first/twice
+  gen:
+    go:
+      package: twice
+      out: first/twice
+- engine: postgresql
+  schema: [../../../migrations, ../migrations]
+  queries: second/twice
+  gen:
+    go:
+      package: twice
+      out: second/twice

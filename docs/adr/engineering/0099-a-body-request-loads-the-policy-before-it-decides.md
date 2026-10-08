@@ -20,8 +20,9 @@ What can be read cheaply is limited. The policy rules carry no revision a proces
 and a deleted rule leaves no trace in the table. A connection pooler in transaction mode, which
 [ADR-0066](../data/0066-data-access-generated-from-sql.md) allows, drops `LISTEN`, which is why
 [ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) did not use it
-for accounts. The policy loader ([policyload/README.md](../../../policyload/README.md)) validates
-what it reads, keeps the active snapshot on any failure, and raises the reload-failure alarm.
+for accounts. The policy loader
+([executioncontext/README.md](../../../executioncontext/README.md#the-policy-loader-policyload))
+validates what it reads, keeps the active snapshot on any failure, and raises the reload-failure alarm.
 
 ## Decision
 

@@ -25,8 +25,11 @@ one message.
 
 Everything below follows from one question, asked of whatever the commit touched:
 
-> **Does a release put this in front of a consumer?** Something ships if an image's Dockerfile
-> copies it in, if it is a Dockerfile, or if it sits in the chart's directory.
+> **Does a release put this in front of a consumer?** Something ships if it is a file of the
+> non-test build graph of a binary the release publishes, each image's and each release asset's, as
+> `go list -deps` reads it, if an image's Dockerfile copies it in and it holds none of this module's
+> Go code, such as `go.mod` or the browser bundle's sources, if it is a Dockerfile, or if it sits in
+> the chart's directory.
 
 Two consequences that are easy to get backwards:
 
@@ -34,10 +37,11 @@ Two consequences that are easy to get backwards:
   authoring and continuous-integration toolchain. The Go and bun that build the images are pinned
   there too, and those two pins ride the shipped Dockerfile pins as one group. Ask where the pin
   lives and what the pin builds, not what the tool is for.
-- **A file inside a shipped directory is not shipped by being there.** The browser's
-  devDependencies, its lint configuration and the ban rules under `ui/browser/rules/` are build
-  and check machinery that never enters the bundle. The test PostgreSQL image under `testsupport/`
-  starts a container the tests use. Neither reaches a consumer.
+- **A file inside a shipped directory is not shipped by being there.** A test file, a violation
+  file, a mutation patch or a README beside a package a binary links is in no binary's build graph.
+  The browser's devDependencies, its lint configuration and the ban rules under `ui/browser/rules/`
+  are build and check machinery that never enters the bundle. The test PostgreSQL image under
+  `testsupport/` starts a container the tests use. None of them reaches a consumer.
 
 ## Scopes
 

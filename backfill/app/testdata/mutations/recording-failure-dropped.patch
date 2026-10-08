@@ -5,10 +5,10 @@ tests: TestAFailedRecordingIsReturned
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/session/session.go b/accountload/session/session.go
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
 index f4fb328a..b1ebb7ea 100644
---- a/accountload/session/session.go
-+++ b/accountload/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
 @@ -269,8 +269,6 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
  			AccountID:   account,
  		})

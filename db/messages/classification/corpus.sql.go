@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: corpus.sql
 
-package classification
+package messageclassification
 
 import (
 	"context"

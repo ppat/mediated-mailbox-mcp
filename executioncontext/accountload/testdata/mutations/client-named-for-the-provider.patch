@@ -1,0 +1,24 @@
+control: An account is loaded with the OAuth client it names, and an account that names none with none
+removes: an account that names no client is handed the client named after its provider
+packages: ./executioncontext/accountload
+tests: TestEachAccountIsLoadedWithTheClientItNamesAndNoOther
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/accountload/load.go b/executioncontext/accountload/load.go
+index 5099e4e0..2766ad78 100644
+--- a/executioncontext/accountload/load.go
++++ b/executioncontext/accountload/load.go
+@@ -274,7 +274,11 @@ func (l *Loader) Load(ctx context.Context) error {
+ 		sealedClients[c.ClientName] = c.SealedClientSecret
+ 	}
+ 	for _, r := range rows {
+-		a := l.paired(Account{id: r.id, provider: r.provider}, r.clientName, opened)
++		name := r.clientName
++		if name == "" {
++			name = r.provider
++		}
++		a := l.paired(Account{id: r.id, provider: r.provider}, name, opened)
+ 		h, ok := l.adopt(r.id, r.stored)
+ 		if ok {
+ 			a.credential, a.adoption = h.plaintext, h.adoption

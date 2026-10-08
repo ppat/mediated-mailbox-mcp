@@ -5,10 +5,10 @@ tests: TestARunTakesItsAccountsFromTheDatabase
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/session/session.go b/accountload/session/session.go
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
 index f4fb328a..5aa45149 100644
---- a/accountload/session/session.go
-+++ b/accountload/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
 @@ -133,10 +133,6 @@ func (h *Holder) Accounts(snapshot *accountload.Snapshot) []string {
  			h.config.Logger.Warn("an account is not connected, so it is skipped", "account", a.ID())
  			continue

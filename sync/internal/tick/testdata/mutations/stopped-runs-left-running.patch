@@ -12,7 +12,7 @@ index e6cc3e0..49dd502 100644
 @@ -93,7 +93,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
  	}
  	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
- 		q := record.New(t)
+ 		q := runrecord.New(t)
 -		if pass == PassTick {
 +		if pass == "" {
  			if err := endStopped(ctx, q, account); err != nil {

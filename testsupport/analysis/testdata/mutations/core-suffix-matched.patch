@@ -1,0 +1,19 @@
+control: The pure-core rule matches a core path element at any depth
+removes: the match is no longer held to a whole path element, so a directory whose name ends in core counts as a pure core
+packages: ./testsupport/analysis
+tests: TestGlobals
+scheduled-count: no
+
+diff --git a/testsupport/analysis/globals.go b/testsupport/analysis/globals.go
+index 6b298328..f110fea1 100644
+--- a/testsupport/analysis/globals.go
++++ b/testsupport/analysis/globals.go
+@@ -46,7 +46,7 @@ const modulePath = "github.com/ppat/mediated-mailbox-mcp"
+ // pureCore matches the path of a pure-core package relative to the module, one holding an element
+ // named core at any depth, with the packages beneath it. That is core itself, a library's core, a
+ // core inside a family's package, and a deployable's internal core.
+-var pureCore = regexp.MustCompile(`(^|/)core(/|$)`)
++var pureCore = regexp.MustCompile(`core(/|$)`)
+ 
+ func isPureCorePath(path string) bool {
+ 	rel, ok := strings.CutPrefix(path, modulePath+"/")

@@ -18,12 +18,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 
-	"github.com/ppat/mediated-mailbox-mcp/accountload"
-	"github.com/ppat/mediated-mailbox-mcp/accountload/session"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
@@ -31,17 +28,20 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
-	credentialcore "github.com/ppat/mediated-mailbox-mcp/credential/core"
-	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/dbconnect"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/policyload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
+	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/probes"
+	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
-	"github.com/ppat/mediated-mailbox-mcp/settings"
 )
 
 // gmailProvider is the provider an account served through the Gmail adapter names, in accounts and
@@ -131,7 +131,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err != nil {
 		return fmt.Errorf("listening for the probes: %w", err)
 	}
-	stopProbes := serveProbes(ln, registry, logger)
+	stopProbes := probes.Serve(ln, registry, logger)
 	connect, err := gmailConnector(registry)
 	if err != nil {
 		return errors.Join(err, stopProbes())
@@ -153,35 +153,6 @@ func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
 		return scan.Scanner{}, fmt.Errorf("scanner: %w", err)
 	}
 	return s, nil
-}
-
-// serveProbes serves the health probe and the metrics endpoint on ln until the returned function
-// stops them (ADR-0051). /healthz answers 200 while the process runs, and /metrics serves the
-// process's registry.
-func serveProbes(ln net.Listener, registry *prometheus.Registry, logger *slog.Logger) func() error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		if _, err := fmt.Fprintln(w, "ok"); err != nil {
-			logger.WarnContext(r.Context(), "writing a probe answer failed", "error", err)
-		}
-	})
-	mux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
-	served := make(chan error, 1)
-	go func() {
-		err := srv.Serve(ln)
-		if errors.Is(err, http.ErrServerClosed) {
-			err = nil
-		}
-		served <- err
-	}()
-	logger.Info("serving the probes", "listen", ln.Addr().String())
-	return func() error {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		return errors.Join(srv.Shutdown(ctx), <-served)
-	}
 }
 
 // served is what a run serves, taken at its start.

@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A credential the provider refuses is read again from its row before the refusal is reported
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a failed read of the refused credential is dropped and the refusal returned alone
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`
 - **Break (2):** a refused call returns the refusal without reading the credential again
@@ -16,7 +16,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the cursor gap rule fires while any gap was ever counted, so it never clears
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestAlertingRules`
 - **Break (2):** the cursor gap rule reads only the count's increase, so a gap the series' first sample counts never fires
@@ -34,7 +34,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A gap recovery removes a stored message dated in its window once a complete listing left it out and the provider no longer returns it by its identifier
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a gap recovery treats a stored message dated before its window as left out of its listing
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestARecoveryRemovesWhatTheProviderNoLongerHolds`
 - **Break (2):** a gap recovery removes nothing it found missing from its listing
@@ -45,7 +45,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick applies each change set in the transaction that advances the cursor past it
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the cursor is stored in a transaction of its own before the change set's writes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestTheCursorNeverRunsAheadOfTheIndex`
 - **Break (2):** a change set's application stores no cursor, so the next tick asks for the same changes again
@@ -57,7 +57,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick hands its account over and records its latest authentication attempt when it ends
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** no tick records its source's authentication attempt
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`
 - **Break (2):** a tick that fails hands nothing over and records no attempt
@@ -65,7 +65,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick records as failed the account's tick and gap recovery a stopped process left running
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a recovery's start also records the tick that started it, still running, as failed
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickRecordsAStoppedRunAsFailed`, `TestATickRecordsAStoppedRunAsFailed/a_recovery_stopped_part_way`
 - **Break (2):** a tick's start records a stopped tick as failed and leaves a stopped recovery recorded as running
@@ -75,7 +75,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick spends from the account's budget in the sync class
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a tick's calls are leased in the batch class
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickSpendsInTheSyncClass`
 - **Break (2):** a tick's calls are leased in the interactive class
@@ -83,15 +83,15 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## An account with no cursor is reconciled over the first window inside its tick
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** an account's first reconciliation is reported as a cursor gap, so the gap series and its alert count a cursor that was never lost
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickAppliesTheChangesSinceItsCursor`
 - **Break (2):** an account with no cursor takes the current cursor and lists only what is dated after it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestAGapIsRecoveredOverTheWindowSinceTheLastCursor`, `TestARecoveryRemovesWhatTheProviderNoLongerHolds`, `TestAThrottledBodyStopsTheAccountsScanning`, `TestATickAppliesTheChangesSinceItsCursor`, `TestATickDecidesABoundedNumberAndTheNextGoesOn`, `TestATickScansADelistedSendersMessages`, `TestATickSpendsInTheSyncClass`, `TestBeforeTheSecondPassHasEndedATickScansNothing`, `TestOnceTheSecondPassHasEndedATickScansWhatWaits`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestAGapIsRecoveredOverTheWindowSinceTheLastCursor`, `TestARecoveryRemovesWhatTheProviderNoLongerHolds`, `TestAThrottledBodyStopsTheAccountsScanning`, `TestATickAppliesTheChangesSinceItsCursor`, `TestATickDecidesABoundedNumberAndTheNextGoesOn`, `TestATickRestrictsTheStoredClassOfAnAddedRulesSender`, `TestATickScansADelistedSendersMessages`, `TestATickSpendsInTheSyncClass`, `TestBeforeTheSecondPassHasEndedATickScansNothing`, `TestOnceTheSecondPassHasEndedATickScansWhatWaits`
 
 ## Applying the same changes twice leaves the index as applying them once
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** applying a message's labels adds them to the ones stored rather than setting them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickAppliesTheChangesSinceItsCursor`, `TestApplyingTheSameChangesTwiceLeavesTheIndexAsOnce`
 - **Break (2):** a message the index already holds has its masks recorded again
@@ -99,7 +99,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Delta sync re-seals what it opens with an old key and scans every listed account and OAuth client
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the re-seal of a client secret writes nothing
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickReSealsWhatItOpensWithAnOldKey`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal`:** `TestAReSealNeverPutsBackAReplacedSecret`
@@ -108,7 +108,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Delta sync refuses a configuration it cannot tick with
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the interval is refused when it is positive and taken when it is not
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestATickThatCannotRunRefusesTheStart`, `TestATickThatCannotRunRefusesTheStart/--decisions_per_tick=0`, `TestATickThatCannotRunRefusesTheStart/--first_window=-1h`, `TestATickThatCannotRunRefusesTheStart/--sync_interval=0s`, `TestAnInvalidScannerSectionRefusesTheStart`, `TestTheEffectiveConfigurationIsLogged`, `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_only_private_key`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
 - **Break (2):** the interval, the first window and the bound on decisions are not validated
@@ -116,7 +116,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Delta sync refuses to start unless its public key matches one of its private keys
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the keyring holds only the first private key named, so a public key matching a later one refuses the start
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestThePublicKeyMustMatchAPrivateKey`, `TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_the_second_of_two`
 - **Break (2):** the keyring seals to the public key the first private key derives, so the mounted public key is never compared
@@ -124,7 +124,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Delta sync runs until stopped and serves every series between ticks
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a series whose account or client a later scan no longer holds stays reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal`:** `TestTheSeriesFollowTheLastScan`
 - **Break (2):** an account's gap series appears only at its first gap, so the rule's increase cannot see that gap
@@ -142,7 +142,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Delta sync's re-seal of a client secret never puts back a value someone else replaced
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a re-seal that lost to a replaced secret keeps the secret it held instead of reading the stored one again
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal`:** `TestAReSealNeverPutsBackAReplacedSecret`
 - **Break (2):** the re-seal's write replaces the stored secret whatever bytes it holds
@@ -150,7 +150,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Each tick takes the account snapshot again
 
-- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a tick serves the snapshot it held before its load, so an account connected since is ticked a tick late
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestAFailedReadOfTheRefusedCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported`, `TestARefusalOfTheStoredCredentialIsReported/the_account_disconnected`, `TestARefusalOfTheStoredCredentialIsReported/the_stored_credential_refused`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestARefusedCallUsesTheCredentialTheOperatorStored/a_body_fetch`, `TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_call`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARotationAfterARereadIsWrittenBack`, `TestATickTakesItsAccountsFromTheDatabase`, `TestATickWhoseRebuildFailsLeavesTheReauthorization`, `TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken`, `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`, `TestEachTickHandsItsAccountOverAndRecordsItsAttempt`, `TestEachTickLoadsTheAccountSnapshot`, `TestNoBodyTextReachesTheIndexOrTheLogs`, `TestTheProbesServeEverySeriesBetweenTicks`
 - **Break (2):** only the first tick loads the account snapshot, so an account connected afterwards is never ticked
@@ -158,7 +158,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** delta sync sets an account's backlog series before backfill's second pass has ended
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/app`:** `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`
 - **Break (2):** a tick's backlog never reaches delta sync's backlog series

@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/accountload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )

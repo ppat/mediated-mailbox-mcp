@@ -66,23 +66,23 @@ func Exceptions(ctx context.Context, p pool) error {
 		return err
 	}
 	for _, statement := range []func(context.Context) error{
-		setup.New(p).SetupClients, // want `calls setup.New outside a function literal passed to tx.Run`
+		clientsetup.New(p).SetupClients, // want `calls clientsetup.New outside a function literal passed to tx.Run`
 	} {
 		_ = statement
 	}
-	if err := setup.New(p).SetupClients(ctx); err != nil {
+	if err := clientsetup.New(p).SetupClients(ctx); err != nil {
 		return err
 	}
-	if err := setup.New(p).AddClient(ctx); err != nil {
+	if err := clientsetup.New(p).AddClient(ctx); err != nil {
 		return err
 	}
-	if err := setup.New(p).ReplaceClient(ctx); err != nil {
+	if err := clientsetup.New(p).ReplaceClient(ctx); err != nil {
 		return err
 	}
-	if err := setup.New(p).RemoveClient(ctx); err != nil {
+	if err := clientsetup.New(p).RemoveClient(ctx); err != nil {
 		return err
 	}
-	if err := setup.New(p).ClientIdentity(ctx); err != nil { // want `calls setup.New outside a function literal passed to tx.Run`
+	if err := clientsetup.New(p).ClientIdentity(ctx); err != nil { // want `calls clientsetup.New outside a function literal passed to tx.Run`
 		return err
 	}
 	if err := accounts.New(p).Other(ctx); err != nil { // want `calls accounts.New outside a function literal passed to tx.Run`

@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: attention.sql
 
-package senders
+package maskingsenders
 
 import (
 	"context"

@@ -45,7 +45,7 @@ import (
 // accounts listing, the read of oauth_clients (ADR-0091), delta sync's re-seal of a client secret
 // (ADR-0092), and the UI's OAuth client setup, listing each client's identity and adding, replacing and
 // removing a client, which belong to no account (ADR-0084, ADR-0106). Each is exempt only when written
-// as one chained call, such as accounts.New(h).Accounts(ctx) or setup.New(h).AddClient(ctx, arg),
+// as one chained call, such as accounts.New(h).Accounts(ctx) or clientsetup.New(h).AddClient(ctx, arg),
 // with any handle h. Any other use of those packages' New follows the rules above, so a statement later
 // added to any of them is not exempt.
 //

@@ -1,0 +1,21 @@
+control: A base edit landing between two accounts' reads is read again, and fails the reload only when edits land through both reads
+removes: a reload whose accounts read different base rules fails at once, so one base edit landing mid-reload pages
+packages: ./executioncontext/policyload
+tests: TestABaseEditBetweenTwoAccountsReadsIsReadAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/policyload/load.go b/executioncontext/policyload/load.go
+index 9e0644fd..49d9c0bc 100644
+--- a/executioncontext/policyload/load.go
++++ b/executioncontext/policyload/load.go
+@@ -150,9 +150,6 @@ func (l *Loader) Reload(ctx context.Context) error {
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+ 	rows, err := l.read(ctx)
+-	if errors.Is(err, errTornBase) {
+-		rows, err = l.read(ctx)
+-	}
+ 	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
+ 		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
+ 	}

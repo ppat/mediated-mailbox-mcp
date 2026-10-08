@@ -18,10 +18,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
+	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/scan"
-	decisions "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record"
+	gaterecord "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/senders/statistics"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
@@ -101,7 +101,7 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool,
 		if restart, err = completion.New(t).SecondRestart(ctx, account); err != nil {
 			return fmt.Errorf("reading whether the pass is marked to start over: %w", err)
 		}
-		r, err := pass1.LatestRun(ctx, record.New(t), account, pass)
+		r, err := pass1.LatestRun(ctx, runrecord.New(t), account, pass)
 		if err != nil || !r.Found {
 			return err
 		}
@@ -122,7 +122,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1
 		if err := completion.New(t).ClearSecondRestart(ctx, account); err != nil {
 			return fmt.Errorf("clearing the mark that starts the pass over: %w", err)
 		}
-		return pass1.StartRun(ctx, record.New(t), account, pass1.Starting{
+		return pass1.StartRun(ctx, runrecord.New(t), account, pass1.Starting{
 			Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
 			Checkpoint: cp, Counters: ct, Page: start.From.Checkpoint.Page,
 		})
@@ -157,7 +157,7 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 		if err != nil {
 			return err
 		}
-		r := record.New(t)
+		r := runrecord.New(t)
 		if err := pass1.RecordProgress(ctx, r, account, runID, cp, ct, restart.Checkpoint.Page); err != nil {
 			return err
 		}
@@ -279,7 +279,7 @@ func (s *Postgres) RequeueSkips(ctx context.Context, account, runID string) (int
 		if marked == 0 {
 			return nil
 		}
-		return pass1.RecordEvent(ctx, record.New(t), account, runID, pass1.Event{
+		return pass1.RecordEvent(ctx, runrecord.New(t), account, runID, pass1.Event{
 			Kind:   "retry",
 			Detail: fmt.Sprintf("%d skips decided without their subject's signal returned to pending scan", skips),
 		})
@@ -314,7 +314,7 @@ var errNotWaiting = errors.New("the message no longer waits for a scan")
 // Commit implements Store.
 func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Page, items []pass1.Item, at core.Progress) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		messages, gate := scan.New(t), decisions.New(t)
+		messages, gate := scan.New(t), gaterecord.New(t)
 		for _, o := range p.Outcomes {
 			if err := commitOutcome(ctx, messages, gate, account, o); err != nil {
 				return fmt.Errorf("message %s: %w", o.ID, err)
@@ -330,7 +330,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 				return fmt.Errorf("adding the prior hits of the sender at %q changed %d rows, want 1", domain, n)
 			}
 		}
-		r := record.New(t)
+		r := runrecord.New(t)
 		for _, it := range items {
 			if err := pass1.RecordItem(ctx, r, account, runID, it); err != nil {
 				return fmt.Errorf("recording the failed message %s: %w", it.ID, err)
@@ -347,7 +347,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 // commitOutcome records what the run did with one message: the gate's decision when it decided, and
 // the verdict or skip state it leads to. A message the gate could not decide, or whose body was not
 // scanned, stays waiting.
-func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.Queries, account string, o index.Outcome) error {
+func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, account string, o index.Outcome) error {
 	if !o.Verdict.Decided() {
 		return nil
 	}
@@ -355,7 +355,7 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.
 	if o.Verdict.Scans() {
 		decision = "SCAN"
 	}
-	err := gate.RecordDecision(ctx, decisions.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
+	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
 	if err != nil {
 		return fmt.Errorf("recording the gate's decision: %w", err)
 	}
@@ -401,28 +401,28 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
 		if err := completion.New(t).SetBackfillSecondComplete(ctx, account); err != nil {
 			return fmt.Errorf("setting the completion flag: %w", err)
 		}
-		return pass1.SucceedRun(ctx, record.New(t), account, runID)
+		return pass1.SucceedRun(ctx, runrecord.New(t), account, runID)
 	})
 }
 
 // Fail implements Store.
 func (s *Postgres) Fail(ctx context.Context, account, runID, cause string) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return pass1.FailRun(ctx, record.New(t), account, runID, cause)
+		return pass1.FailRun(ctx, runrecord.New(t), account, runID, cause)
 	})
 }
 
 // Event implements Store.
 func (s *Postgres) Event(ctx context.Context, account, runID string, e pass1.Event) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return pass1.RecordEvent(ctx, record.New(t), account, runID, e)
+		return pass1.RecordEvent(ctx, runrecord.New(t), account, runID, e)
 	})
 }
 
 // Failure implements Store.
 func (s *Postgres) Failure(ctx context.Context, account, runID string, it pass1.Item) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return pass1.RecordItem(ctx, record.New(t), account, runID, it)
+		return pass1.RecordItem(ctx, runrecord.New(t), account, runID, it)
 	})
 }
 

@@ -61,7 +61,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a failing-case store write from inside a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the store rule also fires on property.Report
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** the store rule is removed
@@ -69,7 +69,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a generator report reachable from a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** function literals assigned to variables are no longer followed, so a property held in a variable escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** calls to this package's own functions are no longer followed, so a report call inside a helper escapes
@@ -81,7 +81,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a link to a pure core's symbol
 
-- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149)
+- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** every go:linkname directive is reported, whatever package it names
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 - **Break (2):** a go:linkname directive naming a pure core's symbol goes unreported
@@ -89,7 +89,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a read of the environment outside a deployable's main.go
 
-- **Date · evidence:** 2026-09-26 · [pull request #177](https://github.com/ppat/mediated-mailbox-mcp/pull/177), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-09-26 · [pull request #177](https://github.com/ppat/mediated-mailbox-mcp/pull/177), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** (*exec.Cmd).Environ is not reported, so a command's inherited environment escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestEnvironment`
 - **Break (2):** os.ExpandEnv is not reported
@@ -115,7 +115,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a write to a pure core's package-level variable
 
-- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149)
+- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** taking a variable's address goes unreported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 - **Break (2):** a line directive written as a block comment goes unreported
@@ -137,7 +137,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses package-level state declared in a pure core
 
-- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149)
+- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a variable of any type other than error is admitted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 - **Break (2):** an error value made by errors.New from a constant message is refused
@@ -151,7 +151,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The ban-proof script refuses a depguard list that is not strict or carries a deny key
 
-- **Date · evidence:** 2026-09-29 · [pull request #189](https://github.com/ppat/mediated-mailbox-mcp/pull/189)
+- **Date · evidence:** 2026-09-29 · [pull request #189](https://github.com/ppat/mediated-mailbox-mcp/pull/189), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the deny check fires on every list without a deny key and passes one with it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/banproof`:** `TestConfigProblems`
 - **Break (2):** the deny check never fires, so a list carrying a deny key passes
@@ -167,7 +167,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The ban-proof script refuses a file a build that ships compiles that the gating lint does not read
 
-- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198)
+- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a finding sits on the file's first line rather than its package clause, where no want can sit after a build constraint
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/banproof`:** `TestUnlintedRunsEveryShippedConfiguration`
 - **Break (2):** the lint's listing sets none of the configuration's tags, so a file built only without one is taken as read
@@ -185,7 +185,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The ban-proof script refuses a go vet step whose build tags differ from the lint configuration's
 
-- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198)
+- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the comparison of the go vet step's tags with the configuration's is skipped, so any tags pass
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/banproof`:** `TestVetTagProblems`, `TestVetTagProblems/a_tag_the_configuration_does_not_set`, `TestVetTagProblems/a_tag_the_configuration_sets_left_out`, `TestVetTagProblems/no_tags`, `TestVetTagProblems/tags_given_twice,_the_first_matching`, `TestVetTagProblemsNamesBothLists`
 - **Break (2):** the first -tags on the go vet line is read rather than the last, which the go command keeps, so a step whose later -tags differ passes
@@ -201,7 +201,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The ban-proof script refuses a package the build of ./... reaches that ./... does not list
 
-- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198)
+- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** every package in the module cache passes, so a nested module published under this module's path is not refused
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/banproof`:** `TestUnlintedFindings`
 - **Break (2):** a package's cgo files are not read, so an import in one is not reported
@@ -322,9 +322,17 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (3):** with every weight zero the first name is always drawn
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestAllZeroWeightsWeighTheSame`
 
+## The pure-core rule matches a core path element at any depth
+
+- **Date · evidence:** 2026-10-08 · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Break (1):** the match is no longer held to a whole path element, so a directory whose name ends in core counts as a pure core
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
+- **Break (2):** only the fixed depths the pattern once named count, core, a library's core and a deployable's internal core, so a core at depth three goes unchecked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
+
 ## The raw SQL analyser refuses a statement the UI runs other than through the data-access library
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** parameters are compared by the names they are printed with, so a parameter spelled through an alias escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRawSQL`
 - **Break (2):** a batch sent or rows copied in are not reported
@@ -348,9 +356,9 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The routes analyser refuses a route the UI registers on a mux other than through its recording mux
 
-- **Date · evidence:** 2026-09-30 · [pull request #199](https://github.com/ppat/mediated-mailbox-mcp/pull/199)
+- **Date · evidence:** 2026-09-30 · [pull request #199](https://github.com/ppat/mediated-mailbox-mcp/pull/199), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** an interface method's parameters are compared by the names they are printed with, so a parameter spelled through an alias escapes
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRoutes`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRawSQL`, `TestRoutes`
 - **Break (2):** a concrete type's method named and typed like the mux's is reported, the recording mux's own Handle included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRoutes`
 - **Break (3):** a registration on the default mux through http.Handle or http.HandleFunc is not reported
@@ -372,7 +380,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret and the UI's client setup
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** taking the transaction parameter's address is not reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (2):** taking the address of any variable is reported, not only of the transaction parameter
@@ -420,7 +428,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The txhelper analyser holds the base policy's subsection and tx.RunBase to each other
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the base policy's subsection built in an account's transaction is accepted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (2):** another subsection built in a base-policy transaction is accepted

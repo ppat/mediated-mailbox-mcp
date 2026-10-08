@@ -14,7 +14,7 @@ index ba4fbe6..ce4bd78 100644
  			return fmt.Errorf("recording the pass as due again: %w", err)
  		}
 -		return nil
-+		r := record.New(t)
++		r := runrecord.New(t)
 +		run, err := pass1.LatestRun(ctx, r, account, pass)
 +		if err != nil || !run.Found || run.State == pass1core.Succeeded {
 +			return err

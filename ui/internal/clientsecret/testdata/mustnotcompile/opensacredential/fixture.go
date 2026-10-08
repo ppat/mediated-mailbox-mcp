@@ -6,7 +6,7 @@ package opensacredential
 import (
 	"context"
 
-	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
 )
 

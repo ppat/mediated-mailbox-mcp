@@ -12,12 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	accountsetup "github.com/ppat/mediated-mailbox-mcp/db/accounts/setup"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication"
 	clientsetup "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/setup"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"

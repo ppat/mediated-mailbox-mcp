@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: setup.sql
 
-package setup
+package accountsetup
 
 import (
 	"context"

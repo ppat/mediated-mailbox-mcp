@@ -1,0 +1,21 @@
+control: An account is loaded with the OAuth client it names, and an account that names none with none
+removes: an account that names no client is handed any client that opened, another provider's included
+packages: ./executioncontext/accountload
+tests: TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne TestEachAccountIsLoadedWithTheClientItNamesAndNoOther
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/accountload/load.go b/executioncontext/accountload/load.go
+index 88f41d1d..8b7d97cb 100644
+--- a/executioncontext/accountload/load.go
++++ b/executioncontext/accountload/load.go
+@@ -284,6 +284,9 @@ func (l *Loader) openClient(c oauthclients.OAuthClientsRow) (Client, bool) {
+ // their names. An account that names none has none.
+ func pair(name string, opened map[string]Client) (Client, bool) {
+ 	if name == "" {
++		for _, c := range opened {
++			return c, true
++		}
+ 		return Client{}, false
+ 	}
+ 	c, ok := opened[name]

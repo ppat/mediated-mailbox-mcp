@@ -5,10 +5,10 @@ tests: TestAFailedReadOfTheRefusedCredentialIsReported
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/session/session.go b/accountload/session/session.go
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
 index f4fb328a..ada3f4c2 100644
---- a/accountload/session/session.go
-+++ b/accountload/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
 @@ -225,7 +225,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
  	}
  	reread, rerr := s.h.config.Loader.Reread(ctx, s.account)

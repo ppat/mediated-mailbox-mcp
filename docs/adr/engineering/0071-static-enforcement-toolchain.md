@@ -682,6 +682,35 @@ probe routes on muxes with nothing recording them.
   the build in every configuration. It adds two `go list` runs, measured at under a second
   together, and refused every constraint shape above that ships.
 
+### The inter-component rules selected again at the regrouping into families
+
+The regrouping of the shared libraries into families
+([ADR-0050](./0050-shared-code-pure-or-narrow.md)) rewrote every list, which is the condition the
+Consequences below set for selecting the tool for the inter-component rules again. The pure-core rule
+was not part of it. The lists as they stood then load four requirements that order the field, each
+the only mechanism holding a control.
+
+| Requirement | Where the lists load it |
+| --- | --- |
+| A named standard-library package is refused, and a list can admit no standard-library package at all | The mediator's packages outside its two roots admit nothing under `net/http`, the UI's shipped code nothing under `crypto/` beyond the packages it uses, and the files of each root other than its generator no standard-library package ([ADR-0053](./0053-parity-by-construction.md), [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)) |
+| A rule covers single files inside a package | Each root's generator file takes a list of its own beside the rest of its package, the one file its protocol's library is admitted in ([ADR-0053](./0053-parity-by-construction.md), [ADR-0086](./0086-mcp-root-on-the-official-go-sdk.md)) |
+| Test files and non-test files take different lists | The test tooling, rapid and go-cmp are refused to code that ships and admitted to tests ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)) |
+| A list admits only what it names, and an empty one refuses | This record's decision |
+
+| Candidate | Refuses a standard-library package | Covers single files | Splits test from non-test files | An empty list refuses |
+| --- | --- | --- | --- | --- |
+| `depguard` | Yes | Yes, by file glob | Yes | Yes, in `strict` mode, which the ban-proof script holds every list to |
+| `go-arch-lint` | No. Every standard-library import is allowed before any permission check runs | No. Components are directories, and files are excluded only for the whole configuration | No, beyond that exclusion | Yes |
+| `arch-go` | A named one, yes | No. Its unit is the package | No. It loads non-test packages only | No. An empty list of standard-library packages admits every one |
+| A check written here | It would | It would | It would | It would |
+
+`go-arch-lint` and `arch-go` each fail a requirement whose control nothing else holds, so a mediator
+package importing `net/http`, or a test-only library reaching shipped code, would pass without a
+finding. The check written here loses as it did above, on accumulation rather than capability.
+`depguard` stays, for the inter-component rules as for the pure-core rule, and no list changed tool,
+so no list was proven again for a new one. Its cost is the one named above: its rules repeat file
+globs where a graph of components would declare each once.
+
 ## Consequences
 
 - **What leaving these choices would cost.** A configuration file, in every case. The rules
@@ -709,7 +738,9 @@ probe routes on muxes with nothing recording them.
   since that change rewrites the inter-component rules anyway. That change selects the tool for the
   inter-component rules again, weighing real alternatives, and the pure-core rule stays on
   `depguard` whatever it finds. If the tool changes, every list rule is proven again by a violation
-  file the new tool refuses.
+  file the new tool refuses. The regrouping into families acted on it and kept `depguard`, as
+  [the selection at the regrouping](#the-inter-component-rules-selected-again-at-the-regrouping-into-families)
+  states.
 - **Assumptions about other components.** Continuous integration can install a pinned command and
   run it over the whole module whenever a change reaches Go code or the configuration. The packages
   a pure core is permitted to import reach nothing of this project's, which is what makes checking

@@ -62,7 +62,7 @@ A Gmail account's stored credential is the refresh token itself, the one the acc
 from the grant. When Google rotates the refresh token, the source holds the new one and hands it
 over as its current refresh token. The source writes nothing. The deployable reads that token at
 the end of each unit of work and writes a rotated one back to the account's state row through
-`accountload/`
+`executioncontext/accountload/`
 ([ADR-0080](../docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
 [ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md),
 [ADR-0107](../docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)).
