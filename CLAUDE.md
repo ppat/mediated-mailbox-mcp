@@ -363,25 +363,35 @@ checks that gate the commit vocabulary carry no condition.
   [.github/ISSUE_TEMPLATE/ticket.md](./.github/ISSUE_TEMPLATE/ticket.md), whose header line and
   sections are its format and whose placeholders say what fills each slot. Units are cut for finish
   lines, tickets for parallel work inside a unit, so a ticket takes a slice of the unit's body and
-  says what stays with the unit's other tickets. It names the one unit it serves in its header line,
-  and it is a sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), which
-  lists the tickets by unit and is not itself a ticket. A unit recut in ROADMAP.md recuts its open
-  tickets. Its title says what lands, in the words the pull request title will use without the
+  says what stays with the unit's other tickets. Its header line names the one unit it serves and
+  the value increment its work is placed in. That is the increment ROADMAP.md places the work in,
+  so a unit's later work that ROADMAP.md places after a production point following the unit's own
+  increment sits in the increment whose section of the value path names it. Each value increment
+  has one issue, titled by the increment's name, which lists the increment's tickets by unit with
+  each ticket's State, and every ticket is a sub-issue of its increment's issue. Each increment's
+  issue is a sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), which
+  lists the increments with their units, their ticket counts and the production point that follows
+  each. Neither #118 nor an increment's issue is a ticket. A unit recut in ROADMAP.md recuts its
+  open tickets. Its title says what lands, in the words the pull request title will use without the
   commit type and scope, followed by the word unit and the unit's identifier in parentheses. Its
   links are full URLs to files on `main`. A discovery is a ticket under the unit whose mechanism it
   concerns, whether or not the unit is delivered, and work no unit covers gets its unit in
   ROADMAP.md first, since what is built and in what order has no other home and documents change
   before code. No ticket is added to a value increment before a production point whose `Crossed:`
-  line in ROADMAP.md reads yes. Work whose unit sits in such an increment, a discovery included,
-  goes under a unit in a later increment, and gets its unit there in ROADMAP.md first when none
-  covers it. #118's body, meaning its rows, each ticket's State and its copy of each production
-  point's `Crossed:` line, is written only by the control session that
-  [.claude/loop.md](./.claude/loop.md) runs. A ticket the operator holds carries the State `hold`,
-  and is not launched until the operator lifts the hold. The control session marks a ticket
-  in-progress when it launches the ticket's session, and built only once the ticket's pull request
-  has merged, so no dependent ticket starts before its blocker is on `main`. A session that cuts a
-  ticket links it as a sub-issue and sends the control session its row. The control session derives
-  every State again on each iteration, so a change made while none runs is caught when it next runs.
+  line in ROADMAP.md reads yes, judged by the increment the ticket's work is placed in, not the
+  increment its unit sits in. Work that would otherwise sit in such an increment, a discovery
+  included, is placed in a later increment, which ROADMAP.md records first. The bodies of #118 and
+  of every increment's issue, meaning #118's row per increment with its copy of each production
+  point's `Crossed:` line, and each increment's ticket rows with their States, are written only by
+  the control session that [.claude/loop.md](./.claude/loop.md) runs. It also creates the issue of
+  an increment ROADMAP.md adds, and moves a ticket whose work is placed in another increment to that
+  increment's issue. A ticket the operator holds carries the State `hold`, and is not launched until
+  the operator lifts the hold. The control session marks a
+  ticket in-progress when it launches the ticket's session, and built only once the ticket's pull
+  request has merged, so no dependent ticket starts before its blocker is on `main`. A session that
+  cuts a ticket links it as a sub-issue of its increment's issue and sends the control session its
+  row. The control session derives every State again on each iteration, so a change made while none
+  runs is caught when it next runs.
 - **A ticket is done** when its pull request has merged with CI green, the unit's acceptance in
   [ROADMAP.md](./ROADMAP.md) is met for the part keyed to what the ticket lands, and every document
   its work touched is updated in that pull request, with its GitHub labels matching its diff. The

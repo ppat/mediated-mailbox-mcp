@@ -5,7 +5,7 @@ about: One pull request's worth of work under one roadmap unit
 
 **Unit:** `<the unit served, linked to its group section in ROADMAP.md on main>` ·
 **Outcome:** `<the outcome the unit serves, linked>` ·
-**Value increment:** `<the increment the unit sits in, linked>`
+**Value increment:** `<the increment ROADMAP.md places this work in, which for a unit's later work can be later than the unit's own, linked>`
 
 ## Delivers
 

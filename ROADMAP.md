@@ -62,10 +62,12 @@ are retired. Decisions are cited by number, each linked to its record, and index
 defining it. Table cells and dependency edges within this document may use bare identifiers.
 
 **How this document relates to tickets.** How a ticket is cut and when it is done are
-[CLAUDE.md](./CLAUDE.md#repository-process)'s. Every ticket names the one unit it serves and is a
-sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), which lists the
-tickets by unit. The **Position** line below is re-dated whenever the checklists are reconciled
-against the tickets, so staleness is detectable instead of silent.
+[CLAUDE.md](./CLAUDE.md#repository-process)'s. Every ticket names the one unit it serves and the
+value increment this document places its work in, and is a sub-issue of that increment's issue,
+which lists the increment's tickets by unit. Each increment's issue is a sub-issue of
+[#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118). The **Position** line below is
+re-dated whenever the checklists are reconciled against the tickets, so staleness is detectable
+instead of silent.
 
 **Position: 2026-10-07.**
 
@@ -998,7 +1000,11 @@ real adversary. Mutation capability opens only after that proof exists.
 
 **Units:** [M1](#group-m--mutation-and-approval) · [M2](#group-m--mutation-and-approval) ·
 [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
-[M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), then
+[M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), and
+the later work recorded under [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
+[F3](#delivered-mapped-to-outcomes), [M3](#group-m--mutation-and-approval) and
+[S1](#delivered-mapped-to-outcomes) that is placed after
+[production point 1](#production-point-1--the-read-path), then
 [production point 2](#production-point-2--the-agent-acts). **Value shipped:** the system's headline
 capability (organize, then propose and enact a mailbox-wide reorganization) with approval, rollback
 and the review loops that keep the policy list alive, and calendar behind the same invariant. **Why
@@ -1018,9 +1024,11 @@ point.
 
 ### V6 — The learned tier
 
-**Units:** [X1](#group-x--expansion). **Value shipped:** the learned detection tier, trained on
-examples confirmed from the real mailbox's masking events and gate decisions, shipped as a version
-bump behind the scanner-version flag. **Why it is last:** the tier is trained on labels only the
+**Units:** [X1](#group-x--expansion), and the later work recorded under
+[F2](#delivered-mapped-to-outcomes) that is placed after
+[production point 3](#production-point-3--a-second-of-everything). **Value shipped:** the learned
+detection tier, trained on examples confirmed from the real mailbox's masking events and gate
+decisions, shipped as a version bump behind the scanner-version flag. **Why it is last:** the tier is trained on labels only the
 real mailbox produces ([ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md)),
 and confirming them needs the feedback verb that is open against [X1](#group-x--expansion).
 
@@ -1120,7 +1128,11 @@ holds, with an entry naming the point.
 - **After:** [M1](#group-m--mutation-and-approval) · [M2](#group-m--mutation-and-approval) ·
   [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
   [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), the
-  end of [V4](#v4--the-agent-acts-and-calendar-joins-mail).
+  end of [V4](#v4--the-agent-acts-and-calendar-joins-mail), and the later work recorded under
+  [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
+  [F3](#delivered-mapped-to-outcomes), [M3](#group-m--mutation-and-approval) and
+  [S1](#delivered-mapped-to-outcomes) that is placed after
+  [production point 1](#production-point-1--the-read-path).
 - **Preconditions:** [production point 1](#production-point-1--the-read-path) has run long enough
   for the index to hold the real corpus and the review loops to have traffic.
 - **Supplied there:**
@@ -1759,8 +1771,9 @@ about its cluster.
 
 ## Dependencies
 
-One kind, structural, meaning the unit cannot be built and tested without what the dependency
-supplies. What a unit needs from the real mailbox or the deployed system is stated at the
+One kind, structural, meaning the dependent cannot be built and tested without what the dependency
+supplies. Either side of an edge is a unit, or a unit's later work named by what it lands. What a
+unit needs from the real mailbox or the deployed system is stated at the
 [production point](#production-points) that supplies it, never as an edge here. The order value
 lands in is the [value path](#the-value-path)'s.
 
@@ -1779,8 +1792,16 @@ lands in is the [value path](#the-value-path)'s.
 | F9 → F10 | The entry package per deployable, the account session package and the families, which the worker's composition root composes and its job kinds' import lists name |
 | D1 → F10, D2 → F10, D4 → F10 | Backfill's two passes and delta sync, the job kinds the worker runs from the start |
 | D2's re-mask later work → F10 | [ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) accepted, with [ADR-0096](./docs/adr/redaction/0096-a-scanner-change-reopens-backfill.md) superseded, before F10 accepts [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md), since ADR-0096's step at every backfill run would otherwise stand Accepted beside a worker that makes it once per process and account |
+| F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the grants in `00004` that ingest's insert of the attachment types is added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
+| F10 → D4's deletion later work, F11 → D4's deletion later work | The worker the index's reflection of deleted messages runs in as a job kind, with its scheduler, and the schema baseline whose closed set of `job_runs (workload, pass)` pairs a new pair joins with its migration |
+| D3's domain-normalizer later work → S1's later work | Classification per sender domain in the class-filtered read, which S1's later work measures its saving against |
+| D3's statement-timeout later work → M3's statement-timeout later work | The bounded transaction in `db/tx` the UI's dataset reads run in |
+| D3's audit-row later work → M6, D3's domain-normalizer later work → M6 | The audit row's typed columns the `audit` dataset reads, and the one normalizer in `core/index` every dataset binds a sender domain through |
+| D3's audit-row later work → M1 | The typed audit row the mutations' audit rows are written in, to which M1 adds the columns its rows for applied and refused mutations need, or a table of its own |
+| F10 → X1 | The worker whose backfill and delta sync job kinds the learned tier ships inside |
+| F11 → X2 | The flattened chain and schema baseline the calendar tables are added to, and the migration test helper in `testsupport/postgres` the progress move is tested through |
 | M7 → F10, M8 → F10 | The changes the UI makes that the worker's reloads pick up, a connected account and a replaced credential (M7) and a policy edit (M8) |
-| F9 → F11, D3 → F11 | The families whose paths the chain's tests and patches name, and the one Go normalizer of sender domains that D3's later work lands, so every writer lowercases before the domain columns become `text` |
+| F9 → F11, D3's domain-normalizer later work → F11 | The families whose paths the chain's tests and patches name, and the one Go normalizer of sender domains that D3's later work lands, so every writer lowercases before the domain columns become `text` |
 | F9 → R1, F10 → R1, F11 → R1 | The worker, its roles and the schema with no extension bootstrap, which the chart packages |
 | F10 → M2, F10 → M4, F11 → M4, F10 → X2, F9 → X2, F10 → X3, F9 → X4, F10 → X4 | The worker each background job kind runs in, with its scheduler, role, pool and loaders, the schema baseline the heuristics run's candidates and pass are written into, and the account session package through which a provider's connector is passed once |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
@@ -1814,7 +1835,7 @@ lands in is the [value path](#the-value-path)'s.
 | M1 → X3, M2 → X3, D4 → X3, M4 → X3, X2 → X3 | The mutation the cross-account injection attempts, the reorg, delta sync and heuristics job kinds a second account also runs, and the calendar client every account holds, which the injection also covers |
 | S1 → F2, and S1 → every later unit | The marker text and synthetic fixtures later tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the provider fake, the convention for running the suite against the real provider, the rate limiter the Fastmail backend spends through, the deployables that call a provider, how a label is renamed and deleted at the provider, and the calendar side of the port the CalDAV adapter implements. The Fastmail wiring also follows the answers on how a running deployable learns of a new account or a replaced credential and on recording the authentication outcome |
-| S2 → X1, D2 → X1, D4 → X1 | The tier boundary and the scanner version tier 3 fits into, the masking events and gate decisions its training examples come from, the re-scan that ships it, and the scanning workloads it runs in |
+| S2 → X1, D2 → X1, D2's re-mask later work → X1, D4 → X1 | The tier boundary and the scanner version tier 3 fits into, the masking events and gate decisions its training examples come from, the re-scan that ships it, which re-masks stale subjects stored unmasked from the store and fetches again only those stored masked ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), and the scanning workloads it runs in |
 | F2 → R1, D1 → R1, D3 → R1, D4 → R1, M3 → R1, M7 → R1, M8 → R1 | The migration chain the step runs, the runtime database role the UI connects as, the read path's deployables and the UI with its account setup, to which the chart mounts the public key and the private key its client-secret part opens a client's secret with, and its policy management, whose writes the UI's role is granted |
 | M2 → R2, M4 → R2, X2 → R2, R1 → R2 | The action path's job kinds and their roles, the calendar inputs, and the chart and suites R2 adds to |
 | X4 → R3, R2 → R3 | The Fastmail backend, and the chart and suites R3 would add to |
@@ -1843,14 +1864,14 @@ supplies, including edges another edge implies.
 | D2 | D1 · S3 |
 | M8 | M7 · D2 |
 | D4 | D2 · D3 |
-| M1 | D3 |
-| X2 | M1 · F10 |
+| M1 | D3 · D3's audit-row later work |
+| X2 | M1 · F10 · F11 |
 | M2 | M1 · F10 |
 | X3 | M2 · M4 · X2 |
 | X4 | M2 · X2 |
 | F9 | D4 · M8 |
 | F10 | F9 · D2's re-mask later work |
-| F11 | F9 |
+| F11 | F9 · D3's domain-normalizer later work |
 | R1 | F10 · F11 |
 | M4 | F10 · F11 |
 | M6 | M3 · M2 |
@@ -1881,6 +1902,7 @@ flowchart LR
     F9 --> F10
     D2 -- re-mask later work --> F10
     F9 --> F11
+    D3 -- domain-normalizer later work --> F11
     F10 --> R1
     F11 --> R1
     S2 --> D1
@@ -1894,6 +1916,7 @@ flowchart LR
     D2 --> D4
     D3 --> D4
     D3 --> M1
+    D3 -- audit-row later work --> M1
     M1 --> X2
     M1 --> M2
     M2 --> X3
@@ -1904,6 +1927,7 @@ flowchart LR
     F10 --> M4
     F11 --> M4
     F10 --> X2
+    F11 --> X2
     M2 --> R2
     X2 --> R2
     M4 --> R2

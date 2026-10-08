@@ -1,6 +1,6 @@
 # Build state, proof ledgers and front doors
 
-Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket epic on GitHub,
+Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket issues on GitHub,
 `docs/VERIFICATIONS.md`, `docs/MUTATIONS.md`, `README.md`, `CLAUDE.md`, and the rules under
 `.claude/rules/` that mirror CLAUDE.md's code conventions.
 
@@ -8,9 +8,10 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
 
 - Cutting tickets: a ticket is cut from the template to the rules of
   [CLAUDE.md](../../../../CLAUDE.md#repository-process), and the ticket is added as a sub-issue of
-  [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), and its row under its unit in the
-  epic's body goes to the control session, which writes the body, as CLAUDE.md states. A unit recut
-  here recuts its open tickets, as CLAUDE.md states.
+  the issue of the value increment its work is placed in, one of the sub-issues of
+  [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), and its row under its unit in
+  that issue's body goes to the control session, which writes the body, as CLAUDE.md states. A unit
+  recut here recuts its open tickets, as CLAUDE.md states.
 - Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets or
   that it was delivered before any were cut, and state what it did NOT deliver. Re-date
   `**Position:**` whenever checklists are reconciled against reality.
