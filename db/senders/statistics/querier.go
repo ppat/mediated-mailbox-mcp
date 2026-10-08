@@ -20,7 +20,7 @@ type Querier interface {
 	RebuildSender(ctx context.Context, arg RebuildSenderParams) error
 	// Counts the prior hits of the account's sender at domain again from the stored messages whose scan
 	// verdict carries a content flag, after messages of the sender returned to pending scan with their
-	// verdict cleared, so a message scanned again counts once (ADR-0096, ADR-0093).
+	// verdict cleared, so a message scanned again counts once (ADR-0120, ADR-0093).
 	RecountScanHits(ctx context.Context, arg RecountScanHitsParams) (int64, error)
 }
 

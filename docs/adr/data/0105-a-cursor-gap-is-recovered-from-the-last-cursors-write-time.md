@@ -17,7 +17,9 @@ message. The account's state row records when delta sync last wrote the cursor, 
 [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox) is falsified by an invalidated
 cursor leaving messages permanently missing from the index, and by a recovery that succeeds silently.
 Backfill's first pass is skipped once it has ended for an account, unless a stored subject was masked
-under another scanner ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md)), so a
+under another scanner
+([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), and a
+first pass reopened that way fetches only those subjects again and enumerates nothing, so a
 backfill run adds no message the index lacks after the first pass has ended.
 
 An account delta sync has never ticked for holds no cursor. Backfill enumerates the mailbox as it

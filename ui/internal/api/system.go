@@ -43,7 +43,7 @@ type systemResponse struct {
 // pass's latest run for its progress, the rate state, and the finish of pass 1's latest succeeded run.
 // Connected is false for an account with no state row, whose flags then read false and whose times
 // read null (ADR-0091). BackfillPass1SucceededAt tells the partial-index banner a pass 1 a change of
-// scanner re-opened from a first one (docs/UI.md section 12, ADR-0096).
+// scanner re-opened from a first one (docs/UI.md section 12, ADR-0120).
 type operationalBlock struct {
 	Connected                bool       `json:"connected"`
 	BackfillPass1Complete    bool       `json:"backfill_pass1_complete"`

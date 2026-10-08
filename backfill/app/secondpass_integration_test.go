@@ -84,7 +84,7 @@ func passesDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake) 
 	n := 0
 	runID := func() string { n++; return fmt.Sprintf("run%d", n) }
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Policy: rules.For(account), Scanner: s, Lookups: lookups,
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3, Policy: rules.For(account), Scanner: s, Lookups: lookups,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{

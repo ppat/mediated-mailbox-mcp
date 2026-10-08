@@ -98,7 +98,7 @@ func thresholdDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fak
 	runID := func() string { n++; return fmt.Sprintf("%s%d", run, n) }
 	s := wideScanner(t)
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Policy: rules.For(account), Scanner: s, Lookups: lookups,
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3, Policy: rules.For(account), Scanner: s, Lookups: lookups,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
@@ -278,7 +278,7 @@ func TestAGateSkipOfASenderNowRestrictedIsSkippedAsRestricted(t *testing.T) {
 // VERIFICATIONS' row for a change of the scan gate's thresholds, a second pass stopped part way. The
 // pass stops past the news skips, the thresholds are widened, and the run resuming it starts over from
 // the first waiting message, so the skips returned to pending before its checkpoint are scanned
-// rather than left waiting for good (ADR-0098, ADR-0096).
+// rather than left waiting for good (ADR-0098, ADR-0120).
 func TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)

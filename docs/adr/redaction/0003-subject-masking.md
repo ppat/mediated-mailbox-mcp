@@ -27,7 +27,7 @@ live OTP is a compromise.
 - Masked subjects are masked **at rest** in the index, so the stored subject is already safe to
   serve. The stored subject and each of its masking events record the scanner version and
   configuration revision the masking ran under, so a change of scanner masks it again
-  ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)).
+  ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
 
 Concretely, this is what the agent receives.
 

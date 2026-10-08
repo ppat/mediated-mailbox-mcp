@@ -268,7 +268,7 @@ func relabel(ctx context.Context, q *change.Queries, account string, m index.Mes
 }
 
 // recordMasks records a masking event for each mask on m's subject, with the scanner it was masked
-// under, as backfill records them (ADR-0003, ADR-0096).
+// under, as backfill records them (ADR-0003, ADR-0120).
 func recordMasks(ctx context.Context, q *maskingrecord.Queries, account string, m index.Message) error {
 	for _, mask := range m.Masks {
 		err := q.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{

@@ -220,7 +220,7 @@ func TestTheMaskingRuleCountsEachSenderAndRule(t *testing.T) {
 		`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at)
 		SELECT $1, 'm-removed', 'subject', 'content.link', 1, $2::timestamptz - interval '1 hour' FROM generate_series(1, 30)`,
 		// A message of the shop whose subject a change of scanner masked again under the pair (2, r2), with
-		// five events of the masking that replaced, under (1, r1), which count toward nothing (ADR-0096).
+		// five events of the masking that replaced, under (1, r1), which count toward nothing (ADR-0120).
 		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state, subject_scanner_version, subject_scanner_revision) VALUES
 		($1, 'm-shop3', 't-shop', 'c@shop.example', 'shop.example', $2, false, 'normal', 'scanned', 2, 'r2')`,
 		`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at, scanner_version, scanner_revision)
@@ -289,7 +289,7 @@ func TestCardsComeNewestFirst(t *testing.T) {
 // TestARescanCountsOnlyTheCurrentMasks writes 25 messages sent 200 days ago whose subjects a change of
 // scanner masked again an hour ago under (2, r2), after they were masked three days ago under (1, r1).
 // The masking card counts the 25 current masks, since the re-mask is masking done this week, and none of
-// the 25 masks it replaced, so no subject counts twice (docs/UI.md section 8.1, ADR-0096).
+// the 25 masks it replaced, so no subject counts twice (docs/UI.md section 8.1, ADR-0120).
 func TestARescanCountsOnlyTheCurrentMasks(t *testing.T) {
 	got := only(cardsUnder(t, starting(),
 		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state, subject_scanner_version, subject_scanner_revision)

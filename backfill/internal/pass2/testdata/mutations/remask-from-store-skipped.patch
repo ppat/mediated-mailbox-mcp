@@ -1,0 +1,21 @@
+control: A backfill run's start masks every stale subject stored unmasked again from the store, a batch at a time, with a masking event for each mask
+removes: the run-start step masks no subject stored unmasked again, so each keeps a mask an earlier scanner decided until a fetch the first pass never makes
+packages: ./backfill/app ./backfill/internal/pass2
+tests: TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+index f3631c0b..36ac1c85 100644
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -257,6 +257,9 @@ func remaskStored(ctx context.Context, messages *ingest.Queries, events *masking
+ 	remasked func([]pass1core.Stored) []index.Message,
+ ) (int, error) {
+ 	v := version(stamp.Version)
++	if v >= 0 {
++		return 0, nil
++	}
+ 	total, after := 0, ""
+ 	for {
+ 		rows, err := messages.StaleUnmaskedSubjects(ctx, ingest.StaleUnmaskedSubjectsParams{

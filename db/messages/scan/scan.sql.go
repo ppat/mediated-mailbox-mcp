@@ -328,7 +328,7 @@ WHERE account_id = $1 AND scan_state = 'skipped_gate' AND subject_masked
 `
 
 // Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
-// since the gate decided without that signal (ADR-0096, ADR-0093).
+// since the gate decided without that signal (ADR-0120, ADR-0093).
 func (q *Queries) RequeueSignalledSkips(ctx context.Context, accountID string) (int64, error) {
 	result, err := q.db.Exec(ctx, requeueSignalledSkips, accountID)
 	if err != nil {
@@ -364,7 +364,7 @@ type RequeueStaleVerdictsParams struct {
 
 // Returns each of the account's scanned messages whose verdict was made under another scanner version
 // or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
-// Gate denies its body as pending its content scan (ADR-0096). A backfill run makes it at its start,
+// Gate denies its body as pending its content scan (ADR-0120). A backfill run makes it at its start,
 // before the first pass. It returns each message's sender domain, whose prior hits the caller counts
 // again.
 func (q *Queries) RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerdictsParams) ([]string, error) {

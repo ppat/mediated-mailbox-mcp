@@ -77,7 +77,7 @@ func TestBegin(t *testing.T) {
 
 // A run resuming a stopped pass while a backfill run's start marked the pass to start over starts over
 // from the first waiting message, its counters carried, since what that step returned to pending may
-// sit before the checkpoint. Without the mark it resumes where it stopped (ADR-0096).
+// sit before the checkpoint. Without the mark it resumes where it stopped (ADR-0120).
 func TestOver(t *testing.T) {
 	at := pass2.Progress{Checkpoint: pass2.Checkpoint{Page: 3, After: "m30"}, Counters: pass2.Counters{Pages: 3, Decided: 30, Scanned: 20, Skipped: 10}}
 	resumed := pass1.Start[pass2.Progress]{ResumedFrom: "r1", From: at}

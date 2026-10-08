@@ -6,7 +6,7 @@
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { useLocation } from "preact-iso";
-import { accountsPath, systemPath, type Account, type System } from "./api.ts";
+import { accountsPath, systemPath, type Account, type Run, type System } from "./api.ts";
 import type { State } from "./cache.ts";
 import { useDeps } from "./deps.ts";
 import { count, share, utc } from "./format.ts";
@@ -380,25 +380,22 @@ function RefusedCredentialBanner(props: { account: string }) {
 
 // partialIndex is the banner's text while a backfill pass runs, naming each running pass, or undefined
 // when neither runs. A pass 1 running after an earlier run of it succeeded was re-opened by a change of
-// scanner to mask every subject again (ADR-0096). The index already holds the whole mailbox then, so
-// the banner says so and no count is a count so far (docs/UI.md section 12).
+// scanner, to fetch again the subjects an earlier scanner masked, once the run's start has masked the
+// others again from the index (ADR-0120). The index already holds the whole mailbox then, so the
+// banner says so and no count is a count so far (docs/UI.md section 12).
 export function partialIndex(system: System): string | undefined {
   const op = system.operational;
   const sentences: string[] = [];
   if (!op.backfill_pass1_complete && op.backfill_pass1_run?.state === "running") {
-    const page = numberIn(op.backfill_pass1_run.checkpoint, "page");
-    const of = numberIn(op.backfill_pass1_run.checkpoint, "of");
-    const progress =
-      page === undefined || of === undefined
-        ? ""
-        : `, page ${count(page)} of ${count(of)} (${share(page, of)})`;
+    const words = backfillProgress(op.backfill_pass1_run);
+    const progress = words === undefined ? "" : `, ${words}`;
     const completed = op.backfill_pass1_succeeded_at;
     sentences.push(
       completed === null
         ? `Backfill pass 1 is running${progress}, so every count here is a count so far.`
-        : `Backfill pass 1 is running again${progress}, to mask every subject again under the scanner now in force. ` +
+        : `Backfill pass 1 is running again${progress}, to fetch again the subjects an earlier scanner masked and mask them under the scanner now in force. ` +
             `It last completed at ${utc(completed)}, so the index holds the whole mailbox and no count here is a count so far. ` +
-            "A subject it has not reached yet keeps its earlier masks.",
+            "The other subjects were masked again from the index when the run started, and a subject it has not fetched yet keeps its earlier masks.",
     );
   }
   if (!op.backfill_pass2_complete && op.backfill_pass2_run?.state === "running") {
@@ -420,6 +417,33 @@ export function indexing(system: System): boolean {
     op.backfill_pass1_run?.state === "running" &&
     op.backfill_pass1_succeeded_at === null
   );
+}
+
+// refetchOf is a backfill pass 1 run's fetch of stale subjects again, once its enumeration has ended,
+// as the subjects it fetched again of those plus the ones still to fetch, or undefined for a run that
+// fetched none and has none to fetch (docs/UI.md section 8.1, ADR-0120).
+export function refetchOf(
+  run: Pick<Run, "checkpoint" | "counters">,
+): { fetched: number; of: number } | undefined {
+  const fetched = numberIn(run.counters, "refetched") ?? 0;
+  const stale = numberIn(run.checkpoint, "stale") ?? 0;
+  return fetched + stale === 0 ? undefined : { fetched, of: fetched + stale };
+}
+
+// backfillProgress is a backfill run's progress in words, for a pass 1 run fetching stale subjects
+// again the subjects it fetched again of all it fetches, else the page of pages its checkpoint records,
+// with the share of each, or undefined while its checkpoint records neither (docs/UI.md sections 8.1
+// and 12).
+export function backfillProgress(run: Pick<Run, "checkpoint" | "counters">): string | undefined {
+  const refetch = refetchOf(run);
+  if (refetch !== undefined) {
+    return `${count(refetch.fetched)} of ${count(refetch.of)} subjects fetched again (${share(refetch.fetched, refetch.of)})`;
+  }
+  const page = numberIn(run.checkpoint, "page");
+  const of = numberIn(run.checkpoint, "of");
+  return page === undefined || of === undefined
+    ? undefined
+    : `page ${count(page)} of ${count(of)} (${share(page, of)})`;
 }
 
 // numberIn reads a number from a free-form JSON object the contract leaves untyped, such as a run's

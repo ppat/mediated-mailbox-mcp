@@ -5,9 +5,9 @@
 //
 // Window decides what a gap's recovery, or an account's first reconciliation, re-enumerates
 // (ADR-0105). Unlisted and Gone decide which stored messages a gap's recovery removes (ADR-0105).
-// Fetched decides which messages a change set's metadata is asked for. CallSize decides
-// how many identifiers one metadata call names. OnBodyFailure decides what a tick does after a body
-// fetch fails (ADR-0104).
+// Fetched decides which messages a change set's metadata is asked for, and core/mail's CallSize how
+// many identifiers one metadata call names. OnBodyFailure decides what a tick does after a body fetch
+// fails (ADR-0104).
 package tick
 
 import (
@@ -71,19 +71,6 @@ func Fetched(cs mail.ChangeSet) []string {
 		}
 	}
 	return out
-}
-
-// CallSize returns how many identifiers one metadata call names, the most whose cost fits one
-// second's worth at the hard cap, ceiling times mail.HardCapFraction, and at least one, so no call is
-// refused at lease issuance (ADR-0023, ADR-0024). cost returns what a call naming n identifiers
-// costs, and most is how many there are to ask for.
-func CallSize(cost func(n int) float64, ceiling float64, most int) int {
-	limit := mail.HardCapFraction * ceiling
-	n := 1
-	for n < most && cost(n+1) <= limit {
-		n++
-	}
-	return n
 }
 
 // Next is what a tick does after a body fetch fails.

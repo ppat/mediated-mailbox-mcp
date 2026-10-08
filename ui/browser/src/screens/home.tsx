@@ -21,7 +21,14 @@ import {
 import type { Deps } from "../app/deps.ts";
 import { useDeps } from "../app/deps.ts";
 import { age, count, duration, local, rate, share, utc } from "../app/format.ts";
-import { existingScreen, indexing, ListedAccount, numberIn, settingsPath } from "../app/frame.tsx";
+import {
+  backfillProgress,
+  existingScreen,
+  indexing,
+  ListedAccount,
+  numberIn,
+  settingsPath,
+} from "../app/frame.tsx";
 import { LiveProgress, LiveText, type Stream } from "../app/live.tsx";
 import { Region } from "../app/region.tsx";
 import { apiQuery, canonicalize, parse } from "../app/url.ts";
@@ -277,13 +284,12 @@ function Cells(props: { account: string; jobs: Jobs; live: Stream }) {
   );
 }
 
-// checkpointText is a backfill run's checkpoint with its percent, or "no page yet" until the checkpoint
-// records a page of pages, beside a bar that is an empty track until then (docs/UI.md section 8.1).
+// checkpointText is a backfill run's progress with its percent, the subjects a pass 1 run fetched again
+// of all it fetches while it fetches stale subjects again, else its checkpoint's page of pages, or "no
+// page yet" until the checkpoint records either, beside a bar that is an empty track until then
+// (docs/UI.md section 8.1).
 function checkpointText(run: Run): string {
-  const pages = pagesOf(run);
-  return pages === undefined
-    ? "no page yet"
-    : `page ${count(pages.page)} of ${count(pages.of)} (${share(pages.page, pages.of)})`;
+  return backfillProgress(run) ?? "no page yet";
 }
 
 function changeSet(run: Run): string {

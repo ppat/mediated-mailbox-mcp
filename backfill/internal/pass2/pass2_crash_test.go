@@ -40,7 +40,7 @@ func drawSetup(t *rapid.T) setup {
 // the process, so the next run reopens the pass or returns the verdicts made under the earlier scanner
 // to pending and starts over, or, with its argument 1, changes it back to the scanner before the last
 // change, so a pass resumed under a scanner it already ran under still reads what the change returned
-// to pending (ADR-0096). A widen raises the gate's high-volume mark above any sender's volume and stops
+// to pending (ADR-0120). A widen raises the gate's high-volume mark above any sender's volume and stops
 // the process, as a release changing the thresholds does, so the next run returns every gate skip to
 // pending and the pass scans it (ADR-0098).
 func target() crash.Target[setup, *world] {
@@ -87,7 +87,7 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // sender's body fetched, every message decided and recorded once under the scanner in force, each
 // sender's prior hits counted once, no message left skipped by the gate once its thresholds were
 // widened past every sender's volume, and no more than a page of bodies fetched again for each crash
-// and the mailbox for each change of scanner (ADR-0017, ADR-0037, ADR-0045, ADR-0096, ADR-0098).
+// and the mailbox for each change of scanner (ADR-0017, ADR-0037, ADR-0045, ADR-0120, ADR-0098).
 func TestAKilledSecondPassResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
 }

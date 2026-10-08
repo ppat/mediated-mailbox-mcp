@@ -12,7 +12,7 @@ sender is removed from the sensitive list, and the normal scanning machinery pic
 other unscanned mail ([ADR-0037](./0037-delisting-transition.md)). Backfill's second pass scans
 what waits while it runs, and it ends ([ADR-0017](../data/0017-two-pass-backfill.md)). Backfill runs
 again only after a change of scanner or of the gate's thresholds
-([ADR-0096](./0096-a-scanner-change-reopens-backfill.md),
+([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
 [ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)). A growing pending backlog is
 a failure in its own right, since pending denies the body
 ([ADR-0093](./0093-composite-scan-gate.md)). The question is how a message that goes back to pending
@@ -60,9 +60,9 @@ the start of each tick.
   for good once backfill has ended, which [ADR-0093](./0093-composite-scan-gate.md) counts as a
   failure.
 - **Reopening backfill's second pass whenever a message goes back to pending.** For it, one workload
-  keeps all scanning of what is stored. Against it, backfill runs only when the deployment starts it
-  after a change ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)), so nothing would run the
-  reopened pass.
+  keeps all scanning of what is stored. Against it, backfill runs again only after a change
+  ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), so nothing
+  would run the reopened pass.
 - **A separate scanning workload.** For it, scanning would have a process of its own. Against it, a
   fifth workload beside the four [ADR-0022](../operability/0022-four-workloads.md) decides, with its
   own role, image and schedule, for work delta sync already runs on its cadence.
@@ -78,7 +78,8 @@ the start of each tick.
   reading position passes it, and recorded as a failed item each time. The bound caps that work per
   tick.
 - Delta sync and backfill run the same scanner section and the same gate thresholds, or each
-  reopens the other's work ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md),
+  reopens the other's work
+  ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
   [ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)).
 - Assumptions about other components. Backfill's second pass sets its completion flag when it ends
   and clears it when a backfill run reopens it, so delta sync stops scanning from its next tick while

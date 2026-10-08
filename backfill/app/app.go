@@ -52,6 +52,11 @@ const gmailProvider = "gmail"
 // fetched and scanned one at a time, so it bounds a page's rework and not its memory.
 const pageSize = 100
 
+// mostPerCall is the most identifiers one call of the first pass fetching stale subjects again names,
+// whatever the provider's profile would fit, so a call's rework after a crash stays small. Gmail's
+// profile fits three (ADR-0023, ADR-0120).
+const mostPerCall = 100
+
 // scannerSection is the scanner's section of the configuration, whose revision every verdict and
 // masking decision is made under (ADR-0005, ADR-0078).
 const scannerSection = "scanner"
@@ -237,6 +242,24 @@ func fetch(s *session.Session, limiter *lease.Limiter, account string) pass1.Fet
 	}
 }
 
+// metadata returns the first pass's fetch of stale subjects again by identifier over the account's
+// session, under a lease (ADR-0025, ADR-0120), reading a refused credential again as fetch does.
+func metadata(s *session.Session, limiter *lease.Limiter, account string) pass1.Metadata {
+	return func(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+		return session.Call(ctx, s, func(ctx context.Context, port mail.Port[context.Context]) ([]mail.MessageMetadata, error) {
+			return pass1.LeasedMetadata(limiter, port, account)(ctx, ids)
+		})
+	}
+}
+
+// perCall is how many identifiers one call fetching stale subjects again names under profile, the most
+// whose cost fits one second's worth at the hard cap, and never more than mostPerCall (ADR-0023).
+func perCall(profile mail.RateLimitProfile[context.Context]) int {
+	return mail.CallSize(func(n int) float64 {
+		return profile.Cost(mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: n}).Weight
+	}, profile.BudgetPerSecond(), mostPerCall)
+}
+
 // body returns the second pass's body fetch over the account's session, under a lease (ADR-0025),
 // reading a refused credential again as fetch does.
 func body(s *session.Session, limiter *lease.Limiter, account string) pass2.Body {
@@ -249,11 +272,12 @@ func body(s *session.Session, limiter *lease.Limiter, account string) pass2.Body
 
 // firstPass returns the unit of work that runs backfill's two passes over every served account in
 // turn (ADR-0017), returning the verdicts another scanner made and the gate skips the gate no longer
-// decides as the same skip to pending before the first (ADR-0096, ADR-0098), spending from each
-// account's rate budget under the target its state row sets (ADR-0024). Each account's calls go
-// through the port its session builds over its token source. The second pass runs for an account once
-// its first has ended. Every page of either pass is one unit of work, so the account's session ends a
-// unit after each, handing its token over and recording its latest attempt. An account whose pass
+// decides as the same skip to pending and masking again from the store the subjects stored unmasked
+// before the first (ADR-0120, ADR-0098), spending from each account's rate budget under the target its
+// state row sets (ADR-0024). Each account's calls go through the port its session builds over its
+// token source. The second pass runs for an account once its first has ended. Every page of either
+// pass, and every call of the first fetching stale subjects again, is one unit of work, so the
+// account's session ends a unit after each, handing its token over and recording its latest attempt. An account whose pass
 // fails leaves the others to run, and the run ends in an error naming it.
 func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Registerer, logger *slog.Logger) (unitOfWork, error) {
 	leaseMetrics, err := lease.NewMetrics(registry)
@@ -283,6 +307,7 @@ func firstPass(pool *pgxpool.Pool, scanner scan.Scanner, registry prometheus.Reg
 			}
 			deps := pass1.Deps{
 				Store: store, Fetch: fetch(sess, limiter, account),
+				Metadata: metadata(sess, limiter, account), PerCall: perCall(gmail.Profile{}),
 				Policy: s.policy.For(account), Scanner: scanner, Lookups: lookups,
 				RunID: runID, Now: time.Now,
 			}
@@ -309,7 +334,7 @@ func ender(s *session.Session) func(context.Context, string) error {
 
 // secondDeps returns what an account's second pass runs with. The gate decides under the thresholds
 // delta sync decides under, and the scanner is the one delta sync builds from the same section, so
-// neither workload reopens the other's work (ADR-0096, ADR-0098, ADR-0104).
+// neither workload reopens the other's work (ADR-0120, ADR-0098, ADR-0104).
 func secondDeps(store pass2.Store, body pass2.Body, composed policy.Composed, lookups classify.Lookups, scanner scan.Scanner) pass2.Deps {
 	return pass2.Deps{
 		Store: store, Body: body, Policy: composed, Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
@@ -319,8 +344,8 @@ func secondDeps(store pass2.Store, body pass2.Body, composed policy.Composed, lo
 
 // backfillAccount runs backfill over one account. It first returns the verdicts made under another
 // scanner and the gate skips the gate no longer decides as the same skip to pending, so they are
-// denied whatever the first pass does, then runs the first pass, and the second once the first has
-// ended (ADR-0096, ADR-0098, ADR-0017).
+// denied whatever the first pass does, and masks again from the store the subjects stored unmasked,
+// then runs the first pass, and the second once the first has ended (ADR-0120, ADR-0098, ADR-0017).
 func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, metrics *pass1.Metrics, secondMetrics *pass2.Metrics,
 	handOver func(context.Context, string) error, logger *slog.Logger,
 ) error {
@@ -334,10 +359,11 @@ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, a
 }
 
 // reopen returns to pending every verdict of the account made under another scanner than the one the
-// run scans with, and every stored gate skip the gate under the run's thresholds no longer decides as
-// the same skip, before the first pass, so each is denied from the start of the run that sees it
-// whatever the first pass does, and reopens the second pass when it returned either or the first pass
-// is due again (ADR-0096, ADR-0098).
+// run scans with, masks again from the store every subject stored unmasked under another scanner, and
+// returns to pending every stored gate skip the gate under the run's thresholds no longer decides as
+// the same skip, before the first pass, so each verdict and skip is denied from the start of the run
+// that sees it whatever the first pass does, and reopens the second pass when it did any of these or
+// the first pass is due again (ADR-0120, ADR-0098).
 func reopen(ctx context.Context, deps pass2.Deps, account string, logger *slog.Logger) error {
 	r, err := pass2.Reopen(ctx, deps, account)
 	if err != nil {
@@ -345,6 +371,9 @@ func reopen(ctx context.Context, deps pass2.Deps, account string, logger *slog.L
 	}
 	if r.Verdicts > 0 {
 		logger.Info("verdicts made under another scanner returned to pending", "account", account, "messages", r.Verdicts)
+	}
+	if r.Subjects > 0 {
+		logger.Info("subjects stored unmasked under another scanner masked again from the store", "account", account, "messages", r.Subjects)
 	}
 	if r.Skips > 0 {
 		logger.Info("gate skips the gate no longer decides as the same skip returned to pending", "account", account, "messages", r.Skips)
@@ -376,9 +405,11 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
 			return errors.Join(append(handOvers, err)...)
 		}
 		at := p.Progress()
-		logger.Info("page made durable", "account", account, "run", p.Run(), "page", at.Checkpoint.Page, "messages", at.Counters.Messages)
+		logger.Info("step made durable", "account", account, "run", p.Run(), "page", at.Checkpoint.Page, "messages", at.Counters.Messages,
+			"refetched", at.Counters.Refetched, "stale", at.Checkpoint.Stale)
 		if step.Done {
-			logger.Info("the first pass ended", "account", account, "run", p.Run(), "pages", at.Counters.Pages, "messages", at.Counters.Messages)
+			logger.Info("the first pass ended", "account", account, "run", p.Run(), "pages", at.Counters.Pages, "messages", at.Counters.Messages,
+				"refetched", at.Counters.Refetched)
 			return errors.Join(handOvers...)
 		}
 	}

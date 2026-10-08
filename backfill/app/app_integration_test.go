@@ -569,7 +569,7 @@ func firstPassDeps(t *testing.T, pool *pgxpool.Pool, account string) pass1.Deps 
 	}
 	n := 0
 	return pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll,
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3,
 		Policy: none.For(account), Scanner: s,
 		Lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
 		RunID:   func() string { n++; return fmt.Sprintf("run%d", n) },

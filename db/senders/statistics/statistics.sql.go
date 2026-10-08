@@ -118,7 +118,7 @@ type RecountScanHitsParams struct {
 
 // Counts the prior hits of the account's sender at domain again from the stored messages whose scan
 // verdict carries a content flag, after messages of the sender returned to pending scan with their
-// verdict cleared, so a message scanned again counts once (ADR-0096, ADR-0093).
+// verdict cleared, so a message scanned again counts once (ADR-0120, ADR-0093).
 func (q *Queries) RecountScanHits(ctx context.Context, arg RecountScanHitsParams) (int64, error) {
 	result, err := q.db.Exec(ctx, recountScanHits, arg.AccountID, arg.Domain)
 	if err != nil {

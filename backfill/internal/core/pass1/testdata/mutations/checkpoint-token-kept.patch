@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
-index a85bd66..f08c085 100644
+index b786cf1e..4210ceb3 100644
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -160,7 +160,7 @@ func Restart(at Progress) Progress {
+@@ -178,7 +178,7 @@ func Fetched(at Progress, fetched, stale int) Progress {
  func Advance(at Progress, next mail.PageToken, total *mail.Total, added, remasked int) Progress {
  	page := at.Checkpoint.Page + 1
  	return Progress{
 -		Checkpoint: Checkpoint{Page: page, Token: next, Of: pagesOf(page, next, total), Stamp: at.Checkpoint.Stamp},
 +		Checkpoint: Checkpoint{Page: page, Token: at.Checkpoint.Token, Of: pagesOf(page, next, total), Stamp: at.Checkpoint.Stamp},
  		Counters: Counters{
- 			Pages:    at.Counters.Pages + 1,
- 			Messages: at.Counters.Messages + added,
+ 			Pages:     at.Counters.Pages + 1,
+ 			Messages:  at.Counters.Messages + added,

@@ -5,6 +5,7 @@ tests: TestTheProfileMeetsTheContract TestTheProfileMeetsTheContract/every_call_
 scheduled-count: no
 
 diff --git a/core/mail/rate.go b/core/mail/rate.go
+index 5f7796ec..168f7943 100644
 --- a/core/mail/rate.go
 +++ b/core/mail/rate.go
 @@ -100,7 +100,7 @@ func Throttled(err error) (ThrottleSignal, bool) {
@@ -14,5 +15,5 @@ diff --git a/core/mail/rate.go b/core/mail/rate.go
 -const HardCapFraction = 0.80
 +const HardCapFraction = 0.60
  
- // RateLimitProfile is what an implementation declares about its provider's costs and limits, so
- // everything above it sees only a weight and a budget (ADR-0023).
+ // CallSize returns how many identifiers one call of an operation priced per message names, the most
+ // whose cost fits one second's worth at the hard cap, ceiling times HardCapFraction, and at least one,

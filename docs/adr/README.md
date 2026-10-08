@@ -77,12 +77,12 @@ moves it. Records themselves link freely and deep, into
 | 0074 | [html-to-markdown v2 converts released bodies, configured through its own hooks](./redaction/0074-html-to-markdown-v2-converts-bodies.md) | Accepted |
 | 0093 | [A composite scan gate with a measured, accepted residual](./redaction/0093-composite-scan-gate.md) | Accepted |
 | 0094 | [The scan gate evaluates every message, and no gate decision is memoized](./redaction/0094-scan-gate-decisions-are-not-memoized.md) | Accepted |
-| 0096 | [A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided](./redaction/0096-a-scanner-change-reopens-backfill.md) | Accepted |
+| 0096 | [A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided](./redaction/0096-a-scanner-change-reopens-backfill.md) | **Superseded** |
 | 0098 | [Every backfill run decides each stored gate skip again, so a change of thresholds reaches the skips made under the earlier ones](./redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) | Accepted |
 | 0100 | [Message text with no HTML form is released as a fenced code block that shows it exactly](./redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md) | Accepted |
 | 0104 | [Once backfill's second pass has ended, each delta sync tick decides and scans what waits for a scan, a bounded number per tick](./redaction/0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md) | Accepted |
 | 0113 | [An added rule reaches the stored sender classes by its effect, through the comparison every scanning workload already makes](./redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md) | Accepted |
-| 0120 | [A change of scanner re-masks unmasked stored subjects from the store and fetches again only the masked ones, by identifier](./redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) | **Proposed** |
+| 0120 | [A change of scanner re-masks unmasked stored subjects from the store and fetches again only the masked ones, by identifier](./redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) | Accepted |
 | 0121 | [Backfill's run-start step, made once per process and account, decides each stored gate skip again](./redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | **Proposed** |
 
 ## Classification — `classification/`

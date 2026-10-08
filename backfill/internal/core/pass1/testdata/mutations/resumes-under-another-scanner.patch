@@ -1,20 +1,20 @@
-control: A run resuming an enumeration made under another scanner starts it over from the first page
-removes: a run resumes an enumeration made under another scanner from its checkpoint
+control: A run resuming an enumeration not yet ended that was made under another scanner starts it over from the first page
+removes: a run resumes an enumeration not yet ended that was made under another scanner from its checkpoint
 packages: ./backfill/internal/core/pass1 ./backfill/internal/pass1
 tests: TestUnder TestAKilledRunResumesFromItsCheckpoint
 scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
-index 1ce1acf..422ae06 100644
+index b786cf1e..ac6b3c60 100644
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -134,7 +134,7 @@ func Under(start Start[Progress], s Stamp) (Start[Progress], bool) {
- 	if start.Skip {
- 		return start, false
+@@ -144,7 +144,7 @@ func Under(start Start[Progress], latest Latest[Progress], s index.Stamp, stale
+ 		start.From = Progress{Checkpoint: Checkpoint{Page: ended.Page, Of: ended.Of}}
  	}
--	over := start.From.Checkpoint.Stamp != s && start.From.Checkpoint.Page > 0
-+	over := false && start.From.Checkpoint.Stamp != s && start.From.Checkpoint.Page > 0
+ 	at := start.From.Checkpoint
+-	over := !at.Ended() && at.Stamp != s && at.Page > 0
++	over := false && !at.Ended() && at.Stamp != s && at.Page > 0
  	if over {
  		start.From = Restart(start.From)
  	}

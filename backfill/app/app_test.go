@@ -302,7 +302,7 @@ func TestAVerdictsRevisionFollowsTheScannerSection(t *testing.T) {
 // decides under thresholds written out here, which delta sync's own test holds delta sync to as
 // well, and scans with the scanner backfill's default section builds, whose version and revision
 // are written out here and in delta sync's test, so a workload that differs from the other fails its
-// own test (ADR-0096, ADR-0098, ADR-0104).
+// own test (ADR-0120, ADR-0098, ADR-0104).
 func TestARunDecidesUnderTheSharedThresholdsAndScanner(t *testing.T) {
 	loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys), nil)
 	if err != nil {

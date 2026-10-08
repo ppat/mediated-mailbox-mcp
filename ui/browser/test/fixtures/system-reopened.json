@@ -19,9 +19,18 @@
       "heartbeat_at": "2026-09-10T10:15:58Z",
       "checkpoint": {
         "of": 3368,
-        "page": 842
+        "page": 3368,
+        "stale": 30,
+        "token": "",
+        "version": 1,
+        "revision": "r2"
       },
-      "counters": {},
+      "counters": {
+        "pages": 0,
+        "messages": 0,
+        "remasked": 0,
+        "refetched": 12
+      },
       "last_error": null
     },
     "backfill_pass1_succeeded_at": "2026-09-02T10:16:04Z",

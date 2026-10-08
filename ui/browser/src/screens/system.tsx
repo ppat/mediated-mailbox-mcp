@@ -9,7 +9,7 @@
 import type { ComponentChildren } from "preact";
 import { systemPath, type Run, type System } from "../app/api.ts";
 import { useDeps } from "../app/deps.ts";
-import { ListedAccount, numberIn, settingsPath } from "../app/frame.tsx";
+import { ListedAccount, numberIn, refetchOf, settingsPath } from "../app/frame.tsx";
 import { age, count, local, rate, share, utc } from "../app/format.ts";
 import { Region } from "../app/region.tsx";
 import { ProgressBar } from "../lens/progress.tsx";
@@ -38,14 +38,24 @@ export function jobsHref(account: string): string {
   return `/${encodeURIComponent(account)}/jobs`;
 }
 
-// pass is a backfill pass's value, complete, or running with its page of pages while its latest run
-// runs, else not complete.
+// pass is a backfill pass's value, complete, or running with its progress while its latest run runs,
+// the subjects a pass 1 run fetched again of all it fetches while it fetches stale subjects again, else
+// its page of pages, else not complete.
 export function pass(key: string, label: string, complete: boolean, run: Run | null): Value {
   if (complete) {
     return { key, label, text: "complete" };
   }
   if (run?.state !== "running") {
     return { key, label, text: "not complete" };
+  }
+  const refetch = refetchOf(run);
+  if (refetch !== undefined) {
+    return {
+      key,
+      label,
+      text: `running, ${count(refetch.fetched)} of ${count(refetch.of)} subjects fetched again (${share(refetch.fetched, refetch.of)})`,
+      progress: { part: refetch.fetched, whole: refetch.of },
+    };
   }
   const page = numberIn(run.checkpoint, "page");
   const of = numberIn(run.checkpoint, "of");

@@ -9,7 +9,7 @@ index 1691e4f5..123cb24f 100644
 --- a/backfill/app/app.go
 +++ b/backfill/app/app.go
 @@ -341,7 +341,7 @@ func ender(s *session.Session) func(context.Context, string) error {
- // neither workload reopens the other's work (ADR-0096, ADR-0098, ADR-0104).
+ // neither workload reopens the other's work (ADR-0120, ADR-0098, ADR-0104).
  func secondDeps(store pass2.Store, body pass2.Body, composed policy.Composed, lookups classify.Lookups, scanner scan.Scanner) pass2.Deps {
  	return pass2.Deps{
 -		Store: store, Body: body, Policy: composed, Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,

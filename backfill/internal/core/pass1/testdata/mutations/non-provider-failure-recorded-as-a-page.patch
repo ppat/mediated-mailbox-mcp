@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/core/pass1/pass1.go b/backfill/internal/core/pass1/pass1.go
-index a87b958..c3553f9 100644
+index b786cf1e..dcbf31d3 100644
 --- a/backfill/internal/core/pass1/pass1.go
 +++ b/backfill/internal/core/pass1/pass1.go
-@@ -232,8 +232,6 @@ const (
- // run and records no failed page.
+@@ -310,8 +310,6 @@ const (
+ // item.
  func OnFailure(f Attempt) Next {
  	switch {
 -	case f.Class == index.NotProvider:

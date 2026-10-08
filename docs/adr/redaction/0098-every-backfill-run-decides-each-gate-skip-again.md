@@ -17,27 +17,27 @@ already decides it again when the class changes
 Backfill's second pass decides a message once, when it reads it waiting for a scan
 ([ADR-0017](../data/0017-two-pass-backfill.md)). A stored skip is decided again in one case only,
 at the second pass's start for a subject now masked, after a change of scanner
-([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)). So a change of thresholds that scans more
-re-decides no stored skip, and every message skipped under the earlier thresholds stays released
-unscanned, in the residual the change meant to narrow.
+([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). So a change of
+thresholds that scans more re-decides no stored skip, and every message skipped under the earlier
+thresholds stays released unscanned, in the residual the change meant to narrow.
 
 The thresholds have no identity a stored decision could record. Backfill's composition root passes
 ADR-0093's defaults, no configuration section carries them, and so a change of thresholds is a
 release. The delisting transition and a change of scanner met the same shape of problem, stored
 state that a change elsewhere made wrong, by comparing what the index stores with what the workload
 runs with at the start of its runs ([ADR-0037](./0037-delisting-transition.md),
-[ADR-0096](./0096-a-scanner-change-reopens-backfill.md)).
+[ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
 
 ## Decision
 
 **Every backfill run decides each stored gate skip again, at its start and before the first pass.**
 In the transaction of the run-start step that returns stale verdicts to pending
-([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)), and after it, the run reads every message
-of the account stored as `SKIPPED_GATE` with the gate's inputs, the sender's volume and prior hits
-joined in that same read, so the read does not grow with the number of messages per sender
-([ADR-0094](./0094-scan-gate-decisions-are-not-memoized.md)). It decides each again with the gate,
-under the thresholds the run holds, with the sender's class under the policy in force and the
-message's age measured at the run's clock.
+([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), and after it,
+the run reads every message of the account stored as `SKIPPED_GATE` with the gate's inputs, the
+sender's volume and prior hits joined in that same read, so the read does not grow with the number
+of messages per sender ([ADR-0094](./0094-scan-gate-decisions-are-not-memoized.md)). It decides
+each again with the gate, under the thresholds the run holds, with the sender's class under the
+policy in force and the message's age measured at the run's clock.
 
 **A skip stands only while the gate decides it again as the same skip.** A message the gate decides
 again as `high_volume_no_hits` keeps its skip. Every other stored skip returns to pending, which
@@ -51,7 +51,8 @@ it does for every other message returned to pending.
 **A skip returned to pending reopens the second pass.** When any skip returned to pending, the same
 transaction records the second pass as not ended and marks it to start over, as the run-start step
 does when it returns a verdict to pending, so a skip returned before a stopped pass's checkpoint is
-read ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md)). The run writes to no run's record.
+read ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). The run
+writes to no run's record.
 
 The deciding argument. Comparing the stored skips with the gate the run holds needs no stored record
 of the thresholds, works whatever later delivers them, and is the pattern the delisting transition
@@ -71,9 +72,9 @@ next run.
   because it leaves the whole historical residual released, which is what the operator widens the
   gate to narrow.
 - **The thresholds join the scanner's stamp, so a change of thresholds re-opens backfill through
-  [ADR-0096](./0096-a-scanner-change-reopens-backfill.md)'s machinery.** Its case is reuse of
-  machinery already built. Not chosen, because it re-masks and re-scans the whole mailbox for a
-  change that touches only the skips.
+  [ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)'s machinery.**
+  Its case is reuse of machinery already built. Not chosen, because it re-masks and re-scans the
+  whole mailbox for a change that touches only the skips.
 - **Deciding the skips again at the second pass's start, beside the return of the skips whose
   subject is now masked.** Its case is one comparison of skips in one place. Not chosen, because a
   change of thresholds alone never reopens the second pass, so once backfill has ended the

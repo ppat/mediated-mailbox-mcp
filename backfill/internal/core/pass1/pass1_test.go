@@ -8,12 +8,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
 // How a run starts, from whether the pass has ended, whether it is due again because a scanner other
 // than the one in force decided what the index holds, and the latest run recorded (ADR-0017,
-// ADR-0096).
+// ADR-0120).
 func TestBegin(t *testing.T) {
 	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 7, Token: "p8"}, Counters: pass1.Counters{Pages: 7, Messages: 690}}
 	succeeded := pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: at}
@@ -49,8 +50,8 @@ func TestBegin(t *testing.T) {
 // over keeps its counters and its scanner and returns to the first page.
 func TestAdvanceAndRestart(t *testing.T) {
 	stamp := index.Stamp{Version: 3, Revision: "r"}
-	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 2, Token: "p3", Stamp: stamp}, Counters: pass1.Counters{Pages: 4, Messages: 150, Remasked: 9}}
-	want := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 3, Token: "p4", Stamp: stamp}, Counters: pass1.Counters{Pages: 5, Messages: 170, Remasked: 12}}
+	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 2, Token: "p3", Stamp: stamp}, Counters: pass1.Counters{Pages: 4, Messages: 150, Remasked: 9, Refetched: 2}}
+	want := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 3, Token: "p4", Stamp: stamp}, Counters: pass1.Counters{Pages: 5, Messages: 170, Remasked: 12, Refetched: 2}}
 	if diff := cmp.Diff(want, pass1.Advance(at, "p4", nil, 20, 3), compare.Options); diff != "" {
 		t.Errorf("Advance (-want +got):\n%s", diff)
 	}
@@ -97,40 +98,70 @@ func TestAdvanceEstimatesThePagesFromTheTotal(t *testing.T) {
 }
 
 // A run starting under a scanner the enumeration it resumes was not made under starts the enumeration
-// over from the first page, its counters carried, so an enumeration that ends was made under one
-// scanner from its first page. The estimate of the pages the old enumeration takes is dropped with
-// it, and a run that resumes under the same scanner keeps its estimate. Every run that starts records
-// the scanner it masks under (ADR-0096).
+// over from the first page while the enumeration has not ended, its counters carried, so an
+// enumeration that ends was made under one scanner from its first page. The estimate of the pages the
+// old enumeration takes is dropped with it, and a run that resumes under the same scanner keeps its
+// estimate. A pass reopened after its enumeration ended starts from that enumeration's checkpoint with
+// fresh counters, so it enumerates nothing, and a run resuming a pass whose enumeration ended never
+// starts it over. Every run that starts records the scanner it masks under, and one whose enumeration
+// has ended the stale subjects it has to fetch again (ADR-0120).
 func TestUnder(t *testing.T) {
 	old, now := index.Stamp{Version: 1, Revision: "old"}, index.Stamp{Version: 1, Revision: "new"}
-	counters := pass1.Counters{Pages: 4, Messages: 12, Remasked: 2}
+	counters := pass1.Counters{Pages: 4, Messages: 12, Remasked: 2, Refetched: 1}
 	resumed := func(page int, s index.Stamp) pass1.Start[pass1.Progress] {
 		return pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: page, Token: "p", Of: 9, Stamp: s}, Counters: counters}}
 	}
+	ended := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: old}, Counters: counters}
+	none := pass1.Latest[pass1.Progress]{}
+	succeeded := pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: ended}
+	failed := pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Failed, Progress: ended}
 	cases := []struct {
 		name     string
 		start    pass1.Start[pass1.Progress]
+		latest   pass1.Latest[pass1.Progress]
 		want     pass1.Start[pass1.Progress]
 		wantOver bool
 	}{
-		{"a skipped pass", pass1.Start[pass1.Progress]{Skip: true}, pass1.Start[pass1.Progress]{Skip: true}, false},
-		{"a fresh pass", pass1.Start[pass1.Progress]{Reopen: true}, pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}}, false},
-		{"a run resumed under the same scanner", resumed(3, now), resumed(3, now), false},
+		{"a skipped pass", pass1.Start[pass1.Progress]{Skip: true}, succeeded, pass1.Start[pass1.Progress]{Skip: true}, false},
+		{"a fresh pass", pass1.Start[pass1.Progress]{}, none, pass1.Start[pass1.Progress]{From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}}, false},
+		{"a pass reopened with no run recorded", pass1.Start[pass1.Progress]{Reopen: true}, none, pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}}, false},
 		{
-			"a run resumed under another scanner", resumed(3, old),
+			"a pass reopened after its enumeration ended",
+			pass1.Start[pass1.Progress]{Reopen: true},
+			succeeded,
+			pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: now, Stale: 7}}},
+			false,
+		},
+		{
+			"a pass reopened after an enumeration that did not end",
+			pass1.Start[pass1.Progress]{Reopen: true},
+			pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: resumed(3, old).From},
+			pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}},
+			false,
+		},
+		{"a run resumed under the same scanner", resumed(3, now), none, resumed(3, now), false},
+		{
+			"a run resumed under another scanner", resumed(3, old), none,
 			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}, Counters: counters}},
 			true,
 		},
 		{
-			"a run resumed under another version", resumed(3, index.Stamp{Version: 2, Revision: "new"}),
+			"a run resumed under another version", resumed(3, index.Stamp{Version: 2, Revision: "new"}), none,
 			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}, Counters: counters}},
 			true,
 		},
-		{"a run resumed before its first page", resumed(0, old), pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Token: "p", Of: 9, Stamp: now}, Counters: counters}}, false},
+		{"a run resumed before its first page", resumed(0, old), none, pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Token: "p", Of: 9, Stamp: now}, Counters: counters}}, false},
+		{
+			"a run resumed after its enumeration ended under another scanner",
+			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: ended},
+			failed,
+			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: now, Stale: 7}, Counters: counters}},
+			false,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got, over := pass1.Under(c.start, now)
+			got, over := pass1.Under(c.start, c.latest, now, 7)
 			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
 				t.Errorf("Under (-want +got):\n%s", diff)
 			}
@@ -141,8 +172,9 @@ func TestUnder(t *testing.T) {
 	}
 }
 
-// A stored subject the enumeration did not find is masked whole under the scanner in force, with the
-// one event of a whole subject, as a scanner that cannot decide masks it (ADR-0096, ADR-0003).
+// A stored subject whose message the provider left out of its answer is masked whole under the
+// scanner in force, with the one event of a whole subject, as a scanner that cannot decide masks it
+// (ADR-0120, ADR-0003).
 func TestUnfound(t *testing.T) {
 	s := index.Stamp{Version: 1, Revision: "new"}
 	got := pass1.Unfound([]pass1.Stored{{ID: "m1", Subject: "Your code is ██████"}, {ID: "m2", Subject: ""}}, s)
@@ -152,6 +184,62 @@ func TestUnfound(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("Unfound (-want +got):\n%s", diff)
+	}
+}
+
+// scanner returns the default scanner under revision.
+func scanner(t *testing.T, revision string) scan.Scanner {
+	t.Helper()
+	s, err := scan.New(scan.DefaultConfig(), revision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// A subject stored unmasked is masked again from what is stored, under the scanner in force, with an
+// event for each mask, and one the scanner masks nothing of keeps its stored text byte for byte
+// (ADR-0120).
+func TestRemasked(t *testing.T) {
+	s := scanner(t, "new")
+	stamp := index.StampOf(s)
+	got := pass1.Remasked([]pass1.Stored{{ID: "m1", Subject: "Your verification code is 419283"}, {ID: "m2", Subject: "  Lunch\ton Friday? Café ☕ "}}, s)
+	want := []index.Message{
+		{ID: "m1", Subject: "Your verification code is ██████", SubjectMasked: true, Masks: []index.Mask{{Rule: scan.RuleTriggerWindow, Tier: 1}}, Stamp: stamp},
+		{ID: "m2", Subject: "  Lunch\ton Friday? Café ☕ ", Stamp: stamp},
+	}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("Remasked (-want +got):\n%s", diff)
+	}
+}
+
+// The subjects fetched again are masked from the subject the provider returned, not from what is
+// stored, and a message the provider left out of its answer is masked whole under the scanner in
+// force. Metadata for a message nobody asked for is ignored (ADR-0120).
+func TestRefetch(t *testing.T) {
+	s := scanner(t, "new")
+	stamp := index.StampOf(s)
+	stored := []pass1.Stored{{ID: "m1", Subject: "Your verification code is ██████"}, {ID: "m2", Subject: "Sign in ██████"}}
+	got := []mail.MessageMetadata{{ID: "m3", Subject: "not asked for"}, {ID: "m1", Subject: "Your verification code is 419283, or 552901"}}
+	remasked, gone := pass1.Refetch(stored, got, s)
+	if len(remasked) != 1 || remasked[0].ID != "m1" || remasked[0].Subject != "Your verification code is ██████, or ██████" ||
+		!remasked[0].SubjectMasked || len(remasked[0].Masks) != 2 || remasked[0].Stamp != stamp {
+		t.Errorf("Refetch masked again %+v, want m1 masked from the provider's subject with two masks under the scanner in force", remasked)
+	}
+	wantGone := []index.Message{{ID: "m2", Subject: "██████████████", SubjectMasked: true, Masks: []index.Mask{{Rule: "mask.whole_subject"}}, Stamp: stamp}}
+	if diff := cmp.Diff(wantGone, gone, compare.Options); diff != "" {
+		t.Errorf("Refetch's gone messages (-want +got):\n%s", diff)
+	}
+}
+
+// A call fetching stale subjects again made durable records the stale subjects left and adds the
+// subjects it masked again to the counters, leaving the enumeration's checkpoint as it was (ADR-0120).
+func TestFetched(t *testing.T) {
+	stamp := index.Stamp{Version: 1, Revision: "new"}
+	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: stamp, Stale: 7}, Counters: pass1.Counters{Pages: 2, Refetched: 3}}
+	want := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: stamp, Stale: 4}, Counters: pass1.Counters{Pages: 2, Refetched: 6}}
+	if diff := cmp.Diff(want, pass1.Fetched(at, 3, 4), compare.Options); diff != "" {
+		t.Errorf("Fetched (-want +got):\n%s", diff)
 	}
 }
 

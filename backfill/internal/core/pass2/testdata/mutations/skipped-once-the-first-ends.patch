@@ -11,7 +11,7 @@ index c957822..142b015 100644
 +++ b/backfill/internal/core/pass2/pass2.go
 @@ -58,7 +58,7 @@ type Progress struct {
  // since what a change of scanner makes stale for it, and the gate skips the gate no longer decides as
- // the same skip, a backfill run's Reopen records before the first pass (ADR-0096, ADR-0098).
+ // the same skip, a backfill run's Reopen records before the first pass (ADR-0120, ADR-0098).
  func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Progress] {
 -	if !firstEnded {
 +	if firstEnded {

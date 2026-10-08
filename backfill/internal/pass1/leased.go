@@ -17,3 +17,14 @@ func Leased(limiter *lease.Limiter, port mail.Port[context.Context], account str
 		})
 	}
 }
+
+// LeasedMetadata returns the Metadata that asks port for the metadata of a call's messages under a
+// lease in the batch class, priced for the number of identifiers the call names (ADR-0025, ADR-0120).
+func LeasedMetadata(limiter *lease.Limiter, port mail.Port[context.Context], account string) Metadata {
+	return func(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+		op := mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: len(ids)}
+		return lease.Call(ctx, limiter, port, account, ratecore.Batch, op, func(ctx context.Context) ([]mail.MessageMetadata, error) {
+			return port.GetMessageMetadata(ctx, ids)
+		})
+	}
+}

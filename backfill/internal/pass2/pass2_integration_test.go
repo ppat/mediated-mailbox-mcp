@@ -547,3 +547,130 @@ func TestTheTransitionMarksNothingTwice(t *testing.T) {
 		t.Errorf("the run after the transition starts from %+v", latest.Progress.Checkpoint)
 	}
 }
+
+// VERIFICATIONS' row for a change of scanner, the run-start step's part. Every subject stored unmasked
+// under another scanner, more of them than one batch holds, is masked again from the store under the
+// scanner in force, with the pair recorded and a masking event for each mask, and with no provider
+// call, a subject the new scanner masks reading masked. A subject stored masked is left for the first
+// pass to fetch again, so the step reopens the second pass and marks it to start over, and a second
+// step under the same scanner masks nothing more (ADR-0120).
+func TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore(t *testing.T) {
+	w := realWorldOf(t, 2, nil)
+	conn := superuser(t)
+	const unmasked = 5003
+	must := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := conn.Exec(t.Context(), sql, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, subject_masked, sent_at, has_attachments,
+			sender_class, scan_state, subject_scanner_version, subject_scanner_revision)
+		SELECT $1, 'm' || lpad(n::text, 5, '0'), 't' || n, 'news@news.example', 'news.example',
+			$3 || CASE WHEN n % 1000 = 0 THEN ' Your verification code is 419283' ELSE ' number ' || n END, false, now(), false,
+			'normal', 'skipped_restricted', 1, 'a-revision'
+		FROM generate_series(1, $2::int) AS n`, w.account, unmasked, marker.Field("subject"))
+	must(`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, subject_masked, sent_at, has_attachments,
+			sender_class, scan_state, subject_scanner_version, subject_scanner_revision)
+		VALUES ($1, 'x1', 'tx1', 'news@news.example', 'news.example', $2 || ' Sign in ██████', true, now(), false, 'normal', 'skipped_restricted', 1, 'a-revision')`,
+		w.account, marker.Field("subject"))
+	must("UPDATE account_state SET backfill_pass2_complete = true, backfill_pass2_restart = false WHERE account_id = $1", w.account)
+
+	deps := w.deps
+	deps.Scanner = scannerAt(t, "revision-1")
+	r, err := pass2.Reopen(t.Context(), deps, w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Subjects != unmasked {
+		t.Errorf("the run-start step masked %d subjects again, want the %d stored unmasked", r.Subjects, unmasked)
+	}
+	type row struct {
+		Subject  string
+		Masked   bool
+		Revision string
+		Events   int
+	}
+	read := func(id string) row {
+		t.Helper()
+		var got row
+		err := conn.QueryRow(t.Context(), `SELECT m.subject, m.subject_masked, m.subject_scanner_revision,
+				(SELECT count(*) FROM masking_events AS e WHERE e.account_id = m.account_id AND e.message_id = m.message_id
+					AND e.scanner_version = 1 AND e.scanner_revision = 'revision-1')
+			FROM messages AS m WHERE m.account_id = $1 AND m.message_id = $2`, w.account, id).Scan(&got.Subject, &got.Masked, &got.Revision, &got.Events)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	for id, want := range map[string]row{
+		"m00001": {Subject: marker.Field("subject") + " number 1", Revision: "revision-1"},
+		"m03000": {Subject: marker.Field("subject") + " Your verification code is ██████", Masked: true, Revision: "revision-1", Events: 1},
+		"m05003": {Subject: marker.Field("subject") + " number 5003", Revision: "revision-1"},
+		"x1":     {Subject: marker.Field("subject") + " Sign in ██████", Masked: true, Revision: "a-revision"},
+	} {
+		if diff := cmp.Diff(want, read(id), compare.Options); diff != "" {
+			t.Errorf("message %s after the run-start step (-want +got):\n%s", id, diff)
+		}
+	}
+	var stale, events int
+	if err := conn.QueryRow(t.Context(), `SELECT count(*) FILTER (WHERE subject_scanner_revision <> 'revision-1'),
+			(SELECT count(*) FROM masking_events WHERE account_id = $1 AND scanner_revision = 'revision-1')
+		FROM messages WHERE account_id = $1`, w.account).Scan(&stale, &events); err != nil {
+		t.Fatal(err)
+	}
+	if stale != 1 || events != 5 {
+		t.Errorf("after the run-start step %d subjects are stale and %d masking events are recorded under the new scanner, want the masked one stale and the five codes' events", stale, events)
+	}
+	var ended, restart bool
+	if err := conn.QueryRow(t.Context(), "SELECT backfill_pass2_complete, backfill_pass2_restart FROM account_state WHERE account_id = $1", w.account).
+		Scan(&ended, &restart); err != nil {
+		t.Fatal(err)
+	}
+	if ended || !restart {
+		t.Errorf("after the run-start step the second pass is ended %v and marked to start over %v, want it reopened and marked", ended, restart)
+	}
+	again, err := pass2.Reopen(t.Context(), deps, w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Subjects != 0 {
+		t.Errorf("a second run-start step under the same scanner masked %d subjects again, want none", again.Subjects)
+	}
+}
+
+// VERIFICATIONS' row for a change of scanner, the second pass's guard. A gate skip stored with a
+// masked subject was decided without the signal that subject carries, so the second pass returns it to
+// pending before its first page, while a skip whose subject is unmasked stands. The state arises when
+// another job kind stores a subject unmasked under another scanner pair after the run-start step, and
+// the first pass then fetches it and masks it again. Here it is set directly (ADR-0120, ADR-0093).
+func TestAGateSkipWhoseSubjectIsMaskedReturnsToPendingAtTheSecondPassesStart(t *testing.T) {
+	w := realWorldOf(t, 2, []fake.Message{
+		message("s1", "news@news.example", true, marker.Body("one"), ""),
+		message("s2", "news@news.example", true, marker.Body("two"), ""),
+	})
+	conn := superuser(t)
+	if _, err := conn.Exec(t.Context(), `UPDATE messages SET scan_state = 'skipped_gate', subject_masked = (message_id = 's1')
+		WHERE account_id = $1`, w.account); err != nil {
+		t.Fatal(err)
+	}
+	p, err := pass2.Open(t.Context(), w.deps, w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Run() == "" {
+		t.Fatalf("the second pass did not run")
+	}
+	got := map[string]string{}
+	rows, err := conn.Query(t.Context(), "SELECT message_id, scan_state FROM messages WHERE account_id = $1", w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var id, state string
+	if _, err := pgx.ForEachRow(rows, []any{&id, &state}, func() error { got[id] = state; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(map[string]string{"s1": "pending", "s2": "skipped_gate"}, got, compare.Options); diff != "" {
+		t.Errorf("the scan states before the first page (-want +got):\n%s", diff)
+	}
+}

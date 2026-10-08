@@ -84,7 +84,7 @@ func codeSubject() string {
 
 // Each sender is classified under the account's policy, and each subject is masked, a restricted
 // sender's included, and stamped with the scanner version and revision it was masked under (ADR-0003,
-// ADR-0004, ADR-0096). A listed sender carries the rule that restricted it, and no other sender
+// ADR-0004, ADR-0120). A listed sender carries the rule that restricted it, and no other sender
 // carries a rule (ADR-0016). An address whose domain cannot be read is restricted and
 // marked unclassified. The domains are listed once each, sorted.
 func TestDecide(t *testing.T) {

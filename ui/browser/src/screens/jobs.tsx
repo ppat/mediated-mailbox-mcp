@@ -20,7 +20,7 @@ import {
 } from "../app/api.ts";
 import { useDeps } from "../app/deps.ts";
 import { age, count, duration, rate, utc } from "../app/format.ts";
-import { numberIn } from "../app/frame.tsx";
+import { numberIn, refetchOf } from "../app/frame.tsx";
 import { LiveProgress, LiveText, type Measure, type Stream } from "../app/live.tsx";
 import { Region } from "../app/region.tsx";
 import { useCanonicalView } from "../app/router.tsx";
@@ -50,9 +50,14 @@ export function elapsed(run: Run, now: number): string {
   return `${duration(now - Date.parse(run.started_at))} so far`;
 }
 
-// progressOf is a run's checkpoint or operations as the runs table shows them, page of pages,
+// progressOf is a run's checkpoint or operations as the runs table shows them, the subjects a pass 1
+// run fetched again of all it fetches while it fetches stale subjects again, page of pages,
 // operations of operations, or a gap recovery's window and reconciled count.
 export function progressOf(run: Run): string {
+  const refetch = refetchOf(run);
+  if (refetch !== undefined) {
+    return `${count(refetch.fetched)} of ${count(refetch.of)} subjects fetched again`;
+  }
   const page = numberIn(run.checkpoint, "page");
   const of = numberIn(run.checkpoint, "of");
   if (page !== undefined && of !== undefined) {
@@ -479,8 +484,14 @@ function progressState(state: Run["state"]): ProgressState {
 }
 
 // runMeasure is a paged run's checkpoint as its progress bar draws it, an empty track until the
-// checkpoint records a page, so the bar fills on the run's first page event (docs/UI.md section 8.3).
+// checkpoint records a page, so the bar fills on the run's first page event, and for a pass 1 run
+// fetching stale subjects again the subjects it fetched again of all it fetches (docs/UI.md sections
+// 8.1 and 8.3).
 export function runMeasure(run: Run): Measure {
+  const refetch = refetchOf(run);
+  if (refetch !== undefined) {
+    return { part: refetch.fetched, whole: refetch.of, state: progressState(run.state) };
+  }
   const pages = pagesOf(run);
   return { part: pages?.page ?? 0, whole: pages?.of ?? 0, state: progressState(run.state) };
 }

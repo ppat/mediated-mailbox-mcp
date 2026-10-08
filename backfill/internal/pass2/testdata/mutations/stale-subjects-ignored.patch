@@ -1,21 +1,21 @@
 control: A reopened first pass always leads to a run of the second pass
-removes: the run-start step reopens the second pass only when it returned a verdict to pending, not when the first pass is due again
+removes: the run-start step reopens the second pass only when it returned a verdict or a skip to pending or masked a subject again, not when a subject stored masked leaves the first pass due again
 packages: ./backfill/app
 tests: TestAReopenedFirstPassLeadsToASecondPass
 scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
-index 86c762e..f088931 100644
+index e076d2bb..9262a254 100644
 --- a/backfill/internal/pass2/postgres.go
 +++ b/backfill/internal/pass2/postgres.go
-@@ -201,7 +201,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
+@@ -237,7 +237,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
  			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
  		}
- 		marked = Reopened{Verdicts: len(domains), Skips: skips}
--		if marked.Verdicts == 0 && marked.Skips == 0 && !stale {
+ 		marked = Reopened{Verdicts: len(domains), Skips: skips, Subjects: subjects}
+-		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
 +		_ = stale
-+		if marked.Verdicts == 0 && marked.Skips == 0 {
++		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 {
  			return nil
  		}
  		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {

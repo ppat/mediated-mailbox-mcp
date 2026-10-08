@@ -6,7 +6,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
-	core "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/tick"
 )
 
 // Provider is what a tick asks of the provider for one account. Its errors wrap the Provider Port's.
@@ -49,7 +48,7 @@ func (l Leased) ChangesSince(ctx context.Context, cursor mail.Cursor) (mail.Chan
 // worth at the hard cap (ADR-0023).
 func (l Leased) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
 	profile := l.Port.RateProfile()
-	size := core.CallSize(func(n int) float64 {
+	size := mail.CallSize(func(n int) float64 {
 		return profile.Cost(mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: n}).Weight
 	}, profile.BudgetPerSecond(), len(ids))
 	var out []mail.MessageMetadata

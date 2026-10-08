@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
-index 86c762e..c73ae65 100644
+index e076d2bb..f4e6527a 100644
 --- a/backfill/internal/pass2/postgres.go
 +++ b/backfill/internal/pass2/postgres.go
-@@ -204,7 +204,7 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
- 		if marked.Verdicts == 0 && marked.Skips == 0 && !stale {
+@@ -240,7 +240,7 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
  			return nil
  		}
 -		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
