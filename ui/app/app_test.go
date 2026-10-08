@@ -31,8 +31,8 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
@@ -302,8 +302,8 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 }
 
 // writeKeys writes a new key pair's files and returns their paths and the key identifier, the first
-// 16 bytes of SHA-256 over the credential library's domain string and the public key, in hexadecimal,
-// computed here rather than by the library (credential/README.md).
+// 16 bytes of SHA-256 over the credential code's domain string and the public key, in hexadecimal,
+// computed here rather than by the credential code (executioncontext/README.md).
 func writeKeys(t *testing.T) (string, string, string) {
 	t.Helper()
 	private, err := seal.KEM().GenerateKey()

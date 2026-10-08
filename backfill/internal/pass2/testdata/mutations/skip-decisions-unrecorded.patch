@@ -12,10 +12,10 @@ diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postg
  	if o.Verdict.Scans() {
  		decision = "SCAN"
  	}
--	err := gate.RecordDecision(ctx, decisions.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
+-	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
 +	var err error
 +	if o.Verdict.Scans() {
-+		err = gate.RecordDecision(ctx, decisions.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
++		err = gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
 +	}
  	if err != nil {
  		return fmt.Errorf("recording the gate's decision: %w", err)

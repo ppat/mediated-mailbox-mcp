@@ -5,10 +5,10 @@ tests: TestAServedBodyFetchesNoImage TestAReleasedBodyIsCleanMarkdown
 scheduled-count: no
 integration: yes
 
-diff --git a/sanitize/markdown/markdown.go b/sanitize/markdown/markdown.go
+diff --git a/content/markdown/markdown.go b/content/markdown/markdown.go
 index e8737bb..9001621 100644
---- a/sanitize/markdown/markdown.go
-+++ b/sanitize/markdown/markdown.go
+--- a/content/markdown/markdown.go
++++ b/content/markdown/markdown.go
 @@ -55,7 +55,7 @@ var ErrUnconvertible = errors.New("markdown: the body cannot be converted")
  // document head.
  var removed = []string{

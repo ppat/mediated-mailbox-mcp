@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
+	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 )
@@ -191,7 +191,7 @@ func failureSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, er
 	if err != nil {
 		return nil, Total{}, err
 	}
-	rows, err := q.Failures.FailureFigures(ctx, classification.FailureFiguresParams{
+	rows, err := q.Failures.FailureFigures(ctx, runclassification.FailureFiguresParams{
 		AccountID: r.Account, RunID: r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
@@ -241,7 +241,7 @@ func failureRows(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Failures.FailureRows(ctx, classification.FailureRowsParams{
+	rows, err := q.Failures.FailureRows(ctx, runclassification.FailureRowsParams{
 		AccountID: r.Account, RunID: r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
@@ -252,7 +252,7 @@ func failureRows(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	for _, row := range rows {
-		out = append(out, failureRow(classification.FailureDetailRow{
+		out = append(out, failureRow(runclassification.FailureDetailRow{
 			Seq: row.Seq, ItemKind: row.ItemKind, ItemID: row.ItemID, MessageID: row.MessageID, FromEmail: row.FromEmail,
 			Subject: row.Subject, SentAt: row.SentAt, Labels: row.Labels, SenderClass: row.SenderClass,
 			ContentFlags: row.ContentFlags, ScanState: row.ScanState, Page: row.Page, ErrorClass: row.ErrorClass,
@@ -264,7 +264,7 @@ func failureRows(ctx context.Context, q Queries, r Read) (any, error) {
 
 // failureRow is a stored failure as a row, from the detail statement's row, which carries every field
 // the rows statement does and the error summary.
-func failureRow(row classification.FailureDetailRow) FailureRow {
+func failureRow(row runclassification.FailureDetailRow) FailureRow {
 	out := FailureRow{
 		Seq: row.Seq, ItemKind: row.ItemKind, ItemID: row.ItemID,
 		MessageID: text(row.MessageID.Valid, row.MessageID.String), FromEmail: text(row.FromEmail.Valid, row.FromEmail.String),
@@ -295,7 +295,7 @@ func failuresByErrorClass(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Failures.FailuresByErrorClass(ctx, classification.FailuresByErrorClassParams{
+	rows, err := q.Failures.FailuresByErrorClass(ctx, runclassification.FailuresByErrorClassParams{
 		AccountID: r.Account, RunID: r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
@@ -316,7 +316,7 @@ func failuresBySender(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Failures.FailuresBySender(ctx, classification.FailuresBySenderParams{
+	rows, err := q.Failures.FailuresBySender(ctx, runclassification.FailuresBySenderParams{
 		AccountID: r.Account, RunID: r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
@@ -343,7 +343,7 @@ func failuresByPage(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Failures.FailuresByPage(ctx, classification.FailuresByPageParams{
+	rows, err := q.Failures.FailuresByPage(ctx, runclassification.FailuresByPageParams{
 		AccountID: r.Account, RunID: r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
@@ -368,7 +368,7 @@ func failuresByDisposition(ctx context.Context, q Queries, r Read) (any, error) 
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Failures.FailuresByDisposition(ctx, classification.FailuresByDispositionParams{
+	rows, err := q.Failures.FailuresByDisposition(ctx, runclassification.FailuresByDispositionParams{
 		AccountID: r.Account, RunID: r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
@@ -392,7 +392,7 @@ func failureDetail(ctx context.Context, q Queries, account string, req lens.RowR
 		// The pure core admits only whole numbers, so this is not reached.
 		return nil, err
 	}
-	row, err := q.Failures.FailureDetail(ctx, classification.FailureDetailParams{AccountID: account, RunID: req.ParentID, Seq: seq})
+	row, err := q.Failures.FailureDetail(ctx, runclassification.FailureDetailParams{AccountID: account, RunID: req.ParentID, Seq: seq})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRow
 	}

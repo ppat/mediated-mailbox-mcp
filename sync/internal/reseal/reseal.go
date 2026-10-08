@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 )
 
 // DB is what the writer writes through, a pool in delta sync. oauth_clients belongs to no account, so

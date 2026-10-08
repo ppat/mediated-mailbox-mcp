@@ -9,10 +9,10 @@ diff --git a/backfill/internal/pass1/runs.go b/backfill/internal/pass1/runs.go
 --- a/backfill/internal/pass1/runs.go
 +++ b/backfill/internal/pass1/runs.go
 @@ -89,7 +89,7 @@ func RecordProgress(ctx context.Context, q *record.Queries, account, runID strin
- 	if err := q.RecordProgress(ctx, record.RecordProgressParams{Checkpoint: checkpoint, Counters: counters, AccountID: account, RunID: runID}); err != nil {
+ 	if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: checkpoint, Counters: counters, AccountID: account, RunID: runID}); err != nil {
  		return fmt.Errorf("recording the checkpoint: %w", err)
  	}
--	return q.RecordEvent(ctx, record.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at)})
+-	return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at)})
 +	return nil
  }
  

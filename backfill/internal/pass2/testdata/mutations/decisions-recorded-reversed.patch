@@ -18,5 +18,5 @@ diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postg
 -		decision = "SCAN"
 +		decision = "SKIP"
  	}
- 	err := gate.RecordDecision(ctx, decisions.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
+ 	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
  	if err != nil {

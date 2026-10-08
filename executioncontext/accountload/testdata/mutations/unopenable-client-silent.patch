@@ -1,0 +1,20 @@
+control: A value that does not open leaves its account not connected or the accounts naming its client without one, and the refusal is logged
+removes: a client secret that does not open is logged at debug level, which a deployable does not emit
+packages: ./executioncontext/accountload
+tests: TestAValueCopiedToAnotherRowOrPurposeDoesNotOpen
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/accountload/load.go b/executioncontext/accountload/load.go
+index 88f41d1d..cf72536a 100644
+--- a/executioncontext/accountload/load.go
++++ b/executioncontext/accountload/load.go
+@@ -274,7 +274,7 @@ func (l *Loader) Load(ctx context.Context) error {
+ func (l *Loader) openClient(c oauthclients.OAuthClientsRow) (Client, bool) {
+ 	secret, err := l.keys.Open(c.SealedClientSecret, seal.ClientSecret(c.ClientName))
+ 	if err != nil {
+-		l.log.Error("an OAuth client's secret did not open, so no account connects through it", slog.String("client", c.ClientName), slog.Any("error", err))
++		l.log.Debug("an OAuth client's secret did not open, so no account connects through it", slog.String("client", c.ClientName), slog.Any("error", err))
+ 		return Client{}, false
+ 	}
+ 	return Client{name: c.ClientName, provider: c.Provider, id: c.ClientID, secret: secret}, true

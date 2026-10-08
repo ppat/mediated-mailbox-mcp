@@ -465,6 +465,21 @@ top-level documents, a decision record, or a ticket from here without guessing.
   component by its own import-list entry, so it argues its case once. When one exists, when a
   concern joins it and when one is founded are ADR-0050's (via the
   [decision-record index](./docs/adr/README.md)).
+- **Execution context** (the family `executioncontext/`) — what a job or a request executes with:
+  the account snapshot with its opened credentials, the account session over it, the policy
+  snapshot, and the sealed credentials they are opened from. It holds no rate state, which the rate
+  limiter keeps apart, so it is narrower than the **Account context**, everything held for one
+  account. Its case is [executioncontext/README.md](./executioncontext/README.md)'s.
+- **Process** (the family `process/`) — what every deployable needs to run as a process under the
+  environment contract: its configuration layered from defaults, a file, the environment and flags,
+  its database connection, and its probe and metrics endpoint (contract in ADR-0051, via the
+  [decision-record index](./docs/adr/README.md)). Its case is
+  [process/README.md](./process/README.md)'s. Distinct from a *process* in the operating system's
+  sense, a running instance of a deployable, which this family's code runs inside rather than names.
+- **Message content** (the family `content/`) — the code that reads a message's content in memory
+  and stores none of it, which is today the conversion of a body's HTML to Markdown (rules in
+  ADR-0009 and ADR-0036, via the [decision-record index](./docs/adr/README.md)). Its case is
+  [content/README.md](./content/README.md)'s.
 - **Provider** — the managed service actually holding the mail or calendar (Gmail, Fastmail).
 - **The real mailbox** — the operator's own mail at the provider, as distinct from the synthetic
   fixtures every test runs over.
@@ -556,7 +571,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Account context** — everything the system holds for one account and for no other: its
   credential, its provider connection, its policy overlay and its rate state. It is a concept, not a
   Go `context.Context` and not one package. Its parts live apart, the account snapshot, the account
-  session, the policy snapshot and the rate limiter, each in its own home. Nothing
+  session, the policy snapshot and the rate limiter, each in its own package. Nothing
   about an account is ambient. Every operation names one (ADR-0085, via the
   [decision-record index](./docs/adr/README.md)).
 - **Sealed credential** — an account's provider credential as the database stores it, encrypted so
@@ -578,8 +593,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   account's provider, which is the credentials its token source was built from, their adoption
   stamp, and the provider connection over them. At the end of each unit of work it hands the
   credential over and records the latest authentication attempt. One package holds it for every
-  such process, and its case is [accountload/README.md](./accountload/README.md)'s (hand-over rules
-  in ADR-0089 and ADR-0097, via the [decision-record index](./docs/adr/README.md)).
+  such process, and its case is [executioncontext/README.md](./executioncontext/README.md)'s
+  (hand-over rules in ADR-0089 and ADR-0097, via the [decision-record index](./docs/adr/README.md)).
 
 ### Data paths and mutation
 

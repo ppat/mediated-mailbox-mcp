@@ -30,7 +30,7 @@ import (
 // variable the file name a line directive names, so a directive would make a variable of the core
 // pass for a test's in the external tests, which is why the fourth rule refuses one. Inside the
 // package the file name is read with directives ignored as well. A pure-core package is one whose
-// path this module places under a directory named core, as the pure-core import list in
+// path in this module holds an element named core at any depth, as the pure-core import list in
 // .golangci.yaml matches it.
 //
 // A link and a line directive are reported at the file's package clause, because a comment after
@@ -43,9 +43,10 @@ var Globals = &analysis.Analyzer{
 
 const modulePath = "github.com/ppat/mediated-mailbox-mcp"
 
-// pureCore matches the path of a pure-core package relative to the module. That is core itself, a
-// library's core, and a deployable's internal core, each with the packages beneath it.
-var pureCore = regexp.MustCompile(`^(core|[^/]+/core|[^/]+/internal/core)(/|$)`)
+// pureCore matches the path of a pure-core package relative to the module, one holding an element
+// named core at any depth, with the packages beneath it. That is core itself, a library's core, a
+// core inside a family's package, and a deployable's internal core.
+var pureCore = regexp.MustCompile(`(^|/)core(/|$)`)
 
 func isPureCorePath(path string) bool {
 	rel, ok := strings.CutPrefix(path, modulePath+"/")

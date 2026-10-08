@@ -19,7 +19,7 @@ import (
 // (ADR-0075). A shared library connects as no role of its own, so its list has no entry here. Its
 // statements run under the role of each deployable whose list admits it, and the grant check plans
 // them under each of those roles (ADR-0066). Four deployables here are those that call a provider,
-// whose lists admit the rate limiter and the account snapshot library, and the UI names the
+// whose lists admit the rate limiter and the account snapshot, and the UI names the
 // subsections its read API reads.
 //
 // The mediator's code is also governed by narrower lists, and the one over every package but its two

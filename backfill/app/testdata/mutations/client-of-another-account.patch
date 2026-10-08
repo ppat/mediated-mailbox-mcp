@@ -5,10 +5,10 @@ tests: TestTheCredentialsAreTheClientAndTheAccountsToken
 scheduled-count: no
 integration: yes
 
-diff --git a/accountload/session/session.go b/accountload/session/session.go
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
 index f4fb328a..38bc4c36 100644
---- a/accountload/session/session.go
-+++ b/accountload/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
 @@ -158,6 +158,9 @@ func (h *Holder) Open(snapshot *accountload.Snapshot, account string) (*Session,
  		return nil, ErrNotConnected
  	}

@@ -44,8 +44,8 @@ candidates only where configuration could not reach. R7 and R8 broke ties.
   body**, because it is the only candidate with no requirement it fails. Its link targets are
   percent-encoded, so a `)` in a URL cannot end the link and point it elsewhere. It links only a
   small DOM helper package beside `golang.org/x/net`, and it grew linearly on every input tried.
-- **It is called from `sanitize/markdown` and nowhere else**
-  ([sanitize/README.md](../../../sanitize/README.md)), so the mediator and backfill cannot configure
+- **It is called from `content/markdown` and nowhere else**
+  ([content/README.md](../../../content/README.md)), so the mediator and backfill cannot configure
   it differently.
 - **A body larger than 512 KiB is refused before conversion**, because a conversion's memory grows
   to about 150 times its input, 626 MB for 4.2 MB of text. The limit is about five times the
@@ -83,7 +83,7 @@ HTML in a browser. Its defaults also leave these in the output, and its own hook
 | R3 Images | The image elements removed by name, so the defaults upstream can change without reaching this |
 | R4 Markup gone | The element removals, the list comment switched off, and code written as escaped text. Its default already turns escaped text such as `&lt;script&gt;` into text, not a tag |
 | R5 Scanner structure | Headings with `#` and bold with `**` by default, and table cells as blocks |
-| R6 Bounded | The parser refuses more than 512 open elements, which bounds recursion. `sanitize/markdown` bounds input size and recovers a panic into a refusal, which the library does not. The size limit also bounds time, because conversion time grew linearly on every input tried |
+| R6 Bounded | The parser refuses more than 512 open elements, which bounds recursion. `content/markdown` bounds input size and recovers a panic into a refusal, which the library does not. The size limit also bounds time, because conversion time grew linearly on every input tried |
 | R7 Maintained | Tagged releases, followed at the latest by the dependency updates |
 | R8 Footprint | Two modules linked, and a clean vulnerability scan |
 | R9 Hooks | Removal by element, a pass over the parsed document before rendering, and renderer options, all public |
@@ -142,7 +142,7 @@ Firecrawl fork's are 1s on R2 and R4. Those are the requirements that ordered th
 configuration reaches them. Of the chosen candidate's strengths, the percent-encoded link target
 guards something nothing else in the design does, while its bounded depth comes from the parser
 every candidate shares. Leaving it costs one package's configuration and its tests, because only
-`sanitize/markdown` imports it. Its one real cost, a single maintainer, is confined to that
+`content/markdown` imports it. Its one real cost, a single maintainer, is confined to that
 package too.
 
 - **html-to-markdown v2.** The case for it is the one above, the only candidate that fails no
@@ -171,7 +171,7 @@ package too.
 
 ## Consequences
 
-- **Leaving this library costs one package.** Only `sanitize/markdown` imports it, and the tests
+- **Leaving this library costs one package.** Only `content/markdown` imports it, and the tests
   that prove the conversion state what any replacement has to meet.
 - **What would re-argue it.** A new major version, because the gaps its hooks close were found in
   this one's defaults. A panic or a case that grows faster than its input, found by longer fuzzing
@@ -180,7 +180,7 @@ package too.
   elements, because that limit is what bounds the conversion's depth.
 - **What it adds to other costs.** Each body in flight can take about 80 MB while it converts, so
   how many bodies the mediator converts at once, and backfill's batch size, bound their memory.
-- **Assumptions about other components.** The import lists let only `sanitize/markdown` import the
+- **Assumptions about other components.** The import lists let only `content/markdown` import the
   library ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). The caller withholds a
   refused body, as [ADR-0036](./0036-released-bodies-are-clean-markdown.md) requires.
 - **Its controls.** The overrides in the table of defaults, and the refusal of a body the

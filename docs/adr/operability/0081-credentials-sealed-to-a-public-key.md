@@ -41,7 +41,7 @@ needs the secret of the client a consent was issued to.
   asked to open an account's credential, and a credential's bytes copied into a client's row fail to
   open, since the purpose is bound into the value
   ([ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)). The UI's import lists admit the
-  opening half of the credential library, and the read of a client's sealed secret, to that package
+  opening half of the credential code, and the read of a client's sealed secret, to that package
   alone. They admit to the rest of the UI's shipped code only the packages under `crypto/` it
   uses, so it links none of the public-key code an opening is built on. The
   project's own `go vet` analyser refuses a statement the UI's shipped code runs other than through
@@ -57,8 +57,9 @@ needs the secret of the client a consent was issued to.
   the UI read the private key's file.
 - **A sealed credential records the key it was sealed to**, so a key can be replaced while
   credentials sealed to the old one are still stored.
-- **The code that seals and opens is the narrow shared library `credential/`**, which argues its
-  own case in its README ([ADR-0050](../engineering/0050-shared-code-pure-or-narrow.md)).
+- **The code that seals and opens is `executioncontext/credential/`**, packages of the execution
+  context family, a narrow shared library that argues its own case in its README
+  ([ADR-0050](../engineering/0050-shared-code-pure-or-narrow.md)).
 
 ## Alternatives considered
 

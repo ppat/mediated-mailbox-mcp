@@ -15,7 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
+	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
 	maskingrecord "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record"
 	messageingest "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
 	"github.com/ppat/mediated-mailbox-mcp/db/senders/statistics"
@@ -108,7 +108,7 @@ func (s *Postgres) State(ctx context.Context, account string, stamp index.Stamp)
 		if err != nil {
 			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
 		}
-		r, err := LatestRun(ctx, record.New(t), account, pass)
+		r, err := LatestRun(ctx, runrecord.New(t), account, pass)
 		if err != nil || !r.Found {
 			return err
 		}
@@ -131,7 +131,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
 				return fmt.Errorf("recording the pass as due again: %w", err)
 			}
 		}
-		return StartRun(ctx, record.New(t), account, Starting{
+		return StartRun(ctx, runrecord.New(t), account, Starting{
 			Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
 			Checkpoint: cp, Counters: ct, Page: start.From.Checkpoint.Page,
 		})
@@ -173,7 +173,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", domain, err)
 			}
 		}
-		q := record.New(t)
+		q := runrecord.New(t)
 		if recovered != nil {
 			if err := recordFailure(ctx, q, account, runID, *recovered); err != nil {
 				return fmt.Errorf("recording the page's recovered failure: %w", err)
@@ -269,7 +269,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
 	whole := 0
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		whole = 0
-		messages, events, q := messageingest.New(t), maskingrecord.New(t), record.New(t)
+		messages, events, q := messageingest.New(t), maskingrecord.New(t), runrecord.New(t)
 		rows, err := messages.StaleSubjects(ctx, messageingest.StaleSubjectsParams{
 			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
 		})
@@ -311,26 +311,26 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
 // Fail implements Store.
 func (s *Postgres) Fail(ctx context.Context, account, runID, cause string) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return FailRun(ctx, record.New(t), account, runID, cause)
+		return FailRun(ctx, runrecord.New(t), account, runID, cause)
 	})
 }
 
 // Event implements Store.
 func (s *Postgres) Event(ctx context.Context, account, runID string, e Event) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return RecordEvent(ctx, record.New(t), account, runID, e)
+		return RecordEvent(ctx, runrecord.New(t), account, runID, e)
 	})
 }
 
 // Failure implements Store.
 func (s *Postgres) Failure(ctx context.Context, account, runID string, f Failure) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return recordFailure(ctx, record.New(t), account, runID, f)
+		return recordFailure(ctx, runrecord.New(t), account, runID, f)
 	})
 }
 
 // recordFailure records one failed page in the transaction q runs in.
-func recordFailure(ctx context.Context, q *record.Queries, account, runID string, f Failure) error {
+func recordFailure(ctx context.Context, q *runrecord.Queries, account, runID string, f Failure) error {
 	return RecordItem(ctx, q, account, runID, Item{
 		Kind: "page", ID: fmt.Sprint(f.Page), Page: f.Page, Class: f.Class, Summary: f.Summary,
 		Attempts: f.Attempts, First: f.First, Last: f.Last, Disposition: f.Disposition,

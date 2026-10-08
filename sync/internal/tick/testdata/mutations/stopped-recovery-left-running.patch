@@ -12,9 +12,9 @@ index e6cc3e0..20ecb78 100644
 @@ -115,7 +115,7 @@ const stopped = "the run stopped before it recorded its end"
  // still recorded as running. Ticks do not overlap, so one still running when a tick starts was
  // stopped before it recorded its end (ADR-0103).
- func endStopped(ctx context.Context, q *record.Queries, account string) error {
+ func endStopped(ctx context.Context, q *runrecord.Queries, account string) error {
 -	for _, pass := range []string{PassTick, PassGapRecovery} {
 +	for _, pass := range []string{PassTick} {
- 		latest, err := q.LatestRun(ctx, record.LatestRunParams{AccountID: account, Workload: Workload, Pass: text(pass)})
+ 		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: text(pass)})
  		if errors.Is(err, pgx.ErrNoRows) {
  			continue

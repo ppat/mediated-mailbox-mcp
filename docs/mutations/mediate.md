@@ -14,7 +14,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the composition root hands the body operation the active policy and loads nothing for the request
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestANewlyListedDomainIsDeniedOnTheNextCall`
 - **Break (2):** a request whose policy load fails is decided under the policy that restricts every sender rather than the active valid one
@@ -24,7 +24,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A body request's provider calls lease in the interactive class, and a gate denial leases nothing
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the body request's provider calls take no lease
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`
 - **Break (2):** the body request's provider calls lease in the batch class
@@ -32,7 +32,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A body with no HTML part, the snippet and each filename are released as fenced code blocks showing the text exactly
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a body with no HTML part is released as its text part, unfenced
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`
 - **Break (2):** the snippet is released as the provider gave it, unfenced
@@ -42,7 +42,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A call's arguments hold at most 1024 top-level keys
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break:** arguments holding any number of keys reach the operation
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestACallHoldingTooManyArgumentsIsRefused`
 
@@ -54,7 +54,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A gate-skipped body the structural patterns match is withheld at serve time
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the serve-time check runs the full scanner, tier 2's scoring included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestServeTimePatternCheck`, `TestServeTimePatternCheck/a_gate-skipped_code_only_tier_2_catches`
 - **Break (2):** a pattern match on a gate-skipped body no longer withholds it
@@ -62,7 +62,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again, (9) to (13) for the index reads, on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again, (9) to (13) for the index reads, on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a cursor another account's listing returned is taken
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAListingPagesThroughEveryRowOnce`, `TestAnIndexReadPagesThroughEveryRowOnce`
 - **Break (2):** a cursor a listing with another filter returned is taken
@@ -92,7 +92,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A message whose body is denied stays in every count, group and search result of the index reads
 
-- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the search leaves out every message whose body the gate denies
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
 - **Break (2):** the summary of a selection leaves out the messages pending their content scan
@@ -106,7 +106,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A provider call that does not answer within the provider timeout is the provider's failure
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a provider call has no deadline of the mediator's, so a provider that does not answer holds the request
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`
 - **Break (2):** a call whose deadline passed is returned as the context's error, which reads as the mediator's failure
@@ -114,7 +114,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A refused credential is read again from its row before the refusal is reported
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** an account the re-read finds not connected has the call made again over a source built from empty credentials
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`
 - **Break (2):** a refusal is reported without reading the credential again
@@ -124,21 +124,21 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A released body sits inside delimiters it cannot close
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the delimiters' words are matched in lower case only
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_line_break_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_twice_in_a_row`, `TestTheReleasedBodysForm`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_line_break_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_twice_in_a_row`, `TestTheCheckReadsEverythingReleased`, `TestTheReleasedBodysForm`
 - **Break (2):** the text after the last replaced stretch is dropped
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_near_miss`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_with_a_word_between_them`, `TestAScannedBodyIsReleasedInTheDelimiters`, `TestServeTimePatternCheck`, `TestServeTimePatternCheck/a_gate-skipped_code_only_tier_2_catches`, `TestServeTimePatternCheck/a_gate-skipped_newsletter`, `TestServeTimePatternCheck/a_gate-skipped_receipt`, `TestTheReleasedBodysForm`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_near_miss`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_with_a_word_between_them`, `TestAScannedBodyIsReleasedInTheDelimiters`, `TestServeTimePatternCheck`, `TestServeTimePatternCheck/a_gate-skipped_code_only_tier_2_catches`, `TestServeTimePatternCheck/a_gate-skipped_newsletter`, `TestServeTimePatternCheck/a_gate-skipped_receipt`, `TestTheCheckReadsEverythingReleased`, `TestTheReleasedBodysForm`
 - **Break (3):** a released body is not wrapped
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_line_break_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_near_miss`, `TestABodyCannotCloseTheDelimiters/a_space_between_every_letter`, `TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words`, `TestABodyCannotCloseTheDelimiters/lower_case`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_twice_in_a_row`, `TestABodyCannotCloseTheDelimiters/the_words_with_a_word_between_them`, `TestAScannedBodyIsReleasedInTheDelimiters`, `TestServeTimePatternCheck`, `TestServeTimePatternCheck/a_gate-skipped_code_only_tier_2_catches`, `TestServeTimePatternCheck/a_gate-skipped_newsletter`, `TestServeTimePatternCheck/a_gate-skipped_receipt`, `TestTheReleasedBodysForm`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_line_break_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_near_miss`, `TestABodyCannotCloseTheDelimiters/a_space_between_every_letter`, `TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words`, `TestABodyCannotCloseTheDelimiters/lower_case`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_twice_in_a_row`, `TestABodyCannotCloseTheDelimiters/the_words_with_a_word_between_them`, `TestAScannedBodyIsReleasedInTheDelimiters`, `TestServeTimePatternCheck`, `TestServeTimePatternCheck/a_gate-skipped_code_only_tier_2_catches`, `TestServeTimePatternCheck/a_gate-skipped_newsletter`, `TestServeTimePatternCheck/a_gate-skipped_receipt`, `TestTheCheckReadsEverythingReleased`, `TestTheReleasedBodysForm`
 - **Break (4):** text spelling the delimiters is released as it is
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_line_break_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_space_between_every_letter`, `TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words`, `TestABodyCannotCloseTheDelimiters/lower_case`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_twice_in_a_row`, `TestTheReleasedBodysForm`
 - **Break (5):** characters between the letters break a match
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_line_break_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_space_between_every_letter`, `TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words`, `TestABodyCannotCloseTheDelimiters/lower_case`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_twice_in_a_row`, `TestTheReleasedBodysForm`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestABodyCannotCloseTheDelimiters`, `TestABodyCannotCloseTheDelimiters/Markdown_emphasis_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_line_break_between_the_words`, `TestABodyCannotCloseTheDelimiters/a_space_between_every_letter`, `TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words`, `TestABodyCannotCloseTheDelimiters/lower_case`, `TestABodyCannotCloseTheDelimiters/mixed_case_and_a_hyphen`, `TestABodyCannotCloseTheDelimiters/the_closing_line`, `TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s`, `TestABodyCannotCloseTheDelimiters/the_opening_line`, `TestABodyCannotCloseTheDelimiters/the_words_twice_in_a_row`, `TestTheCheckReadsEverythingReleased`, `TestTheReleasedBodysForm`
 
 ## A served body fetches nothing and holds no image a client could fetch
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** images are no longer on the conversion's list of dropped elements, so a served body keeps a remote image
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`, `TestAServedBodyFetchesNoImage`
 - **Break (2):** the mediator itself requests each image source in the HTML it fetched before converting it, so serving a body reaches the URL the message names
@@ -146,7 +146,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A served operation takes only the arguments its input schema declares, in exactly that case, and never as null
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and breaks (1) and (2) again and (3) and (4) for the index query on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and breaks (1) and (2) again and (3) and (4) for the index query on 2026-10-02, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a key naming no declared argument reaches the decoder, which matches it to one in another case
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp`:** `TestAServedToolTakesOnlyTheArgumentsItDeclares`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAServedOperationTakesOnlyTheArgumentsItDeclares`
@@ -160,7 +160,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A timestamp the client surface takes with any offset but Z is refused, never converted
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and again on 2026-10-02 with the index query's `after` and `before` added to its tests, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and again on 2026-10-02 with the index query's `after` and `before` added to its tests, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a timestamp with any offset is accepted and converted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestANonUTCTimestampIsRefused`
 - **Break (2):** a timestamp written with the offset +00:00 is accepted as UTC
@@ -168,7 +168,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## An operation carrying anything less than both roots need fails generation
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** an operation with no description generates
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAOneSidedEntryFailsGeneration`, `TestAOneSidedEntryFailsGeneration/no_description`
 - **Break (2):** an operation generates whatever its input schema holds
@@ -196,7 +196,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## An operation's HTTP method and its four MCP annotations are derived from its effect class
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the MCP root registers tools with no annotations
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp`:** `TestTheToolListIsTheRegistry`
 - **Break (2):** the MCP root leaves the destructive hint nil, so the listing omits it and a client reads every tool as destructive
@@ -213,12 +213,12 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp`:** `TestTheToolListIsTheRegistry`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEachEffectDerivesItsRow`
 - **Break (7):** a structured read derives GET
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestBothRootsHandTheServiceTheSameObject`, `TestTheDocumentPlacesEachArgument`, `TestTheRootRebuildsEachOperationsArguments`, `TestTheRootRebuildsEachOperationsArguments/a_structured_read`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestBothRootsHandEveryServedOperationTheSameObject`, `TestBothRootsHandTheServiceTheSameObject`, `TestDocument`, `TestTheDocumentPlacesEachArgument`, `TestTheRootRebuildsEachOperationsArguments`, `TestTheRootRebuildsEachOperationsArguments/a_structured_read`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEachEffectDerivesItsRow`
 
 ## Approval is not in the client surface's vocabulary
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and break (1) again on 2026-10-02 with its patch regenerated, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and break (1) again on 2026-10-02 with its patch regenerated, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the registry carries an operation that approves a plan
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAServedOperationTakesOnlyTheArgumentsItDeclares`, `TestTheSurfaceHasNoApprovalVocabulary`
 - **Break (2):** the mediator's role is granted the columns a plan's approval writes
@@ -228,7 +228,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Both roots hand the service layer the same argument object
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the API root passes a body member given twice on to the service layer rather than refusing it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestTheRootRefusesWhatItCannotBind`
 - **Break (2):** the accounts listing takes an undeclared account_id from its query string
@@ -258,7 +258,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Each body request hands its account's credential over and records the latest authentication attempt when it ends
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a body request hands over the credential it started from rather than the one its source holds, so a rotation is never written back
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARotationWhoseWriteBackFailedIsKept`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`
 - **Break (2):** a body request hands its source's credential over without naming the adoption it started from, so a credential replaced while it ran is put back
@@ -268,7 +268,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Each failure names its origin, with the status the origin gives, and no detail of a mediator or provider failure reaches the client
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the API root answers a provider failure with 500, as it answers a fault of its own
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestEachFailureNamesItsOrigin`
 - **Break (2):** the API root answers an argument refusal with 500, as it answers a fault of its own
@@ -289,7 +289,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Enumeration and counting reach the whole corpus, not a recent window
 
-- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the search selects only the messages of the last five years
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEnumerationReachesTheWholeCorpus`
 - **Break (2):** the summary counts only the messages of the last five years
@@ -301,7 +301,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every body serve and denial writes its audit row, and nothing is released without it
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a release whose audit write fails is served all the same
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEachOriginIsToldApartOnBothRoots`, `TestNoBodyIsReleasedWithoutItsAuditRow`
 - **Break (2):** a gate denial writes no audit row
@@ -311,21 +311,21 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** every served message says its body is available, whatever the gate decided
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestEveryServedMessageFollowsTheRedactionMatrix`
 - **Break (2):** the gate decides every served message under no policy, so it restricts every sender instead of the ones the policy lists
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_false`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`, `TestEveryMessageStaysInEveryIndexRead`, `TestEveryServedMessageFollowsTheRedactionMatrix`
 - **Break (3):** every served message is shown with a normal sender, whatever the gate classified
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`, `TestEveryServedMessageFollowsTheRedactionMatrix`
 - **Break (4):** a stored content flag the schema does not name is read as no flag, so the message it marks is released
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
 - **Break (5):** a stored scan state the schema does not name is read as scanned, so the message is released
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestEveryServedMessageFollowsTheRedactionMatrix`
 
 ## Every request to the client surface passes the bearer check before either root
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a token file holding no token admits a request whose bearer token is empty
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestEveryRequestPassesTheBearerCheckFirst`, `TestEveryRequestPassesTheBearerCheckFirst/a_token_file_that_is_absent`, `TestEveryRequestPassesTheBearerCheckFirst/an_empty_token_file`
 - **Break (2):** the MCP root is served beside the bearer check rather than behind it
@@ -337,7 +337,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every response of the client surface is uncacheable, and HEAD is refused
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a HEAD request is served as the GET it matches
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestTheRootRefusesWhatItCannotBind`, `TestTheRootRefusesWhatItCannotBind/HEAD_on_a_read`, `TestTheRootRefusesWhatItCannotBind/HEAD_on_the_accounts_listing`
 - **Break (2):** a response whose handler writes only its body keeps the caching headers the handler set
@@ -351,7 +351,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every timestamp the client surface serves is UTC with the Z suffix
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and again on 2026-10-02 with the index reads' timestamps added to its tests, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and again on 2026-10-02 with the index reads' timestamps added to its tests, [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a timestamp is written in the zone it was read in, with the Z suffix all the same
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryTimestampServedIsUTC`
 - **Break (2):** a timestamp is written in UTC with the offset +00:00 in place of Z
@@ -359,7 +359,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Served and denied bodies are counted, a denial by the stage that decided it
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a serve-time denial is counted as a gate denial
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyTheConversionRefusesIsDenied`, `TestTheServeTimeCheckReadsEverythingReleased`
 - **Break (2):** a served body is not counted
@@ -367,7 +367,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The client surface is served over TLS unless an ingress in front is declared to terminate it, with the key pair read from its mounted files
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the surface is served over TLS even when an ingress is declared to terminate it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheSurfaceBehindADeclaredIngressIsPlain`
 - **Break (2):** the key pair is read once, when the configuration is built, so a rotated pair never serves
@@ -377,7 +377,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The configuration surface accepts no value that disables the gate, skips masking or weakens deny-by-default
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the configuration gains a value switching the gate, which a flag then sets
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestNoConfigurationValueWeakensTheGate`, `TestNoConfigurationValueWeakensTheGate/a_flag_disabling_the_gate`, `TestTheConfigurationTypeIsPinned`, `TestTheEffectiveConfigurationIsLogged`
 - **Break (2):** a scanner section the scanner refuses is accepted, so the serve-time check runs with nothing to match
@@ -385,7 +385,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The gate decides every body request from the index, and a denial never reaches the provider
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the body is fetched from the provider before the gate decides, and dropped on a denial
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`
 - **Break (2):** a body the gate denies is released all the same
@@ -405,7 +405,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator loads the policy of the accounts it serves, and of none when it serves none
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the mediator's role is not granted the policy rules' columns
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyTheConversionRefusesIsDenied`, `TestAFailedPolicyLoadStillFollowsTheSnapshot`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAServedBodyFetchesNoImage`, `TestAStaleHandOverLeavesTheReauthorization`, `TestAnAccountNamingNoClientIsNotConnected`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestHandsOverAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheCredentialsAreTheClientAndTheAccountsToken`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheMediatorServesTheAccountsEachReloadLists`, `TestTheMetricsEndpointCarriesEachServedAccountsRateState`, `TestTheReadOperationsReadTheServingState`, `TestTheServeTimeCheckReadsEverythingReleased`
 - **Break (2):** the policy loader's reload-failure series is registered on a registry the mediator does not serve, so its metrics endpoint never carries the alarm's series
@@ -415,7 +415,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator refuses a configuration it cannot serve with before anything is read or connected
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a token file path of spaces is accepted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAConfigurationTheMediatorCannotServeWithIsRefused`
 - **Break (2):** the database section is never validated
@@ -429,7 +429,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator refuses to start while MCPGODEBUG is set
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the mediator starts whatever MCPGODEBUG holds
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestMCPGODEBUGStopsTheStart`
 - **Break (2):** an MCPGODEBUG set to the empty string is taken as unset
@@ -437,7 +437,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator refuses to start while PGPASSWORD or PGSSLPASSWORD is set
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the refusal runs after the configuration is read, logged and validated, so a start whose environment sets a password variable reads its configuration first
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAPasswordInTheEnvironmentStopsTheStart`, `TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead`, `TestMCPGODEBUGStopsTheStart`
 - **Break (2):** the start never checks the environment for a database password
@@ -445,7 +445,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator reports ready only once its TLS key pair and bearer token load
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a token file holding no token counts as loaded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAStartThatCannotServeFailsAndNeverReportsReady`, `TestReadyOnlyOnceTheKeysLoad`, `TestReadyOnlyOnceTheKeysLoad/a_token_file_holding_no_token`
 - **Break (2):** the key pair is not loaded before the mediator is marked ready
@@ -457,7 +457,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a reload listing no account keeps the accounts served before it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorServesTheAccountsEachReloadLists`
 - **Break (2):** a reload whose policy load fails returns before serving its snapshot, so an account it dropped stays served
@@ -475,7 +475,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator's metrics endpoint carries F3's rate-state series for each account it serves through the Gmail adapter
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the rate-state collector is built and never registered on the metrics endpoint
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMetricsEndpointCarriesEachServedAccountsRateState`
 - **Break (2):** an account of a provider the mediator has no rate profile for is reported with the Gmail ceiling
@@ -483,7 +483,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The mediator's token source is built from the OAuth client the account connects through and the account's stored credential, and from nothing else
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the client's identifier and secret are swapped
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestARereadAfterAMoveBuildsTheSourceFromTheNewClient`, `TestTheCredentialsAreTheClientAndTheAccountsToken`
 - **Break (2):** every account is served with the OAuth client of the snapshot's first account rather than its own
@@ -495,7 +495,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The read operations read the accounts and the policy the serving state holds in force, and a clock within thirty seconds of the real one when the read is made
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the read operations are given an accounts listing that lists none
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheReadOperationsReadTheServingState`
 - **Break (2):** the read operations are given a clock ten minutes behind the real one, so a sync cursor written an hour ago reads fifty minutes old
@@ -509,7 +509,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The registry refuses at build time anything that could express approval or bind an argument to a header
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a schema carrying x-mcp-header generates
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheSurfaceRefusesWhatItCannotCarry`, `TestTheSurfaceRefusesWhatItCannotCarry/x-mcp-header_in_the_input`, `TestTheSurfaceRefusesWhatItCannotCarry/x-mcp-header_in_the_output`
 - **Break (2):** an operation name holding a lifecycle stem generates
@@ -531,7 +531,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The release step withholds a body it cannot decide on
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a gate-skipped body with no scanner to check it is released
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestAScannedMessagesFilenamesAreChecked`, `TestFailClosed`, `TestFailClosed/a_gate-skipped_body_and_a_scanner_nobody_built`, `TestFailClosed/a_gate-skipped_login_link_and_a_scanner_nobody_built`
 - **Break (2):** a scan state the gate never releases falls through to release
@@ -541,7 +541,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
 
-- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246)
+- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the sender class term is never resolved to the addresses classified normal, so it selects every message
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnIndexReadSeesOneStateOfTheIndex`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_false`, `TestAnIndexReadSeesOneStateOfTheIndex/snapshot_honoured_true`, `TestEveryMessageStaysInEveryIndexRead`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
 - **Break (2):** the index reads classify the senders under no policy, which restricts every sender, instead of the policy the call took
@@ -561,7 +561,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The serve-time pattern check reads the snippet and the attachment filenames that follow a gate-skipped body, and the filenames of every message, and they are released with the delimiters' words replaced
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the snippet and the filenames are released as they arrived, with the delimiters' words left in them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release`:** `TestTheCheckReadsEverythingReleased`
 - **Break (2):** the check reads the body and the snippet and not the filenames
@@ -575,7 +575,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The service layer refuses an operation whose account is missing or unknown, except the accounts listing
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the API root drops an account_id given in the body, so the path's account is taken without a check for a second one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/api`:** `TestTheRootRefusesWhatItCannotBind`, `TestTheRootRefusesWhatItCannotBind/a_case-variant_account_in_the_body`, `TestTheRootRefusesWhatItCannotBind/an_account_in_the_body_beside_the_path's`
 - **Break (2):** the API root drops an account_id given in the query string, so the path's account is taken without a check for a second one
@@ -599,7 +599,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The serving mediator reloads its account snapshot on the interval its configuration sets
 
-- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** the serving mediator starts no scheduled reload
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheMediatorReloadsOnItsInterval`
 - **Break (2):** each tick of the schedule passes without a reload
@@ -607,7 +607,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The snippet and attachment filenames follow the body, and a denial releases none of them
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break (1):** a serve-time denial carries the snippet it withheld
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheServeTimeCheckReadsEverythingReleased`
 - **Break (2):** a released body is served without its snippet
@@ -615,6 +615,6 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## The system status carries recorded operational state only
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
 - **Break:** the status reads a message and shows its subject as the last authentication's outcome
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestTheSystemStatusCarriesOperationalStateOnly`

@@ -1,0 +1,20 @@
+control: A read of the policy tables the loader cannot trust never replaces the active policy
+removes: the base rules are taken from the first account's read without comparing the others', so accounts are composed from different base policies
+packages: ./executioncontext/policyload
+tests: TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/policyload/load.go b/executioncontext/policyload/load.go
+index 9e0644fd..b87f8fed 100644
+--- a/executioncontext/policyload/load.go
++++ b/executioncontext/policyload/load.go
+@@ -198,8 +198,6 @@ func (l *Loader) read(ctx context.Context) ([]policy.Row, error) {
+ 		if i == 0 {
+ 			base = inherited
+ 			rows = append(rows, base...)
+-		} else if !slices.EqualFunc(base, inherited, sameRule) {
+-			return nil, fmt.Errorf("account %s: %w", account, errTornBase)
+ 		}
+ 		rows = append(rows, own...)
+ 	}

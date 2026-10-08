@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: record.sql
 
-package record
+package gaterecord
 
 import (
 	"context"

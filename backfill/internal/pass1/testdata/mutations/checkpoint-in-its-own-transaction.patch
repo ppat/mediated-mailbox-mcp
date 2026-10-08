@@ -29,6 +29,6 @@ index 8866214..b445093 100644
 +		return c, err
 +	}
 +	err = tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
- 		q := record.New(t)
+ 		q := runrecord.New(t)
  		if recovered != nil {
  			if err := recordFailure(ctx, q, account, runID, *recovered); err != nil {

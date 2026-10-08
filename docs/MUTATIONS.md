@@ -53,16 +53,13 @@ at different places in the file. A component's first row creates its file and it
 
 | File | Holds the rows of the controls whose patches sit in |
 | --- | --- |
-| [mutations/accountload.md](./mutations/accountload.md) | `accountload/` |
+| [mutations/content.md](./mutations/content.md) | `content/` |
 | [mutations/core.md](./mutations/core.md) | `core/` |
-| [mutations/credential.md](./mutations/credential.md) | `credential/` |
 | [mutations/db.md](./mutations/db.md) | `db/` |
-| [mutations/dbconnect.md](./mutations/dbconnect.md) | `dbconnect/` |
-| [mutations/policyload.md](./mutations/policyload.md) | `policyload/` |
+| [mutations/executioncontext.md](./mutations/executioncontext.md) | `executioncontext/` |
+| [mutations/process.md](./mutations/process.md) | `process/` |
 | [mutations/provider.md](./mutations/provider.md) | `provider/` |
 | [mutations/ratelimit.md](./mutations/ratelimit.md) | `ratelimit/` |
-| [mutations/sanitize.md](./mutations/sanitize.md) | `sanitize/` |
-| [mutations/settings.md](./mutations/settings.md) | `settings/` |
 | [mutations/testsupport.md](./mutations/testsupport.md) | `testsupport/` |
 | [mutations/mediate.md](./mutations/mediate.md) | `mediate/` |
 | [mutations/backfill.md](./mutations/backfill.md) | `backfill/` |

@@ -7,15 +7,12 @@ paths:
   - "ROADMAP.md"
   - "TESTING.md"
   - "docs/**/*.md"
-  - "accountload/README.md"
-  - "credential/README.md"
+  - "content/README.md"
   - "db/README.md"
-  - "dbconnect/README.md"
-  - "policyload/README.md"
+  - "executioncontext/README.md"
+  - "process/README.md"
   - "provider/README.md"
   - "ratelimit/README.md"
-  - "sanitize/README.md"
-  - "settings/README.md"
   - "testsupport/README.md"
 ---
 

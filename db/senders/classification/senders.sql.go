@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: senders.sql
 
-package classification
+package senderclassification
 
 import (
 	"context"

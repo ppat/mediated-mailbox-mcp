@@ -72,6 +72,7 @@ credential and each stored client secret each time it loads its accounts
   account or sets up that OAuth client again.
 - Delta sync's role writes the client secrets as well as the credential
   ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)). The shared library
-  [`accountload/`](../../../accountload/README.md) carries the re-seal.
+  [`executioncontext/accountload/`](../../../executioncontext/README.md#the-account-snapshot-accountload)
+  carries the re-seal.
 - Assumptions about other components. Delta sync ticks every account on its sync interval. The
   platform can mount two private key files at once and restarts a deployable when told to.

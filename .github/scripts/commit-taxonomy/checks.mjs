@@ -135,6 +135,8 @@ function memoBy(fn) {
 
 // Shared across every env in the process so the self-test's repeated runs fetch each preset once.
 const FETCHED = new Map()
+// Shared the same way, so the self-test's repeated runs read each build graph once.
+const GRAPHS = new Map()
 
 export const repoEnv = (root, opts = {}) => {
   const require = createRequire(join(root, 'package.json'))
@@ -165,6 +167,13 @@ export const repoEnv = (root, opts = {}) => {
       return lintCache.get(key)
     },
     tracked: memo(() => git('ls-files').trim().split('\n').filter(Boolean)),
+    // The non-test build graph of the binaries a release publishes, from the go command the gates build
+    // with, so what ships is read from what each binary links rather than from what a Dockerfile copies.
+    goBuildGraph: (targets) => {
+      const key = `${root}\n${targets.join(' ')}`
+      if (!GRAPHS.has(key)) GRAPHS.set(key, goBuildGraph(root, targets))
+      return GRAPHS.get(key)
+    },
     commits: memo(() => readCommits(git, opts)),
     prBody: () => opts.prBody ?? process.env.COMMIT_TAXONOMY_PR_BODY ?? '',
     // A transient failure (a network error, a timeout, a 5xx or a 429) is retried with backoff, so a
@@ -520,35 +529,91 @@ const emission = async (env) => {
 const describeCell = (row) => `${row.cell.manager} ${row.cell.packageFile}${row.cell.depName ? ` ${row.cell.depName}` : ' (lock file)'} ${row.updateType}`
 
 // ---------------------------------------------------------------------------------------------
-// The shipped boundary, read from the release workflow: what each image's Dockerfile copies in,
-// the Dockerfile itself, and the directory the chart is packaged from.
+// The shipped boundary, as ADR-0073 reads it. A path ships when a release puts it in front of a
+// consumer, which is one of these.
+//
+// - A file of the non-test build graph of a binary the release publishes: each image's binary, named
+//   by a `go build ./<dir>` in its Dockerfile, and each release asset's, named by a `go build ./<dir>`
+//   in the release workflow. The graph is read with `go list -deps` with cgo off, for Linux and macOS
+//   on amd64 and arm64, so a test file, a violation file, a README, a patch or a package no binary
+//   links never ships, even inside a directory a Dockerfile copies whole.
+// - A path a Dockerfile copies in that holds none of this module's Go code, such as go.mod, the
+//   browser bundle's sources and the migration chain, since a COPY of those is what they ship by.
+// - The Dockerfiles themselves, and the directory the chart is packaged from.
+//
+// A path the head no longer holds, a deleted or moved-away file, ships when it is a non-test .go file
+// in the directory of a package the graph holds, since the head cannot say what its build constraints
+// were. That errs toward shipped, which lets a claim type through rather than refusing a true one.
 
-const shippedPrefixes = (env) => {
+const GRAPH_PLATFORMS = [['linux', 'amd64'], ['linux', 'arm64'], ['darwin', 'amd64'], ['darwin', 'arm64']]
+const GO_BUILD_TARGET = /\bgo build\b[^\n]*?(?:^|\s)(\.\/[\w./-]+)\s*$/gm
+
+// The local directories a text builds with `go build`, each as ./<dir>.
+const buildTargets = (text) => [...text.matchAll(GO_BUILD_TARGET)].map((m) => m[1])
+
+// The repository-relative files of the non-test build graph of targets, and the directories of its
+// packages, from the go command. A target set the go command reads as empty is refused rather than
+// read as a binary that links nothing.
+const goBuildGraph = (root, targets) => {
+  const files = new Set()
+  const dirs = new Set()
+  const prefix = `${root}/`
+  const format = '{{if and .Module .Module.Main}}D {{.Dir}}\n{{range .GoFiles}}F {{$.Dir}}/{{.}}\n{{end}}{{range .EmbedFiles}}F {{$.Dir}}/{{.}}\n{{end}}{{range .SFiles}}F {{$.Dir}}/{{.}}\n{{end}}{{end}}'
+  for (const [goos, goarch] of GRAPH_PLATFORMS) {
+    const out = execFileSync('go', ['list', '-deps', '-f', format, ...targets], {
+      cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+      env: { ...process.env, CGO_ENABLED: '0', GOOS: goos, GOARCH: goarch, GOFLAGS: '' },
+    })
+    for (const line of out.split('\n')) {
+      if (!line) continue
+      const path = line.slice(2)
+      if (!path.startsWith(prefix)) throw new Error(`go list placed ${path} outside the repository, so the shipped boundary cannot be read`)
+      ;(line.startsWith('D ') ? dirs : files).add(path.slice(prefix.length))
+    }
+  }
+  return { files, dirs }
+}
+
+const shippedBoundary = (env) => {
   const release = env.yaml('.github/workflows/release.yaml')
   const images = release.jobs?.images?.strategy?.matrix?.image
   if (!Array.isArray(images) || !images.length) throw new Error('release.yaml names no image matrix, so the shipped boundary cannot be read')
+  const goSources = new Set(env.tracked().filter((p) => p.endsWith('.go')))
+  const holdsGo = (src) => [...goSources].some((p) => p === src || p.startsWith(`${src}/`))
   const prefixes = new Set()
+  const targets = new Set(buildTargets(env.text('.github/workflows/release.yaml')))
   for (const image of images) {
     const dockerfile = `${image}/Dockerfile`
     prefixes.add(dockerfile)
-    for (const raw of env.text(dockerfile).split('\n')) {
+    const text = env.text(dockerfile)
+    for (const target of buildTargets(text)) targets.add(target)
+    for (const raw of text.split('\n')) {
       const m = raw.match(/^COPY\s+(.*)$/)
       if (!m || /--from=/.test(m[1])) continue
       const parts = m[1].trim().split(/\s+/).filter((p) => !p.startsWith('--'))
-      for (const src of parts.slice(0, -1)) prefixes.add(src.replace(/\/$/, ''))
+      for (const src of parts.slice(0, -1).map((p) => p.replace(/\/$/, ''))) if (!holdsGo(src)) prefixes.add(src)
     }
   }
+  if (!targets.size) throw new Error('no Dockerfile and no release step builds a binary with go build ./<dir>, so the shipped boundary cannot be read')
+  const graph = env.goBuildGraph([...targets].sort())
+  if (!graph.files.size) throw new Error(`the build graph of ${[...targets].join(', ')} holds no file of this module, so the shipped boundary cannot be read`)
   const chart = JSON.stringify(release).match(/helm package (\S+)/)
   if (!chart) throw new Error('release.yaml packages no chart, so the shipped boundary cannot be read')
   prefixes.add(chart[1])
-  return [...prefixes]
+  return { prefixes: [...prefixes], files: graph.files, dirs: graph.dirs, targets: [...targets].sort(), held: new Set(env.tracked()) }
 }
 
-const isShippedPath = (path, prefixes) => footprintOf(path) === '' && prefixes.some((p) => path === p || path.startsWith(`${p}/`))
+const isShippedPath = (path, boundary) => {
+  if (footprintOf(path) !== '') return false
+  if (boundary.files.has(path)) return true
+  if (boundary.prefixes.some((p) => path === p || path.startsWith(`${p}/`))) return true
+  const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '.'
+  return !boundary.held.has(path) && path.endsWith('.go') && !path.endsWith('_test.go') && boundary.dirs.has(dir)
+}
 
 // A cell ships when its file ships and it is not a build-time dependency of a shipped file. A bun
 // devDependency is installed for the build and never enters the bundle.
-const cellShips = (cell, prefixes) => isShippedPath(cell.packageFile, prefixes) && !(cell.manager === 'bun' && cell.depType === 'devDependencies')
+const cellShips = (cell, boundary) => isShippedPath(cell.packageFile, boundary) && !(cell.manager === 'bun' && cell.depType === 'devDependencies')
 
 // ---------------------------------------------------------------------------------------------
 
@@ -631,7 +696,7 @@ const truth = async (env) => {
   const note = []
   const e = await emission(env)
   for (const refusal of e.refusals) fail.push(refusal)
-  const prefixes = shippedPrefixes(env)
+  const boundary = shippedBoundary(env)
 
   // A cell rides a group, and the group's header is one header for the whole branch, so a cell in an
   // unshipped file may carry a shipped claim when a shipped cell shares its group. That is the
@@ -639,7 +704,7 @@ const truth = async (env) => {
   const groupShips = new Map()
   for (const row of e.rows) {
     if (row.folded.group === null) continue
-    if (cellShips(row.cell, prefixes)) groupShips.set(row.folded.group, true)
+    if (cellShips(row.cell, boundary)) groupShips.set(row.folded.group, true)
     else if (!groupShips.has(row.folded.group)) groupShips.set(row.folded.group, false)
   }
 
@@ -648,7 +713,7 @@ const truth = async (env) => {
   for (const row of e.rows) {
     const parsed = parseHeader(`${row.header} x`)
     if (!parsed) { fail.push(`${describeCell(row)}: rendered header '${row.header}' does not parse`). continue }
-    const ships = cellShips(row.cell, prefixes) || (row.folded.group !== null && groupShips.get(row.folded.group) === true)
+    const ships = cellShips(row.cell, boundary) || (row.folded.group !== null && groupShips.get(row.folded.group) === true)
     if (ships) shippedCells++; else internalCells++
     if (!ships && (CLAIM_TYPES.includes(parsed.type) || parsed.breaking)) {
       fail.push(`${describeCell(row)} renders '${row.header}', a claim that a shipped artifact changed, but ${row.cell.packageFile} reaches no consumer${row.cell.depType === 'devDependencies' ? ' (a devDependency)' : ''}`)
@@ -666,7 +731,7 @@ const truth = async (env) => {
       fail.push(`${describeCell(row)}: its scope '${row.folded.scope}' is ${row.folded.scopeClaim ? `claimed by ${row.folded.scopeClaim.where}, a shared preset` : 'claimed by nothing'}. a preset bump could then move this header with no local change, so the claim must be restated in this repository's own config`)
     }
   }
-  note.push(`shipped: ${[...prefixes].join(', ')}`)
+  note.push(`shipped: the build graph of ${boundary.targets.join(', ')} (${boundary.files.size} files), and ${boundary.prefixes.join(', ')}`)
   note.push(`${shippedCells} shipped rows, ${internalCells} internal rows. groups: ${[...groupShips].map(([g, s]) => `${g}=${s ? 'ships' : 'internal'}`).join(', ') || 'none'}`)
   return { fail, note }
 }
@@ -794,14 +859,14 @@ const messageShape = async (env) => {
 const emptyScope = async (env) => {
   const fail = []
   const note = []
-  const prefixes = shippedPrefixes(env)
+  const boundary = shippedBoundary(env)
   for (const commit of env.commits()) {
     const parsed = parseHeader(commit.message)
     if (!parsed || parsed.scope !== '') continue
     const short = commit.sha.slice(0, 8)
-    const shipped = commit.paths.filter((p) => isShippedPath(p, prefixes))
+    const shipped = commit.paths.filter((p) => isShippedPath(p, boundary))
     if ((CLAIM_TYPES.includes(parsed.type) || parsed.breaking) && !shipped.length) {
-      fail.push(`${short}: type '${parsed.type}'${parsed.breaking ? ' with a breaking marker' : ''} asserts a shipped artifact changed, but no changed path ships (what ships is what an image's Dockerfile copies in, the Dockerfiles, and the chart). commitlint accepts this because it reads the header and never the diff. Type it chore, ci, docs or test.`)
+      fail.push(`${short}: type '${parsed.type}'${parsed.breaking ? ' with a breaking marker' : ''} asserts a shipped artifact changed, but no changed path ships (what ships is the non-test build graph of each binary a release publishes, what an image's Dockerfile copies in beside this module's Go code, the Dockerfiles, and the chart). commitlint accepts this because it reads the header and never the diff. Type it chore, ci, docs or test.`)
     }
     note.push(`${short}: empty scope, ${shipped.length} of ${commit.paths.length} changed path(s) ship`)
   }
@@ -848,4 +913,4 @@ export const CHECKS = {
   'named-scope': namedScope,
 }
 
-export const internals = { FOOTPRINTS, classifyPrefix, emission, fold, footprintOf, occupancy, parseHeader, renderPrefix, shippedPrefixes, ruleMatches }
+export const internals = { FOOTPRINTS, classifyPrefix, emission, fold, footprintOf, occupancy, parseHeader, renderPrefix, shippedBoundary, ruleMatches }

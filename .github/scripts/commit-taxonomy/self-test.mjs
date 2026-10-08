@@ -240,6 +240,25 @@ const CASES = [
     overrides: { commits: () => [commit('feat: rework the test runner and the agent rules\n', ['testsupport/cmd/pgrun/image.go', 'CLAUDE.md', 'mediate/importtarget/target.go'])] },
   },
   {
+    id: 'I14b', check: 'empty-scope', expect: /type 'feat' asserts a shipped artifact changed, but no changed path ships/,
+    defect: 'a claim type over files a Dockerfile copies in with their directory but no binary links: a test, a violation file, a patch and a README',
+    overrides: { commits: () => [commit('feat: rework the account snapshot\n', ['executioncontext/accountload/load_integration_test.go', 'executioncontext/accountload/import_violation.go', 'executioncontext/accountload/testdata/mutations/anything.patch', 'executioncontext/README.md'])] },
+  },
+  {
+    id: 'I14c', check: 'empty-scope', guard: true,
+    defect: 'a claim type over a file of a binary\'s build graph, a file of a deleted package directory\'s Go code, and a browser source the image copies in must NOT fire',
+    overrides: { commits: () => [
+      commit('feat: rework the account snapshot\n', ['executioncontext/accountload/load.go']),
+      commit('refactor: drop a helper\n', ['executioncontext/accountload/removed.go']),
+      commit('fix: correct a screen\n', ['ui/browser/src/app.tsx']),
+    ] },
+  },
+  {
+    id: 'I14d', check: 'empty-scope', expect: /threw: the build graph of .* holds no file of this module/,
+    defect: 'a build graph read as empty, which would leave every Go change unshipped',
+    overrides: { goBuildGraph: () => ({ files: new Set(), dirs: new Set() }), commits: () => [commit('feat: anything\n', ['executioncontext/accountload/load.go'])] },
+  },
+  {
     id: 'I15', check: 'named-scope', expect: /scope 'agents' does not cover README\.md, and no changed path is in its footprint/,
     defect: 'a named scope on a diff touching nothing in its footprint',
     overrides: { commits: () => [commit('docs(agents): describe the layout\n', ['README.md'])] },

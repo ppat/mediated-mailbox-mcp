@@ -8,7 +8,7 @@
 The policy loader reads each account's rules and the base rules together, one account's
 transaction at a time, and refuses to compose accounts from different base policies, so a reload
 whose accounts read different base rules is a read it cannot trust
-([policyload/README.md](../../../policyload/README.md),
+([executioncontext/README.md](../../../executioncontext/README.md#the-policy-loader-policyload),
 [ADR-0041](./0041-policy-as-immutable-snapshots.md)). A reload that fails raises the reload-failure
 alarm, which pages at once and clears when a reload next succeeds
 ([ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md)).

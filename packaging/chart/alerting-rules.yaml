@@ -4,7 +4,7 @@
 # its own way. Routing a firing rule to a person is the platform's.
 #
 # ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules,
-# policyload/testdata/alerting-rules-test.yaml those of the policy reload rule, and
+# executioncontext/policyload/testdata/alerting-rules-test.yaml those of the policy reload rule, and
 # sync/internal/tick/testdata/alerting-rules-test.yaml those of the cursor gap rule, each run from a Go test in its
 # package.
 # ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule and the rule for

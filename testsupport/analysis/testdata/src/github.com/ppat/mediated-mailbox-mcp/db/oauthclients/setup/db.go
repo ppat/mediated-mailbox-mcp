@@ -1,5 +1,5 @@
 // Package setup stands for a generated data-access subsection.
-package setup
+package clientsetup
 
 import "context"
 

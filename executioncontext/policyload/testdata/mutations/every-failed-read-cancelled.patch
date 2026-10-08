@@ -1,0 +1,20 @@
+control: A reload its caller cancelled keeps the active policy and raises no alarm
+removes: every failed read is taken as a reload its caller cancelled, so no failed read raises the alarm
+packages: ./executioncontext/policyload
+tests: TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules TestAReloadItsCallerCancelledRaisesNoAlarm
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/policyload/load.go b/executioncontext/policyload/load.go
+index 9e0644fd..f0d931c0 100644
+--- a/executioncontext/policyload/load.go
++++ b/executioncontext/policyload/load.go
+@@ -153,7 +153,7 @@ func (l *Loader) Reload(ctx context.Context) error {
+ 	if errors.Is(err, errTornBase) {
+ 		rows, err = l.read(ctx)
+ 	}
+-	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
++	if err != nil {
+ 		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
+ 	}
+ 	if err != nil {

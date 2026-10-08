@@ -14,7 +14,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
-	"github.com/ppat/mediated-mailbox-mcp/db/auditlog/record"
+	auditrecord "github.com/ppat/mediated-mailbox-mcp/db/auditlog/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/release"
@@ -324,7 +324,7 @@ func (s Sources) audit(ctx context.Context, account, messageID, action string, s
 		return err
 	}
 	err = tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
-		return record.New(t).RecordBodyDecision(ctx, record.RecordBodyDecisionParams{
+		return auditrecord.New(t).RecordBodyDecision(ctx, auditrecord.RecordBodyDecisionParams{
 			AccountID: account, Actor: auditActor, Action: action,
 			MessageID: pgtype.Text{String: messageID, Valid: true}, Sensitivity: state, RuleIds: rules,
 		})

@@ -79,8 +79,8 @@ library hides is what lets it change for one reason.
   longer create a top-level library.
 - **Repeated assembly**, logic several composition roots repeat, is a package of its concept's
   family. Composition stays in each root ([ADR-0040](./0040-pure-core-decisions-as-values.md)).
-- **A concern's configuration section stays with its concern**, as the configuration library's
-  README already says, so the code that owns a section also owns its validation, wherever the
+- **A concern's configuration section stays with its concern**, as the process family's README
+  says, so the code that owns a section also owns its validation, wherever the
   layering mechanism sits ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)).
 - **The guard against a family turning into a grab bag** is the founding rule, the exact import list
   per package, and each family's README naming what does not belong. A package growing code for a

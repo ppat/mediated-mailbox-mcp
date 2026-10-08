@@ -15,12 +15,12 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
+	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
-	senderclasses "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
+	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 )
@@ -97,13 +97,13 @@ type Queries struct {
 	Plans      *reorgplans.Queries
 	Candidates *policycandidates.Queries
 	Runs       *jobruns.Queries
-	Failures   *classification.Queries
+	Failures   *runclassification.Queries
 	Audit      *auditlog.Queries
 	// Rules, Changes and Senders are policy management's reads, and Accounts the accounts listing a
 	// base rule's screen names (ADR-0091).
 	Rules    *manage.Queries
 	Changes  *policychanges.Queries
-	Senders  *senderclasses.Queries
+	Senders  *senderclassification.Queries
 	Accounts *accounts.Queries
 }
 

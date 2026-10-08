@@ -33,15 +33,23 @@ inject an upstream scope rename.
 | Check | Reads | Asserts |
 | --- | --- | --- |
 | `closure` | the Renovate configuration with its presets at the pinned tag, every dependency the tracked tree holds, `release-please-config.json` | every header-shaped key is classified, every local rule uses only modelled matchers, no tracked file is read only by an unmodelled manager, every rendered header for every dependency under every update type passes commitlint, semantic commits resolve to enabled, and every release-please title pattern renders a header commitlint accepts |
-| `truth` | the same, plus the release workflow and the Dockerfiles it names | a dependency in a file that never ships never renders a claim type or a breaking marker, a shipped dependency's version-moving updates render a claim type and only its major renders the marker, and every scope is claimed by this repository's own configuration |
+| `truth` | the same, plus the release workflow, the Dockerfiles it names and the build graph of the binaries they build | a dependency in a file that never ships never renders a claim type or a breaking marker, a shipped dependency's version-moving updates render a claim type and only its major renders the marker, and every scope is claimed by this repository's own configuration |
 | `self-consistency` | `commitlint.config.js`, `release-please-config.json`, the two gate workflows, `.pre-commit-config.yaml`, `package.json` | the type enum equals the changelog sections, the local rules name only enum members, the named footprints do not overlap, the two gate jobs cannot report skipped and run on the events that matter, and the local hook pins the gates' commitlint |
 | `message-shape` | the pull request's commits and body | no body paragraph reads as a second header, no `Release-As:` footer, no override block, and the release parser is still the major the patterns were derived against |
-| `empty-scope` | the pull request's commits and their paths | a claim type or a breaking marker on the empty scope touches a path that ships |
+| `empty-scope` | the pull request's commits and their paths, and what ships as `truth` reads it | a claim type or a breaking marker on the empty scope touches a path that ships |
 | `named-scope` | the same | a line-level scope's changed paths all sit inside its footprint, and a path scope's footprint contains at least one changed path. Advisory, with the sunset stated in the code |
 
-What ships is read from `release.yaml`: what each image's Dockerfile copies in, the Dockerfiles
-themselves, and the directory the chart is packaged from. A bun devDependency is internal wherever
-its manifest sits.
+What ships is ADR-0073's reading. It is the non-test build graph of every binary a release publishes,
+each image's binary that its Dockerfile builds with `go build ./<dir>` and each release asset that
+`release.yaml` builds the same way, read with `go list -deps` with cgo off for Linux and macOS on
+amd64 and arm64. Beside it are what each image's Dockerfile copies in that holds none of this
+module's Go code, such as `go.mod`, the browser bundle's sources and the migration chain, the
+Dockerfiles themselves, and the directory the chart is packaged from. So a test file, a violation
+file, a mutation patch or a README inside a directory a Dockerfile copies whole does not ship. A
+path the head no longer holds ships when it is a non-test `.go` file in the directory of a package
+the graph holds, since the head cannot say what its build constraints were, which errs toward
+letting a claim type through. A bun devDependency is internal wherever its manifest sits. The
+checks therefore need the go command `mise.toml` pins, which the job's tool setup installs.
 
 ## What is modelled, and what is refused
 
