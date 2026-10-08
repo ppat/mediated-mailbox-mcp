@@ -29,14 +29,14 @@ Checkpoints commit with the work they cover ([ADR-0017](../data/0017-two-pass-ba
 mediator's decision at fetch time ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md),
 [ADR-0099](../engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)).
 
-Backfill today loads the policy once at the start of a run and holds it for every page of both
-passes, for hours. A restriction the operator adds during a run reaches neither its second pass's
-check nor the stored classes until the next run, so the second pass can fetch and scan the body of a
-sender the operator just restricted, which [ADR-0008](../redaction/0008-restricted-senders-are-never-scanned.md)
-and [ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md) intend never to happen.
+A backfill run that loads the policy once at its start and holds it for every page of both passes,
+for hours, lets a restriction the operator adds during the run reach neither its second pass's
+check nor the stored classes until the next run. The second pass can then fetch and scan the body
+of a sender the operator just restricted, which
+[ADR-0008](../redaction/0008-restricted-senders-are-never-scanned.md) and
+[ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md) intend never to happen.
 
-The operator ruled against messaging through PostgreSQL on 2026-10-02 and approved this mechanism
-on 2026-10-07.
+This record also decides that nothing messages through PostgreSQL.
 
 ## Decision
 
@@ -68,10 +68,11 @@ nothing else ([ADR-0051](../engineering/0051-environment-contract.md)).
 **Units of work take the active snapshots.** Each job kind's unit of work takes its kind's active
 account snapshot and policy snapshot at its entry
 ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md),
-[ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)): a tick for delta sync, a
-page of each pass for backfill, and for apply the whole plan for policy and a batch for the
-accounts. So a policy edit reaches the second pass's restricted-sender check within one reload and
-one page, and the stored classes within the same bound through the comparisons inside the run.
+[ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). The unit is a tick for
+delta sync, a page of each pass for backfill, and for apply the whole plan for policy and a batch
+for the accounts. So a policy edit reaches the second pass's restricted-sender check within one
+reload and one page, and the stored classes within the same bound through the comparisons inside
+the run.
 
 **Control of runs.**
 
@@ -99,14 +100,14 @@ one page, and the stored classes within the same bound through the comparisons i
 
 **Loaders.** Each job kind that holds credentials has its own account loader and policy loader,
 under its own role and on its own pool, reloaded about every minute, and writes back the credentials
-it rotated itself, as each deployable does today
+it rotated itself, as each deployable does
 ([ADR-0082](./0082-rotation-writeback-to-the-database.md),
 [ADR-0089](./0089-sealed-values-written-by-compare-and-set.md)). Two job kinds that both rotate a
 credential reconcile through the stored bytes by compare-and-set. Each job kind's loader adds and
 drops its own jobs. The heuristics run holds no credential loader. It reads the list of account
-identifiers under its own role if the heuristics unit decides it reads `accounts`, which stays an
-open decision of that unit ([ROADMAP.md](../../../ROADMAP.md#open-decisions),
-[ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). The loader design changes no
+identifiers under its own role if the heuristics unit decides it reads `accounts`, which is not
+decided here and is tracked in [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions)
+([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). The loader design changes no
 grant.
 
 **Observability.** Series per job kind and a time of last success per job, on the registry the
@@ -120,18 +121,19 @@ stuck sync job looks healthy" is caught ([ADR-0077](./0077-conditions-raised-as-
 **The line between reading recorded state and messaging through PostgreSQL.** The test is to remove
 the reader and ask whether the row still means something.
 
-- A recorded decision passes it: an APPROVED status, a connected account, a policy rule, a rollback
-  request, a pause. Each is a decision a person or component made, meaningful whoever reads it, and
-  reading recorded decisions on a cadence is allowed.
-- A row whose only purpose is to tell a component to act fails it: a `NOTIFY`, an outbox row, a
-  signal row, a queued job. That is messaging, and it is refused.
+- A recorded decision passes it, whether an APPROVED status, a connected account, a policy rule, a
+  rollback request or a pause. Each is a decision a person or component made, meaningful whoever
+  reads it, and reading recorded decisions on a cadence is allowed.
+- A row whose only purpose is to tell a component to act fails it, whether a `NOTIFY`, an outbox
+  row, a signal row or a queued job. That is messaging, and it is refused.
 
-**Replicas and other build shapes.** Several worker replicas are not built. If they ever are, only
-the claim step changes. Its candidates are a lease row in PostgreSQL, with an expiry renewed while
-the job runs, or an expiring key in a platform-supplied Redis or Dragonfly. A session advisory lock
-is not one, since it fails behind a transaction-mode pooler, and a transaction-scoped lock lasts one
-transaction. A single binary that also holds the mediator and the UI composes the same scheduler,
-from the worker's entry package, and needs no external store. It lacks the platform's guarantee of a
+**Replicas and other build shapes.** The worker runs as one copy. If it ever runs as several
+replicas, only the claim step changes. Its candidates are a lease row in PostgreSQL, with an
+expiry renewed while the job runs, or an expiring key in a platform-supplied Redis or Dragonfly. A
+session advisory lock is not one, since it fails behind a transaction-mode pooler, and a
+transaction-scoped lock lasts one transaction. A single binary that also holds the mediator and
+the UI composes the same scheduler, from the worker's entry package, and needs no external store.
+It lacks the platform's guarantee of a
 single copy, so a guard against two copies is that build shape's choice.
 
 **No framework.** The scheduler is hand-written on Go's standard library, behind four calls,
@@ -163,10 +165,10 @@ reflection or annotation ([ADR-0040](../engineering/0040-pure-core-decisions-as-
   claim, and it would be another service for a homelab deployer to supply, secure and back up. It
   remains a candidate for the claim step if replicas are built.
 - **PostgreSQL as the job channel**, `LISTEN` and `NOTIFY`, a signals or outbox table, or a job
-  queue table such as River's. Refused by the line above. `LISTEN` is also dropped by a
-  transaction-mode pooler, which [ADR-0066](../data/0066-data-access-generated-from-sql.md) allows,
-  and River's migrations create a database function, which
-  [ADR-0060](../engineering/0060-no-code-in-the-database.md) refuses.
+  queue table such as River's. No case was tabled for it. Refused by the line above. `LISTEN` is
+  also dropped by a transaction-mode pooler, which
+  [ADR-0066](../data/0066-data-access-generated-from-sql.md) allows, and River's migrations create a
+  database function, which [ADR-0060](../engineering/0060-no-code-in-the-database.md) refuses.
 - **The platform's own triggers**, a Kubernetes Job per run or a CronJob. The case for it: the
   platform does the scheduling. Not chosen for a long-running worker, since the application would
   have to create Jobs, which [ADR-0051](../engineering/0051-environment-contract.md) forbids.
@@ -197,8 +199,8 @@ reflection or annotation ([ADR-0040](../engineering/0040-pure-core-decisions-as-
   comparisons by effect stay the controls they are.
 - **A new account is backfilled with no manual step**, within one reload of its appearing, and
   backfill runs continuously as a reconciler per account.
-- **Approval latency becomes the apply check's interval**, a seconds-scale value set where apply is
-  built, at the cost of one indexed read per account per check.
+- **Approval latency becomes the apply check's interval**, a seconds-scale value this record does
+  not fix, at the cost of one indexed read per account per check.
 - **One process restarts every job together** on a configuration change or a rollout, and each job
   resumes from its checkpoint.
 - **The hand-written scheduler is concurrency code the project owns**, the class of code where timer
@@ -206,7 +208,8 @@ reflection or annotation ([ADR-0040](../engineering/0040-pure-core-decisions-as-
   test of adding and removing one job pin what can be named. A feature such as priorities or jitter
   arrives only with its consumer, so the package does not grow into a framework nobody chose.
 - **Run history grows** by about 105,000 delta sync runs a year per account at the default interval,
-  and how long it is kept is an open decision in [ROADMAP.md](../../../ROADMAP.md).
+  and how long it is kept is not decided here and is tracked in
+  [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions).
 - Assumptions about other components. Every run reads recorded state and is idempotent or
   conditional, so the in-process exclusion is one layer of several. The day a run's correctness
   depends on the scheduler never dropping or doubling it, this choice is re-read. The platform runs

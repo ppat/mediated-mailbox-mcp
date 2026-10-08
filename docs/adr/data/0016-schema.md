@@ -6,9 +6,9 @@
 
 ## Context
 
-The store is Postgres ([ADR-0015](./0015-postgres-not-a-kv-store.md)); the schema must carry the
+The store is Postgres ([ADR-0015](./0015-postgres-not-a-kv-store.md)). The schema must carry the
 metadata corpus, the sender statistics the scan gate needs, the review and approval workflows, rate
-coordination, and the audit trail — while making the two structural properties (no bodies at rest,
+coordination, and the audit trail, while making the two structural properties (no bodies at rest,
 no cross-account reads) schema-level facts rather than application-level habits.
 
 ## Decision
@@ -227,7 +227,7 @@ CREATE TABLE reorg_plans (
   account_id  text NOT NULL REFERENCES accounts,
   status      text NOT NULL CHECK (status IN ('DRAFT', 'APPROVED', 'APPLYING', 'APPLIED',
                 'ROLLED_BACK', 'REJECTED', 'APPLY_REFUSED')),  -- ADR-0020's set; rollback's own status
-                                          -- is added where rollback is built
+                                          -- is added in the migration that brings rollback
   description text,
   proposer    text,                       -- the client actor at creation
   plan        jsonb NOT NULL,             -- label_ops as [{op: create|rename|delete, label, to}], message_ops, stats
@@ -267,7 +267,7 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
   run_id        text NOT NULL,            -- short opaque string
   workload      text NOT NULL,            -- the job kind: backfill | sync | apply | heuristics
   pass          text NOT NULL,            -- pass1 | pass2 | tick | gap_recovery | apply | rollback, and the
-                                          --   one heuristics names when it is built
+                                          --   one heuristics names in the migration that brings its role
   state         text NOT NULL CHECK (state IN ('running', 'succeeded', 'failed')),
   plan_id       uuid REFERENCES reorg_plans,  -- apply and rollback runs
   resumed_from  text,                     -- the run this one resumed
@@ -289,8 +289,8 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
   PRIMARY KEY (account_id, run_id),
   CHECK ((workload, pass) IN (('backfill', 'pass1'), ('backfill', 'pass2'),
                               ('sync', 'tick'), ('sync', 'gap_recovery')))
-                                          -- the pairs of the job kinds built; each job kind adds
-                                          --   its own pairs in the migration that brings its role
+                                          -- a closed set; each job kind adds its own pairs
+                                          --   in the migration that brings its role
 );
 CREATE INDEX ON job_runs (account_id, workload, pass, started_at DESC, run_id);
 CREATE INDEX ON job_runs (account_id) WHERE state = 'running';
@@ -353,15 +353,15 @@ CREATE TABLE audit_log (
   CHECK ((class_rule_id IS NULL) = (class_rule_scope IS NULL))
 );
 -- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention.
--- A mutation's own columns are added where mutation is built, and rows written before keep their meaning.
+-- A mutation's own columns are added in the migration that brings mutation, and rows written before keep their meaning.
 CREATE INDEX ON audit_log (account_id, ts DESC);
 CREATE INDEX ON audit_log (account_id, message_id, ts DESC);
 ```
 
-The properties the shape enforces:
+The shape enforces these properties.
 
 - **No body, snippet, or excerpt column exists anywhere.** The comment in the DDL is part of the
-  decision: a future migration adding one is violating the design, not extending it.
+  decision. A future migration adding one is violating the design, not extending it.
 - **Every table keys on `account_id`.** All access goes through a repository layer that requires
   an account, every statement against an account-keyed table carries an account predicate
   ([ADR-0047](./0047-schema-first-data-access.md)), and row-level security stands behind both as a
@@ -403,9 +403,9 @@ The properties the shape enforces:
   function that would. The shared transaction helper therefore reads the setting back after
   setting it and fails the transaction when it is empty. Its one transaction whose account is
   deliberately empty is the base policy's, which runs only the base policy's statements
-  ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). The general asymmetry behind this is
-  worth carrying. An insert a policy refuses raises, while a select or update a policy empties
-  returns quietly.
+  ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). The
+  asymmetry behind this holds generally. An insert a policy refuses raises, while a select or
+  update a policy empties returns quietly.
 - **The stored spellings of every enumerated column are the ones the DDL shows**, in
   lowercase snake case where a record names the state in capitals (`skipped_gate` for
   [ADR-0093](../redaction/0093-composite-scan-gate.md)'s `SKIPPED_GATE`). Plan statuses keep
@@ -465,8 +465,8 @@ The properties the shape enforces:
   with the class it resets ([ADR-0037](../redaction/0037-delisting-transition.md)). The sender
   statistics' `sender_class` in `senders` carries no rule. Otherwise a message's `class_rule_id`
   stays as written, like the class it explains, so a rule edited or replaced while its domain stays
-  restricted leaves the old identifier. Rows stored before `class_rule_id` existed hold NULL, and
-  nothing fills them in.
+  restricted leaves the old identifier. A message stored before the migration that adds
+  `class_rule_id` holds NULL as well, and nothing fills it in.
 - **Masked subjects are stored masked** — the index never holds a live code.
 - **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
   (`scan_state = 'pending'`) directly. A partial index serves a runtime role when the statement
@@ -490,13 +490,13 @@ The properties the shape enforces:
 - **Store snippets/bodies encrypted "for convenience features later."** Rejected: it converts the
   structural guarantee into a key-management promise, and every later feature idea ("preview",
   "search inside bodies") would pull on it. Absence is the feature.
-- **A single-tenant schema, multi-account by deploying more instances.** Rejected: the isolation
-  property must hold *inside* one deployment (see the account model,
-  [ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md));
-  per-instance separation is an operational choice layered on top, not a substitute.
-- **Denormalize sender statistics into `messages`.** Rejected: the gate and heuristics read
-  sender-level aggregates constantly; a `senders` table keeps those reads cheap and their updates
-  batched.
+- **A single-tenant schema, multi-account by deploying more instances.** No case was tabled for it.
+  Rejected: the isolation property must hold *inside* one deployment (see the account model,
+  [ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)). Per-instance
+  separation is an operational choice layered on top, not a substitute.
+- **Denormalize sender statistics into `messages`.** No case was tabled for it. Rejected: the gate
+  and heuristics read sender-level aggregates constantly, and a `senders` table keeps those reads
+  cheap and their updates batched.
 
 ## Consequences
 
@@ -514,7 +514,7 @@ The properties the shape enforces:
 - Retention of the audit log has no owner while no runtime role can delete from it. Nothing in the
   running system trims the table, and whether it is ever trimmed is an open decision in
   [ROADMAP.md](../../../ROADMAP.md).
-- Schema evolution is by migration; the DDL's no-body comment binds every future one.
+- Schema evolution is by migration, and the DDL's no-body comment binds every future one.
 - **Row-level security costs indexes.** PostgreSQL uses a predicate as an index condition ahead of
   a policy only when every function it applies to the row's columns is leakproof, so an index over
   a column compared with an operator that is not leakproof goes unused by every runtime role. That

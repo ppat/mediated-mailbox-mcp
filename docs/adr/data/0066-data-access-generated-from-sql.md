@@ -18,10 +18,10 @@ Most of what a data-access ecosystem sells is already designed out. No entity mo
 map, no lazy loading, no scaffolding over a broad create-read-update-delete surface, no migrations
 generated from code ([ADR-0048](./0048-forward-only-migrations.md)), and no database-resident code
 to call ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). Reads are projections and
-aggregates, and writes are a small set. What remained to choose on is narrower. How a statement's
-result type comes into being, what can check a statement before it runs, what a component can be
-prevented from linking, and what any of it drags into the processes holding full-mailbox
-credentials.
+aggregates, and writes are a small set. What is left to choose on is narrower. It is how a
+statement's result type comes into being, what can check a statement before it runs, what a
+component can be prevented from linking, and what any of it drags into the processes holding
+full-mailbox credentials.
 
 One question looks larger than it is. The dataset endpoint of
 [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md) varies its grouping,
@@ -45,13 +45,13 @@ Each derives from a record that already binds, named beside it.
 | Drift is a build failure | Schema, statements and result types cannot disagree except as a failed build | [ADR-0047](./0047-schema-first-data-access.md) |
 | Schema authority | The migration set is the only authority on stored shape, and nothing derives it from code | [ADR-0047](./0047-schema-first-data-access.md), [ADR-0048](./0048-forward-only-migrations.md) |
 | Per-query result types | Each statement has its own result shape, with no type shared across statements and no field a body could occupy | [ADR-0047](./0047-schema-first-data-access.md) |
-| Role separation | Several database roles hold different grants, and a component cannot name an accessor its role has no grant for | [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) and [ADR-0048](./0048-forward-only-migrations.md) establish that the roles differ. That a component cannot name another role's accessor is strengthened to here |
+| Role separation | Several database roles hold different grants, and a component cannot name an accessor its role has no grant for | [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) and [ADR-0048](./0048-forward-only-migrations.md) establish that the roles differ. This record adds that a component cannot name another role's accessor |
 | Transaction-scoped account | Each transaction sets the account by an ordinary statement before reading, and this survives pooling and statement caching | [ADR-0016](./0016-schema.md), [ADR-0060](../engineering/0060-no-code-in-the-database.md) |
 | Batched writes | Several hundred to a thousand rows per batch without leaving the typed layer | [ADR-0025](../operability/0025-priority-classes-and-leases.md) |
 | Type coverage now | Case-insensitive text, text arrays, JSON, timestamps with zone, big serial | [ADR-0016](./0016-schema.md) |
 | Trust-anchor footprint | What the choice adds to the processes holding full-mailbox credentials | [ADR-0028](../operability/0028-trust-anchor-hardening.md) |
 | Long-term fit | Governance, release cadence, breaking-change record, and what abandonment costs | The project outlives any tool it picks |
-| Vector column | Weighed when [ADR-0016](./0016-schema.md) declared a nullable vector column. The schema no longer declares one and no extension provides the type, so it is no longer a requirement. The grades below keep the row as it was weighed | [ADR-0016](./0016-schema.md), [ADR-0004](../classification/0004-sender-list-decides.md) |
+| Vector column | Not a requirement, since the schema declares no vector column and no extension provides the type. The grades below keep the row as weighed | [ADR-0016](./0016-schema.md), [ADR-0004](../classification/0004-sender-list-decides.md) |
 | Crash-harness fit | Data access callable with plain values, with transaction boundaries the harness controls | [ADR-0045](../engineering/0045-crash-injection-testing.md) |
 | Idiom pull | Whether a tool's ordinary path leads toward what these records forbid | The records above, taken together |
 
@@ -152,7 +152,7 @@ throughput and latency, because the corpus assumption puts them out of reach of 
 | Type coverage now | All five map without custom overrides or type registration |
 | Trust-anchor footprint | The generator is a build-time binary contributing no run-time modules. Generated code imports the driver, not the generator |
 | Long-term fit | Abandonment costs a generator. The statement files are the authored artifact and the generated Go keeps compiling |
-| Vector column | No longer a requirement, since the schema declares no vector column. When it was weighed, it was supported, conditional on the native driver target this record chooses, with three open defects, one of them to a nullable vector column |
+| Vector column | Not a requirement, since the schema declares no vector column. As weighed, it was supported, conditional on the native driver target this record chooses, with three open defects, one of them to a nullable vector column |
 | Crash-harness fit | Accessors are callable with plain values, and an emitted interface gives the harness something to wrap |
 | Idiom pull | Every default that breaks a record here is enumerable, and each is closed by a check rather than by memory |
 
@@ -171,7 +171,7 @@ from the generator's issue tracker rather than from having been run.
 | Case-insensitive text needs no type registration and works in every driver mode | But a text cast on either side of a comparison between such a column and a parameter makes the same question return no rows or fewer, with no error, and the generated Go is identical either way. Under a policy, a composite index over such a column degrades to one column plus a filter, because the comparison operator is not leakproof |
 | The account setting's deny state is silent | Once a connection has set it, PostgreSQL resets it to the empty string between transactions rather than to unrecognised, so a statement omitting it returns no rows without error on a warm connection and raises on a fresh one. The shared transaction helper reads it back and fails the transaction when it is empty. [ADR-0016](./0016-schema.md) carries the schema half |
 | A grant refusal and a policy exclusion behave oppositely | A grant the role lacks raises, naming the table and not the column, so it carries nothing the operator can act on. A policy excluding the row empties the statement, which succeeds having changed nothing |
-| The plain execute annotation discards the command tag | Every statement whose predicate a policy can empty uses the row-counting annotation instead, and zero rows affected is a failure. Today that is the four decision writes behind [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s two decision verbs |
+| The plain execute annotation discards the command tag | Every statement whose predicate a policy can empty uses the row-counting annotation instead, and zero rows affected is a failure. The four decision writes behind [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s two decision verbs are such statements |
 | If a connection pooler is placed in front of PostgreSQL | Statement mode is unusable because it forbids transaction blocks. Transaction and session modes both preserve isolation. The driver's prepared statements require the pooler to permit them, which is preferred over disabling them, because disabling them discards the cached plans the isolation result was measured under |
 
 ## Alternatives considered
@@ -213,14 +213,14 @@ leaves per-query result types to be written by hand, and its ergonomic bulk path
 those same per-table structs, so reaching for it undoes the arrangement. That is a requirement
 carried by discipline rather than by the tool, which is what its 3 records.
 
-Four rows were exercised rather than read, and for four of the five candidates. The account
-predicate, by writing the check and taking it from passing to failing. Role separation, by building
-the generated packages and attempting a cross-role import. Trust-anchor footprint, by building
-identical minimal programs and comparing them. And batched writes. The struct-scanning candidate
-was not built at any point, so its column rests on documented behaviour throughout, as do the
-remaining rows for every candidate. There are three rows where
-the chosen candidate stands alone at the ceiling, the account predicate, fenced composition and
-drift, and the account predicate is the one among them whose failure is silent.
+Four rows were measured rather than read, for four of the five candidates. They are the account
+predicate, measured by writing the check and taking it from passing to failing, role separation,
+by building the generated packages and attempting a cross-role import, trust-anchor footprint, by
+building identical minimal programs and comparing them, and batched writes. The struct-scanning
+candidate was not built at any point, so its column rests on documented behaviour throughout, as
+do the remaining rows for every candidate. The chosen candidate stands alone at the ceiling on
+three rows, the account predicate, fenced composition and drift, and the account predicate is the
+one among them whose failure is silent.
 
 The second table carries what the requirements do not, meaning the facts that decided between
 candidates the requirements had sorted into the same tier.
@@ -256,15 +256,16 @@ inside the trust anchor, its build-time database dependency and its silent downg
 case-insensitive columns are confinable nowhere.
 
 - **Hand-written statements with hand-written result types over the same driver.**
-  [ADR-0047](./0047-schema-first-data-access.md) kept this alive deliberately and it is the closest
-  alternative. The case for it is stronger than it first appears. The driver's row-scanning helpers
-  have absorbed the boilerplate generation used to be worth, and preparing every declared statement
-  against the migrated schema reproduces most of the drift catch, including the body-column case,
-  using the fresh database [ADR-0043](../engineering/0043-no-mocking.md) already requires on every
-  test run. Rejected because the helpers match by run-time reflection, so a struct disagreeing with
-  its statement is a run-time error rather than a failed build, and because it produces no result
-  types, leaving the statement half of the drift guarantee without the type half. It stays the
-  fallback, which is the same fact as the cheap exit above.
+  [ADR-0047](./0047-schema-first-data-access.md) leaves this open deliberately, and it is the
+  closest alternative. The case for it is stronger than it first appears. The driver's
+  row-scanning helpers have absorbed the boilerplate generation used to be worth, and preparing
+  every declared statement against the migrated schema reproduces most of the drift catch,
+  including the body-column case, using the fresh database
+  [ADR-0043](../engineering/0043-no-mocking.md) already requires on every test run. Rejected
+  because the helpers match by run-time reflection, so a struct disagreeing with its statement is
+  a run-time error rather than a failed build, and because it produces no result types, leaving
+  the statement half of the drift guarantee without the type half. It stays the fallback, which is
+  the same fact as the cheap exit above.
 - **A typed query builder generated from the migrated database.** The case for it is composition
   the compiler checks, and a nested-struct mapping confined to one result set that is therefore not
   the identity map [ADR-0047](./0047-schema-first-data-access.md) rejects. Rejected on the second
@@ -280,12 +281,12 @@ case-insensitive columns are confinable nowhere.
   user interface, which [ADR-0021](../mutation/0021-approval-surface.md) placed outside the trust
   anchor when the case was made. Rejected because the Context shows the composition question does
   not arise, so it buys a second way to write a statement for no gain.
-- **An entity-model tool.** [ADR-0047](./0047-schema-first-data-access.md) rejected this on four
+- **An entity-model tool.** [ADR-0047](./0047-schema-first-data-access.md) rejects this on four
   named collisions and nothing here disturbs them. What it would have offered is the scaffolding
   productivity that record concedes is real, migration generation
   [ADR-0048](./0048-forward-only-migrations.md) forbids by name, and relation traversal this schema
-  barely needs. Its case has weakened since, because the generated-code candidates now produce
-  per-statement types with a build-time drift check, which is most of what the scaffolding bought.
+  barely needs. Its case is weaker still, because the generated-code candidates produce
+  per-statement types with a build-time drift check, which is most of what the scaffolding buys.
 
 ### Where generated code sits
 
@@ -303,9 +304,9 @@ case-insensitive columns are confinable nowhere.
   whole write surface, which together put the whole read and write surface somewhere near a
   hundred and twenty-five on the same weak footing. Past roughly a hundred and fifty the pressure
   to replace the set with one parameterised composer becomes hard to resist, and taking that
-  option would give up the property this decision was made for. It is a pressure to resist rather
-  than a capability gap, because the grouping axis stays closed per dataset however many datasets
-  exist.
+  option would give up the property this decision was made for. It is a pressure
+  to resist rather than a capability gap, because the grouping axis stays closed per dataset
+  however many datasets exist.
 - **This decision is re-argued if the corpus assumption moves.** The enumerated shape is judged
   affordable because a null-guarded filter and a case-expression sort are not expected to use an
   index and do not need to at the assumed size. That expectation is reasoning about query planning
@@ -315,10 +316,9 @@ case-insensitive columns are confinable nowhere.
 - **The statement set is checked against the registry by count**, meaning a dataset or dimension
   the registry declares with no statement behind it, or the reverse. The filter, sort and
   result-type seams are not covered and are accepted.
-- **The enumerated endpoint taxes
-  [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md)'s cost of a new
-  analysis view**, which now includes one statement per groupable dimension plus a summary and a
-  rows statement. That record states the corrected form.
+- **The enumerated endpoint adds one statement per groupable dimension, plus a summary and a rows
+  statement, to [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md)'s cost
+  of a new analysis view**, as that record states.
 - **Assumptions about other components.** The migration set is reviewable SQL and is the artifact
   the generator reads. The registry declares every dataset, dimension, filter, sort and result
   type, and its refusal of an undeclared one is application code under any tool. The test substrate

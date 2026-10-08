@@ -28,11 +28,11 @@ them. The choice decides what adding a view costs and how bounded the read surfa
   ([ADR-0066](../data/0066-data-access-generated-from-sql.md)), so a new dataset also costs one
   statement per groupable dimension plus a summary and a rows query.
 - **A paged read is totally ordered.** Every sort the endpoint serves ends with the row's own
-  identity as its final key. Every default sort the datasets declare is over a column whose values
-  repeat, the rules dataset's sort by rule identifier excepted, so without a unique final key two
-  rows with equal sort values have no defined order between them, and the same query run twice can
-  place a row on either side of a page boundary. The reader then sees a row twice or never sees
-  it. How the rule is checked is a mechanism question and belongs to
+  identity as its final key. Every default sort the datasets declare, apart from the rules
+  dataset's sort by rule identifier, is over a column whose values repeat. Without a unique final
+  key, two rows with equal sort values have no defined order between them, and the same query run
+  twice can place a row on either side of a page boundary. The reader then sees a row twice or
+  never sees it. How the rule is checked is a mechanism question and belongs to
   [ADR-0066](../data/0066-data-access-generated-from-sql.md).
 - **Bespoke endpoints exist only where a screen needs a shape the ladder does not produce.** The
   plan reviewer's summary and label operations, the jobs surfaces, the two verbs, OAuth client

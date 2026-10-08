@@ -29,8 +29,8 @@ var (
 
 // seedPolicyScreens writes what the policy screens' recordings start from, the policy tests' rules and
 // history, the senders the sender picker searches, one of whose domains carries the markup marker, and
-// earlier changes a history row's Restore acts on: a lifted rule of the account's, an edit that removed
-// a suffix of the account's rule, and a lifted base rule.
+// earlier changes a history row's Restore acts on, which are a lifted rule of the account's, an
+// edit that removed a suffix of the account's rule, and a lifted base rule.
 func (r *rig) seedPolicyScreens() {
 	r.t.Helper()
 	r.exec("TRUNCATE policy_rules, policy_changes RESTART IDENTITY")

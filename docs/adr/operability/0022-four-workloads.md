@@ -5,9 +5,9 @@
 
 ## Context
 
-Four kinds of background work exist: the backfill that builds the index, the recurring delta sync,
-the human-triggered reorg apply, and the periodic heuristics run. They could share one long-running
-worker process or run as separate Kubernetes workloads.
+Four kinds of background work exist, which are the backfill that builds the index, the recurring
+delta sync, the human-triggered reorg apply, and the periodic heuristics run. They could share one
+long-running worker process or run as separate Kubernetes workloads.
 
 ## Decision
 
@@ -20,9 +20,10 @@ worker process or run as separate Kubernetes workloads.
 | Reversible | n/a (read-only) | n/a | **must be** | n/a |
 | Writes provider | no | no | **yes, bulk** | no |
 
-The row that settles it: reorg apply is the only provider-mutating path, and it needs approval
-gating and rollback machinery ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md))
-that the read-only paths would only be burdened by.
+The row on writing to the provider settles it. Reorg apply is the only provider-mutating path, and
+it needs approval gating and rollback machinery
+([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)) that the read-only paths would
+only be burdened by.
 
 **Every workload records its runs.** Each run writes a `job_runs` row with its state,
 checkpoint, counters, and last error, timeline events (start, progress at every checkpoint,
@@ -34,16 +35,16 @@ the bound [ADR-0034](./0034-system-status-operation.md) sets.
 
 ## Alternatives considered
 
-One process carrying all four (whether a dedicated worker or the mediator itself) is the
-alternative the table rejects: the four differ on runtime, trigger, reversibility, and whether
-they mutate the provider, and the settling row means any shared packaging burdens three read-only
-paths with the fourth's approval and rollback machinery. No other packaging was seriously weighed.
+One process carrying all four (whether a dedicated worker or the mediator itself) is the alternative
+the table rejects. No case was tabled for it. The four differ on runtime, trigger, reversibility,
+and whether they mutate the provider, and the row on writing to the provider means any shared
+packaging burdens three read-only paths with the fourth's approval and rollback machinery. No other
+packaging was seriously weighed.
 
 ## Consequences
 
-- Cross-workload coordination becomes a real requirement rather than shared process state — which
-  is exactly what the shared rate budget solves
-  ([ADR-0025](./0025-priority-classes-and-leases.md)).
+- Cross-workload coordination becomes a real requirement rather than shared process state, and
+  the shared rate budget ([ADR-0025](./0025-priority-classes-and-leases.md)) is what solves it.
 - Each workload is individually killable, resumable, and observable, matching how the failure
   drills are defined in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
 - The runs, events, and failures tables are the only place the UI reads progress from. A

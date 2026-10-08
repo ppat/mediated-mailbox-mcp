@@ -13,7 +13,7 @@ struct it returned against the struct the test says it should have returned.
 candidate displaces it. [ADR-0043](./0043-no-mocking.md) bans mocking in every form, so a
 candidate's mocking capability is worth nothing and a candidate that ships one carries a cost.
 [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) imposes no coverage target, so coverage
-integration is worth nothing either. What was left to choose on is how a difference between two
+integration is worth nothing either. What is left to choose on is how a difference between two
 returned values is reported.
 
 ### What this choice is not
@@ -176,7 +176,7 @@ here. Its last release and its last commit are both from 2024. It reaches its co
 the chosen candidate, so the trade is a dormant dependency in exchange for thirty lines of code
 whose behaviour this project controls.
 
-**The standard library alone.** Genuinely viable, and correctly the starting position. Its case is
+**The standard library alone.** Viable, and the starting position. Its case is
 no dependency and no decision. It fails on the requirement that orders the field rather than on
 verbosity, which is worth stating because verbosity is the usual complaint. Its comparison returns
 a boolean, so a report of which field differs has to be written by hand for every struct compared,
@@ -194,13 +194,13 @@ told and without stopping the test. That is a different trade rather than a bett
 what it removes is the signal that a type has not been declared comparable. Its last tagged release
 is from 2023, so a consumer does not receive its recent work.
 
-**ginkgo with gomega.** The candidate with a different shape, and its case was taken seriously. A
-suite organised around named behaviours is a reasonable fit for a project whose tests are organised
-around controls. It runs under `go test` without a separate command, which was checked rather than
-assumed. It is rejected on footprint, which is the largest in the field by a wide margin, and
-because the structure it offers is structure [ADR-0040](./0040-pure-core-decisions-as-values.md)
-already supplies, and because its own parallelism is a second mechanism sitting beside the one `go
-test` provides, which complicates sharing one database container.
+**ginkgo with gomega.** The candidate with a different shape. A suite organised around named
+behaviours is a reasonable fit for a project whose tests are organised around controls. It runs
+under `go test` without a separate command, which was checked rather than assumed. It is rejected
+on footprint, which is the largest in the field by a wide margin, and because the structure it
+offers is structure [ADR-0040](./0040-pure-core-decisions-as-values.md) already supplies, and
+because its own parallelism is a second mechanism sitting beside the one `go test` provides, which
+complicates sharing one database container.
 
 **matryer/is.** Minimal by design and honest about it. It prints both values whole with no
 indication of what differs, which fails the requirement that orders the field. Its last commit is

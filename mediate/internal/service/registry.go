@@ -113,9 +113,9 @@ var validName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 //
 // Every operation but the accounts listing names its account in its path, so it takes account_id
 // as a required string argument (ADR-0087). The generation checks of ADR-0087 refuse an operation
-// the surface could not carry or that could express approval, as surfaceProblems states. accounts
-// are the accounts the mediator serves, which Call checks every account against. Both roots run an
-// operation only through Call, so the check is one check for both.
+// the surface could not carry or that could express approval, as surfaceProblems states. The
+// accounts parameter holds the accounts the mediator serves, and Call checks every call's account
+// against them. Both roots run an operation only through Call, so the check is one check for both.
 func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
 	var problems []string
 	seen := map[string]bool{}

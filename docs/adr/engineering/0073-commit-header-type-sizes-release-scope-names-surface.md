@@ -5,7 +5,7 @@
 ## Context
 
 Every pull request squash-merges, and the header that lands on `main` is what release-please
-parses: a single-commit pull request lands its commit header and a multi-commit one lands its
+parses. A single-commit pull request lands its commit header and a multi-commit one lands its
 title. The repository releases one lockstep set of images and the chart at one version
 ([ADR-0049](./0049-image-per-component-lockstep.md)), and every release rebuilds and publishes all
 of them, a documentation-only release included, because the chart names images of that version.
@@ -16,19 +16,18 @@ only hidden types.
 The repository layout is flat, one directory per component ([ADR-0054](./0054-one-repository-flat-layout-naming-convention.md)),
 and every pull request already carries one `component:` label per component its diff touches, as
 [CLAUDE.md's Repository process](../../../CLAUDE.md#repository-process) requires. Whether a workflow
-should produce those labels from the diff waited on this decision, because it turns on whether the
-commit scope carries the component.
+produces those labels from the diff turns on whether the commit scope carries the component.
 
-Three things are true of the machinery before this decision, each established by running it or
-reading its pinned source rather than its documentation. No status check is required on `main`, and
-the pull request title is never linted, so the vocabulary is advisory and a title changed after the
-last push lands unchecked. Renovate's headers close over the enum today but make false claims in
-three places. A major of an internal tool, an action or the runner renders a breaking marker, which
-release-please bumps on and renders as breaking. The test PostgreSQL image's digest renders `fix`,
-which cuts a release for a test substrate. A shared-preset pin major renders `feat` with a
-marker. And commitlint parses `feat():` as no scope.
+Three things are true of the machinery left to its defaults, each established by running it or
+reading its pinned source rather than its documentation. With no status check required on `main`
+and the pull request title never linted, the vocabulary is advisory and a title changed after the
+last push lands unchecked. Renovate's headers from the shared presets close over the enum but make
+false claims in three places. A major of an internal tool, an action or the runner renders a
+breaking marker, which release-please bumps on and renders as breaking. The test PostgreSQL
+image's digest renders `fix`, which cuts a release for a test substrate. A shared-preset pin major
+renders `feat` with a marker. And commitlint parses `feat():` as no scope.
 
-The requirements a vocabulary must meet here:
+The table gives the requirements a vocabulary must meet here.
 
 | Requirement | What it demands | Source |
 | --- | --- | --- |
@@ -71,7 +70,7 @@ The requirements a vocabulary must meet here:
   `commit-taxonomy` job reads the Renovate configuration with its shared presets at the pinned
   tag, extracts every dependency the tracked tree holds for each modelled manager, folds the rules
   for every dependency under every update type, and lints each rendered header with the same
-  commitlint the gates run. It also requires each rendered header to be true: a dependency in a
+  commitlint the gates run. It also requires each rendered header to be true, so a dependency in a
   file that never ships never renders a claim type or a marker, a shipped dependency's major renders
   the marker, and every scope is claimed in this repository's own configuration, so a preset bump
   moves no header. Its self-test re-introduces every defect found while deriving this decision and
@@ -82,48 +81,48 @@ The requirements a vocabulary must meet here:
   scope and the prefix so every member of a group renders one header, and their majors keep the
   marker. Every update type that moves a shipped version renders a claim type, where the presets
   would type some of them hidden, with two exceptions. A pin or a digest pin records the version
-  already in use and stays hidden. A lock file refresh is claimed internal, because it is not reviewable per
-  dependency, and the browser bundle's lock file can move a shipped transitive dependency under
-  that hidden header. A shipped dependency's major keeps the marker as the mechanical
-  read-before-deploying signal, and an internal dependency's major never carries one.
+  already in use and stays hidden. A lock file refresh is claimed internal, because it is not
+  reviewable per dependency, and the browser bundle's lock file can move a shipped transitive
+  dependency under that hidden header. A shipped dependency's major keeps the marker as the
+  mechanical read-before-deploying signal, and an internal dependency's major never carries one.
 - **Three required status contexts.** `commit-messages` over the branch commits, `pr-title` over
   the title on every edit including a title edit after the last push, and `commit-taxonomy`. The
   two local jobs carry no `paths:` filter, no `needs:` and no `if:`, and the reusable
   `commit-messages` job carries only the condition that is true on every pull request event,
   because a skipped job satisfies a required check. One check inside `commit-taxonomy`, whether a
-  named scope's footprint contains any path the diff touches, is advisory with a stated sunset,
-  because nothing else in the operator's repositories yet enforces it.
+  named scope's footprint contains any path the diff touches, is advisory, with its sunset stated
+  in the check's code, because nothing else in the operator's repositories yet enforces it.
 - **The checker is a node script beside a root `package.json` and `bun.lock`** that pin the
   commitlint every gate runs, so one engine judges every string that can land on `main`, and the
   local commit-msg hook pins the same version.
 
 ## Alternatives considered
 
-- **Component scopes.** The tabled alternative, and the reason the labels question waited. One
-  scope per component directory when a diff sits in exactly one, the empty scope when it spans
-  more, and the surface scopes above for everything internal. The case for it: a bold component
-  prefix on the release notes, and a component to search the log by. Rejected. Of the fifty-three
-  open tickets, thirty-four span two to five components, and every code pull request also touches
-  the documents the standing update duty requires, so most feature headers would carry the empty
-  scope and the notes would render inconsistently. The labels already carry the component
-  multi-valued and corrected to the diff, which a single-valued scope cannot. The enum would track
-  the component table as components are added, and two component directories contain a `/`, which
-  commitlint reads as a scope delimiter, so they would need names of their own.
+- **Component scopes.** One scope per component directory when a diff sits in exactly one, the
+  empty scope when it spans more, and the surface scopes above for everything internal. The case
+  for it: a bold component prefix on the release notes, and a component to search the log by.
+  Rejected. Of the fifty-three open tickets, thirty-four span two to five components, and every
+  code pull request also touches the documents the standing update duty requires, so most feature
+  headers would carry the empty scope and the notes would render inconsistently. The labels
+  already carry the component multi-valued and corrected to the diff, which a single-valued scope
+  cannot. The enum would track the component table as components are added, and two component
+  directories contain a `/`, which commitlint reads as a scope delimiter, so they would need names
+  of their own.
 - **What ships read as what an image's Dockerfile copies in.** The case for it: one regular
   expression over the Dockerfiles, and no go command in the check. Not kept, because a Dockerfile
   copies a shared library's directory whole, its tests, violation files, mutation patches and README
   with it, so a claim type over any of those read as shipped, and grouping the libraries into
   families made every such directory larger. The build graph reads what each binary links.
 - **Advisory checks.** One ppat repository keeps its commit lint deliberately unrequired. The case
-  for it: the taxonomy exists to tell authors what to write, not to block a merge. Rejected by the
-  operator: this repository's pull requests are agent-authored and review-ready when presented, and
+  for it: the taxonomy exists to tell authors what to write, not to block a merge. Rejected,
+  because this repository's pull requests are agent-authored and review-ready when presented, and
   a check the merge path does not respect is a suggestion.
 - **No breaking marker on any bot header.** The case for it: a bot cannot read a changelog, so
-  its marker asserts nothing. Rejected by the operator. On a shipped dependency the marker is the
+  its marker asserts nothing. Rejected. On a shipped dependency the marker is the
   mechanical signal that a human reads before deploying, and at 0.x it cuts a minor rather than a
   major. On an internal surface it is stripped, because nothing there reaches a consumer.
 - **A Go checker under `go tool`.** The repository's own tooling programs run that way. The case
-  for it: one convention for every check. Rejected by the operator. The checker's judge is
+  for it: one convention for every check. Rejected. The checker's judge is
   commitlint, a node program, and a Go program would reimplement the Renovate resolver while still
   shelling out to it, whereas a node script beside the manifest that pins commitlint runs the same
   engine as the gates.

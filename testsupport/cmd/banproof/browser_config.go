@@ -31,9 +31,10 @@ var banPlugins = []string{"react", "typescript"}
 // configuration to the files below it, so only the one at the browser layer's root may exist.
 var oxlintConfigName = regexp.MustCompile(`^(\.oxlintrc\.jsonc?|oxlint\.config\.[cm]?[jt]s)$`)
 
-// browserConfigProblems refuses every configuration of the browser tools that can switch off a ban rule,
-// and allows configuration touching only ordinary rules. Measured on oxlint: a category switched off does
-// not reach a rule configured by name, and an override's plugins only add plugins, so neither is refused.
+// browserConfigProblems refuses every configuration of the browser tools that can switch off a ban
+// rule, and allows configuration touching only ordinary rules. Measured on oxlint, a category
+// switched off does not reach a rule configured by name, and an override's plugins only add
+// plugins, so neither is refused.
 func browserConfigProblems(dir string) ([]string, error) {
 	var problems []string
 	refuse := func(file, format string, args ...any) {

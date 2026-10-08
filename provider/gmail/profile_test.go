@@ -50,8 +50,8 @@ func TestCostDeclaresEachCallsWorstCase(t *testing.T) {
 
 // A call whose size depends on what it returns is sized by the adapter to fit one second's worth at
 // the hard cap, so a listing is never refused. A call whose size the caller sets fits at its largest
-// size and not one past it, so the caller splits its work there. At today's prices a metadata fetch
-// holds three identifiers and a mutation three ops (ADR-0023).
+// size and not one past it, so the caller splits its work there. At the prices the profile
+// declares, a metadata fetch holds three identifiers and a mutation three ops (ADR-0023).
 func TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds(t *testing.T) {
 	cost := func(op mail.Operation, messages int) float64 {
 		return gmail.Profile{}.Cost(mail.ProviderOp{Operation: op, Messages: messages}).Weight

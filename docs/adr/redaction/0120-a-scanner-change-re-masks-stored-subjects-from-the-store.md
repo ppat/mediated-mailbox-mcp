@@ -27,14 +27,14 @@ masks a subject as it adds the message and leaves a message it already holds as 
 masked ([ADR-0093](./0093-composite-scan-gate.md)), so a skip decided before a better scanner masked
 the subject was decided without a signal the message now carries.
 
-[ADR-0096](./0096-a-scanner-change-reopens-backfill.md) re-masked every stale subject by enumerating
+[ADR-0096](./0096-a-scanner-change-reopens-backfill.md) re-masks every stale subject by enumerating
 the whole mailbox again, on the premise that a subject cannot be masked again from what is stored.
-That premise holds only for the masked minority. Each change of scanner then cost about a day of
-over-redaction, about twelve hours of it the re-enumeration, and tuning the scanner against real
-codes is expected right after the first production point, so the cost recurs. On a seeded corpus
-where 1% of subjects are masked, re-masking the other 99% from the store took about 0.3 s of scanner
-time and a 3.9 s update, and fetching the masked ones again by identifier took about 7 minutes, and
-about 34 at 5%.
+That premise holds only for the masked minority. Under it each change of scanner costs about a day
+of over-redaction, about twelve hours of it the re-enumeration, and the scanner is tuned against
+real codes more than once, so the cost recurs. Measured for this decision on a seeded corpus where
+1% of subjects are masked, re-masking the other 99% from the store took about 0.3 s of scanner
+time and a 3.9 s update, and fetching the masked ones again by identifier took about 7 minutes,
+and about 34 at 5%.
 
 A new version ships between production points with no manual step, so the read path must re-scan on
 a change without one ([ROADMAP.md](../../../ROADMAP.md)). The delisting transition met the same
@@ -56,7 +56,7 @@ its start and for a newly listed account
 ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). The step,
 before the first pass, compares the index with the scanner the process runs with, in one
 transaction. The scanner changes only across a restart, so a step per process start sees every
-change of scanner, as one per run did when every run was a process start.
+change of scanner.
 
 - A scanned message whose verdict carries another pair returns to pending, its verdict cleared, the
   content flags, content rules, scan time, version and revision. The prior hits of every sender with
@@ -121,8 +121,8 @@ starts from the first message waiting for a scan.
 comparisons above, so one step after a change of the scanner's version or section does the work,
 and a step with nothing stale does none. The worker that runs backfill makes the run-start step at
 its own start ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)),
-and a change of the scanner's version ships in a release and a change of its section is a configuration
-change, either of which restarts the worker
+and a change of the scanner's version ships in a release and a change of its section is a
+configuration change, either of which restarts the worker
 ([ADR-0052](../engineering/0052-kubernetes-deployment-helm-chart.md)).
 
 ## Alternatives considered
@@ -191,8 +191,8 @@ change, either of which restarts the worker
   subjects are masked again at the run's start, the masked ones by fetches of their own, and the
   second pass runs again. From the run that sees the change until the second pass scans them again,
   the bodies of the messages returned to pending are denied as pending their content scan, which is
-  over-redaction for that time. That time no longer includes a re-enumeration of the mailbox.
-- One window remains open, narrower than before. A message the gate skipped, whose subject was stored
+  over-redaction for that time. That time includes no re-enumeration of the mailbox.
+- One window remains open. A message the gate skipped, whose subject was stored
   masked and whose subject the new scanner would mask differently, keeps its skip, and its body stays
   released as the skip allows, until the first pass has fetched and masked the subject again and
   either the second pass has started or a later run-start step has decided the skip again

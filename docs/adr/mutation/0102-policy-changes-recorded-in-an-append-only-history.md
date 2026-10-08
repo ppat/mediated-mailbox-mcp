@@ -9,8 +9,8 @@
 The policy lives as rows in `policy_rules`, and every change to it is made through the UI
 ([ADR-0004](../classification/0004-sender-list-decides.md),
 [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)). Each row records who created it and
-when, and nothing else of its past. Once the UI adds, edits and removes rules, an edit overwrites
-its row and a removal deletes it.
+when, and nothing else of its past. An edit through the UI overwrites the rule's row and a
+removal deletes it.
 
 A removal, or an edit that drops a domain, lifts a restriction. The sender's messages go back to
 pending scan through the delisting transition
@@ -36,22 +36,21 @@ past window.
 
 ## Alternatives considered
 
-These were put to the operator with the cost of each, and the operator chose the full history.
-
 - **Each rule records only its last edit, its time and identity.** For it, two columns on
   `policy_rules` and no new table. Against it, a removed rule leaves no trace, and the removal is
   the change that lifts a restriction.
-- **Nothing beyond the created time and creator.** For it, today's schema. Against it, edits and
-  removals leave no trace, so the question above has no answer for any window.
+- **Nothing beyond the created time and creator.** For it, no addition to the schema. Against it,
+  edits and removals leave no trace, so the question above has no answer for any window.
 
 ## Consequences
 
-- The UI's grant gains insert on `policy_changes`, and only insert
-  ([ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)).
+- The UI's grant holds insert on `policy_changes`, and only insert, as
+  [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md) states it.
 - Confirming a candidate inserts its rule and its history row in the one transaction that sets the
   candidate's status.
-- Importing a policy file writes one history row for each rule the import adds, edits or lifts, in
-  the import's transaction, however the import is designed.
+- Importing a policy file
+  ([ADR-0110](./0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md)) writes
+  one history row for each rule the import adds, edits or lifts, in the import's transaction.
 - The history grows with every change, and like the audit log nothing in the running system trims
   it.
 - Assumptions about other components. Only the UI writes `policy_rules`, so only the UI writes the

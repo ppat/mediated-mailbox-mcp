@@ -344,9 +344,9 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 	})
 }
 
-// commitOutcome records what the run did with one message: the gate's decision when it decided, and
-// the verdict or skip state it leads to. A message the gate could not decide, or whose body was not
-// scanned, stays waiting.
+// commitOutcome records what the run did with one message, which is the gate's decision when it
+// decided, and the verdict or skip state it leads to. A message the gate could not decide, or whose
+// body was not scanned, stays waiting.
 func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, account string, o index.Outcome) error {
 	if !o.Verdict.Decided() {
 		return nil

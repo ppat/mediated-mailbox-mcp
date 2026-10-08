@@ -14,7 +14,7 @@ That shape removes most of what a migration tool sells. Nothing generates a migr
 there are no down migrations to manage, there is no expand-and-contract choreography because all
 components version together, and there is no branching or squashing story to need because the chain
 is short and the index it builds is rebuildable by re-backfill
-([ADR-0048](./0048-forward-only-migrations.md)). What remained to choose on is which tool imposes
+([ADR-0048](./0048-forward-only-migrations.md)). What is left to choose on is which tool imposes
 least on a project that wants almost nothing from it.
 
 ### The requirements
@@ -38,11 +38,12 @@ reasons, one on what its distributed binary carries and the other on the mode it
 used in. So this record is decided by a stated preference rather than by a derivation, and the
 reading below says which preference and on what.
 
-This is a close decision and the Decision says so rather than dressing it up.
-
 ## Decision
 
 - **`goose` applies the migration chain, invoked as a command rather than linked as a library.**
+  It is preferred on the two grounds the reading under Alternatives sets out, its pairing with the
+  generator documented by both projects and a footprint gotcha that building it with exclusion
+  tags removes.
 - **`tern` and `dbmate` are level with it on the grid below**, each carrying the same number of
   cells below the ceiling and trading which ones, and either would be a defensible choice.
   `golang-migrate` is one cell further back.
@@ -134,8 +135,8 @@ The two ruled out are ruled out for different reasons. One links a second databa
 step that will never use it, which is dependency surface bought for nothing. The other is ruled out
 first on what it does, because generating migrations by diffing a declarative schema is the shape
 [ADR-0048](./0048-forward-only-migrations.md) rejects by name, so this project would live in its
-second-class mode. What it carries and where its licensing is going are the further reasons rather
-than the first.
+second-class mode. What it carries and where its licensing is going are the further reasons
+rather than the first.
 
 The preference is stated rather than derived because the choice is reversible by changing a
 command. Migration files are plain SQL under every candidate, and the generator reads the layout of
@@ -164,7 +165,8 @@ another.
   Rejected on two mechanisms rather than on preference. Its headline workflow generates migrations
   by diffing a declarative schema, which is the shape [ADR-0048](./0048-forward-only-migrations.md)
   rejects by name, so choosing it means living in its second-class mode, whose compatibility with
-  hand-written-only files was never confirmed. And that headline mode is moving behind a login.
+  hand-written-only files was never confirmed. And its headline mode is moving behind a login,
+  whose diffing commands already require one where they touch commercial schema features.
 - **`sql-migrate`.** The case for it is a long-standing, simple runner. Rejected because its
   distributed binary unconditionally links a C SQLite build into a system using only PostgreSQL,
   which is dependency surface bought for nothing.

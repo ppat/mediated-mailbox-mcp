@@ -41,13 +41,13 @@ import (
 //   - (*Queries).WithTx is reported everywhere, since it rebinds queries to any transaction.
 //   - A subsection's New used other than by calling it, as a value, is reported.
 //
-// The statements that are not account-scoped run outside the transaction helper and are exempt: the
-// accounts listing, the read of oauth_clients (ADR-0091), delta sync's re-seal of a client secret
-// (ADR-0092), and the UI's OAuth client setup, listing each client's identity and adding, replacing and
-// removing a client, which belong to no account (ADR-0084, ADR-0106). Each is exempt only when written
-// as one chained call, such as accounts.New(h).Accounts(ctx) or clientsetup.New(h).AddClient(ctx, arg),
-// with any handle h. Any other use of those packages' New follows the rules above, so a statement later
-// added to any of them is not exempt.
+// The statements that are not account-scoped run outside the transaction helper and are exempt.
+// They are the accounts listing, the read of oauth_clients (ADR-0091), delta sync's re-seal of a
+// client secret (ADR-0092), and the UI's OAuth client setup, listing each client's identity and
+// adding, replacing and removing a client, which belong to no account (ADR-0084, ADR-0106). Each is
+// exempt only when written as one chained call, such as accounts.New(h).Accounts(ctx) or
+// clientsetup.New(h).AddClient(ctx, arg), with any handle h. Any other use of those packages' New
+// follows the rules above, so a statement later added to any of them is not exempt.
 //
 // The check is lexical and has one known gap. A Queries value built correctly inside the literal
 // can escape it, stored in a field, sent on a channel or returned, and be used after db/tx.Run has

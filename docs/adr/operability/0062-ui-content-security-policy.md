@@ -9,8 +9,7 @@ The UI renders text an adversary wrote, the subjects, display names, labels, and
 are masked at rest and still hostile. [ADR-0056](./0056-ui-organized-around-the-operators-work.md)
 rules that such text renders as text and never as markup. A content security policy is the
 second line behind that rule. If a rendering path ever interprets markup, the policy stops the
-markup from running script or reaching another origin. The operator delegated the UI's design
-to the designing session on 2026-09-09, and this is the policy that session chose.
+markup from running script or reaching another origin.
 
 ## Decision
 

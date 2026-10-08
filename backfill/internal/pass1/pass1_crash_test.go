@@ -13,8 +13,9 @@ import (
 )
 
 // drawSetup draws a mailbox and a page size. Each message is drawn without seeing the ones before it,
-// by rapid's collection generator, so rapid reduces a mailbox by dropping messages (ADR-0069, rows 10
-// and 11 of its ordinary-path table).
+// by rapid's collection generator, so rapid reduces a mailbox by dropping messages. ADR-0069's
+// rules require both, a generator of a sensitivity-carrying value drawing each field independently
+// and a list built by a collection generator.
 func drawSetup(t *rapid.T) setup {
 	message := rapid.Custom(func(t *rapid.T) drawn {
 		return drawn{

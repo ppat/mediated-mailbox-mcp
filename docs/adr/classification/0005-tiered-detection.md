@@ -7,8 +7,8 @@
 ## Context
 
 No list can enumerate MFA formats, so content-based detection must be heuristic. But full machine
-learning is also the wrong first tool: one-time-code detection is a high-precision *pattern*
-problem, and patterns handle the bulk at negligible cost.
+learning is also the wrong first tool, because one-time-code detection is a high-precision
+*pattern* problem, and patterns handle the bulk at negligible cost.
 
 ## Decision
 
@@ -18,14 +18,14 @@ The scanner reads a body as the Markdown the sanitizing converter produces
 the scanner calls nothing outside itself.
 
 **Tier 1 — structural patterns (~85–90% of cases, microseconds).** One-time-code mail is
-structurally distinctive, not merely lexically:
+structurally distinctive, not merely lexically, and Tier 1 matches these shapes.
 
 - A digit run of 4–8 within a token window of a trigger word (`code`, `OTP`, `verification`,
   `PIN`, `passcode`, `2FA`, `one-time`, `security code`, plus localized forms). A run may be split
   into groups of at least 3 digits by a space, a hyphen, or the no-break, narrow no-break and thin
   spaces mail uses to keep a code from wrapping.
-- A short line whose entire content is a 4–8 digit run — extremely high precision; almost nothing
-  else formats that way.
+- A short line whose entire content is a 4–8 digit run, which has extremely high precision, since
+  almost nothing else formats that way.
 - A digit run in a first- or second-level heading, or as a table cell's whole content, the visual
   one-time-code idiom of HTML mail as it reads after conversion to Markdown. Letter-spacing styling
   does not survive the conversion.
@@ -39,17 +39,17 @@ character-class mix, length, distance to the nearest trigger, and structural pos
 heading, bold), with the threshold tuned for recall. Catches alphanumeric and unusual formats Tier
 1's fixed patterns miss.
 
-**Tier 3 — a small local model**, in scope but deferred:
-[ADR-0006](./0006-tier-3-local-model-deferred.md).
+**Tier 3 — a small local model** is in scope but deferred
+([ADR-0006](./0006-tier-3-local-model-deferred.md)).
 
-Implementation constraints that keep the tiers fast:
+These implementation constraints keep the tiers fast.
 
 - **Set-matching, not sequential alternation** — the keyword layer is an Aho-Corasick automaton
-  compiled once at startup; sequential regex alternation over dozens of patterns is the classic way
+  compiled once at startup. Sequential regex alternation over dozens of patterns is the classic way
   this gets slow. The automaton is written in the scanner's own pure core and built once by the
   scanner's constructor.
 - **Cost-ordered evaluation** — within detection, Tier 1 before Tier 2 before Tier 3, each stage
-  eliminating most of what reaches it, so the expensive tiers should be rare; the full
+  eliminating most of what reaches it, so the expensive tiers should be rare. The full
   predicate-to-tier chain lives with the scan gate
   ([ADR-0093](../redaction/0093-composite-scan-gate.md)).
 - **Scanning stays linear in a body's length**, so a large body cannot stall the batch path.
@@ -100,40 +100,39 @@ starting value, retuned against the real mailbox.
 [supabase-templates]: https://supabase.com/docs/guides/auth/auth-email-templates
 [twofhey-parser]: https://github.com/SoFriendly/2fhey/blob/76a3c02df52ea98bba5263233ec337823310df07/TwoFHey/OTPParser/OTPParser.swift
 
-**Explicitly not: an LLM in the scanning path.** Slow, expensive, non-deterministic, and —
-decisively — it means sending body content to an inference endpoint, which is the exact exposure
-this system exists to prevent. LLM help writing *rules* is fine: done offline on a curated sample,
-shipping the rules, never the model.
+**Explicitly not: an LLM in the scanning path.** It is slow, expensive and non-deterministic, and,
+decisively, it means sending body content to an inference endpoint, which is the exact exposure
+this system exists to prevent. LLM help writing *rules* is fine, done offline on a curated sample,
+shipping the rules and never the model.
 
 ## Alternatives considered
 
-- **A single ML classifier for all content detection.** Rejected: it spends the hard cases' tool
-  on the easy cases, adds nondeterminism where patterns are near-perfect, and requires labeled data
-  that does not exist on day one.
-- **Patterns only, no scoring tier.** Rejected: fixed patterns miss alphanumeric and novel formats;
-  the scoring tier is what covers the tail without a model.
-- **An LLM scanner (local or hosted).** Rejected as above; the hosted variant is
-  self-contradictory for this system, and even a local LLM is slow and non-deterministic where the
-  tiers are fast and inspectable.
+- **A single ML classifier for all content detection.** No case was tabled for it. Rejected: it
+  spends the hard cases' tool on the easy cases, adds nondeterminism where patterns are
+  near-perfect, and requires labeled data that does not exist on day one.
+- **Patterns only, no scoring tier.** No case was tabled for it. Rejected: fixed patterns miss
+  alphanumeric and novel formats. The scoring tier is what covers the tail without a model.
+- **An LLM scanner (local or hosted).** No case was tabled for it. Rejected as above. The hosted
+  variant is self-contradictory for this system, and even a local LLM is slow and non-deterministic
+  where the tiers are fast and inspectable.
 - **Scanning the HTML, parsed by the shell or tokenized in the core.** The case for the first is
   that an HTML parser in the shell hands the core a plain document model and keeps the
   letter-spacing idiom visible. The case for the second is that it needs no shell step. A tokenizer
-  written for the scanner would be a second HTML parser to maintain. Rejected by the operator on
-  2026-09-23 in favour of the Markdown the converter already produces.
-- **An Aho-Corasick library.** The case for it is that the automaton is already written. One
-  candidate returns which words matched and not where, which the token window needs, and the other
-  is some three thousand lines of outside code inside the safeguard core, to be checked against the
-  conditions for a pure core's imports
-  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)) on every version. Rejected by
-  the operator on 2026-09-23.
+  written for the scanner would be a second HTML parser to maintain. Rejected in favour of the
+  Markdown the converter already produces.
+- **An Aho-Corasick library.** The case for it is that the automaton is already written. Rejected,
+  because one candidate returns which words matched and not where, which the token window needs,
+  and the other is some three thousand lines of outside code inside the safeguard core, to be
+  checked against the conditions for a pure core's imports
+  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)) on every version.
 - **The vocabulary and tuning as code.** The case for it is that every improvement is a reviewed
-  change with a version bump. Rejected by the operator on 2026-09-23. Configuration lets a
-  deployment add languages and retune without a release, and a configuration revision stamped on
-  every verdict keeps re-scanning tractable.
+  change with a version bump. Rejected, because configuration lets a deployment add languages and
+  retune without a release, and a configuration revision stamped on every verdict keeps re-scanning
+  tractable.
 
 ## Consequences
 
-- Detection quality is inspectable per tier: every hit records which tier and rule fired, so
+- Detection quality is inspectable per tier. Every hit records which tier and rule fired, so
   precision problems localize to a rule rather than a model.
 - The tier boundary gives Tier 3 a natural insertion point later without touching Tiers 1–2.
 - Patterns are code, so improving them is a reviewed change with a version bump. The vocabulary

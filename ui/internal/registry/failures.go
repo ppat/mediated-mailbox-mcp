@@ -128,8 +128,7 @@ func failureDetailType() schema.Type {
 }
 
 // failures is a run's item failures, the run screen's ladder, read under the required parent filter
-// run (docs/UI.md section 8.4). It is the first dataset carrying message-derived rows and the first to
-// declare a provenance query.
+// run (docs/UI.md section 8.4). It carries message-derived rows and declares a provenance query.
 func failures() Dataset {
 	return Dataset{
 		Descriptor: lens.Descriptor{

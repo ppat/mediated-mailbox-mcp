@@ -67,13 +67,15 @@ design defines is small. [DESIGN.md](../../../DESIGN.md#glossary) makes sender c
 `restricted` and content flags an MFA code or a login link, and
 [ADR-0093](../redaction/0093-composite-scan-gate.md) gives four scan states. That is 32
 combinations, of which exactly 2 release a body, a normal sender with no flags that is either
-scanned or skipped by the scan gate. Thirteen of the 32 can occur. ADR-0093's gate sends a
-restricted sender's unscanned mail to `SKIPPED_RESTRICTED`, content flags come only from a scan, and
+scanned or skipped by the scan gate. Thirteen of the 32 can occur.
+[ADR-0093](../redaction/0093-composite-scan-gate.md)'s gate sends a restricted sender's unscanned
+mail to `SKIPPED_RESTRICTED`, content flags come only from a scan, and
 [ADR-0037](../redaction/0037-delisting-transition.md) returns a delisted sender's messages to
 pending scan, so a normal sender's mail is never left at `SKIPPED_RESTRICTED`. Those rules leave
 eight combinations. [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) applies a newly listed
 sender on the next call, so a restricted sender with mail already scanned or already skipped by the
-gate also occurs. That adds five, and it is exactly the case ADR-0002 exists for.
+gate also occurs. That adds five, and it is exactly the case
+[ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) exists for.
 
 A **boundary combination** below means one where exactly one of sender class, content flags and scan
 state denies release, so a single change would release the body. Those are where a leak would hide.
@@ -111,7 +113,8 @@ because every candidate that reduces at all meets it.
 Two requirements ordered the field. **Values built through exported constructors**, because a
 property that silently builds a zero value checks nothing while looking green, and does it on the
 types this system most needs checked. And **a failing case kept on the day it is found**, because
-ADR-0055 requires it and a candidate lacking it is deciding against that record.
+[ADR-0055](./0055-property-based-safety-invariants.md) requires it and a candidate lacking it is
+deciding against that record.
 
 Operation sequences with a crash step, and a kept failing case that survives a generator edit, came
 next.
@@ -122,9 +125,10 @@ it makes the whole worse**. So the burden of proof sits on writing it by hand.
 Footprint broke ties. Reporting what the generator produced was graded and never allowed to rule a
 candidate out.
 
-Three things were deliberately not graded. Fine-grained crash enumeration, because ADR-0045 decides
-against it. Integration with coverage percentages, because
-[ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) sets no coverage target. And **reducing a
+Three things were deliberately not graded. Fine-grained crash enumeration, because
+[ADR-0045](./0045-crash-injection-testing.md) decides against it. Integration with coverage
+percentages, because [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) sets no coverage
+target. And **reducing a
 failing case to a small one**, because every candidate that reduces at all meets it, so it separates
 nothing. The one candidate it would have failed, `testing/quick`, has no reduction at all and fails
 elsewhere too.
@@ -209,11 +213,12 @@ rows 2, 10, 11, 12 and 14.
 
 **The gating run generates 200 cases per property, with the seed fixed at 1, and the scheduled run
 10,000.** The values are set in the workflow files that run each, so they change with the code.
-ADR-0055 requires a fixed count and does not fix one. At 200 an independent-draw generator over a
-model of the design's three axes reached both releasable combinations and all the boundary
-combinations in every one of twelve seeds tried, with the boundary set needing a median of 103 cases
-and at worst 171. At 100 that median makes coverage close to a coin flip. The scheduled count is
-fifty times the gating count, because a demonstration relying on a rarely firing check runs there.
+[ADR-0055](./0055-property-based-safety-invariants.md) requires a fixed count and does not fix one.
+At 200 an independent-draw generator over a model of the design's three axes reached both
+releasable combinations and all the boundary combinations in every one of twelve seeds tried, with
+the boundary set needing a median of 103 cases and at worst 171. At 100 that median makes
+coverage close to a coin flip. The scheduled count is fifty times the gating count, because a
+demonstration relying on a rarely firing check runs there.
 
 **The coverage holds for the real generators.** The generator for a message's sensitivity and body
 draws each field independently and reports its mix. Across thirty seeds at 100 and at 200 cases it
@@ -226,8 +231,8 @@ whether the kind is reached at all, not as its expected share.
 
 ### What the backfill target settled
 
-Three questions were left open until the harness was first built, for backfill resume. Each is
-settled below with the option not taken.
+Three questions about the harness are settled by its backfill resume target. Each is stated below
+with the option not taken.
 
 **The backfill target's generators use the collection-generator shape, and the generator report is
 read.** The generated mailbox is a list built by `rapid.SliceOfN`, each message drawn without seeing

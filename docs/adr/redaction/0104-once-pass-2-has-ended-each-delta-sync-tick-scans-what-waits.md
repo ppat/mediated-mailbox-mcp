@@ -15,7 +15,7 @@ again only after a change of scanner or of the gate's thresholds
 ([ADR-0096](./0096-a-scanner-change-reopens-backfill.md),
 [ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)). A growing pending backlog is
 a failure in its own right, since pending denies the body
-([ADR-0093](./0093-composite-scan-gate.md)). No record said how a message that goes back to pending
+([ADR-0093](./0093-composite-scan-gate.md)). The question is how a message that goes back to pending
 after the second pass has ended is reached.
 
 The gate reads sender statistics, so it cannot run on a cold index

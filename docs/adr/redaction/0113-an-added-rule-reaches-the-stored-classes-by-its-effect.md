@@ -15,11 +15,11 @@ read. The UI counts, for each rule, the senders it matches whose stored class re
 "index updated, {k} of {n}" ([docs/UI.md section 8.7](../../UI.md#87-policy)), and the scan gate
 skips a sender the policy restricts without changing its stored class.
 
-A removed rule reaches the stored classes through the delisting transition, by its effect: every
+A removed rule reaches the stored classes through the delisting transition, by its effect. Every
 workload that scans compares the domains the index stores as restricted with the policy it loaded
 and returns those the policy no longer restricts to a normal class and to pending scan
-([ADR-0037](./0037-delisting-transition.md)). Nothing did the same for an added rule. The UI's
-policy management is the first work that adds rules to a filled index, so it decides.
+([ADR-0037](./0037-delisting-transition.md)). An added rule needs a path of its own to the stored
+classes, since rules are added to an index already filled.
 
 ## Decision
 

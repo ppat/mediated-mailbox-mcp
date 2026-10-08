@@ -27,8 +27,8 @@ immutable snapshot that a process reloads and that a unit of work takes once
   ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   The shared library
   [`executioncontext/accountload/`](../../../executioncontext/README.md#the-account-snapshot-accountload)
-  builds the snapshot. It loads the snapshot at start. A process that runs until stopped reloads it on a schedule its
-  configuration sets
+  builds the snapshot. It loads the snapshot at start. A process that runs until stopped reloads it
+  on a schedule its configuration sets
   ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)), as the
   mediator does, and as the worker does with one loader for each job kind that calls a provider,
   under that job kind's own role

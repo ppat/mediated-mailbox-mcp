@@ -7,10 +7,10 @@
 
 [ADR-0051](./0051-environment-contract.md) settles that every deployable emits Prometheus-format
 metrics on a plain HTTP endpoint, and [ADR-0042](./0042-implementation-stack.md) leaves each major
-library to its own decision. What is left is how the metrics are produced in Go. The first
-consumers are the rate limiter's gauges and the count of provider request cost that
+library to its own decision. What is left is how the metrics are produced in Go. Among the
+metrics are the rate limiter's gauges and the count of provider request cost that
 [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md)'s alerting rules read, and
-every later deployable emits through the same choice.
+every deployable emits through the same choice.
 
 The choice looks like a test-tooling question and is not one. The alerting rules are tested with
 Prometheus's rule unit tests, which feed rules synthetic series and never read an endpoint, so no
@@ -47,7 +47,7 @@ carries an advisory on the code path used here.
 - **Each process builds one registry with `prometheus.NewRegistry()`** and passes it to whatever
   registers metrics. The handler serves that registry through `promhttp.HandlerFor`.
 
-What the library's ordinary path does that this project forbids:
+The table gives what the library's ordinary path does that this project forbids.
 
 | Construction | Harm | What stops it |
 | --- | --- | --- |
@@ -64,7 +64,7 @@ What the library's ordinary path does that this project forbids:
 | Read back in memory | `Registry.Gather` and the library's `testutil` package, with no listener |
 | A small dependency footprint | Accepted at the size measured below, with the reason under Alternatives |
 
-What an implementer would otherwise pay to discover:
+What an implementer would otherwise pay to discover is the following.
 
 - The encoder lives in `github.com/prometheus/common/expfmt`, not in client_golang.
 - The module graph reports about 35 modules, but a built program compiles 62 packages from 8
@@ -137,3 +137,6 @@ survive any exit.
   any exit unchanged.
 - What would re-argue it is a need to export somewhere other than a Prometheus scrape, which would
   bring the OpenTelemetry exporter back, still on top of client_golang.
+- Assumptions about other components: the platform scrapes each process's metrics endpoint, and
+  [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md)'s alerting rules match on
+  the metric names and labels the code declares.

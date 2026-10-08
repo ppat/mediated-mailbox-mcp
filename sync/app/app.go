@@ -76,11 +76,11 @@ type Configuration struct {
 	Scanner scan.Config `yaml:"scanner"`
 }
 
-// defaults are delta sync's defaults. The interval is ADR-0018's five minutes, the first window seven
-// days, and a tick decides up to two hundred waiting messages, the top of ADR-0018's steady-state
-// tick. The user is delta sync's own runtime role (ADR-0075), and the TLS mode is the one that fails
-// closed. The key files have no default, since a default path assumes the environment. The scanner's
-// vocabulary and tuning are the ones the application ships.
+// defaults are delta sync's defaults. The interval is ADR-0018's, the first window is ADR-0105's,
+// and the bound on the waiting messages a tick decides is the top of ADR-0018's steady-state tick.
+// The user is delta sync's own runtime role (ADR-0075), and the TLS mode is the one that fails
+// closed. The key files have no default, since a default path assumes the environment. The
+// scanner's vocabulary and tuning are the ones the application ships.
 func defaults() Configuration {
 	return Configuration{
 		ProbeListen:      ":8080",
@@ -163,11 +163,11 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	return errors.Join(s.every(ctx, c.SyncInterval), stopProbes())
 }
 
-// assemble builds everything delta sync serves: the process's registry, the Gmail adapter's series
-// on it, the syncer with its tick, key-scan, rate-limit and reload-failure series on it, and the
-// health probe and the metrics endpoint serving it on ln. Each account's adapter is built over
-// client. run and the test of the scrape both call it, so no registry is handed from one part of
-// the composition root to another, and every series delta sync emits is the one the metrics
+// assemble builds everything delta sync serves, which is the process's registry, the Gmail
+// adapter's series on it, the syncer with its tick, key-scan, rate-limit and reload-failure series
+// on it, and the health probe and the metrics endpoint serving it on ln. Each account's adapter is
+// built over client. run and the test of the scrape both call it, so no registry is handed from one
+// part of the composition root to another, and every series delta sync emits is the one the metrics
 // endpoint serves (ADR-0077, ADR-0103). It returns the syncer and the function that stops the
 // probes.
 func assemble(ln net.Listener, pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, c Configuration, client *http.Client, logger *slog.Logger) (*syncer, func() error, error) {

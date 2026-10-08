@@ -33,9 +33,9 @@ var nolintPattern = regexp.MustCompile(`^nolint( |:|$)`)
 
 // looseDirective matches a comment that reads as a suppression directive in any spelling, after leading
 // slashes, asterisks and blanks are trimmed. It covers golangci-lint's directive in spellings the tool
-// does not honour today, such as another letter case, a block comment or a tab after the slashes, and
-// the in-code directives of the linters standing in for controls, which are exhaustive's //exhaustive:
-// comments and forbidigo's //permit: comment. Refusing what a tool does not honour today fails closed, so
+// does not honour, such as another letter case, a block comment or a tab after the slashes, and the
+// in-code directives of the linters standing in for controls, which are exhaustive's //exhaustive:
+// comments and forbidigo's //permit: comment. Refusing what a tool does not honour fails closed, so
 // a later release that starts honouring a spelling cannot silence a control.
 var looseDirective = regexp.MustCompile(`(?i)^(nolint\b|exhaustive:|permit:)`)
 

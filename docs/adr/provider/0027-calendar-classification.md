@@ -6,18 +6,19 @@
 
 ## Context
 
-Calendar joins mail behind the same mediation layer, with the same invariant: structure always
-visible, sensitive content never released. But calendar sensitivity semantics are not mail
-semantics — a meeting's sensitivity is a property of the room, not of who sent the invite.
+Calendar joins mail behind the same mediation layer, with the same invariant, that structure is
+always visible and sensitive content is never released. But calendar sensitivity semantics are not
+mail semantics, because a meeting's sensitivity is a property of the room, not of who sent the
+invite.
 
 ## Decision
 
-Same layering, calendar-specific classification:
+The layering is the same as mail's, and the classification is calendar-specific.
 
 - **Always visible:** id, title, start/end, recurrence, location, attendee addresses and response
   status, organizer, calendar name, busy/free, visibility class. Titles follow the same rule as
-  mail subjects — visible, because "Attorney call" is exactly the organizational signal the agent
-  needs.
+  mail subjects and stay visible, because "Attorney call" is exactly the organizational signal the
+  agent needs.
 - **Gated:** description body, attachments, conferencing join links, private notes.
 
 | Signal | Treatment |
@@ -27,28 +28,29 @@ Same layering, calendar-specific classification:
 | `visibility: private` on the event | Restricted regardless of domain |
 | Description contains a tokenized join link | Content-flagged — the link is a credential |
 
-The asymmetry with mail is intentional: mail classifies on *sender*; calendar classifies on *any
-participant*, because sensitivity attaches to the meeting, not the inviter.
+The asymmetry with mail is intentional. Mail classifies on *sender*, and calendar classifies on
+*any participant*, because sensitivity attaches to the meeting, not the inviter.
 
-Mutation rights mirror the mail matrix ([ADR-0019](../mutation/0019-asymmetric-mutation.md)):
-restricted events may be recategorized or moved between calendars, never deleted — and never
+Mutation rights mirror the mail matrix ([ADR-0019](../mutation/0019-asymmetric-mutation.md)).
+Restricted events may be recategorized or moved between calendars, never deleted, and never
 declined on the operator's behalf.
 
 **Providers:** Google Calendar API (separate scope, same OAuth grant as mail) and **CalDAV** for
-Fastmail — not JMAP, because JMAP's calendar extension is not broadly deployed there. That makes
-three calendar adapter implementations to plan for, and CalDAV's sync semantics (`sync-token`,
-RFC 6578) differ enough from the mail feeds to warrant its own adapter rather than a shim.
+Fastmail, not JMAP, because JMAP's calendar extension is not broadly deployed there. CalDAV's sync
+semantics (`sync-token`, RFC 6578) differ enough from the mail feeds to warrant its own adapter
+rather than a shim.
 
 ## Alternatives considered
 
-- **Classify on organizer only, like mail's sender.** Rejected: an unrestricted organizer inviting
-  the operator's attorney produces a meeting exactly as sensitive as one the attorney organized.
-  Participant-set classification captures what the event actually exposes.
-- **Gate titles like bodies.** Rejected for the same reason mail subjects stay visible
-  ([ADR-0001](../redaction/0001-redaction-matrix.md)): the title is the organizational handle, and
-  hiding it turns restricted events into unidentifiable blobs.
-- **Fastmail calendar via JMAP for symmetry with mail.** Rejected on deployment reality; symmetry
-  is not worth building against an extension the provider has not shipped broadly.
+- **Classify on organizer only, like mail's sender.** No case was tabled for it. Rejected: an
+  unrestricted organizer inviting the operator's attorney produces a meeting exactly as sensitive as
+  one the attorney organized. Participant-set classification captures what the event actually
+  exposes.
+- **Gate titles like bodies.** No case was tabled for it. Rejected for the same reason mail subjects
+  stay visible ([ADR-0001](../redaction/0001-redaction-matrix.md)): the title is the organizational
+  handle, and hiding it turns restricted events into unidentifiable blobs.
+- **Fastmail calendar via JMAP for symmetry with mail.** Rejected on deployment reality, since
+  symmetry is not worth building against an extension the provider has not shipped broadly.
 
 ## Consequences
 

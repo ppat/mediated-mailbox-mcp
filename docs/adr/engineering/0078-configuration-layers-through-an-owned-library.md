@@ -10,13 +10,11 @@
 and flags, and keeps secret material in files
 ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)). It leaves the form open, and
 [ADR-0042](./0042-implementation-stack.md) leaves each major library to its own decision. The
-deployables' needs are structured, backfill's among the first. Accounts and their credentials are
-not configuration. They live in the database, created through the UI
-([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).
-
-- **The scanner's vocabulary and tuning.** [ADR-0005](../classification/0005-tiered-detection.md)
-  makes the trigger words by language, the link words and Tier 2's weights configuration, so a
-  deployment adds languages and retunes without a release.
+deployables' needs are structured, and among them are the scanner's vocabulary and tuning.
+[ADR-0005](../classification/0005-tiered-detection.md) makes the trigger words by language, the
+link words and Tier 2's weights configuration, so a deployment adds languages and retunes without a
+release. Accounts and their credentials are not configuration. They live in the database, created
+through the UI ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md)).
 
 Configuration may arrive as command-line flags, environment variables and a file, more than one of
 them in one deployment, with some overriding others, and nothing may assume the environment the
@@ -32,31 +30,32 @@ defaulted.
 | Requirement | What it demands | From |
 | --- | --- | --- |
 | Strict everywhere | A misspelled, duplicated, case-changed or unknown key, flag or prefixed environment variable, a second or null YAML document, a type error and an out-of-range value each stop the process at start | [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) |
-| Every value from every source, per key | A flag or an environment variable can set one entry of a keyed map, or name a key the file never did, as a new language for the scanner | The operator, who barred only secret material from environment variables and flags |
-| Three sources, one precedence | Defaults, file, environment, flags, each overriding the one before | The operator |
-| No platform assumption | No default path, no directory layout, the file optional | The operator |
+| Every value from every source, per key | A flag or an environment variable can set one entry of a keyed map, or name a key the file never did, as a new language for the scanner | This record, with secret material barred by [ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md) |
+| Three sources, one precedence | Defaults, file, environment, flags, each overriding the one before | This record |
+| No platform assumption | No default path, no directory layout, the file optional | This record |
 | Secrets never configuration | No configuration value can be secret material | [ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md) |
 | Marginal footprint | Modules added to the processes that hold full-mailbox credentials | [ADR-0042](./0042-implementation-stack.md)'s rejection of a deep package tree inside the trust anchor, read as ordering the field |
 | One definition | A value's file key, environment name, flag and help text come from one declaration | [O6](../../../USE_CASES.md#o6--deployable), which requires the inputs a deployment needs to be declared |
 | Errors name source and key | A refusal names the file and line, the environment variable or the flag | This record |
 | Effective configuration observable | Each value's source is known, and each concern's configuration has a revision | [ADR-0005](../classification/0005-tiered-detection.md), which stamps the scanner configuration's revision on every verdict |
-| Hand-edited file | Comments, and a format the operator already edits | The operator |
+| Hand-edited file | Comments, and a format the operator already edits | This record |
 
-Strictness, per-key reach and the three sources are gates, because each comes from
-the operator's words or a pillar. Footprint then ordered the field, one definition, errors and
+Strictness, per-key reach and the three sources are gates, because each is a requirement this
+record sets or a pillar's. Footprint then ordered the field, one definition, errors and
 observability separated what remained, and maintenance, typing, package-level state and room for
-subcommands broke ties. Ordering by footprint is this record's reading of ADR-0042, and it differs
-from [ADR-0076](./0076-metrics-emitted-through-client-golang.md), which let footprint break ties for
+subcommands broke ties. Ordering by footprint is this record's reading of
+[ADR-0042](./0042-implementation-stack.md), and it differs from
+[ADR-0076](./0076-metrics-emitted-through-client-golang.md), which lets footprint break ties for
 the same processes. The reading under Alternatives tests the choice under that weighting too. Remote
 key-value stores and policy were left out of the grading, the first because nothing in the design
 calls for one and the second because policy lives in the database.
 
 ## Decision
 
-- **Four layers, per value, in this order:** built-in defaults, then one optional YAML file, then
-  environment variables, then command-line flags, each overriding the one before. AWS CLI, the
-  command-line guidance at clig.dev, Spring Boot and ASP.NET Core use this order, and Kubernetes'
-  kubelet lets flags override its file.
+- **Four layers, per value, in this order.** They are built-in defaults, then one optional YAML
+  file, then environment variables, then command-line flags, each overriding the one before. AWS
+  CLI, the command-line guidance at clig.dev, Spring Boot and ASP.NET Core use this order, and
+  Kubernetes' kubelet lets flags override its file.
 - **The file is named by a flag and an environment variable, and has no default path**, because a
   default path assumes the environment. Without one there is no file, and the other layers carry
   everything.
@@ -129,9 +128,9 @@ calls for one and the second because policy lives in the database.
   schema and no validation, which stay with each concern.
 - **No command-line framework**, because no deployable has a mode.
 
-Left open, each settled where it is first needed:
+Two things are left open, each settled where it is first needed.
 
-- **More than one file.** One file is read today. A repeatable file flag can be added, costing the
+- **More than one file.** One file is read. A repeatable file flag can be added, costing the
   library a merge across files and a rule for which file wins a conflict, as Helm takes the last
   file given and kubeconfig the first.
 - **A command-line mode.** The first deployable that gains one chooses between cobra, whose command
@@ -139,7 +138,7 @@ Left open, each settled where it is first needed:
   mode, which adds nothing but hand-written dispatch. Either sits in front of `Load` and moves
   nothing else here.
 
-What the ordinary path of the libraries measured does that this record forbids:
+The table gives what the ordinary path of the libraries measured does that this record forbids.
 
 | Construction | Harm | What stops it |
 | --- | --- | --- |
@@ -161,7 +160,7 @@ What the ordinary path of the libraries measured does that this record forbids:
 | Effective configuration observable | A source per value and a revision per concern |
 | Hand-edited file | YAML comments, the chart's own format |
 
-What an implementer would otherwise pay to discover:
+What an implementer would otherwise pay to discover is the following.
 
 - `go.yaml.in/yaml/v3` is the maintained continuation of the archived `gopkg.in/yaml.v3`. It
   refuses duplicate keys always and refuses unknown keys under `KnownFields(true)`. It resolves an
@@ -252,19 +251,19 @@ either costs the same, a swap behind `Load`, since the file format, the names, t
 every refusal survive, but the failures surface differently. A refusal bug fails the start loudly
 in both, while a merge or precedence bug yields a wrong value silently in both, found through the
 source logged for each value, and only the koanf column can also regress through a library release
-or a lost override. The owned library's once-decisive win, flags for keys the code never
-declared, turned out to be detachable, since the koanf column gets it in a small owned layer, so the
-choice comes down to about two hundred more owned lines against nine modules and three defaults
-that fail open. Read with footprint only breaking ties, as ADR-0076 weighed it, the two leaders tie
-on every gate and the owned library still leads on one definition, errors and observability, so the
-preference holds by a smaller margin.
+or a lost override. Flags for keys the code never declared are detachable from the owned library,
+since the koanf column gets them in a small owned layer, so the choice comes down to about two
+hundred more owned lines against nine modules and three defaults that fail open. Read with
+footprint only breaking ties, as [ADR-0076](./0076-metrics-emitted-through-client-golang.md) weighs
+it, the two leaders tie on every gate and the owned library still leads on one definition, errors
+and observability, so the preference holds there by a smaller margin.
 
 - **The owned library.** For it, one mechanism meets every requirement, the one name cannot drift
   between file, environment, flag and help, and every failure is the project's own code, pinned by
   its tests. Against it, several hundred lines of reflection the project writes and owns
-  permanently, which grew under review as leniencies were found and will grow again, and the choice
-  forgoes the existing libraries it was measured against. One resolution function carries both the
-  unknown-variable and unknown-flag refusals, so one bug there breaks both.
+  permanently, which grew under review as leniencies were found and will grow again, and the
+  choice forgoes the existing libraries it was measured against. One resolution function carries
+  both the unknown-variable and unknown-flag refusals, so one bug there breaks both.
 - **koanf, corrected, with an owned flag layer.** For it, about two hundred fewer owned lines and a
   maintained library doing the merge and the decode. Against it, the project still owns the strict
   checks, the flag layer, the help and the provenance, so koanf carries only the merge and decode,
@@ -312,18 +311,18 @@ preference holds by a smaller margin.
 - Every refusal the library carries lands with a test and a mutation patch, and each concern's
   configuration type is pinned field by field, so a new value is a visible change.
 - pgx still reads `PG*` variables for any connection setting the project does not render.
-- The scanner's configuration type stops carrying a revision an operator sets. The revision it
-  stamps is the library's revision of its section, handed in by the composition root, and it
-  becomes a string, so the scanner's refusal of a revision below 1 becomes a refusal of an empty
-  one. The first deployable that builds the scanner lands the change.
+- The scanner's configuration type carries no revision an operator sets. The revision it stamps
+  is the library's revision of its section, handed in by the composition root as a string, so the
+  scanner refuses an empty revision.
 - Leaving the library costs its internals only. The file format, the names, the precedence and
   every refusal are the contract, and any replacement sits behind `Load`.
 - What would re-argue it is a maintained Go library that derives every name from one tag, discovers
   map keys from the environment and flags, decodes strictly and records sources, or koanf dropping
   its archived dependencies.
-- It adds duties to the chart ([ADR-0052](./0052-kubernetes-deployment-helm-chart.md)): restarting
-  pods when their configuration changes, passing the file through as written, giving each deployable
-  only its own environment variables, and turning Kubernetes' injected service variables off.
+- It adds duties to the chart ([ADR-0052](./0052-kubernetes-deployment-helm-chart.md)), which are
+  restarting pods when their configuration changes, passing the file through as written, giving
+  each deployable only its own environment variables, and turning Kubernetes' injected service
+  variables off.
 - Accepting more than one file adds a rule for which file wins. Giving a deployable a mode adds a
   parser in front of `Load` and changes nothing here.
 - Assumptions about other components. A deployment mounts secrets as files, and the chart carries

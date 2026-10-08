@@ -5,8 +5,8 @@
 
 ## Context
 
-The operator asked for visibility into running batch work as a dynamic view that refreshes as it
-runs, and for the ability to inspect a failed run. The jobs surfaces and the home's running-work
+The operator needs visibility into running batch work as a dynamic view that refreshes as it
+runs, and the ability to inspect a failed run. The jobs surfaces and the home's running-work
 strip therefore update without a reload. The UI's Go server reads Postgres directly
 ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)) and serves the browser as
 static files ([ADR-0042](../engineering/0042-implementation-stack.md)), so the transport is the
@@ -26,14 +26,11 @@ UI's own choice and touches no other component.
 - **Only recorded state is streamed.** The server reads the same tables the screens read, never a
   component, the bound [ADR-0034](./0034-system-status-operation.md) sets.
 
-The operator asked for the behavior and later accepted this transport, where the UI's server and its
-stream endpoint are built.
-
 ## Alternatives considered
 
-- **Browser polling only.** Its case was nothing to add to the server. Not proposed as the primary
+- **Browser polling only.** Its case was nothing to add to the server. Not chosen as the primary
   because each open view then polls independently and the interval trades freshness against load.
-- **WebSockets.** Its case was bidirectional and widely supported. Not proposed because the UI sends
+- **WebSockets.** Its case was bidirectional and widely supported. Not chosen because the UI sends
   nothing upstream on these surfaces, and a one-directional stream is the smaller mechanism.
 
 ## Consequences

@@ -6,7 +6,7 @@
 
 ## Context
 
-The system is multi-account by architecture with a single account deployed today. Accounts may
+The system is multi-account by architecture. Accounts may
 span organizations, a personal Gmail and a work mailbox with no common administrator, so nothing
 may assume a shared tenant, grant, or admin. The deployment-shape question (one pod holding all
 accounts versus one pod per account) is separate from the isolation property, which must hold under
@@ -17,7 +17,8 @@ apart from the accounts ([ADR-0080](../data/0080-accounts-and-credentials-live-i
 
 ## Decision
 
-**One process, one pod, N account contexts**, each context a self-contained bundle:
+**One process, one pod, N account contexts**, each context a self-contained bundle, sketched
+below.
 
 ```python
 @dataclass(frozen=True)
@@ -38,15 +39,15 @@ snapshot and the rate limiter, and the structure above illustrates what the bund
 than prescribing one Go type
 ([DESIGN.md's Glossary](../../../DESIGN.md#provider-abstraction-and-accounts)).
 
-The rules that keep accounts from bleeding:
+These rules keep accounts from bleeding.
 
 - **`account_id` is required on every client-surface operation** (API endpoint or MCP tool).
   There is no implicit current account. Omission is an error, not a default.
 - **Every table is indexed on `account_id`**, with the exceptions
   [ADR-0016](../data/0016-schema.md) names (the op log, which carries no account column and is
   reached through its plan, the base policy rows every account inherits, and the OAuth clients,
-  which belong to no account). The accounts table
-  is keyed on `account_id` too, and the roles that list accounts read all of its rows
+  which belong to no account). The accounts table is keyed on `account_id` too, and the roles that
+  list accounts read all of its rows
   ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). All queries go through a
   repository layer that requires the account, every statement against an account-keyed table
   carries an account predicate ([ADR-0047](../data/0047-schema-first-data-access.md)), and
@@ -62,10 +63,9 @@ The rules that keep accounts from bleeding:
   installation's clients for it, which several accounts may share, while no grant is shared
   ([ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
 
-Because only one account exists today, adding the second is scheduled as a deliberate
-architectural test. If anything above the provider port needs changing to support it, the account
-model was wrong, and finding that out cheaply is the point ([ROADMAP.md](../../../ROADMAP.md)
-carries the unit).
+Adding a second account is a deliberate architectural test. If anything above the provider port
+needs changing to support it, the account model was wrong, and finding that out cheaply is the
+point ([ROADMAP.md](../../../ROADMAP.md) carries the unit).
 
 ## Alternatives considered
 
@@ -73,16 +73,16 @@ carries the unit).
   under it, and it remains available operationally. Rejected as the *architecture* because it
   would let per-account separation substitute for in-process isolation, leaving the code unsafe to
   ever co-locate accounts.
-- **An implicit "current account" with a switch operation.** Rejected. Ambient state plus
-  concurrency is the recipe for acting on the wrong account, and explicitness is enforced by
-  making the parameter mandatory everywhere.
+- **An implicit "current account" with a switch operation.** No case was tabled for it. Rejected.
+  Ambient state plus concurrency is the recipe for acting on the wrong account, and explicitness is
+  enforced by making the parameter mandatory everywhere.
 - **Domain-wide delegation across accounts.** Rejected in
-  [ADR-0107](./0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md), and restated
-  here because the account model is where it would have crept back in.
-- **An OAuth client per account** (the superseded rule, which forbade a shared client). For it, no
-  two accounts share anything at the provider. Against it, the person running the system repeats
-  the whole client setup for every mailbox, and a shared client does not share a grant, which is
-  what isolation needs. An account may still have a client of its own
+  [ADR-0107](./0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md). It is named
+  here because the account model is where it would creep back in.
+- **An OAuth client per account, never shared** ([ADR-0026](./0026-multi-account-contexts.md)).
+  For it, no two accounts share anything at the provider. Against it, the person running the
+  system repeats the whole client setup for every mailbox, and a shared client does not share a
+  grant, which is what isolation needs. An account may still have a client of its own
   ([ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
 
 ## Consequences

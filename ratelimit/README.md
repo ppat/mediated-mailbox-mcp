@@ -9,15 +9,15 @@ conventions it shares with every component are
 Every spender runs the same rate rules, the cap at lease issuance, the priority split, the adaptive
 controller and lease expiry ([ADR-0024](../docs/adr/operability/0024-conservative-target-aimd.md),
 [ADR-0025](../docs/adr/operability/0025-priority-classes-and-leases.md)). Those rules are pure and
-sit in `ratelimit/core/`. The lease code that reads and writes the shared coordination row and its grants table is impure
-and sits in `ratelimit/lease/`. Keeping both in one library means the rules are not split from the
-code that applies them and the lease code is not duplicated per deployable. `lease.Call` makes one
-port call under a lease in a priority class and tells the controller how the call went, a throttle
-or a server error included, so every spending workload reports its calls the same way.
+sit in `ratelimit/core/`. The lease code that reads and writes the shared coordination row and its
+grants table is impure and sits in `ratelimit/lease/`. Keeping both in one library means the rules
+are not split from the code that applies them and the lease code is not duplicated per deployable.
+`lease.Call` makes one port call under a lease in a priority class and tells the controller how the
+call went, a throttle or a server error included, so every spender reports its calls the same way.
 
-The library connects to the database as no role of its own. Its statements in `db/ratestate/limiter` run
-under the role of each deployable that spends from the budget, which is why those roles hold the
-grants the statements need
+The library connects to the database as no role of its own. Its statements in
+`db/ratestate/limiter` run under the role of each deployable that spends from the budget, which is
+why those roles hold the grants the statements need
 ([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)).
 

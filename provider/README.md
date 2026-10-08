@@ -7,7 +7,7 @@ conventions it shares with every component are
 [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
 The mediator fetches released bodies, backfill and delta sync build and refresh the index, and the
-reorganization workload applies plans, all through the Provider Port
+reorg job kind applies plans, all through the Provider Port
 ([ADR-0010](../docs/adr/provider/0010-one-provider-port.md)). Deployables never import each other,
 so the adapters are shared code, and they do network I/O, so they cannot sit in `core/`. Writing an
 adapter per deployable would break the one-adapter-per-provider contract. So one library holds
@@ -19,9 +19,9 @@ runaway rule reads
 registers metrics through client_golang on a registry its caller passes in
 ([ADR-0076](../docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)). It also holds
 `fake`, the provider fake of [ADR-0043](../docs/adr/engineering/0043-no-mocking.md), which only test
-files may import, and `contract`, the contract suite every implementation passes, ordinary code so each
-implementation's tests can run it. The Provider Port interface and the canonical model are pure and
-sit in `core/mail`.
+files may import, and `contract`, the contract suite every implementation passes, ordinary code so
+each implementation's tests can run it. The Provider Port interface and the canonical model are
+pure and sit in `core/mail`.
 
 The fake keeps a mailbox in memory. Its throttle is a wrapper around any port that applies a
 schedule, so the rate limiter's tests can meet throttling without the fake's storage knowing of it,
@@ -54,9 +54,9 @@ the adapter to the UI's list, which would let the UI link the code that reads a 
 
 The Gmail adapter also holds the handling of Google's grant, which every deployable that calls
 Google shares, the Google Calendar adapter included. That is the token source, and the consent
-command beside it. The token source is built from the OAuth client the account connects
-through and the account's refresh token, which the deployable opened from the database, and reads
-no credential from anywhere else
+command beside it. The token source is built from the OAuth client the account connects through
+and the account's refresh token, which the deployable opened from the database, and reads no
+credential from anywhere else
 ([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
 A Gmail account's stored credential is the refresh token itself, the one the account setup stored
 from the grant. When Google rotates the refresh token, the source holds the new one and hands it

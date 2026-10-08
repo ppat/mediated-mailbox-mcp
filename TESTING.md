@@ -50,7 +50,8 @@ are its end-to-end tests.
 
 The gating CI suite carries the permanent verification-proving tests, the bounded deterministic
 property runs, and the bounded fixed-seed crash runs. Deep random search and deep crash-sequence
-exploration run scheduled, never gating ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md),
+exploration run scheduled, never gating
+([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md),
 [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A gating property run takes a
 fixed seed and case count, and a failing property input, once found, is stored and replayed on every
 later run ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)). The seed
@@ -69,9 +70,8 @@ account set aside for it ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md))
 when started deliberately through a command of its own, `go tool livecontract <provider>`, and
 any other test invocation leaves it out. Its workflow runs that command once a week on the main
 branch and whenever it is started by hand on any branch, never automatically on a pull request.
-Every
-other test runs without provider credentials. A drill runs where
-[ROADMAP.md](./ROADMAP.md) places it, and its proof holds only for that date.
+Every other test runs without provider credentials. A drill runs where [ROADMAP.md](./ROADMAP.md)
+places it, and its proof holds only for that date.
 
 ## The proof system
 
@@ -91,8 +91,9 @@ The chain from outcome to evidence, stated once.
 4. At implementation, every automatable control also gets its mutation demonstration in the
    mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists. The mechanism
    is broken both ways, so it does less and so it does the wrong thing, each by a checked-in patch,
-   the tests must go red on each, and the script records which ones did. The demonstration is repeated when the control, its tests or
-   a generator they draw from changes, a move of their code or tests to another path included
+   the tests must go red on each, and the script records which ones did. The demonstration is
+   repeated when the control, its tests or a generator they draw from changes, a move of their
+   code or tests to another path included
    ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). Separately,
    whether each demonstration's patch still applies is a standing guard the `mutation-patches`
    workflow runs on every pull request, apart from this event-driven trigger

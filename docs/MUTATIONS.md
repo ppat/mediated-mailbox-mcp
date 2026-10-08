@@ -6,7 +6,7 @@ split by authoring moment. Deciding a control mints its verification row at desi
 demonstration can happen only at implementation time, once there is a mechanism to remove and
 tests to fail. A control with no standing automated test never appears here, since nothing
 exists to demand red from, and proof only by drill or by manual exercise is that case. The
-decision is ADR-0046's, resolved through the [decision-record index](./adr/README.md).
+decision is [ADR-0046](./adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s.
 
 The ledger is this file and the files under [mutations/](./mutations/) it lists in
 [Where the rows are](#where-the-rows-are). This file holds what a row is and where it goes, and

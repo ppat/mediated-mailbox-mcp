@@ -16,12 +16,11 @@ restriction, which can release a body at once, and a released body cannot be rec
 ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md),
 [ADR-0037](../redaction/0037-delisting-transition.md)). Every write to the rules appends its row
 to the policy history in the same transaction
-([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)). A rule's identifier was
-unique across every rule of every scope ([ADR-0016](../data/0016-schema.md)).
+([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)).
 
-The operator ruled on 2026-10-02 on what one file covers and what an import does to stored rules
-the file leaves out, and then that an exported file is generic, importable as the base policy or
-into any account's policy.
+What one file covers, and what an import does to stored rules the file leaves out, are this
+record's to decide. An exported file is generic, importable as the base policy or into any
+account's policy.
 
 ## Decision
 
@@ -52,26 +51,24 @@ into any account's policy.
 ## Alternatives considered
 
 - **An import that only adds.** For it, a file can never lift a restriction, and lifting stays on
-  the rule screens alone. Against it, a file cannot prune the policy, and the operator ruled that
-  the file replaces the scope's rules.
+  the rule screens alone. Against it, a file cannot prune the policy.
 - **A preview where each removal is opt-in.** For it, nothing is lifted unless the operator ticks
-  it, each through the ordinary lift dialog. Against it, the operator chose replacement with one
-  confirmation of every lift.
+  it, each through the ordinary lift dialog. Not chosen. The decision replaces the scope's rules
+  with one confirmation of every lift.
 - **One file holding the base rules and every account's overlay.** For it, one file backs up or
   moves a whole installation's policy. Against it, it would be the first place the UI handles
-  several accounts' data together, which ADR-0056's per-account rule refuses, and the operator chose
-  one file per scope.
+  several accounts' data together, which ADR-0056's per-account rule refuses.
 - **Import and export for the base policy alone.** For it, the smallest surface, and enough to load
   the operator's policy before the first account connects. Against it, an account's overlay could be
-  neither backed up nor copied to another account, and the operator chose one file per scope.
+  neither backed up nor copied to another account.
 - **A file bound to the scope it was exported from.** For it, a file imported into the wrong scope
-  is caught. Against it, the operator ruled that an exported file is generic, importable as the
-  base policy or into any account.
+  is caught. Against it, an exported file is generic, importable as the base policy or into any
+  account.
 - **Identifiers unique across every rule, rewritten on import when another scope holds them.** For
-  it, an identifier names one rule everywhere and the schema keeps its key. Against it, a rewritten
-  rule no longer matches its file, so importing the same file again lifts the rewritten rule and
-  adds the file's, and copying an account's file to the base policy while the account keeps its
-  rules would rewrite every one of them.
+  it, an identifier names one rule everywhere and the schema keeps a key on the identifier alone.
+  Against it, a rewritten rule no longer matches its file, so importing the same file again lifts
+  the rewritten rule and adds the file's, and copying an account's file to the base policy while
+  the account keeps its rules would rewrite every one of them.
 
 ## Consequences
 
@@ -79,10 +76,9 @@ into any account's policy.
   base policy's installation screen ([docs/UI.md](../../UI.md#814-base-policy)), and an account's
   rules can be copied to another account or promoted to the base policy by exporting and importing.
 - `policy_rules` is keyed on its scope and identifier ([ADR-0016](../data/0016-schema.md)), and the
-  policy snapshot's validation refuses a repeated identifier within one scope only, where it
-  refused one across every rule ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)).
-  Both land together, so no stored policy ever holds an identifier in two scopes while a process
-  still refuses that.
+  policy snapshot's validation refuses a repeated identifier within one scope only
+  ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). The key and the validation
+  agree, so a process never refuses a stored policy for holding one identifier in two scopes.
 - A message's `class_rule_id` names an identifier and not its scope. When an account and the base
   policy both hold the identifier, with suffixes that may differ, the message records which
   identifier matched but not which scope's rule, and the UI lists both rather than guess.
@@ -90,7 +86,8 @@ into any account's policy.
   import, the account's numbers on an account's import, and Put it back after the import are what
   stand against that.
 - A file round trip loses each rule's source, created time and history, which stay in the database.
-- A rule an import lifts reaches the delisting transition as any lift does (ADR-0037).
+- A rule an import lifts reaches the delisting transition as any lift does
+  ([ADR-0037](../redaction/0037-delisting-transition.md)).
 - Assumptions about other components. The identity on each history row follows
   [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)'s rule, as for every policy write. The
   base scope is read and written with no account named, in a transaction of the base policy's own

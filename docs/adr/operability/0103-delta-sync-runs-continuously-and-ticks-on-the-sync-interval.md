@@ -6,7 +6,7 @@
 
 ## Context
 
-Delta sync runs every five minutes, for seconds at a time
+Delta sync runs on its sync interval, for seconds at a time
 ([ADR-0018](../data/0018-delta-sync-polls.md), [ADR-0022](./0022-four-workloads.md)). Two of the
 series it emits are read across scrapes. The runaway rule sums the cost of provider requests counted
 in each spending process, and reads the hard cap each process emits beside its count
@@ -17,11 +17,11 @@ OAuth client, all reading 0, and a missing series never counts as 0
 ([ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). A process that exits between scrapes
 leaves those series missing most of the time.
 
-[ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md) left delta sync's form open,
-a process that runs until stopped or one that runs and exits, and required the account snapshot to
-be loaded within each five-minute run either way. The application does not know its platform, so it
-cannot know the platform's scrape interval or reach a push gateway the platform runs
-([ADR-0051](../engineering/0051-environment-contract.md)).
+Delta sync's form, a process that runs until stopped or one that runs and exits, is this record's
+to choose, and in either form each run takes the account snapshot
+([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). The application does
+not know its platform, so it cannot know the platform's scrape interval or reach a push gateway the
+platform runs ([ADR-0051](../engineering/0051-environment-contract.md)).
 
 ## Decision
 
@@ -45,14 +45,14 @@ cannot know the platform's scrape interval or reach a push gateway the platform 
   ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md),
   [ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). It also takes the latest policy
   snapshot delta sync's own policy loader holds for the accounts the snapshot lists, and builds the
-  rate limiter under the target each account's state row sets. A reload whose read fails keeps the
-  previous snapshot and is logged, as ADR-0090 decides.
+  rate limiter under the target each account's state row sets.
 - **The key-scan series are two gauges.** `mediated_mailbox_sync_credential_on_old_key` carries one
   series per account `accounts` lists, labelled by the account, and
   `mediated_mailbox_sync_client_secret_on_old_key` one series per row of `oauth_clients`, labelled by
   the client's name, since a provider may have several clients
-  ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)). Each reads 1 while its value is sealed to a key other than the current one or cannot
-  be opened, and 0 once it is sealed to the current key or when there is no value to seal. A series
+  ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
+  Each reads 1 while its value is sealed to a key other than the current one or cannot be opened,
+  and 0 once it is sealed to the current key or when there is no value to seal. A series
   whose account or client a later tick no longer lists is removed.
 
 The deciding argument. A process that stays up keeps its counters and gauges in every scrape, so the
@@ -82,7 +82,7 @@ assumption about the platform's scrape interval and no component the chart does 
   account's next tick records them failed.
 - A runaway spread across delta sync's ticks reaches the runaway rule, since its count is scraped
   like the mediator's. ADR-0077's remaining gap, a process living less than two scrape intervals,
-  no longer applies to delta sync.
+  does not apply to delta sync.
 - Assumptions about other components. The platform runs one copy of the worker at a time, a
   rollout included, keeps it running and restarts it when it stops, and scrapes its metrics
   endpoint as it does the mediator's

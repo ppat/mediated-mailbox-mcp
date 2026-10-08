@@ -69,7 +69,7 @@
 // stack trace, would see another path than in the gating run, and no test in this module reads one.
 // Nothing a test reads from a go command it starts changes either. The type errors and type strings
 // testsupport/mustnotcompile reads, go test's output and go list's fields carry no compiled-in path.
-// The gating invocation sets RAPID_NOFAILFILE=true (ADR-0069, row 6 of its ordinary-path table),
+// The gating invocation sets RAPID_NOFAILFILE=true, by ADR-0069's rule against rapid's fail files,
 // so every run sets it too. RAPID_CHECKS passes through from the environment, and -short is never
 // passed, since it divides rapid's case count by five. The runner refuses to run while GOFLAGS is
 // set, in the environment or through go env -w, because go test reads its flags from there and any

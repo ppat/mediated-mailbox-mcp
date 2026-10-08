@@ -203,8 +203,8 @@ one row per control.
   reversal is the change's intent, unless the change shows why the thing was there and a
   demonstrated, documented need to change it. With both, it still goes to the operator when the
   thing reversed was the operator's decision.
-- **A rebase loses nothing on either side.** It neither undoes or overwrites what `main` received
-  with the branch's older text, nor overwrites the branch's intended changes with `main`'s text.
+- **A rebase loses nothing on either side.** It does not undo or overwrite what `main` received
+  with the branch's older text, nor overwrite the branch's intended changes with `main`'s text.
   Each conflict is resolved by what each side meant, so both hold. Where `main` rewrote a passage
   the branch edits, the branch's change is re-applied on `main`'s text, and dropped with a stated
   reason only when `main` already carries it or made it false. Taking one side wholesale, in either

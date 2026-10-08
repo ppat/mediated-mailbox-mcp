@@ -44,8 +44,8 @@ type Op struct {
 }
 
 // Case is one generated case, the arguments the world is built from and the operation sequence run
-// against it. It holds no operation weights, so a kept case replays its sequence and nothing else
-// (ADR-0069, row 13 of its ordinary-path table).
+// against it. It holds no operation weights, so a kept case replays its sequence and nothing else,
+// as ADR-0069's rule for a stored case requires.
 type Case[S any] struct {
 	Setup S
 	Ops   []Op
@@ -229,7 +229,8 @@ func Run[S, W any](t rapid.TB, target Target[S, W], w W, c Case[S]) {
 }
 
 // Describe describes a case's operation sequence, never the weights it was drawn under, which
-// reduction flattens and which would contradict the sequence (ADR-0069, row 14).
+// reduction flattens and which would contradict the sequence, as ADR-0069's rule for a failure
+// report requires.
 func Describe[S any](c Case[S]) string {
 	ops := make([]string, len(c.Ops))
 	for i, op := range c.Ops {

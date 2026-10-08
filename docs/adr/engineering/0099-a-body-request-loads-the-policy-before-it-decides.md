@@ -11,10 +11,10 @@ domain added to the deny list to take effect on the next call, not the next cach
 [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) re-derives the sender class at fetch time
 against current policy so that it does. Policy reaches a process as an immutable snapshot it loads
 on a cadence of its own, and a request takes the active snapshot once at entry
-([ADR-0041](./0041-policy-as-immutable-snapshots.md)). Before body release existed, the mediator
-loaded the policy only when the set of accounts it serves changed, so an edit to the deny list never
-reached a running mediator. A body request is the first decision that releases content, so the
-mediator's load cadence is decided here.
+([ADR-0041](./0041-policy-as-immutable-snapshots.md)). A mediator that loaded the policy only when
+the set of accounts it serves changed would never see an edit to the deny list while it ran. A body
+request is the first decision that releases content, so the mediator's load cadence is decided
+here.
 
 What can be read cheaply is limited. The policy rules carry no revision a process could compare,
 and a deleted rule leaves no trace in the table. A connection pooler in transaction mode, which
@@ -22,7 +22,8 @@ and a deleted rule leaves no trace in the table. A connection pooler in transact
 [ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) did not use it
 for accounts. The policy loader
 ([executioncontext/README.md](../../../executioncontext/README.md#the-policy-loader-policyload))
-validates what it reads, keeps the active snapshot on any failure, and raises the reload-failure alarm.
+validates what it reads, keeps the active snapshot on any failure, and raises the reload-failure
+alarm.
 
 ## Decision
 
@@ -45,10 +46,9 @@ burst, since concurrent requests share one.
 
 ## Alternatives considered
 
-- **A periodic load alone.** For it, no read of the policy tables on any request, which was the
-  operator's first preference on performance grounds. Against it, a deny-list edit binds only at
-  the next load, which is exactly the "next cache refresh" C2's scope note names as falsifying, so
-  taking it would need an amendment to the outcome contract.
+- **A periodic load alone.** For it, performance, since no request reads the policy tables. Against
+  it, a deny-list edit binds only at the next load, which is exactly the "next cache refresh" C2's
+  scope note names as falsifying, so taking it would need an amendment to the outcome contract.
 - **A periodic load with a probe of a revision marker on each request.** For it, a request reads one
   small value and loads only when the policy changed. Against it, it needs a marker every writer of
   the policy tables bumps. The schema has none, a trigger maintaining one is code in the database,

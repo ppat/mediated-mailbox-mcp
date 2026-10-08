@@ -25,13 +25,14 @@ var browserBanRules = []string{
 	"no-restricted-properties",
 }
 
-// oxlintDirective matches a suppression comment in a spelling oxlint honours: the directive word in lower
-// case, first in a line comment or a block comment. Group 1 is the comment's opening, group 2 the word.
+// oxlintDirective matches a suppression comment in a spelling oxlint honours, which is the
+// directive word in lower case, first in a line comment or a block comment. Group 1 is the
+// comment's opening, group 2 the word.
 var oxlintDirective = regexp.MustCompile(`(//|/\*)[ \t]*((?:eslint|oxlint)-disable(?:-next-line|-line)?)(?:[ \t]|\*/|$)`)
 
 // looseBrowserDirective matches the directive words of oxlint and ast-grep in any spelling, anywhere on a
 // line, strings included. What remains of a line after its honoured oxlint directives are classified is
-// refused when it matches, so a spelling the tools do not honour today fails closed.
+// refused when it matches, so a spelling the tools do not honour fails closed.
 var looseBrowserDirective = regexp.MustCompile(`(?i)(eslint|oxlint)-disable|ast-grep-ignore`)
 
 // browserDirectiveProblems classifies the suppression comments on one line, with any want annotation

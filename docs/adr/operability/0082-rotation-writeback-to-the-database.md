@@ -28,9 +28,10 @@ already hold a database role.
 
 ## Alternatives considered
 
-- **Write back through a secret store synced into mounted files** (the superseded design). For it,
-  no deployable writes where credentials are stored except through one narrow location. Against it,
-  account credentials no longer live in a secret store, so the loop has nothing to carry.
+- **Write back through a secret store synced into mounted files**
+  ([ADR-0039](./0039-rotation-writeback.md)). For it, no deployable writes where credentials are
+  stored except through one narrow location. Against it, account credentials live in the database
+  and not in a secret store, so the loop has nothing to carry.
 - **No write-back, re-authorize through the UI when a rotation is lost.** For it, the UI already
   re-authorizes an account. Against it, the failure is silent and delayed, since everything works
   until the next restart, which is the shape of failure found weeks later mid-incident.

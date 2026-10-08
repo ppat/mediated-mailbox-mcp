@@ -11,10 +11,11 @@ permits is silent. A crash-recovery bug in checkpointed apply or rollback is bot
 label state on the real mailbox, and it fails silently until a process dies mid-sequence.
 Sequence-dependent failures are reachable by no other kind of test, because no other kind
 places a crash inside a generated sequence, and a physical drill that kills the running process
-proves the real substrate exactly once, on one sequence. "Learn from the real mailbox" cannot cover
-this class. The pattern this record builds on is the one published in Amazon's S3 ShardStore work
-(SOSP 2021). That pattern is a crash operation in the generator's alphabet, persistence and
-forward-progress invariants checked after recovery, and a deliberately coarse crash model.
+proves the real substrate exactly once, on one sequence. "Learn from the real mailbox" cannot
+cover this class. The pattern this record builds on is the one published in Amazon's S3
+[ShardStore](https://jamesbornholt.com/papers/shardstore-sosp21.pdf) work (SOSP 2021). That
+pattern is a crash operation in the generator's alphabet, persistence and forward-progress
+invariants checked after recovery, and a deliberately coarse crash model.
 
 ## Decision
 
@@ -51,9 +52,9 @@ forward-progress invariants checked after recovery, and a deliberately coarse cr
   the ShardStore work's own published evidence. Coarse component-level granularity caught
   essentially the same bugs at far lower cost, and the harness is built from scratch either
   way.
-- **A blanket harness over every stateful component.** Rejected because the harness is its own
-  real project, and spending it where failures are loud or easily reversed inverts the payoff
-  argument that justifies it.
+- **A blanket harness over every stateful component.** No case was tabled for it. Rejected because
+  the harness is its own real project, and spending it where failures are loud or easily reversed
+  inverts the payoff argument that justifies it.
 
 ## Consequences
 

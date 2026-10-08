@@ -1,8 +1,8 @@
-// Package accountload builds a deployable's account snapshot, the accounts it serves, each paired
-// with the OAuth client it names where its provider has one, and the opened credentials,
-// writes a rotated credential back by compare-and-set, and carries delta sync's re-seal and the scan
-// of what is still sealed to an old key (ADR-0089, ADR-0090, ADR-0092). Its case is argued in
-// executioncontext/README.md.
+// Package accountload builds a deployable's account snapshot, which holds the accounts it serves,
+// each paired with the OAuth client it names where its provider has one, and their opened
+// credentials. It also writes a rotated credential back by compare-and-set, and carries delta
+// sync's re-seal and the scan of what is still sealed to an old key (ADR-0089, ADR-0090,
+// ADR-0092). Its case is argued in executioncontext/README.md.
 package accountload
 
 import (

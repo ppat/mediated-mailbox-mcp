@@ -97,7 +97,8 @@ func TestRunRecoversAndChecksAfterEachCrash(t *testing.T) {
 }
 
 // A report describes the operation sequence and the setup, and never the weights it was drawn under,
-// which reduction flattens and which would contradict the sequence (ADR-0069, row 14).
+// which reduction flattens and which would contradict the sequence, as ADR-0069's rule for a
+// failure report requires.
 func TestDescribeNamesTheOperations(t *testing.T) {
 	got := crash.Describe(crash.Case[int]{Setup: 2, Ops: []crash.Op{{Name: "write"}, {Name: crash.Crash, Arg: 1}}})
 	if want := "setup 2, operations [write(0) crash(1)]"; got != want {

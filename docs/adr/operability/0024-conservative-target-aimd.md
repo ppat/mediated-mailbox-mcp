@@ -6,11 +6,12 @@
 
 ## Context
 
-Documented ceilings are not real ceilings. Gmail's 6,000 units a minute per user per project interacts with
-per-project quotas, mailbox size, and account age — accounts hit 429s below the documented number.
-JMAP publishes no number at all ([ADR-0023](./0023-adapter-declares-cost.md)). And the worst outcome
-is not slowness but a provider-side account restriction from sustained abuse — on the operator's
-personal mailbox. Deliberate politeness is the posture; the question is its mechanism.
+Documented ceilings are not real ceilings. Gmail's 6,000 units a minute per user per project
+interacts with per-project quotas, mailbox size, and account age, and accounts hit 429s below the
+documented number. JMAP publishes no number at all ([ADR-0023](./0023-adapter-declares-cost.md)).
+And the worst outcome is not slowness but a provider-side account restriction from sustained
+abuse, on the operator's personal mailbox. Deliberate politeness is the posture, and the question
+is its mechanism.
 
 ## Decision
 
@@ -25,11 +26,12 @@ floor          = budget_ceiling * 0.05              # controller's lower bound
 current_rate   ∈ [floor, target]
 ```
 
-Why a range rather than a constant: a fixed 50% still breaks when the *actual* limit differs from
-the documented one, and a static setting cannot know that. The controller can. `hard_cap` exists as
-a separate constant from `target` so that no code path — a future tuning knob, a config override,
-an "urgent backfill" flag — can push past 80% even if someone raises the target. Ceilings that
-live only in a default value get raised eventually. The cap is enforced at the point of lease
+The rate moves in a range rather than sitting at a constant, because a fixed 50% still breaks when
+the *actual* limit differs from the documented one, and a static setting cannot know that. The
+controller can. `hard_cap` exists as a separate constant from `target` so that no code path,
+whether a future tuning knob, a config override or an "urgent backfill" flag, can push past 80%
+even if someone raises the target. Ceilings that live only in a default value get raised
+eventually. The cap is enforced at the point of lease
 issuance ([ADR-0025](./0025-priority-classes-and-leases.md)), not only inside the controller, so a
 controller bug cannot exceed it.
 
@@ -46,8 +48,8 @@ other fractions and every rule below are the same for every provider and every a
 differs by provider is the ceiling they are fractions of, which the adapter declares
 ([ADR-0023](./0023-adapter-declares-cost.md)).
 
-**The controller is AIMD — additive increase, multiplicative decrease** — the same algorithm TCP
-uses, for the same reason: it converges on an unknown ceiling without needing to know it, and
+**The controller is AIMD (additive increase, multiplicative decrease)**, the same algorithm TCP
+uses, for the same reason. It converges on an unknown ceiling without needing to know it, and
 degrades politely under contention.
 
 ```python
@@ -74,82 +76,88 @@ seconds. A fixed step per success would grow it exponentially, because the numbe
 second grows with the rate. TCP scales its per-acknowledgement increase by the window for the same
 reason ([RFC 5681 section 3.1](https://www.rfc-editor.org/rfc/rfc5681.html#section-3.1)).
 
-Tokens are issued from a token bucket that refills at the current rate and holds at most one
-second's worth at `hard_cap`, the committed information rate and committed burst size of
-[RFC 2697](https://www.rfc-editor.org/rfc/rfc2697.html)'s meter. Beside the bucket, the tokens
-issued inside any one-second window sum to at most `hard_cap`, so the hard cap holds as a rate per
-second. Over a longer window, except as the clock and the stored record allow below, the bucket
-holds issuance to the current rate plus one second's worth at `hard_cap`, which a provider limit
-counted per minute absorbs. Tokens build up while the rate is low, so a call costing more than one
-second's worth at the current rate is still issued, and the rate can recover from the floor. The
-bucket does not fill during a backoff. A request costing more than one second's worth at `hard_cap`
-is refused, never left waiting, so an adapter keeps each request it makes within that size. The
-window counts every grant of the last second, so the store keeps them all, whole, beside the
-bucket's level and the instant it was last filled. A grant lost from that record widens issuance,
-and the rules cannot see its absence. Every one of these limits is measured on the database's clock,
-which every process shares. A forward step of that clock, such as a virtual machine resuming or a
-time server correcting it, reads as idle time, so it can release up to one more bucket inside one
-real second. A stale instant in the stored record reads as idle time too, and the one-second window
-still holds it to `hard_cap`, while a longer window can see one more bucket for each stale read, and
-at worst `hard_cap` sustained. The rules cannot tell either from real idle time, and a provider
-limit counted per minute absorbs both.
+Tokens are issued from a token bucket, under these rules.
+
+- **The bucket.** It refills at the current rate and holds at most one second's worth at
+  `hard_cap`, the committed information rate and committed burst size of
+  [RFC 2697](https://www.rfc-editor.org/rfc/rfc2697.html)'s meter. Over a longer window, except as
+  the clock and the stored record allow below, the bucket holds issuance to the current rate plus
+  one second's worth at `hard_cap`, which a provider limit counted per minute absorbs.
+- **The one-second window.** Beside the bucket, the tokens issued inside any one-second window sum
+  to at most `hard_cap`, so the hard cap holds as a rate per second.
+- **Low rates and backoff.** Tokens build up while the rate is low, so a call costing more than one
+  second's worth at the current rate is still issued, and the rate can recover from the floor. The
+  bucket does not fill during a backoff.
+- **Oversized requests.** A request costing more than one second's worth at `hard_cap` is refused,
+  never left waiting, so an adapter keeps each request it makes within that size.
+- **The stored record.** The window counts every grant of the last second, so the store keeps them
+  all, whole, beside the bucket's level and the instant it was last filled. A grant lost from that
+  record widens issuance, and the rules cannot see its absence.
+- **The clock.** Every one of these limits is measured on the database's clock, which every
+  process shares. A forward step of that clock, such as a virtual machine resuming or a time server
+  correcting it, reads as idle time, so it can release up to one more bucket inside one real
+  second. A stale instant in the stored record reads as idle time too, and the one-second window
+  still holds it to `hard_cap`, while a longer window can see one more bucket for each stale read,
+  and at worst `hard_cap` sustained. The rules cannot tell either from real idle time, and a
+  provider limit counted per minute absorbs both.
 
 Two details matter more than the algorithm choice:
 
-- **Honor `Retry-After` when present; use full jitter when absent** — `random(0, base * 2^n)`, never
-  fixed backoff. Gmail's [error
+- **Honor `Retry-After` when present, and use full jitter when absent.** Full jitter draws from
+  `random(0, base * 2^n)`, never a fixed backoff. Gmail's [error
   guide](https://developers.google.com/workspace/gmail/api/guides/handle-errors) does not say it
-  sends `Retry-After`, so it is read whenever it arrives, and Fastmail's behavior gets discovered
-  when its adapter is built. Fixed backoff from a resuming batch job produces synchronized retry
-  waves against yourself. A throttle arriving during a backoff never ends it sooner, so a
-  `Retry-After` is honored in full. The base is one second, n counts the throttles before this one
-  with no success between them, so the first throttle draws with n at zero, and `base * 2^n` stops
-  doubling at 32 seconds, within the 32 or 64 seconds Google Cloud's truncated exponential backoff
-  uses ([Memorystore](https://docs.cloud.google.com/memorystore/docs/redis/exponential-backoff)).
-- **Decrease on latency, not only on errors.** A 429 means the budget was already overshot;
+  sends `Retry-After`, and Fastmail's behavior is unknown, so it is read whenever it arrives. Fixed
+  backoff from a resuming batch job produces synchronized retry waves against yourself. A throttle
+  arriving during a backoff never ends it sooner, so a `Retry-After` is honored in full. The base
+  is one second, n counts the throttles before this one with no success between them, so the first
+  throttle draws with n at zero, and `base * 2^n` stops doubling at 32 seconds, within the 32 or 64
+  seconds Google Cloud's truncated exponential backoff uses
+  ([Memorystore](https://docs.cloud.google.com/memorystore/docs/redis/exponential-backoff)).
+- **Decrease on latency, not only on errors.** A 429 means the budget was already overshot, and
   latency degradation precedes it. Tracking a rolling median against baseline and backing off at
   roughly 2× is the difference between a job that occasionally trips limits and one that
-  essentially never does — worth having here specifically because these are long batch jobs where
-  no individual request has a waiting user. The median is taken over one-minute windows holding at
+  essentially never does. It is worth having here because these are long batch jobs where no
+  individual request has a waiting user. The median is taken over one-minute windows holding at
   least 20 samples, and the baseline is the lowest of the last ten such medians, so a rise in
   latency becomes the baseline only once it has lasted ten minutes. LEDBAT keeps its base delay
   the same way, as the lowest of ten one-minute minima
   ([RFC 6817](https://www.rfc-editor.org/rfc/rfc6817.html)).
 
-**The failure modes are named and watched.** *Collapse:* repeated throttling pins the rate at the
-floor and it never recovers, turning an hours-long backfill into days — alert on rate pinned at
-floor beyond a few minutes. *Runaway:* a coordination bug lets workers collectively exceed the
-budget — alert on aggregate observed request rate exceeding `hard_cap`, and page rather than
-dashboard, because runaway is the failure that risks the account restriction. The rules that
-raise both, and exactly what each reads, are
+**The failure modes are named and watched.** In *collapse*, repeated throttling pins the rate at
+the floor and it never recovers, turning an hours-long backfill into days, so an alert fires on
+the rate pinned at the floor beyond a few minutes. In *runaway*, a coordination bug lets workers
+collectively exceed the budget, so an alert fires on the aggregate observed request rate exceeding
+`hard_cap`, and it pages rather than sitting on a dashboard, because runaway is the failure that
+risks the account restriction. The rules that raise both, and exactly what each reads, are
 [ADR-0077](./0077-conditions-raised-as-alerting-rules.md)'s.
 
-What the numbers mean for the one big job: at the 50% target, Gmail metadata fetches cost 20 units
-each and run at about 2.5 messages/sec, roughly 9,000/hour. For a 100k corpus, backfill pass 1 is
-about 11 hours. Pass 2 fetches only the gated-in, non-restricted fraction, roughly 40–60% of the
-corpus, which takes another 4.4–6.7 hours. That is **about 15.5–18 hours, once**, roughly double
-the full-rate estimate and an easy trade for never antagonizing the provider on a job with no
-deadline.
+For the one big job, the numbers work out as follows. At the 50% target, Gmail metadata fetches
+cost 20 units each and run at about 2.5 messages/sec, roughly 9,000/hour. For a 100k corpus,
+backfill pass 1 is about 11 hours. Pass 2 fetches only the gated-in, non-restricted fraction,
+roughly 40–60% of the corpus, which takes another 4.4–6.7 hours. That is **about 15.5–18 hours,
+once**, roughly double the full-rate estimate and an easy trade for never antagonizing the provider
+on a job with no deadline.
 
 ## Alternatives considered
 
-- **A fixed conservative rate, no controller.** Rejected: wrong in both directions — it overruns
-  when the real ceiling is lower than documented, and permanently wastes headroom when discovery
-  would have found more (which for JMAP, with no published number, is the only way to find any).
-- **Target the documented ceiling and back off on 429.** Rejected: routinely brushing the ceiling
-  is the impolite posture, and sustained 429s are the overrun pattern that risks a provider-side
-  account restriction.
-- **Error-only feedback (classic AIMD without the latency signal).** Rejected for these workloads:
-  with no user waiting per request, trading a little throughput for staying out of the throttle
-  regime entirely is free.
+- **A fixed conservative rate, no controller.** No case was tabled for it. Rejected: it is wrong in
+  both directions. It overruns when the real ceiling is lower than documented, and permanently
+  wastes headroom when discovery would have found more (which for JMAP, with no published number, is
+  the only way to find any).
+- **Target the documented ceiling and back off on 429.** No case was tabled for it. Rejected:
+  routinely brushing the ceiling is the impolite posture, and sustained 429s are the overrun pattern
+  that risks a provider-side account restriction.
+- **Error-only feedback (classic AIMD without the latency signal).** No case was tabled for it.
+  Rejected for these workloads: with no user waiting per request, trading a little throughput for
+  staying out of the throttle regime entirely is free.
 
 ## Consequences
 
-- Rate behavior is observable by design: current rate, throttle events, and backoff state are
+- Rate behavior is observable by design. The current rate, throttle events, and backoff state are
   metrics, and the two pathologies have alerts, not just graphs.
 - The controller state lives in the shared coordination row
   ([ADR-0025](./0025-priority-classes-and-leases.md)) so all processes converge on one discovered
   ceiling per account.
-- The controller is testable against a simulated provider that throttles on schedule —
-  convergence and recovery are provable offline, before the first real backfill; those checks are
+- The controller is testable against a simulated provider that throttles on schedule, so
+  convergence and recovery are provable offline, before the first real backfill. Those checks are
   catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

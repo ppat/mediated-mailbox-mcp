@@ -181,10 +181,10 @@ deployment's ([ADR-0051](../engineering/0051-environment-contract.md)).
   ([ADR-0037](./0037-delisting-transition.md)).
 - Assumptions about other components. Every workload that masks or scans runs the same scanner
   version and the same scanner section, so two workloads that disagree re-open each other's work on
-  every run. Enumeration returns every message the mailbox holds, as the Provider Port's
-  contract for it states in `core/mail/port.go`, which for Gmail includes the trash and spam, since
-  the adapter lists with `includeSpamTrash` (`provider/gmail/doc.go`). Every workload that masks a subject records
-  the pair it masked under. Something runs backfill after each change of the scanner's version or
-  section ([ADR-0051](../engineering/0051-environment-contract.md)).
+  every run. Enumeration returns every message the mailbox holds, as the Provider Port's contract
+  for it states ([ADR-0010](../provider/0010-one-provider-port.md)), which for Gmail includes the
+  trash and spam, since the Gmail adapter lists with `includeSpamTrash`. Every workload that masks a
+  subject records the pair it masked under. Something runs backfill after each change of the
+  scanner's version or section ([ADR-0051](../engineering/0051-environment-contract.md)).
 - The rules above are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

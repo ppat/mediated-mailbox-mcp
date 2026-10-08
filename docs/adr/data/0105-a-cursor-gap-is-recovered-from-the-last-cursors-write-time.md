@@ -102,7 +102,7 @@ mailbox holds then removes nothing from the index.
   the window and removed during the gap stays in the index for good, since the change feed never
   names it again, no recovery lists it and backfill removes nothing. So does a message whose removal
   a tick applied in the seconds between backfill reading the page that holds it and committing that
-  page. Production point 1's reconciliation of counts against the provider is where either shows.
+  page. A reconciliation of the index's counts against the provider is what shows either.
 - The stored messages the listing left out are asked for in metadata calls sized as a change set's
   are, so a recovery whose listing leaves out many of them spends that much more of the sync class's
   budget.
@@ -114,9 +114,9 @@ mailbox holds then removes nothing from the index.
   search, which it narrows by first, compares that instant or the message's own Date header is
   unverified ([provider/gmail/doc.go](../../../provider/gmail/doc.go)). If it compares the header, a
   message received during the gap whose Date header is older than the window is never listed, so
-  the recovery never adds it, and production point 1's reconciliation of counts is where that
-  shows. The metadata read returns every message the mailbox holds,
-  the trash and spam included, and leaves out one it no longer holds
+  the recovery never adds it, and a reconciliation of the index's counts against the provider is
+  what shows that. The metadata read returns every message the mailbox holds, the trash and spam
+  included, and leaves out one it no longer holds
   ([ADR-0010](../provider/0010-one-provider-port.md)).
 - The rules above are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

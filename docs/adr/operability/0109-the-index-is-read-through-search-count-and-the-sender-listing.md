@@ -13,14 +13,14 @@ the mailbox, label distributions, senders with no label and the senders behind m
 from metadata alone. [ADR-0017](../data/0017-two-pass-backfill.md) builds per-sender aggregates in
 backfill's first pass for this, held in the `senders` table of [ADR-0016](../data/0016-schema.md).
 
-The message and thread listings already page the whole index newest first. What is missing is
-selecting, sorting, counting and grouping, and reading the sender aggregates. Which operations carry
-them is this record's.
+The message and thread listings page the whole index newest first. Selecting, sorting, counting
+and grouping, and reading the sender aggregates, need operations beyond them, and which operations
+carry them is this record's.
 [ADR-0087](./0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)'s R8 asks
-for tools shaped around tasks and few enough to choose between, and its registry gives each operation
-one route, a structured read a `:search` route, and a read with only scalar arguments a `GET`. How
-the operations select messages is [ADR-0108](./0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)'s
-index query.
+for tools shaped around tasks and few enough to choose between, and its registry gives each
+operation one route, a structured read a `:search` route, and a read with only scalar arguments a
+`GET`. How the operations select messages is
+[ADR-0108](./0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)'s index query.
 
 ## Decision
 
@@ -79,13 +79,13 @@ index query.
 - **Every timestamp crossing the three is UTC with the `Z` suffix**, and one given with any other
   offset is refused ([ADR-0033](./0033-utc-only-timestamps.md)).
 - **The mediator reads the statistics through the data-access subsection for senders, and the
-  rebuild of the statistics and the counts of prior scan hits move to a subsection below it**, which
+  rebuild of the statistics and the counts of prior scan hits sit in a subsection below it**, which
   only the deployables that build the statistics admit, as
   [ADR-0066](../data/0066-data-access-generated-from-sql.md) places a statement a role admitted to
   its table's subsection may not be granted. Delta sync's removal of the statistics of a sender with
   no stored message sits in its own subsection for a message's changes, which the mediator does not
-  admit either. The mediator's role gains a read of the
-  sender domain on messages and of the statistics' columns, apart from the stored sender class
+  admit either. The mediator's role holds a read of the sender domain on messages and of the
+  statistics' columns, apart from the stored sender class
   ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)) and the prior scan hits.
 
 ## Alternatives considered

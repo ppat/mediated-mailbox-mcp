@@ -14,7 +14,7 @@ prevent it" into "how expensive is it, how fast is it noticed, and what evidence
 
 ## Decision
 
-Layered hardening, each layer answering one of those three questions:
+The hardening is layered, each layer answering one of those three questions.
 
 - **Raising the cost:** credentials sealed so that only code calling a provider opens an account's
   credential, the UI's one opening part opening an OAuth client's secret and nothing else
@@ -28,22 +28,22 @@ Layered hardening, each layer answering one of those three questions:
   run. The UI runs under the same hardening, because it holds a fresh grant while it completes a
   consent and holds the private key
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
-- **Audit trail is maintained:** A record of changes is maintained in state store and significant
-  events or changes are logged at a corresponding log level.
+- **Audit trail is maintained:** a record of changes is kept in the Metadata & State Store, and
+  significant events or changes are logged at the log level that matches them.
 - **Recovery documented:** a credential-rotation runbook, so revoke-and-reissue follows a written
   procedure rather than an improvisation during an incident.
 
 ## Alternatives considered
 
 - **Splitting credentials across multiple services to dilute the anchor.** Rejected: some process
-  must ultimately wield full-mailbox credentials (that is what redaction-in-code means); splitting
+  must ultimately wield full-mailbox credentials (that is what redaction-in-code means). Splitting
   multiplies hardening surfaces without removing the anchor, and the extra hops are themselves
   attack surface.
 
 ## Consequences
 
-- Alerting based on logs is a deployment platform and environment specific concern as is the backups
-  of state store.
+- Alerting on logs, and backups of the Metadata & State Store, are concerns of the deployment
+  platform and environment.
 - Evidence written before a compromise survives it without depending on anything outside the
   cluster, because the audit log is append-only to every runtime role
   ([ADR-0016](../data/0016-schema.md)). That bounds the claim rather than absolutising it. An

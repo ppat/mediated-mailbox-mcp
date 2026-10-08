@@ -37,7 +37,7 @@ func TestDirectiveProblem(t *testing.T) {
 		"//nolint:gosec":      true,
 		"//nolint:gosec //":   true,
 		"//nolint:gosec //  ": true,
-		// Spellings golangci-lint does not honour today.
+		// Spellings golangci-lint does not honour.
 		"//NOLINT":           true,
 		"//Nolint:gosec":     true,
 		"/* nolint */":       true,

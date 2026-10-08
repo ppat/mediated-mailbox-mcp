@@ -5,25 +5,24 @@
 
 ## Context
 
-[TESTING.md](../../../TESTING.md) fixes the test kinds and, before this record, gave the UI's
-rendering layer one row, example-based tests against fixture responses carrying marker text,
-asserting every marker arrives as text. [ADR-0043](./0043-no-mocking.md) forbids mocks in any form,
-[ADR-0044](./0044-synthetic-fixtures-marker-text.md) puts markup-shaped markers in fixture metadata,
-[ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) demands that a verification-proving test
-never retires, that an automatable control's tests be seen to go red, that a control's test carry
-its expected value independently of the code under test, and that a lint ban standing in for a
-control be proven by a violation file. Before this record,
-[docs/VERIFICATIONS.md](../../VERIFICATIONS.md) keyed seven controls to the UI. The toolchain that
-proves them was open. The operator's weights, set on 2026-09-10, were that a test which both the
-server and the browser could carry belongs in the server, that the UI may need no property-based
-test, that validation in the server is necessary whatever the browser does, and that nothing is
-built today that is not needed today.
+[TESTING.md](../../../TESTING.md) fixes the test kinds. [ADR-0043](./0043-no-mocking.md) forbids
+mocks in any form, [ADR-0044](./0044-synthetic-fixtures-marker-text.md) puts markup-shaped markers
+in fixture metadata, and [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) demands that a
+verification-proving test never retires, that an automatable control's tests be seen to go red,
+that a control's test carry its expected value independently of the code under test, and that a
+lint ban standing in for a control be proven by a violation file.
+[docs/VERIFICATIONS.md](../../VERIFICATIONS.md) keys controls to the UI, and this record decides
+the toolchain that proves them. It weighs the choice on four principles.
 
-The research of 2026-09-10 found that of those seven controls, five are server behaviors proven
-in Go against real Postgres, one, inert rendering, is provable only where rendering happens, and
-one, the content security policy, splits into three assertions Go can prove and one act only a
-browser performs. Where each is proven under this decision, with the deciding record named by
-the catalogue's row:
+- A test which both the server and the browser could carry belongs in the server.
+- The UI may need no property-based test.
+- Validation in the server is necessary whatever the browser does.
+- Nothing is built before it is needed.
+
+The seven UI controls this record places divide this way. Five are server behaviors proven in Go
+against real Postgres, one, inert rendering, is provable only where rendering happens, and one,
+the content security policy, splits into three assertions Go can prove and one act only a browser
+performs. The table shows where each is proven under this decision.
 
 | Control | Proven where | Instrument |
 | --- | --- | --- |
@@ -35,14 +34,13 @@ the catalogue's row:
 | A decision needs its token and its declared identity | Go | an HTTP test constructing the harder case, the cookie present and the token absent |
 | A decision writes all its rows or none | Go against real Postgres | example tests with a fault injected between the writes |
 
-The research also found that the DOM shims carry no reported defect on the text-node path
-every framework's default binding uses, that the two JavaScript test tools able to drive a real
-browser do not run under bun and would bring Node and, for one of them, a second bundler into the
-repository, and that a Go test can drive a browser without Node. The spike of
-[ADR-0063](./0063-browser-app-is-preact-with-signals.md) then ran the inert-rendering test under
-the shim and under a real browser and the two agreed on every assertion, and its mutation went
-red under both. The operator ruled on the policy row's disposition and accepted this decision on
-2026-09-10.
+As of 2026-09-10 the DOM shims carry no reported defect on the text-node path every framework's
+default binding uses. The two JavaScript test tools able to drive a real browser do not run under
+bun and would bring Node and, for one of them, a second bundler into the repository, and a Go test
+can drive a browser without Node. The spike of
+[ADR-0063](./0063-browser-app-is-preact-with-signals.md) ran the inert-rendering test under the
+shim and under a real browser, the two agreed on every assertion, and its mutation went red under
+both.
 
 ## Decision
 
@@ -64,42 +62,46 @@ red under both. The operator ruled on the policy row's disposition and accepted 
   fails the build. The browser tests receive fixtures through a fetch function passed as a
   parameter, [ADR-0040](./0040-pure-core-decisions-as-values.md)'s rule that nothing is ambient,
   and nothing intercepts the network. Marker text enters the fixtures through the fixture
-  database, where ADR-0044 already places it.
+  database, where [ADR-0044](./0044-synthetic-fixtures-marker-text.md) already places it.
 - **A recorded fixture is data, and not a mock, on three grounds.** It substitutes no behavior,
   since the function returns a value and nothing about the server's conduct is asserted. Its
   shape is not a belief, since it is a recording typed by the contract of
   [ADR-0065](./0065-contract-built-from-registry-consumed-as-generated-types.md). And the belief
   a mock would leave untested, that the real server produces that shape, is proven where the
-  recording is made. This is the discipline ADR-0043 applies to the provider fake and its
-  contract suite, one level cheaper, because a recording needs no suite of its own.
+  recording is made. This is the discipline [ADR-0043](./0043-no-mocking.md) applies to the
+  provider fake and its contract suite, one level cheaper, because a recording needs no suite of
+  its own.
 - **Three lint rules keep that structural.** No type assertion and no `any` inside a fixture
   module, so a fixture cannot drift from the contract silently. None of the runner's own mock,
   spy, or stub functions anywhere, since the runner ships them and only lint keeps them out. And
-  the raw-markup escape hatch nowhere, the rule ADR-0063 states. Each ban is proven by a
-  checked-in violation file, as ADR-0046 requires. The named request-interception libraries,
-  `msw`, `nock`, `fetch-mock`, `miragejs`, `sinon`, and their kind, are excluded by ADR-0043's
-  first rule and are listed here so nobody argues one in.
+  the raw-markup escape hatch nowhere, the rule
+  [ADR-0063](./0063-browser-app-is-preact-with-signals.md) states. Each ban is proven by a
+  checked-in violation file, as [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md)
+  requires. The named request-interception libraries, `msw`, `nock`, `fetch-mock`, `miragejs`,
+  `sinon`, and their kind, are excluded by [ADR-0043](./0043-no-mocking.md)'s first rule and are
+  listed here so nobody argues one in.
 - **The inert-rendering mutation swaps one field's text render for the escape hatch.** Under
-  ADR-0046's harness the demonstration must redden the dedicated inert-rendering test and not
-  only screen-level tests, or it has found a vacuous test.
-- **The content security policy's proof is split, by the operator's ruling.** Three assertions
-  are permanent Go tests. The policy header is present and exact, name and value, on every
-  response including the entry document, compared against the policy written out literally in
-  the test as ADR-0046 requires. The entry template and the built bundle contain no inline
-  script and no reference to another origin, where the bundle's scan carries a short allow list
-  of absolute strings that cannot become a request, such as XML namespace identifiers, each
-  certified by a person. The stylesheet references fonts on the UI's own origin only. The fourth
-  assertion, that a browser blocks an inline script and an external fetch under the policy, is a
-  drill in ADR-0046's sense, observed in a real browser when the UI's tests first land and again
-  after any change to the policy, its proof holding for its date. The operator ruled on 2026-09-29
-  that the first observation is "to be deferred to test after production point 1", so the page
-  lands with the UI's tests and the drill waits for that point. **A person performs it**, against
-  a checked-in page carrying an inline script and a script fetching another origin, served by the
-  UI's own handler, with the browser's developer console open. No tool is taken, because every one
-  considered proves the same thing and leaves no better evidence, for something run a handful of
-  times over the project's life. **The dated note records the browser's own refusal message
-  verbatim**, rather than a summary of it, since a note saying the block was observed is a claim a
-  later reader cannot check.
+  [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md)'s harness the demonstration must
+  redden the dedicated inert-rendering test and not only screen-level tests, or it has found a
+  vacuous test.
+- **The content security policy's proof is split.** Three assertions are permanent Go tests. The
+  policy header is present and exact, name and value, on every response including the entry
+  document, compared against the policy written out literally in the test as
+  [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) requires. The entry template and the
+  built bundle contain no inline script and no reference to another origin, where the bundle's
+  scan carries a short allow list of absolute strings that cannot become a request, such as XML
+  namespace identifiers, each certified by a person. The stylesheet references fonts on the UI's
+  own origin only. The fourth assertion, that a browser blocks an inline script and an external
+  fetch under the policy, is a drill in
+  [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md)'s sense, observed in a real browser
+  at the point [ROADMAP.md](../../../ROADMAP.md) places it and again after any change to the
+  policy, its proof holding for its date. The drill page lands with the UI's tests. **A person
+  performs it**, against a checked-in page carrying an inline script and a script fetching
+  another origin, served by the UI's own handler, with the browser's developer console open. No
+  tool is taken, because every one considered proves the same thing and leaves no better
+  evidence, for something run a handful of times over the project's life. **The dated note
+  records the browser's own refusal message verbatim**, rather than a summary of it, since a note
+  saying the block was observed is a claim a later reader cannot check.
 - **No property-based test exists in the browser.** The four decision write paths are covered by
   the example tests with fault injection that [ADR-0060](./0060-no-code-in-the-database.md)
   requires, and no browser rule needs generated inputs.
@@ -109,7 +111,7 @@ red under both. The operator ruled on the policy row's disposition and accepted 
 
 ## Alternatives considered
 
-The shapes weighed, with the chosen one in the first row:
+The table lists the shapes weighed, with the chosen one in the first row.
 
 | Shape | Tools | Runtimes in CI | Browser in the permanent gate | Second bundler | Proves the policy's block |
 | --- | --- | --- | --- | --- | --- |
@@ -134,33 +136,29 @@ The shapes weighed, with the chosen one in the first row:
   test of a few dozen lines.
 - **Driving a browser from a Go test for the policy's block, keeping its proof continuous.** Its
   case was the un-braided arrangement, the policy test living beside the Go integration tests
-  whose server and database it needs, with no Node. The operator chose the drill instead,
+  whose server and database it needs, with no Node. Not chosen, and the drill is taken instead,
   because the policy is a constant that changes rarely, so continuous proof buys little against
   the standing cost of a browser binary in CI. This route is the one to take if continuous proof
   is ever wanted.
 - **Hand-written fixture modules typed by the contract.** Its case was the same three grounds with
   less machinery. Not chosen as the target form because the third ground then rests on an argument
-  rather than on a recording, and the recording makes it structural, the operator's stated
-  preference. Hand-written fixtures are acceptable until the server they would be recorded from
-  exists, and the spike of ADR-0063 used that form, a typed module from which the fixture JSON was
-  emitted.
+  rather than on a recording, and the recording, which is preferred, makes it structural. The
+  spike of [ADR-0063](./0063-browser-app-is-preact-with-signals.md) used that form, a typed module
+  from which the fixture JSON was emitted.
 
 ## Consequences
 
-- TESTING.md's UI row cites this record beside ADR-0044 and ADR-0056, its "When tests run"
-  section places the browser tests, and its "Deliberately absent" list names the runner's mocking
-  functions.
 - The request-token row of the catalogue has a clause a browser cannot construct, a page on
   another origin sending the session cookie, which `SameSite=Strict` prevents. Go proves the
   harder case, a request carrying the cookie without a matching token, so no browser is needed
   there. That asymmetry, the browser as a mitigation the server can test past versus the browser
   as the mechanism itself, is what separates the token row from the policy row.
 - The shim's fidelity on the text-node path is a drill, the inert-rendering test run once in a
-  real browser when the first inert-rendering test lands. If the two ever disagree, the one test
-  moves to the browser and nothing else changes.
+  real browser, with its standing in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md). If the two
+  ever disagree, the one test moves to the browser and nothing else changes.
 - The stream client's transport cannot run under the test runner, because bun's runtime lacks
-  `EventSource` (ADR-0063), so the transport is exercised in a browser at the unit that builds it
-  and the handler is what the shim tests drive.
+  `EventSource` ([ADR-0063](./0063-browser-app-is-preact-with-signals.md)), so the transport is
+  exercised in a browser and the handler is what the shim tests drive.
 - Accessibility basics on tables, menus, and live regions, requirement 12 of
   [docs/UI.md](../../UI.md#16-framework-requirements), need no browser. The structural rules run in
   the shim if run at all, and the one rule that needs rendering, color contrast, is the palette
@@ -170,11 +168,12 @@ The shapes weighed, with the chosen one in the first row:
 - The recording step needs the UI's Go server and an ephemeral Postgres in the same job as the
   browser tests.
 - Assumptions about other components: the UI's Go server and the fixture database exist before the
-  browser tests are written, which is the order the M3 unit in [ROADMAP.md](../../../ROADMAP.md)
-  states. The framework's default binding creates text nodes and never routes a value through the
-  HTML parser (ADR-0063). The policy header is a constant in the Go handler
+  browser tests are written. The framework's default binding creates text nodes and never routes
+  a value through the HTML parser ([ADR-0063](./0063-browser-app-is-preact-with-signals.md)). The
+  policy header is a constant in the Go handler
   ([ADR-0062](../operability/0062-ui-content-security-policy.md)).
 - The fixture lint rules, the ban on the runner's mocking functions, and the fixture drift check
-  are controls, and the escape-hatch ban rides ADR-0063's row. Their violation injections are
+  are controls, and the escape-hatch ban rides
+  [ADR-0063](./0063-browser-app-is-preact-with-signals.md)'s row. Their violation injections are
   catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md), where the policy row is split
   into its permanent and its drill halves.

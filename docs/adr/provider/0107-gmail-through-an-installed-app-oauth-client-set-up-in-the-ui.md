@@ -39,8 +39,8 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
   connect through each, is
   [ADR-0106](./0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)'s.
 - **Setting up the client is its own step, apart from connecting an account.** The UI guides it
-  once per client, entirely in Google Cloud console. It links straight to each console page
-  it needs, gives each step's instructions in the UI, and states the exact value to enter. It
+  once per client, entirely in Google Cloud console. It links straight to each console page it
+  needs, gives each step's instructions in the UI, and states the exact value to enter. It
   offers no command-line route, because the two steps a script can do are trivial in the console
   the person must open anyway for the rest. The person brings the client's identifier and secret
   into the UI, which checks them against Google at once and stores the secret sealed
@@ -53,12 +53,12 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
   consent ([unverified apps](https://support.google.com/cloud/answer/7454865)).
 - **Connecting an account runs the consent from the UI.** The UI sends the person to Google's
   consent page with a loopback redirect, to the loopback address and port the UI's configuration
-  names, `127.0.0.1` by default ([docs/UI.md section 18.1](../../UI.md#181-the-configuration-the-ui-declares)),
-  where nothing listens. The browser lands on
-  a page that fails to load, and the person pastes that page's address, which carries the
-  authorization code, back into the UI. The UI exchanges the code with PKCE, checks the state it
-  issued, and refuses a grant for a mailbox other than the one the person named. Loopback redirects
-  remain Google's recommended method for desktop clients
+  names, `127.0.0.1` by default
+  ([docs/UI.md section 18.1](../../UI.md#181-the-configuration-the-ui-declares)), where nothing
+  listens. The browser lands on a page that fails to load, and the person pastes that page's
+  address, which carries the authorization code, back into the UI. The UI exchanges the code with
+  PKCE, checks the state it issued, and refuses a grant for a mailbox other than the one the person
+  named. Loopback redirects remain Google's recommended method for desktop clients
   ([OAuth 2.0 for installed apps](https://developers.google.com/identity/protocols/oauth2/native-app)).
 - **On re-authorization, the mailbox named is the one the account remembers.** The consent's
   mailbox check compares the grant with the mailbox the account remembers
@@ -84,18 +84,17 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
   client and waits for its identifier and secret to be pasted back
   ([GAM](https://github.com/GAM-team/GAM)).
 - **Offering the scriptable part as commands beside the guided flow.** For it, a person at ease in
-  a terminal creates the project and enables the Gmail API without the console. Against it, the
-  operator ruled on 2026-10-01 that installing, configuring and authenticating the Cloud CLI is
-  busy work for the two most trivial steps, done more easily in the console the person must be in
-  anyway for the steps that matter.
+  a terminal creates the project and enables the Gmail API without the console. Against it,
+  installing, configuring and authenticating the Cloud CLI is busy work for the two most trivial
+  steps, done more easily in the console the person must be in anyway for the steps that matter.
 - **A web-application client redirecting to the UI.** For it, no address is pasted. Against it,
   a web client's redirect must be an HTTPS address registered on the client, and a bare IP address
   is refused
   ([OAuth 2.0 for web server apps](https://developers.google.com/identity/protocols/oauth2/web-server)),
   and nothing about a deployment guarantees the UI such an address
   ([ADR-0051](../engineering/0051-environment-contract.md)).
-- **IMAP with an app password.** For it, no Cloud project exists anywhere. Rejected by the
-  operator. An app password grants the whole mailbox including permanent delete, which removes the
+- **IMAP with an app password.** For it, no Cloud project exists anywhere. Rejected. An
+  app password grants the whole mailbox including permanent delete, which removes the
   token's half of [ADR-0019](../mutation/0019-asymmetric-mutation.md)'s guarantee.
 - **The device authorization flow.** Non-viable. Its fixed list of allowed scopes holds no Gmail
   scope ([limited-input devices](https://developers.google.com/identity/protocols/oauth2/limited-input-device)).
@@ -113,7 +112,7 @@ or web OAuth client. Only creating the project and enabling the Gmail API can be
   ([OAuth 2.0 for installed apps](https://developers.google.com/identity/protocols/oauth2/native-app)).
   Pasting a loopback address back is not that method, but it rests on Google continuing to allow
   a loopback redirect nobody listens on.
-- The consent command stays as a developer tool that mints the refresh token the contract suite's
+- The consent command is a developer tool that mints the refresh token the contract suite's
   run against the test account uses. It shares the consent code the UI runs and ships in no image.
 - Refresh-token durability stays a load-bearing operational concern. Its handling is
   [ADR-0082](../operability/0082-rotation-writeback-to-the-database.md), and a lost grant is

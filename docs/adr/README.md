@@ -1,11 +1,11 @@
 # Decision records
 
-Every reversible decision in the design, one record each: its context, the decision, the
+Every reversible decision in the design, one record each, with its context, the decision, the
 alternatives it displaced, and its consequences. The split with [DESIGN.md](../../DESIGN.md) is
-stated there and holds from both sides: the design document holds what would still be true if any
-individual reversible decision had gone the other way; a record here holds one such decision.
-Records state decisions; [ROADMAP.md](../../ROADMAP.md) tracks what is built versus pending —
-build state never lives here, apart from a record's status, as the statuses below state.
+stated there and holds from both sides. The design document holds what would still be true if any
+individual reversible decision had gone the other way, and a record here holds one such decision.
+Records state decisions, and [ROADMAP.md](../../ROADMAP.md) tracks what is built versus pending.
+Build state never lives here, apart from a record's status, as the statuses below state.
 
 Documents cite records by number ("ADR-0007"), and every reference links to its target.
 Records are the fluid layer and may move folders, split, or be superseded, while a record's
@@ -17,48 +17,49 @@ moves it. Records themselves link freely and deep, into
 ## Record format
 
 - **Filename `NNNN-slug.md`.** The number is global across all groups, allocated in mint order,
-  stable, and never reused; the folder is theme navigation only, and a record may move folders
-  without renumbering. The number is the durable handle; the path is not.
+  stable, and never reused. The folder is theme navigation only, and a record may move folders
+  without renumbering. The number is the durable handle, and the path is not.
 - **An H1 stating the decision as a claim** (`# NNNN. <decision>`), then a header line carrying
-  the record's metadata as visible, linked text: `**Status:** … · **Pillar:** … · **Serves:** …`,
-  with outcome identifiers linked to their defining sections. `Pillar` appears only when the
-  record implements one — some decisions are pure consequence-management and serve no single
-  pillar. This line is the *single* home for a record's metadata; the tables below mirror status
-  for scanning, and the record wins on disagreement.
+  the record's metadata as visible, linked text,
+  `**Status:** … · **Pillar:** … · **Serves:** …`, with outcome identifiers linked to their
+  defining sections. `Pillar` appears only when the record implements one, since some decisions
+  are pure consequence-management and serve no single pillar. This line is the *single* home for a
+  record's metadata. The tables below mirror status for scanning, and the record wins on
+  disagreement.
 - **Fixed sections: Context, Decision, Alternatives considered, Consequences.** Alternatives is
-  mandatory, because a decision whose alternatives are unstated cannot be re-argued honestly —
-  and each alternative carries the case that was made for it, not only why it lost, for the same
-  reason. An alternative for which no case was tabled says so plainly rather than inventing one.
-  An explicit "none seriously considered, because …" is a valid body; a missing section is
+  mandatory, because a decision whose alternatives are unstated cannot be re-argued honestly. For
+  the same reason each alternative carries the case that was made for it, not only why it lost.
+  An alternative for which no case was tabled says so plainly rather than inventing one. An
+  explicit "none seriously considered, because …" is a valid body, while a missing section is
   indistinguishable from an oversight. Where a Decision's own structure already carries the
   rejected options (a verdict table, rejection reasons inline), the section says so and points at
   them rather than restating.
 - **No YAML frontmatter, deliberately.** A machine-readable metadata block would be a second home
   for facts the header line already states, and frontmatter cannot carry the links the line
-  requires. The readers here — humans and LLMs — read text; this index is the queryable view.
+  requires. The readers here, humans and LLMs, read text, and this index is the queryable view.
 - **Statuses:** **Proposed** (adopted by the documents, awaiting operator ratification) →
-  **Accepted** → **Superseded** (the header gains `**Superseded by:** ADR-NNNN`; the replacement
-  is a new number). An **Accepted** record may instead transition to **Deprecated**, meaning the
-  decision no longer holds and nothing replaces it. A deprecated record is dead. It binds
-  nothing, is cited by nothing as current authority, and is kept only so the trail stays whole.
-  A new record is set to **Accepted**, in the pull request that implements it. So if a new record
-  is being created along with its implementation in the same PR, it gets ratified by approval and
-  landing of the PR. Otherwise a new record starts off **Proposed**, and becomes ratified with
-  the first PR whose implementation is at least partly influenced by that record. That is the general practice
-  though its not unacceptable to records to be ratified by prior to implementation, just unnecessary.
+  **Accepted** → **Superseded** (the header gains `**Superseded by:** ADR-NNNN`, and the
+  replacement is a new number). An **Accepted** record may instead transition to **Deprecated**,
+  meaning the decision no longer holds and nothing replaces it. A deprecated record is dead. It
+  binds nothing, is cited by nothing as current authority, and is kept only so the trail stays
+  whole. A new record is set to **Accepted** in the pull request that implements it, so a record
+  created in the same pull request as its implementation is ratified when that pull request is
+  approved and lands. Otherwise a new record starts as **Proposed**, and is ratified by the first
+  pull request whose implementation is at least partly influenced by it. Ratifying a record
+  before any implementation is allowed, but unnecessary.
 - **In-place change versus supersession.** An accepted record may change in place when the change
   stays true to the original decision in spirit and is backwards compatible with the previous
-  interpretation — everything true or permitted under the old reading remains so (broadening a
-  referent, clarifying, adding a consequence the decision always implied). A change that
-  reverses, narrows, or re-argues what was decided supersedes instead.
+  interpretation, meaning everything true or permitted under the old reading remains so
+  (broadening a referent, clarifying, adding a consequence the decision always implied). A change
+  that reverses, narrows, or re-argues what was decided supersedes instead.
 - **Consequences name what the decision assumes about other components.** A dependency on how
   another component or subsystem behaves, left implicit, is the coupling that breaks future
-  evolution; naming it in the record makes it reviewable at the moment it is created.
+  evolution. Naming it in the record makes it reviewable at the moment it is created.
 - **One decision per record, cut by the re-argue test.** Decisions merge into one record when they
-  share one review context and would be re-argued together — reversing one forces re-arguing the
-  others. They stay separate when independently reversible. A record found to be carrying two
-  separable decisions is split at the next substantive touch; two records that always travel
-  together merge the same way.
+  share one review context and would be re-argued together, because reversing one forces
+  re-arguing the others. They stay separate when independently reversible. A record found to be
+  carrying two separable decisions is split at the next substantive touch, and two records that
+  always travel together merge the same way.
 
 ## Redaction — `redaction/`
 

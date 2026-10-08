@@ -9,10 +9,10 @@ import (
 	co "github.com/google/go-cmp/cmp/cmpopts"
 )
 
-// This file carries spellings of suppression directives that golangci-lint and the control linters do not
-// honour today, each on a violation of a control. The search refuses each, and the control finding is still
-// reported. If a later release starts honouring a spelling, that line's control finding goes unreported and
-// banproof turns red (ADR-0071).
+// This file carries spellings of suppression directives that golangci-lint and the control linters
+// do not honour, each on a violation of a control. The search refuses each, and the control finding
+// is still reported. If a later release starts honouring a spelling, that line's control finding
+// goes unreported and banproof turns red (ADR-0071).
 func TestUnhonouredSpellings(t *testing.T) {
 	p := t.TempDir()
 	_ = os.Remove(p)                    /* want errcheck "Error return value" suppression "does not honour" */                                 //NOLINT

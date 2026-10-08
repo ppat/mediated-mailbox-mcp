@@ -5,9 +5,9 @@
 
 ## Context
 
-The operator asked for two palettes, one for dark and one for light themes, chosen by palette
-selection best practices, with enough differentiation that colors can be told apart and no
-harshness or eye strain, and said the dark palette is the one mostly used. Legibility is
+The UI needs two palettes, one for dark and one for light themes, chosen by palette selection
+best practices, with enough differentiation that colors can be told apart and no harshness or eye
+strain. The dark palette is the one mostly used. Legibility is
 [O4](../../../USE_CASES.md#o4--the-operator-can-see-and-steer)'s outcome, so the palette is a
 design fact rather than a taste.
 
@@ -24,11 +24,12 @@ design fact rather than a taste.
 - **Checked with WCAG 2 contrast ratios.** Every text and badge color clears 4.5:1 on its surface
   in both modes. Large text, icons, and controls clear 3:1. The derivation script and its report
   live with the mockups at [ui/design/](../../../ui/design/README.md).
-- **The categorical chart series are the validated reference palette of the data-visualization
-  method**, first six slots, re-checked on these surfaces for lightness band, chroma floor,
-  colorblind separation, normal-vision separation, and contrast. Series hues are assigned in fixed
-  order and never cycled. Sensitivity and state in charts use the semantic roles and the neutral
-  fill, never the series.
+- **The categorical chart series are the reference palette of the data-visualization palette
+  validator** that [ui/design/DESIGN-NOTES.md](../../../ui/design/DESIGN-NOTES.md) names with the
+  command that runs it, first six slots, re-checked on these surfaces for lightness band, chroma
+  floor, colorblind separation, normal-vision separation, and contrast. Series hues are assigned
+  in fixed order and never cycled. Sensitivity and state in charts use the semantic roles and the
+  neutral fill, never the series.
 - **Color never carries meaning alone.** Every status and sensitivity badge has a label, and text
   wears text colors.
 
@@ -36,8 +37,9 @@ design fact rather than a taste.
 
 - **A derived six-hue chart series matching the interface palette's hue plan.** Its case was one
   visual system for interface and charts. Rejected because at equal lightness the set failed the
-  colorblind-separation check in the validator in both modes and the normal-vision floor in dark.
-- **One palette.** No case was tabled. The operator asked for two.
+  colorblind-separation check in that validator in both modes and the normal-vision floor in dark.
+- **One palette.** No case was tabled. Rejected because the UI needs both a dark and a light
+  theme.
 
 ## Consequences
 

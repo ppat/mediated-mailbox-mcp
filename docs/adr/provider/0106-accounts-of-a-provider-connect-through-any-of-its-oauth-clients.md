@@ -15,10 +15,9 @@ sets each client up apart from any account
 organizations with no common administrator
 ([ADR-0085](./0085-multi-account-contexts-with-an-installation-client.md)).
 
-How many clients an installation holds, and which accounts use each, is a choice of its own. The
-operator ruled on 2026-10-02 that, within one provider, connecting several accounts through one
-client and connecting accounts through different clients must both be options, and that a client
-never spans providers.
+How many clients an installation holds, and which accounts use each, is a choice of its own.
+Within one provider, connecting several accounts through one client and connecting accounts
+through different clients must both be options, and a client never spans providers.
 
 ## Decision
 
@@ -48,14 +47,14 @@ never spans providers.
 
 - **One client per provider for the whole installation**
   ([ADR-0083](./0083-gmail-through-an-installation-oauth-client.md)). For it, the client is set up
-  once and nothing is chosen when connecting an account. Against it, the operator ruled that
-  connecting accounts through different clients must be an option.
+  once and nothing is chosen when connecting an account. Against it, connecting accounts through
+  different clients must be an option.
 - **A client for every account**, the rule [ADR-0026](./0026-multi-account-contexts.md) carried.
   For it, no two accounts share anything at the provider. Against it, the person repeats the whole
   client setup for every mailbox, and a shared client does not share a grant. Under this record an
   account may still have a client of its own.
 - **A client serving several providers.** Not viable. A client is issued by one provider and
-  authenticates only to it, and the operator ruled it out.
+  authenticates only to it.
 - **The client an account uses held in `account_state`, beside the credential.** For it, the grant
   and the client it was issued to sit in one row. Against it, the installation screens read no
   account's state ([ADR-0056](../operability/0056-ui-organized-around-the-operators-work.md)), and
@@ -74,11 +73,11 @@ never spans providers.
   `accounts` names each account's client. The account snapshot pairs each account with its own
   client ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 - A client's sealed secret is bound to its row
-  ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)), so when the table's key
-  moves from the provider to the name, the client already stored takes its provider's value as its
-  name, and its sealed secret stays bound to its row with no re-seal. A name never changes, so
-  nothing re-seals a secret for its row's sake. The UI's role gains delete on `oauth_clients` for
-  removing an unused client ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
+  ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)). A name never changes,
+  so nothing re-seals a secret for its row's sake. A client stored while the table was keyed on the
+  provider takes its provider's value as its name, so its sealed secret stays bound to its row with
+  no re-seal. The UI's role holds delete on `oauth_clients` for removing an unused client, as
+  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) states.
 - Assumptions about other components. The provider refuses a credential presented with a client
   other than the one it was issued to, so an account paired with the wrong client fails to
   authenticate rather than acting through it.

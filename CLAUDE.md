@@ -17,14 +17,14 @@ conventions. It points at the documents and never repeats them, so every fact ha
 | [docs/MUTATIONS.md](./docs/MUTATIONS.md) | The mutation ledger. Per-control proof that tests go red when the mechanism is broken, written only from implementation time |
 | [.github/ISSUE_TEMPLATE/ticket.md](./.github/ISSUE_TEMPLATE/ticket.md) | The format every ticket is cut from. The rules for tickets are under [Repository process](#repository-process) |
 
-Design questions resolve there, in that order: outcome → pillar/glossary → decision record.
+Design questions resolve there in the order outcome → pillar/glossary → decision record.
 
 ## Keep the documents current — a standing duty
 
-When something new comes up during ANY work — a decision made in conversation, a fact learned
-while implementing, a plan change, a new term, a discovered risk — updating the relevant document
-is part of that work, not a follow-up. Nothing about the system lives only in chat, code, or
-commit messages. To do it, launch the **`update-docs` skill** with the Skill tool and use it in
+When something new comes up during ANY work, such as a decision made in conversation, a fact
+learned while implementing, a plan change, a new term or a discovered risk, updating the relevant
+document is part of that work, not a follow-up. Nothing about the system lives only in chat, code,
+or commit messages. To do it, launch the **`update-docs` skill** with the Skill tool and use it in
 full, following the approach it lays out, never bits and pieces of it. It routes content to the
 right document, carries the authoring procedures, and ends with a whole-set coherence check.
 
@@ -33,8 +33,8 @@ repository internally consistent, documents and implementation alike, and applie
 work as much as to document changes. The `update-docs` and `adversarial-review` skills both run it.
 
 The binding conventions per document live in `.claude/rules/` and load automatically when the
-matching file is read; the format authorities are the documents' own preambles and the decision-
-record index.
+matching file is read. The format authorities are the documents' own preambles and the
+decision-record index.
 
 ## Code layout and conventions
 
@@ -71,7 +71,7 @@ carries the bare word.
 | Directory | Kind | Published as | Holds |
 | --- | --- | --- | --- |
 | `content/` | Family | `mediated-mailbox-content` | The code that reads a message's content in memory and stores none of it. Its package is `content/markdown`, the conversion of a body's HTML to clean Markdown, argued in [content/README.md](./content/README.md) |
-| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `index` (the decisions every workload that writes the index makes about a message), `plan`, `policy`, and `mail` (the canonical model, the Provider Port interface, the canonical query, the rate profile types and the hard-cap fraction) |
+| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `index` (the decisions every job kind that writes the index makes about a message), `plan`, `policy`, and `mail` (the canonical model, the Provider Port interface, the canonical query, the rate profile types and the hard-cap fraction) |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
 | `executioncontext/` | Family | `mediated-mailbox-executioncontext` | What a job or a request executes with. Its packages are `executioncontext/accountload`, the loading of a deployable's accounts, the installation's OAuth clients and their opened credentials into one account snapshot, the compare-and-set write-back of a rotated credential and delta sync's re-seal, `executioncontext/session`, the account session every provider-calling composition root holds its accounts' provider connections through, `executioncontext/policyload`, the loading of the policy tables into one snapshot and the reload-failure alarm, and `executioncontext/credential`, the sealing and opening of an account's provider credential, the loading of its keys, and the configuration section naming the key files with its validation in `executioncontext/credential/core`, all argued in [executioncontext/README.md](./executioncontext/README.md) |
 | `process/` | Family | `mediated-mailbox-process` | What every deployable needs to run as a process. Its packages are `process/settings`, the layering of defaults, one optional configuration file, environment variables and flags into each deployable's configuration, `process/dbconnect`, a deployable's database section of its configuration in `process/dbconnect/core` and the connection built from it, and `process/probes`, the health probe and metrics endpoint of a process that runs work, all argued in [process/README.md](./process/README.md) |
@@ -81,7 +81,7 @@ carries the bare word.
 | `mediate/` | Deployable | `mediated-mailbox-mediate` | The mediator |
 | `backfill/` | Deployable | `mediated-mailbox-backfill` | The Backfill Job |
 | `sync/` | Deployable | `mediated-mailbox-sync` | Delta Sync |
-| `organize/` | Deployable | `mediated-mailbox-organize` | The Reorg Engine's apply and rollback workload |
+| `organize/` | Deployable | `mediated-mailbox-organize` | The Reorg Engine's apply and rollback job kind |
 | `propose/` | Deployable | `mediated-mailbox-propose` | The Heuristics Job |
 | `ui/` | Deployable | `mediated-mailbox-ui` | The UI, both halves ([docs/UI.md](./docs/UI.md#18-repository-and-build-layout)) |
 | `migrate/` | Image | `mediated-mailbox-migrate` | The migration step's image, which is not a deployable and holds none of this project's Go code ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md), [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md)) |
@@ -94,9 +94,9 @@ argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-o
 requires. The data-access library's case is ADR-0047's, and each of the other six argues its case
 in its README, a family once for all its packages. Where shared code goes, and when a library or a
 family of packages is founded, are the rules against sprawl in
-[ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md).
-How a component, a family or a package is named, and who chooses the name, is the naming convention
-in [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md).
+[ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md). How a component, a family or
+a package is named, and who chooses the name, is the naming convention in
+[ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md).
 
 ### Inside a component
 
@@ -159,11 +159,11 @@ file's import target described under Violation files.
   [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. The environment
   analyser refuses every standard-library function that returns an environment variable's value by
   a name its caller gives, or the environment as a whole, which is `os.Getenv`, `os.LookupEnv`,
-  `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` and
-  `(*exec.Cmd).Environ`. Functions that read fixed platform variables for their own purpose, such as
-  `os.UserHomeDir`, `os.TempDir` and `http.ProxyFromEnvironment`, stay allowed. The rule covers every
-  package of the module outside `testsupport`, apart from test files and a deployable's `main.go` at
-  its directory root, which hands the environment to its composition root
+  `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` and `(*exec.Cmd).Environ`.
+  Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`,
+  `os.TempDir` and `http.ProxyFromEnvironment`, stay allowed. The rule covers every package of the
+  module outside `testsupport`, apart from test files and a deployable's `main.go` at its directory
+  root, which hands the environment to its composition root
   ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It is
   scoped by path, which a `forbidigo` rule could carry only through an exclusion ADR-0071 refuses.
   The txhelper analyser holds every call of a generated data-access subsection's `New` to a
@@ -174,13 +174,12 @@ file's import target described under Violation files.
   `db/tx.RunBase`, the base-policy transaction, to the same rules, and builds `db/policyrules/base`
   only from such a literal and no other subsection from one
   ([ADR-0112](./docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
-  A subsection is recognised by its
-  type, a package under `db/` whose `New` returns its own `Queries`. It covers every package, test
-  files included, and exempts the accounts listing, the read of `oauth_clients`, delta sync's
-  re-seal of a client secret and the UI's OAuth client setup, listing each client's identity and
-  adding, replacing and removing a client, each written as one chained call, which are not
-  account-scoped. The one gap it leaves is a query value built
-  inside the literal that escapes it and is used after `tx.Run` returns, which its package comment
+  A subsection is recognised by its type, a package under `db/` whose `New` returns its own
+  `Queries`. It covers every package, test files included, and exempts the accounts listing, the
+  read of `oauth_clients`, delta sync's re-seal of a client secret and the UI's OAuth client setup,
+  listing each client's identity and adding, replacing and removing a client, each written as one
+  chained call, which are not account-scoped. The one gap it leaves is a query value built inside
+  the literal that escapes it and is used after `tx.Run` returns, which its package comment
   states. The routes analyser refuses a route registered on a mux in the UI other than through its
   recording mux, as any use of `(*http.ServeMux).Handle`, `(*http.ServeMux).HandleFunc`,
   `http.Handle`, `http.HandleFunc`, or a method of an interface or type parameter named `Handle` or
@@ -193,15 +192,13 @@ file's import target described under Violation files.
   as any use, on any type, of a method named and typed like one of the driver's methods that run a
   statement or start a batch or pipeline that does, `Query`, `QueryRow`, `Exec`, `Prepare`,
   `ExecParams`, `SendBatch`, `ExecBatch`, `CopyFrom`, `CopyTo` and `StartPipeline`, in a non-test
-  file under `ui/`, so the read of a client's sealed secret stays with
-  the part its import list admits it to
-  ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md),
+  file under `ui/`, so the read of a client's sealed secret stays with the part its import list
+  admits it to ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md),
   [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). A statement run
   through reflection, written to the wire through the raw connection the lower-level connection
   hands out, or run through a method one of whose parameter types is a type parameter is left to
-  review.
-  banproof requires each rule from its violation file, where a want annotation names the finding as
-  `vetcheck`.
+  review. banproof requires each rule from its violation file, where a want annotation names the
+  finding as `vetcheck`.
 - **`banproof`** is the ban-proof script of
   [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), written as a Go
   program at `testsupport/cmd/banproof` and run as `go tool banproof`. It runs the analysers with
@@ -268,8 +265,9 @@ local hooks for golangci-lint's formatters, oxfmt, sqlfluff, hadolint and gitlea
 keep the text fixers and formatters off files that must stay byte-for-byte as generated, recorded or
 vendored, which are generated data-access code, the contract document and browser types, bun lock
 files, golden files, mutation patches, recorded browser fixtures, the synthetic mail fixtures, Helm
-templates and the vendored font licence. The oxfmt and sqlfluff hooks also skip violation files. Every tool a local hook runs also
-runs in a CI workflow, because the hygiene workflow runs only its own named hooks.
+templates and the vendored font licence. The oxfmt and sqlfluff hooks also skip violation files.
+Every tool a local hook runs also runs in a CI workflow, because the hygiene workflow runs only its
+own named hooks.
 
 ### Images
 
@@ -299,7 +297,7 @@ need the repository's tools install them from `mise.toml` through
 | `go-lint` | Go code, the lint configuration, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, the `go vet` analysers, and `go tool banproof` |
 | `go-test` | Go code, the chart's alerting rules with the template that ships them, tool pins | Unit tests, which include `promtool test rules` over the alerting rules and a render of the chart that ships them ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The gating property run sets a fixed non-zero `RAPID_SEED`, the gating `RAPID_CHECKS` and `RAPID_NOFAILFILE=true` in the workflow and passes no `-short` ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
 | `go-integration` | Go code, the chart's alerting rules, tool pins | The integration tests under `go tool pgrun` with `-tags integration`, with the same property-run settings |
-| `gmail-contract` | A weekly schedule on the main branch, and by hand on any branch | `go tool livecontract gmail`, the Gmail adapter's contract suite against the test account, with its credentials from GitHub Actions secrets ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)). Never automatically on a pull request |
+| `gmail-contract` | The schedule [TESTING.md](./TESTING.md#when-tests-run) states | `go tool livecontract gmail`, the Gmail adapter's contract suite against the test account, with its credentials from GitHub Actions secrets ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)) |
 | `go-vulncheck` | Go code, and a schedule | `govulncheck` |
 | `data` | `db/`, its configuration, tool pins | sqlfluff, the generator's diffs, and the `db/check` tests |
 | `ui` | `ui/`, the migration chain, the data-access subsections the UI's list names, the ban-proof program, tool pins | One job, which runs in order the contract, types and descriptor drift checks of [ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md), `bun build`, the UI's Go build and its tests under `go tool pgrun` with `-tags integration` and the same property-run settings, which record the browser's fixtures and diff them, the type check, the formatting check, browser lint, `go tool banproof -browser`, and `bun test`. The Go tests and the browser tests share the job because the recorded fixtures are regenerated in the job that runs the Go tests they come from ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
@@ -322,8 +320,8 @@ checks that gate the commit vocabulary carry no condition.
 ### Tools and versions
 
 - **Every tool and dependency is at its latest version** unless a document explicitly states
-  otherwise. The exceptions stated today are minimums that latest already meets, and the TypeScript
-  copy the browser's type generation needs
+  otherwise. The exceptions the documents state are minimums that latest already meets, and the
+  TypeScript copy the browser's type generation needs
   ([ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md)).
 - **The command-line tools this project's own jobs and hooks run are pinned in the root `mise.toml`,
   and `mise.lock` is committed.** The lock stays in the lock-file format the mise version inside
@@ -351,9 +349,9 @@ checks that gate the commit vocabulary carry no condition.
 
 ## Repository process
 
-- `docs` is a visible release type here — a documentation PR proposes a release when merged.
-  Expected, not accidental. The commit vocabulary, the closed set of types and scopes a commit
-  header may carry, the pairing rule between them and what each type does to a release, is
+- `docs` is a visible release type here, so a documentation pull request proposes a release when
+  merged. Expected, not accidental. The commit vocabulary, the closed set of types and scopes a
+  commit header may carry, the pairing rule between them and what each type does to a release, is
   [.claude/rules/commits.md](./.claude/rules/commits.md)'s, decided by
   [ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md).
   The `commit-messages`, `pr-title` and `commit-taxonomy` checks of the
@@ -385,12 +383,12 @@ checks that gate the commit vocabulary carry no condition.
   the control session that [.claude/loop.md](./.claude/loop.md) runs. It also creates the issue of
   an increment ROADMAP.md adds, and moves a ticket whose work is placed in another increment to that
   increment's issue. A ticket the operator holds carries the State `hold`, and is not launched until
-  the operator lifts the hold. The control session marks a
-  ticket in-progress when it launches the ticket's session, and built only once the ticket's pull
-  request has merged, so no dependent ticket starts before its blocker is on `main`. A session that
-  cuts a ticket links it as a sub-issue of its increment's issue and sends the control session its
-  row. The control session derives every State again on each iteration, so a change made while none
-  runs is caught when it next runs.
+  the operator lifts the hold. The control session marks a ticket in-progress when it launches the
+  ticket's session, and built only once the ticket's pull request has merged, so no dependent
+  ticket starts before its blocker is on `main`. A session that cuts a ticket links it as a
+  sub-issue of its increment's issue and sends the control session its row. The control session
+  derives every State again on each iteration, so a change made while none runs is caught when it
+  next runs.
 - **A ticket is done** when its pull request has merged with CI green, the unit's acceptance in
   [ROADMAP.md](./ROADMAP.md) is met for the part keyed to what the ticket lands, and every document
   its work touched is updated in that pull request, with its GitHub labels matching its diff. The

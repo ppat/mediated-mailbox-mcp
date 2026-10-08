@@ -49,9 +49,9 @@ const (
 // Where a call's size depends on what it returns, the adapter sizes its page so the worst case fits
 // one second's worth at the hard cap. Where the caller sets the size, as with the identifiers of a
 // metadata fetch or the ops of a mutation, the cost grows with it, and a call past one second's worth
-// is refused at lease issuance, so the caller splits its work into calls that fit. At today's prices
-// a metadata fetch holds three identifiers and a mutation three ops. An HTTP batch is one call, holding
-// only as many sub-requests as that second pays for.
+// is refused at lease issuance, so the caller splits its work into calls that fit. At the prices
+// this profile declares, a metadata fetch holds three identifiers and a mutation three ops. An HTTP
+// batch is one call, holding only as many sub-requests as that second pays for.
 //
 //   - ListThreads costs a read of the label table for its query, a threads.list, a threads.get for
 //     each thread of its page, and a read of the label table for the messages.

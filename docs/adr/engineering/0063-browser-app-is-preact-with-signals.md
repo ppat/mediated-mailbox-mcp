@@ -8,34 +8,33 @@
 
 [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) fixes the UI's shape and
 [ADR-0042](./0042-implementation-stack.md) fixes TypeScript in the browser, bundled by bun and
-shipped as static files, and left the framework open until the work that needed it approached.
+shipped as static files, and leaves the framework to this record.
 [docs/UI.md](../../UI.md#16-framework-requirements) states the twelve requirements a candidate is
 judged against, numbered there, and this record cites them by those numbers. It also states the
-spike that proves four of them on the plan reviewer's skeleton. By the time the design settled, most
-of what a framework ecosystem provides was already designed out. Tables are plain and
-server-paginated, charts are hand-drawn SVG, one row component renders every message-derived row,
-and every zoom step is a server aggregate. What remained to choose on was routing with the query
-string as state, a small data cache keyed by URL, how a streamed object replacement reaches the DOM,
-how little the framework drags in, and how well coding agents write its idioms without reaching for
-the ecosystem's defaults.
+spike that proves four of them on the plan reviewer's skeleton. The design already rules out most
+of what a framework ecosystem provides. Tables are plain and server-paginated, charts are
+hand-drawn SVG, one row component renders every message-derived row, and every zoom step is a
+server aggregate. What is left to choose on is routing with the query string as state, a small
+data cache keyed by URL, how a streamed object replacement reaches the DOM, how little the
+framework drags in, and how well coding agents write its idioms without reaching for the
+ecosystem's defaults.
 
-The operator set the weights on 2026-09-10. Fluency for coding agents is paramount without being the
-deciding factor. Evolvability, growth, and the ability to add capabilities as the product evolves
-rank above it, together with what the design itself requires. Decisions rest on browser development
-as it stands in 2026, not as it stood in 2023. The governing lenses are simple made easy, Pareto,
-and asymmetric payoff, with the un-braided pillar critical, and no option that creates more work or
-removes optionality. On the bundler the operator's words were that the bun clause of ADR-0042 "is
-probably the easiest to reverse if needed," so building with bun alone weighs as a tiebreaker and
-not as a gate.
+Fluency for coding agents is paramount without being the deciding factor. Evolvability, growth,
+and the ability to add capabilities as the product evolves rank above it, together with what the
+design itself requires. Decisions rest on browser development as it stands in 2026, not as it
+stood in 2023. The governing lenses are simple made easy, Pareto, and asymmetric payoff, with the
+un-braided pillar critical, and no option that creates more work or removes optionality. The bun
+clause of [ADR-0042](./0042-implementation-stack.md) is probably the easiest to reverse if
+needed, so building with bun alone weighs as a tiebreaker and not as a gate.
 
-The candidates were researched and measured on 2026-09-10. Each hello-world was built and served
-under the exact policy of [ADR-0062](../operability/0062-ui-content-security-policy.md) in a
-headless browser, and the plan reviewer's skeleton was then built on the chosen candidate against
-fixture responses carrying markup marker text. That skeleton met the four requirements the spike
-proves, escaping by default (1), the query string as routing state (2), streamed updates without a
-full re-render (5), and contract-generated types (10), under a DOM shim and under a real browser,
-with the two agreeing on every assertion, element counts and attribute values included, and its
-mutation went red under both. The operator accepted this decision on 2026-09-10.
+The candidates were measured on 2026-09-10. Each hello-world was built and served under the exact
+policy of [ADR-0062](../operability/0062-ui-content-security-policy.md) in a headless browser, and
+the plan reviewer's skeleton was then built on the chosen candidate against fixture responses
+carrying markup marker text. That skeleton met the four requirements the spike proves, escaping by
+default (1), the query string as routing state (2), streamed updates without a full re-render (5),
+and contract-generated types (10), under a DOM shim and under a real browser, with the two
+agreeing on every assertion, element counts and attribute values included, and its mutation went
+red under both.
 
 ## Decision
 
@@ -86,11 +85,11 @@ mutation went red under both. The operator accepted this decision on 2026-09-10.
   in a browser.
 - **The raw-markup escape hatch, `dangerouslySetInnerHTML`, is forbidden repository-wide by lint**,
   with the DOM's own hatches beside it. The same identifier is what the inert-rendering mutation
-  demonstration of ADR-0064 swaps in, so one list serves both. The bans are expressed as rules
-  forbidding a named construction by its shape, carried by the tools
-  [ADR-0072](./0072-browser-bans-under-oxlint-and-ast-grep.md) chooses, which need no second
-  runtime, and each ban is proven by a checked-in file that violates it, as
-  [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) requires.
+  demonstration of [ADR-0064](./0064-browser-tests-run-under-bun-against-a-dom-shim.md) swaps in,
+  so one list serves both. The bans are expressed as rules forbidding a named construction by
+  its shape, carried by the tools [ADR-0072](./0072-browser-bans-under-oxlint-and-ast-grep.md)
+  chooses, which need no second runtime, and each ban is proven by a checked-in file that
+  violates it, as [ADR-0046](./0046-tests-are-evidence-once-seen-to-fail.md) requires.
 - **Direct dependencies are enumerated in a roster file beside the package manifest**, one line
   each with the reason it is there, and CI fails when the roster and the manifest disagree. The
   check is the same shape as [ADR-0053](./0053-parity-by-construction.md)'s generator monopoly and
@@ -119,18 +118,17 @@ How the decision meets each of the twelve requirements of
 
 ## Alternatives considered
 
-Each candidate was graded against the twelve requirements, against the long-term factors the
-stack research applied to languages (platform trajectory, dependency longevity, guarantee
-durability under years of edits, maintenance burden on one operator, completion risk, review
-burden after open-sourcing, and the agent-tooling trajectory), and on measurements taken on
-2026-09-10.
+Each candidate was graded against the twelve requirements, against long-term factors (platform
+trajectory, dependency longevity, guarantee durability under years of edits, maintenance burden
+on one operator, completion risk, review burden after open-sourcing, and the agent-tooling
+trajectory), and on measurements taken on 2026-09-10.
 
-The first table scores every candidate on the twelve requirements, on the research's scale. 4
-means the framework carries the requirement with a built-in mechanism, 3 means one small
-maintained package or a few lines of the builder's code carry it, 2 means it is carried with a
-named gotcha, and 1 means the builder writes and maintains the mechanism. The grades are the
-research's of 2026-09-10, with the server-rendered column graded by the designing session on the
-same scale because the research treated it in prose. The chosen candidate is the first column.
+The first table scores every candidate on the twelve requirements, on a four-level scale. 4 means
+the framework carries the requirement with a built-in mechanism, 3 means one small maintained
+package or a few lines of the builder's code carry it, 2 means it is carried with a named gotcha,
+and 1 means the builder writes and maintains the mechanism. The grades rest on the research of
+2026-09-10, apart from the server-rendered column, which the research covered only in prose and
+which is graded on the same scale from that reading. The chosen candidate is the first column.
 
 | Requirement | Preact | Solid | React | Svelte 5 | Vue | Lit | No framework | Go templates with htmx |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -150,9 +148,9 @@ same scale because the research treated it in prose. The chosen candidate is the
 On the requirements alone, Preact, React, and Vue have no cell below 3, Solid and Svelte each carry
 two cells at 2, Solid on its build and its corpus and Svelte on its router and its build, and Lit,
 no framework, and the server-rendered shape each carry a 1. The requirements sort the field into
-those three tiers and no further. The second table, with the measured facts of 2026-09-10 and the
-chosen candidate in the first row, is what separates the top tier and what puts Solid back among the
-contenders:
+those three tiers and no further. The second table, with the chosen candidate in the first row,
+is what separates the top tier and what puts Solid back among the contenders. Its facts, and the
+maintenance and release facts in the passages below, are as they stood on 2026-09-10.
 
 | Candidate | Streamed update | Footprint and build | Maintenance | Cost of leaving | Fluency for coding agents |
 | --- | --- | --- | --- | --- | --- |
@@ -168,7 +166,7 @@ contenders:
 Escaping by default did not separate them. Every candidate rendered the markup markers as text under
 the policy, and three, Solid, Preact, and Svelte, shipped client-side escaping regressions since
 2025, which is why the inert-rendering test exists and not a reason to choose. Read by the
-operator's lenses, Preact is the candidate with no requirement below 3 that also meets streamed
+governing lenses, Preact is the candidate with no requirement below 3 that also meets streamed
 updates with one mechanism, builds with nothing added at a fraction of React's footprint, and has
 the cheapest exit. React ties it on the requirements and loses on footprint and on the braided
 state. Vue ties it on the requirements and loses on footprint, on the owned build plugin, and on a
@@ -195,13 +193,13 @@ requirements it scores 2 on, on maintenance, and on the cost of leaving.
   against React's own subscription mechanism.
 - **Svelte 5.** The case for it is the model the field converged on, expressed with the least
   code per view, two packages at runtime, and a team with employer backing. Rejected because it
-  replaced its own reactivity model within the last two years and signals a further major, its
-  standalone routers are pre-1.0 and the maintained one is carried by a single maintainer, its
-  compiler needs an owned bun plugin, and `.svelte` files port to nothing.
+  replaced its own reactivity model in the two years before 2026-09-10 and signals a further
+  major, its standalone routers are pre-1.0 and the maintained one is carried by a single
+  maintainer, its compiler needs an owned bun plugin, and `.svelte` files port to nothing.
 - **Vue.** The case for it is competence everywhere and an official router. Rejected because the
   design removed what its single-file-component toolchain would earn, its current router pulls
   dozens of build-time packages into the production tree, and its successor rendering model is in
-  release candidate, so adopting it today adopts the outgoing half of a transition.
+  release candidate, so adopting it while that holds adopts the outgoing half of a transition.
 - **Lit and web components.** The case for it is standards over frameworks and a small runtime.
   Rejected on requirement 12, accessibility basics. ARIA identifier references cannot cross a shadow
   root and the standards fix is unshipped, and tables, menus, and live regions are the three
@@ -217,11 +215,12 @@ requirements it scores 2 on, on maintenance, and on the cost of leaving.
   default, becomes a type-level absence, and one language replaces two. Rejected because
   [docs/UI.md](../../UI.md#4-the-zoom-ladder)'s ladder is client-held interaction state, a chip
   stack, a pinned summary strip, a panel over an inert list, and a row cursor, and the hypermedia
-  model needs a companion script exactly there. It is compatible with ADR-0062 only with its
-  expression evaluation disabled from the entry document, which removes event filters, attribute
-  handlers, and computed values, and ADR-0042's static-files clause does not bend to it by
-  interpretation. Datastar, the other server-rendered candidate, requires `'unsafe-eval'` by its own
-  security reference and was disqualified on that mechanism.
+  model needs a companion script exactly there. It is compatible with
+  [ADR-0062](../operability/0062-ui-content-security-policy.md) only with its expression
+  evaluation disabled from the entry document, which removes event filters, attribute handlers,
+  and computed values, and [ADR-0042](./0042-implementation-stack.md)'s static-files clause does
+  not bend to it by interpretation. Datastar, the other server-rendered candidate, requires
+  `'unsafe-eval'` by its own security reference and was disqualified on that mechanism.
 
 ## Consequences
 
@@ -232,29 +231,34 @@ requirements it scores 2 on, on maintenance, and on the cost of leaving.
 - The URL grammar module, the cache, the stream client's handler, and the fixtures owe nothing to
   Preact and survive a framework change. The components that read no signal survive the alias
   exit to React, and the data-state layer is the part a framework change rewrites.
-- Preact's next major is in release candidate and its changes are enumerated. They are caught by
-  the compiler except one, effect cleanup deferring until after paint, which lands in the stream
-  client's subscribe and unsubscribe, the one module [docs/UI.md](../../UI.md#9-live-surfaces)
-  isolates.
-- The one advisory in Preact's recent record is a type confusion that needs the API to return an
-  object where the app assumes a string. It cannot arise here while every field rendered in text
-  position is a scalar or an array of strings in the contract, because a Go string field
-  marshals as a string and a changed type fails the drift check first. The rule is therefore
-  named. No field of type `any`, `unknown`, or free-form JSON reaches a text position without
-  re-arguing this consequence.
+- On 2026-09-10 Preact's next major was in release candidate with its changes enumerated. They
+  are caught by the compiler except one, effect cleanup deferring until after paint, which lands
+  in the stream client's subscribe and unsubscribe, the one module
+  [docs/UI.md](../../UI.md#9-live-surfaces) isolates.
+- The one advisory in Preact's record as of 2026-09-10 is a type confusion that needs the API to
+  return an object where the app assumes a string. It cannot arise here while every field
+  rendered in text position is a scalar or an array of strings in the contract, because a Go
+  string field marshals as a string and a changed type fails the drift check first. The rule is
+  therefore named. No field of type `any`, `unknown`, or free-form JSON reaches a text position
+  without re-arguing this consequence.
 - Bun's development server serves no policy header and injects an inline script the policy
   would block, so the dev loop of [docs/UI.md](../../UI.md#18-repository-and-build-layout) never
-  exercises ADR-0062. The policy is proven against the built output served by the Go handler,
-  as ADR-0064 records.
+  exercises [ADR-0062](../operability/0062-ui-content-security-policy.md). The policy is proven
+  against the built output served by the Go handler, as
+  [ADR-0064](./0064-browser-tests-run-under-bun-against-a-dom-shim.md) records.
 - The built output's hashed asset names must reach the entry document
   [ADR-0061](../operability/0061-ui-browser-security-posture.md) has Go render. Either the build
   script writes a manifest or Go reads the bundler's emitted page. The builder picks.
 - Assumptions about other components: the read API's row types are declared explicitly in the
-  registry with closed value sets (ADR-0057) and are scalars or arrays of scalars for every
-  message-derived field ([ADR-0016](../data/0016-schema.md)). The contract document of ADR-0065
-  exists before the browser's descriptor table can be generated. The entry document is rendered
-  by Go with the request token (ADR-0061). The stream's event shape is the one
-  [docs/UI.md](../../UI.md#175-the-streams-event-shape) states, whatever ADR-0058's transport
+  registry with closed value sets
+  ([ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md)) and are scalars or
+  arrays of scalars for every message-derived field ([ADR-0016](../data/0016-schema.md)). The
+  contract document of
+  [ADR-0065](./0065-contract-built-from-registry-consumed-as-generated-types.md) exists before the
+  browser's descriptor table can be generated. The entry document is rendered by Go with the
+  request token ([ADR-0061](../operability/0061-ui-browser-security-posture.md)). The stream's
+  event shape is the one [docs/UI.md](../../UI.md#175-the-streams-event-shape) states, whatever
+  [ADR-0058](../operability/0058-live-surfaces-stream-over-server-sent-events.md)'s transport
   becomes.
 - The escape-hatch ban, the `.value` rule with the route-prop rule it protects, and the roster are
   controls. Their violation injections are catalogued in

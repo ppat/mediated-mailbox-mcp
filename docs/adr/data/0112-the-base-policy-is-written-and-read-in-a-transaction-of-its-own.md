@@ -20,8 +20,7 @@ The UI writes base rules, from an account's policy screen and from the base poli
 screen, which needs no account to exist ([docs/UI.md sections 8.7](../../UI.md#87-policy) and
 [8.14](../../UI.md#814-base-policy)). The installation screen and the installation endpoint read the
 base rules and their history with no account named
-([docs/UI.md section 17.4](../../UI.md#174-the-bespoke-endpoints)). The UI's policy management is the
-first work that does either, so it decides how.
+([docs/UI.md section 17.4](../../UI.md#174-the-bespoke-endpoints)).
 
 ## Decision
 
@@ -58,11 +57,10 @@ first work that does either, so it decides how.
 
 ## Consequences
 
-- The verification rows that held "the base rules are written by none" and "a transaction that
-  did not set the account fails" are revisited. The base rules are written by the UI's role in a
-  base-policy transaction and by nothing else, and the only transaction that runs with the account
-  empty is a base-policy transaction, which reaches only the base policy's statements.
-- The policy loader reads the base rules inside each account's transaction as before
+- The base rules are written by the UI's role in a base-policy transaction and by nothing else, and
+  the only transaction that runs with the account empty is a base-policy transaction, which reaches
+  only the base policy's statements.
+- The policy loader reads the base rules inside each account's transaction
   ([ADR-0114](../engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md)).
   A base-policy transaction is the UI's alone.
 - Assumptions about other components. The settings are transaction-local, so a pooled connection

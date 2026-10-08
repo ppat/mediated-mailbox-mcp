@@ -17,7 +17,7 @@ provider holds the credentials in memory while any of these writes changes the s
 
 Gmail does not rotate refresh tokens, as its documentation of the refresh response shows
 ([Google's OAuth for installed apps](https://developers.google.com/identity/protocols/oauth2/native-app)),
-so two rotations racing has no trigger with the providers chosen today. A deployable writing back
+so two rotations racing has no trigger with the providers chosen. A deployable writing back
 or re-sealing a value based on bytes the operator has since replaced does. It would put the old
 grant back over the one the operator just connected, and if the old grant was revoked, the next
 restart would lose the mailbox, which is
@@ -57,15 +57,16 @@ rule holds per account.
 - A rotation write-back or a re-seal that loses to a re-authorization is discarded, and the
   deployable carries on with the value the operator stored.
 - A deployable whose loader has already adopted the operator's value, through a reload or a re-read
-  while a unit of work ran, would see the compare-and-set land against those adopted bytes. So
-  each time the loader adopts a value from an account's row that it did not write itself, it gives
-  that account's credential a new adoption stamp. A unit of work hands over, beside the credential
-  it holds now, the adoption stamp the loader gave with the credential that one was built from. That
-  is the stamp the account had when that credential was taken, from the snapshot or from a re-read
-  the unit went on with. The loader discards the hand-over only when that account's stamp has
-  changed since. The process's own earlier write-back leaves the stamp as it is, so two units that
-  overlap and each see a rotation both land, the later by compare-and-set against the earlier's
-  bytes.
+  while a unit of work ran, would see the compare-and-set land against those adopted bytes. An
+  adoption stamp per account prevents that.
+  - Each time the loader adopts a value from an account's row that it did not write itself, it
+    gives that account's credential a new adoption stamp.
+  - A unit of work hands over, beside the credential it holds now, the adoption stamp the loader
+    gave with the credential that one was built from. That is the stamp the account had when that
+    credential was taken, from the snapshot or from a re-read the unit went on with.
+  - The loader discards the hand-over only when that account's stamp has changed since.
+  - The process's own earlier write-back leaves the stamp as it is, so two units that overlap and
+    each see a rotation both land, the later by compare-and-set against the earlier's bytes.
 - A provider that rotates refresh tokens and revokes a grant when an old one is reused cannot be
   repaired by a compare-and-set after the fact. Such a provider needs the advisory lock above, and
   the kill window it leaves open is recorded against it then.

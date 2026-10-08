@@ -12,12 +12,11 @@ page of the listing holds, so backfill's pass 1 can record a page count the back
 into page of total pages and an estimated time left
 ([docs/UI.md section 8.1](../../UI.md#81-home)). That leaves open how the two numbers travel on the
 port, which pages carry them, how pass 1 derives its page count from them, and how the provider
-fake and the contract suite cover a total and its absence. Pass 1 is the first consumer, so its
-change decided them, and the operator ratified the decisions on 2026-10-01.
+fake and the contract suite cover a total and its absence. Pass 1 is their first consumer.
 
 ## Decision
 
-- **One optional field on the port's one page type.** `Page[T]` gains `Total`, nil when the
+- **One optional field on the port's one page type.** `Page[T]` carries `Total`, nil when the
   implementation does not count the listing. A total holds two numbers, the items the whole listing
   holds as the provider counts them and the page limit, the most items any page of that listing
   holds. The field means the same on every listing, and an implementation fills it where it counts.
@@ -28,8 +27,9 @@ change decided them, and the operator ratified the decisions on 2026-10-01.
 - **Every page of an enumeration carries it,** not only the first. Each page brings a fresh count,
   so a mailbox that grows or shrinks during a pass, and a run that resumes in the middle of one, get
   a current figure with no state kept. For Gmail it is one `users.getProfile` in every
-  `EnumerateAll`, so the call's declared cost stays one constant, 67 units: a `messages.list`, a
-  `messages.get` for each of its three messages, a read of the label table and the `getProfile`.
+  `EnumerateAll`, so the call's declared cost stays one constant, 67 units. They are a
+  `messages.list`, a `messages.get` for each of its three messages, a read of the label table and
+  the `getProfile`.
   That is under the 80 units of one second's worth at the hard cap
   ([ADR-0023](../operability/0023-adapter-declares-cost.md),
   [ADR-0024](../operability/0024-conservative-target-aimd.md)).
@@ -59,7 +59,7 @@ change decided them, and the operator ratified the decisions on 2026-10-01.
 
 ## Alternatives considered
 
-- **An operation of its own on the port.** The case for it is one role per call: an enumeration
+- **An operation of its own on the port.** The case for it is one role per call. An enumeration
   page would hold only messages, and a count would come from a call that does nothing else. It
   needs a new operation in every rate profile, the fake, its throttle wrapper, the contract suite's
   per-operation cases and the assertion pinning the port's methods. Its answer could also come from
@@ -68,10 +68,10 @@ change decided them, and the operator ratified the decisions on 2026-10-01.
 - **A page type of the enumeration's own.** The case for it is that the field would never sit on a
   listing that leaves it empty. It changes the signature ADR-0010 states, `Page[MessageMetadata]`,
   and every caller's page, while the field means the same thing on any listing.
-- **The total on the first page only.** The case for it is cost: Gmail would call `getProfile` once
-  a pass rather than once a page. The declared cost would then depend on the page token, a run
-  resuming in the middle of an enumeration would never see a total, and a count taken once would
-  not follow a mailbox that changes during a pass.
+- **The total on the first page only.** The case for it is cost, since Gmail would call
+  `getProfile` once a pass rather than once a page. The declared cost would then depend on the page
+  token, a run resuming in the middle of an enumeration would never see a total, and a count taken
+  once would not follow a mailbox that changes during a pass.
 - **A page limit on every page, with or without a total.** The case for it is that every adapter
   knows the limit it sizes its pages to. Without a total no caller reads it, so it would be a
   promise in the contract with no consumer.
@@ -92,7 +92,8 @@ change decided them, and the operator ratified the decisions on 2026-10-01.
 - The card's estimate reads `of` as a number of pages from the run's checkpoint, which is what the
   UI's jobs read already expects of the `checkpoint` column of
   [ADR-0016](../data/0016-schema.md). How the card renders it is the UI's.
-- A full Gmail pass spends one unit more per page, 67 rather than 66.
+- A full Gmail pass spends 67 units per page, one of them for the `getProfile` that brings the
+  total.
 - An adapter whose provider counts a different set than its enumeration lists still passes the
   contract, which checks only a bound. Its card's estimate is as good as its count.
 - Pass 1 knows nothing of how an adapter sizes its pages beyond the page limit the page states, so

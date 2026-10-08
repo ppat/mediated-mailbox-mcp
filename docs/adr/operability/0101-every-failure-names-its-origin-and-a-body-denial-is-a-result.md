@@ -8,14 +8,14 @@
 
 [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) is falsified by a client's own
 failure that the response does not tell apart from the system's, and by a provider's failure that
-surfaces as the client's or the system's. Until body release, the client surface failed one of two
-ways. A refused argument answered with its message, and everything else answered "the operation
-failed", a refusal of an unknown account included. The body operation is the first to call a
-provider, so it brings the third origin.
+surfaces as the client's or the system's. A surface that answers a refused argument with its
+message and everything else with "the operation failed", a refusal of an unknown account included,
+tells only two kinds of failure apart. The body operation is the first to call a provider, so it
+brings the third origin.
 
-[ADR-0087](./0087-client-surface-derives-method-and-hints-from-each-operations-effect.md) left
-open whether the denial of a gated body read is a successful result carrying the denial or a
-failure, for this contract to decide, with either shape derived the same way on both roots.
+Whether the denial of a gated body read is a successful result carrying the denial or a failure is
+this contract's to decide, with either shape derived the same way on both roots
+([ADR-0087](./0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)).
 [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) requires the denial to carry a reason
 distinct enough that a message pending its content scan reads as backlog, not as a permissions bug.
 The UI's own read API already tells origins apart in one error shape

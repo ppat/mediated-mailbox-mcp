@@ -8,13 +8,12 @@
 
 [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) fixes what the UI is
 (read-mostly, two decision verbs, a rollback request, OAuth client setup, account setup and policy
-management, a separate deployment, never a body) and lists its views, but not how those views are organized or
-how the UI grows past them. The operator asked for a UI structured to take on views not yet described, with drill-down,
-zoom in and out, and aggregate views over plans and any other element as if analyzing a data set or
-a proposed change. Three directions were sketched and compared on one canvas, differing only in
-what the UI is organized around. The shared foundation under all three is stated in
-[docs/UI.md](../../UI.md). Every view is a lens over an account-scoped dataset, viewed on one zoom
-ladder.
+management, a separate deployment, never a body) and lists its views, but not how those views are
+organized or how the UI grows past them. The UI has to take on views not yet described, with
+drill-down, zoom in and out, and aggregate views over plans and any other element as if analyzing
+a data set or a proposed change. Three directions were weighed, differing only in what the UI is
+organized around. The shared foundation under all three is stated in [docs/UI.md](../../UI.md).
+Every view is a lens over an account-scoped dataset, viewed on one zoom ladder.
 
 ## Decision
 
@@ -25,8 +24,9 @@ ladder.
 - **The plan reviewer is shaped like code review.** A rail of sections working like a diff's file
   list, the zoom ladder inside the plan (flows, then a flow by sender, then the operations), and
   an approval footer that restates in one sentence with the numbers what approving does.
-- **Every analytical view is the zoom ladder over its dataset**, with ADR-0084's views as the
-  default groupings. Nothing analytical is a bespoke page.
+- **Every analytical view is the zoom ladder over its dataset**, with
+  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s views as the default
+  groupings. Nothing analytical is a bespoke page.
 - **Batch work is visible and inspectable.** A live view of every workload of
   [ADR-0022](../operability/0022-four-workloads.md), and a failed run drilled as a dataset whose
   rows are its failures.
@@ -47,13 +47,13 @@ ladder.
   handles values of is the one being connected, whose rows it writes alone.
 - **Message-derived text renders as text only.** Subjects, display names, addresses, labels, and
   reasons are attacker-written text. No rendering path interprets them as markup.
-- ADR-0084's constraints are unchanged. Two decision verbs, a rollback request, OAuth client setup,
-  account setup and policy management by database grant, code that never opens a stored credential, never a body. The shape adds
-  legibility, not surface. The UI stays boring in ADR-0084's sense.
+- [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s constraints hold
+  unchanged. The shape adds legibility, not surface, and the UI stays boring in ADR-0084's sense.
 
 ## Alternatives considered
 
-- **A console organized around the data sources**, one page per ADR-0084 view. Its case was
+- **A console organized around the data sources**, one page per
+  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) view. Its case was
   familiar, literal, nothing clever to get wrong, the cheapest first version. Not chosen because
   drill-down is built per page and drifts, growth is linear in pages, and the plan page becomes a
   form with a table rather than a review.
@@ -66,8 +66,8 @@ ladder.
   stay bounded by a registry. Its engine is kept underneath the
   chosen shape ([ADR-0057](./0057-one-dataset-endpoint-behind-a-registry.md)).
 
-The operator chose the third direction on seeing all three, on the grounds that it serves the use
-case best.
+The third direction, organized around the operator's work, is the Decision's, chosen because it
+serves the use case best.
 
 ## Consequences
 

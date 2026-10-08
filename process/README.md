@@ -6,12 +6,12 @@ own case ([ADR-0050](../docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
 case. The conventions it shares with every component are
 [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
-Its concept is the [process](../DESIGN.md#glossary), what every deployable needs to run as a process
-under the environment contract
-([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)): its configuration layered from
-defaults, a file, the environment and flags, its database connection, and its probe and metrics
-endpoint. The decision it hides is how a process meets that contract, which changes only when the
-contract or the platform under it does, and never with what the process runs.
+Its concept is the [process](../DESIGN.md#glossary), what every deployable needs to run as a
+process under the environment contract
+([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)), which is its configuration
+layered from defaults, a file, the environment and flags, its database connection, and its probe
+and metrics endpoint. The decision it hides is how a process meets that contract, which changes
+only when the contract or the platform under it does, and never with what the process runs.
 
 | Package | Holds |
 | --- | --- |
@@ -25,11 +25,11 @@ under the list over files outside every component, which admits only the standar
 
 **What does not belong.** A concern's own configuration section stays with its concern
 ([ADR-0050](../docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), so the credential section
-is the execution context family's and the scanner's section is `core/scan`'s, while this family holds
-only the layering mechanism and the database section, whose whole concern is running as a process.
-Nothing here reads an account, a policy or a message, and nothing here runs a statement. The
-mediator's and the UI's probes stay with them, because each answers `/readyz` from state only that
-deployable holds.
+is the execution context family's and the scanner's section is `core/scan`'s, while this family
+holds only the layering mechanism and the database section, whose whole concern is running as a
+process. Nothing here reads an account, a policy or a message, and nothing here runs a statement.
+The mediator's and the UI's probes stay with them, because each answers `/readyz` from state only
+that deployable holds.
 
 ## The configuration library, `settings`
 
@@ -44,10 +44,10 @@ composition root hands the package its arguments, its environment and the root t
 The case for one package over per-deployable glue is the refusals. Configuration that is misspelled,
 duplicated, case-changed, of the wrong type or aimed at a key that does not exist has to stop the
 process, because a setting that silently falls back to its default is the failure the fail-closed
-pillar forbids. The refusals are the rules glue gets wrong. Six copies would drift, and one copy
-that forgot to refuse unknown keys or to match environment names exactly would fail open. Written
-once, with a test per refusal and a mutation patch for each refusal the package's own code
-carries, they hold in every deployable.
+pillar forbids. The refusals are the rules glue gets wrong. Copies in each deployable would drift,
+and one copy that forgot to refuse unknown keys or to match environment names exactly would fail
+open. Written once, with a test per refusal and a mutation patch for each refusal the package's own
+code carries, they hold in every deployable.
 
 The composition root passes the package its arguments and its environment, and the package reads
 the one file they name. It returns the decoded configuration, each value's source and a revision
@@ -83,7 +83,7 @@ configuration, and the deployable opens the pool.
 ## The probe and metrics listener, `probes`
 
 Backfill and delta sync each serve a health probe and their metrics endpoint on a listener of their
-own while they run (ADR-0051,
+own while they run ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md),
 [ADR-0103](../docs/adr/operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)).
 `/healthz` answers 200 while the process runs, and `/metrics` serves the registry the composition
 root passes in, so every series a process registers reaches its scrape, between units of work as
