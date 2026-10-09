@@ -3,7 +3,7 @@
 #
 #   docker build --file ui/Dockerfile .
 
-FROM oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61 AS bundle
+FROM mirror.gcr.io/oven/bun:1.4.2-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61 AS bundle
 WORKDIR /src/ui/browser
 COPY ui/browser/package.json ui/browser/bun.lock ui/browser/bunfig.toml ./
 # The bundle needs only the production dependencies, and no install script runs.
@@ -13,7 +13,7 @@ COPY ui/browser/scripts/build.ts scripts/build.ts
 COPY ui/browser/src src
 RUN bun scripts/build.ts
 
-FROM golang:1.27.1-trixie@sha256:9baa6b4187bbb98d240372a8a235ac0bb6b5ddd52bba1431dc2f7c0705862728 AS server
+FROM public.ecr.aws/docker/library/golang:1.27.2-trixie@sha256:e58d6f83b3416618d8bcac2b3dde1b7f7e3c4a77d25e88637f8bbae81536c48d AS server
 WORKDIR /src
 COPY go.mod go.sum ./
 COPY content content

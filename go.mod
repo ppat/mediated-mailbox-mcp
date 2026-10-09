@@ -1,6 +1,6 @@
 module github.com/ppat/mediated-mailbox-mcp
 
-go 1.27.1
+go 1.27.2
 
 ignore (
 	./ui/browser/codegen/node_modules
