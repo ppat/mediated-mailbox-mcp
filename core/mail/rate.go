@@ -102,6 +102,20 @@ func Throttled(err error) (ThrottleSignal, bool) {
 // adapters and the contract suite all read it, and the adapters cannot import the rate limiter.
 const HardCapFraction = 0.80
 
+// CallSize returns how many identifiers one call of an operation priced per message names, the most
+// whose cost fits one second's worth at the hard cap, ceiling times HardCapFraction, and at least one,
+// so no call is refused at lease issuance (ADR-0023, ADR-0024). cost returns what a call naming n
+// identifiers costs, and most is how many there are to ask for. Delta sync sizes its metadata calls by
+// it, and backfill's first pass the calls that fetch stale subjects again (ADR-0120).
+func CallSize(cost func(n int) float64, ceiling float64, most int) int {
+	limit := HardCapFraction * ceiling
+	n := 1
+	for n < most && cost(n+1) <= limit {
+		n++
+	}
+	return n
+}
+
 // RateLimitProfile is what an implementation declares about its provider's costs and limits, so
 // everything above it sees only a weight and a budget (ADR-0023).
 type RateLimitProfile[C any] interface {

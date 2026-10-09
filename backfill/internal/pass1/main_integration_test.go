@@ -259,16 +259,26 @@ type world struct {
 	ended   bool
 	expect  core.Progress
 	// enumerations counts the enumerations runs started from the first page, the first and each one a
-	// reopened pass or a change of scanner started over.
+	// change of scanner started over before it ended.
 	enumerations int
+	// calls counts the calls fetching stale subjects again the provider answered, callsCommitted those
+	// made durable, and ids the identifiers the calls answered named.
+	calls, callsCommitted, ids int
+	// mailbox is the provider's mailbox, which a test may remove a message from.
+	mailbox *fake.Fake
 }
+
+// perCall is how many identifiers one call fetching stale subjects again names here, so a call can
+// name more than one.
+const perCall = 2
 
 // revision returns the scanner configuration's revision after n changes of scanner.
 func revision(n int) string { return fmt.Sprintf("revision-%d", n) }
 
 // rescan changes the scanner every later process masks with, as a release or a configuration change
-// does, and stops the process, since a change takes a restart (ADR-0078, ADR-0096). Every scanner here
-// masks alike, so only the revision tells them apart.
+// does, and stops the process, since a change takes a restart (ADR-0078, ADR-0120). Every scanner here
+// masks alike, so only the revision tells them apart. This world runs no run-start step, so every
+// stored subject is stale after a change, and a pass whose enumeration ended fetches them all again.
 func (w *world) rescan(t tb) {
 	t.Helper()
 	w.rescans++
@@ -281,15 +291,15 @@ func (w *world) rescan(t tb) {
 }
 
 // newWorld builds a world over store, enumerating the mailbox s generates. port turns the throttled
-// fake into the Fetch the pass uses.
-func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb) state, port func(mail.Port[context.Context]) pass1.Fetch) *world {
+// fake into the Fetch and the Metadata the pass uses.
+func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb) state, port func(mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata)) *world {
 	t.Helper()
 	messages, want := mailbox(s)
 	f, err := fake.New(fake.Config{Account: account, PageSize: max(s.PageSize, 1), BudgetPerSecond: 10_000, ReportsTotal: s.Totals}, messages...)
 	if err != nil {
 		t.Fatalf("building the mailbox: %v", err)
 	}
-	w := &world{ctx: context.Background(), account: account, store: store, inspect: inspect, want: want, pageSize: max(s.PageSize, 1), enumerations: 1}
+	w := &world{ctx: context.Background(), account: account, store: store, inspect: inspect, want: want, pageSize: max(s.PageSize, 1), enumerations: 1, mailbox: f}
 	throttled := fake.Throttle(f, func(fake.Call) error {
 		if w.throttle > 0 {
 			w.throttle--
@@ -297,7 +307,7 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 		}
 		return nil
 	}, time.Now)
-	inner := port(throttled)
+	inner, metadata := port(throttled)
 	rules, err := policy.Load([]policy.Row{{ID: listedRule, Class: policy.Restricted, DomainSuffixes: []string{listedDomain}}})
 	if err != nil {
 		t.Fatalf("loading the policy: %v", err)
@@ -323,6 +333,19 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 			}
 			return page, err
 		},
+		Metadata: func(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+			got, err := metadata(ctx, ids)
+			if err == nil {
+				w.calls++
+				w.ids += len(ids)
+			}
+			if w.cut {
+				w.cut = false
+				w.cancel()
+			}
+			return got, err
+		},
+		PerCall: perCall,
 		Policy:  rules.For(account),
 		Scanner: scanner,
 		Lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
@@ -338,10 +361,10 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 // open opens a run, the recovery path.
 func (w *world) open(t tb) {
 	t.Helper()
-	// A pass that ended with messages masked under an earlier scanner is reopened, and a run resuming
-	// an enumeration made under an earlier scanner starts it over, each enumerating again (ADR-0096).
+	// A run resuming an enumeration not yet ended that was made under an earlier scanner starts it over,
+	// enumerating again. A pass reopened after its enumeration ended enumerates nothing (ADR-0120).
 	now := index.Stamp{Version: 1, Revision: revision(w.rescans)}
-	if w.reported.Checkpoint.Stamp != now && (w.ended && len(w.durable) > 0 || !w.ended && w.reported.Checkpoint.Page > 0) {
+	if at := w.reported.Checkpoint; !w.ended && at.Stamp != now && at.Page > 0 && !at.Ended() {
 		w.enumerations++
 	}
 	p, err := pass1.Open(w.ctx, w.deps, w.account)
@@ -367,9 +390,13 @@ func (w *world) step(t tb) bool {
 	w.cancel = cancel
 	before := w.pass.Progress()
 	s, err := w.pass.Next(ctx)
-	// A page whose commit ended is durable, whether or not the step ended well after it.
+	// A page or a call whose commit ended is durable, whether or not the step ended well after it.
 	if at := w.pass.Progress(); at != before {
-		w.committed++
+		if before.Checkpoint.Ended() {
+			w.callsCommitted++
+		} else {
+			w.committed++
+		}
 		w.reported = at
 		w.durable = slices.Sorted(maps.Keys(w.inspect(t).Messages))
 	}
@@ -399,26 +426,37 @@ func (w *world) crash(t tb, at int) {
 	w.crashes++
 	if w.pass != nil && at != betweenSteps {
 		w.cut, w.cutAfter = at == insidePage, at == afterCommit
-		committed := w.committed
+		committed, calls := w.committed, w.callsCommitted
 		w.step(t)
-		if at == insidePage && w.committed != committed {
-			t.Errorf("a page whose process was stopped before its commit ended was made durable")
+		if at == insidePage && (w.committed != committed || w.callsCommitted != calls) {
+			t.Errorf("a page or call whose process was stopped before its commit ended was made durable")
 		}
 		w.cut, w.cutAfter = false, false
 	}
 	w.pass = nil
 	// The run that recovers resumes from the progress last reported. A pass reopened by a change of
-	// scanner starts afresh, and a run resuming an enumeration made under another scanner starts it
-	// over with its counters (ADR-0096).
+	// scanner after its enumeration ended starts from that enumeration's checkpoint with fresh
+	// counters, a run resuming an enumeration not yet ended that was made under another scanner starts
+	// it over with its counters, and a run whose enumeration has ended records the subjects still
+	// stale (ADR-0120).
 	now := index.Stamp{Version: 1, Revision: revision(w.rescans)}
+	stale := 0
+	for _, m := range w.inspect(t).Messages {
+		if m.Revision != now.Revision {
+			stale++
+		}
+	}
 	w.expect = w.reported
+	cp := w.expect.Checkpoint
 	switch {
 	case w.ended:
-		w.expect = core.Progress{Checkpoint: core.Checkpoint{Stamp: now}}
-	case w.expect.Checkpoint.Stamp != now && w.expect.Checkpoint.Page > 0:
-		w.expect = core.Progress{Checkpoint: core.Checkpoint{Stamp: now}, Counters: w.expect.Counters}
-	default:
-		w.expect.Checkpoint.Stamp = now
+		w.expect = core.Progress{Checkpoint: core.Checkpoint{Page: cp.Page, Of: cp.Of}}
+	case cp.Stamp != now && cp.Page > 0 && !cp.Ended():
+		w.expect = core.Progress{Counters: w.expect.Counters}
+	}
+	w.expect.Checkpoint.Stamp, w.expect.Checkpoint.Stale = now, 0
+	if w.expect.Checkpoint.Ended() {
+		w.expect.Checkpoint.Stale = stale
 	}
 }
 
@@ -427,6 +465,15 @@ func (w *world) crash(t tb, at int) {
 type cutting struct {
 	pass1.Store
 	w *world
+}
+
+func (c cutting) Refetch(ctx context.Context, account, runID string, s index.Stamp, r pass1.Refetched, advance func(int, int) core.Progress) (core.Progress, error) {
+	at, err := c.Store.Refetch(ctx, account, runID, s, r, advance)
+	if err == nil && c.w.cutAfter {
+		c.w.cutAfter = false
+		c.w.cancel()
+	}
+	return at, err
 }
 
 func (c cutting) Commit(ctx context.Context, account, runID string, p index.Page, recovered *pass1.Failure, advance func(int, int) core.Progress) (pass1.Committed, error) {
@@ -483,7 +530,7 @@ func (w *world) checkEvents(t tb, got state) {
 func (w *world) progress(t tb) {
 	t.Helper()
 	w.throttle = 0
-	limit := 2*(len(w.want)/w.pageSize+2) + 2
+	limit := 2*(len(w.want)/w.pageSize+2) + 2*(len(w.want)/perCall+2) + 2
 	done := false
 	for range limit {
 		if done = w.step(t); done {
@@ -506,8 +553,9 @@ func (w *world) progress(t tb) {
 	if !ok || latest.State != "succeeded" {
 		t.Errorf("the latest run is %+v, want one that succeeded", latest)
 	}
-	// With no change of scanner one pass added every message. A change of scanner reopens the pass,
-	// which starts afresh, so its counters count only what that pass added and masked again.
+	// With no change of scanner one pass added every message. A change of scanner after the
+	// enumeration ended reopens the pass, which starts afresh, so its counters count only what that
+	// pass fetched and masked again.
 	if w.rescans == 0 && latest.Progress.Counters.Messages != len(w.want) {
 		t.Errorf("the latest run is %+v, want one that added %d messages", latest, len(w.want))
 	}
@@ -532,10 +580,19 @@ func (w *world) progress(t tb) {
 	if rework := w.fetched - w.committed; rework > w.crashes {
 		t.Errorf("%d pages were fetched and %d made durable across %d crashes, more than one page of rework a crash", w.fetched, w.committed, w.crashes)
 	}
-	// A change of scanner costs an enumeration only when a run starts one over from the first page.
+	// A change of scanner costs an enumeration only when a run starts one not yet ended over from the
+	// first page. One made after the enumeration ended costs a fetch by identifier of each stale
+	// subject, here every subject, with no more than one call of rework a crash (ADR-0120).
 	if pages := max(1, (len(w.want)+w.pageSize-1)/w.pageSize); w.fetched > pages*w.enumerations+w.crashes {
 		t.Errorf("the provider returned %d pages for a mailbox of %d across %d crashes and %d enumerations started from the first page, more than a page of rework a crash",
 			w.fetched, pages, w.crashes, w.enumerations)
+	}
+	if rework := w.calls - w.callsCommitted; rework > w.crashes {
+		t.Errorf("%d calls fetching subjects again were answered and %d made durable across %d crashes, more than one call of rework a crash", w.calls, w.callsCommitted, w.crashes)
+	}
+	if w.ids > w.rescans*len(w.want)+w.crashes*perCall {
+		t.Errorf("the calls fetching subjects again named %d identifiers for a mailbox of %d across %d changes of scanner and %d crashes, more than the mailbox once a change and a call a crash",
+			w.ids, len(w.want), w.rescans, w.crashes)
 	}
 }
 
@@ -568,7 +625,9 @@ func realWorld(t testing.TB, s setup) *world {
 	limiter := lease.New(pool, 10_000, nil)
 	url := postgres.URL(t)
 	return newWorld(t, s, account, pass1.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
-		func(p mail.Port[context.Context]) pass1.Fetch { return pass1.Leased(limiter, p, account) })
+		func(p mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata) {
+			return pass1.Leased(limiter, p, account), pass1.LeasedMetadata(limiter, p, account)
+		})
 }
 
 // inspectPostgres reads the account's state from the database.
@@ -600,10 +659,12 @@ func inspectPostgres(t tb, url, account string) state {
 		var c struct {
 			Page     int    `json:"page"`
 			Token    string `json:"token"`
+			Of       int    `json:"of"`
 			Version  int    `json:"version"`
 			Revision string `json:"revision"`
+			Stale    int    `json:"stale"`
 		}
-		var n struct{ Pages, Messages, Remasked int }
+		var n struct{ Pages, Messages, Remasked, Refetched int }
 		if err := json.Unmarshal(cp, &c); err != nil {
 			return err
 		}
@@ -611,8 +672,8 @@ func inspectPostgres(t tb, url, account string) state {
 			return err
 		}
 		r.Progress = core.Progress{
-			Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Stamp: index.Stamp{Version: c.Version, Revision: c.Revision}},
-			Counters:   core.Counters{Pages: n.Pages, Messages: n.Messages, Remasked: n.Remasked},
+			Checkpoint: core.Checkpoint{Page: c.Page, Token: mail.PageToken(c.Token), Of: c.Of, Stamp: index.Stamp{Version: c.Version, Revision: c.Revision}, Stale: c.Stale},
+			Counters:   core.Counters{Pages: n.Pages, Messages: n.Messages, Remasked: n.Remasked, Refetched: n.Refetched},
 		}
 		runs = append(runs, r)
 		return nil
@@ -685,20 +746,83 @@ func newMemory() *memory {
 	return &memory{messages: map[string]index.Message{}, events: map[string]map[index.Stamp]int{}}
 }
 
-func (m *memory) State(ctx context.Context, _ string, s index.Stamp) (bool, bool, core.Latest[core.Progress], error) {
+func (m *memory) State(ctx context.Context, _ string, s index.Stamp) (bool, int, core.Latest[core.Progress], error) {
 	if err := ctx.Err(); err != nil {
-		return false, false, core.Latest[core.Progress]{}, err
+		return false, 0, core.Latest[core.Progress]{}, err
 	}
-	due := false
-	for _, msg := range m.messages {
-		due = due || msg.Stamp != s
-	}
+	stale := len(m.stale(s, len(m.messages)))
 	if len(m.runs) == 0 {
-		return m.ended, due, core.Latest[core.Progress]{}, nil
+		return m.ended, stale, core.Latest[core.Progress]{}, nil
 	}
 	r := m.runs[len(m.runs)-1]
 	states := map[string]core.RunState{"running": core.Running, "succeeded": core.Succeeded, "failed": core.Failed}
-	return m.ended, due, core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+	return m.ended, stale, core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+}
+
+// stale returns up to n of the messages whose subject was masked under another scanner than s, in the
+// order of their identifiers.
+func (m *memory) stale(s index.Stamp, n int) []core.Stored {
+	var out []core.Stored
+	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
+		if msg := m.messages[id]; msg.Stamp != s && len(out) < n {
+			out = append(out, core.Stored{ID: id, Subject: msg.Subject})
+		}
+	}
+	return out
+}
+
+func (m *memory) Stale(ctx context.Context, _ string, s index.Stamp, n int) ([]core.Stored, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return m.stale(s, n), nil
+}
+
+// remask stores msg's subject over the one held, when the one held was masked under another scanner,
+// with its masking events, and reports whether it did.
+func (m *memory) remask(msg index.Message) bool {
+	held, ok := m.messages[msg.ID]
+	if !ok || held.Stamp == msg.Stamp {
+		return false
+	}
+	held.Subject, held.SubjectMasked, held.Masks, held.Stamp = msg.Subject, msg.SubjectMasked, msg.Masks, msg.Stamp
+	m.messages[msg.ID] = held
+	m.mask(msg)
+	return true
+}
+
+func (m *memory) Refetch(ctx context.Context, _, runID string, s index.Stamp, r pass1.Refetched, advance func(int, int) core.Progress) (core.Progress, error) {
+	if err := ctx.Err(); err != nil {
+		return core.Progress{}, err
+	}
+	fetched := 0
+	for _, msg := range r.Remasked {
+		if m.remask(msg) {
+			fetched++
+		}
+	}
+	for _, msg := range r.Gone {
+		if m.remask(msg) {
+			fetched++
+			m.items = append(m.items, pass1.Item{Kind: "message", ID: msg.ID, Class: "gone", Attempts: 1, First: r.Now, Last: r.Now, Disposition: "gone"})
+		}
+	}
+	m.items = append(m.items, r.Recovered...)
+	at := advance(fetched, len(m.stale(s, len(m.messages))))
+	for i := range m.runs {
+		if m.runs[i].ID == runID {
+			m.runs[i].Progress = at
+		}
+	}
+	return at, nil
+}
+
+func (m *memory) Items(ctx context.Context, _, _ string, items []pass1.Item) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	m.items = append(m.items, items...)
+	return nil
 }
 
 // mask stores msg's subject as masked under its scanner, with its masking events.
@@ -738,14 +862,10 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p index.Page, reco
 	var c pass1.Committed
 	added, remasked := 0, 0
 	for _, msg := range p.Messages {
-		if held, ok := m.messages[msg.ID]; ok {
-			if held.Stamp == msg.Stamp {
-				continue
+		if _, ok := m.messages[msg.ID]; ok {
+			if m.remask(msg) {
+				remasked++
 			}
-			held.Subject, held.SubjectMasked, held.Masks, held.Stamp = msg.Subject, msg.SubjectMasked, msg.Masks, msg.Stamp
-			m.messages[msg.ID] = held
-			m.mask(msg)
-			remasked++
 			continue
 		}
 		m.messages[msg.ID] = msg
@@ -767,27 +887,16 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p index.Page, reco
 	return c, nil
 }
 
-func (m *memory) Finish(ctx context.Context, _, runID string, s index.Stamp, gone func([]core.Stored) []index.Message, now time.Time) (int, error) {
+func (m *memory) Finish(ctx context.Context, _, runID string, s index.Stamp) (bool, error) {
 	if err := ctx.Err(); err != nil {
-		return 0, err
+		return false, err
 	}
-	var stale []core.Stored
-	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
-		if msg := m.messages[id]; msg.Stamp != s {
-			stale = append(stale, core.Stored{ID: id, Subject: msg.Subject})
-		}
-	}
-	whole := gone(stale)
-	for _, msg := range whole {
-		held := m.messages[msg.ID]
-		held.Subject, held.SubjectMasked, held.Masks, held.Stamp = msg.Subject, msg.SubjectMasked, msg.Masks, msg.Stamp
-		m.messages[msg.ID] = held
-		m.mask(msg)
-		m.items = append(m.items, pass1.Item{Kind: "message", ID: msg.ID, Class: "gone", Attempts: 1, First: now, Last: now, Disposition: "gone"})
+	if len(m.stale(s, 1)) > 0 {
+		return false, nil
 	}
 	m.ended = true
 	m.end(runID, "succeeded")
-	return len(whole), nil
+	return true, nil
 }
 
 func (m *memory) Fail(ctx context.Context, _, runID, _ string) error {
@@ -845,5 +954,7 @@ func (m *memory) inspect(tb) state {
 func modelWorld(t tb, s setup) *world {
 	t.Helper()
 	m := newMemory()
-	return newWorld(t, s, "personal", m, m.inspect, func(p mail.Port[context.Context]) pass1.Fetch { return p.EnumerateAll })
+	return newWorld(t, s, "personal", m, m.inspect, func(p mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata) {
+		return p.EnumerateAll, p.GetMessageMetadata
+	})
 }

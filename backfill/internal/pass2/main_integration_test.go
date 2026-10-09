@@ -26,6 +26,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
+	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
@@ -265,7 +266,7 @@ func seedPostgres(t testing.TB, account string, f mail.Port[context.Context]) {
 	}
 	n := 0
 	deps := pass1.Deps{
-		Store: pass1.NewPostgres(backfillPool(t)), Fetch: f.EnumerateAll,
+		Store: pass1.NewPostgres(backfillPool(t)), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3,
 		Policy: policyListing(t, false).For(account), Scanner: scanner(t), Lookups: lookups,
 		RunID: func() string { n++; return fmt.Sprintf("first%d", n) }, Now: time.Now,
 	}
@@ -383,8 +384,8 @@ type memory struct {
 type memoryMessage struct {
 	in index.Waiting
 	st stored
-	// subject is the scanner revision the first pass masked the subject under.
-	subject string
+	// subject is the scanner revision the subject was last masked under, and text the subject stored.
+	subject, text string
 }
 
 var _ pass2.Store = (*memory)(nil)
@@ -404,6 +405,7 @@ func newMemory(t tb, messages []fake.Message) *memory {
 			in:      index.Waiting{ID: d.ID, From: d.From.Email, Domain: d.Domain, SubjectMasked: d.SubjectMasked, ListID: d.ListID != "", SizeBytes: d.SizeBytes, SentAt: d.Date},
 			st:      stored{Domain: d.Domain, Class: string(d.Class), State: "pending", Flags: []string{}, Rules: []string{}},
 			subject: d.Stamp.Revision,
+			text:    d.Subject,
 		}
 		m.volume[d.Domain]++
 	}
@@ -450,16 +452,29 @@ func (m *memory) Start(ctx context.Context, _, runID string, start pass1core.Sta
 	return nil
 }
 
-func (m *memory) Reopen(ctx context.Context, _ string, s index.Stamp, overturned func([]index.Waiting) []string) (pass2.Reopened, error) {
+func (m *memory) Reopen(ctx context.Context, _ string, s index.Stamp, remasked func([]pass1core.Stored) []index.Message, overturned func([]index.Waiting) []string) (pass2.Reopened, error) {
 	if err := ctx.Err(); err != nil {
 		return pass2.Reopened{}, err
 	}
-	marked, stale := 0, false
-	for _, msg := range m.messages {
+	marked := 0
+	var unmasked []pass1core.Stored
+	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
+		msg := m.messages[id]
 		if msg.st.State == "scanned" && (msg.st.Version != s.Version || msg.st.Revision != s.Revision) {
 			msg.st.State, msg.st.Flags, msg.st.Rules, msg.st.Version, msg.st.Revision = "pending", []string{}, []string{}, 0, ""
 			marked++
 		}
+		if !msg.in.SubjectMasked && msg.subject != s.Revision {
+			unmasked = append(unmasked, pass1core.Stored{ID: id, Subject: msg.text})
+		}
+	}
+	again := remasked(unmasked)
+	for _, r := range again {
+		msg := m.messages[r.ID]
+		msg.subject, msg.text, msg.in.SubjectMasked = r.Stamp.Revision, r.Subject, r.SubjectMasked
+	}
+	stale := false
+	for _, msg := range m.messages {
 		stale = stale || msg.subject != s.Revision
 	}
 	if marked > 0 {
@@ -482,11 +497,11 @@ func (m *memory) Reopen(ctx context.Context, _ string, s index.Stamp, overturned
 	for _, id := range overturn {
 		m.messages[id].st.State = "pending"
 	}
-	if marked == 0 && len(overturn) == 0 && !stale {
+	if marked == 0 && len(overturn) == 0 && len(again) == 0 && !stale {
 		return pass2.Reopened{}, nil
 	}
 	m.ended, m.restart = false, true
-	return pass2.Reopened{Verdicts: marked, Skips: len(overturn)}, nil
+	return pass2.Reopened{Verdicts: marked, Skips: len(overturn), Subjects: len(again)}, nil
 }
 
 func (m *memory) RequeueSkips(ctx context.Context, _, _ string) (int, error) {
@@ -713,8 +728,25 @@ type world struct {
 	current, issued int
 	earlier         []int
 	mark            bool
+	// unmaskedRevision is the revision the subjects stored unmasked were last masked under, which the
+	// run-start step moves to the scanner in force. The subjects stored masked keep the first one, since
+	// this world runs no first pass to fetch them again (ADR-0120).
+	unmaskedRevision string
 	// widened is set once the gate's thresholds were widened past every sender's volume.
 	widened bool
+}
+
+// subjects reports whether the mailbox holds a subject the scanner masks and one it does not.
+func (w *world) subjects(t tb) (masked, unmasked bool) {
+	t.Helper()
+	for _, m := range w.messages {
+		if len(redact.MaskSubject(scanner(t), m.Metadata.Subject).Events()) > 0 {
+			masked = true
+		} else {
+			unmasked = true
+		}
+	}
+	return masked, unmasked
 }
 
 // revision returns the revision of the scanner in force.
@@ -727,7 +759,7 @@ func (w *world) revision() string {
 
 // rescan changes the scanner every later process scans with to a new one, as a release or a
 // configuration change does, and stops the process, since a change takes a restart (ADR-0078,
-// ADR-0096).
+// ADR-0120).
 func (w *world) rescan(t tb) {
 	t.Helper()
 	w.rescans++
@@ -767,7 +799,10 @@ func newWorld(t tb, s setup, account string, messages []fake.Message, store pass
 	if err != nil {
 		t.Fatalf("building the mailbox: %v", err)
 	}
-	w := &world{ctx: context.Background(), account: account, store: store, inspect: inspect, messages: messages, pageSize: max(s.PageSize, 1), decided: map[string]string{}}
+	w := &world{
+		ctx: context.Background(), account: account, store: store, inspect: inspect, messages: messages, pageSize: max(s.PageSize, 1), decided: map[string]string{},
+		unmaskedRevision: "a-revision",
+	}
 	throttled := fake.Throttle(f, func(fake.Call) error {
 		if w.throttle > 0 {
 			w.throttle--
@@ -814,7 +849,7 @@ func (w *world) restricted(id string) bool {
 
 // open opens a run, the recovery path, loading the policy as it stands. As a backfill run does, it
 // first returns the verdicts made under another scanner and the overturned gate skips to pending
-// (ADR-0096, ADR-0098).
+// (ADR-0120, ADR-0098).
 func (w *world) open(t tb) {
 	t.Helper()
 	w.deps.Policy = policyAdding(t, w.delisted, w.added).For(w.account)
@@ -823,18 +858,20 @@ func (w *world) open(t tb) {
 		t.Fatalf("returning the stale verdicts to pending: %v", err)
 	}
 	// The run-start step marks the pass to start over when it returned a verdict or a gate skip to
-	// pending, or when the subjects the first pass masked are stale, here whenever the scanner in force
-	// is not the one the first pass masked under, since this world runs no first pass (ADR-0096,
-	// ADR-0098).
+	// pending, when it masked a subject stored unmasked again, or when a subject stored masked is
+	// stale, here whenever the scanner in force is not the one the first pass masked under, since this
+	// world runs no first pass (ADR-0120, ADR-0098).
 	reopened := w.inspect(t)
 	for id, m := range before.Messages {
 		if (m.State == "scanned" || m.State == "skipped_gate") && reopened.Messages[id].State == "pending" {
 			w.mark = true
 		}
 	}
-	if w.revision() != "a-revision" {
+	masked, unmasked := w.subjects(t)
+	if masked && w.revision() != "a-revision" || unmasked && w.unmaskedRevision != w.revision() {
 		w.mark = true
 	}
+	w.unmaskedRevision = w.revision()
 	p, err := pass2.Open(w.ctx, w.deps, w.account)
 	if err != nil {
 		t.Fatalf("opening a run: %v", err)

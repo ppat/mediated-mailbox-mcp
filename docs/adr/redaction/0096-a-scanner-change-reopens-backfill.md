@@ -1,6 +1,7 @@
 # 0096. A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) ·
 **Pillar:** [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) ·
 **Serves:** [C3](../../../USE_CASES.md#c3--content-based-secrets-caught), [C1](../../../USE_CASES.md#c1--metadata-always-visible)
 

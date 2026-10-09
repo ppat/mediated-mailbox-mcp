@@ -1,0 +1,20 @@
+control: A call fetching subjects again that leaves every one of them stale fails the run
+removes: a call that leaves every subject it fetched stale is taken as progress, so the pass asks for the same subjects without end
+packages: ./backfill/internal/pass1
+tests: TestACallThatLeavesEverySubjectStaleFailsTheRun
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass1/pass1.go b/backfill/internal/pass1/pass1.go
+index b8216cf6..249d831a 100644
+--- a/backfill/internal/pass1/pass1.go
++++ b/backfill/internal/pass1/pass1.go
+@@ -269,7 +269,7 @@ func (p *Pass) refetch(ctx context.Context) (Step, error) {
+ 	// A call moves the pass when it stores a subject under the pair in force, masked or not, or when
+ 	// fewer subjects are left stale. One that moves nothing left every subject it asked for stale, so
+ 	// the next read would ask for the same ones and the pass would spend from the budget without end.
+-	moved := at.Counters.Refetched > from.Counters.Refetched || at.Checkpoint.Stale < from.Checkpoint.Stale
++	moved := true
+ 	p.at = at
+ 	if !moved {
+ 		return Step{}, p.failed(ctx, fmt.Errorf("fetching %d subjects again left every one of them stale", len(stored)))

@@ -72,7 +72,7 @@ type Configuration struct {
 	Database         dbconnectcore.Config  `yaml:"database"`
 	Credential       credentialcore.Config `yaml:"credential"`
 	// Scanner is the scanner's section, which must be backfill's, or each reopens the other's work
-	// (ADR-0096).
+	// (ADR-0120).
 	Scanner scan.Config `yaml:"scanner"`
 }
 
@@ -187,7 +187,7 @@ func assemble(ln net.Listener, pool *pgxpool.Pool, keys *open.Keyring, scanner s
 // configuration library's revision of that section, so a change to any of its values in any layer
 // changes the revision every verdict and mask records, and a change to another section does not. The
 // revision depends on the section's values alone, so delta sync and backfill record the same one for
-// the same section (ADR-0005, ADR-0078, ADR-0096).
+// the same section (ADR-0005, ADR-0078, ADR-0120).
 func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
 	s, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection])
 	if err != nil {
@@ -372,7 +372,7 @@ func (s *syncer) tickAccount(ctx context.Context, snapshot *accountload.Snapshot
 
 // tickDeps returns what the account's tick runs with over provider. The gate decides under the
 // thresholds backfill decides under and the scanner is built from the section backfill reads, so
-// neither workload reopens the other's work (ADR-0096, ADR-0098, ADR-0104).
+// neither workload reopens the other's work (ADR-0120, ADR-0098, ADR-0104).
 func (s *syncer) tickDeps(account string, provider tick.Provider, policy policyload.Snapshot) tick.Deps {
 	return tick.Deps{
 		Store:       tick.NewPostgres(s.pool),

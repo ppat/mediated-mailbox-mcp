@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"testing"
 	"time"
 
@@ -57,7 +58,7 @@ func wideScanner(t *testing.T) scan.Scanner {
 // rescanMailbox returns the account's mailbox. The news sender sends three list messages, which the
 // lowered gate below skips for volume unless the subject is masked, the first of them with a code in
 // its subject. The shop sends a code in a body, a clean body, and a message the test later removes
-// from the provider. The bank, which the policy lists, sends a code in a subject. The login sender
+// from the provider, whose subject holds a code both scanners mask. The bank, which the policy lists, sends a code in a subject. The login sender
 // sends a code both scanners flag.
 func rescanMailbox(t *testing.T, account string) *fake.Fake {
 	t.Helper()
@@ -71,7 +72,7 @@ func rescanMailbox(t *testing.T, account string) *fake.Fake {
 		{"n3", "letters@news.example", marker.Field("newsthree"), marker.Body("newsthree"), true},
 		{"s1", "orders@shop.example", marker.Field("shopone"), marker.Body("shopone") + " " + codeText + ".", false},
 		{"s2", "orders@shop.example", marker.Field("shoptwo"), marker.Body("shoptwo") + " Thanks.", false},
-		{"s3", "orders@shop.example", marker.Field("shopthree") + " " + codeText, marker.Body("shopthree"), false},
+		{"s3", "orders@shop.example", marker.Field("shopthree") + " Your OTP is 552901", marker.Body("shopthree"), false},
 		{"o1", "sign-in@login.example", marker.Field("login"), marker.Body("login") + " Your OTP is 419283.", false},
 	}
 	var out []fake.Message
@@ -124,7 +125,7 @@ func rescanDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake, 
 	runID := func() string { n++; return fmt.Sprintf("%s%d", run, n) }
 	gate := scangate.Config{NoReplyLocalParts: []string{"noreply"}, SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 2}
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Policy: rules.For(account), Scanner: s, Lookups: lookups,
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3, Policy: rules.For(account), Scanner: s, Lookups: lookups,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
@@ -186,17 +187,21 @@ func completion(t *testing.T, conn *pgx.Conn, account string) (bool, bool) {
 }
 
 // VERIFICATIONS' row for a change of scanner, the operation that masks and scans again. Both passes
-// run under a scanner whose narrow trigger words neither mask nor flag the code, and end. A message is
-// then removed at the provider, new mail arrives, and the scanner is changed to the default one.
+// run under a scanner whose narrow trigger words neither mask nor flag the code, and end. A message
+// whose subject is stored masked is then removed at the provider, new mail arrives, and the scanner is
+// changed to the default one.
 //
-// The next run, before its first pass, returns every scanned message to pending with its verdict
-// cleared and its sender's prior hits counted again, and reopens the second pass. Its first pass then
-// fails, and the verdicts stay pending. The run after that returns nothing more, and part way through
-// its first pass the verdicts are still pending. That first pass masks every stored subject again
-// under the new scanner with its masking events, adds the new mail, and masks whole the subject of the
-// message the provider no longer has. The second pass then returns the list message the gate skipped
-// whose subject is now masked to pending, scans everything waiting under the new scanner, flags the
-// codes, and counts each sender's hits once. A run after that finds nothing to do (ADR-0096).
+// The next run, before its first pass and with no call to the provider, returns every scanned message
+// to pending with its verdict cleared and its sender's prior hits counted again, masks every subject
+// stored unmasked again from the store with a masking event for each mask, returns the list message
+// the gate skipped whose subject it now masks to pending, and reopens the second pass. Its first pass
+// then fails on its first call, and the verdicts stay pending. The run after that returns nothing more,
+// and part way through its first pass the verdicts are still pending. That first pass asks for no
+// page, so the new mail stays out of the index, and fetches again by identifier only the subjects
+// stored masked, masks each again under the new scanner with its masking events, and masks whole the
+// subject of the message the provider no longer has, which it records as gone. The second pass then
+// scans everything waiting under the new scanner, flags the codes, and counts each sender's hits once.
+// A run after that finds nothing to do (ADR-0120).
 func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -208,6 +213,9 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	before := rescanRows(t, conn, "personal")
 	if before["s1"].State != "scanned" || len(before["s1"].Flags) != 0 || before["n1"].State != "skipped_gate" || before["n1"].Subject != marker.Field("newsone")+" "+codeText {
 		t.Fatalf("under the narrow scanner the shop's code is %+v and the news code subject %+v, want scanned clean and skipped unmasked", before["s1"], before["n1"])
+	}
+	if r := before["s3"]; r.Subject != marker.Field("shopthree")+" Your OTP is ██████" {
+		t.Fatalf("under the narrow scanner the removed message's subject is %+v, want its code masked", r)
 	}
 	if err := f.Remove("s3"); err != nil {
 		t.Fatal(err)
@@ -224,6 +232,16 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	}
 	wide := wideScanner(t)
 	first, second := rescanDeps(t, pool, "personal", f, wide, "wide")
+	var pages int
+	var asked []string
+	first.Fetch = func(ctx context.Context, token mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
+		pages++
+		return f.EnumerateAll(ctx, token)
+	}
+	first.Metadata = func(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+		asked = append(asked, ids...)
+		return f.GetMessageMetadata(ctx, ids)
+	}
 	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
 	if err != nil {
 		t.Fatal(err)
@@ -234,12 +252,13 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	}
 	none := func(context.Context, string) error { return nil }
 
-	// The next run's first pass fails on its first page. Before it ran, the run returned every verdict the
-	// narrow scanner made to pending, cleared, with the senders' prior hits counted again, and reopened
-	// the second pass, so no stale verdict releases a body while the first pass cannot end.
+	// The next run's first pass fails on its first call. Before it ran, the run returned every verdict
+	// the narrow scanner made to pending, cleared, with the senders' prior hits counted again, masked
+	// the subjects stored unmasked again from the store, and reopened the second pass, so no stale
+	// verdict releases a body while the first pass cannot end.
 	refusing := first
-	refusing.Fetch = func(context.Context, mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
-		return mail.Page[mail.MessageMetadata]{}, fmt.Errorf("the credential: %w", mail.ErrAuthentication)
+	refusing.Metadata = func(context.Context, []string) ([]mail.MessageMetadata, error) {
+		return nil, fmt.Errorf("the credential: %w", mail.ErrAuthentication)
 	}
 	if err := backfillAccount(t.Context(), refusing, second, "personal", metrics1, metrics2, none, slog.New(slog.DiscardHandler)); err == nil {
 		t.Fatalf("a run whose first pass the provider refuses ended without an error")
@@ -247,6 +266,7 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	if r := before["o1"]; r.State != "scanned" || len(r.Flags) == 0 {
 		t.Fatalf("under the narrow scanner the login code is %+v, want flagged", r)
 	}
+	masked := marker.Field("newsone") + " Your verification code is ██████"
 	stalePending := func(when string) {
 		t.Helper()
 		rows := rescanRows(t, conn, "personal")
@@ -255,9 +275,14 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 				t.Errorf("%s, message %s is %+v, want pending with its verdict cleared", when, id, r)
 			}
 		}
-		// A skip whose subject the new scanner masks waits for the re-mask, the window ADR-0096 states.
-		if r := rows["n1"]; r.State != "skipped_gate" {
-			t.Errorf("%s, the news code message is %+v, want its skip in force until the first pass masks its subject again", when, r)
+		// A skip whose subject was stored unmasked is decided again once the run's start has masked
+		// it, so it is pending from the run's start. Only a subject another job kind stores unmasked
+		// after the run's start keeps its skip until the second pass starts (ADR-0120).
+		if r := rows["n1"]; r.State != "pending" || r.Subject != masked || r.SubjectRevision != "wide-revision" || r.EventsUnderStamp != 1 {
+			t.Errorf("%s, the news code message is %+v, want its subject masked from the store under the new scanner with one masking event and its skip returned to pending", when, r)
+		}
+		if r := rows["b1"]; r.Subject != marker.Field("bank")+" Your verification code is ██████" || r.SubjectRevision != "wide-revision" || r.EventsUnderStamp != 1 {
+			t.Errorf("%s, the bank's subject is %+v, want its code masked from the store with one masking event under the new scanner", when, r)
 		}
 		for _, domain := range []string{"shop.example", "login.example"} {
 			var hits int64
@@ -267,12 +292,15 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 		}
 	}
 	stalePending("while the first pass fails")
+	if pages != 0 || len(asked) != 0 {
+		t.Errorf("the run's start and its refused first pass asked for %d pages and fetched %v again, want none", pages, asked)
+	}
 	if ended, scanEnded := completion(t, conn, "personal"); ended || scanEnded {
 		t.Errorf("after a run whose first pass failed the passes are recorded ended as %v and %v, want both reopened", ended, scanEnded)
 	}
 
-	// The next run's first pass resumes and masks every subject again. Part way through it the stale
-	// verdicts are still pending.
+	// The next run's first pass resumes and fetches again only the subjects stored masked. Part way
+	// through it the stale verdicts are still pending.
 	if _, err := pass2.Reopen(t.Context(), second, "personal"); err != nil {
 		t.Fatal(err)
 	}
@@ -283,30 +311,33 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	if p1.Run() == "" {
 		t.Fatalf("the first pass did not run after a change of scanner")
 	}
-	for page := 0; ; page++ {
+	for step := 0; ; step++ {
 		s, err := p1.Next(t.Context())
 		if err != nil {
 			t.Fatal(err)
 		}
-		if page == 0 {
+		if step == 0 {
 			stalePending("while the first pass runs")
 		}
 		if s.Done {
 			break
 		}
 	}
-	masked := marker.Field("newsone") + " Your verification code is ██████"
+	slices.Sort(asked)
+	if pages != 0 || !cmp.Equal(asked, []string{"s3"}) {
+		t.Errorf("the first pass asked for %d pages and fetched %v again, want no page and only the subject stored masked, s3's", pages, asked)
+	}
 	remasked := rescanRows(t, conn, "personal")
+	if _, ok := remasked["s4"]; ok {
+		t.Errorf("the new mail is in the index, want the reopened first pass to enumerate nothing")
+	}
 	for id, r := range remasked {
 		if r.SubjectRevision != "wide-revision" {
 			t.Errorf("message %s's subject is masked under %q, want the new scanner's revision", id, r.SubjectRevision)
 		}
 	}
-	if r := remasked["n1"]; r.Subject != masked || r.EventsUnderStamp != 1 {
-		t.Errorf("the news code subject is %+v, want %q with one masking event under the new scanner", r, masked)
-	}
-	if r := remasked["b1"]; r.Subject != marker.Field("bank")+" Your verification code is ██████" || r.EventsUnderStamp != 1 {
-		t.Errorf("the bank's subject is %+v, want its code masked with one masking event under the new scanner", r)
+	if r := remasked["o1"]; r.Subject != before["o1"].Subject || r.EventsUnderStamp != 0 {
+		t.Errorf("the login subject is %+v, want it as stored, masked again from the store with no mask under the new scanner", r)
 	}
 	gone := remasked["s3"]
 	if wantSubject := []rune(before["s3"].Subject); gone.Subject != string(repeat('█', len(wantSubject))) || !gone.WholeSubjectEvent || gone.EventsUnderStamp != 1 {
@@ -322,17 +353,13 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 		t.Errorf("the reopened first pass did not end")
 	}
 
-	// The second pass then returns the skip decided without its subject's signal to pending before its
-	// first page, and scans everything waiting, the new mail the first pass added included.
+	// The second pass then scans everything waiting, the skip the run's start returned included.
 	p, err := pass2.Open(t.Context(), second, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if p.Run() == "" {
 		t.Fatalf("the second pass did not run after a change of scanner")
-	}
-	if r := rescanRows(t, conn, "personal")["n1"]; r.State != "pending" {
-		t.Errorf("the news code message is %+v before the first page, want pending", r)
 	}
 	for _, id := range []string{"b1", "n2", "n3"} {
 		if r := rescanRows(t, conn, "personal")[id]; r.State != before[id].State {
@@ -352,7 +379,7 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	after := rescanRows(t, conn, "personal")
 	wantStates := map[string]string{
 		"b1": "skipped_restricted", "n1": "scanned", "n2": "skipped_gate", "n3": "skipped_gate", "s1": "scanned", "s2": "scanned", "s3": "pending",
-		"o1": "scanned", "s4": "scanned",
+		"o1": "scanned",
 	}
 	for id, want := range wantStates {
 		if after[id].State != want {
@@ -365,10 +392,7 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	if r := after["n1"]; r.Decision != "SCAN" || r.Reason != "subject_signal" || r.VerdictRevision != "wide-revision" {
 		t.Errorf("the news code message is %+v, want scanned for its subject's signal under the new scanner", r)
 	}
-	if r := after["s4"]; !cmp.Equal(r.Flags, []string{"mfa_code"}) {
-		t.Errorf("the new mail the reopened first pass added is %+v, want scanned and flagged", r)
-	}
-	for domain, want := range map[string]int64{"shop.example": 2, "login.example": 1} {
+	for domain, want := range map[string]int64{"shop.example": 1, "login.example": 1} {
 		var hits int64
 		if err := conn.QueryRow(t.Context(), "SELECT scan_hit_count FROM senders WHERE account_id = 'personal' AND domain = $1", domain).Scan(&hits); err != nil || hits != want {
 			t.Errorf("%s has %d prior hits (%v), want %d, each flagged message counted once", domain, hits, err, want)
@@ -409,9 +433,10 @@ func repeat(r rune, n int) []rune {
 }
 
 // VERIFICATIONS' row for a change of scanner, the second pass following a reopened first. Under the
-// narrow scanner the mailbox holds only a restricted sender's message, so no verdict is ever stale. New
-// mail with a code arrives and the scanner changes. The run reopens the first pass, which adds the new
-// mail, and the second pass runs and scans it, rather than leaving it pending for good (ADR-0096).
+// narrow scanner the mailbox holds only a restricted sender's message, whose subject both scanners
+// mask, so no verdict is ever stale and no subject is stored unmasked. The scanner changes. The run
+// reopens the first pass, which fetches that subject again, and the second pass runs again, rather
+// than staying ended while a subject was masked again (ADR-0120).
 func TestAReopenedFirstPassLeadsToASecondPass(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -419,7 +444,7 @@ func TestAReopenedFirstPassLeadsToASecondPass(t *testing.T) {
 	pool := backfillPool(t)
 	f, err := fake.New(fake.Config{Account: "personal", PageSize: 2}, fake.Message{
 		Metadata: mail.MessageMetadata{
-			ID: "b1", ThreadID: "tb1", From: mail.Address{Email: "alerts@bank.example"}, Subject: marker.Field("bank"),
+			ID: "b1", ThreadID: "tb1", From: mail.Address{Email: "alerts@bank.example"}, Subject: marker.Field("bank") + " Your OTP is 552901",
 			Date: mail.UnixMilli(1_700_000_000_000), SizeBytes: 4096,
 		},
 		Body: mail.MessageBody{Text: marker.Body("bank")},
@@ -428,21 +453,25 @@ func TestAReopenedFirstPassLeadsToASecondPass(t *testing.T) {
 		t.Fatal(err)
 	}
 	runBackfill(t, pool, "personal", f, narrowScanner(t), "narrow")
-	err = f.Deliver(fake.Message{
-		Metadata: mail.MessageMetadata{
-			ID: "s9", ThreadID: "ts9", From: mail.Address{Email: "orders@shop.example"}, Subject: marker.Field("shopnine"),
-			Date: mail.UnixMilli(1_700_001_000_000), SizeBytes: 4096,
-		},
-		Body: mail.MessageBody{Text: marker.Body("shopnine") + " " + codeText + "."},
-	})
-	if err != nil {
-		t.Fatal(err)
+	if r := rescanRows(t, conn, "personal")["b1"]; r.Subject != marker.Field("bank")+" Your OTP is ██████" || r.State != "skipped_restricted" {
+		t.Fatalf("under the narrow scanner the bank's message is %+v, want its subject masked and skipped as restricted", r)
 	}
 
 	runBackfill(t, pool, "personal", f, wideScanner(t), "wide")
 
-	if r := rescanRows(t, conn, "personal")["s9"]; r.State != "scanned" || !cmp.Equal(r.Flags, []string{"mfa_code"}) {
-		t.Errorf("the new mail the reopened first pass added is %+v, want scanned and flagged", r)
+	var passes []string
+	rows, err := conn.Query(t.Context(), "SELECT pass || ' ' || state FROM job_runs WHERE account_id = 'personal' AND run_id LIKE 'wide%' ORDER BY started_at, run_id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if passes, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]string{"pass1 succeeded", "pass2 succeeded"}, passes, compare.Options); diff != "" {
+		t.Errorf("the runs after the change of scanner (-want +got):\n%s", diff)
+	}
+	if r := rescanRows(t, conn, "personal")["b1"]; r.SubjectRevision != "wide-revision" || r.EventsUnderStamp != 1 {
+		t.Errorf("the bank's message is %+v, want its subject fetched and masked again under the new scanner", r)
 	}
 	if first, second := completion(t, conn, "personal"); !first || !second {
 		t.Errorf("the passes end as %v and %v, want both ended", first, second)
@@ -454,7 +483,7 @@ func TestAReopenedFirstPassLeadsToASecondPass(t *testing.T) {
 // removed at the provider, and the index is set to record an earlier version beside the same revision,
 // for every subject, masking event and verdict, as a release bumping the version leaves it. The next
 // run returns every verdict to pending, masks every present subject again under the version in force,
-// masks whole the subject of the removed message, and scans the verdicts again under it (ADR-0096,
+// masks whole the subject of the removed message, and scans the verdicts again under it (ADR-0120,
 // ADR-0005).
 func TestAChangeOfScannerVersionAloneMasksAndScansAgain(t *testing.T) {
 	conn := superuser(t)
@@ -538,7 +567,7 @@ func readRun(t *testing.T, conn *pgx.Conn, runID string) runRecord {
 // row and timeline stay exactly as they were through the run-start step that returns its verdicts to
 // pending, and the next run of the second pass, which resumes it, starts over from the first waiting
 // message from what its checkpoint records, the scanner it scanned under, then scans every verdict
-// again (ADR-0096, ADR-0022).
+// again (ADR-0120, ADR-0022).
 func TestAStoppedSecondPassKeepsItsRecordAndStartsOver(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -631,10 +660,11 @@ func TestAStoppedSecondPassKeepsItsRecordAndStartsOver(t *testing.T) {
 // VERIFICATIONS' row for a change of scanner, a change reverted before any second pass ran under it.
 // Under the narrow scanner the second pass stops part way, past the messages it scanned. The scanner
 // changes to the default one, and that run returns those verdicts to pending before its first pass,
-// which then fails. The scanner is reverted to the narrow one. The next run finds nothing stale, and
-// its second pass, resuming the stopped run, still starts over from the first waiting message, because
-// the earlier run's start marked it to, so it scans every verdict the change returned to pending and no
-// message is left waiting with both passes ended (ADR-0096).
+// which then fails. The scanner is reverted to the narrow one. The next run finds stale only the
+// subjects the earlier run's start masked again, and its second pass, resuming the stopped run, starts
+// over from the first waiting message, as the earlier run's start marked it to, so it scans every
+// verdict the change returned to pending and no message is left waiting with both passes ended
+// (ADR-0120).
 func TestARevertedChangeOfScannerStillScansWhatItReturnedToPending(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -668,8 +698,8 @@ func TestARevertedChangeOfScannerStillScansWhatItReturnedToPending(t *testing.T)
 	}
 
 	wideFirst, wideSecond := rescanDeps(t, pool, "personal", f, wideScanner(t), "wide")
-	wideFirst.Fetch = func(context.Context, mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
-		return mail.Page[mail.MessageMetadata]{}, fmt.Errorf("the credential: %w", mail.ErrAuthentication)
+	wideFirst.Metadata = func(context.Context, []string) ([]mail.MessageMetadata, error) {
+		return nil, fmt.Errorf("the credential: %w", mail.ErrAuthentication)
 	}
 	if err := backfillAccount(t.Context(), wideFirst, wideSecond, "personal", metrics1, metrics2, none, slog.New(slog.DiscardHandler)); err == nil {
 		t.Fatalf("a run whose first pass the provider refuses ended without an error")

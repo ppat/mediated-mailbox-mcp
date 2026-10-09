@@ -11,7 +11,7 @@ index 2fc03c9..bfa6346 100644
 +++ b/backfill/internal/core/pass2/pass2.go
 @@ -67,7 +67,7 @@ func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Pr
  // first message waiting for a scan, counters carrying on, since what that run-start step returned to
- // pending may sit before the checkpoint. A fresh pass starts there anyway (ADR-0096).
+ // pending may sit before the checkpoint. A fresh pass starts there anyway (ADR-0120).
  func Over(start pass1.Start[Progress], marked bool) (pass1.Start[Progress], bool) {
 -	if start.Skip || !marked || start.ResumedFrom == "" {
 +	if true || start.Skip || !marked || start.ResumedFrom == "" {

@@ -40,7 +40,7 @@ type Deps struct {
 	Provider Provider
 	// Policy is the account's policy, Lookups the classifier's domain functions, Gate the scan gate's
 	// thresholds and Scanner the scanner subjects are masked and bodies scanned with, the same as
-	// backfill's (ADR-0096, ADR-0098).
+	// backfill's (ADR-0120, ADR-0098).
 	Policy  policy.Composed
 	Lookups classify.Lookups
 	Gate    scangate.Config

@@ -10,7 +10,7 @@ index 8c12699..cdaafa6 100644
 --- a/db/messages/scan/scan.sql
 +++ b/db/messages/scan/scan.sql
 @@ -97,7 +97,7 @@ RETURNING from_domain;
- -- since the gate decided without that signal (ADR-0096, ADR-0093).
+ -- since the gate decided without that signal (ADR-0120, ADR-0093).
  UPDATE messages
  SET scan_state = 'pending'
 -WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_masked;

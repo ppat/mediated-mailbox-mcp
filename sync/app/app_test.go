@@ -246,7 +246,7 @@ func TestAnInvalidScannerSectionRefusesTheStart(t *testing.T) {
 // The revision a verdict and a mask record follows the scanner's effective configuration, whichever
 // layer changed it, and a change to another section, delta sync's own values included, leaves it as
 // it was, so delta sync records the revision backfill records for the same section (ADR-0078,
-// ADR-0096).
+// ADR-0120).
 func TestAVerdictsRevisionFollowsTheScannerSection(t *testing.T) {
 	revision := func(t *testing.T, args []string) string {
 		t.Helper()
@@ -316,7 +316,7 @@ func (h held) AccessToken(context.Context) (string, error) { return string(h), n
 // D4's row for the gate and the scanner delta sync shares with backfill. A tick decides under
 // thresholds written out here, which backfill's own test holds backfill to as well, and scans with
 // the scanner its default section builds, whose version and revision are written out here and in
-// backfill's test, so a workload that differs from the other fails its own test (ADR-0096, ADR-0098,
+// backfill's test, so a workload that differs from the other fails its own test (ADR-0120, ADR-0098,
 // ADR-0104).
 func TestATickDecidesUnderBackfillsThresholdsAndScanner(t *testing.T) {
 	loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys), nil)

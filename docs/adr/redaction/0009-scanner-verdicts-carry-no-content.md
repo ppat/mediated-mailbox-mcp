@@ -63,7 +63,7 @@ runs on every message and the body scan does not
   marked stale and reprocessed, which makes re-scanning a planned operation, not a migration. The
   configuration's revision is stamped beside it, so a change to the vocabulary or the tuning marks
   rows stale the same way. How the operation runs, and how a masked subject is masked again, is
-  [ADR-0096](./0096-a-scanner-change-reopens-backfill.md)'s.
+  [ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)'s.
 
 **Accepted residual, stated plainly:** non-restricted, gated-in bodies transit mediator memory.
 That channel exists regardless, since the mediator fetches bodies to serve them at all. The scanner
@@ -87,7 +87,7 @@ increases volume through an existing channel, and it does not create a new one.
   the persisted surface simply has nowhere to put a body.
 - Re-scanning after rule improvements is targeted via `scanner_version`, at the verdicts an earlier
   scanner made, and is an operation rather than a migration. What one change costs is
-  [ADR-0096](./0096-a-scanner-change-reopens-backfill.md)'s.
+  [ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)'s.
 - The scanner's correctness is testable by inspection of its output types plus a test that greps
   scanner output and logs for fixture body text. Absence is verifiable, and that verification is
   catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

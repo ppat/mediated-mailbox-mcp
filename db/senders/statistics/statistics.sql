@@ -62,7 +62,7 @@ WHERE account_id = @account_id AND domain = @domain;
 -- name: RecountScanHits :execrows
 -- Counts the prior hits of the account's sender at domain again from the stored messages whose scan
 -- verdict carries a content flag, after messages of the sender returned to pending scan with their
--- verdict cleared, so a message scanned again counts once (ADR-0096, ADR-0093).
+-- verdict cleared, so a message scanned again counts once (ADR-0120, ADR-0093).
 UPDATE senders AS s
 SET
     scan_hit_count = (

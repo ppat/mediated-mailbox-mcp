@@ -19,6 +19,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
 	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
+	maskingrecord "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/scan"
 	gaterecord "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record"
@@ -28,6 +29,11 @@ import (
 
 // pass is the pass as job_runs names it (ADR-0016).
 const pass = "pass2"
+
+// remaskBatch is how many subjects stored unmasked the run-start step reads, masks again and writes
+// back in one batch of statements, so a mailbox's subjects are masked again in a few statements rather
+// than one a message, while what one batch holds in memory stays small (ADR-0120).
+const remaskBatch = 5000
 
 // Postgres is the Store in the index's database. Each method runs one transaction through db/tx,
 // which sets the account.
@@ -196,7 +202,7 @@ func (s *Postgres) List(ctx context.Context, account string, listed func([]strin
 }
 
 // Reopen implements Store.
-func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp, overturned func([]index.Waiting) []string) (Reopened, error) {
+func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp, remasked func([]pass1core.Stored) []index.Message, overturned func([]index.Waiting) []string) (Reopened, error) {
 	var marked Reopened
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		marked = Reopened{}
@@ -216,6 +222,10 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
 				return fmt.Errorf("counting the prior hits of the sender at %q again changed %d rows, want 1", d, n)
 			}
 		}
+		subjects, err := remaskStored(ctx, ingest.New(t), maskingrecord.New(t), account, stamp, remasked)
+		if err != nil {
+			return err
+		}
 		skips, err := requeueOverturned(ctx, scan.New(t), account, overturned)
 		if err != nil {
 			return err
@@ -226,8 +236,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
 		if err != nil {
 			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
 		}
-		marked = Reopened{Verdicts: len(domains), Skips: skips}
-		if marked.Verdicts == 0 && marked.Skips == 0 && !stale {
+		marked = Reopened{Verdicts: len(domains), Skips: skips, Subjects: subjects}
+		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
 			return nil
 		}
 		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
@@ -236,6 +246,62 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
 		return nil
 	})
 	return marked, err
+}
+
+// remaskStored masks again every stale subject the account stores unmasked, from the subject stored,
+// in the transaction messages and events run in, a batch at a time in the order of the messages'
+// identifiers. Each batch is a read, the subjects remasked returns written back with the pair stamp in
+// one statement, and their masking events recorded in one more (ADR-0120). It returns how many
+// subjects it masked again.
+func remaskStored(ctx context.Context, messages *ingest.Queries, events *maskingrecord.Queries, account string, stamp index.Stamp,
+	remasked func([]pass1core.Stored) []index.Message,
+) (int, error) {
+	v := version(stamp.Version)
+	total, after := 0, ""
+	for {
+		rows, err := messages.StaleUnmaskedSubjects(ctx, ingest.StaleUnmaskedSubjectsParams{
+			AccountID: account, ScannerVersion: v, ScannerRevision: stamp.Revision, After: after, BatchSize: remaskBatch,
+		})
+		if err != nil {
+			return 0, fmt.Errorf("reading the subjects stored unmasked under another scanner: %w", err)
+		}
+		if len(rows) == 0 {
+			return total, nil
+		}
+		stored := make([]pass1core.Stored, 0, len(rows))
+		for _, r := range rows {
+			stored = append(stored, pass1core.Stored{ID: r.MessageID, Subject: r.Subject})
+		}
+		after = rows[len(rows)-1].MessageID
+		batch := ingest.RemaskStoredSubjectsParams{ScannerVersion: v, ScannerRevision: stamp.Revision, AccountID: account}
+		masks := maskingrecord.RecordMaskingEventsParams{AccountID: account, ScannerVersion: v, ScannerRevision: stamp.Revision}
+		for _, m := range remasked(stored) {
+			batch.MessageIds = append(batch.MessageIds, m.ID)
+			batch.Subjects = append(batch.Subjects, m.Subject)
+			batch.SubjectsMasked = append(batch.SubjectsMasked, m.SubjectMasked)
+			for _, mask := range m.Masks {
+				masks.MessageIds = append(masks.MessageIds, m.ID)
+				masks.RuleIds = append(masks.RuleIds, mask.Rule)
+				masks.Tiers = append(masks.Tiers, int32(mask.Tier)) //nolint:gosec // A tier is 0, 1 or 2.
+			}
+		}
+		n, err := messages.RemaskStoredSubjects(ctx, batch)
+		if err != nil {
+			return 0, fmt.Errorf("masking the subjects stored unmasked again: %w", err)
+		}
+		if n != int64(len(batch.MessageIds)) {
+			return 0, fmt.Errorf("masking %d subjects stored unmasked again changed %d rows", len(batch.MessageIds), n)
+		}
+		if len(masks.MessageIds) > 0 {
+			if err := events.RecordMaskingEvents(ctx, masks); err != nil {
+				return 0, fmt.Errorf("recording the masking events of the subjects masked again: %w", err)
+			}
+		}
+		total += len(batch.MessageIds)
+		if len(rows) < remaskBatch {
+			return total, nil
+		}
+	}
 }
 
 // requeueOverturned reads every message the gate skipped with its gate inputs, read as Pending reads

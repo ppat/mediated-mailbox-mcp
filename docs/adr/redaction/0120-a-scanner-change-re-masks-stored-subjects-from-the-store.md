@@ -1,6 +1,6 @@
 # 0120. A change of scanner re-opens backfill, which re-masks from the store every stored subject that was unmasked, fetches again only the subjects that were masked, and re-scans what an earlier scanner decided
 
-**Status:** Proposed (supersedes [ADR-0096](./0096-a-scanner-change-reopens-backfill.md)) ·
+**Status:** Accepted (supersedes [ADR-0096](./0096-a-scanner-change-reopens-backfill.md)) ·
 **Pillar:** [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) ·
 **Serves:** [C3](../../../USE_CASES.md#c3--content-based-secrets-caught), [C1](../../../USE_CASES.md#c1--metadata-always-visible)
 
@@ -64,9 +64,11 @@ change of scanner.
   a re-scan that flags the message again counts it once.
 - Every stale subject stored unmasked is masked again from the subject the store holds, under the
   scanner the run runs with, with a masking event for each mask and the pair of the scanner it ran
-  under, and no other column of the row changes. This happens before the run decides its stored
-  gate skips again ([ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)), so those
-  decisions see the subjects as now masked.
+  under, and no other column of the row changes. The subjects are read, masked and written back a
+  batch at a time, each batch in a few statements rather than one a message. This happens before
+  the run decides its stored gate skips again
+  ([ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)), so those decisions see
+  the subjects as now masked.
 - When it returned any message to pending, masked any subject again, or left a stored subject stale
   so the first pass is due again, the same transaction records the second pass as not ended and marks
   it to start over, a flag on the account's state. It writes to no run's record. The next run of the
@@ -97,10 +99,16 @@ index already holds whose subject is stored masked and stale has its metadata fe
 identifier, inside the first pass, and its subject masked again from the subject the provider
 returns, under the scanner the pass runs with, with a masking event for each mask, and no other
 column of the row changes. No pass is added, so the run vocabulary the UI's jobs screen, its banner
-and the system status read pass by pass stays as it is. The pass's checkpoint records the pair its
-enumeration runs under, and a run resuming an enumeration made under another pair starts the
-enumeration over from the first page. That start over drops the estimate of the pages the
-enumeration takes with its token, as every start over does
+and the system status read pass by pass stays as it is. The fetch comes once the pass's enumeration
+has ended, a call at a time, and the pass ends only once no stored subject is stale. A call moves
+the pass when it stores any subject it fetched under the pair in force, whether or not the new
+scanner masks anything in it, or when it leaves fewer stored subjects stale than before it. A call
+that moves neither way fails the run, since the next read would ask for the same subjects again
+without end. A first pass reopened after its enumeration ended does not enumerate again. Its run
+starts from the checkpoint of the enumeration that ended and only fetches. The pass's checkpoint
+records the pair its enumeration runs under, and a run resuming an enumeration not yet ended that
+was made under another pair starts the enumeration over from the first page. That start over drops
+the estimate of the pages the enumeration takes with its token, as every start over does
 ([ADR-0095](../provider/0095-enumeration-total-on-every-page.md)), so the estimate always comes from
 the enumeration in progress.
 
@@ -192,13 +200,12 @@ configuration change, either of which restarts the worker
   second pass runs again. From the run that sees the change until the second pass scans them again,
   the bodies of the messages returned to pending are denied as pending their content scan, which is
   over-redaction for that time. That time includes no re-enumeration of the mailbox.
-- One window remains open. A message the gate skipped, whose subject was stored
-  masked and whose subject the new scanner would mask differently, keeps its skip, and its body stays
-  released as the skip allows, until the first pass has fetched and masked the subject again and
-  either the second pass has started or a later run-start step has decided the skip again
-  ([ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)). A first pass that fails on
-  every run before it masks the subject holds that window open. For a subject stored unmasked the
-  window closes at the run-start step, since its skip is decided again after the re-mask.
+- One window remains open. A message another job kind stored with its subject unmasked under
+  another scanner pair after the run-start step, and which the gate skipped, keeps its skip while
+  the new scanner would mask its subject, and its body stays released as the skip allows, until the
+  second pass starts and returns to pending each skip whose subject is then masked. A subject stored
+  masked is never skipped, since the gate scans every message whose subject is masked
+  ([ADR-0093](./0093-composite-scan-gate.md)).
 - Superseded masking events stay as history, and a re-mask inserts new masking events with new
   identifiers. The masking events of a message whose pair equals its subject's are the masks of the
   subject as it now stands.
@@ -209,7 +216,9 @@ configuration change, either of which restarts the worker
   construction ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). Ingest
   stores a subject in no form other than the provider's, so an unmasked stored subject is the
   subject as fetched, and a subject does not change at the provider after it is stored. A provider
-  fetching a message by identifier reports a message it no longer has as gone. Every job kind that
-  masks a subject records the pair it masked under.
+  fetching messages by identifier reports a message it no longer has as gone by leaving it out of
+  the result, as the Provider Port's contract for the metadata read states in `core/mail/port.go`
+  ([ADR-0010](../provider/0010-one-provider-port.md)). Every job kind that masks a subject records
+  the pair it masked under.
 - The rules above are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

@@ -5,6 +5,7 @@ package pass1_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -16,7 +17,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/backfill/internal/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
@@ -351,7 +355,7 @@ func TestACheckpointWithoutAPageCountResumes(t *testing.T) {
 // A run resuming an enumeration made under another scanner starts it over, and the page count the
 // old enumeration's checkpoint carried goes with its token, so the restarted run's checkpoint carries
 // no count until a page of the new enumeration reports one, and then carries that page's (ADR-0095,
-// ADR-0096).
+// ADR-0120).
 func TestAnEnumerationStartedOverUnderAnotherScannerDropsItsPageCount(t *testing.T) {
 	w := realWorld(t, setup{PageSize: 3, Messages: mixed.Messages, Totals: true})
 	w.step(t)
@@ -501,5 +505,338 @@ func TestAFailureNotTheProvidersFailsTheRunWithNoFailedPage(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{"start 0", "failure"}, timeline(t, w.account, "run1"), compare.Options); diff != "" {
 		t.Errorf("the timeline (-want +got):\n%s", diff)
+	}
+}
+
+// subjects returns each message's stored subject, whether it reads masked, and the revision it was
+// masked under.
+func subjects(t *testing.T, account string) map[string]string {
+	t.Helper()
+	rows, err := superuser(t).Query(t.Context(), `SELECT message_id, subject || ' ' || subject_masked::text || ' ' || subject_scanner_revision
+		FROM messages WHERE account_id = $1`, account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]string{}
+	var id, v string
+	if _, err := pgx.ForEachRow(rows, []any{&id, &v}, func() error { out[id] = v; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// VERIFICATIONS' row for a change of scanner, the first pass's part. A pass reopened after its
+// enumeration ended asks the provider for no page. It fetches every stale subject again by identifier,
+// here every subject since this world runs no run-start step, in calls of perCall identifiers, masks
+// each again under the scanner in force with its masking events, and ends only once no subject is
+// stale. Its run starts from the ended enumeration's checkpoint, records the stale subjects left at
+// each call, and counts the subjects it fetched again (ADR-0120).
+func TestAPassReopenedAfterItsEnumerationEndedFetchesTheStaleSubjectsAgain(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.finish(t, 10)
+	pages := w.fetched
+	w.rescan(t)
+	w.open(t)
+	if diff := cmp.Diff(map[string]any{"page": 3.0, "token": "", "version": 1.0, "revision": "revision-1", "stale": 7.0}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the reopened run's first checkpoint (-want +got):\n%s", diff)
+	}
+	w.step(t)
+	if diff := cmp.Diff(map[string]any{"page": 3.0, "token": "", "version": 1.0, "revision": "revision-1", "stale": 5.0}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the reopened run's checkpoint after its first call (-want +got):\n%s", diff)
+	}
+	w.finish(t, 10)
+	w.progress(t)
+	if w.fetched != pages {
+		t.Errorf("the reopened pass asked for %d pages, want none", w.fetched-pages)
+	}
+	if w.calls != 4 || w.ids != 7 {
+		t.Errorf("the reopened pass made %d calls naming %d identifiers, want 4 naming the 7 stale subjects", w.calls, w.ids)
+	}
+	latest, _ := w.inspect(t).latest()
+	want := core.Progress{Checkpoint: core.Checkpoint{Page: 3, Stamp: index.Stamp{Version: 1, Revision: "revision-1"}}, Counters: core.Counters{Refetched: 7}}
+	if diff := cmp.Diff(want, latest.Progress, compare.Options); diff != "" {
+		t.Errorf("the reopened run's last checkpoint and counters (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"start 3", "progress 3", "progress 3", "progress 3", "progress 3", "finish"}, timeline(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the reopened run's timeline (-want +got):\n%s", diff)
+	}
+}
+
+// VERIFICATIONS' row for a change of scanner, a message the provider no longer has. Its stored subject
+// is masked whole under the scanner in force, with the masking event of a whole subject, and the run
+// records it as a failed item of class gone. It is then current, so the pass ends (ADR-0120,
+// ADR-0003).
+func TestASubjectWhoseMessageIsGoneIsMaskedWholeAndRecordedGone(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.finish(t, 10)
+	if err := w.mailbox.Remove("m4"); err != nil {
+		t.Fatal(err)
+	}
+	w.rescan(t)
+	w.finish(t, 10)
+	if got := subjects(t, w.account)["m4"]; got != strings.Repeat("█", len([]rune(w.want[3].Subject)))+" true revision-1" {
+		t.Errorf("the gone message's subject is %q, want it masked whole under the scanner in force", got)
+	}
+	var rule string
+	if err := superuser(t).QueryRow(t.Context(), `SELECT rule_id FROM masking_events WHERE account_id = $1 AND message_id = 'm4'
+		AND scanner_revision = 'revision-1'`, w.account).Scan(&rule); err != nil || rule != "mask.whole_subject" {
+		t.Errorf("the gone message's masking event under the scanner in force is %q (%v), want the whole subject's", rule, err)
+	}
+	if diff := cmp.Diff([]string{"run2 message m4 0 gone 1 gone"}, failures(t, w.account), compare.Options); diff != "" {
+		t.Errorf("the failed items (-want +got):\n%s", diff)
+	}
+	if !w.inspect(t).Ended {
+		t.Errorf("the pass did not end once the gone message's subject was masked whole")
+	}
+}
+
+// A call fetching subjects again that the provider throttles is asked for again, and once it is
+// answered each message it names is recorded as a recovered failure, beside a backoff event for each
+// throttle. One throttled on every attempt fails the run, with each message it names recorded as
+// abandoned, and the next run resumes the fetch (ADR-0120, ADR-0022).
+func TestAThrottledCallIsRetriedAndRecorded(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.finish(t, 10)
+	w.rescan(t)
+	w.open(t)
+	w.throttle = 2
+	w.step(t)
+	if diff := cmp.Diff([]string{"run2 message m1 0 throttled 3 recovered", "run2 message m2 0 throttled 3 recovered"}, failures(t, w.account), compare.Options); diff != "" {
+		t.Errorf("the failed items of the recovered call (-want +got):\n%s", diff)
+	}
+	w.throttle = core.MaxAttempts
+	if w.step(t) || w.pass != nil {
+		t.Fatal("a call throttled on every attempt did not fail the run")
+	}
+	want := []string{
+		"run2 message m1 0 throttled 3 recovered", "run2 message m2 0 throttled 3 recovered",
+		"run2 message m3 0 throttled 5 abandoned", "run2 message m4 0 throttled 5 abandoned",
+	}
+	if diff := cmp.Diff(want, failures(t, w.account), compare.Options); diff != "" {
+		t.Errorf("the failed items after a call failing every attempt (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"start 3", "backoff 0", "backoff 0", "progress 3", "backoff 0", "backoff 0", "backoff 0", "backoff 0", "failure"},
+		timeline(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the timeline (-want +got):\n%s", diff)
+	}
+	w.finish(t, 10)
+	w.progress(t)
+}
+
+// The first pass ends only while no stored subject is masked under another scanner. A subject made
+// stale while the enumeration runs keeps the page that ends the enumeration from ending the pass, which
+// records nothing and leaves the run running, and the pass fetches that subject again before it ends
+// (ADR-0120).
+func TestThePassDoesNotEndWhileASubjectIsStale(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.step(t)
+	w.step(t)
+	conn := superuser(t)
+	if _, err := conn.Exec(t.Context(), "UPDATE messages SET subject_scanner_revision = 'revision-earlier' WHERE account_id = $1 AND message_id = 'm2'", w.account); err != nil {
+		t.Fatal(err)
+	}
+	if w.step(t) {
+		t.Errorf("the page that ended the enumeration ended the pass while a subject was stale")
+	}
+	s := w.inspect(t)
+	if latest, _ := s.latest(); s.Ended || latest.State != "running" || !latest.Progress.Checkpoint.Ended() {
+		t.Errorf("with a stale subject the pass ended %v and its run is %+v, want the pass not ended and the run running past its enumeration", s.Ended, latest)
+	}
+	w.finish(t, 10)
+	if got := subjects(t, w.account)["m2"]; !strings.HasSuffix(got, " revision-0") || w.ids != 1 {
+		t.Errorf("the subject made stale is %q after %d identifiers fetched again, want it alone fetched and masked again under the scanner in force before the pass ended", got, w.ids)
+	}
+	if !w.inspect(t).Ended {
+		t.Errorf("the pass did not end once no subject was stale")
+	}
+}
+
+// The falsifier of masking a stale subject again from the store. A subject the scanner masks nothing
+// of is stored as the provider returned it, byte for byte, whatever its whitespace, scripts,
+// normalization form, markup or length, and reads unmasked, so masking it again from what is stored
+// masks the provider's subject (ADR-0120, ADR-0003).
+func TestASubjectStoredUnmaskedIsTheProvidersSubject(t *testing.T) {
+	w := realWorld(t, setup{PageSize: 3})
+	given := []string{
+		"", "  leading and trailing  ", "tabs\tand\nnew lines", "é decomposed beside é composed",
+		"emoji 🎉👍🏽 and a joiner 👩‍💻", "שלום עולם and العربية", "<b>markup</b> &amp; entities",
+		strings.Repeat("a long subject ", 80),
+	}
+	var messages []fake.Message
+	for i, subject := range given {
+		id := fmt.Sprintf("u%d", i)
+		messages = append(messages, fake.Message{Metadata: mail.MessageMetadata{
+			ID: id, ThreadID: "t" + id, From: mail.Address{Email: "news@news.example"}, Subject: subject,
+			Date: mail.UnixMilli(1_700_000_000_000 + int64(i)),
+		}})
+	}
+	f, err := fake.New(fake.Config{Account: w.account, PageSize: 3}, messages...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.deps.Fetch = f.EnumerateAll
+	w.finish(t, 10)
+	rows, err := superuser(t).Query(t.Context(), "SELECT message_id, subject, subject_masked FROM messages WHERE account_id = $1", w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	var id, subject string
+	var masked bool
+	if _, err := pgx.ForEachRow(rows, []any{&id, &subject, &masked}, func() error {
+		if masked {
+			t.Errorf("message %s's subject %q reads masked, want it unmasked", id, subject)
+		}
+		got[id] = subject
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range given {
+		if id := fmt.Sprintf("u%d", i); got[id] != want {
+			t.Errorf("message %s's subject is stored as %q, want the provider's %q", id, got[id], want)
+		}
+	}
+}
+
+// stuck is a Store whose calls fetching subjects again make nothing durable, as a fault that left
+// every subject a call fetched stale would.
+type stuck struct {
+	pass1.Store
+}
+
+func (s stuck) Refetch(ctx context.Context, account, _ string, stamp index.Stamp, _ pass1.Refetched, advance func(int, int) core.Progress) (core.Progress, error) {
+	_, stale, _, err := s.State(ctx, account, stamp)
+	return advance(0, stale), err
+}
+
+// A call fetching subjects again that leaves every one of them stale fails the run with its reason,
+// rather than asking the provider for the same subjects again without end (ADR-0120).
+func TestACallThatLeavesEverySubjectStaleFailsTheRun(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.finish(t, 10)
+	w.rescan(t)
+	w.deps.Store = stuck{Store: w.deps.Store}
+	w.open(t)
+	if w.step(t) || w.pass != nil {
+		t.Fatal("a call that left every subject stale did not fail the run")
+	}
+	var lastError string
+	if err := superuser(t).QueryRow(t.Context(), "SELECT last_error FROM job_runs WHERE account_id = $1 AND run_id = 'run2'", w.account).Scan(&lastError); err != nil {
+		t.Fatal(err)
+	}
+	if lastError != "fetching 2 subjects again left every one of them stale" {
+		t.Errorf("the run's last error is %q, want the call that left every subject stale", lastError)
+	}
+}
+
+// A change of scanner that loosens masking still moves the fetch. A subject masked under the earlier
+// scanner that the new one masks nothing of is stored unmasked, as the provider returned it, under the
+// pair in force, with no masking event, and one run ends the pass, rather than a call reading as one
+// that left its subjects stale (ADR-0120).
+func TestAFetchWhoseNewScannerMasksNothingCompletes(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.finish(t, 10)
+	cfg := scan.DefaultConfig()
+	cfg.Triggers = map[string][]string{"en": {"otp"}}
+	narrow, err := scan.New(cfg, "revision-narrow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.deps.Scanner = narrow
+	w.pass = nil
+	w.finish(t, 10)
+	s := w.inspect(t)
+	if !s.Ended {
+		t.Errorf("the pass did not end after a change of scanner that masks nothing")
+	}
+	var states []string
+	for _, r := range s.Runs {
+		states = append(states, r.ID+" "+r.State)
+	}
+	if diff := cmp.Diff([]string{"run1 succeeded", "run2 succeeded"}, states, compare.Options); diff != "" {
+		t.Errorf("the runs (-want +got), want the reopened pass to end in one run with no call failing it:\n%s", diff)
+	}
+	if got, want := subjects(t, w.account)["m1"], marker.Field("subject"+tag(0))+" Your code is 419283 false revision-narrow"; got != want {
+		t.Errorf("the subject the narrow scanner masks nothing of is %q, want %q, the provider's subject unmasked under the pair in force", got, want)
+	}
+	var events int
+	if err := superuser(t).QueryRow(t.Context(), `SELECT count(*) FROM masking_events WHERE account_id = $1 AND message_id = 'm1'
+		AND scanner_revision = 'revision-narrow'`, w.account).Scan(&events); err != nil || events != 0 {
+		t.Errorf("the subject the narrow scanner masks nothing of has %d masking events under it (%v), want none", events, err)
+	}
+}
+
+// rising is a Store whose calls fetching subjects again make nothing durable while a second writer
+// stores one more subject under another scanner during each call, so the stale count rises.
+type rising struct {
+	pass1.Store
+	t       *testing.T
+	account string
+	n       int
+}
+
+func (s *rising) Refetch(ctx context.Context, account, _ string, stamp index.Stamp, _ pass1.Refetched, advance func(int, int) core.Progress) (core.Progress, error) {
+	s.n++
+	_, err := superuser(s.t).Exec(ctx, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, sent_at,
+		has_attachments, sender_class, subject_scanner_version, subject_scanner_revision)
+		VALUES ($1, $2, 't', 'news@news.example', 'news.example', $3, now(), false, 'normal', 1, 'revision-earlier')`,
+		s.account, fmt.Sprintf("w%d", s.n), marker.Field("subjectwriter"))
+	if err != nil {
+		return core.Progress{}, err
+	}
+	_, stale, _, err := s.State(ctx, account, stamp)
+	return advance(0, stale), err
+}
+
+// A call that stores none of its subjects is not progress because another writer raised the stale
+// count while it ran. The run fails on that call, as it does on any call that leaves every subject it
+// fetched stale (ADR-0120).
+func TestARisingStaleCountIsNotProgress(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.finish(t, 10)
+	w.rescan(t)
+	w.deps.Store = &rising{Store: w.deps.Store, t: t, account: w.account}
+	w.open(t)
+	if w.step(t) || w.pass != nil {
+		t.Fatal("a call that stored nothing while the stale count rose did not fail the run")
+	}
+}
+
+// falling is a Store whose calls fetching subjects again make nothing durable while a second writer
+// stores every subject the call asked for under the pair in force during the call, so the stale count
+// falls.
+type falling struct {
+	pass1.Store
+	t *testing.T
+}
+
+func (s falling) Refetch(ctx context.Context, account, _ string, stamp index.Stamp, r pass1.Refetched, advance func(int, int) core.Progress) (core.Progress, error) {
+	var ids []string
+	for _, m := range append(r.Remasked, r.Gone...) {
+		ids = append(ids, m.ID)
+	}
+	_, err := superuser(s.t).Exec(ctx, `UPDATE messages SET subject_scanner_version = $3, subject_scanner_revision = $4
+		WHERE account_id = $1 AND message_id = ANY($2)`, account, ids, stamp.Version, stamp.Revision)
+	if err != nil {
+		return core.Progress{}, err
+	}
+	_, stale, _, err := s.State(ctx, account, stamp)
+	return advance(0, stale), err
+}
+
+// A call that stores none of its subjects is progress when the stale count falls, as when another
+// writer stores those subjects under the pair in force while it runs. The pass carries on and ends
+// in the run that reopened it (ADR-0120).
+func TestAFallingStaleCountIsProgress(t *testing.T) {
+	w := realWorld(t, mixed)
+	w.finish(t, 10)
+	w.rescan(t)
+	w.deps.Store = falling{Store: w.deps.Store, t: t}
+	w.finish(t, 10)
+	s := w.inspect(t)
+	latest, _ := s.latest()
+	if !s.Ended || latest.ID != "run2" || latest.State != "succeeded" {
+		t.Errorf("the pass ended %v with its latest run %+v, want it ended by run2, the run that reopened it", s.Ended, latest)
 	}
 }

@@ -602,7 +602,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   metadata first, gated body scanning after. It starts for an account when the account appears and
   runs again at the worker's start after each change of scanner or of the scan gate's thresholds,
   to mask and scan again what an earlier scanner decided and decide again the skips earlier
-  thresholds made (rules in ADR-0096, ADR-0098 and ADR-0119, via the
+  thresholds made (rules in ADR-0120, ADR-0098 and ADR-0119, via the
   [decision-record index](./docs/adr/README.md)).
 - **Delta sync** — the job kind of the worker that keeps the index current against provider change
   feeds, one tick every sync interval, in a process that runs until stopped.

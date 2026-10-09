@@ -90,7 +90,7 @@ WHERE m.account_id = @account_id AND m.scan_state = 'pending';
 -- name: RequeueStaleVerdicts :many
 -- Returns each of the account's scanned messages whose verdict was made under another scanner version
 -- or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
--- Gate denies its body as pending its content scan (ADR-0096). A backfill run makes it at its start,
+-- Gate denies its body as pending its content scan (ADR-0120). A backfill run makes it at its start,
 -- before the first pass. It returns each message's sender domain, whose prior hits the caller counts
 -- again.
 UPDATE messages
@@ -112,7 +112,7 @@ RETURNING from_domain;
 
 -- name: RequeueSignalledSkips :execrows
 -- Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
--- since the gate decided without that signal (ADR-0096, ADR-0093).
+-- since the gate decided without that signal (ADR-0120, ADR-0093).
 UPDATE messages
 SET scan_state = 'pending'
 WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_masked;

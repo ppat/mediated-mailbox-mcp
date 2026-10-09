@@ -17,7 +17,7 @@ import {
 import { LiveProgress, LiveText } from "../src/app/live.tsx";
 import { App } from "../src/app/router.tsx";
 import { RowsTable } from "../src/lens/table.tsx";
-import { JobsScreen } from "../src/screens/jobs.tsx";
+import { JobsScreen, progressOf, runMeasure } from "../src/screens/jobs.tsx";
 import { testDeps, type Connection } from "./app.ts";
 import { ok, recorded, type Answer, type Recorded } from "./fixtures/fetch.ts";
 import { at, mount, settle, type Mounted } from "./render.ts";
@@ -665,4 +665,19 @@ test("the live indicator follows an account switch and shows none of the last ac
   });
   await settle();
   expect(root.querySelector(".live")?.textContent).toBe("live · connecting");
+});
+
+test("a pass 1 run fetching stale subjects again shows the subjects it fetched again in the runs table, and draws them on its bar", async () => {
+  const jobs: Jobs = JSON.parse(
+    await Bun.file(new URL("fixtures/jobs-reopened.json", import.meta.url)).text(),
+  );
+  const run = jobs.backfill.pass1.run;
+  if (run === null) {
+    throw new Error("the recording holds no pass 1 run");
+  }
+  expect(progressOf(run)).toBe("12 of 42 subjects fetched again");
+  expect(runMeasure(run)).toEqual({ part: 12, whole: 42, state: "running" });
+  const ended = { ...run, checkpoint: JSON.parse('{"page": 3368, "of": 3368}'), counters: {} };
+  expect(progressOf(ended)).toBe("page 3,368 of 3,368");
+  expect(runMeasure(ended)).toEqual({ part: 3368, whole: 3368, state: "running" });
 });

@@ -459,14 +459,26 @@ to Jobs.
 
 | Workload | Fields |
 | --- | --- |
-| Backfill | the pass running or last completed, its run id, started time, heartbeat age, checkpoint page of total pages, percent as a progress bar, estimated time left, the batch class's used of reserved |
+| Backfill | the pass running or last completed, its run id, started time, heartbeat age, checkpoint page of total pages, or the subjects fetched again of all a pass 1 run fetches again, percent as a progress bar, estimated time left, the batch class's used of reserved |
 | Delta sync | last tick time and outcome, cursor age, cadence, the last change set as added, modified, removed |
 | Reorg apply | `idle` with the count of plans in DRAFT, or the plan being applied with operations done of total |
 | Heuristics | last run time and duration, candidates emitted |
 
 Estimated time left is pages remaining divided by the pages completed in the last ten minutes of
 the run, read from the run's progress events, and is absent until the run has ten minutes of
-history.
+history. A pass 1 run fetching stale subjects again moves no page, so it shows no estimate once its
+last ten minutes hold no page made durable.
+
+Once a pass 1 run's enumeration has ended, its checkpoint records how many stored subjects are still
+masked under another scanner, and its counters how many it has fetched again
+([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
+While either is above zero, the checkpoint reads "{fetched} of {all} subjects fetched again
+({share})", all being the fetched plus those still to fetch, and the bar draws the same fraction, in
+place of the page of pages, which then reads the enumeration's last page of itself and so says
+nothing of the fetch. A pass reopened by a change of scanner starts there, since it enumerates
+nothing. The count still to fetch is read afresh at every call made durable, so the whole stays true
+when the run resumes. Leaving the page of pages in place was the alternative, and it would read as
+finished for the whole of the fetch.
 
 Backfill's cell shows pass 1 while pass 1's latest run runs, else pass 2 while pass 2's latest run
 runs, else the pass whose latest run finished last, and "not started" when neither pass has a run.
@@ -545,9 +557,9 @@ rule's name in the table. What each rule reads, and what its number and since ar
   naming the worst pair was the alternative, which would hide every other over-mask.
 - **A change of scanner can raise masking cards.** Masking every subject again records a new event
   for each mask, under the current scanner and in the week it happens
-  ([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)), so in the week after a
-  change of scanner a sender whose subjects now carry more masks under one rule than the count
-  raises a card, however old its mail is. That card is true, since the rule did mask those
+  ([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), so
+  in the week after a change of scanner a sender whose subjects now carry more masks under one rule
+  than the count raises a card, however old its mail is. That card is true, since the rule did mask those
   subjects that week. Recording which events are re-masks was the alternative, and it is a schema
   change with no consumer but this card. Counting by the message's sent time was the other, and it
   would date mail rather than masking.
@@ -597,8 +609,8 @@ A row whose screen does not exist yet renders its value unlinked, as the system 
 
 The corpus block's masking count measures masking activity in the window, so it includes the masks a
 change of scanner records when it masks every subject again
-([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)). It can then exceed the
-masking lens's count, which counts only the masks of each subject as it now stands.
+([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). It can
+then exceed the masking lens's count, which counts only the masks of each subject as it now stands.
 
 States. With no plans and no candidates, the inbox says "Nothing awaits your decision" and the
 column keeps its height. With backfill pass 1 not started, which is pass 1 neither complete nor
@@ -761,7 +773,7 @@ count in its counters.
 | started | UTC time |
 | duration | elapsed, or "so far" while running |
 | state | a labeled mark, the run-state wording in [section 11](#11-rendering-and-formatting-rules) |
-| checkpoint or operations | page of pages, operations of operations, or the recovery's window and reconciled count |
+| checkpoint or operations | page of pages, the subjects fetched again of all a pass 1 run fetches again, operations of operations, or the recovery's window and reconciled count |
 | failures | the count, linking to the run when above zero |
 
 **What refreshes live.** Each card's run, the rate budget and each row's state, duration and
@@ -835,12 +847,12 @@ the panel lists the message's newest 50 audit rows the row detail carries, with 
 
 Both passes of backfill record a `gone` item, and they differ in what follows. The second pass
 records one when a body fetch finds the message no longer at the provider, and the message waits
-for a scan. The first pass records one when an enumeration did not find a message whose subject it
-had to mask again, which may still be at the provider, and leaves its scan state as it was
-([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)). So the screen says only
-what holds for both. The error class reads "not found at provider", the disposition "not found",
-the L0 strip counts the items not found at the provider, and the sentence reads the scan state from
-the row as `recovered` does.
+for a scan. The first pass records one when the provider leaves out of its answer a message whose
+subject it fetches again by identifier, and leaves its scan state as it was
+([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). So the
+screen says only what holds for both. The error class reads "not found at provider", the
+disposition "not found", the L0 strip counts the items not found at the provider, and the sentence
+reads the scan state from the row as `recovered` does.
 Wording it for each pass was the alternative. It needs the pass beside every failed item, and
 the second pass's sentence would promise what delta sync later does to the row, a claim about
 another workload.
@@ -883,7 +895,7 @@ neither restricted nor flagged. After a change of scanner every subject is maske
 masking events of the maskings it replaced stay in the table, so the masking lens and home's
 masking rule count a message's current masks by reading only the events whose scanner version and
 revision equal those its subject was masked under
-([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)).
+([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
 
 ### 8.6 Review queue
 
@@ -1262,7 +1274,7 @@ one row per value, in this order.
 | Row | Value | Links to |
 | --- | --- | --- |
 | account | the identifier in mono and the provider, and "not connected" when the account has no state row, which ADR-0091 reads as not connected | nothing |
-| backfill pass 1 | "complete", or while the pass's latest run is running "running, page {page} of {of} ({share})" with the progress bar of [section 7.3](#73-charts), else "not started" while the pass has no run, else "not complete" | Jobs |
+| backfill pass 1 | "complete", or while the pass's latest run is running "running, page {page} of {of} ({share})", or "running, {fetched} of {all} subjects fetched again ({share})" while it fetches stale subjects again ([section 8.1](#81-home)), with the progress bar of [section 7.3](#73-charts), else "not started" while the pass has no run, else "not complete" | Jobs |
 | backfill pass 2 | as pass 1 | the corpus lens with `scan_state=pending`, once that lens exists |
 | sync cursor age | the age, with the UTC time on hover, or "no cursor yet" | Jobs |
 | last successful tick | the UTC time, or "none yet" | Jobs |
@@ -1855,8 +1867,8 @@ vocabularies are ADR-0016's.
 
 | Situation | Pattern |
 | --- | --- |
-| Backfill pass 1 running, with no earlier run of it succeeded | A partial-index banner under the chrome on every screen, saying which pass is running and how far (pages of pages, percent), with a link to Jobs. Counts on every lens carry "so far" |
-| Backfill pass 1 running again, after an earlier run of it succeeded | A change of scanner re-opens pass 1, which enumerates the whole mailbox again to mask every stored subject again under the scanner now in force ([ADR-0096](./adr/redaction/0096-a-scanner-change-reopens-backfill.md)). The banner reads "Backfill pass 1 is running again, page {page} of {of} ({share}), to mask every subject again under the scanner now in force. It last completed at {time}, so the index holds the whole mailbox and no count here is a count so far. A subject it has not reached yet keeps its earlier masks.", without the page clause while the run's checkpoint holds no page, with {time} the finish of pass 1's latest succeeded run as an absolute time ([section 11](#11-rendering-and-formatting-rules)), and with a link to Jobs. Counts on every lens carry no "so far". The UI tells this case from the one above by that succeeded run alone, read from the system endpoint ([section 17.4](#174-the-bespoke-endpoints)), so a re-opened pass 1 resumed after a failure still reads as re-opened, and a first pass 1 resumed after a failure still reads as a first. The banner shows because the subjects' masks are what is in flux, so a subject on any lens may change while the operator reads it. Hiding the banner was the alternative, and it would hide that |
+| Backfill pass 1 running, with no earlier run of it succeeded | A partial-index banner under the chrome on every screen, saying which pass is running and how far (pages of pages, or the subjects fetched again of all it fetches again as [section 8.1](#81-home) states, with the percent), with a link to Jobs. Counts on every lens carry "so far" |
+| Backfill pass 1 running again, after an earlier run of it succeeded | A change of scanner re-opens pass 1. The run's start has masked again from the index every subject stored unmasked, and pass 1 fetches again by identifier, without enumerating, the subjects an earlier scanner masked, to mask them under the scanner now in force ([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). The banner reads "Backfill pass 1 is running again, {fetched} of {all} subjects fetched again ({share}), to fetch again the subjects an earlier scanner masked and mask them under the scanner now in force. It last completed at {time}, so the index holds the whole mailbox and no count here is a count so far. The other subjects were masked again from the index when the run started, and a subject it has not fetched yet keeps its earlier masks.", the progress clause as [section 8.1](#81-home) words it and left out while the run's checkpoint and counters record no progress, with {time} the finish of pass 1's latest succeeded run as an absolute time ([section 11](#11-rendering-and-formatting-rules)), and with a link to Jobs. Counts on every lens carry no "so far". The UI tells this case from the one above by that succeeded run alone, read from the system endpoint ([section 17.4](#174-the-bespoke-endpoints)), so a re-opened pass 1 resumed after a failure still reads as re-opened, and a first pass 1 resumed after a failure still reads as a first. The banner shows because the subjects' masks are what is in flux, so a subject on any lens may change while the operator reads it. Hiding the banner was the alternative, and it would hide that |
 | Backfill pass 2 running | The banner names pass 2 and the pending count, says pending messages deny their bodies until scanned, and links to Jobs as pass 1's does. With both passes running, one banner names both |
 | No backfill run yet for an account | While the system endpoint reads backfill pass 1 as not started ([section 8.8](#88-system)), the partial-index banner reads "Indexing has not started yet for {account}. It starts once backfill picks up the account." Counts on every lens carry "so far", so an empty index never reads as final. Backfill picks up a newly connected account with no manual step ([section 8.12](#812-connect-an-account-and-re-authorize)) |
 | The backfill state unknown | When the system endpoint's read fails for an account the accounts endpoint lists, the banner says the index's backfill state is unknown, so every count may be a count so far, and counts on every lens carry "so far" while that read is loading or failed. A banner that vanishes on a failed read was the alternative, and it would let a partial index's counts read as final. The banner shows only for a listed account, since for any other the body already says no such account is served. While no banner shows, the banner does not follow the stream, so a pass that starts later appears only when something next reads the system endpoint, at the latest on the next page load |

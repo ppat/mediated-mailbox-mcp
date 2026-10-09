@@ -49,6 +49,13 @@ async function recording(file: string): Promise<System> {
 
 const marker = "<script>mmfieldmarker-authoutcome</script>";
 
+test("a pass 1 fetching stale subjects again shows the subjects fetched again of all it fetches, with its bar", async () => {
+  const reopened = await recording("system-reopened.json");
+  const row = systemValues(reopened, Date.parse(reopened.as_of)).find((v) => v.key === "pass1");
+  expect(row?.text).toBe("running, 12 of 42 subjects fetched again (28.6%)");
+  expect(row?.progress).toEqual({ part: 12, whole: 42 });
+});
+
 test("the screen shows each operational value, and the rows UI.md sends to Jobs link there", async () => {
   const root = await open("/personal/system");
   expect(root.querySelector("main h1")?.textContent).toBe("System");

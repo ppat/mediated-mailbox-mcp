@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/backfill/internal/pass1/pass1.go b/backfill/internal/pass1/pass1.go
-index 7e32116..eba239c 100644
+index 08cb717d..11280a00 100644
 --- a/backfill/internal/pass1/pass1.go
 +++ b/backfill/internal/pass1/pass1.go
-@@ -138,6 +138,9 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+@@ -178,6 +178,9 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
  		return nil, fmt.Errorf("reading the account's first pass: %w", err)
  	}
- 	start, over := core.Under(core.Begin(ended, due, latest), stamp)
+ 	start, over := core.Under(core.Begin(ended, stale > 0, latest), latest, stamp, stale)
 +	if start.ResumedFrom != "" {
 +		start.From.Checkpoint.Page++
 +	}

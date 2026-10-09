@@ -33,7 +33,8 @@ path that calls them, not the capability.
 The split also costs. Every change to delta sync touched backfill. Their composition roots repeat
 each other, and three roots carry identical copies of the account-handling rules, one of which
 drifted. The scanner's section and the scan gate's thresholds must agree between two processes or
-each reopens the other's work ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md),
+each reopens the other's work
+([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
 [ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)). The scanner's
 section is held equal only by the deployment giving both processes the same value, and the
 thresholds only by both composition roots passing
@@ -58,7 +59,7 @@ roles with each one.
   | | Backfill | Delta sync | Reorg apply and rollback | Heuristics |
   | --- | --- | --- | --- | --- |
   | Runtime | minutes–hours | seconds | minutes | seconds |
-  | Trigger | an account with a pass not ended, the worker's start after a change of scanner or of the scan gate's thresholds, and an account newly connected ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md), [ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md), [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) | a tick every sync interval, five minutes by default ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) | a plan the operator approved, or a rollback the operator requested | daily, or as its unit decides |
+  | Trigger | an account with a pass not ended, the worker's start after a change of scanner or of the scan gate's thresholds, and an account newly connected ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md), [ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md), [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) | a tick every sync interval, five minutes by default ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) | a plan the operator approved, or a rollback the operator requested | daily, or as its unit decides |
   | Reversible | n/a (read-only) | n/a | **must be** | n/a |
   | Writes provider | no | no | **yes, bulk** | no |
 

@@ -47,7 +47,7 @@ CREATE TABLE account_state (             -- everything else an account carries (
                                          -- declared ceiling, NULL for none (ADR-0024)
   backfill_pass1_complete boolean NOT NULL DEFAULT false,
   backfill_pass2_complete boolean NOT NULL DEFAULT false,
-  backfill_pass2_restart  boolean NOT NULL DEFAULT false,  -- the next pass 2 run starts over (ADR-0096)
+  backfill_pass2_restart  boolean NOT NULL DEFAULT false,  -- the next pass 2 run starts over (ADR-0120)
   sync_cursor       text,
   sync_cursor_at    timestamptz,           -- when sync_cursor was last written
   last_auth_at      timestamptz,           -- latest authentication attempt recorded (ADR-0097)
@@ -116,7 +116,7 @@ CREATE TABLE messages (
   from_name        text,
   subject          text,                  -- masked at rest if a code was detected
   subject_masked   boolean NOT NULL DEFAULT false,
-  subject_scanner_version  int,           -- the scanner version the subject was masked under (ADR-0096)
+  subject_scanner_version  int,           -- the scanner version the subject was masked under (ADR-0120)
   subject_scanner_revision text,          -- and the scanner configuration's revision
   sent_at          timestamptz NOT NULL,
   labels           text[] NOT NULL DEFAULT '{}',
@@ -215,7 +215,7 @@ CREATE TABLE masking_events (
   field       text NOT NULL CHECK (field IN ('subject')),
   rule_id     text NOT NULL,
   tier        int NOT NULL,
-  scanner_version  int,                   -- the scanner the masking ran under (ADR-0096)
+  scanner_version  int,                   -- the scanner the masking ran under (ADR-0120)
   scanner_revision text,
   masked_at   timestamptz NOT NULL DEFAULT now()
   -- no matched text stored
@@ -275,13 +275,15 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
   finished_at   timestamptz,
   heartbeat_at  timestamptz,
   checkpoint    jsonb,                    -- {page, of} or {seq, of}, and backfill's pass 1 records {page, token,
-                                          --   of, version, revision}, the provider's token for the next page,
-                                          --   with of only when its enumeration reports a total (ADR-0095),
-                                          --   and the scanner it masks under (ADR-0096), and pass 2 {page,
-                                          --   after}, the last message identifier its pages read, and a sync
-                                          --   tick {after}, the last message identifier its scanning read (ADR-0104)
-  counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages, remasked; pass2 pages, decided,
-                                          --   pending, scanned, skipped; sync added, modified, removed,
+                                          --   of, version, revision, stale}, the provider's token for the next
+                                          --   page, with of only when its enumeration reports a total (ADR-0095),
+                                          --   the scanner it masks under, and once its enumeration has ended how
+                                          --   many stored subjects are still masked under another scanner, left
+                                          --   out when none is (ADR-0120), and pass 2 {page, after}, the last message
+                                          --   identifier its pages read, and a sync tick {after}, the last
+                                          --   message identifier its scanning read (ADR-0104)
+  counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages, remasked, refetched; pass2 pages,
+                                          --   decided, pending, scanned, skipped; sync added, modified, removed,
                                           --   window_start, window_end, reconciled, and a tick's decided,
                                           --   pending, scanned, skipped (ADR-0104, ADR-0105); apply ops_done,
                                           --   ops_total, failures; heuristics candidates

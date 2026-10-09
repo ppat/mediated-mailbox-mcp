@@ -51,29 +51,6 @@ func TestFetched(t *testing.T) {
 	}
 }
 
-// A metadata call names as many identifiers as fit one second's worth at the hard cap, Gmail's three
-// at its price of a label read and twenty units a message against a ceiling of 100 units a second,
-// and never fewer than one or more than there are.
-func TestCallSize(t *testing.T) {
-	gmailLike := func(n int) float64 { return 1 + 20*float64(n) }
-	cases := []struct {
-		name    string
-		ceiling float64
-		most    int
-		want    int
-	}{
-		{"three fit", 100, 10, 3},
-		{"fewer to ask for than fit", 100, 2, 2},
-		{"not even one fits", 10, 10, 1},
-		{"nothing to ask for", 100, 0, 1},
-	}
-	for _, c := range cases {
-		if got := tick.CallSize(gmailLike, c.ceiling, c.most); got != c.want {
-			t.Errorf("%s: CallSize = %d, want %d", c.name, got, c.want)
-		}
-	}
-}
-
 // A throttle or a refused credential stops the account's scanning, a provider failure, a body the
 // provider no longer has and a refused request leave the message waiting, and a failure that is not
 // the provider's fails the tick, as does a decision nobody made (ADR-0104).

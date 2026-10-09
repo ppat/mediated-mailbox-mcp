@@ -1,0 +1,20 @@
+control: A backfill run's start masks every stale subject stored unmasked again from the store, a batch at a time, with a masking event for each mask
+removes: the run-start step writes the subjects it masks again from the store and records no masking event for their masks
+packages: ./backfill/app ./backfill/internal/pass2
+tests: TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/backfill/internal/pass2/postgres.go b/backfill/internal/pass2/postgres.go
+index e076d2bb..8804300b 100644
+--- a/backfill/internal/pass2/postgres.go
++++ b/backfill/internal/pass2/postgres.go
+@@ -290,7 +290,7 @@ func remaskStored(ctx context.Context, t pgx.Tx, account string, stamp index.Sta
+ 		if n != int64(len(batch.MessageIds)) {
+ 			return 0, fmt.Errorf("masking %d subjects stored unmasked again changed %d rows", len(batch.MessageIds), n)
+ 		}
+-		if len(masks.MessageIds) > 0 {
++		if false && len(masks.MessageIds) > 0 {
+ 			if err := events.RecordMaskingEvents(ctx, masks); err != nil {
+ 				return 0, fmt.Errorf("recording the masking events of the subjects masked again: %w", err)
+ 			}

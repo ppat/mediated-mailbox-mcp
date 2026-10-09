@@ -179,14 +179,14 @@ test("while a re-opened backfill pass 1 runs, the banner says the index is whole
   await settle();
   const banner = mounted.root.querySelector('[role="status"].banner');
   expect(banner?.textContent).toBe(
-    "Backfill pass 1 is running again, page 842 of 3,368 (25.0%), to mask every subject again under the scanner now in force. " +
+    "Backfill pass 1 is running again, 12 of 42 subjects fetched again (28.6%), to fetch again the subjects an earlier scanner masked and mask them under the scanner now in force. " +
       "It last completed at 2026-09-02 10:16Z, so the index holds the whole mailbox and no count here is a count so far. " +
-      "A subject it has not reached yet keeps its earlier masks. See Jobs",
+      "The other subjects were masked again from the index when the run started, and a subject it has not fetched yet keeps its earlier masks. See Jobs",
   );
   expect(banner?.querySelector("a")?.getAttribute("href")).toBe("/personal/jobs");
 });
 
-test("a re-opened pass 1 without a checkpoint page leaves out the page clause", async () => {
+test("a re-opened pass 1 whose run records no progress leaves out the progress clause", async () => {
   const reopened: System = await recording("system-reopened.json");
   const run = reopened.operational.backfill_pass1_run;
   if (run === null) {
@@ -194,12 +194,26 @@ test("a re-opened pass 1 without a checkpoint page leaves out the page clause", 
   }
   const started: System = {
     ...reopened,
-    operational: { ...reopened.operational, backfill_pass1_run: { ...run, checkpoint: null } },
+    operational: {
+      ...reopened.operational,
+      backfill_pass1_run: { ...run, checkpoint: null, counters: {} },
+    },
   };
   expect(partialIndex(started)).toBe(
-    "Backfill pass 1 is running again, to mask every subject again under the scanner now in force. " +
+    "Backfill pass 1 is running again, to fetch again the subjects an earlier scanner masked and mask them under the scanner now in force. " +
       "It last completed at 2026-09-02 10:16Z, so the index holds the whole mailbox and no count here is a count so far. " +
-      "A subject it has not reached yet keeps its earlier masks.",
+      "The other subjects were masked again from the index when the run started, and a subject it has not fetched yet keeps its earlier masks.",
+  );
+});
+
+test("a first pass 1 fetching stale subjects again names the fetch, and its counts are counts so far", async () => {
+  const reopened: System = await recording("system-reopened.json");
+  const first: System = {
+    ...reopened,
+    operational: { ...reopened.operational, backfill_pass1_succeeded_at: null },
+  };
+  expect(partialIndex(first)).toBe(
+    "Backfill pass 1 is running, 12 of 42 subjects fetched again (28.6%), so every count here is a count so far.",
   );
 });
 

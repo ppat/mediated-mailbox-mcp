@@ -149,7 +149,7 @@ func TestAVerdictRecordsTheRevisionItWasBuiltUnder(t *testing.T) {
 
 // A scanner names the version and revision its maskings are made under, so a subject masked under it
 // records them, and one nobody built names none a built scanner could, so whatever it masked is masked
-// again by the first built one (ADR-0096).
+// again by the first built one (ADR-0120).
 func TestAScannerNamesTheVersionAndRevisionItDecidesUnder(t *testing.T) {
 	s, err := scan.New(scan.DefaultConfig(), "0f3a")
 	if err != nil {

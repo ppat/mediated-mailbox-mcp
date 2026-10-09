@@ -50,7 +50,7 @@ type Progress struct {
 // is skipped, since the gate reads the statistics the first pass builds and the subjects it masks
 // (ADR-0017). After that it starts as the first pass's runs do. It is never found due again by itself,
 // since what a change of scanner makes stale for it, and the gate skips the gate no longer decides as
-// the same skip, a backfill run's Reopen records before the first pass (ADR-0096, ADR-0098).
+// the same skip, a backfill run's Reopen records before the first pass (ADR-0120, ADR-0098).
 func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Progress] {
 	if !firstEnded {
 		return pass1.Start[Progress]{Skip: true}
@@ -61,7 +61,7 @@ func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Pr
 // Over returns how a run of the pass starts when a backfill run's start marked the pass to start over,
 // and whether it starts over. A run resuming a stopped pass while the mark is set starts over from the
 // first message waiting for a scan, counters carrying on, since what that run-start step returned to
-// pending may sit before the checkpoint. A fresh pass starts there anyway (ADR-0096).
+// pending may sit before the checkpoint. A fresh pass starts there anyway (ADR-0120).
 func Over(start pass1.Start[Progress], marked bool) (pass1.Start[Progress], bool) {
 	if start.Skip || !marked || start.ResumedFrom == "" {
 		return start, false

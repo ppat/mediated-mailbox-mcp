@@ -84,11 +84,13 @@ The split buys these properties.
 
 ## Consequences
 
-- Both passes run again after a change of scanner, the first to mask the stored subjects again and
-  the second to scan again what an earlier scanner decided
-  ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md)). The second pass also runs
-  again when a backfill run's start returns to pending a gate skip the gate no longer decides as the
-  same skip ([ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)).
+- Both passes run again after a change of scanner, the first to fetch again and mask again the
+  stored subjects that were masked, once the run's start has masked the others again from the
+  store, and the second to scan again what an earlier scanner decided
+  ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
+  The second pass also runs again when a backfill run's start returns to pending a gate skip the
+  gate no longer decides as the same skip
+  ([ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)).
 - Backfill is the first workload long enough to trip real provider limits, so it depends on the
   rate controller.
 - Pass-1-then-pass-2 is also the corpus's first real test of the canonical mapping against messy

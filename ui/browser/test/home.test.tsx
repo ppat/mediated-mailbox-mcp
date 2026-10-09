@@ -633,3 +633,53 @@ test("a shown run's change of state reads the jobs and system endpoints again, a
   expect(counts()).toEqual(before.map((n) => n + 1));
   expect(field(root, "Delta sync", "last tick")?.textContent).toBe("2026-09-10 10:11Z, failed");
 });
+
+test("a re-opened pass 1 shows the subjects it fetched again of all it fetches, and follows its run's events without re-running", async () => {
+  let texts = 0;
+  let bars = 0;
+  const previous: ((vnode: VNode) => void) | undefined = Object.getOwnPropertyDescriptor(
+    options,
+    "diffed",
+  )?.value;
+  options.diffed = (vnode: VNode) => {
+    if (vnode.type === LiveText) {
+      texts += 1;
+    }
+    if (vnode.type === LiveProgress) {
+      bars += 1;
+    }
+    previous?.(vnode);
+  };
+  try {
+    const root = await open("/personal", {
+      ...chrome,
+      [systemPath("personal")]: ok("system-reopened.json"),
+      ...homeAnswers("personal"),
+      [jobsPath("personal")]: ok("jobs-reopened.json"),
+    });
+    const jobs: Jobs = await recording("jobs-reopened.json");
+    const run = jobs.backfill.pass1.run;
+    if (run === null) {
+      throw new Error("the recording holds no pass 1 run");
+    }
+    expect(field(root, "Backfill", "checkpoint")?.textContent).toBe(
+      "12 of 42 subjects fetched again (28.6%)",
+    );
+    expect(fill(root, "Backfill progress")).toBe(String((12 / 42) * 160));
+    const counted = [texts, bars];
+    // A run's checkpoint and counters are free-form JSON in the contract, so they are written as JSON.
+    await deliver("run", {
+      ...run,
+      account: "personal",
+      checkpoint: { ...JSON.parse(JSON.stringify(run.checkpoint)), stale: 27 },
+      counters: { ...JSON.parse(JSON.stringify(run.counters)), refetched: 15 },
+    });
+    expect(field(root, "Backfill", "checkpoint")?.textContent).toBe(
+      "15 of 42 subjects fetched again (35.7%)",
+    );
+    expect(fill(root, "Backfill progress")).toBe(String((15 / 42) * 160));
+    expect([texts, bars]).toEqual(counted);
+  } finally {
+    options.diffed = previous;
+  }
+});

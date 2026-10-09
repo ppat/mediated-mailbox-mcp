@@ -11,6 +11,34 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countStaleSubjects = `-- name: CountStaleSubjects :one
+SELECT count(*) AS stale
+FROM messages AS m
+WHERE
+    m.account_id = $1
+    AND (
+        m.subject_scanner_version IS DISTINCT FROM $2::int
+        OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+    )
+`
+
+type CountStaleSubjectsParams struct {
+	AccountID       string
+	ScannerVersion  int32
+	ScannerRevision string
+}
+
+// How many of the account's stored subjects were masked under another scanner version or
+// configuration revision than the one given, or under none recorded. Any makes the first pass due
+// again, and once its enumeration has ended the first pass records the count in its checkpoint, as
+// the subjects it has still to fetch again (ADR-0120).
+func (q *Queries) CountStaleSubjects(ctx context.Context, arg CountStaleSubjectsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countStaleSubjects, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	var stale int64
+	err := row.Scan(&stale)
+	return stale, err
+}
+
 const insertMessage = `-- name: InsertMessage :one
 INSERT INTO messages (
     account_id,
@@ -81,7 +109,7 @@ type InsertMessageParams struct {
 
 // Adds one message's metadata to the index, with its sender class, the policy rule that set it or
 // null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
-// version and configuration revision the masking ran under (ADR-0096). A message the index already
+// version and configuration revision the masking ran under (ADR-0120). A message the index already
 // holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
 // The row holds no body, snippet or attachment name (ADR-0016).
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error) {
@@ -111,6 +139,59 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (s
 	return message_id, err
 }
 
+const remaskStoredSubjects = `-- name: RemaskStoredSubjects :execrows
+UPDATE messages AS m
+SET
+    subject = r.subject,
+    subject_masked = r.subject_masked,
+    subject_scanner_version = $1::int,
+    subject_scanner_revision = $2::text
+FROM (
+    SELECT
+        unnest($4::text[]) AS message_id,
+        unnest($5::text[]) AS subject,
+        unnest($6::boolean[]) AS subject_masked
+) AS r
+WHERE
+    m.account_id = $3
+    AND m.message_id = r.message_id
+    AND NOT m.subject_masked
+    AND (
+        m.subject_scanner_version IS DISTINCT FROM $1::int
+        OR m.subject_scanner_revision IS DISTINCT FROM $2::text
+    )
+`
+
+type RemaskStoredSubjectsParams struct {
+	ScannerVersion  int32
+	ScannerRevision string
+	AccountID       string
+	MessageIds      []string
+	Subjects        []string
+	SubjectsMasked  []bool
+}
+
+// Replaces each stored subject named, unmasked and masked under another scanner version or
+// configuration revision than the one given, or under none recorded, with the subject given, masked
+// again from what was stored, and records the pair given, all in one statement, so masking again
+// every unmasked subject of a mailbox costs a statement a batch and not one a message (ADR-0120). No
+// other column of the row changes. A subject stored masked is left as it is, since only the provider
+// holds what its masks hid.
+func (q *Queries) RemaskStoredSubjects(ctx context.Context, arg RemaskStoredSubjectsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, remaskStoredSubjects,
+		arg.ScannerVersion,
+		arg.ScannerRevision,
+		arg.AccountID,
+		arg.MessageIds,
+		arg.Subjects,
+		arg.SubjectsMasked,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const remaskSubject = `-- name: RemaskSubject :execrows
 UPDATE messages
 SET
@@ -137,7 +218,7 @@ type RemaskSubjectParams struct {
 }
 
 // Replaces a stored subject masked under another scanner version or configuration revision, or under
-// none recorded, with the subject masked under the pair given, and records the pair (ADR-0096). No
+// none recorded, with the subject masked under the pair given, and records the pair (ADR-0120). No
 // other column of the row changes. A subject already masked under the pair given is left as it is and
 // counts no row, so a page taken twice masks nothing twice.
 func (q *Queries) RemaskSubject(ctx context.Context, arg RemaskSubjectParams) (int64, error) {
@@ -176,7 +257,7 @@ type StaleSubjectParams struct {
 
 // Whether any of the account's stored subjects was masked under another scanner version or
 // configuration revision than the one given, or under none recorded, which makes the first pass due
-// again (ADR-0096).
+// again (ADR-0120).
 func (q *Queries) StaleSubject(ctx context.Context, arg StaleSubjectParams) (bool, error) {
 	row := q.db.QueryRow(ctx, staleSubject, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
 	var stale bool
@@ -196,12 +277,14 @@ WHERE
         OR m.subject_scanner_revision IS DISTINCT FROM $3::text
     )
 ORDER BY m.message_id
+LIMIT $4
 `
 
 type StaleSubjectsParams struct {
 	AccountID       string
 	ScannerVersion  int32
 	ScannerRevision string
+	BatchSize       int32
 }
 
 type StaleSubjectsRow struct {
@@ -209,12 +292,18 @@ type StaleSubjectsRow struct {
 	Subject   string
 }
 
-// The account's messages whose stored subject was masked under another scanner version or
-// configuration revision than the one given, or under none recorded, with the subject as stored, in
-// the order of their identifiers. When an enumeration made under the pair given ends, these are the
-// messages it did not find (ADR-0096).
+// Up to the number given of the account's messages whose stored subject was masked under another
+// scanner version or configuration revision than the one given, or under none recorded, with the
+// subject as stored, in the order of their identifiers. They are the subjects the first pass fetches
+// again by identifier once its enumeration has ended, each masked again under the pair given, so a
+// subject it fetched leaves the set (ADR-0120).
 func (q *Queries) StaleSubjects(ctx context.Context, arg StaleSubjectsParams) ([]StaleSubjectsRow, error) {
-	rows, err := q.db.Query(ctx, staleSubjects, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	rows, err := q.db.Query(ctx, staleSubjects,
+		arg.AccountID,
+		arg.ScannerVersion,
+		arg.ScannerRevision,
+		arg.BatchSize,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -222,6 +311,67 @@ func (q *Queries) StaleSubjects(ctx context.Context, arg StaleSubjectsParams) ([
 	var items []StaleSubjectsRow
 	for rows.Next() {
 		var i StaleSubjectsRow
+		if err := rows.Scan(&i.MessageID, &i.Subject); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const staleUnmaskedSubjects = `-- name: StaleUnmaskedSubjects :many
+SELECT
+    m.message_id,
+    coalesce(m.subject, '')::text AS subject
+FROM messages AS m
+WHERE
+    m.account_id = $1
+    AND NOT m.subject_masked
+    AND (
+        m.subject_scanner_version IS DISTINCT FROM $2::int
+        OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+    )
+    AND m.message_id > $4
+ORDER BY m.message_id
+LIMIT $5
+`
+
+type StaleUnmaskedSubjectsParams struct {
+	AccountID       string
+	ScannerVersion  int32
+	ScannerRevision string
+	After           string
+	BatchSize       int32
+}
+
+type StaleUnmaskedSubjectsRow struct {
+	MessageID string
+	Subject   string
+}
+
+// Up to the number given of the account's messages after the identifier given whose stored subject
+// is unmasked and was masked under another scanner version or configuration revision than the one
+// given, or under none recorded, with the subject as stored, in the order of their identifiers. A
+// subject stored unmasked is the subject the provider returned, so a backfill run's start masks it
+// again from what is stored (ADR-0120).
+func (q *Queries) StaleUnmaskedSubjects(ctx context.Context, arg StaleUnmaskedSubjectsParams) ([]StaleUnmaskedSubjectsRow, error) {
+	rows, err := q.db.Query(ctx, staleUnmaskedSubjects,
+		arg.AccountID,
+		arg.ScannerVersion,
+		arg.ScannerRevision,
+		arg.After,
+		arg.BatchSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StaleUnmaskedSubjectsRow
+	for rows.Next() {
+		var i StaleUnmaskedSubjectsRow
 		if err := rows.Scan(&i.MessageID, &i.Subject); err != nil {
 			return nil, err
 		}

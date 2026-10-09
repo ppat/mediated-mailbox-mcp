@@ -10,18 +10,18 @@ import (
 
 type Querier interface {
 	// Clears the mark that starts backfill's second pass over, in the transaction that records the start of
-	// the second pass run that starts, which reads it first (ADR-0096).
+	// the second pass run that starts, which reads it first (ADR-0120).
 	ClearSecondRestart(ctx context.Context, accountID string) error
 	// Records that backfill's first pass is due again for the account, in the transaction that starts the
-	// run which runs it again (ADR-0096).
+	// run which runs it again (ADR-0120).
 	ReopenBackfillFirst(ctx context.Context, accountID string) error
 	// Records that backfill's second pass is due again for the account and marks it to start over from the
 	// first message waiting for a scan, in the transaction a backfill run makes before its first pass to
-	// return the verdicts another scanner made and the overturned gate skips to pending (ADR-0096,
+	// return the verdicts another scanner made and the overturned gate skips to pending (ADR-0120,
 	// ADR-0098).
 	ReopenBackfillSecond(ctx context.Context, accountID string) error
 	// Whether backfill's second pass is marked to start over from the first message waiting for a scan
-	// (ADR-0096).
+	// (ADR-0120).
 	SecondRestart(ctx context.Context, accountID string) (bool, error)
 	// Records that backfill's first pass has ended for the account, in the transaction that finishes the
 	// run which ended it (ADR-0017, ADR-0022).

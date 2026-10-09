@@ -411,15 +411,17 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 		"candidates-rows-pending-other-empty.json":        "/api/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
 		"candidates-rows-pending-oldest-other-empty.json": "/api/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
 	})
-	// The banner of a pass 1 a change of scanner re-opened is recorded once the personal account's
-	// pass 1, which succeeded, runs again (docs/UI.md section 12).
+	// The banner of a pass 1 a change of scanner re-opened, and Home's backfill cell for it, are
+	// recorded once the personal account's pass 1, which succeeded, runs again (docs/UI.md sections 8.1
+	// and 12).
 	reopenPass1(t)
-	record(t, s, doc, map[string]string{"system-reopened.json": "/api/personal/system"})
+	record(t, s, doc, map[string]string{"system-reopened.json": "/api/personal/system", "jobs-reopened.json": "/api/personal/jobs"})
 }
 
 // reopenPass1 moves the personal account on as a backfill run that finds the first pass due again
-// would (ADR-0096). Pass 2's running run succeeds, the next run clears both passes' completion and
-// starts pass 1 again, and that run has recorded a page.
+// would (ADR-0120). Pass 2's running run succeeds, the next run clears both passes' completion and
+// starts pass 1 again from the checkpoint of the enumeration that ended, and that run has fetched 12
+// of the 42 subjects stored masked under the earlier scanner again.
 func reopenPass1(t *testing.T) {
 	t.Helper()
 	conn, err := pgx.Connect(t.Context(), postgres.URL(t))
@@ -445,7 +447,9 @@ func reopenPass1(t *testing.T) {
 		},
 		{
 			`INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at, heartbeat_at, checkpoint, counters) VALUES
-			($1, 'r-0919', 'backfill', 'pass1', 'running', $2, $2, '{"page": 842, "of": 3368}', '{}')`,
+			($1, 'r-0919', 'backfill', 'pass1', 'running', $2, $2,
+				'{"page": 3368, "token": "", "of": 3368, "version": 1, "revision": "r2", "stale": 30}',
+				'{"pages": 0, "messages": 0, "remasked": 0, "refetched": 12}')`,
 			[]any{personal, now.Add(-6 * time.Second)},
 		},
 	} {

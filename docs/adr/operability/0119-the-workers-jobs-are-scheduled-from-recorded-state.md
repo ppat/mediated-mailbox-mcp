@@ -21,7 +21,7 @@ loud. Each job kind needs to run on its own condition.
 The records already make correctness independent of when a run happens. Every run that masks,
 scans or classifies compares what the index stores with what it runs with, by effect, and acts on
 the difference ([ADR-0037](../redaction/0037-delisting-transition.md),
-[ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md),
+[ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
 [ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md),
 [ADR-0113](../redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
 Checkpoints commit with the work they cover ([ADR-0017](../data/0017-two-pass-backfill.md),

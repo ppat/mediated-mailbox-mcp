@@ -49,7 +49,7 @@ type MaskingPairsAboveRow struct {
 // domain has one spelling (ADR-0016), and an event whose message the index no longer holds counts
 // under no pair. Only an event whose scanner version and revision equal those its
 // message's subject was masked under counts, so the events of a masking a change of scanner replaced count
-// under none (ADR-0096, docs/UI.md section 8.5). Each pair carries its first event since the time.
+// under none (ADR-0120, docs/UI.md section 8.5). Each pair carries its first event since the time.
 func (q *Queries) MaskingPairsAbove(ctx context.Context, arg MaskingPairsAboveParams) ([]MaskingPairsAboveRow, error) {
 	rows, err := q.db.Query(ctx, maskingPairsAbove, arg.AccountID, arg.Since, arg.Above)
 	if err != nil {

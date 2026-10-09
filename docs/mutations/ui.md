@@ -226,33 +226,33 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## A streamed event redraws a live surface's text without re-rendering a component
 
-- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223) for the first nine, and [pull request #230](https://github.com/ppat/mediated-mailbox-mcp/pull/230), which reproduces them and adds the tenth to the twelfth
+- **Date · evidence:** 2026-10-01 · [pull request #223](https://github.com/ppat/mediated-mailbox-mcp/pull/223) for the first nine, and [pull request #230](https://github.com/ppat/mediated-mailbox-mcp/pull/230), which reproduces them and adds the tenth to the twelfth, and every break again on 2026-10-08, after Home's strip gained a test of a pass 1 fetching stale subjects again · [pull request #321](https://github.com/ppat/mediated-mailbox-mcp/pull/321)
 - **Break (1):** the sync class's bar is given the interactive class's measure, so it draws another class's used of reserved
   - **Went red in `test/jobs.test.tsx`:** `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`
-- **Break (2):** the jobs screen reads the stream's update time while rendering, so every event re-renders the whole screen
+- **Break (2):** the home screen reads the stream's update time while rendering, so every event re-renders the whole screen
+  - **Went red in `test/home.test.tsx`:** `a pass that starts while Home is open draws its checkpoint and bar on its first page event, and nothing re-runs`, `a re-opened pass 1 shows the subjects it fetched again of all it fetches, and follows its run's events without re-running`, `an event redraws the strip's run and the batch class, and nothing re-runs`
+- **Break (3):** the jobs screen reads the stream's update time while rendering, so every event re-renders the whole screen
   - **Went red in `test/jobs.test.tsx`:** `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`
-- **Break (3):** live text reads its object's signal while rendering instead of through a computed signal, so every event re-renders it
+- **Break (4):** live text reads its object's signal while rendering instead of through a computed signal, so every event re-renders it
   - **Went red in `test/jobs.test.tsx`:** `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`
   - **Went red in `test/run.test.tsx`:** `a run event redraws the strip and the indicator shows, and the screen never re-runs`
-- **Break (4):** live text reads its object's value without subscribing to it, so an event never redraws the text
+- **Break (5):** live text reads its object's value without subscribing to it, so an event never redraws the text
   - **Went red in `test/jobs.test.tsx`:** `a new tick replaces the card's run, and its next event reaches the card`, `a pass 2 that has just started shows its bar on its first page event`, `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`
   - **Went red in `test/run.test.tsx`:** `a run event redraws the strip and the indicator shows, and the screen never re-runs`, `following a failed item's recovering run to another run shows that run's strip and follows its events`, `following recovered by to another run shows that run's strip and follows its events`, `following the resumer to another run shows that run's strip and follows its events`
-- **Break (5):** pass 2's bar is drawn only when the first answer's checkpoint records a page, so a pass that has just started shows no bar on its first page event
+- **Break (6):** pass 2's bar is drawn only when the first answer's checkpoint records a page, so a pass that has just started shows no bar on its first page event
   - **Went red in `test/jobs.test.tsx`:** `a pass 2 that has just started shows its bar on its first page event`
-- **Break (6):** a progress bar reads its object's signal while rendering instead of through a computed signal, so every event re-renders it
+- **Break (7):** a progress bar reads its object's signal while rendering instead of through a computed signal, so every event re-renders it
   - **Went red in `test/jobs.test.tsx`:** `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`
-- **Break (7):** a progress bar reads its object's value without subscribing to it, so an event never moves its fill
+- **Break (8):** a progress bar reads its object's value without subscribing to it, so an event never moves its fill
   - **Went red in `test/jobs.test.tsx`:** `a pass 2 that has just started shows its bar on its first page event`, `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`
-- **Break (8):** every rate event reads the jobs endpoint again, whether or not the answer shown has a rate state, so a rate event re-renders the screen
+- **Break (9):** every rate event reads the jobs endpoint again, whether or not the answer shown has a rate state, so a rate event re-renders the screen
   - **Went red in `test/jobs.test.tsx`:** `an account's first rate event reads the jobs endpoint again and brings up the rate budget`, `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`
-- **Break (9):** the run screen reads the summary's state while rendering, so an event's refetch re-renders the whole screen
+- **Break (10):** the run screen reads the summary's state while rendering, so an event's refetch re-renders the whole screen
   - **Went red in `test/run.test.tsx`:** `a run event redraws the strip and the indicator shows, and the screen never re-runs`
-- **Break (10):** the home screen reads the stream's update time while rendering, so every event re-renders the whole screen
-  - **Went red in `test/home.test.tsx`:** `a pass that starts while Home is open draws its checkpoint and bar on its first page event, and nothing re-runs`, `an event redraws the strip's run and the batch class, and nothing re-runs`
-- **Break (11):** the running-work strip reads the rate's signal while rendering its cells, so every rate event re-renders every cell
-  - **Went red in `test/home.test.tsx`:** `an event redraws the strip's run and the batch class, and nothing re-runs`
-- **Break (12):** the strip draws the backfill checkpoint and its bar only when the first answer's checkpoint records a page, so a pass that starts while Home is open shows no progress on its first page event
+- **Break (11):** the strip draws the backfill checkpoint and its bar only when the first answer's checkpoint records a page, so a pass that starts while Home is open shows no progress on its first page event
   - **Went red in `test/home.test.tsx`:** `a pass that starts while Home is open draws its checkpoint and bar on its first page event, and nothing re-runs`
+- **Break (12):** the running-work strip reads the rate's signal while rendering its cells, so every rate event re-renders every cell
+  - **Went red in `test/home.test.tsx`:** `an event redraws the strip's run and the batch class, and nothing re-runs`
 
 ## A write row-level security empties is reported as a rule the account does not hold
 

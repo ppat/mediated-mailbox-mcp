@@ -10,7 +10,7 @@ index bcd4438..58270b7 100644
 --- a/db/accountstate/completion/completion.sql
 +++ b/db/accountstate/completion/completion.sql
 @@ -25,7 +25,7 @@ WHERE account_id = @account_id;
- -- return the verdicts another scanner made and the overturned gate skips to pending (ADR-0096,
+ -- return the verdicts another scanner made and the overturned gate skips to pending (ADR-0120,
  -- ADR-0098).
  UPDATE account_state
 -SET backfill_pass2_complete = false, backfill_pass2_restart = true

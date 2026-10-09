@@ -140,7 +140,7 @@ shipping the rules and never the model.
   A change to either marks the verdicts made before it stale, which is what makes re-scanning after
   improvements tractable ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)), and
   the subjects masked before it, which are masked again
-  ([ADR-0096](../redaction/0096-a-scanner-change-reopens-backfill.md)).
+  ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
 - A trigger word and a digit run are found only where a word boundary separates them, so in a
   language written without spaces between words neither is found, subject masking included, and
   that language needs matching of another kind. Digits outside ASCII, full-width digits among them,
