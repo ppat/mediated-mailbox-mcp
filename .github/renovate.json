@@ -126,7 +126,7 @@
       ],
       "matchDepNames": [
         "go",
-        "golang"
+        "public.ecr.aws/docker/library/golang"
       ],
       "groupName": "go",
       "schedule": [
@@ -141,7 +141,7 @@
         "gomod"
       ],
       "matchDepTypes": [
-        "golang"
+        "public.ecr.aws/docker/library/golang"
       ],
       "rangeStrategy": "bump"
     },
@@ -153,7 +153,7 @@
       ],
       "matchDepNames": [
         "bun",
-        "oven/bun"
+        "mirror.gcr.io/oven/bun"
       ],
       "groupName": "bun",
       "schedule": [
@@ -163,12 +163,27 @@
       "commitMessagePrefix": ""
     },
     {
+      "description": "The members of the go and bun groups reach minimumReleaseAge at different times, because each datasource dates a release differently: go.mod's go directive by the release day, mise by the tag's time, and a Dockerfile's base image by the registry's push time or not at all. Under the strict internal checks filter a member still inside its observation period is dropped from the branch, so the group's pull request opens with the members that have aged and leaves out the rest, and an image then fails to build because its Go is older than go.mod requires. With the filter off for these members every pin moves in one branch, and the renovate/stability-days status check stays pending, which holds automerge, until every member has aged",
+      "matchDepNames": [
+        "go",
+        "public.ecr.aws/docker/library/golang",
+        "bun",
+        "mirror.gcr.io/oven/bun"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "gomod",
+        "mise"
+      ],
+      "internalChecksFilter": "none"
+    },
+    {
       "description": "The go and bun groups reset the commit type mise.toml's grouping sets, per update type, as the default preset assigns it",
       "matchDepNames": [
         "go",
-        "golang",
+        "public.ecr.aws/docker/library/golang",
         "bun",
-        "oven/bun"
+        "mirror.gcr.io/oven/bun"
       ],
       "matchManagers": [
         "dockerfile",
@@ -185,9 +200,9 @@
       "description": "The go and bun groups' patch and digest updates are fixes, as the default preset assigns them, and so are a rollback, a bump, a replacement and a lock file entry update, which the preset types chore: each moves the version every shipped artifact is built with, so the release cannot be silent",
       "matchDepNames": [
         "go",
-        "golang",
+        "public.ecr.aws/docker/library/golang",
         "bun",
-        "oven/bun"
+        "mirror.gcr.io/oven/bun"
       ],
       "matchManagers": [
         "dockerfile",
@@ -208,9 +223,9 @@
       "description": "A major of Go or bun changes what builds every shipped artifact, so it keeps the breaking marker the shared default preset gives every major, as the mechanical read-before-deploying signal. Restated here because the groups above set the prefix back to unset, which would drop it.",
       "matchDepNames": [
         "go",
-        "golang",
+        "public.ecr.aws/docker/library/golang",
         "bun",
-        "oven/bun"
+        "mirror.gcr.io/oven/bun"
       ],
       "matchManagers": [
         "dockerfile",

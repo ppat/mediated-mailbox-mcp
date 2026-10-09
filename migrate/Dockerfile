@@ -6,7 +6,7 @@
 # It reads the connection string from GOOSE_DBSTRING, which the deployment supplies with the migration
 # role's credentials. The default command applies every pending migration.
 
-FROM golang:1.27.1-trixie@sha256:9baa6b4187bbb98d240372a8a235ac0bb6b5ddd52bba1431dc2f7c0705862728 AS goose
+FROM public.ecr.aws/docker/library/golang:1.27.2-trixie@sha256:e58d6f83b3416618d8bcac2b3dde1b7f7e3c4a77d25e88637f8bbae81536c48d AS goose
 # renovate: datasource=go depName=github.com/pressly/goose/v3
 ARG GOOSE_VERSION=v3.28.0
 # no_mssql also excludes azuresql, and the tag is listed anyway so the list reads as goose documents it.
