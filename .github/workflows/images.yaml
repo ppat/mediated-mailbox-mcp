@@ -2,28 +2,16 @@
 # yamllint disable rule:line-length
 name: images
 
-# Builds every image, publishing nothing, when an image's directory or a shared library an image copies changes.
-# Every image builds together because the release publishes them together at one version (ADR-0049).
+# Builds every image, publishing nothing, when an input of an image's build changes: a Dockerfile, go.mod or go.sum.
+# The Go workflows build and test Go code, the ui workflow builds the browser bundle and go-integration applies the
+# migration chain. Every image builds together because the release publishes them together at one version (ADR-0049).
 on:
   pull_request:
     paths:
     - .github/workflows/images.yaml
+    - '*/Dockerfile'
     - go.mod
     - go.sum
-    - backfill/**
-    - content/**
-    - core/**
-    - db/**
-    - executioncontext/**
-    - mediate/**
-    - migrate/**
-    - organize/**
-    - process/**
-    - propose/**
-    - provider/**
-    - ratelimit/**
-    - sync/**
-    - ui/**
   workflow_dispatch:
 
 concurrency:

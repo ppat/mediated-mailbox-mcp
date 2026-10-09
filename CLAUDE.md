@@ -294,8 +294,10 @@ One workflow per concern under `.github/workflows/`. A workflow that runs only f
 filters its pull-request trigger by a path allow list of the directories it watches, extended by one
 entry per new component
 ([ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md)). The Go
-workflows also watch every Go file, so a Go file in a new directory is linted and tested. Jobs that
-need the repository's tools install them from `mise.toml` through
+workflows also watch every Go file, so a Go file in a new directory is linted and tested. The
+`images` workflow is the exception. It watches only Dockerfiles, `go.mod` and `go.sum`, and a new
+component's Dockerfile is among them without an entry. Jobs that need the repository's tools install
+them from `mise.toml` through
 `ppat/homelab-ops-actions/actions/setup-repository-tools`.
 
 | Workflow | Runs on | Does |
@@ -307,7 +309,7 @@ need the repository's tools install them from `mise.toml` through
 | `go-vulncheck` | Go code, and a schedule | `govulncheck` |
 | `data` | `db/`, its configuration, tool pins | sqlfluff, the generator's diffs, and the `db/check` tests |
 | `ui` | `ui/`, the migration chain, the data-access subsections the UI's list names, the ban-proof program, tool pins | One job, which runs in order the contract, types and descriptor drift checks of [ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md), `bun build`, the UI's Go build and its tests under `go tool pgrun` with `-tags integration` and the same property-run settings, which record the browser's fixtures and diff them, the type check, the formatting check, browser lint, `go tool banproof -browser`, and `bun test`. The Go tests and the browser tests share the job because the recorded fixtures are regenerated in the job that runs the Go tests they come from ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
-| `images` | Any image's directory, or a shared library an image copies | Builds every image through `ppat/homelab-ops-actions/actions/build-docker-image`, without pushing, and requires the UI's image to fail at its guard when the bundle directory holds only the placeholder |
+| `images` | Any Dockerfile, `go.mod`, `go.sum` and the workflow itself, and by hand | Builds every image through `ppat/homelab-ops-actions/actions/build-docker-image`, without pushing, and requires the UI's image to fail at its guard when the bundle directory holds only the placeholder |
 | `dockerfiles` | Any Dockerfile | hadolint, through the hygiene workflows' reusable job |
 | `secrets` | Every pull request | gitleaks |
 | `mutation-patches` | Every pull request | `git apply --check` over every mutation patch under a `testdata/mutations/` directory, excluding `testsupport/cmd/mutproof/testdata/`'s own fixtures, after a self-test proves the check refuses a patch whose context no longer matches. Unconditional rather than path-filtered, because a patch's diff context can span any file in the tree, and neither `go-test` nor `go-integration` runs it, so a patch's plain applicability is a standing guard apart from the mutation demonstration itself, which stays event-driven ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)) |
