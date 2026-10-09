@@ -5,16 +5,16 @@ tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
-index de58e776..824aae36 100644
---- a/db/migrations/00023_policy_management.sql
-+++ b/db/migrations/00023_policy_management.sql
-@@ -66,7 +66,7 @@ WITH CHECK (
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..86cf153b 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -492,7 +492,7 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
  -- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
  -- statements sit in db/policyrules/manage for an account's rules and db/policyrules/base for the base
- -- policy's, which only the UI's list admits. The insert on policy_rules was granted with the schema.
--GRANT UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
-+GRANT UPDATE, DELETE ON policy_rules TO mediated_mailbox_ui;
- 
+ -- policy's, which only the UI's list admits. A confirmation of a candidate inserts its rule.
+-GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
++GRANT INSERT, UPDATE, DELETE ON policy_rules TO mediated_mailbox_ui;
  -- Each policy write appends its history row, and the policy screens read the history. Insert alone,
  -- so evidence of who lifted a restriction survives the UI's compromise (ADR-0102).
+ GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;

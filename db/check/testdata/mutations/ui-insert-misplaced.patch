@@ -6,12 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
-index 368548b..4c47d2c 100644
+index eba1d5bc..4fcb1ec4 100644
 --- a/db/migrations/00004_grants.sql
 +++ b/db/migrations/00004_grants.sql
-@@ -32,4 +32,4 @@ audit_log
- TO mediated_mailbox_ui;
- GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
- GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
--GRANT INSERT ON policy_rules TO mediated_mailbox_ui;
+@@ -492,7 +492,8 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
+ -- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
+ -- statements sit in db/policyrules/manage for an account's rules and db/policyrules/base for the base
+ -- policy's, which only the UI's list admits. A confirmation of a candidate inserts its rule.
+-GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
++GRANT UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
 +GRANT INSERT ON policy_candidates TO mediated_mailbox_ui;
+ -- Each policy write appends its history row, and the policy screens read the history. Insert alone,
+ -- so evidence of who lifted a restriction survives the UI's compromise (ADR-0102).
+ GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;

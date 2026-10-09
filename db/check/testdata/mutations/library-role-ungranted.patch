@@ -5,10 +5,11 @@ tests: TestGrantsCoverAdmittedSubsections
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00005_rate_grants.sql b/db/migrations/00005_rate_grants.sql
---- a/db/migrations/00005_rate_grants.sql
-+++ b/db/migrations/00005_rate_grants.sql
-@@ -68,6 +68,6 @@
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..d57cef6e 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -521,9 +521,9 @@ UPDATE (
      classes,
      updated_at
  ) ON rate_state
@@ -17,3 +18,6 @@ diff --git a/db/migrations/00005_rate_grants.sql b/db/migrations/00005_rate_gran
  GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
 -TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 +TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
+ 
+ -- The policy loader's statement, in db/policyrules, runs under the role of each deployable that loads
+ -- policy (ADR-0075), the mediator, backfill and delta sync. It reads the account, the identifier, the

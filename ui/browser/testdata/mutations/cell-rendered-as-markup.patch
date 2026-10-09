@@ -1,7 +1,7 @@
 control: Message-derived text renders inert
 removes: the rows table hands a cell's value to the raw-markup escape hatch instead of rendering it as text
-packages: ./ui/browser/test/lens.test.tsx ./ui/browser/test/run.test.tsx ./ui/browser/test/jobs.test.tsx
-tests: a description carrying markup arrives as text, and nothing is built from it | a subject carrying markup arrives as text in its message row, and nothing is built from it | markup in every field of every message row and page row arrives as text | the plans' titles carrying markup arrive as text in their cards and their row
+packages: ./ui/browser/test/lens.test.tsx ./ui/browser/test/run.test.tsx
+tests: a description carrying markup arrives as text, and nothing is built from it | a subject carrying markup arrives as text in its message row, and nothing is built from it | markup in every field of every message row and page row arrives as text
 scheduled-count: no
 runner: bun
 

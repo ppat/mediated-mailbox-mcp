@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
-index a23f65e..1631721 100644
+index 77a39501..afe9f887 100644
 --- a/db/migrations/00003_row_level_security.sql
 +++ b/db/migrations/00003_row_level_security.sql
-@@ -20,7 +20,7 @@ USING (account_id = current_setting('app.account'));
+@@ -42,7 +42,7 @@ USING (account_id = current_setting('app.account'));
  
  ALTER TABLE senders ENABLE ROW LEVEL SECURITY;
  CREATE POLICY senders_account ON senders
 -USING (account_id = current_setting('app.account'));
-+USING (account_id = current_setting('app.acount', true));
++USING (account_id = current_setting('app.acount', TRUE));
  
  ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
  CREATE POLICY messages_account ON messages

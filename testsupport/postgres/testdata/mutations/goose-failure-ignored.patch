@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
-index cfee0ec..2050300 100644
+index c3471cbf..d684d00f 100644
 --- a/testsupport/postgres/chain.go
 +++ b/testsupport/postgres/chain.go
-@@ -54,7 +54,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, bootstrap, dir string
+@@ -136,7 +136,7 @@ func up(ctx context.Context, dir, url string) ([]byte, error) {
  	goose.Env = append(os.Environ(), "GOOSE_DRIVER=", "GOOSE_DBSTRING=", "GOOSE_MIGRATION_DIR=")
- 	goose.Stdout, goose.Stderr = os.Stderr, os.Stderr
- 	if err := goose.Run(); err != nil {
--		return fmt.Errorf("goose up: %w", err)
+ 	out, err := goose.CombinedOutput()
+ 	if err != nil {
+-		return out, fmt.Errorf("goose up: %w", err)
 +		fmt.Fprintf(os.Stderr, "goose up: %v\n", err)
  	}
- 	return nil
+ 	return out, nil
  }

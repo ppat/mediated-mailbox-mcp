@@ -26,9 +26,10 @@ an image, because only test files and the tooling programs import it. Its packag
   [ADR-0044](../docs/adr/engineering/0044-synthetic-fixtures-marker-text.md) that fixtures and
   generated mail values carry.
 - `fixture`, the synthetic fixtures.
-- `postgres`, what an integration test package needs to reach its database, and the application of
-  the bootstrap and the migration chain to an empty database that `pgrun` and the chain's own tests
-  share.
+- `postgres`, what an integration test package needs to reach its database, the application of the
+  migration chain to an empty database that `pgrun` and the chain's own tests share, and the chain
+  applied up to one migration, for a test that stores rows under the chain before a migration and
+  then applies it ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)).
 - `mustnotcompile`, the helpers that assert a forbidden construction fails to compile, that a
   type exposes no field, that a type has exactly the fields or a function exactly the
   parameters named, that an interface has exactly the methods named with exactly their

@@ -5,7 +5,7 @@
   "connected": true,
   "current_target": 5,
   "last_auth_at": "2026-09-10T04:16:04Z",
-  "last_auth_outcome": "<script>mmfieldmarker-authoutcome</script>",
+  "last_auth_outcome": "succeeded",
   "lowered_target": 0.3,
   "mailbox": "personal@gmail.com",
   "oauth_client": "household-mail",

@@ -5,14 +5,16 @@ tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00022_ui_setups.sql b/db/migrations/00022_ui_setups.sql
-index 38f2557c..056e92f2 100644
---- a/db/migrations/00022_ui_setups.sql
-+++ b/db/migrations/00022_ui_setups.sql
-@@ -38,5 +38,5 @@ GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON acco
- -- covers reading credential, so the UI cannot read back what it sealed (ADR-0081, ADR-0084).
- GRANT SELECT (mailbox, lowered_target_rate),
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..9fe6d2f1 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -474,7 +474,7 @@ GRANT SELECT (
+     last_auth_outcome
+ ),
  INSERT (account_id, credential, mailbox, lowered_target_rate),
 -UPDATE (credential, mailbox, lowered_target_rate, last_auth_at, last_auth_outcome)
 +UPDATE
  ON account_state TO mediated_mailbox_ui;
+ -- The UI's client setup lists each client's identity, adds a client, replaces a client's identifier,
+ -- secret and project ID, and removes a client no account connects through. Its statements sit in

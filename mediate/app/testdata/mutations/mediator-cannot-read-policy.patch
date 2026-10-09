@@ -6,13 +6,16 @@ scheduled-count: no
 integration: yes
 
 
-diff --git a/db/migrations/00009_mediate_policy_grants.sql b/db/migrations/00009_mediate_policy_grants.sql
-index 388c7fb..c57ca38 100644
---- a/db/migrations/00009_mediate_policy_grants.sql
-+++ b/db/migrations/00009_mediate_policy_grants.sql
-@@ -3,4 +3,4 @@
- -- under the role of each deployable that imports it (ADR-0075). The mediator's role gets SELECT on the
- -- same columns backfill's does, and who created a rule and when stay out of its reach. Row-level
- -- security still shows it only the base rules and its transaction's account's rules.
--GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules TO mediated_mailbox_mediate;
-+SELECT 1;
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..291184bc 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -531,7 +531,7 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, m
+ -- exactly those columns. Who created a rule and when stay out of their reach. Row-level security still
+ -- shows each only the base rules and its transaction's account's rules.
+ GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
+-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
++TO mediated_mailbox_backfill, mediated_mailbox_sync;
+ 
+ -- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run
+ -- under the role of each deployable that calls a provider, whose list admits accountload (ADR-0075,

@@ -5,21 +5,21 @@ tests: TestTheListingRolesReadEveryAccount TestTheListingRolesReadEveryAccount/m
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
-index a600f2d..c88ba2e 100644
---- a/db/migrations/00008_account_state.sql
-+++ b/db/migrations/00008_account_state.sql
-@@ -62,13 +62,6 @@ USING (account_id = current_setting('app.account'));
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index 77a39501..fed02d55 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -20,13 +20,6 @@ USING (account_id = current_setting('app.account'));
+ -- reads accounts sees only its transaction's account. accounts_account still confines every write
  -- to the transaction's account, since a permissive policy for SELECT alone takes no part in an
- -- insert, an update's new row or a delete. The UI's read of the moved state columns arrives with the
- -- statement that needs it and never covers credential (ADR-0084).
+ -- insert, an update's new row or a delete.
 -CREATE POLICY accounts_listing ON accounts FOR SELECT
 -TO mediated_mailbox_ui,
 -mediated_mailbox_mediate,
 -mediated_mailbox_backfill,
 -mediated_mailbox_sync,
 -mediated_mailbox_organize
--USING (true);
+-USING (TRUE);
  
- -- An installation's OAuth client, for a provider that authenticates through one (ADR-0080, ADR-0083).
- -- It belongs to no account and carries no account column, so grants alone decide who reaches it
+ ALTER TABLE account_state ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY account_state_account ON account_state

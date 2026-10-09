@@ -9,7 +9,7 @@
     "range": "7d"
   },
   "total": {
-    "count": 5
+    "count": 4
   },
   "rows": [
     {
@@ -20,21 +20,9 @@
     },
     {
       "key": {
-        "workload": "apply"
-      },
-      "count": 1
-    },
-    {
-      "key": {
-        "workload": "heuristics"
-      },
-      "count": 1
-    },
-    {
-      "key": {
         "workload": "sync"
       },
-      "count": 1
+      "count": 2
     }
   ]
 }

@@ -5,19 +5,21 @@ tests: TestGrantsCoverAdmittedSubsections TestTheProviderCallingRolesReadOnlyThe
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00010_ui_account_status.sql b/db/migrations/00010_ui_account_status.sql
-index d6e96d5..14399ec 100644
---- a/db/migrations/00010_ui_account_status.sql
-+++ b/db/migrations/00010_ui_account_status.sql
-@@ -4,10 +4,5 @@
- -- statement reads, all of them non-secret. It never covers credential, so the UI cannot read a sealed
- -- credential even though it seals them.
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..f7bb83c0 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -466,12 +466,7 @@ GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON acco
  GRANT SELECT (
--    account_id,
+     account_id,
+     mailbox,
+-    lowered_target_rate,
 -    backfill_pass1_complete,
 -    backfill_pass2_complete,
 -    sync_cursor_at,
 -    last_auth_at,
 -    last_auth_outcome
-+    account_id
- ) ON account_state TO mediated_mailbox_ui;
++    lowered_target_rate
+ ),
+ INSERT (account_id, credential, mailbox, lowered_target_rate),
+ UPDATE (credential, mailbox, lowered_target_rate, last_auth_at, last_auth_outcome)

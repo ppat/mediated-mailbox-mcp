@@ -88,9 +88,9 @@ test("the cards show each workload's state and fields, with the decisions block'
   const root = await open(`/personal/jobs?${canonical}`);
   expect([...root.querySelectorAll("section.card h2")].map((h) => h.textContent)).toEqual([
     "Backfill running",
-    "Delta sync idle",
-    "Reorg apply running",
-    "Heuristics idle",
+    "Delta sync running",
+    "Reorg apply not started",
+    "Heuristics not started",
     "Rate budget",
   ]);
   expect(fields(root, "Backfill")).toEqual([
@@ -111,21 +111,19 @@ test("the cards show each workload's state and fields, with the decisions block'
     ["cursor age", "4m"],
     [
       "gap recoveries, 7 days",
-      "1, last 2026-09-08 00:00Z to 2026-09-08 06:00Z, 41 reconciled at 2026-09-08 10:16Z",
+      "2, last 2026-09-10 08:00Z to 2026-09-10 09:00Z, 0 reconciled at 2026-09-10 09:26Z",
     ],
   ]);
+  // The schema records no apply or heuristics run, since neither job kind's pair is in its closed set.
   expect(fields(root, "Reorg apply")).toEqual([
-    ["applying", "<script>mmfieldmarker-applyingplan</script>, 1 of 2 operations"],
-    [
-      "last run",
-      "<script>mmfieldmarker-appliedplan</script>, succeeded, 2 operations, 0 failures, 0s, 2026-08-31 10:16Z, rollback available over 2 logged operations",
-    ],
+    ["now", "idle, 1 plans in DRAFT"],
+    ["last run", "none yet"],
   ]);
   expect(fields(root, "Heuristics")).toEqual([
     ["cadence", "every 1d"],
-    ["last run", "2026-09-09 14:16Z, 0s, 2 candidates emitted"],
+    ["last run", "none yet"],
     ["awaiting review", "6 candidates"],
-    ["next run", "2026-09-10 14:16Z"],
+    ["next run", "after the first run"],
   ]);
   expect(root.querySelector('section[aria-label="Rate budget"] p')?.textContent).toBe(
     "3.1 of 5.0 units/s, cap 8.0 units/s, not in backoff, last throttle 2026-09-10 08:16Z",
@@ -141,7 +139,7 @@ test("the recent runs open without delta-sync ticks, each linking to its run", a
   const root = await open(`/personal/jobs?${canonical}`);
   expect(root.querySelector(".breadcrumb .chip")?.textContent).toBe("pass not tick ×");
   const table = root.querySelector("table.rows");
-  expect(table?.querySelector("caption")?.textContent).toBe("Recent runs, 5 in all");
+  expect(table?.querySelector("caption")?.textContent).toBe("Recent runs, 4 in all");
   const rows = [...(table?.querySelectorAll("tbody tr") ?? [])].map((tr) =>
     [...tr.querySelectorAll("td")].map((td) => td.textContent),
   );
@@ -156,15 +154,14 @@ test("the recent runs open without delta-sync ticks, each linking to its run", a
       "0",
     ],
     [
-      "r-0915",
-      "apply · <script>mmfieldmarker-applyingplan</script>",
-      "2026-09-10 07:16Z",
-      "3h so far",
+      "r-0908",
+      "sync · gap_recovery",
+      "2026-09-10 09:26Z",
+      "50m so far",
       "running",
-      "1 of 2 operations",
+      "2026-09-10 08:00Z to 2026-09-10 09:00Z, 0 reconciled",
       "0",
     ],
-    ["r-0909", "heuristics", "2026-09-09 14:16Z", "0s", "succeeded", "", "0"],
     [
       "r-0911",
       "sync · gap_recovery",
@@ -179,27 +176,11 @@ test("the recent runs open without delta-sync ticks, each linking to its run", a
   const failures = table?.querySelector('a[href="/personal/jobs/r-0912"]:not(.mono)');
   expect(failures?.textContent).toBe("5");
   expect([...root.querySelectorAll(".strip .figure")].map((f) => f.textContent)).toEqual([
-    "5runs",
+    "4runs",
     "2running",
     "1failed",
     "2026-09-08 09:16Zlast failure",
   ]);
-});
-
-test("the plans' titles carrying markup arrive as text in their cards and their row", async () => {
-  const root = await open(`/personal/jobs?${canonical}`);
-  const text = "<script>mmfieldmarker-applyingplan</script>";
-  const [card, last] = [...root.querySelectorAll('section.card[aria-label="Reorg apply"] dd')];
-  expect(card?.textContent).toBe(`${text}, 1 of 2 operations`);
-  expect(card?.childElementCount).toBe(0);
-  // The last run's plan title is the applied plan's, which carries its own marker.
-  expect(last?.textContent).toStartWith("<script>mmfieldmarker-appliedplan</script>, succeeded");
-  expect(last?.childElementCount).toBe(0);
-  const cell = [...root.querySelectorAll("tbody td")].find((td) => td.textContent?.includes(text));
-  expect(cell?.textContent).toBe(`apply · ${text}`);
-  expect(cell?.getAttribute("title")).toBe(text);
-  expect(cell?.childElementCount).toBe(0);
-  expect(root.querySelectorAll("script").length).toBe(0);
 });
 
 // classFills are the rate budget's class bars' drawn widths, interactive, sync and batch.
@@ -363,18 +344,8 @@ test("the runs at level 1 are bars and a table, and a click on a group descends 
   expect(bars()).toEqual([
     ["backfill", "2", `/personal/jobs?${l2}`],
     [
-      "apply",
-      "1",
-      "/personal/jobs?level=2&group=state&range=7d&sort=started_at,desc&pass=!tick&workload=apply",
-    ],
-    [
-      "heuristics",
-      "1",
-      "/personal/jobs?level=2&group=state&range=7d&sort=started_at,desc&pass=!tick&workload=heuristics",
-    ],
-    [
       "sync",
-      "1",
+      "2",
       "/personal/jobs?level=2&group=state&range=7d&sort=started_at,desc&pass=!tick&workload=sync",
     ],
   ]);
@@ -383,7 +354,7 @@ test("the runs at level 1 are bars and a table, and a click on a group descends 
     t.querySelector("caption")?.textContent?.includes("groups"),
   );
   expect([...(groupTable?.querySelectorAll("tbody tr") ?? [])].map((tr) => tr.textContent)).toEqual(
-    ["backfill240.0%", "apply120.0%", "heuristics120.0%", "sync120.0%"],
+    ["backfill250.0%", "sync250.0%"],
   );
   expect(
     [...root.querySelectorAll(".groupby a")].map((a) => [
@@ -409,7 +380,7 @@ test("the runs at level 1 are bars and a table, and a click on a group descends 
 });
 
 // openAdvancing opens the jobs screen on answers that move on after the first read, as the recorded
-// state does when a tick finishes, pass 2 moves and a heuristics run starts.
+// state does when a gap recovery finishes, a tick finishes, pass 2 moves and another gap recovery starts.
 async function openAdvancing(extra: Record<string, Answer> = {}): Promise<HTMLElement> {
   server = recorded({
     ...extra,
@@ -486,21 +457,21 @@ test("a reconnect's re-read puts a new run first, and every row keeps its own ru
   });
   await settle();
   const after = rowsById(root);
-  expect([...after.keys()]).toEqual(["r-0917", "r-0913", "r-0915", "r-0909", "r-0911", "r-0912"]);
+  expect([...after.keys()]).toEqual(["r-0917", "r-0913", "r-0908", "r-0911", "r-0912"]);
   expect(after.get("r-0917")?.slice(1, 7)).toEqual([
-    "heuristics",
+    "sync · gap_recovery",
     "2026-09-10 10:15Z",
     "30s so far",
     "running",
     "",
     "0",
   ]);
-  for (const id of ["r-0915", "r-0909", "r-0911", "r-0912"]) {
+  for (const id of ["r-0911", "r-0912"]) {
     expect(after.get(id)).toEqual(before.get(id));
   }
   expect(after.get("r-0913")?.slice(4, 6)).toEqual(["running", "page 3,300 of 3,368"]);
-  expect(root.querySelector('section.card[aria-label="Heuristics"] h2')?.textContent).toBe(
-    "Heuristics running",
+  expect(root.querySelector('section.card[aria-label="Delta sync"] h2')?.textContent).toBe(
+    "Delta sync running",
   );
 });
 

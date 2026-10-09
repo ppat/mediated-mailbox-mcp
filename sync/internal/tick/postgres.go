@@ -64,7 +64,7 @@ func (s *Postgres) State(ctx context.Context, account string) (State, error) {
 			at := c.SyncCursorAt.Time.UTC()
 			st.CursorAt = &at
 		}
-		latest, err := runrecord.New(t).LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: text(PassTick)})
+		latest, err := runrecord.New(t).LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: PassTick})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -99,7 +99,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
 			}
 		}
 		err := q.StartRun(ctx, runrecord.StartRunParams{
-			AccountID: account, RunID: runID, Workload: Workload, Pass: text(pass), Checkpoint: cp, Counters: ct,
+			AccountID: account, RunID: runID, Workload: Workload, Pass: pass, Checkpoint: cp, Counters: ct,
 		})
 		if err != nil {
 			return fmt.Errorf("recording the run: %w", err)
@@ -116,7 +116,7 @@ const stopped = "the run stopped before it recorded its end"
 // stopped before it recorded its end (ADR-0103).
 func endStopped(ctx context.Context, q *runrecord.Queries, account string) error {
 	for _, pass := range []string{PassTick, PassGapRecovery} {
-		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: text(pass)})
+		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: pass})
 		if errors.Is(err, pgx.ErrNoRows) {
 			continue
 		}

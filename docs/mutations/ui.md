@@ -83,7 +83,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## A delta sync gap recovery shows on Home as the sync-gap card
 
-- **Date · evidence:** 2026-10-01 · [pull request #230](https://github.com/ppat/mediated-mailbox-mcp/pull/230), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #230](https://github.com/ppat/mediated-mailbox-mcp/pull/230), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 2 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** the card is worded from the first recovery in the window rather than the latest
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheSyncGapRuleShowsTheRecovery`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention`:** `TestASyncGapIsOneCardWordedFromTheLatestRecovery`
@@ -185,7 +185,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and break 5 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** closing an account's connection keeps its objects, so a connection opened later starts from the last one's events
   - **Went red in `test/stream.test.tsx`:** `surfaces following one account share one connection, which closes when the last stops`
 - **Break (2):** every surface following an account opens a connection of its own, so the strip and the banner hold two
@@ -399,10 +399,8 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## Every stream event is its object's whole current state
 
-- **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
-- **Break (1):** a run event leaves out the plan an apply run carries
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheStreamSendsEachChangedObject`
-- **Break (2):** a run event carries the run's state as first read and never the changed checkpoint
+- **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain, with the break that leaves out an apply run's plan retired, since the schema stores no apply run, so its proof is M2's, which adds the apply pairs · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Break:** a run event carries the run's state as first read and never the changed checkpoint
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheStreamSendsEachChangedObject`
 
 ## `go vet` refuses a copy of a recording mux
@@ -413,7 +411,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## Message-derived text renders inert
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and breaks 1, 3, 4, 5, 12, 13, 20, 23, 24 and 25 again on 2026-10-09, over the schema baseline that flattened the migration chain, with the three breaks of an apply plan's title on the jobs screen's reorg apply card and Home's strip retired, since the schema stores no apply run, so their proof is M2's, which adds the apply pairs, and the break of account settings' credential sentence retired, since the sentence holds no text from outside the operator once the outcome is one of the schema's closed words · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** a worth-a-look card hands its sentence, which carries a masked sender's domain, to the raw-markup escape hatch
   - **Went red in `test/home.test.tsx`:** `message-derived and attacker-written text arrives inert on every surface of the screen`
 - **Break (2):** the bars hand each group's label to the raw-markup escape hatch, and the group table keeps it as text
@@ -421,11 +419,9 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 - **Break (3):** the decision inbox hands a candidate's domain to the raw-markup escape hatch
   - **Went red in `test/home.test.tsx`:** `message-derived and attacker-written text arrives inert on every surface of the screen`, `the inbox lists the pending candidates by score with their strongest signals, unlinked`
 - **Break (4):** the rows table writes a cell's value into the element through the DOM's innerHTML after rendering, so the value is parsed as markup outside the framework
-  - **Went red in `test/jobs.test.tsx`:** `a poll's re-read reaches the cards and the rows`, `a reconnect's re-read puts a new run first, and every row keeps its own run's cells`, `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`, `keyboard focus stays on the chosen run's link when a re-read puts a new run above it`, `the plans' titles carrying markup arrive as text in their cards and their row`, `the recent runs open without delta-sync ticks, each linking to its run`, `the row cursor stays on the chosen run when a re-read puts a new run above it`, `the runs at level 1 are bars and a table, and a click on a group descends to level 2`, `times judged against now read the live clock, not the time the page was read`
   - **Went red in `test/lens.test.tsx`:** `a description carrying markup arrives as text, and nothing is built from it`, `level 3 is one page of rows under the strip`
   - **Went red in `test/run.test.tsx`:** `a group's value carrying markup arrives as text in its bar and its row`, `a subject carrying markup arrives as text in its message row, and nothing is built from it`, `following a failed item's recovering run to another run shows that run's strip and follows its events`, `markup in every field of every message row and page row arrives as text`, `the empty group links with the word empty, and a stored value the grammar cannot name as itself links nowhere`, `the items render message rows with the failure's columns, and a page item as a page row`
 - **Break (5):** the rows table hands a cell's value to the raw-markup escape hatch instead of rendering it as text
-  - **Went red in `test/jobs.test.tsx`:** `a poll's re-read reaches the cards and the rows`, `a reconnect's re-read puts a new run first, and every row keeps its own run's cells`, `an event redraws a card's run and its row, the rate redraws the budget, and nothing re-runs`, `keyboard focus stays on the chosen run's link when a re-read puts a new run above it`, `the plans' titles carrying markup arrive as text in their cards and their row`, `the recent runs open without delta-sync ticks, each linking to its run`, `the row cursor stays on the chosen run when a re-read puts a new run above it`, `the runs at level 1 are bars and a table, and a click on a group descends to level 2`, `times judged against now read the live clock, not the time the page was read`
   - **Went red in `test/lens.test.tsx`:** `a description carrying markup arrives as text, and nothing is built from it`, `level 3 is one page of rows under the strip`
   - **Went red in `test/run.test.tsx`:** `a group's value carrying markup arrives as text in its bar and its row`, `a subject carrying markup arrives as text in its message row, and nothing is built from it`, `following a failed item's recovering run to another run shows that run's strip and follows its events`, `markup in every field of every message row and page row arrives as text`, `the empty group links with the word empty, and a stored value the grammar cannot name as itself links nowhere`, `the items render message rows with the failure's columns, and a page item as a page row`
 - **Break (6):** the policy change row hands the identifier of a rule it links to the raw-markup escape hatch
@@ -436,48 +432,39 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
   - **Went red in `test/policy.test.tsx`:** `markup in a rule's detail arrives as text in its panel and its lift dialog`
 - **Break (9):** the failure's panel hands the recorded error summary to the raw-markup escape hatch
   - **Went red in `test/run.test.tsx`:** `a failure opens as a panel with what happened, what it means, its provenance and audit rows`, `markup in every message-derived field of a failure's panel arrives as text`
-- **Break (10):** the reorg apply card hands the last run's plan title to the raw-markup escape hatch
-  - **Went red in `test/jobs.test.tsx`:** `the cards show each workload's state and fields, with the decisions block's counts`, `the plans' titles carrying markup arrive as text in their cards and their row`
-- **Break (11):** the run timeline writes a mark's hover into its title element through the DOM's innerHTML
+- **Break (10):** the run timeline writes a mark's hover into its title element through the DOM's innerHTML
   - **Went red in `test/run.test.tsx`:** `a failure opens as a panel with what happened, what it means, its provenance and audit rows`, `a failure's panel shows its message's rule ids, scan time and scanner version`, `a subject carrying markup arrives as text in its message row, and nothing is built from it`, `an event's detail carrying markup arrives in its mark's hover as text`
-- **Break (12):** a rule's panel hands each matched sender's domain to the raw-markup escape hatch
+- **Break (11):** a rule's panel hands each matched sender's domain to the raw-markup escape hatch
   - **Went red in `test/policy.test.tsx`:** `markup in a rule's detail arrives as text in its panel and its lift dialog`
-- **Break (13):** the rows table keeps every column but its second as text and hands the second column's value to the raw-markup escape hatch, so inert rendering covers less of the table
-  - **Went red in `test/jobs.test.tsx`:** `the plans' titles carrying markup arrive as text in their cards and their row`, `the recent runs open without delta-sync ticks, each linking to its run`
+- **Break (12):** the rows table keeps every column but its second as text and hands the second column's value to the raw-markup escape hatch, so inert rendering covers less of the table
   - **Went red in `test/lens.test.tsx`:** `a description carrying markup arrives as text, and nothing is built from it`, `level 3 is one page of rows under the strip`
   - **Went red in `test/run.test.tsx`:** `a subject carrying markup arrives as text in its message row, and nothing is built from it`, `markup in every field of every message row and page row arrives as text`, `the items render message rows with the failure's columns, and a page item as a page row`
-- **Break (14):** the system screen keeps every row's value but its second as text and hands the second row's value to the raw-markup escape hatch, so inert rendering covers less of the screen
-  - **Went red in `test/system.test.tsx`:** `an authentication outcome carrying markup arrives as text, and nothing is built from it`
-- **Break (15):** account settings hand the credential's sentence to the raw-markup escape hatch instead of rendering it as text
-  - **Went red in `test/setup.test.tsx`:** `account settings show the client, the credential's health, the target and the rows, never the credential`
-- **Break (16):** the page row writes its item into the spanning cell's link through the DOM's innerHTML
+- **Break (13):** the system screen keeps every row's value but its second as text and hands the second row's value to the raw-markup escape hatch, so inert rendering covers less of the screen
+  - **Went red in `test/system.test.tsx`:** `the operational values arrive as text, and markup in any of them builds nothing`
+- **Break (14):** the page row writes its item into the spanning cell's link through the DOM's innerHTML
   - **Went red in `test/run.test.tsx`:** `markup in every field of every message row and page row arrives as text`, `the items render message rows with the failure's columns, and a page item as a page row`
-- **Break (17):** the failure's panel hands the message's subject to the raw-markup escape hatch
+- **Break (15):** the failure's panel hands the message's subject to the raw-markup escape hatch
   - **Went red in `test/run.test.tsx`:** `a failure's panel shows its message's rule ids, scan time and scanner version`, `markup in every message-derived field of a failure's panel arrives as text`
-- **Break (18):** the reorg apply card hands the applying plan's title to the raw-markup escape hatch
-  - **Went red in `test/jobs.test.tsx`:** `the cards show each workload's state and fields, with the decisions block's counts`, `the plans' titles carrying markup arrive as text in their cards and their row`
-- **Break (19):** the import preview hands a lifted rule's identifier to the raw-markup escape hatch
+- **Break (16):** the import preview hands a lifted rule's identifier to the raw-markup escape hatch
   - **Went red in `test/policy.test.tsx`:** `markup in a file's identifiers and suffixes arrives as text in the preview and the import dialog`
-- **Break (20):** the sender row's Restrict {domain}… control hands its words to the raw-markup escape hatch
+- **Break (17):** the sender row's Restrict {domain}… control hands its words to the raw-markup escape hatch
   - **Went red in `test/policy.test.tsx`:** `a sender domain carrying markup arrives as text in the picker's row, its box's label and its Restrict control`, `markup in a sender's domain arrives as text in the sender row`
-- **Break (21):** the rule row hands the rule's identifier to the raw-markup escape hatch
+- **Break (18):** the rule row hands the rule's identifier to the raw-markup escape hatch
   - **Went red in `test/policy.test.tsx`:** `markup in a rule's identifier and suffixes arrives as text in its row, and nothing is built from it`
-- **Break (22):** the sender row hands its domain to the raw-markup escape hatch
+- **Break (19):** the sender row hands its domain to the raw-markup escape hatch
   - **Went red in `test/policy.test.tsx`:** `a sender domain carrying markup arrives as text in the picker's row, its box's label and its Restrict control`, `markup in a sender's domain arrives as text in the sender row`
-- **Break (23):** a candidate's strongest signal, worded from its evidence, is handed to the raw-markup escape hatch
+- **Break (20):** a candidate's strongest signal, worded from its evidence, is handed to the raw-markup escape hatch
   - **Went red in `test/home.test.tsx`:** `message-derived and attacker-written text arrives inert on every surface of the screen`, `the inbox lists the pending candidates by score with their strongest signals, unlinked`
-- **Break (24):** the running-work strip's reorg apply cell hands the applying plan's title to the raw-markup escape hatch
-  - **Went red in `test/home.test.tsx`:** `message-derived and attacker-written text arrives inert on every surface of the screen`, `the strip shows each workload's cell, with the pass running and the batch class`
-- **Break (25):** the message row hands its subject to the raw-markup escape hatch inside the link to the row's detail, and keeps its other fields as text
+- **Break (21):** the message row hands its subject to the raw-markup escape hatch inside the link to the row's detail, and keeps its other fields as text
   - **Went red in `test/run.test.tsx`:** `a failure opens as a panel with what happened, what it means, its provenance and audit rows`, `a failure's panel shows its message's rule ids, scan time and scanner version`, `a subject carrying markup arrives as text in its message row, and nothing is built from it`, `an event's detail carrying markup arrives in its mark's hover as text`, `markup in every field of every message row and page row arrives as text`
-- **Break (26):** a rule's suffix chips hand each suffix to the raw-markup escape hatch
+- **Break (22):** a rule's suffix chips hand each suffix to the raw-markup escape hatch
   - **Went red in `test/policy.test.tsx`:** `markup in a rule's identifier and suffixes arrives as text in its row, and nothing is built from it`
-- **Break (27):** a signal whose identifier no template knows hands that identifier to the raw-markup escape hatch
+- **Break (23):** a signal whose identifier no template knows hands that identifier to the raw-markup escape hatch
   - **Went red in `test/home.test.tsx`:** `message-derived and attacker-written text arrives inert on every surface of the screen`, `the inbox lists the pending candidates by score with their strongest signals, unlinked`
-- **Break (28):** the system screen writes each row's value into its element through the DOM's innerHTML after rendering, so the value is parsed as markup outside the framework
-  - **Went red in `test/system.test.tsx`:** `an authentication outcome carrying markup arrives as text, and nothing is built from it`, `the screen shows each operational value, and the rows UI.md sends to Jobs link there`
-- **Break (29):** the system screen hands each row's value to the raw-markup escape hatch instead of rendering it as text
-  - **Went red in `test/system.test.tsx`:** `an authentication outcome carrying markup arrives as text, and nothing is built from it`, `the screen shows each operational value, and the rows UI.md sends to Jobs link there`
+- **Break (24):** the system screen writes each row's value into its element through the DOM's innerHTML after rendering, so the value is parsed as markup outside the framework
+  - **Went red in `test/system.test.tsx`:** `the operational values arrive as text, and markup in any of them builds nothing`
+- **Break (25):** the system screen hands each row's value to the raw-markup escape hatch instead of rendering it as text
+  - **Went red in `test/system.test.tsx`:** `the operational values arrive as text, and markup in any of them builds nothing`
 
 ## No route is claimed by both the registry and a bespoke handler, or by two bespoke handlers
 
@@ -553,7 +540,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## The installation screens show no account's state
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** the installation endpoint lists no account
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheInstallationShowsNoAccountsState`, `TestTheRecordedSetupFixturesMatchTheServer`
 - **Break (2):** the installation endpoint reads each account's mailbox and shows it as the account's client

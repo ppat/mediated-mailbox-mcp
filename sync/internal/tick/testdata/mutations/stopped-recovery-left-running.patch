@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/sync/internal/tick/postgres.go b/sync/internal/tick/postgres.go
-index e6cc3e0..20ecb78 100644
+index c0954e95..16282997 100644
 --- a/sync/internal/tick/postgres.go
 +++ b/sync/internal/tick/postgres.go
 @@ -115,7 +115,7 @@ const stopped = "the run stopped before it recorded its end"
@@ -15,6 +15,6 @@ index e6cc3e0..20ecb78 100644
  func endStopped(ctx context.Context, q *runrecord.Queries, account string) error {
 -	for _, pass := range []string{PassTick, PassGapRecovery} {
 +	for _, pass := range []string{PassTick} {
- 		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: text(pass)})
+ 		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: pass})
  		if errors.Is(err, pgx.ErrNoRows) {
  			continue

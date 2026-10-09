@@ -108,7 +108,7 @@ func dump(t rapid.TB, conn *pgx.Conn, account string) map[string][]string {
 	for name, sql := range map[string]string{
 		"messages": `SELECT (to_jsonb(m) - 'account_id')::text FROM messages AS m WHERE m.account_id = $1 ORDER BY m.message_id`,
 		"masks":    `SELECT message_id || ' ' || rule_id || ' ' || count(*) FROM masking_events WHERE account_id = $1 GROUP BY message_id, rule_id ORDER BY 1`,
-		"senders":  `SELECT (to_jsonb(s) - 'account_id' - 'embedding')::text FROM senders AS s WHERE s.account_id = $1 ORDER BY s.domain`,
+		"senders":  `SELECT (to_jsonb(s) - 'account_id')::text FROM senders AS s WHERE s.account_id = $1 ORDER BY s.domain`,
 	} {
 		rows, err := conn.Query(context.Background(), sql, account)
 		if err != nil {

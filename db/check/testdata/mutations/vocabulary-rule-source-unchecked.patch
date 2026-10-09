@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a policy rule's source is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..f123b3d1 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -227,7 +227,7 @@ CREATE TABLE policy_rules (
+     rule_id text NOT NULL,
+     class text NOT NULL CHECK (class IN ('restricted')),
+     domain_suffix text[] NOT NULL,
+-    source text NOT NULL CHECK (source IN ('operator', 'candidate')),
++    source text NOT NULL,
+     created_at timestamptz NOT NULL DEFAULT now(),
+     -- The operator identity, and in the UI's write grant (ADR-0084).
+     created_by text NOT NULL,

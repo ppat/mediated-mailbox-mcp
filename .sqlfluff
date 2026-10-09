@@ -7,6 +7,9 @@ dialect = postgres
 # they parse and survive a fix unchanged. goose's markers and sqlc's name annotations are comments.
 templater = placeholder
 max_line_length = 120
+# sqlfluff skips, with a warning and no failure, any file over its default size limit of 20,000 bytes, so a
+# migration holding every role's grants would go unlinted. No limit applies.
+large_file_skip_byte_limit = 0
 # RF04 refuses every keyword as an identifier, including PostgreSQL's non-reserved keywords such as domain,
 # which PostgreSQL accepts. A reserved keyword already fails PostgreSQL's own parser, which db/check runs.
 exclude_rules = RF04

@@ -264,7 +264,8 @@ func TestTheLensAnswersItsLevels(t *testing.T) {
 	if want := []string{applyingPlan, draftPlan, appliedPlan}; !slices.Equal(ids(), want) || page.Total.Count != 3 || page.Pages != 1 {
 		t.Fatalf("the default page is %v of %d, want %v newest first", ids(), page.Total.Count, want)
 	}
-	if page.Rows[0].Messages != 2 || page.Rows[0].ApplyRun == nil || page.Rows[0].ApplyRun.RunID != "r-0915" {
+	// The schema's closed set of run pairs holds no apply pair, so no plan's row carries an apply run.
+	if page.Rows[0].Messages != 2 || page.Rows[0].ApplyRun != nil {
 		t.Fatalf("the applying plan's row is %+v", page.Rows[0])
 	}
 	decode("/api/personal/lens?dataset=plans&level=3&sort=created_at,asc&status=!DRAFT")
@@ -534,8 +535,9 @@ func laterFixtures() map[string]string {
 	}
 }
 
-// advance moves the recorded state on as the workloads would. A new delta-sync tick finishes, pass 2's
-// checkpoint moves, and a heuristics run starts, which takes the runs table's first place.
+// advance moves the recorded state on as the workloads would. The running gap recovery finishes, a new
+// delta-sync tick finishes, pass 2's checkpoint moves, and another gap recovery starts, which takes the
+// runs table's first place.
 func advance(t *testing.T) {
 	t.Helper()
 	conn, err := pgx.Connect(t.Context(), postgres.URL(t))
@@ -557,9 +559,13 @@ func advance(t *testing.T) {
 			[]any{personal, at(30 * time.Second)},
 		},
 		{
+			`UPDATE job_runs SET state = 'succeeded', finished_at = $2, heartbeat_at = $2, counters = '{"window_start": "2026-09-10T08:00:00Z", "window_end": "2026-09-10T09:00:00Z", "reconciled": 3}' WHERE account_id = $1 AND run_id = 'r-0908'`,
+			[]any{personal, at(100 * time.Second)},
+		},
+		{
 			`INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at, finished_at, heartbeat_at, counters) VALUES
 			($1, 'r-0916', 'sync', 'tick', 'succeeded', $2, $3, $3, '{"added": 5, "modified": 0, "removed": 2}'),
-			($1, 'r-0917', 'heuristics', NULL, 'running', $4, NULL, $4, '{}')`,
+			($1, 'r-0917', 'sync', 'gap_recovery', 'running', $4, NULL, $4, '{}')`,
 			[]any{personal, at(90 * time.Second), at(time.Minute), at(30 * time.Second)},
 		},
 	} {
@@ -704,11 +710,11 @@ func TestTheStreamSendsEachChangedObject(t *testing.T) {
 	}
 
 	first := map[string]bool{}
-	var applying map[string]any
+	var running map[string]any
 	for range 4 {
 		name, data := next()
-		if name == "run" && data["run_id"] == "r-0915" {
-			applying = data
+		if name == "run" && data["run_id"] == "r-0913" {
+			running = data
 		}
 		key := name
 		if id, ok := data[name+"_id"].(string); ok {
@@ -719,21 +725,23 @@ func TestTheStreamSendsEachChangedObject(t *testing.T) {
 			t.Fatalf("an event for %v", data["account"])
 		}
 	}
-	for _, want := range []string{"run:r-0913", "run:r-0915", "rate", "plan:" + applyingPlan} {
+	for _, want := range []string{"run:r-0913", "run:r-0908", "rate", "plan:" + applyingPlan} {
 		if !first[want] {
 			t.Fatalf("the first poll sent %v, missing %s", first, want)
 		}
 	}
 	var jobs struct {
-		Apply struct {
-			Running map[string]any `json:"running"`
-		} `json:"apply"`
+		Backfill struct {
+			Pass2 struct {
+				Run map[string]any `json:"run"`
+			} `json:"pass2"`
+		} `json:"backfill"`
 	}
 	if err := json.Unmarshal(get(t, s.Handler(), "/api/personal/jobs").body, &jobs); err != nil {
 		t.Fatal(err)
 	}
-	delete(applying, "account")
-	if d := cmp.Diff(jobs.Apply.Running, applying); d != "" {
+	delete(running, "account")
+	if d := cmp.Diff(jobs.Backfill.Pass2.Run, running); d != "" {
 		t.Fatalf("the stream's run is not the whole state the jobs endpoint sends (-jobs +stream):\n%s", d)
 	}
 	gauge := get(t, s.Probes(), "/metrics")
@@ -761,12 +769,8 @@ func TestTheStreamSendsEachChangedObject(t *testing.T) {
 	if _, err := admin.Exec(t.Context(), `UPDATE reorg_plans SET status = 'APPLIED' WHERE plan_id = $1`, applyingPlan); err != nil {
 		t.Fatal(err)
 	}
-	// The plan's new status changes the plan and the apply run that carries it, so both are sent, each
-	// whole, the run first.
-	name, data = next()
-	if name != "run" || data["run_id"] != "r-0915" || data["plan_status"] != "APPLIED" {
-		t.Fatalf("after the plan applied, the stream sent %s %v, want the apply run carrying the new status", name, data)
-	}
+	// The plan's new status changes the plan, which is sent whole. The schema's closed set of run pairs
+	// holds no apply pair, so no apply run carries the plan's status.
 	name, data = next()
 	if name != "plan" || data["status"] != "APPLIED" || data["applied"] != float64(1) || data["of"] != float64(2) {
 		t.Fatalf("after the plan applied, the stream sent %s %v", name, data)

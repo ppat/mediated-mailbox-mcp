@@ -5,11 +5,11 @@ tests: TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction TestTheBasePolicyI
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
-index de58e776..32386984 100644
---- a/db/migrations/00023_policy_management.sql
-+++ b/db/migrations/00023_policy_management.sql
-@@ -54,13 +54,7 @@ WITH CHECK (
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index 77a39501..731998d5 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -88,13 +88,6 @@ WITH CHECK (
      AND current_setting('app.base', TRUE) = 'on'
      AND coalesce(current_setting('app.account', TRUE), '') = ''
  );
@@ -20,7 +20,6 @@ index de58e776..32386984 100644
 -    AND current_setting('app.base', TRUE) = 'on'
 -    AND coalesce(current_setting('app.account', TRUE), '') = ''
 -);
-+
  
- -- Policy management adds, edits and lifts rules, and an import does all three (ADR-0084, ADR-0110).
- -- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
+ ALTER TABLE masking_events ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY masking_events_account ON masking_events

@@ -1,0 +1,20 @@
+control: A sender domain is stored in the normalizer's form
+removes: a message's sender domain is not checked, so a domain holding an ASCII capital is stored
+packages: ./db/check
+tests: TestASenderDomainIsStoredInTheNormalizersForm
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..7985b84f 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -147,7 +147,7 @@ CREATE TABLE messages (
+     -- Case-insensitive, where display case must be kept and matching needs no index.
+     from_email citext NOT NULL,
+     -- Denormalized for the classification hot path, and stored lowercase as senders.domain is.
+-    from_domain text NOT NULL CHECK (from_domain = lower(from_domain COLLATE "C")),
++    from_domain text NOT NULL,
+     from_name text,
+     -- Masked at rest if a code was detected.
+     subject text,

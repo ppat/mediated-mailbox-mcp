@@ -1,8 +1,8 @@
 // The home screen of docs/UI.md section 8.1, rendered by the router over answers recorded from the real
 // server, with its running-work strip refreshed through the stream's handler. The candidates' domains and
-// signal evidence, the masking card's sender and rule, the applying plan's title and the last
-// authentication outcome carry markup marker text, and the inert-rendering test here checks each in the
-// form ADR-0064 requires. Its mutation demonstrations are under ui/browser/testdata/mutations.
+// signal evidence and the masking card's sender and rule carry markup marker text, and the
+// inert-rendering test here checks each in the form ADR-0064 requires. Its mutation demonstrations are
+// under ui/browser/testdata/mutations.
 import { afterEach, expect, test } from "bun:test";
 import { options, type VNode } from "preact";
 import { act } from "preact/test-utils";
@@ -139,7 +139,7 @@ test("the strip shows each workload's cell, with the pass running and the batch 
       ],
     ],
     [
-      "Delta sync idle",
+      "Delta sync running",
       [
         ["last tick", "2026-09-10 10:11Z, succeeded"],
         ["last change set", "3 added, 1 modified, 0 removed"],
@@ -147,8 +147,9 @@ test("the strip shows each workload's cell, with the pass running and the batch 
         ["cadence", "every 5m"],
       ],
     ],
-    ["Reorg apply running", [["applying", `${markup("applyingplan")}, 1 of 2 operations`]]],
-    ["Heuristics idle", [["last run", "2026-09-09 14:16Z, 0s, 2 candidates emitted"]]],
+    // The schema records no apply or heuristics run, since neither job kind's pair is in its closed set.
+    ["Reorg apply not started", [["now", "idle, 1 plans in DRAFT"]]],
+    ["Heuristics not started", [["last run", "none yet"]]],
   ]);
   expect(fill(root, "Backfill progress")).toBe(String((3065 / 3368) * 160));
   expect(fill(root, "batch used of reserved")).toBe(String((1.9 / 2.5) * 160));
@@ -352,7 +353,7 @@ test("the System column shows the operational and corpus blocks, linking where a
     ["Backfill pass 2", "91.0%, 1 pending", null, null],
     ["Sync cursor age", "4m", " · last successful tick 2026-09-10 10:15Z", "/personal/jobs"],
     ["Rate", "3.1 of 5.0 units/s, cap 8.0 units/s, not in backoff", null, "/personal/jobs"],
-    ["Last authentication", markup("authoutcome"), " · 2026-09-10 04:16Z", "/personal/account"],
+    ["Last authentication", "succeeded", " · 2026-09-10 04:16Z", "/personal/account"],
   ]);
   expect(values(root, "Corpus")).toEqual([
     ["body served, 24 hours", "1", null, null],
@@ -478,14 +479,11 @@ test("message-derived and attacker-written text arrives inert on every surface o
   for (const sentence of root.querySelectorAll(".attention-sentence")) {
     expect(sentence.childElementCount).toBe(0);
   }
-  // The applying plan's title in the strip.
-  const applying = field(root, "Reorg apply", "applying");
-  expect(applying?.textContent).toBe(`${markup("applyingplan")}, 1 of 2 operations`);
-  expect(applying?.childElementCount).toBe(0);
-  // The last authentication outcome, provider text, in the System column.
+  // The last authentication outcome in the System column, one of the schema's closed words, arrives
+  // as text with nothing built from it.
   const auth = [...root.querySelectorAll('.home-system dl[aria-label="Operational"] dd')][4];
   const value = auth?.querySelector(".value");
-  expect(value?.textContent).toBe(markup("authoutcome"));
+  expect(value?.textContent).toBe("succeeded");
   expect(value?.childElementCount).toBe(0);
   expect(auth?.querySelectorAll("*").length).toBe(3);
 });

@@ -5,16 +5,16 @@ tests: TestAClientAnAccountConnectsThroughCannotBeRemoved
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00021_oauth_clients_by_name.sql b/db/migrations/00021_oauth_clients_by_name.sql
-index d5bbbce0..3c0dd63d 100644
---- a/db/migrations/00021_oauth_clients_by_name.sql
-+++ b/db/migrations/00021_oauth_clients_by_name.sql
-@@ -25,7 +25,7 @@ ALTER TABLE oauth_clients ADD UNIQUE (provider, client_id);
- ALTER TABLE accounts ADD COLUMN oauth_client text;
- UPDATE accounts SET oauth_client = provider
- WHERE provider IN (SELECT name FROM oauth_clients);
--ALTER TABLE accounts ADD FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider);
-+ALTER TABLE accounts ADD FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider) ON DELETE SET NULL (oauth_client);
- 
- -- The account snapshot's statements in db/accounts and db/oauthclients read the client each account
- -- names and each client's name, under the role of each deployable that calls a provider, whose list
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..4df3f5a9 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -38,7 +38,7 @@ CREATE TABLE accounts (
+     provider text NOT NULL,
+     -- NULL for a provider without an OAuth client.
+     oauth_client text,
+-    FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider),
++    FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider) ON DELETE SET NULL (oauth_client),
+     -- No account identifier is exactly ., .. or /, which the mediator's API root cannot address as a
+     -- path segment (ADR-0087). Account setup refuses them first, with its own wording.
+     CONSTRAINT accounts_account_id_addressable CHECK (account_id NOT IN ('.', '..', '/'))

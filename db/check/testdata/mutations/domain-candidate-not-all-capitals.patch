@@ -1,0 +1,20 @@
+control: A sender domain is stored in the normalizer's form
+removes: a candidate's domain is refused only when every letter is a capital, so a domain holding one capital is stored
+packages: ./db/check
+tests: TestASenderDomainIsStoredInTheNormalizersForm
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..bb0d54b2 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -204,7 +204,7 @@ CREATE TABLE scan_gate_decisions (
+ CREATE TABLE policy_candidates (
+     account_id text NOT NULL,
+     -- Stored lowercase, as senders.domain is.
+-    domain text NOT NULL CHECK (domain = lower(domain COLLATE "C")),
++    domain text NOT NULL CHECK (domain <> upper(domain COLLATE "C")),
+     -- One entry per heuristic that fired, with its evidence, in the shape ADR-0016 gives.
+     signals jsonb NOT NULL,
+     score real NOT NULL,

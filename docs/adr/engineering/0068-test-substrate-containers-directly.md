@@ -39,16 +39,16 @@ layer and nothing above the test harness depends on it.
   library is taken.** The chain applies from empty, which is one command and a few statements.
 - **One container serves a whole test run, and every test package gets its own database.** `go test`
   runs each package's test binary as a separate process in parallel, so a container started by each
-  package collides on the fixed host port. A test-support program starts the one container, applies
-  the superuser bootstrap and the chain from empty into a template database, runs the test command
-  with the connection details in its environment, and removes the container. Each integration test
+  package collides on the fixed host port. A test-support program starts the one container, creates
+  the roles, applies the chain from empty into a template database with nothing run in it before
+  the chain, since the schema needs only trusted extensions
+  ([ADR-0048](../data/0048-forward-only-migrations.md)), runs the test command with the connection
+  details in its environment, and removes the container. Each integration test
   package creates its own database from the template, so packages running at the same time never
   share one. The program fails a run in which no test package created a database, and an integration
   test package fails rather than skips when it is started without the program, so a job that leaves
   out either one cannot pass. Where the program and the integration tests sit is
-  [CLAUDE.md](../../../CLAUDE.md#tests)'s. Once the schema needs only trusted extensions
-  ([ADR-0048](../data/0048-forward-only-migrations.md)), which the schema baseline makes it, the
-  program creates the roles and applies the chain with no superuser bootstrap.
+  [CLAUDE.md](../../../CLAUDE.md#tests)'s.
 - **`embedded-postgres` was excluded because it could not apply this schema's chain** while
   [ADR-0016](../data/0016-schema.md) declared a vector column, since a substrate lacking that
   extension fails from the first run rather than at some later one. The schema no longer declares
@@ -106,9 +106,9 @@ layer and nothing above the test harness depends on it.
   becomes a reasonable choice again. The footprint argument survives that change and the
   workstation argument does not.
 - **Assumptions about other components.** Continuous integration can run a container and reach it.
-  The extensions [ADR-0016](../data/0016-schema.md)'s schema needs exist in whatever image is used,
-  and the bootstrap creates them, or the chain's first migration once the schema needs only trusted
-  extensions ([ADR-0048](../data/0048-forward-only-migrations.md)).
+  The extension [ADR-0016](../data/0016-schema.md)'s schema needs exists in whatever image is used,
+  and the chain's first migration creates it, since it is trusted
+  ([ADR-0048](../data/0048-forward-only-migrations.md)).
 - One new control, that an integration run which reaches no database cannot pass, catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md). Otherwise this record decides how an existing
   obligation of [ADR-0043](./0043-no-mocking.md) is met.

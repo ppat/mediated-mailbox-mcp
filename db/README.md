@@ -6,8 +6,8 @@ every component are [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
 | Path | Holds |
 | --- | --- |
-| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). Its first entry records the extensions |
-| `db/bootstrap/` | The superuser bootstrap that runs before the chain, `roles.sql` once per cluster and `extensions.sql` once per database ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). It is also the contract a deployment platform follows. It grants nothing on the schema, so confining schema change to the migration role rests on PostgreSQL 15 or later, where PUBLIC holds no CREATE on the public schema. PUBLIC keeps TEMP on the database on every version, so a runtime role can create temporary objects in its own session |
+| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of four files, the one extension the schema needs, which the migration role creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, the row-level security policies, and the grants with one section per runtime role followed by one per shared library, then the migrations after it, each tested over rows the chain before it wrote |
+| `db/bootstrap/` | `roles.sql`, run once per cluster before the chain by a role allowed to create roles, the one privileged step a deployment takes, since nothing runs inside the application database before the chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). It is also the contract a deployment platform follows. It grants nothing on the schema, so confining schema change to the migration role rests on PostgreSQL 15 or later, where PUBLIC holds no CREATE on the public schema. PUBLIC keeps TEMP on the database on every version, so a runtime role can create temporary objects in its own session |
 | `db/<subsection>/` | One subsection per table or closely related group of tables of [ADR-0016](../docs/adr/data/0016-schema.md), each holding its statement files and the package generated from them ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). A table's statements sit in the table's subsection. A statement that a role admitted to that subsection may not be granted under [ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md)'s three lines sits one directory further down, in a subsection named for what it holds, which only the roles that may run it admit. They are listed under [Subsections one directory down](#subsections-one-directory-down). `db/policychanges` is the policy history's own subsection, which only the UI admits. How each subsection's package is named is under [Package names](#package-names) |
 | `db/tx/` | The shared transaction helper that sets and verifies the account ([ADR-0047](../docs/adr/data/0047-schema-first-data-access.md)). `Run` opens its transaction at the database's default isolation level, where each statement reads the state committed when it starts. A unit whose statements must read one state passes `Run` the source `Snapshot` wraps, whose transactions are repeatable read and read-only, as the client surface's index reads do ([ADR-0109](../docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)). The wrapper takes only a pool or a connection, never a transaction, so it cannot hide one from `Run`'s refusal. `RunBase` opens the base-policy transaction, which sets the account empty and `app.base` on and reads both back, the one unit of data access that names no account ([ADR-0112](../docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)) |
 | `db/check/` | The checks over the library's own files, run as Go tests, listed under [The checks](#the-checks). Their test inputs, including a small library of their own and the SQL violation files, sit under `db/check/testdata/`. Each check runs over the real library, which must be clean, and over that test library, which must produce exactly its listed problems, so no check passes over an empty input |
@@ -71,16 +71,15 @@ being unique in the library.
 
 - The statement constraints and the suppression-annotation ban.
 - The check on folding a sender domain's case in SQL ([ADR-0016](../docs/adr/data/0016-schema.md)).
-  It refuses `lower()`, `upper()`, `casefold()` or `initcap()` over an expression holding a domain
-  column, or in one direct operand of a comparison or a function call whose other direct operand
-  holds one, and `ILIKE`, `NOT ILIKE`, `~*` or `!~*` with a domain column in either operand. It
-  matches a domain column by its name, `domain` or `from_domain`, whatever table, alias or common
-  table expression qualifies it. These forms are outside what it matches and held by review: a fold
-  inside a nested query whose output is compared with a domain, a domain column read under another
-  name, a `::citext` cast on a domain comparison, which the case-insensitive cast check also admits
-  for a parameter, the `'i'` flag of the regular expression functions, an embedded `(?i)` in a
-  pattern, a case-insensitive collation, and any other form that folds case or matches approximately,
-  full-text search among them.
+  It refuses `lower()`, `upper()`, `casefold()`, `initcap()` or a cast to `citext` over an
+  expression holding a domain column, or in one direct operand of a comparison or a function call
+  whose other direct operand holds one, a parameter cast to `citext` among them, and `ILIKE`,
+  `NOT ILIKE`, `~*` or `!~*` with a domain column in either operand. It matches a domain column by
+  its name, `domain` or `from_domain`, whatever table, alias or common table expression qualifies
+  it. These forms are outside what it matches and held by review: a fold inside a nested query whose
+  output is compared with a domain, a domain column read under another name, the `'i'` flag of the
+  regular expression functions, an embedded `(?i)` in a pattern, a case-insensitive collation, and
+  any other form that folds case or matches approximately, full-text search among them.
 - The migration lint.
 - The derived account-keyed table list and its exceptions.
 - The no-table-types assertion.

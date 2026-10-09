@@ -5,11 +5,11 @@ tests: TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction TestTheBasePolicyI
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
-index de58e776..fc0e0b22 100644
---- a/db/migrations/00023_policy_management.sql
-+++ b/db/migrations/00023_policy_management.sql
-@@ -47,12 +47,10 @@ TO mediated_mailbox_ui
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index 77a39501..907679de 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -81,12 +81,10 @@ TO mediated_mailbox_ui
  USING (
      account_id IS NULL
      AND current_setting('app.base', TRUE) = 'on'

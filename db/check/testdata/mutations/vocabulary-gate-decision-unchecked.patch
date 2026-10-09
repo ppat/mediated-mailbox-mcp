@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: the gate's decision is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..dd7753fa 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -193,7 +193,7 @@ CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
+ CREATE TABLE scan_gate_decisions (
+     account_id text NOT NULL,
+     message_id text NOT NULL,
+-    decision text NOT NULL CHECK (decision IN ('SCAN', 'SKIP')),
++    decision text NOT NULL,
+     -- restricted | high_volume_no_hits | ..., a vocabulary tuning grows, so not checked.
+     reason text NOT NULL,
+     decided_at timestamptz NOT NULL DEFAULT now(),

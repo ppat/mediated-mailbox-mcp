@@ -50,6 +50,34 @@ SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND dom
 -- name: SearchSendersNotRegexCase :many
 SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain !~* @pattern;
 
+-- A domain matched through the case-insensitive type, by a parameter cast to it, alone, as an array
+-- and in a list, and by the domain column cast to it, on the test library's table and on a domain
+-- column the chain stores as text.
+-- want domain-sql-case
+-- name: GetSenderByCitextParameter :one
+SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = @domain::citext;
+
+-- want domain-sql-case
+-- name: ListSendersInCitextDomains :many
+SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = any(@domains::citext[]);
+
+-- want domain-sql-case
+-- want domain-sql-case
+-- name: ListSendersInCitextList :many
+SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain IN ($2::citext, $3::citext);
+
+-- want domain-sql-case
+-- name: GetSenderByCitextColumn :one
+SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain::citext = @domain;
+
+-- want domain-sql-case
+-- name: GetIndexedSenderByCitextParameter :one
+SELECT message_count FROM senders WHERE account_id = @account_id AND domain = @domain::citext;
+
+-- want domain-sql-case
+-- name: CountMessagesFromCitextDomain :one
+SELECT count(*) FROM messages WHERE account_id = @account_id AND from_domain::citext = @domain;
+
 -- A domain compared as stored, a parameter named domain, a domain matched with case by LIKE, and a
 -- column of another name lowered or matched without case, must not be reported.
 -- name: GetSenderByStoredDomain :one

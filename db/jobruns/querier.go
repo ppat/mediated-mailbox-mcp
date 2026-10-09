@@ -24,12 +24,14 @@ type Querier interface {
 	LatestResumer(ctx context.Context, arg LatestResumerParams) (LatestResumerRow, error)
 	// The latest run of one workload and pass whose state is one of the given states. The jobs cards read
 	// the last finished run beside a running one, and the system screen the last successful sync tick
-	// (docs/UI.md sections 8.3 and 8.8). A null pass matches a workload that records none.
+	// (docs/UI.md sections 8.3 and 8.8).
 	LatestRunInStates(ctx context.Context, arg LatestRunInStatesParams) (LatestRunInStatesRow, error)
-	// The latest run of each workload and pass, which the jobs cards read (docs/UI.md section 8.3). An
-	// apply or rollback run carries its plan's description and status, so the card can title the run and
-	// say whether rollback is available.
-	LatestRuns(ctx context.Context, accountID string) ([]LatestRunsRow, error)
+	// The latest run of each workload and pass the caller names, which the jobs cards read (docs/UI.md
+	// section 8.3). The pairs are the closed set the schema's check on job_runs holds, given as two arrays
+	// of one length read in step. Each pair is one lookup on the run index, newest first, and a pair with
+	// no run has no row. An apply or rollback run carries its plan's description and status, so the card
+	// can title the run and say whether rollback is available.
+	LatestRuns(ctx context.Context, arg LatestRunsParams) ([]LatestRunsRow, error)
 	// The first and last checkpoint page a run's progress events recorded since a time, from which the
 	// backfill card estimates the time left (docs/UI.md section 8.1). With no progress event in the window,
 	// events is zero and both pages read zero.
@@ -46,8 +48,8 @@ type Querier interface {
 	// The runs dataset's figures under its range and filters (docs/UI.md sections 8.3 and 17.1). runs is
 	// also the count the row pages count from. The last failure is the latest failed run's finish, or its
 	// start while it has none, with its identity for the figure's link, empty with no failed run. A null
-	// range bound is no bound, a null array no filter. A run that records no pass is outside every pass
-	// inclusion and passes every pass exclusion, and a day is the UTC date its run started on.
+	// range bound is no bound, a null array no filter. Every run records a pass (ADR-0016), so the null
+	// test in a pass exclusion matches no run, and a day is the UTC date its run started on.
 	RunFigures(ctx context.Context, arg RunFiguresParams) (RunFiguresRow, error)
 	// One page of the runs dataset, fifty rows, under the same filters (docs/UI.md section 8.3). Each run
 	// carries its plan's description and status, as the jobs endpoint sends a run, and its count of item

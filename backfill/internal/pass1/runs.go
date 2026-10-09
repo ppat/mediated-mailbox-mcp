@@ -27,7 +27,7 @@ type Recorded struct {
 
 // LatestRun reads the account's latest run of the pass, in the transaction q runs in.
 func LatestRun(ctx context.Context, q *runrecord.Queries, account, pass string) (Recorded, error) {
-	row, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: text(pass)})
+	row, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: pass})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Recorded{}, nil
 	}
@@ -70,7 +70,7 @@ func StartRun(ctx context.Context, q *runrecord.Queries, account string, s Start
 		}
 	}
 	err := q.StartRun(ctx, runrecord.StartRunParams{
-		AccountID: account, RunID: s.RunID, Workload: Workload, Pass: text(s.Pass),
+		AccountID: account, RunID: s.RunID, Workload: Workload, Pass: s.Pass,
 		ResumedFrom: text(s.ResumedFrom), Checkpoint: s.Checkpoint, Counters: s.Counters,
 	})
 	if err != nil {

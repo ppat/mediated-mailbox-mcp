@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -111,7 +112,7 @@ func TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts(t *testing
 	t.Run("from empty", func(t *testing.T) {
 		name := "chain_empty_" + suffix
 		url := database(name)
-		if err := postgres.ApplyChain(ctx, admin, migrate.String(), name, filepath.Join("..", "..", "db", "bootstrap", "extensions.sql"), chain); err == nil {
+		if err := postgres.ApplyChain(ctx, admin, migrate.String(), name, chain); err == nil {
 			t.Fatal("the chain applied from empty with a migration that needs a table no migration creates")
 		}
 		empty, err := pgx.Connect(ctx, url)
@@ -128,4 +129,66 @@ func TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts(t *testing
 			t.Errorf("the chain applied from empty up to version %d with error %v, want the real chain's last version %d, so the failure is the drifted migration's", applied, err, lastReal)
 		}
 	})
+}
+
+// F11's row for the chain needing no superuser. Applied from empty to a database where nothing ran
+// before the chain, by a migration role that is no superuser, the chain applies whole, and every
+// extension the schema holds was created by the migration role itself in the chain, not by a superuser
+// before it (ADR-0048).
+func TestTheChainAppliesWithNoSuperuserStep(t *testing.T) {
+	ctx := t.Context()
+	admin := os.Getenv(postgres.EnvAdminURL)
+	if admin == "" {
+		t.Fatalf("run under pgrun, which sets %s", postgres.EnvAdminURL)
+	}
+	conn, err := pgx.Connect(ctx, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := fmt.Sprintf("chain_no_superuser_%d", os.Getpid())
+	t.Cleanup(func() {
+		if _, err := conn.Exec(context.Background(), "DROP DATABASE IF EXISTS "+pgx.Identifier{name}.Sanitize()+" WITH (FORCE)"); err != nil {
+			t.Error(err)
+		}
+		if err := conn.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
+	migrate, err := neturl.Parse(admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The superuser connection acting as the migration role, whose password pgrun does not export. A
+	// space encoded as a plus sign reaches the server as a plus sign.
+	migrate.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+postgres.MigrationRole), "+", "%20")
+	if err := postgres.ApplyChain(ctx, admin, migrate.String(), name, filepath.Join("..", "..", "db", "migrations")); err != nil {
+		t.Fatalf("the chain did not apply from empty as the migration role: %v", err)
+	}
+
+	database := *migrate
+	database.Path = "/" + name
+	applied, err := pgx.Connect(ctx, database.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := applied.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	}()
+	var superuser bool
+	if err := applied.QueryRow(ctx, "SELECT rolsuper FROM pg_roles WHERE rolname = $1", postgres.MigrationRole).Scan(&superuser); err != nil || superuser {
+		t.Fatalf("the migration role is a superuser: %v, error %v", superuser, err)
+	}
+	rows, err := applied.Query(ctx, "SELECT e.extname || ' owned by ' || r.rolname FROM pg_extension AS e INNER JOIN pg_roles AS r ON e.extowner = r.oid WHERE e.extname <> 'plpgsql' ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"citext owned by " + postgres.MigrationRole}; !slices.Equal(got, want) {
+		t.Errorf("the extensions the chain left are %v, want %v", got, want)
+	}
 }

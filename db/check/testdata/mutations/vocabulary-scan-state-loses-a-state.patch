@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: the scan state's set leaves out skipped_gate, so a state the gate writes is refused
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..090af1ad 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -173,7 +173,7 @@ CREATE TABLE messages (
+     class_rule_id text,
+     -- ADR-0093's states.
+     scan_state text NOT NULL DEFAULT 'pending'
+-    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
++    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'pending')),
+     scanned_at timestamptz,
+     scanner_version int,
+     -- The scanner configuration's revision a verdict was made under (ADR-0009).

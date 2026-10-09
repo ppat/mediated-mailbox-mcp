@@ -126,11 +126,11 @@ WHERE
     AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
     AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
     AND (
-        ($7::citext[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::citext[])
+        ($7::text[] IS NULL AND NOT $8::boolean)
+        OR m.from_domain = any($7::text[])
         OR ($8::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::citext[]))
+    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
     AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
     AND (
         ($11::integer[] IS NULL AND NOT $12::boolean)
@@ -243,11 +243,11 @@ WHERE
     AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
     AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
     AND (
-        ($7::citext[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::citext[])
+        ($7::text[] IS NULL AND NOT $8::boolean)
+        OR m.from_domain = any($7::text[])
         OR ($8::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::citext[]))
+    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
     AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
     AND (
         ($11::integer[] IS NULL AND NOT $12::boolean)
@@ -385,11 +385,11 @@ WHERE
     AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
     AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
     AND (
-        ($7::citext[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::citext[])
+        ($7::text[] IS NULL AND NOT $8::boolean)
+        OR m.from_domain = any($7::text[])
         OR ($8::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::citext[]))
+    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
     AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
     AND (
         ($11::integer[] IS NULL AND NOT $12::boolean)
@@ -484,11 +484,11 @@ WHERE
     AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
     AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
     AND (
-        ($7::citext[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::citext[])
+        ($7::text[] IS NULL AND NOT $8::boolean)
+        OR m.from_domain = any($7::text[])
         OR ($8::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::citext[]))
+    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
     AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
     AND (
         ($11::integer[] IS NULL AND NOT $12::boolean)
@@ -584,11 +584,11 @@ WHERE
     AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
     AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
     AND (
-        ($7::citext[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::citext[])
+        ($7::text[] IS NULL AND NOT $8::boolean)
+        OR m.from_domain = any($7::text[])
         OR ($8::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::citext[]))
+    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
     AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
     AND (
         ($11::integer[] IS NULL AND NOT $12::boolean)
@@ -685,11 +685,11 @@ WHERE
     AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
     AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
     AND (
-        ($7::citext[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::citext[])
+        ($7::text[] IS NULL AND NOT $8::boolean)
+        OR m.from_domain = any($7::text[])
         OR ($8::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::citext[]))
+    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
     AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
     AND (
         ($11::integer[] IS NULL AND NOT $12::boolean)

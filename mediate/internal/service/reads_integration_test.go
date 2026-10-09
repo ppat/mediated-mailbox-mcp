@@ -205,9 +205,10 @@ func read(t *testing.T, reg service.Registry, name, args string) result {
 
 // Every message a read serves follows the redaction matrix under the policy in force (ADR-0001,
 // ADR-0002). A sender the policy lists after its message was stored as normal is restricted and its
-// body unavailable, a flagged message and a message the scanner has not reached have no body, and a
-// stored flag or scan state the schema does not name reads as the most restrictive state. No served message carries a snippet, an attachment filename or
-// body text, since the index holds none (ADR-0016).
+// body unavailable, and a flagged message and a message the scanner has not reached have no body. A
+// stored flag or scan state the schema does not name, which the schema's checks refuse to store, is
+// TestAnUnnamedStoredStateReadsAsTheMostRestrictive's. No served message carries a snippet, an
+// attachment filename or body text, since the index holds none (ADR-0016).
 func TestEveryServedMessageFollowsTheRedactionMatrix(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
@@ -220,8 +221,6 @@ func TestEveryServedMessageFollowsTheRedactionMatrix(t *testing.T) {
 		{id: "m-code", thread: "t-code", from: code.FromAddress, name: code.FromName, subject: code.Subject, sentAt: "2026-07-21T11:40:00Z", flags: []string{"mfa_code"}, scan: "scanned"},
 		{id: "m-link", thread: "t-link", from: link.FromAddress, name: link.FromName, subject: link.Subject, sentAt: "2026-07-21T11:41:00Z", flags: []string{"login_link"}, scan: "scanned"},
 		{id: "m-pending", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T19:00:00Z", scan: "pending"},
-		{id: "m-odd", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T19:01:00Z", flags: []string{"unknown_flag"}, scan: "scanned"},
-		{id: "m-oddscan", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T19:02:00Z", scan: "unknown_state"},
 	}
 	for _, r := range rows {
 		insert(t, conn, account, r)
@@ -234,8 +233,6 @@ func TestEveryServedMessageFollowsTheRedactionMatrix(t *testing.T) {
 		"m-code":    "normal [mfa_code] scanned body=false",
 		"m-link":    "normal [login_link] scanned body=false",
 		"m-pending": "normal [] pending body=false",
-		"m-odd":     "normal [mfa_code login_link] scanned body=false",
-		"m-oddscan": "normal [] pending body=false",
 	}
 	got := map[string]string{}
 	for id := range want {

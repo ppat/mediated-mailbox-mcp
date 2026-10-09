@@ -6,11 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
-index 368548b..a1341e2 100644
+index eba1d5bc..92b019cb 100644
 --- a/db/migrations/00004_grants.sql
 +++ b/db/migrations/00004_grants.sql
-@@ -33,3 +33,4 @@ TO mediated_mailbox_ui;
- GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
- GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
- GRANT INSERT ON policy_rules TO mediated_mailbox_ui;
+@@ -94,6 +94,7 @@ GRANT SELECT (account_id, plan_id, description, status) ON reorg_plans TO mediat
+ -- Each serve and each denial of a body is recorded through db/auditlog/record, which only the
+ -- mediator's list admits, as an insert and nothing else (ADR-0002, ADR-0016).
+ GRANT INSERT (account_id, actor, action, message_id, sensitivity, rule_ids) ON audit_log TO mediated_mailbox_mediate;
 +GRANT INSERT, UPDATE ON audit_log TO mediated_mailbox_mediate;
+ GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
+ 
+ -- Backfill (ADR-0075, ADR-0017).

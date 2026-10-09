@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: the policy history's action is not checked, so a wrong spelling is stored in an append-only table
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..15546392 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -244,7 +244,7 @@ CREATE TABLE policy_changes (
+     ts timestamptz NOT NULL DEFAULT now(),
+     -- The operator identity (ADR-0084).
+     actor text NOT NULL,
+-    action text NOT NULL CHECK (action IN ('added', 'edited', 'lifted', 'confirmed')),
++    action text NOT NULL,
+     rule_id text NOT NULL,
+     -- Empty for added and confirmed.
+     suffixes_before text[] NOT NULL DEFAULT '{}',

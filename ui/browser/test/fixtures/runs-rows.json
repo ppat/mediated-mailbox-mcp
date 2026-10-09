@@ -11,7 +11,7 @@
   "page": 1,
   "pages": 1,
   "total": {
-    "count": 5
+    "count": 4
   },
   "rows": [
     {
@@ -37,48 +37,26 @@
         "scanned": 70100,
         "skipped": 6510
       },
-      "last_error": null,
-      "failures": 0
-    },
-    {
-      "run_id": "r-0915",
-      "workload": "apply",
-      "pass": "apply",
-      "state": "running",
-      "plan_id": "7f3a9c00-0000-4000-8000-000000000002",
-      "plan_description": "\u003cscript\u003emmfieldmarker-applyingplan\u003c/script\u003e",
-      "plan_status": "APPLYING",
-      "resumed_from": null,
-      "started_at": "2026-09-10T07:16:04Z",
-      "finished_at": null,
-      "heartbeat_at": "2026-09-10T10:15:04Z",
-      "checkpoint": {
-        "of": 2,
-        "seq": 1
-      },
-      "counters": {
-        "failures": 0,
-        "ops_done": 1,
-        "ops_total": 2
-      },
       "last_error": "\u003cscript\u003emmfieldmarker-runerror\u003c/script\u003e",
       "failures": 0
     },
     {
-      "run_id": "r-0909",
-      "workload": "heuristics",
-      "pass": null,
-      "state": "succeeded",
+      "run_id": "r-0908",
+      "workload": "sync",
+      "pass": "gap_recovery",
+      "state": "running",
       "plan_id": null,
       "plan_description": null,
       "plan_status": null,
       "resumed_from": null,
-      "started_at": "2026-09-09T14:16:04Z",
-      "finished_at": "2026-09-09T14:16:04Z",
-      "heartbeat_at": "2026-09-09T14:16:04Z",
+      "started_at": "2026-09-10T09:26:04Z",
+      "finished_at": null,
+      "heartbeat_at": "2026-09-10T09:26:04Z",
       "checkpoint": null,
       "counters": {
-        "candidates": 2
+        "reconciled": 0,
+        "window_end": "2026-09-10T09:00:00Z",
+        "window_start": "2026-09-10T08:00:00Z"
       },
       "last_error": null,
       "failures": 0

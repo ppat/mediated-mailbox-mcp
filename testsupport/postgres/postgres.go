@@ -1,10 +1,10 @@
 // Package postgres gives each integration test package its own database in the one PostgreSQL
 // container a test run starts.
 //
-// testsupport/cmd/pgrun starts the container, applies the bootstrap and the migration chain once into
-// a template database, and runs the test command with the variables below set. An integration test
-// package calls Main from its TestMain, which creates the package's database from the template, so
-// package test binaries running in parallel never share a database. Without the variables, Main fails
+// testsupport/cmd/pgrun starts the container, creates the roles and applies the migration chain once
+// into a template database, and runs the test command with the variables below set. An integration
+// test package calls Main from its TestMain, which creates the package's database from the template,
+// so package test binaries running in parallel never share a database. Without the variables, Main fails
 // the package rather than skipping it, because a skipped integration test passes in the job that was
 // meant to run it.
 package postgres

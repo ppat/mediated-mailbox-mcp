@@ -5,14 +5,14 @@ tests: TestGenerationRefusesAColumnTheSchemaDoesNotHold TestGenerationRefusesACo
 scheduled-count: no
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 2d59457..640b3a9 100644
+index f40c7fd3..b552635d 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -66,6 +66,7 @@ CREATE TABLE messages (
+@@ -151,6 +151,7 @@ CREATE TABLE messages (
      from_name text,
      -- Masked at rest if a code was detected.
      subject text,
 +    body text,
      subject_masked boolean NOT NULL DEFAULT false,
-     sent_at timestamptz NOT NULL,
-     labels text[] NOT NULL DEFAULT '{}',
+     -- The scanner version and the scanner configuration's revision the subject was masked under
+     -- (ADR-0096, ADR-0120).

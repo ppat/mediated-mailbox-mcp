@@ -84,7 +84,7 @@ type LatestResumerParams struct {
 type LatestResumerRow struct {
 	RunID           string
 	Workload        string
-	Pass            pgtype.Text
+	Pass            string
 	State           string
 	PlanID          pgtype.UUID
 	PlanDescription pgtype.Text
@@ -192,7 +192,7 @@ type RunByIDParams struct {
 type RunByIDRow struct {
 	RunID           string
 	Workload        string
-	Pass            pgtype.Text
+	Pass            string
 	State           string
 	PlanID          pgtype.UUID
 	PlanDescription pgtype.Text

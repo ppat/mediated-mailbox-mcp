@@ -1,7 +1,7 @@
--- Cluster-level setup, run once per cluster by a superuser before the migration chain. Roles belong to
--- the whole cluster, PostgreSQL has no CREATE ROLE IF NOT EXISTS, and the chain refuses the DO block
--- that would stand in for it, so roles cannot be created by a migration. The chain's grants name
--- these roles literally.
+-- Cluster-level setup, run once per cluster before the migration chain by a role allowed to create
+-- roles, the one privileged step a deployment takes. Roles belong to the whole cluster, PostgreSQL has
+-- no CREATE ROLE IF NOT EXISTS, and the chain refuses the DO block that would stand in for it, so
+-- roles cannot be created by a migration. The chain's grants name these roles literally.
 --
 -- A platform provides the same roles by its own means. The test harness runs this file as written.
 -- Credentials are not set here. The platform, or the test harness, gives each role its own.

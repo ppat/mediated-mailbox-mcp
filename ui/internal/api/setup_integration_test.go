@@ -149,19 +149,20 @@ func TestAClientIsReplacedAndRemoved(t *testing.T) {
 }
 
 // The installation endpoint and every installation screen route answer with no account's state. Two
-// accounts' state rows carry marker values in their mailbox and last authentication, and a lowered
+// accounts' state rows carry marker values in their mailbox, a last authentication time and a lowered
 // target no other value holds, and none reaches any answer, which holds each client's name, provider,
 // identifier and project ID and each account's identifier, provider and client (ADR-0056, VERIFICATIONS,
-// the installation row).
+// the installation row). A last authentication's outcome is one of the schema's closed words, which an
+// answer may hold for a reason of its own, so the time stored beside it stands for the pair.
 func TestTheInstallationShowsNoAccountsState(t *testing.T) {
 	r := newRig(t)
 	b := r.browser()
 	b.addClient(household, householdID, householdSecret)
 	r.exec("UPDATE accounts SET oauth_client = $1", household)
-	r.exec(`UPDATE account_state SET mailbox = $1, last_auth_outcome = $2, last_auth_at = '2001-02-03T04:05:06Z', lowered_target_rate = 0.4242`,
-		marker.Field("mailbox"), marker.Field("outcome"))
-	r.exec(`INSERT INTO account_state (account_id, mailbox, last_auth_outcome, lowered_target_rate) VALUES ($1, $2, $3, 0.4242)`,
-		other, marker.Field("othermailbox"), marker.Field("otheroutcome"))
+	r.exec(`UPDATE account_state SET mailbox = $1, last_auth_outcome = 'refused', last_auth_at = '2001-02-03T04:05:06Z', lowered_target_rate = 0.4242`,
+		marker.Field("mailbox"))
+	r.exec(`INSERT INTO account_state (account_id, mailbox, last_auth_outcome, last_auth_at, lowered_target_rate) VALUES ($1, $2, 'failed', '2001-02-03T04:05:07Z', 0.4242)`,
+		other, marker.Field("othermailbox"))
 	var answers []string
 	for _, path := range []string{"/api/setup", "/api/setup/connect", "/setup", "/setup/connect", "/setup/gmail/new", "/setup/gmail/" + household} {
 		res := b.get(path)
@@ -171,7 +172,7 @@ func TestTheInstallationShowsNoAccountsState(t *testing.T) {
 		answers = append(answers, string(res.body))
 	}
 	for _, answer := range answers {
-		for _, absent := range []string{marker.Field("mailbox"), marker.Field("othermailbox"), marker.Field("outcome"), marker.Field("otheroutcome"), "0.4242", "2001-02-03"} {
+		for _, absent := range []string{marker.Field("mailbox"), marker.Field("othermailbox"), "0.4242", "2001-02-03"} {
 			if strings.Contains(answer, absent) {
 				t.Errorf("an installation answer holds %q:\n%s", absent, answer)
 			}

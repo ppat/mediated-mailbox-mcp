@@ -1,0 +1,19 @@
+control: The identifier grammar's migration stops over a stored account outside it and rewrites none
+removes: the migration removes each stored account outside the grammar before adding its check, so a system-of-record row is lost
+packages: ./db/check
+tests: TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00005_account_identifier_grammar.sql b/db/migrations/00005_account_identifier_grammar.sql
+index b9f33379..505628ba 100644
+--- a/db/migrations/00005_account_identifier_grammar.sql
++++ b/db/migrations/00005_account_identifier_grammar.sql
+@@ -4,6 +4,7 @@
+ -- path segment the mediator's API root can address (ADR-0087), so the grammar replaces the check that
+ -- refused only ., .. and /. An account stored outside the grammar stops this migration, and nothing
+ -- rewrites it, since an account is system-of-record data (ADR-0048).
++DELETE FROM accounts WHERE account_id !~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$';
+ ALTER TABLE accounts
+ DROP CONSTRAINT accounts_account_id_addressable,
+ ADD CONSTRAINT accounts_account_id_grammar CHECK (account_id ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$');

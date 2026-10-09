@@ -5,17 +5,19 @@ tests: TestTheListingRolesReadEveryAccount TestTheListingRolesReadEveryAccount/m
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
-index 880297d..6a39e11 100644
---- a/db/migrations/00008_account_state.sql
-+++ b/db/migrations/00008_account_state.sql
-@@ -63,9 +63,4 @@ USING (account_id = current_setting('app.account'));
- -- insert, an update's new row or a delete. The UI's read of the moved state columns arrives with the
- -- statement that needs it and never covers credential (ADR-0084).
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index 77a39501..815fc8f9 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -21,11 +21,6 @@ USING (account_id = current_setting('app.account'));
+ -- to the transaction's account, since a permissive policy for SELECT alone takes no part in an
+ -- insert, an update's new row or a delete.
  CREATE POLICY accounts_listing ON accounts FOR SELECT
 -TO mediated_mailbox_ui,
 -mediated_mailbox_mediate,
 -mediated_mailbox_backfill,
 -mediated_mailbox_sync,
 -mediated_mailbox_organize
- USING (true);
+ USING (TRUE);
+ 
+ ALTER TABLE account_state ENABLE ROW LEVEL SECURITY;

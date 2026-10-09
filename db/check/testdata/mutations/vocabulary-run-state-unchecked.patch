@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a run's state is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..49588478 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -328,7 +328,7 @@ CREATE TABLE job_runs (
+     workload text NOT NULL,
+     -- Never null, so the latest-run reads compare it by equality, which an index serves.
+     pass text NOT NULL,
+-    state text NOT NULL CHECK (state IN ('running', 'succeeded', 'failed')),
++    state text NOT NULL,
+     -- Apply and rollback runs.
+     plan_id uuid REFERENCES reorg_plans,
+     -- The run this one resumed.

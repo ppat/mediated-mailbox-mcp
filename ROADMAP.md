@@ -69,7 +69,7 @@ which lists the increment's tickets by unit. Each increment's issue is a sub-iss
 re-dated whenever the checklists are reconciled against the tickets, so staleness is detectable
 instead of silent.
 
-**Position: 2026-10-08.**
+**Position: 2026-10-09.**
 
 ## Delivery posture
 
@@ -128,7 +128,7 @@ perfected up front.
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
 | Verifications | The verification column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated) says whose rows each pull request proved, and each proven row names its pull request as the proof in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | The demonstrations each pull request recorded are the Mutations column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
-| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8, F9 and F8, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
+| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8, F9, F8 and F11, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
 
 ### What each pull request landed, proved and demonstrated
 
@@ -203,6 +203,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#321](https://github.com/ppat/mediated-mailbox-mcp/pull/321) | D2 | D2's re-mask from the store as later work, a backfill run's start masking every stale subject stored unmasked again from the index in batches, the first pass fetching again by identifier only the subjects stored masked once its enumeration has ended and enumerating nothing when reopened, the call size moved to `core/mail` for delta sync and backfill alike, and Home, Jobs, System and the partial-index banner showing the subjects fetched again | D2's rows for the re-mask from the store and for a call fetching subjects again that leaves every one of them stale, and D2's rows for a change of scanner, for killing the process running backfill mid-run and for the leak search over persisted rows proven again for its mechanism, with M3's render-counter row for the strip's fetch | The controls of the re-mask from the store, the fetch by identifier, the pass ending only while no subject is stale and a call that leaves every subject it fetched stale failing the run, and it demonstrates again every control whose code, tests or patches the change touched, with every other patch of those controls, the live strip's included |
 | [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322) | D3 | D3's later work, sender domains stored and bound through one normalizer in Go, `index.StoredDomain`, with a statement check refusing the case-folding forms over a domain its scope names, and the sender class term classifying the domains the statistics hold and matching them by a join ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0108](./docs/adr/operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)) | D3's rows for a stored domain in the normalizer's form classifying as its address, for every caller binding the normalizer's output and for the statement check refusing the case-folding forms over a domain its scope names, and the sender class row again | The normalizer's two controls, the sender class row with its patches regenerated, and every break whose tests the change edited |
 | [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323) | F8 | F8's `log_level` value in every running deployable, the logger and level `main.go` hands each entry package and the entry hands its shells, `process/logging`, the shells' levels, and the ban on reading a process default logger | The rows it adds for the configured level, the ban on reading a default logger and a pure core's refusal of a logging import | Those of the configured level and of the refusal of a level that names none, and a break per entry package of the effective configuration's logging, whose row moves to the cross-component file |
+| [#326](https://github.com/ppat/mediated-mailbox-mcp/pull/326) | F11 | F11's schema baseline, the migration chain flattened into four files and two migrations after it, the sender domains as lowercase `text`, the checked vocabularies, `job_runs.pass` never null with the run and audit indexes, pgvector, the label and subject indexes and `pg_trgm` removed with the extension bootstrap, the helper for a migration tested over rows, and the statement check refusing a cast to `citext` beside a domain | F11's rows, and it demonstrates again the F2 rows whose migration or test changed | The controls of F11's checks, migrations and chain, and every demonstration whose patch carried a migration file's diff context, regenerated |
 
 ### What each composition root runs
 
@@ -404,10 +405,8 @@ What the code on `main` runs today, per composition root, none of it yet release
   [ADR-0016](./docs/adr/data/0016-schema.md)), with any number of OAuth clients for a provider that
   authenticates through one in `oauth_clients`, each account naming the client it connects through
   ([ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
-  The migration that moved that table's key from the provider to the name also pointed every
-  account of that provider at the client already stored. The three tables' statements sit in
-  `db/accounts`, `db/accountstate` and `db/oauthclients`, and the statements for an account's sealed
-  credential in `db/accountstate/credential`
+  The three tables' statements sit in `db/accounts`, `db/accountstate` and `db/oauthclients`, and the
+  statements for an account's sealed credential in `db/accountstate/credential`
   ([ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)), and each grant on the
   columns the UI's two setups write arrives with the statement that uses it
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
@@ -876,9 +875,9 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md),
   [ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md),
   [ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md),
-  [ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). Migration 00023 keys
-  the policy rules on their scope and identifier, adds the policy history with its row-level
-  security, and grants the UI's role exactly the policy writes and the insert on the history, and
+  [ADR-0041](./docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). The schema keys the
+  policy rules on their scope and identifier, holds the policy history with its row-level security,
+  and grants the UI's role exactly the policy writes and the insert on the history, and
   the snapshot's validation refuses a repeated identifier within one scope only
   ([ADR-0016](./docs/adr/data/0016-schema.md),
   [ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). It settled its
@@ -948,7 +947,8 @@ What the code on `main` runs today, per composition root, none of it yet release
   did not deliver.** [docs/UI.md](./docs/UI.md), [DESIGN.md](./DESIGN.md) and
   [USE_CASES.md](./USE_CASES.md) are outside the conventions pass and keep their own form. The
   background worker and the schema baseline the reorganization prepares for, which are
-  [F10](#group-f--foundation)'s and [F11](#group-f--foundation)'s.
+  [F10](#group-f--foundation)'s and [F11](#delivered-mapped-to-outcomes)'s.
+
 - [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image
   Delivered by pull request [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), which
@@ -973,6 +973,44 @@ What the code on `main` runs today, per composition root, none of it yet release
   reorganization and heuristics job kinds, which log through the worker once
   [M2](#group-m--mutation-and-approval) and [M4](#group-m--mutation-and-approval) add them. The
   collection and shipping of the logs, which are the platform's.
+
+- [x] **F11 — The schema baseline for production** →
+  [O3](./USE_CASES.md#o3--survives-its-failure-modes) · [V3](#v3--the-agent-arrives-read-only) ·
+  finished at tested
+  Delivered by pull request [#326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), which
+  closed its ticket [#300](https://github.com/ppat/mediated-mailbox-mcp/issues/300), and not yet
+  released. The migration chain is a baseline of four files, the one extension the schema needs,
+  every table in its final shape in [ADR-0016](./docs/adr/data/0016-schema.md)'s order, the
+  row-level security policies, and the grants with one section per runtime role followed by one per
+  shared library, then two migrations after it, the account identifier grammar altering the accounts
+  table and the run and audit indexes, each tested over rows the chain before it wrote through the
+  helper in `testsupport/postgres`
+  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
+  [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)). The sender domains are lowercase
+  `text` with their guard check, the closed vocabularies are checked in ADR-0016's three tiers,
+  `job_runs.pass` is never null, so the latest-run reads compare it by equality, and the jobs cards
+  read the latest run of each pair the check holds, one lookup on the run index each. pgvector, the
+  embedding column, the label and subject indexes and `pg_trgm` are gone, so nothing runs in the
+  application database before the chain, and the integration runs start the official PostgreSQL
+  image ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). The
+  statement check on folding a sender domain's case also refuses a cast to `citext` beside a
+  domain ([ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)). The catalog the
+  baseline builds differs from the one the chain it replaced built only in those changes, with every
+  runtime role's table, column and sequence privileges and every policy unchanged **[measured]**.
+  Every verification row keyed to F11 is proven, every control it delivered has its mutation
+  demonstration, and every patch whose diff context a migration file carried is regenerated and
+  demonstrated again. Its criteria hold. Every grant of a role sits in one section, and the
+  generated data-access code changed only where a column's type or nullability changed, the domain
+  parameters and `job_runs.pass`. It changed no composition root, so it finished at tested. **What
+  it did not deliver.** The typed audit row, attachment types' writer and grant, and the identifier
+  grammar in the UI's proposal and server check, which are the later work of
+  [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
+  [M7](#delivered-mapped-to-outcomes). The chart's database setup without an extension step, which
+  is [R1](#group-r--packaging)'s. The rollback request's status, and the heuristics run's pass and
+  the storage of its embeddings, which are [M2](#group-m--mutation-and-approval)'s and
+  [M4](#group-m--mutation-and-approval)'s. The UI's tests seed no apply or heuristics run, since the
+  closed set of run pairs refuses them, so the proof of those surfaces is M2's and M4's, which add
+  those pairs.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. The mediator's API
 and MCP roots serve the reads of the index and the recorded state, release the bodies the gate lets
@@ -1027,7 +1065,7 @@ redesign after agent workflows exist.
 **Units:** [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
 [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
 [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
-[F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#group-f--foundation) ·
+[F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#delivered-mapped-to-outcomes) ·
 [R1](#group-r--packaging), then [production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
 the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
 invariant proven against a live adversary (an agent the operator, or a session on the operator's
@@ -1096,7 +1134,7 @@ holds, with an entry naming the point.
   [D2](#delivered-mapped-to-outcomes) · [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
   [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
   [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
-  [F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#group-f--foundation) ·
+  [F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#delivered-mapped-to-outcomes) ·
   [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
   [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
@@ -1261,15 +1299,15 @@ by [F10](#group-f--foundation)'s worker, which picks each change up within one r
 account's backfill when the account appears, beside the reloads the mediator already makes
 ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
 [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), so
-no signal between deployables is built. F4, F2, F5, F3, F6, F9 and F8 are delivered and sit in the
-[delivered register](#delivered-mapped-to-outcomes), and F10 and F11 remain, in that order. F5
+no signal between deployables is built. F4, F2, F5, F3, F6, F9, F8 and F11 are delivered and sit in
+the [delivered register](#delivered-mapped-to-outcomes), and F10 remains. F5
 also carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the
 scope that excludes permanent delete, because the grant is the adapter's.
 [F10](#group-f--foundation) serves [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) and
 also carries [O6](./USE_CASES.md#o6--deployable)'s connection of an account with no manual step,
 because the worker's reload of accounts is what starts a new account's backfill, flagged here
-rather than split. [F11](#group-f--foundation) serves
-[O3](./USE_CASES.md#o3--survives-its-failure-modes) and also carries
+rather than split. [F11](#delivered-mapped-to-outcomes) served
+[O3](./USE_CASES.md#o3--survives-its-failure-modes) and also carried
 [O2](./USE_CASES.md#o2--observable)'s checked spellings on the append-only policy history, because
 the schema's checks are one baseline.
 
@@ -1301,36 +1339,6 @@ the schema's checks are one baseline.
   [production point 1](#production-point-1--the-read-path). *Criteria:* every job kind's series
   attributable to it, each job's time of last success emitted, and the two alerting rules firing
   above their bounds and silent below them.
-- [ ] **F11 — The schema baseline for production** →
-  [O3](./USE_CASES.md#o3--survives-its-failure-modes) · [V3](#v3--the-agent-arrives-read-only) ·
-  finishes at tested
-  The migration chain flattened, before its first production apply makes every file in it
-  history, into a baseline of every table in its final shape, its row-level security and its
-  grants per role, with two migrations after it, one altering the accounts table over the rows the
-  baseline wrote and one adding the run and audit indexes over populated tables
-  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
-  [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)). It carries every schema change of
-  [ADR-0016](./docs/adr/data/0016-schema.md)'s DDL whose writer no other unit owns, the sender
-  domains as lowercase `text`, the checks in their three tiers, `job_runs.pass` not null and the
-  five indexes, with pgvector, the embedding column, the label and subject indexes and `pg_trgm`
-  removed, so no step inside the application database needs a superuser
-  ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md),
-  [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md),
-  [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). The typed audit
-  row, attachment types and the identifier grammar's other places are the later work of
-  [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
-  [M7](#delivered-mapped-to-outcomes), whose writers they are, and the domain normalizer every
-  writer of a domain column passes its value through landed with D3. It changes no composition
-  root, so it finishes at tested. The documents that describe the superuser bootstrap change with
-  it, `.claude/rules/db.md` where it says roles and extensions come from the bootstrap,
-  `db/README.md` in its rows for `db/migrations/` and `db/bootstrap/`, and `testsupport/README.md`
-  in its line for `postgres`, which applies the bootstrap and the chain to an empty database, and so
-  does `pgrun`, which creates the roles and applies the chain with no bootstrap, as
-  [ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md) describes. What
-  proves it is its rows, the two migrations tested over rows the chain before them wrote, and the
-  patches whose diff context a migration file carries regenerated and demonstrated again.
-  *Criteria:* every grant of a role in one section, and the generated data-access code changed
-  only where a column's type or nullability changed.
 
 ### Group D — data flows
 
@@ -1452,8 +1460,13 @@ classifications already stored in the index they follow
   public key matches one of its private keys
   ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
   [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Approval is a
-  hand-written database update until [M5](#group-m--mutation-and-approval) lands. The maximum plan
-  age is open against this unit. Rollback of a real plan waits for
+  hand-written database update until [M5](#group-m--mutation-and-approval) lands. The apply and
+  rollback pairs this unit adds to the schema's closed set of run pairs let the UI's tests seed apply
+  runs again, so it restores the proof of the UI's apply surfaces, the plans dataset's apply run,
+  the event stream's apply run carrying its plan's status, the jobs card's applying run and last run
+  with rollback's availability, a plan's title in that card and in the runs table, and the home
+  strip's apply cell ([ADR-0016](./docs/adr/data/0016-schema.md),
+  [docs/UI.md](./docs/UI.md)). The maximum plan age is open against this unit. Rollback of a real plan waits for
   [production point 2](#production-point-2--the-agent-acts).
 - [ ] **M3 — The UI's reads of the read path** →
   [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
@@ -1529,7 +1542,10 @@ classifications already stored in the index they follow
   that answer. How the heuristics run finds its accounts, since no account comes from
   configuration, is an [open decision](#open-decisions) settled here, and so is how embeddings are
   stored, if they are, since the schema holds no vector column and needs no extension
-  ([ADR-0016](./docs/adr/data/0016-schema.md)). Its runs name a pass in `job_runs`.
+  ([ADR-0016](./docs/adr/data/0016-schema.md)). Its runs name a pass in `job_runs`, which this
+  unit adds with its pair to the schema's closed set of run pairs, and the UI's tests then seed
+  heuristics runs again, so it restores the proof of the heuristics card's last run and next run and
+  the home strip's heuristics cell.
   *Criteria:* each run is recorded, and its series and logs carry its job kind
   ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)).
@@ -1710,7 +1726,7 @@ about its cluster.
   ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
   [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md),
   [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). It builds on
-  [F9](#delivered-mapped-to-outcomes), [F10](#group-f--foundation) and [F11](#group-f--foundation), whose
+  [F9](#delivered-mapped-to-outcomes), [F10](#group-f--foundation) and [F11](#delivered-mapped-to-outcomes), whose
   worker, schema and roles it packages, and has no extension bootstrap to run.
   Against the first
   release that attaches the key-generation binaries, the binary is downloaded, its keyless signature
@@ -1758,8 +1774,8 @@ about its cluster.
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | M3 | The conversion, the delimiters and the serve-time check landed with S3, which is delivered. Serving every body through them landed with D3, a G1 unit, which is delivered. The volume alert rides M3, an O4 unit, as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), over the audit rows D3 writes |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | — | The rate limiter and the Gmail cost profile landed with F3, which is delivered. The real ceiling reveals itself at production point 1 |
-| [O2](./USE_CASES.md#o2--observable) observable | — | Logging at a configured level through a logger every shell is handed landed with F8, which is delivered. Otherwise no dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carries the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
-| [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F11 | Writing the account-handling rules once where copies drifted landed with F9, which is delivered. F11 settles the schema before production point 1 makes the chain history. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
+| [O2](./USE_CASES.md#o2--observable) observable | — | Logging at a configured level through a logger every shell is handed landed with F8, which is delivered. Otherwise no dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carried the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
+| [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | Writing the account-handling rules once where copies drifted landed with F9, and the schema settled before production point 1 makes the chain history landed with F11, both delivered. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
 | [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step rides F10, a G4 unit, flagged in Group F's preamble |
@@ -1989,5 +2005,5 @@ index](./docs/adr/README.md).
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
 | How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which row-level security confines to one account, so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role joins ADR-0091's list of roles |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |
-| How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval **[inferred]**, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. No runtime role may delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep every read of them fast through the first year ([F11](#group-f--foundation)). So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |
+| How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval **[inferred]**, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. No runtime role may delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep every read of them fast through the first year ([F11](#delivered-mapped-to-outcomes)). So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |
 | Ratifying [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md), [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) and [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | F10 | The operator ruled each on 2026-10-07, and each is Proposed until the first pull request whose implementation it shapes, which sets it Accepted, marks [ADR-0022](./docs/adr/operability/0022-four-workloads.md), [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) and [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) superseded, and re-points their citations ([docs/adr/README.md](./docs/adr/README.md)) |

@@ -5,13 +5,14 @@ tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCal
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00021_oauth_clients_by_name.sql b/db/migrations/00021_oauth_clients_by_name.sql
-index d5bbbce0..31ef1628 100644
---- a/db/migrations/00021_oauth_clients_by_name.sql
-+++ b/db/migrations/00021_oauth_clients_by_name.sql
-@@ -33,5 +33,3 @@ ALTER TABLE accounts ADD FOREIGN KEY (oauth_client, provider) REFERENCES oauth_c
- -- grants on oauth_clients arrive with its client setup's statements (ADR-0084).
- GRANT SELECT (oauth_client) ON accounts
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..06b368f6 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -543,5 +543,5 @@ GRANT SELECT (account_id, provider, oauth_client) ON accounts
  TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
--GRANT SELECT (name) ON oauth_clients
--TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+-GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
++GRANT SELECT (provider, client_id, client_secret) ON oauth_clients
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;

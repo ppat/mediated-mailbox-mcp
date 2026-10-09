@@ -76,8 +76,8 @@ evidence of its compromise survives outside its own reach."
 - A role whose statements touch the operation log also reads the plan columns that
   [ADR-0016](./0016-schema.md)'s policy on the log looks up, because PostgreSQL runs a policy's
   lookup with the querying role's privileges. Those columns are part of what its statements need.
-- Assumptions about other components. The superuser bootstrap creates the roles once per cluster
-  before the chain runs, and the chain's grant statements name them
+- Assumptions about other components. The bootstrap creates the roles once per cluster before the
+  chain runs, and the chain's grant statements name them
   ([ADR-0048](./0048-forward-only-migrations.md)). The grant check shows a role's grants are enough
   for the statements its component's list admits
   ([ADR-0066](./0066-data-access-generated-from-sql.md)). The decision holds only while the

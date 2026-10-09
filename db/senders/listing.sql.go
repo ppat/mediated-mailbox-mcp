@@ -59,7 +59,7 @@ WHERE
     AND (
         $2::boolean
         OR s.message_count < $3::bigint
-        OR (s.message_count = $3::bigint AND s.domain > $4::citext)
+        OR (s.message_count = $3::bigint AND s.domain > $4::text)
     )
 ORDER BY s.message_count DESC, s.domain ASC
 LIMIT $5

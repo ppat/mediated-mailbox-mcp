@@ -124,18 +124,17 @@ var caseFunctions = []string{"lower", "upper", "casefold", "initcap"}
 var caseOperators = []string{"~~*", "!~~*", "~*", "!~*"}
 
 // domainCases refuses the forms of folding a sender domain's case in SQL that it matches (ADR-0016).
-// It reports a case-folding function applied to an expression holding a domain column, a
-// case-folding function in one direct operand of a comparison or a function call whose other operand
-// holds a domain column, such as a parameter lowered to match a domain or a domain searched for a
-// lowered parameter, and a case-insensitive match with a domain column in either operand.
-// PostgreSQL's lower() is not the Go normalizer and depends on the database's collation, and none of
-// these is leakproof on an indexed column, so under row-level security each turns the index off
-// (ADR-0066). Outside what it matches, and held by review, are a fold inside a nested query whose
-// output is compared with a domain, a domain column read under another name, a cast to the
-// case-insensitive type on a domain comparison, which the case-insensitive cast check also admits for
-// a parameter, the 'i' flag of the regular expression functions, an embedded (?i) in a pattern, a
-// case-insensitive collation, and any other form that folds case or matches approximately, full-text
-// search among them.
+// It reports a case-folding function or a cast to the case-insensitive type applied to an expression
+// holding a domain column, a case-folding function or a cast to the case-insensitive type in one
+// direct operand of a comparison or a function call whose other operand holds a domain column, such
+// as a parameter lowered or cast to citext to match a domain or a domain searched for a lowered
+// parameter, and a case-insensitive match with a domain column in either operand. PostgreSQL's lower()
+// is not the Go normalizer and depends on the database's collation, citext compares through lower(),
+// and none of these is leakproof on an indexed column, so under row-level security each turns the
+// index off (ADR-0066). Outside what it matches, and held by review, are a fold inside a nested query
+// whose output is compared with a domain, a domain column read under another name, the 'i' flag of
+// the regular expression functions, an embedded (?i) in a pattern, a case-insensitive collation, and
+// any other form that folds case or matches approximately, full-text search among them.
 func (c *statementCheck) domainCases() {
 	reported := map[int32]bool{}
 	reportAt := func(location int32, what string) {
@@ -148,7 +147,15 @@ func (c *statementCheck) domainCases() {
 		reportAt(fc.GetLocation(), names(fc.GetFuncname())[len(fc.GetFuncname())-1]+"()")
 	}
 	walk(c.raw.GetStmt(), func(n *pg.Node) bool {
+		// A parameter holds no expression of the statement's own, though @domain parses as an operator
+		// applied to a column reference of that name.
+		if isParameter(n) {
+			return false
+		}
 		var operands []*pg.Node
+		if tc := n.GetTypeCast(); tc != nil && isCitext(tc.GetTypeName()) && anyDomainColumn([]*pg.Node{tc.GetArg()}) {
+			reportAt(tc.GetLocation(), "a cast to citext")
+		}
 		switch {
 		case isCaseFunction(n):
 			if anyDomainColumn(n.GetFuncCall().GetArgs()) {
@@ -169,14 +176,31 @@ func (c *statementCheck) domainCases() {
 			if !anyDomainColumn(others) {
 				continue
 			}
+			for _, item := range append([]*pg.Node{operand}, operand.GetList().GetItems()...) {
+				if t, ok := parameterCast(item); ok && isCitext(t) {
+					reportAt(location(item), "a parameter cast to citext")
+				}
+			}
 			within(operand, func(m *pg.Node) {
 				if isCaseFunction(m) {
 					report(m.GetFuncCall())
+				}
+				if tc := m.GetTypeCast(); tc != nil && isCitext(tc.GetTypeName()) {
+					reportAt(tc.GetLocation(), "a cast to citext")
 				}
 			})
 		}
 		return true
 	})
+}
+
+// location returns the position of a parameter cast, the cast's own for $1::citext and the prefix
+// operator's for @name::citext.
+func location(n *pg.Node) int32 {
+	if tc := n.GetTypeCast(); tc != nil {
+		return tc.GetLocation()
+	}
+	return n.GetAExpr().GetLocation()
 }
 
 // isCaseFunction reports whether n calls lower() or upper().

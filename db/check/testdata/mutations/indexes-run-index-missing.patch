@@ -1,0 +1,19 @@
+control: The run and audit indexes' migration leaves stored rows unchanged and builds every index
+removes: the migration leaves out the index of a job kind's runs by pass
+packages: ./db/check
+tests: TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00006_run_and_audit_indexes.sql b/db/migrations/00006_run_and_audit_indexes.sql
+index af48ab48..16753046 100644
+--- a/db/migrations/00006_run_and_audit_indexes.sql
++++ b/db/migrations/00006_run_and_audit_indexes.sql
+@@ -6,7 +6,6 @@
+ -- A job kind's runs by pass, newest first, for every tick's latest run, the jobs screen's latest run
+ -- per job kind and pass, and the job mechanism's due decisions. It ends with run_id because the
+ -- statements break ties on it, in either direction.
+-CREATE INDEX ON job_runs (account_id, workload, pass, started_at DESC, run_id);
+ -- The runs still running, which the event stream follows.
+ CREATE INDEX ON job_runs (account_id) WHERE state = 'running';
+ -- The runs finished since a time, which the event stream follows too.

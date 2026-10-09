@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## A base edit landing between two accounts' reads is read again, and fails the reload only when edits land through both reads
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** a reload whose accounts read different base rules fails at once, so one base edit landing mid-reload pages
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload`:** `TestABaseEditBetweenTwoAccountsReadsIsReadAgain`, `TestAFailedReadNeverReplacesTheActivePolicy`, `TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice`
 - **Break (2):** a reload reads once more for each disagreement, up to two more times, so edits landing through two reads no longer fail it
@@ -36,7 +36,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## A read of the policy tables the loader cannot trust never replaces the active policy
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** the base rules are taken from the first account's read without comparing the others', so accounts are composed from different base policies
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload`:** `TestABaseEditBetweenTwoAccountsReadsIsReadAgain`, `TestAFailedReadNeverReplacesTheActivePolicy`, `TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice`
 - **Break (2):** a read that found no rules is taken as a failed read, so a policy with no rules read whole never takes effect
@@ -56,7 +56,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## A reload its caller cancelled keeps the active policy and raises no alarm
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** a reload its caller cancelled is counted as a failed read, so a process shutting down mid-reload raises the alarm
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload`:** `TestAReloadItsCallerCancelledRaisesNoAlarm`
 - **Break (2):** a reload whose deadline passed is taken as one its caller cancelled, so reloads that keep timing out raise no alarm
@@ -154,7 +154,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## An account whose own rules the loader did not read is held to the policy that restricts every sender
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** the accounts the loader read are held to the policy that restricts every sender, and the ones it did not read get the base rules
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload`:** `TestABaseEditBetweenTwoAccountsReadsIsReadAgain`, `TestAFailedReadNeverReplacesTheActivePolicy`, `TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice`, `TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules`, `TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row`, `TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row`, `TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table`, `TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row`, `TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row`, `TestAReloadItsCallerCancelledRaisesNoAlarm`, `TestAnEmptyPolicyReadWholeIsAccepted`, `TestAnInvalidUpdateNeverDisplacesTheActivePolicy`, `TestSetAccountsChangesWhatTheNextReloadReads`, `TestTheLoaderComposesEachAccountsPolicy`
 - **Break (2):** an account the loader did not read gets the base rules alone, without the restrictions its own rules add
@@ -218,7 +218,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## The policy loader reads the accounts it is set to from its next reload on
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** SetAccounts leaves the accounts the loader reads as they were
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload`:** `TestSetAccountsChangesWhatTheNextReloadReads`
 - **Break (2):** SetAccounts takes no account or an empty name, as New refuses
@@ -236,7 +236,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## The reload-failure series reads 1 while the latest policy reload failed and 0 once one succeeds
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** a reload that succeeds leaves the series as it was, so it reads 1 after the first failure for as long as the process runs
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload`:** `TestAFailedReadNeverReplacesTheActivePolicy`, `TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice`, `TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules`, `TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row`, `TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row`, `TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table`, `TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row`, `TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row`, `TestAnInvalidUpdateNeverDisplacesTheActivePolicy`
 - **Break (2):** a reload that succeeds sets the series to 1, as a failure does

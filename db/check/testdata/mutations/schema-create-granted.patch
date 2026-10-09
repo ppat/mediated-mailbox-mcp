@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
-index 368548b..a5c0d28 100644
+index eba1d5bc..9aa5d705 100644
 --- a/db/migrations/00004_grants.sql
 +++ b/db/migrations/00004_grants.sql
-@@ -33,3 +33,4 @@ TO mediated_mailbox_ui;
- GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
- GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
- GRANT INSERT ON policy_rules TO mediated_mailbox_ui;
+@@ -545,3 +545,4 @@ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 +GRANT CREATE ON SCHEMA public TO mediated_mailbox_backfill;

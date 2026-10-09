@@ -52,7 +52,7 @@
         "scanned": 70100,
         "skipped": 6510
       },
-      "last_error": null
+      "last_error": "\u003cscript\u003emmfieldmarker-runerror\u003c/script\u003e"
     },
     "pending_scan": 1,
     "sync_cursor_at": "2026-09-10T10:12:04Z",
@@ -79,7 +79,7 @@
       }
     },
     "last_auth_at": "2026-09-10T04:16:04Z",
-    "last_auth_outcome": "\u003cscript\u003emmfieldmarker-authoutcome\u003c/script\u003e"
+    "last_auth_outcome": "succeeded"
   },
   "corpus": {
     "messages": 5,

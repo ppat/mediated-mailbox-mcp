@@ -1,8 +1,8 @@
 // Command pgrun runs a command against one PostgreSQL container started for it.
 //
-// It starts the container with the ordinary docker command (ADR-0068), runs db/bootstrap as the
-// superuser, applies the migration chain from empty with goose as the migration role into a template
-// database, runs the command with the connection details exported, and removes the container. Each
+// It starts the container with the ordinary docker command (ADR-0068), creates the roles with
+// db/bootstrap as the superuser, applies the migration chain from empty with goose as the migration
+// role into a template database with nothing run in it before the chain, runs the command with the connection details exported, and removes the container. Each
 // integration test package then creates its own database from the template (testsupport/postgres).
 //
 // A run where the command succeeds but no test package created a database fails, because that is
@@ -111,7 +111,7 @@ func run(host string, port int, command []string) (int, error) {
 	if err := prepareTemplate(ctx, admin, connURL(postgres.MigrationRole, password, host, port, template), password); err != nil {
 		return 1, err
 	}
-	logf("bootstrap and migration chain applied in %s", time.Since(prepared).Round(time.Millisecond))
+	logf("roles created and migration chain applied in %s", time.Since(prepared).Round(time.Millisecond))
 
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
@@ -173,8 +173,8 @@ func waitReady(ctx context.Context, admin, container string) error {
 	}
 }
 
-// prepareTemplate runs the bootstrap, applies the chain from empty as the migration role, and turns
-// the result into a template no one connects to.
+// prepareTemplate creates the roles, applies the chain from empty as the migration role, and turns the
+// result into a template no one connects to.
 func prepareTemplate(ctx context.Context, admin, migrate, password string) error {
 	conn, err := pgx.Connect(ctx, admin)
 	if err != nil {
@@ -191,7 +191,7 @@ func prepareTemplate(ctx context.Context, admin, migrate, password string) error
 	if _, err := conn.Exec(ctx, "CREATE TABLE "+postgres.RegistryTable+" (package_dir text NOT NULL, database text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT clock_timestamp())"); err != nil {
 		return err
 	}
-	if err := postgres.ApplyChain(ctx, admin, migrate, template, "db/bootstrap/extensions.sql", filepath.Join("db", "migrations")); err != nil {
+	if err := postgres.ApplyChain(ctx, admin, migrate, template, filepath.Join("db", "migrations")); err != nil {
 		return err
 	}
 	_, err = conn.Exec(ctx, "ALTER DATABASE "+template+" WITH IS_TEMPLATE true ALLOW_CONNECTIONS false")

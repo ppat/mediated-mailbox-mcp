@@ -45,7 +45,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick applies each change set in the transaction that advances the cursor past it
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 2, 3 and 4 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 2, 3 and 4 again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and breaks 2, 3 and 4 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** the cursor is stored in a transaction of its own before the change set's writes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestTheCursorNeverRunsAheadOfTheIndex`
 - **Break (2):** a change set's application stores no cursor, so the next tick asks for the same changes again
@@ -65,7 +65,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## A tick records as failed the account's tick and gap recovery a stopped process left running
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 2 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and breaks 1 and 3 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** a recovery's start also records the tick that started it, still running, as failed
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickRecordsAStoppedRunAsFailed`, `TestATickRecordsAStoppedRunAsFailed/a_recovery_stopped_part_way`
 - **Break (2):** a tick's start records a stopped tick as failed and leaves a stopped recovery recorded as running
@@ -91,7 +91,7 @@ The demonstrations of the controls whose patches sit in `sync/`. [MUTATIONS.md](
 
 ## Applying the same changes twice leaves the index as applying them once
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** applying a message's labels adds them to the ones stored rather than setting them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/tick`:** `TestATickAppliesTheChangesSinceItsCursor`, `TestApplyingTheSameChangesTwiceLeavesTheIndexAsOnce`
 - **Break (2):** a message the index already holds has its masks recorded again

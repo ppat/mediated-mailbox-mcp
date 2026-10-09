@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a candidate's status is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..41ffce34 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -208,7 +208,7 @@ CREATE TABLE policy_candidates (
+     -- One entry per heuristic that fired, with its evidence, in the shape ADR-0016 gives.
+     signals jsonb NOT NULL,
+     score real NOT NULL,
+-    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'dismissed')),
++    status text NOT NULL DEFAULT 'pending',
+     created_at timestamptz NOT NULL DEFAULT now(),
+     reviewed_at timestamptz,
+     -- Human only, and in the UI's write grant (ADR-0084).
