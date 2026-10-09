@@ -6,14 +6,14 @@ scheduled-count: no
 
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..c945b073 100644
+index 523220a..db6af5b 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -539,7 +539,6 @@ func surface(registry service.Registry, tokenFile string) (http.Handler, error)
+@@ -555,7 +555,6 @@ func surface(registry service.Registry, tokenFile string, logger *slog.Logger) (
  // handler's own caching headers do not survive.
- func noStore(next http.Handler) http.Handler {
+ func noStore(logger *slog.Logger, next http.Handler) http.Handler {
  	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 -		w.Header().Set("Cache-Control", "no-store")
- 		next.ServeHTTP(&noStoreWriter{ResponseWriter: w}, r)
+ 		next.ServeHTTP(&noStoreWriter{ResponseWriter: w, logger: logger}, r)
  	})
  }

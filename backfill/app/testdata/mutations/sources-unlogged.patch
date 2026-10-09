@@ -5,15 +5,15 @@ tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/backfill/app/app.go b/backfill/app/app.go
-index 1691e4f5..9614ffdd 100644
+index d6ba7c2..9480dec 100644
 --- a/backfill/app/app.go
 +++ b/backfill/app/app.go
-@@ -100,7 +100,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
- 		return fmt.Errorf("loading the configuration: %w", err)
- 	}
+@@ -109,7 +109,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
+ 	// The effective configuration is written before the level applies, so a refused value's source,
+ 	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
  	for _, v := range loaded.Values {
 -		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 +		logger.Info("configuration", "path", v.Path, "value", v.Value)
  	}
- 	c := loaded.Config
- 	if err := dbconnectcore.Validate(c.Database); err != nil {
+ 	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
+ 	if err != nil {

@@ -15,13 +15,18 @@ import (
 
 // Handler returns the MCP root generated from reg, served over the streamable HTTP transport with no
 // session kept between requests (ADR-0086). version is the mediator's version, which the server
-// reports to a client when it initializes.
-func Handler(reg service.Registry, version string) http.Handler {
+// reports to a client when it initializes. The transport's and the server's own logs and each failed
+// call are logged through logger, a failed call at the level its origin sets. The server's info
+// records are lowered to debug (ADR-0122).
+func Handler(reg service.Registry, version string, logger *slog.Logger) http.Handler {
 	// The capabilities are declared explicitly. With none given, the SDK advertises logging and a
 	// changing tool list, and an agent then holds a subscription stream open against the server.
 	server := sdk.NewServer(
 		&sdk.Implementation{Name: "mediated-mailbox-mediate", Version: version},
-		&sdk.ServerOptions{Capabilities: &sdk.ServerCapabilities{Tools: &sdk.ToolCapabilities{}}},
+		&sdk.ServerOptions{
+			Capabilities: &sdk.ServerCapabilities{Tools: &sdk.ToolCapabilities{}},
+			Logger:       slog.New(routineAtDebug{logger.Handler()}),
+		},
 	)
 	for _, op := range reg.Operations() {
 		server.AddTool(&sdk.Tool{
@@ -30,13 +35,13 @@ func Handler(reg service.Registry, version string) http.Handler {
 			InputSchema:  op.Input,
 			OutputSchema: op.Output,
 			Annotations:  annotations(op.Annotations),
-		}, call(reg, op.Name))
+		}, call(reg, op.Name, logger))
 	}
 	server.AddReceivingMiddleware(refuseBeyondTools)
 	return sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return server }, &sdk.StreamableHTTPOptions{
 		Stateless:    true,
 		JSONResponse: true,
-		Logger:       slog.Default(),
+		Logger:       logger,
 	})
 }
 
@@ -54,7 +59,7 @@ func annotations(a service.Annotations) *sdk.ToolAnnotations {
 }
 
 // call returns the tool handler that runs the operation named name on the call's arguments.
-func call(reg service.Registry, name string) sdk.ToolHandler {
+func call(reg service.Registry, name string, logger *slog.Logger) sdk.ToolHandler {
 	return func(ctx context.Context, req *sdk.CallToolRequest) (*sdk.CallToolResult, error) {
 		input := req.Params.Arguments
 		if len(input) == 0 {
@@ -62,7 +67,7 @@ func call(reg service.Registry, name string) sdk.ToolHandler {
 		}
 		out, err := reg.Call(ctx, name, input)
 		if err != nil {
-			slog.ErrorContext(ctx, "operation failed", "operation", name, "error", err)
+			logger.Log(ctx, service.FailureLevel(err), "operation failed", "operation", name, "error", err)
 			failure := service.Failure(err)
 			return &sdk.CallToolResult{
 				IsError:           true,
@@ -95,4 +100,35 @@ func refuseBeyondTools(next sdk.MethodHandler) sdk.MethodHandler {
 		}
 		return next(ctx, method, req)
 	}
+}
+
+// routineAtDebug hands the SDK server's records to the handed logger's handler, with every record
+// below warn and at info or above lowered to debug. With no session kept, the server connects one
+// per request and writes "server connecting" and "server session connected" at info for each, which
+// is detail. Its warnings and errors keep their levels (ADR-0122).
+type routineAtDebug struct{ slog.Handler }
+
+func (h routineAtDebug) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.Handler.Enabled(ctx, lowered(level))
+}
+
+func (h routineAtDebug) Handle(ctx context.Context, r slog.Record) error {
+	r.Level = lowered(r.Level)
+	return h.Handler.Handle(ctx, r)
+}
+
+func (h routineAtDebug) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return routineAtDebug{h.Handler.WithAttrs(attrs)}
+}
+
+func (h routineAtDebug) WithGroup(name string) slog.Handler {
+	return routineAtDebug{h.Handler.WithGroup(name)}
+}
+
+// lowered returns debug for a level at info or above and below warn, and level otherwise.
+func lowered(level slog.Level) slog.Level {
+	if level >= slog.LevelInfo && level < slog.LevelWarn {
+		return slog.LevelDebug
+	}
+	return level
 }

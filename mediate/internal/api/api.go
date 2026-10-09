@@ -31,8 +31,8 @@ var pathVariable = regexp.MustCompile(`^\{([a-z][a-z0-9_]*)\}$`)
 // typed by the input schema, and the body, and hands it to Registry.Call.
 //
 // It returns an error when two operations' routes conflict, which the registry's own checks leave to
-// the router.
-func Handler(reg service.Registry) (h http.Handler, err error) {
+// the router. It logs each failed call through logger, at the level its origin sets.
+func Handler(reg service.Registry, logger *slog.Logger) (h http.Handler, err error) {
 	mux := http.NewServeMux()
 	defer func() {
 		if p := recover(); p != nil {
@@ -40,7 +40,7 @@ func Handler(reg service.Registry) (h http.Handler, err error) {
 		}
 	}()
 	for _, op := range reg.Operations() {
-		route, err := newRoute(op)
+		route, err := newRoute(op, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -53,14 +53,15 @@ func Handler(reg service.Registry) (h http.Handler, err error) {
 
 // route is one operation's binding from a request to its argument object.
 type route struct {
-	op service.Descriptor
+	op     service.Descriptor
+	logger *slog.Logger
 	// pathVars are the arguments the path names, in order.
 	pathVars []string
 	// types are the declared JSON types of the input's properties.
 	types map[string]string
 }
 
-func newRoute(op service.Descriptor) (route, error) {
+func newRoute(op service.Descriptor, logger *slog.Logger) (route, error) {
 	var schema struct {
 		Properties map[string]struct {
 			Type any `json:"type"`
@@ -69,7 +70,7 @@ func newRoute(op service.Descriptor) (route, error) {
 	if err := json.Unmarshal(op.Input, &schema); err != nil {
 		return route{}, fmt.Errorf("operation %s: reading its input schema: %w", op.Name, err)
 	}
-	r := route{op: op, types: map[string]string{}}
+	r := route{op: op, logger: logger, types: map[string]string{}}
 	for name, p := range schema.Properties {
 		if t, ok := p.Type.(string); ok {
 			r.types[name] = t
@@ -95,24 +96,24 @@ var errBadRequest = errors.New("bad request")
 func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodHead {
 		w.Header().Set("Allow", rt.op.Method)
-		writeError(w, http.StatusMethodNotAllowed, "HEAD is not served")
+		writeError(w, rt.logger, http.StatusMethodNotAllowed, "HEAD is not served")
 		return
 	}
 	input, err := rt.arguments(w, r)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, rt.logger, http.StatusBadRequest, err.Error())
 		return
 	}
 	out, err := reg.Call(r.Context(), rt.op.Name, input)
 	if err != nil {
-		slog.ErrorContext(r.Context(), "operation failed", "operation", rt.op.Name, "error", err)
+		rt.logger.Log(r.Context(), service.FailureLevel(err), "operation failed", "operation", rt.op.Name, "error", err)
 		origin, _ := service.Classify(err)
-		writeFailure(w, status(origin), service.Failure(err))
+		writeFailure(w, rt.logger, status(origin), service.Failure(err))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(out); err != nil { //nolint:gosec // a JSON body sent as application/json, never rendered as HTML
-		slog.WarnContext(r.Context(), "writing the response failed", "operation", rt.op.Name, "error", err)
+		rt.logger.DebugContext(r.Context(), "writing the response failed", "operation", rt.op.Name, "error", err)
 	}
 }
 
@@ -273,15 +274,16 @@ func status(origin service.Origin) int {
 
 // writeError writes the root's own refusal of a request it cannot turn into a call, a failure of the
 // client's, in the shape every failure takes (ADR-0101).
-func writeError(w http.ResponseWriter, status int, message string) {
-	writeFailure(w, status, service.Failure(service.Refuse(message)))
+func writeError(w http.ResponseWriter, logger *slog.Logger, status int, message string) {
+	writeFailure(w, logger, status, service.Failure(service.Refuse(message)))
 }
 
-// writeFailure writes a failure's content with status.
-func writeFailure(w http.ResponseWriter, status int, body json.RawMessage) {
+// writeFailure writes a failure's content with status. A failed write means the client went away,
+// which leaves the operator nothing to act on, so it is detail.
+func writeFailure(w http.ResponseWriter, logger *slog.Logger, status int, body json.RawMessage) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if _, err := w.Write(body); err != nil { //nolint:gosec // a JSON body sent as application/json, never rendered as HTML
-		slog.Warn("writing an error response failed", "error", err)
+		logger.Debug("writing an error response failed", "error", err)
 	}
 }

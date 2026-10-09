@@ -9,15 +9,17 @@ case. The conventions it shares with every component are
 Its concept is the [process](../DESIGN.md#glossary), what every deployable needs to run as a
 process under the environment contract
 ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)), which is its configuration
-layered from defaults, a file, the environment and flags, its database connection, and its probe
-and metrics endpoint. The decision it hides is how a process meets that contract, which changes
-only when the contract or the platform under it does, and never with what the process runs.
+layered from defaults, a file, the environment and flags, its database connection, its probe
+and metrics endpoint, and its logs. The decision it hides is how a process meets that contract,
+which changes only when the contract or the platform under it does, and never with what the process
+runs.
 
 | Package | Holds |
 | --- | --- |
 | `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into each deployable's configuration |
 | `dbconnect/` | A deployable's database section of its configuration, in `dbconnect/core`, and the connection built from it |
 | `probes/` | The health probe and the metrics endpoint of a process that runs work rather than serving requests |
+| `logging/` | The logger every deployable writes its JSON records to standard output through, and the reading of its `log_level` |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`. A package added here without a list of its own falls
@@ -91,3 +93,19 @@ during them. Both composition roots held the same listener, and the probe the pl
 contract a copy could quietly break, a path renamed or a registry other than the process's own
 served. Written once, the endpoints are the same in every process that runs work. The listener is
 stopped by the function it returns, which shuts it down within five seconds.
+
+## The logs, `logging`
+
+Every deployable writes its logs as JSON to standard output at the level its `log_level` sets
+([ADR-0122](../docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).
+This package builds that logger over a level variable, reads the level's name, and makes the error
+log a shell gives an `http.Server` from the logger it was handed. A deployable's `main.go` builds
+the logger, and its entry package sets the level once the configuration has loaded.
+
+The case for one package over per-deployable glue is that the format and the level names are the
+contract. A copy that wrote text rather than JSON, wrote to standard error, or accepted `warning`
+or `INFO` where the others refuse it would make one deployable's logs read differently from the
+rest, or start where the others refuse. Written once, with a test per level name and a mutation
+patch for the refusal, they hold in every deployable.
+
+It holds no logger of its own and no package-level state, and it logs nothing.

@@ -6,12 +6,12 @@ scheduled-count: no
 
 
 diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
-index 8b7ebf3..59926dd 100644
+index 00a9fc2..ef95c40 100644
 --- a/mediate/internal/mcp/mcp.go
 +++ b/mediate/internal/mcp/mcp.go
-@@ -24,7 +24,8 @@ func Handler(reg service.Registry, version string) http.Handler {
- 		&sdk.Implementation{Name: "mediated-mailbox-mediate", Version: version},
- 		&sdk.ServerOptions{Capabilities: &sdk.ServerCapabilities{Tools: &sdk.ToolCapabilities{}}},
+@@ -28,7 +28,8 @@ func Handler(reg service.Registry, version string, logger *slog.Logger) http.Han
+ 			Logger:       slog.New(routineAtDebug{logger.Handler()}),
+ 		},
  	)
 -	for _, op := range reg.Operations() {
 +	ops := reg.Operations()

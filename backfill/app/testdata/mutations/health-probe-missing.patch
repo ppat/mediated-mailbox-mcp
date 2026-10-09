@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/probes/probes.go b/process/probes/probes.go
-index 68d6ef48..6dfc6d08 100644
+index 2ebd84f..d36e3a0 100644
 --- a/process/probes/probes.go
 +++ b/process/probes/probes.go
-@@ -23,7 +23,7 @@ import (
+@@ -25,7 +25,7 @@ import (
  // when the shutdown stopped it.
  func Serve(ln net.Listener, registry *prometheus.Registry, logger *slog.Logger) func() error {
  	mux := http.NewServeMux()
 -	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 +	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
  		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+ 		// A failed write means the prober went away, which leaves the operator nothing to act on.
  		if _, err := fmt.Fprintln(w, "ok"); err != nil {
- 			logger.WarnContext(r.Context(), "writing a probe answer failed", "error", err)

@@ -1,0 +1,22 @@
+control: An unknown log level is refused, and each of the four names reads as its own level
+removes: backfill's entry ignores the level parser's refusal and starts at info
+packages: ./backfill/app
+tests: TestTheConfiguredLevelGovernsTheLog/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/an_offset TestTheConfiguredLevelGovernsTheLog/warning
+scheduled-count: no
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index d6ba7c2..4b137e9 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -111,10 +111,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
+ 	for _, v := range loaded.Values {
+ 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+ 	}
+-	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
+-	if err != nil {
+-		return fmt.Errorf("validating the configuration: %w", err)
+-	}
++	lv, _ := logging.ParseLevel(loaded.Config.LogLevel)
+ 	level.Set(lv)
+ 	c := loaded.Config
+ 	if err := dbconnectcore.Validate(c.Database); err != nil {

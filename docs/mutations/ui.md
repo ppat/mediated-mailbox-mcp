@@ -333,7 +333,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## Every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
 
-- **Date · evidence:** 2026-10-01 · [pull request #230](https://github.com/ppat/mediated-mailbox-mcp/pull/230), which reproduces the breaks of [pull request #208](https://github.com/ppat/mediated-mailbox-mcp/pull/208) and adds the seventh, and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #230](https://github.com/ppat/mediated-mailbox-mcp/pull/230), which reproduces the breaks of [pull request #208](https://github.com/ppat/mediated-mailbox-mcp/pull/208) and adds the seventh, and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
 - **Break (1):** the account check is inverted, so a listed account is refused and an unlisted one is read
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestABaseLiftNeedsTheIdentifierTyped`, `TestADatabaseFailureReportsTheDatabaseOrigin`, `TestADayWithoutAServeCountsZero`, `TestAFileIsCheckedWholeAndImportsIntoAnyScope`, `TestAMoveWritesTheClientAndTheCredentialTogether`, `TestAPolicyWriteLeavesItsHistoryRowOrNothing`, `TestAPolicyWriteRecordsTheDeclaredIdentity`, `TestAPolicyWriteWithAnEmptyIdentityIsRefused`, `TestAPreviewCarriesTheAccountsNumbers`, `TestAReauthorizationRecordsItsAttemptAndAlwaysLands`, `TestAReleaseCountsTheSetOfSuffixesRemoved`, `TestARescanCountsOnlyTheCurrentMasks`, `TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten`, `TestAccountSettingsReadAndSetTheTarget`, `TestAnAccountWithNoStateIsConnectedByReauthorizing`, `TestAnIdentifierComesBackInItsScopeAndBesideTheOther`, `TestAnImportIsAppliedWholeOrNotAtAll`, `TestAnImportThatLiftsNeedsItsConfirmation`, `TestAnotherAccountsRuleIsUnknown`, `TestCardsComeNewestFirst`, `TestEveryReadIsPerAccount`, `TestReauthorizingCannotChangeTheMailbox`, `TestTheAccountSetupRoutesAreScoped`, `TestTheAddPanelReadsEachSuffixsMatch`, `TestTheAddPanelsCountTogetherAndTheBasePanelNamesNoAccount`, `TestTheBacklogRuleFiresAboveItsShare`, `TestTheBodyServeRuleFiresFarAboveItsMedian`, `TestTheEmptyGroupsWordSelectsTheRowsItCounts`, `TestTheFailuresDatasetAnswersItsLevels`, `TestTheLensAnswersItsLevels`, `TestTheMaskingRuleCountsEachSenderAndRule`, `TestTheMetricsCarryReadsAndSubscribers`, `TestThePolicyDatasetsAnswer`, `TestThePolicyRoutesAreScoped`, `TestTheRecordedFixturesMatchTheServer`, `TestTheRecordedPolicyFixturesMatchTheServer`, `TestTheRecordedSetupFixturesMatchTheServer`, `TestTheRegistryRefusesWhatItDoesNotDeclare`, `TestTheRowDetailAnswersItsRow`, `TestTheRunSummaryAnswersItsRun`, `TestTheRunsDatasetAnswersItsLevels`, `TestTheStreamSendsEachChangedObject`, `TestTheSyncGapRuleShowsTheRecovery`
 - **Break (2):** the value meaning every account is not refused for what it is, so it reads as an unknown account and an account named all would be read
@@ -367,7 +367,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## Every response a handler of the UI answers carries the content security policy, exact
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
 - **Break (1):** the policy allows connections to any origin, so a leaked subject could reach one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestEveryResponseCarriesThePolicy`, `TestTheStreamSendsEachChangedObject`
 - **Break (2):** the policy is set on the entry document and the bundle only, so the read API's answers and errors leave without it
@@ -377,7 +377,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## Every route registered on the probes listener is one of its three probe routes
 
-- **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
 - **Break (1):** a route other than the three probes is registered on the probes listener's recording mux after New stores it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/contract`:** `TestTheProbesListenerServesOnlyTheProbes`
 - **Break (2):** a route other than the three probes is registered on the probes listener's recording mux
@@ -385,7 +385,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## Every route registered through the recording mux's Handle is compared with the contract document
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
 - **Break (1):** a bespoke handler the document describes is left unmounted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/contract`:** `TestTheServerServesExactlyTheDocumentsRoutes`
 - **Break (2):** the recording mux embeds its ServeMux again, so its promoted Handle registers a route unrecorded
@@ -407,7 +407,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## `go vet` refuses a copy of a recording mux
 
-- **Date · evidence:** 2026-09-29 · [pull request #193](https://github.com/ppat/mediated-mailbox-mcp/pull/193), repeated with its patch regenerated in [pull request #207](https://github.com/ppat/mediated-mailbox-mcp/pull/207), and repeated in [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-29 · [pull request #193](https://github.com/ppat/mediated-mailbox-mcp/pull/193), repeated with its patch regenerated in [pull request #207](https://github.com/ppat/mediated-mailbox-mcp/pull/207), and repeated in [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
 - **Break:** the recording mux drops its noCopy field, so a copy of it passes go vet and records its routes unread
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheRecordingMuxRefusesACopy`
 
@@ -597,7 +597,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## The UI refuses to start while PGPASSWORD or PGSSLPASSWORD is set
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
 - **Break (1):** the UI starts whatever PGPASSWORD and PGSSLPASSWORD hold
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestAPasswordVariableRefusesTheStart`
 - **Break (2):** the refusal runs after the configuration is read, so a start whose configuration fails never reports the password variable
@@ -605,7 +605,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## The UI's configuration type is pinned field by field
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
 - **Break (1):** a value's configuration path is renamed, so the file, the environment and the flags name another key than the one declared
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestPlainHTTPRefusesTheStart`, `TestTheEffectiveConfigurationIsLogged`
 - **Break (2):** a value is added to the UI's root configuration type without updating the pinned field list

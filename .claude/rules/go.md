@@ -28,6 +28,12 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   returns an environment variable's value by a name its caller gives, or the environment as a whole,
   such as `os.Getenv`. Functions that read fixed platform variables for their own purpose, such as
   `os.UserHomeDir`, stay allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
+- **A shell logs through the logger it is handed.** A deployable's `main.go` builds the logger and
+  its level variable through `process/logging`, makes the logger the process default for code the
+  project does not own, and hands both to the entry, which sets the level from `log_level` and
+  passes the logger to every shell that logs. A `forbidigo` ban refuses, in every Go file, reading a
+  default logger through `slog`'s or `log`'s package-level functions and the built-in `print` and
+  `println` (ADR-0122, CLAUDE.md, Inside a component).
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
   txhelper analyser enforces it, by the rules and the three exempt statements CLAUDE.md states under
   Static analysis and formatting (ADR-0047). The base policy's statements run only in the helper's

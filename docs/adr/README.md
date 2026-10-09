@@ -214,3 +214,4 @@ moves it. Records themselves link freely and deep, into
 | 0086 | [The MCP root speaks the protocol through the official Go SDK, stateless and tools only](./engineering/0086-mcp-root-on-the-official-go-sdk.md) | Accepted |
 | 0099 | [A body request loads the policy before it decides, sharing a load only with the requests that arrived before it started](./engineering/0099-a-body-request-loads-the-policy-before-it-decides.md) | Accepted |
 | 0114 | [A policy reload whose accounts read different base rules reads them all once more, and fails only if they still disagree](./engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md) | Accepted |
+| 0122 | [Every deployable logs through log/slog as JSON to standard output, at a configured level, through a logger its entry package hands its shells](./engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md) | Accepted |

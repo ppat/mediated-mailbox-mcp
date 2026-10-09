@@ -6,12 +6,12 @@ scheduled-count: no
 
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..7654a5fd 100644
+index 523220a..68cb414 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -584,6 +584,10 @@ func (w *noStoreWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+@@ -602,6 +602,10 @@ func (w *noStoreWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
  // is read on each request. A file that cannot be read or holds no token admits nothing.
- func bearer(tokenFile string, next http.Handler) http.Handler {
+ func bearer(tokenFile string, logger *slog.Logger, next http.Handler) http.Handler {
  	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 +		if r.Header.Get("Authorization") == "" {
 +			next.ServeHTTP(w, r)
@@ -19,4 +19,4 @@ index 8f9657ee..7654a5fd 100644
 +		}
  		want, err := os.ReadFile(tokenFile) //nolint:gosec // the operator names the mounted file the token is read from
  		if err != nil {
- 			slog.ErrorContext(r.Context(), "reading the bearer token failed", "error", err)
+ 			logger.ErrorContext(r.Context(), "reading the bearer token failed", "error", err)

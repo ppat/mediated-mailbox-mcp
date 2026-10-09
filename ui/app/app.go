@@ -29,6 +29,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
@@ -77,6 +78,8 @@ type Configuration struct {
 	// (ADR-0084), so every write has one.
 	IdentityHeader string `yaml:"identity_header"`
 	OperatorName   string `yaml:"operator_name"`
+	// LogLevel is the lowest level the deployable logs at, debug, info, warn or error (ADR-0122).
+	LogLevel string `yaml:"log_level"`
 }
 
 // providerTimeout bounds one request to a provider, checking a client, exchanging a consent's code or
@@ -108,13 +111,17 @@ func defaults() Configuration {
 		AttentionGapDays:      7,
 		ConsentRedirect:       "http://127.0.0.1:47823/",
 		OperatorName:          "operator",
+		LogLevel:              logging.DefaultLevel,
 	}
 }
 
 // Run reads the configuration, validates it, builds the server over the browser bundle, embedded
 // holding it under browser/dist, and serves the UI and the probes until ctx ends. It logs the
 // effective configuration first, each value with the layer that set it.
-func Run(ctx context.Context, args, environ []string, logger *slog.Logger, embedded fs.FS) error {
+//
+// logger is the logger main.go built over level, at info until Run sets level from log_level once
+// the effective configuration is written, so every logger derived from logger follows it (ADR-0122).
+func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level *slog.LevelVar, embedded fs.FS) error {
 	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
 		return err
 	}
@@ -127,9 +134,16 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, embed
 	if err != nil {
 		return fmt.Errorf("loading the configuration: %w", err)
 	}
+	// The effective configuration is written before the level applies, so a refused value's source,
+	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
 	for _, v := range loaded.Values {
 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 	}
+	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
+	if err != nil {
+		return fmt.Errorf("validating the configuration: %w", err)
+	}
+	level.Set(lv)
 	c := loaded.Config
 	if err := dbconnectcore.Validate(c.Database); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
@@ -248,8 +262,9 @@ func serve(ctx context.Context, c Configuration, server *api.Server, logger *slo
 	ui := &http.Server{
 		Handler: server.Handler(), ReadHeaderTimeout: 10 * time.Second, TLSConfig: tlsConfig(c.TLSCert, c.TLSKey),
 		BaseContext: func(net.Listener) context.Context { return ctx },
+		ErrorLog:    logging.ServerErrorLog(logger),
 	}
-	probes := &http.Server{Handler: server.Probes(), ReadHeaderTimeout: 10 * time.Second}
+	probes := &http.Server{Handler: server.Probes(), ReadHeaderTimeout: 10 * time.Second, ErrorLog: logging.ServerErrorLog(logger)}
 	errs := make(chan error, 2)
 	go func() {
 		if c.InsecureHTTP {

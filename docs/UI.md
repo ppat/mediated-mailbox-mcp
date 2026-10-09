@@ -2514,6 +2514,7 @@ and finds no pasted address to be the redirect's.
 | `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `attention_expiry_days` | the "worth a look" thresholds of [section 8.1](#81-home), one key per rule, 0 disabling the rule and a negative value refused. The backlog's is a percent of the corpus, the masking rule's a count of events, the body-serve rule's a multiple of the median, and the sync-gap and expiry rules' a number of days | no, defaulting to the starting values of section 8.1, 5, 20, 2, 7 and 2 |
 | `default_theme` | `system`, `dark`, or `light` | no, defaults to `system` |
 | `stream_interval`, `stream_reconnect_max`, `stream_poll_interval` | the poll cadence behind the event stream, the reconnection backoff ceiling, and the polling fallback interval (ADR-0058) | no, defaults to the record's values |
+| `log_level` | the lowest level the UI logs at, `debug`, `info`, `warn` or `error`, any other text refused at start (ADR-0122) | no, defaults to `info` |
 
 ### 18.2 The UI's own observability
 

@@ -721,7 +721,7 @@ func (h *harness) both(t *testing.T, id string) (apiAnswer, mcpAnswer surfaceAns
 	if err := os.WriteFile(tokenFile, []byte("s3cret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	handler, err := surface(h.reg, tokenFile)
+	handler, err := surface(h.reg, tokenFile, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}

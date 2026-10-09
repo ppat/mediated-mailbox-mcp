@@ -238,7 +238,7 @@ func New(opts Options) (*Server, error) {
 
 	probes := &recordingMux{mux: http.NewServeMux()}
 	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		answer(w, r, http.StatusOK, "ok")
+		answer(w, r, opts.Logger, http.StatusOK, "ok")
 	}))
 	probes.Handle("GET /readyz", http.HandlerFunc(s.ready))
 	probes.Handle("GET /metrics", promhttp.HandlerFor(opts.Metrics, promhttp.HandlerOpts{}))
@@ -285,18 +285,19 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 	if err := s.opts.Database.Ping(ctx); err != nil {
-		answer(w, r, http.StatusServiceUnavailable, "the database does not answer")
+		answer(w, r, s.opts.Logger, http.StatusServiceUnavailable, "the database does not answer")
 		return
 	}
-	answer(w, r, http.StatusOK, "ready")
+	answer(w, r, s.opts.Logger, http.StatusOK, "ready")
 }
 
-// answer writes a plain-text probe answer. A failed write means the prober went away.
-func answer(w http.ResponseWriter, r *http.Request, status int, text string) {
+// answer writes a plain-text probe answer. A failed write means the prober went away, which leaves the
+// operator nothing to act on, so it is detail.
+func answer(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status int, text string) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(status)
 	if _, err := w.Write([]byte(text + "\n")); err != nil {
-		slog.DebugContext(r.Context(), "writing a probe answer failed", "error", err)
+		logger.DebugContext(r.Context(), "writing a probe answer failed", "error", err)
 	}
 }
 

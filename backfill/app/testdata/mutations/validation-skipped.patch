@@ -5,12 +5,12 @@ tests: TestAnEmptyHostRefusesTheStart
 scheduled-count: no
 
 diff --git a/backfill/app/app.go b/backfill/app/app.go
-index 1691e4f5..46ae9709 100644
+index d6ba7c2..950d26d 100644
 --- a/backfill/app/app.go
 +++ b/backfill/app/app.go
-@@ -103,9 +103,6 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
- 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+@@ -117,9 +117,6 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
  	}
+ 	level.Set(lv)
  	c := loaded.Config
 -	if err := dbconnectcore.Validate(c.Database); err != nil {
 -		return fmt.Errorf("validating the configuration: %w", err)

@@ -54,7 +54,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
 		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
 		"SealPublicKeyFile string", "PrivateKeyFiles []string", "TokenKeyFile string",
-		"ConsentRedirect string", "IdentityHeader string", "OperatorName string")
+		"ConsentRedirect string", "IdentityHeader string", "OperatorName string", "LogLevel string")
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -80,11 +80,12 @@ func TestTheDefaults(t *testing.T) {
 		AttentionGapDays:      7,
 		ConsentRedirect:       "http://127.0.0.1:47823/",
 		OperatorName:          "operator",
+		LogLevel:              "info",
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), []string{"--database.name=mailbox", "--database.password_file=/absent"}, nil, discard(), bundle)
+	err := Run(t.Context(), []string{"--database.name=mailbox", "--database.password_file=/absent"}, nil, discard(), new(slog.LevelVar), bundle)
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
@@ -99,7 +100,7 @@ func TestPlainHTTPRefusesTheStart(t *testing.T) {
 		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true", "--seal_public_key_file=/absent",
 		"--private_key_files=[/absent]",
 	}
-	err := Run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard(), bundle)
+	err := Run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard(), new(slog.LevelVar), bundle)
 	want := "validating the configuration: insecure_http is true, and a binary built without the devloop build tag serves TLS only"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -112,7 +113,7 @@ func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
 		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
 		"--tls_cert=/tls/cert", "--seal_public_key_file=/absent", "--private_key_files=[/absent]",
 	}
-	err := Run(t.Context(), args, nil, discard(), bundle)
+	err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
 	want := "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -121,7 +122,7 @@ func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
 
 // A password variable refuses the start before any configuration is read.
 func TestAPasswordVariableRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, discard(), bundle)
+	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, discard(), new(slog.LevelVar), bundle)
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -257,7 +258,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--seal_public_key_file=" + publicKeyFile,
 		"--private_key_files=[" + privateKeyFile + "]",
 	},
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, bundle)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, new(slog.LevelVar), bundle)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
 		t.Fatalf("Run returned %v, want the key pair refused", err)
 	}
@@ -279,6 +280,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=identity_header source=default value=""`,
 		`level=INFO msg=configuration path=insecure_http source=default value=false`,
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
+		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=operator_name source=default value=operator`,
 		`level=INFO msg=configuration path=private_key_files source="flag --private_key_files" value=[` + privateKeyFile + `]`,
 		`level=INFO msg=configuration path=probe_listen source="flag --probe_listen" value=127.0.0.1:0`,
@@ -346,10 +348,61 @@ func TestANonLoopbackConsentRedirectRefusesTheStart(t *testing.T) {
 			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 			"--tls_key=/tls/key", "--seal_public_key_file=/absent", "--private_key_files=[/absent]", "--consent_redirect=" + value,
 		}
-		err := Run(t.Context(), args, nil, discard(), bundle)
+		err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
 		want := "validating the configuration: consent_redirect is not an http address on a loopback IP literal with an explicit port"
 		if err == nil || err.Error() != want {
 			t.Errorf("%s: Run returned %v, want %q", value, err, want)
 		}
+	}
+}
+
+// The start writes the effective configuration with each value's source before the level applies,
+// then sets the level of the logger it was handed from log_level. So whatever the level, a refused
+// value's source is written, log_level's own included, and once the level is set no record below it
+// is written. A level that names none is refused (ADR-0078, ADR-0122).
+func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
+	refused := func(name string) string {
+		return `validating the configuration: log_level "` + name + `" is not one of debug, info, warn and error`
+	}
+	logLevelFrom := func(source, value string) string {
+		return `"msg":"configuration","path":"log_level","source":"` + source + `","value":"` + value + `"`
+	}
+	cases := []struct {
+		name    string
+		args    []string
+		environ []string
+		wantErr string
+		// wantLine is a record the start must write, whatever the level.
+		wantLine string
+		// wantInfo is whether an info record is written once the start has returned.
+		wantInfo bool
+	}{
+		{name: "no level", wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("default", "info"), wantInfo: true},
+		{name: "info", args: []string{"--log_level=info"}, wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("flag --log_level", "info"), wantInfo: true},
+		{name: "warn", args: []string{"--log_level=warn"}, wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("flag --log_level", "warn")},
+		{name: "error, from the environment", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=error"}, wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "error")},
+		{name: "a name in upper case", args: []string{"--log_level=INFO"}, wantErr: refused("INFO"), wantLine: logLevelFrom("flag --log_level", "INFO"), wantInfo: true},
+		{name: "an offset", args: []string{"--log_level=info+2"}, wantErr: refused("info+2"), wantLine: logLevelFrom("flag --log_level", "info+2"), wantInfo: true},
+		{name: "warning", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=warning"}, wantErr: refused("warning"), wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "warning"), wantInfo: true},
+		{name: "a refused value at warn", args: append([]string{"--log_level=warn"}, []string{}...), wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: `"msg":"configuration","path":"tls_cert","source":"flag --tls_cert","value":"/tls/cert"`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			level := new(slog.LevelVar)
+			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
+			err := Run(t.Context(), append([]string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert", "--seal_public_key_file=/absent", "--private_key_files=[/absent]"}, c.args...), c.environ, logger, level, bundle)
+			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
+				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
+			}
+			if !strings.Contains(out.String(), c.wantLine) {
+				t.Errorf("the start did not write %s:\n%s", c.wantLine, out.String())
+			}
+			out.Reset()
+			logger.Info("after the start")
+			if written := out.Len() != 0; written != c.wantInfo {
+				t.Errorf("an info record after the start was written: %v, want %v", written, c.wantInfo)
+			}
+		})
 	}
 }

@@ -5,13 +5,15 @@ tests: TestTheConfigurationTypeIsPinned TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/ui/app/app.go b/ui/app/app.go
-index f539f0b1..8f6cf411 100644
+index 5611ca2..7ee0d5b 100644
 --- a/ui/app/app.go
 +++ b/ui/app/app.go
-@@ -77,6 +77,7 @@ type Configuration struct {
- 	// (ADR-0084), so every write has one.
+@@ -79,7 +79,8 @@ type Configuration struct {
  	IdentityHeader string `yaml:"identity_header"`
  	OperatorName   string `yaml:"operator_name"`
+ 	// LogLevel is the lowest level the deployable logs at, debug, info, warn or error (ADR-0122).
+-	LogLevel string `yaml:"log_level"`
++	LogLevel        string        `yaml:"log_level"`
 +	AttemptLifetime time.Duration `yaml:"attempt_lifetime"`
  }
  
