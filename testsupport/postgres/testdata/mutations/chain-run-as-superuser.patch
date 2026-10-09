@@ -1,0 +1,20 @@
+control: The chain applies with no superuser step
+removes: the chain runs as the superuser rather than the migration role
+packages: ./testsupport/postgres
+tests: TestTheChainAppliesWithNoSuperuserStep
+scheduled-count: no
+integration: yes
+
+diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
+index c3471cbf..4f7b5c4b 100644
+--- a/testsupport/postgres/chain.go
++++ b/testsupport/postgres/chain.go
+@@ -34,7 +34,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, dir string) (err erro
+ 		return err
+ 	}
+ 
+-	databaseMigrate, err := inDatabase(migrate, name)
++	databaseMigrate, err := inDatabase(admin, name)
+ 	if err != nil {
+ 		return err
+ 	}

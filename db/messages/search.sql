@@ -21,7 +21,7 @@ WHERE
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
-    AND (@from_domains::citext[] IS NULL OR m.from_domain = any(@from_domains::citext[]))
+    AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
     AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
     AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
     AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])
@@ -110,7 +110,7 @@ WHERE
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
-    AND (@from_domains::citext[] IS NULL OR m.from_domain = any(@from_domains::citext[]))
+    AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
     AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
     AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
     AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])
@@ -151,7 +151,7 @@ WHERE
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
-    AND (@from_domains::citext[] IS NULL OR m.from_domain = any(@from_domains::citext[]))
+    AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
     AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
     AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
     AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])
@@ -199,7 +199,7 @@ WHERE
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
-    AND (@from_domains::citext[] IS NULL OR m.from_domain = any(@from_domains::citext[]))
+    AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
     AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
     AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
     AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])
@@ -226,7 +226,7 @@ GROUP BY m.from_domain
 HAVING
     @first_page::boolean
     OR count(*) < @after_count::bigint
-    OR (count(*) = @after_count::bigint AND m.from_domain > @after_key::citext)
+    OR (count(*) = @after_count::bigint AND m.from_domain > @after_key::text)
 ORDER BY messages DESC, m.from_domain ASC
 LIMIT @page_size;
 
@@ -250,7 +250,7 @@ WHERE
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
-    AND (@from_domains::citext[] IS NULL OR m.from_domain = any(@from_domains::citext[]))
+    AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
     AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
     AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
     AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])
@@ -302,7 +302,7 @@ FROM (
         AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
         AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
         AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
-        AND (@from_domains::citext[] IS NULL OR m.from_domain = any(@from_domains::citext[]))
+        AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
         AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
         AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
         AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])

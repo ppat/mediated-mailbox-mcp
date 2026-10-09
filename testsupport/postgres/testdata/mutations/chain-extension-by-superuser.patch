@@ -1,0 +1,34 @@
+control: The chain applies with no superuser step
+removes: the extension is created by the superuser before the chain runs, a superuser step inside the application database
+packages: ./testsupport/postgres
+tests: TestTheChainAppliesWithNoSuperuserStep
+scheduled-count: no
+integration: yes
+
+diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
+index c3471cbf..65c87129 100644
+--- a/testsupport/postgres/chain.go
++++ b/testsupport/postgres/chain.go
+@@ -34,6 +34,22 @@ func ApplyChain(ctx context.Context, admin, migrate, name, dir string) (err erro
+ 		return err
+ 	}
+ 
++	databaseAdmin, err := inDatabase(admin, name)
++	if err != nil {
++		return err
++	}
++	dconn, err := pgx.Connect(ctx, databaseAdmin)
++	if err != nil {
++		return err
++	}
++	_, err = dconn.Exec(ctx, "CREATE EXTENSION IF NOT EXISTS citext")
++	if closeErr := dconn.Close(context.Background()); err == nil {
++		err = closeErr
++	}
++	if err != nil {
++		return err
++	}
++
+ 	databaseMigrate, err := inDatabase(migrate, name)
+ 	if err != nil {
+ 		return err

@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a message's stored sender class is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..f3785fa3 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -164,7 +164,7 @@ CREATE TABLE messages (
+     list_id text,
+     size_bytes int,
+     auth_results jsonb,
+-    sender_class text NOT NULL CHECK (sender_class IN ('normal', 'restricted')),
++    sender_class text NOT NULL,
+     content_flags text[] NOT NULL DEFAULT '{}' CHECK (content_flags <@ '{mfa_code,login_link}'),
+     -- The content rules that set content_flags (ADR-0009).
+     rule_ids text[] NOT NULL DEFAULT '{}',

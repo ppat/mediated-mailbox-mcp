@@ -113,7 +113,7 @@ func TestTheRunsDatasetAnswersItsLevels(t *testing.T) {
 	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=0&range=all&pass=!tick", &summary)
 	failedAt := now.Add(-49 * 60 * 60 * 1e9).UTC().Format("2006-01-02T15:04:05Z")
 	want := []figure{
-		{Key: "runs", Value: n(7), Link: "/personal/jobs"},
+		{Key: "runs", Value: n(5), Link: "/personal/jobs"},
 		{Key: "running", Value: n(2), Link: "/personal/jobs?state=running"},
 		{Key: "failed", Value: n(1), Link: "/personal/jobs?state=failed"},
 		{Key: "last_failure", At: &failedAt, Link: "/personal/jobs/r-0912"},
@@ -144,7 +144,7 @@ func TestTheRunsDatasetAnswersItsLevels(t *testing.T) {
 		return out
 	}
 	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=3&range=all&pass=!tick", &page)
-	if want := []string{"r-0913", "r-0915", "r-0909", "r-0911", "r-0912", "r-0901", "r-0910"}; !slices.Equal(ids(), want) || page.Total.Count != 7 {
+	if want := []string{"r-0913", "r-0908", "r-0911", "r-0912", "r-0901"}; !slices.Equal(ids(), want) || page.Total.Count != 5 {
 		t.Fatalf("the runs newest first, ticks excluded, are %v of %d, want %v", ids(), page.Total.Count, want)
 	}
 	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=3&range=all&sort=failures,desc&pass=!tick", &page)
@@ -166,16 +166,21 @@ func TestTheRunsDatasetAnswersItsLevels(t *testing.T) {
 
 	var g groups
 	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=1&group=workload&range=all", &g)
-	if want := []string{"backfill=3", "apply=2", "sync=2", "heuristics=1"}; !slices.Equal(g.counts(), want) || g.Total.Count != 8 || g.Total.Restricted != nil {
-		t.Fatalf("by workload the groups are %v of %d, want %v of 8 and no sensitivity", g.counts(), g.Total.Count, want)
+	// The two groups tie, so the workload's own order breaks it.
+	if want := []string{"backfill=3", "sync=3"}; !slices.Equal(g.counts(), want) || g.Total.Count != 6 || g.Total.Restricted != nil {
+		t.Fatalf("by workload the groups are %v of %d, want %v of 6 and no sensitivity", g.counts(), g.Total.Count, want)
 	}
 	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=2&group=state&range=all&workload=backfill", &g)
 	if want := []string{"failed=1", "running=1", "succeeded=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("backfill by state is %v, want %v", g.counts(), want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=1&group=day&range=all&workload=!apply", &g)
-	if want := []string{"2026-09-08=2", "2026-09-10=2", "2026-09-01=1", "2026-09-09=1"}; !slices.Equal(g.counts(), want) {
-		t.Fatalf("by day the groups are %v, want %v", g.counts(), want)
+	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=1&group=day&range=all", &g)
+	if want := []string{"2026-09-10=3", "2026-09-08=2", "2026-09-01=1"}; !slices.Equal(g.counts(), want) {
+		t.Fatalf("by day the groups are %v, want %v, the most runs first", g.counts(), want)
+	}
+	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=1&group=day&range=all&workload=!sync", &g)
+	if want := []string{"2026-09-01=1", "2026-09-08=1", "2026-09-10=1"}; !slices.Equal(g.counts(), want) {
+		t.Fatalf("by day without delta sync the groups are %v, want %v", g.counts(), want)
 	}
 }
 
@@ -407,7 +412,7 @@ func TestTheRunSummaryAnswersItsRun(t *testing.T) {
 	if e := summary.Events[2]; e.Detail == nil || *e.Detail != marker.MarkupField("eventdetail") || e.Page == nil || *e.Page != 12 {
 		t.Fatalf("the failure event is %+v", e)
 	}
-	read(t, h, "/api/{account}/jobs/{run}", "/api/personal/jobs/r-0909", &summary)
+	read(t, h, "/api/{account}/jobs/{run}", "/api/personal/jobs/r-0911", &summary)
 	if summary.Resumer != nil || summary.Failures.Count != 0 || len(summary.Failures.Dispositions) != 0 || len(summary.Events) != 0 {
 		t.Fatalf("a run with no resumer, failure or event reads %+v", summary)
 	}

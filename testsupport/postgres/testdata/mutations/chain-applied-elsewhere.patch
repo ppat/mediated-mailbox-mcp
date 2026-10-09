@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
-index cfee0ec..49f9d18 100644
+index c3471cbf..d723b230 100644
 --- a/testsupport/postgres/chain.go
 +++ b/testsupport/postgres/chain.go
-@@ -46,7 +46,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, bootstrap, dir string
+@@ -34,7 +34,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, dir string) (err erro
  		return err
  	}
  

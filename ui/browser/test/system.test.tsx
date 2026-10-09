@@ -47,7 +47,7 @@ async function recording(file: string): Promise<System> {
   return JSON.parse(await Bun.file(new URL(`fixtures/${file}`, import.meta.url)).text());
 }
 
-const marker = "<script>mmfieldmarker-authoutcome</script>";
+const marker = "<script>mmfieldmarker-systemvalue</script>";
 
 test("a pass 1 fetching stale subjects again shows the subjects fetched again of all it fetches, with its bar", async () => {
   const reopened = await recording("system-reopened.json");
@@ -70,7 +70,7 @@ test("the screen shows each operational value, and the rows UI.md sends to Jobs 
     ["Rate", "3.1 of 5.0 units/s, cap 8.0 units/s", null],
     ["Backoff", "not in backoff", null],
     ["Last throttle", "2026-09-10 08:16Z", null],
-    ["Last authentication", marker, " · 2026-09-10 04:16Z"],
+    ["Last authentication", "succeeded", " · 2026-09-10 04:16Z"],
   ]);
   // The six rows section 8.8 sends to Jobs link there, and the two it sends to the corpus lens, which
   // does not exist yet, link nowhere, nor does the account row. The authentication row links to
@@ -189,11 +189,11 @@ test("the navigation marks System, and g then s goes to it", async () => {
   ]);
 });
 
-test("an authentication outcome carrying markup arrives as text, and nothing is built from it", async () => {
+test("the operational values arrive as text, and markup in any of them builds nothing", async () => {
   const root = await open("/personal/system");
   const list = root.querySelector('dl[aria-label="Operational state"]');
   const auth = [...(list?.querySelectorAll("dd .value") ?? [])].at(-1);
-  expect(auth?.textContent).toBe(marker);
+  expect(auth?.textContent).toBe("succeeded");
   expect(auth?.childElementCount).toBe(0);
   expect(root.querySelectorAll("script").length).toBe(0);
   // Ten labels and ten values, a value element in each, the six links to Jobs and the authentication's

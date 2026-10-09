@@ -27,7 +27,7 @@ WHERE
     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-    AND ($5::citext[] IS NULL OR m.from_domain = any($5::citext[]))
+    AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
     AND ($6::text[] IS NULL OR m.labels @> $6::text[])
     AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
     AND ($8::text[] IS NULL OR m.labels <@ $8::text[])
@@ -150,7 +150,7 @@ FROM (
         AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
         AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
         AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-        AND ($5::citext[] IS NULL OR m.from_domain = any($5::citext[]))
+        AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
         AND ($6::text[] IS NULL OR m.labels @> $6::text[])
         AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
         AND ($8::text[] IS NULL OR m.labels <@ $8::text[])
@@ -267,7 +267,7 @@ WHERE
     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-    AND ($5::citext[] IS NULL OR m.from_domain = any($5::citext[]))
+    AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
     AND ($6::text[] IS NULL OR m.labels @> $6::text[])
     AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
     AND ($8::text[] IS NULL OR m.labels <@ $8::text[])
@@ -394,7 +394,7 @@ WHERE
     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-    AND ($5::citext[] IS NULL OR m.from_domain = any($5::citext[]))
+    AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
     AND ($6::text[] IS NULL OR m.labels @> $6::text[])
     AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
     AND ($8::text[] IS NULL OR m.labels <@ $8::text[])
@@ -421,7 +421,7 @@ GROUP BY m.from_domain
 HAVING
     $15::boolean
     OR count(*) < $16::bigint
-    OR (count(*) = $16::bigint AND m.from_domain > $17::citext)
+    OR (count(*) = $16::bigint AND m.from_domain > $17::text)
 ORDER BY messages DESC, m.from_domain ASC
 LIMIT $18
 `
@@ -526,7 +526,7 @@ WHERE
     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-    AND ($5::citext[] IS NULL OR m.from_domain = any($5::citext[]))
+    AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
     AND ($6::text[] IS NULL OR m.labels @> $6::text[])
     AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
     AND ($8::text[] IS NULL OR m.labels <@ $8::text[])
@@ -712,7 +712,7 @@ WHERE
     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-    AND ($5::citext[] IS NULL OR m.from_domain = any($5::citext[]))
+    AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
     AND ($6::text[] IS NULL OR m.labels @> $6::text[])
     AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
     AND ($8::text[] IS NULL OR m.labels <@ $8::text[])

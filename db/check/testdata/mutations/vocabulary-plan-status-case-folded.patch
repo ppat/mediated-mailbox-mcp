@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a plan's status is checked without regard to case, so a status spelled in lowercase is stored
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..55464a7b 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -274,7 +274,7 @@ CREATE TABLE reorg_plans (
+     account_id text NOT NULL REFERENCES accounts,
+     -- ADR-0020's set.
+     status text NOT NULL CHECK (
+-        status IN ('DRAFT', 'APPROVED', 'APPLYING', 'APPLIED', 'ROLLED_BACK', 'REJECTED', 'APPLY_REFUSED')
++        upper(status) IN ('DRAFT', 'APPROVED', 'APPLYING', 'APPLIED', 'ROLLED_BACK', 'REJECTED', 'APPLY_REFUSED')
+     ),
+     description text,
+     -- The client actor at creation.

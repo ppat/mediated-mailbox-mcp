@@ -365,7 +365,7 @@ func TestTheIndexReadsClassifySendersUnderThePolicyInForce(t *testing.T) {
 		t.Errorf("list_senders (-want +got), next %v:\n%s", next, diff)
 	}
 	raw := string(call(t, reg, "list_senders", `{"account_id":"`+account+`"}`))
-	for _, absent := range []string{"scan_hit", `"domain":"old.example","sender_class":"restricted"`, "embedding"} {
+	for _, absent := range []string{"scan_hit", `"domain":"old.example","sender_class":"restricted"`} {
 		if strings.Contains(raw, absent) {
 			t.Errorf("list_senders carries %q: %s", absent, raw)
 		}

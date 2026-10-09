@@ -245,11 +245,19 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The chain applies from an empty database on every test run
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** goose applies the chain to the database the migration URL names rather than the one just created empty
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainAppliesWithNoSuperuserStep`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty`
 - **Break (2):** a migration that fails does not fail the chain's application
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty`
+
+## The chain applies with no superuser step
+
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Break (1):** the extension is created by the superuser before the chain runs, a superuser step inside the application database
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainAppliesWithNoSuperuserStep`
+- **Break (2):** the chain runs as the superuser rather than the migration role
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainAppliesWithNoSuperuserStep`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/current_shape`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty`
 
 ## The crash harness checks persistence after every crash, and replays the reduced sequence against PostgreSQL
 

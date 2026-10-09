@@ -66,11 +66,12 @@ func superuser(t *testing.T) *pgx.Conn {
 var unsafeName = regexp.MustCompile(`[^a-z0-9]+`)
 
 // newAccount creates an account named for the test and returns it, so each test, and each run of it,
-// has rate state of its own.
+// has rate state of its own. The test's name is cut short, so the identifier stays within the grammar
+// the schema checks, one DNS label of at most 63 characters.
 func newAccount(t *testing.T, conn *pgx.Conn) string {
 	t.Helper()
-	account := "acct-" + strings.Trim(unsafeName.ReplaceAllString(strings.ToLower(t.Name()), "-"), "-") +
-		"-" + strings.ToLower(rand.Text()[:8])
+	name := strings.Trim(unsafeName.ReplaceAllString(strings.ToLower(t.Name()), "-"), "-")
+	account := "acct-" + strings.TrimRight(name[:min(len(name), 40)], "-") + "-" + strings.ToLower(rand.Text()[:8])
 	must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", account)
 	return account
 }

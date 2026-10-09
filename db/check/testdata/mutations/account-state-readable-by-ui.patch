@@ -5,15 +5,15 @@ tests: TestTheProviderCallingRolesReadOnlyTheirAccountsState TestTheProviderCall
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00008_account_state.sql b/db/migrations/00008_account_state.sql
-index a600f2d..b5a7fde 100644
---- a/db/migrations/00008_account_state.sql
-+++ b/db/migrations/00008_account_state.sql
-@@ -87,6 +87,6 @@ CREATE TABLE oauth_clients (
- GRANT SELECT (account_id, provider) ON accounts
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..3e296702 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -542,6 +542,6 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
+ GRANT SELECT (account_id, provider, oauth_client) ON accounts
  TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
  GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
 -TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 +TO mediated_mailbox_ui, mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
- GRANT SELECT (provider, client_id, client_secret) ON oauth_clients
+ GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
  TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;

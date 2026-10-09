@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: the sender statistics' class is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..daf48e72 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -135,7 +135,7 @@ CREATE TABLE senders (
+     has_list_id_ratio real,
+     label_distribution jsonb,
+     scan_hit_count bigint NOT NULL DEFAULT 0,
+-    sender_class text NOT NULL DEFAULT 'normal' CHECK (sender_class IN ('normal', 'restricted')),
++    sender_class text NOT NULL DEFAULT 'normal',
+     PRIMARY KEY (account_id, domain)
+ );
+ 

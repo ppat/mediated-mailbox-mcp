@@ -1,7 +1,7 @@
 control: Message-derived text renders inert
 removes: the system screen keeps every row's value but its second as text and hands the second row's value to the raw-markup escape hatch, so inert rendering covers less of the screen
 packages: ./ui/browser/test/system.test.tsx
-tests: an authentication outcome carrying markup arrives as text, and nothing is built from it
+tests: the operational values arrive as text, and markup in any of them builds nothing
 scheduled-count: no
 runner: bun
 

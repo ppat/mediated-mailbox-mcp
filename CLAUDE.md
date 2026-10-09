@@ -284,9 +284,9 @@ own named hooks.
 - **No image this repository pins is pulled from Docker Hub.** CI's anonymous pulls there hit its rate limit, and its
   logins time out. The golang stages pull from `public.ecr.aws/docker/library/golang`, whose tag
   list Renovate reads in full, so the go group's Dockerfile pins move with go.mod and mise.toml.
-  `oven/bun` and the test PostgreSQL image pull from `mirror.gcr.io`, the only other registry that
-  serves them, at the same digests. Its tag list can trail Docker Hub's by days, which delays
-  Renovate's update of those two pins.
+  `oven/bun`, which no other registry serves, and the official PostgreSQL image the tests start pull
+  from `mirror.gcr.io`, at the same digests. Its tag list can trail Docker Hub's by days, which
+  delays Renovate's update of those two pins.
 
 ### CI workflows
 

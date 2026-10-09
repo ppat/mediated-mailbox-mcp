@@ -51,7 +51,7 @@
     }
   },
   "sync": {
-    "state": "idle",
+    "state": "running",
     "cadence_seconds": 300,
     "cursor_at": "2026-09-10T10:12:04Z",
     "last_tick": {
@@ -74,101 +74,36 @@
       },
       "last_error": null
     },
-    "gap_recoveries_7d": 1,
+    "gap_recoveries_7d": 3,
     "last_gap_recovery": {
-      "run_id": "r-0911",
+      "run_id": "r-0917",
       "workload": "sync",
       "pass": "gap_recovery",
-      "state": "succeeded",
+      "state": "running",
       "plan_id": null,
       "plan_description": null,
       "plan_status": null,
       "resumed_from": null,
-      "started_at": "2026-09-08T10:16:04Z",
-      "finished_at": "2026-09-08T10:16:04Z",
-      "heartbeat_at": "2026-09-08T10:16:04Z",
+      "started_at": "2026-09-10T10:15:34Z",
+      "finished_at": null,
+      "heartbeat_at": "2026-09-10T10:15:34Z",
       "checkpoint": null,
-      "counters": {
-        "reconciled": 41,
-        "window_end": "2026-09-08T06:00:00Z",
-        "window_start": "2026-09-08T00:00:00Z"
-      },
+      "counters": {},
       "last_error": null
     }
   },
   "apply": {
-    "state": "running",
-    "running": {
-      "run_id": "r-0915",
-      "workload": "apply",
-      "pass": "apply",
-      "state": "running",
-      "plan_id": "7f3a9c00-0000-4000-8000-000000000002",
-      "plan_description": "\u003cscript\u003emmfieldmarker-applyingplan\u003c/script\u003e",
-      "plan_status": "APPLYING",
-      "resumed_from": null,
-      "started_at": "2026-09-10T07:16:04Z",
-      "finished_at": null,
-      "heartbeat_at": "2026-09-10T10:15:04Z",
-      "checkpoint": {
-        "of": 2,
-        "seq": 1
-      },
-      "counters": {
-        "failures": 0,
-        "ops_done": 1,
-        "ops_total": 2
-      },
-      "last_error": "\u003cscript\u003emmfieldmarker-runerror\u003c/script\u003e"
-    },
-    "last": {
-      "run_id": "r-0910",
-      "workload": "apply",
-      "pass": "apply",
-      "state": "succeeded",
-      "plan_id": "7f3a9c00-0000-4000-8000-000000000003",
-      "plan_description": "\u003cscript\u003emmfieldmarker-appliedplan\u003c/script\u003e",
-      "plan_status": "APPLIED",
-      "resumed_from": null,
-      "started_at": "2026-08-31T10:16:04Z",
-      "finished_at": "2026-08-31T10:16:04Z",
-      "heartbeat_at": "2026-08-31T10:16:04Z",
-      "checkpoint": {
-        "of": 2,
-        "seq": 2
-      },
-      "counters": {
-        "failures": 0,
-        "ops_done": 2,
-        "ops_total": 2
-      },
-      "last_error": null
-    },
-    "rollback_available": true,
-    "op_log_rows": 2
+    "state": "not_started",
+    "running": null,
+    "last": null,
+    "rollback_available": false,
+    "op_log_rows": null
   },
   "heuristics": {
-    "state": "running",
+    "state": "not_started",
     "cadence_seconds": 86400,
-    "last": {
-      "run_id": "r-0909",
-      "workload": "heuristics",
-      "pass": null,
-      "state": "succeeded",
-      "plan_id": null,
-      "plan_description": null,
-      "plan_status": null,
-      "resumed_from": null,
-      "started_at": "2026-09-09T14:16:04Z",
-      "finished_at": "2026-09-09T14:16:04Z",
-      "heartbeat_at": "2026-09-09T14:16:04Z",
-      "checkpoint": null,
-      "counters": {
-        "candidates": 2
-      },
-      "last_error": null
-    },
-    "next_run_at": "2026-09-10T14:16:04Z"
+    "last": null,
+    "next_run_at": null
   },
   "rate": {
     "current": 3.1,

@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
-index a23f65e..f9603a0 100644
+index 77a39501..da070fbb 100644
 --- a/db/migrations/00003_row_level_security.sql
 +++ b/db/migrations/00003_row_level_security.sql
-@@ -22,7 +22,6 @@ ALTER TABLE senders ENABLE ROW LEVEL SECURITY;
+@@ -44,7 +44,6 @@ ALTER TABLE senders ENABLE ROW LEVEL SECURITY;
  CREATE POLICY senders_account ON senders
  USING (account_id = current_setting('app.account'));
  

@@ -6,14 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
-index 368548b..3d603c7 100644
+index eba1d5bc..4629a528 100644
 --- a/db/migrations/00004_grants.sql
 +++ b/db/migrations/00004_grants.sql
-@@ -30,6 +30,6 @@ job_run_events,
+@@ -451,7 +451,7 @@ job_run_events,
  job_run_failures,
  audit_log
  TO mediated_mailbox_ui;
 -GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
 +GRANT UPDATE ON reorg_plans TO mediated_mailbox_ui;
  GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
- GRANT INSERT ON policy_rules TO mediated_mailbox_ui;
+ -- Account setup writes an account's listing row, with the client it connects through, and moves an
+ -- account to another client of its provider (ADR-0091, ADR-0106). accounts_account confines both

@@ -5,11 +5,11 @@ tests: TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction TestTheBasePolicyI
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
-index de58e776..b5101ee9 100644
---- a/db/migrations/00023_policy_management.sql
-+++ b/db/migrations/00023_policy_management.sql
-@@ -43,7 +43,6 @@ USING (account_id IS NULL);
+diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
+index 77a39501..c077dd79 100644
+--- a/db/migrations/00003_row_level_security.sql
++++ b/db/migrations/00003_row_level_security.sql
+@@ -77,7 +77,6 @@ USING (account_id IS NULL);
  -- and a base-policy transaction's empty account matches no account's row, so it reads and writes none.
  -- Neither setting is known on a connection that never set it, so both are read with missing_ok.
  CREATE POLICY policy_rules_base_write ON policy_rules

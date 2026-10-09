@@ -161,13 +161,13 @@ type jobsQueries struct {
 
 func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now time.Time) (jobsResponse, error) {
 	q := jq.runs
-	latest, err := q.LatestRuns(ctx, account)
+	latest, err := latestRuns(ctx, q, account)
 	if err != nil {
 		return jobsResponse{}, err
 	}
 	find := func(workload, pass string) *jobruns.LatestRunsRow {
 		i := slices.IndexFunc(latest, func(r jobruns.LatestRunsRow) bool {
-			return r.Workload == workload && (pass == "" && !r.Pass.Valid || r.Pass.Valid && r.Pass.String == pass)
+			return r.Workload == workload && r.Pass == pass
 		})
 		if i < 0 {
 			return nil
@@ -223,7 +223,7 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 	}
 	since := pgtype.Timestamptz{Time: now.Add(-7 * 24 * time.Hour), Valid: true}
 	if out.Sync.GapRecoveries7d, err = q.RunsStartedSince(ctx, jobruns.RunsStartedSinceParams{
-		AccountID: account, Workload: "sync", Pass: pgtype.Text{String: "gap_recovery", Valid: true}, Since: since,
+		AccountID: account, Workload: "sync", Pass: "gap_recovery", Since: since,
 	}); err != nil {
 		return jobsResponse{}, err
 	}
@@ -253,6 +253,9 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 	}
 
 	out.Heuristics = heuristicsBlock{State: state("heuristics"), CadenceSeconds: int64(s.opts.Cadences.Heuristics.Seconds())}
+	// No heuristics pair is in the closed set the schema's check holds, and every recorded pass is
+	// named, so the empty pass finds no run. The job kind that adds its pair names its pass here
+	// (ADR-0016).
 	if out.Heuristics.Last, err = finished(ctx, q, account, "heuristics", "", "succeeded", "failed"); err != nil {
 		return jobsResponse{}, err
 	}
@@ -267,11 +270,10 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 	return out, nil
 }
 
-// finished is the latest run of a workload and pass in one of the given states, nil for none. An
-// empty pass is the workload that records none.
+// finished is the latest run of a workload and pass in one of the given states, nil for none.
 func finished(ctx context.Context, q *jobruns.Queries, account, workload, pass string, states ...string) (*run, error) {
 	row, err := q.LatestRunInStates(ctx, jobruns.LatestRunInStatesParams{
-		AccountID: account, Workload: workload, Pass: pgtype.Text{String: pass, Valid: pass != ""}, States: states,
+		AccountID: account, Workload: workload, Pass: pass, States: states,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -280,7 +282,7 @@ func finished(ctx context.Context, q *jobruns.Queries, account, workload, pass s
 		return nil, err
 	}
 	return &run{
-		RunID: row.RunID, Workload: row.Workload, Pass: optionalText(row.Pass), State: row.State,
+		RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
 		PlanID: optionalUUID(row.PlanID), PlanDescription: optionalText(row.PlanDescription), PlanStatus: optionalText(row.PlanStatus),
 		ResumedFrom: optionalText(row.ResumedFrom), StartedAt: registry.Stamp(row.StartedAt.Time),
 		FinishedAt: optionalStamp(row.FinishedAt), HeartbeatAt: optionalStamp(row.HeartbeatAt),
@@ -288,9 +290,15 @@ func finished(ctx context.Context, q *jobruns.Queries, account, workload, pass s
 	}, nil
 }
 
+// latestRuns is the latest run of each workload and pass the built job kinds record.
+func latestRuns(ctx context.Context, q *jobruns.Queries, account string) ([]jobruns.LatestRunsRow, error) {
+	workloads, passes := registry.RecordedRuns()
+	return q.LatestRuns(ctx, jobruns.LatestRunsParams{Workloads: workloads, Passes: passes, AccountID: account})
+}
+
 func latestRun(row jobruns.LatestRunsRow) *run {
 	return &run{
-		RunID: row.RunID, Workload: row.Workload, Pass: optionalText(row.Pass), State: row.State,
+		RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
 		PlanID: optionalUUID(row.PlanID), PlanDescription: optionalText(row.PlanDescription), PlanStatus: optionalText(row.PlanStatus),
 		ResumedFrom: optionalText(row.ResumedFrom), StartedAt: registry.Stamp(row.StartedAt.Time),
 		FinishedAt: optionalStamp(row.FinishedAt), HeartbeatAt: optionalStamp(row.HeartbeatAt),

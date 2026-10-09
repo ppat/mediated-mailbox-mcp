@@ -1,31 +1,58 @@
 -- name: LatestRuns :many
--- The latest run of each workload and pass, which the jobs cards read (docs/UI.md section 8.3). An
--- apply or rollback run carries its plan's description and status, so the card can title the run and
--- say whether rollback is available.
-SELECT DISTINCT ON (r.workload, r.pass)
-    r.run_id,
-    r.workload,
-    r.pass,
-    r.state,
-    r.plan_id,
-    pl.description AS plan_description,
-    pl.status AS plan_status,
-    r.resumed_from,
-    r.started_at,
-    r.finished_at,
-    r.heartbeat_at,
-    r.checkpoint,
-    r.counters,
-    r.last_error
-FROM job_runs AS r
-LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-WHERE r.account_id = @account_id
-ORDER BY r.workload ASC, r.pass ASC, r.started_at DESC, r.run_id ASC;
+-- The latest run of each workload and pass the caller names, which the jobs cards read (docs/UI.md
+-- section 8.3). The pairs are the closed set the schema's check on job_runs holds, given as two arrays
+-- of one length read in step. Each pair is one lookup on the run index, newest first, and a pair with
+-- no run has no row. An apply or rollback run carries its plan's description and status, so the card
+-- can title the run and say whether rollback is available.
+SELECT
+    l.run_id,
+    l.workload,
+    l.pass,
+    l.state,
+    l.plan_id,
+    l.plan_description,
+    l.plan_status,
+    l.resumed_from,
+    l.started_at,
+    l.finished_at,
+    l.heartbeat_at,
+    l.checkpoint,
+    l.counters,
+    l.last_error
+FROM (
+    SELECT
+        unnest(@workloads::text[]) AS workload,
+        unnest(@passes::text[]) AS pass
+) AS k
+CROSS JOIN
+    LATERAL (
+        SELECT
+            r.run_id,
+            r.workload,
+            r.pass,
+            r.state,
+            r.plan_id,
+            pl.description AS plan_description,
+            pl.status AS plan_status,
+            r.resumed_from,
+            r.started_at,
+            r.finished_at,
+            r.heartbeat_at,
+            r.checkpoint,
+            r.counters,
+            r.last_error
+        FROM job_runs AS r
+        LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
+        WHERE r.account_id = @account_id AND r.workload = k.workload AND r.pass = k.pass
+        ORDER BY r.started_at DESC, r.run_id ASC
+        LIMIT 1
+    ) AS l
+ORDER BY l.workload ASC, l.pass ASC;
 
 -- name: LatestRunInStates :one
 -- The latest run of one workload and pass whose state is one of the given states. The jobs cards read
 -- the last finished run beside a running one, and the system screen the last successful sync tick
--- (docs/UI.md sections 8.3 and 8.8). A null pass matches a workload that records none.
+-- (docs/UI.md sections 8.3 and 8.8).
 SELECT
     r.run_id,
     r.workload,
@@ -46,7 +73,7 @@ LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.p
 WHERE
     r.account_id = @account_id
     AND r.workload = @workload
-    AND r.pass IS NOT DISTINCT FROM sqlc.narg('pass')::text
+    AND r.pass = @pass
     AND r.state = any(@states::text[])
 ORDER BY r.started_at DESC, r.run_id ASC
 LIMIT 1;

@@ -18,7 +18,7 @@ WHERE
     AND (
         @first_page::boolean
         OR s.message_count < @after_count::bigint
-        OR (s.message_count = @after_count::bigint AND s.domain > @after_domain::citext)
+        OR (s.message_count = @after_count::bigint AND s.domain > @after_domain::text)
     )
 ORDER BY s.message_count DESC, s.domain ASC
 LIMIT @page_size;

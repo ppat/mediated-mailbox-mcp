@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a rate grant's class is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..26a64781 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -114,7 +114,7 @@ CREATE TABLE rate_state (
+ CREATE TABLE rate_grants (
+     grant_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+     account_id text NOT NULL REFERENCES accounts,
+-    class text NOT NULL CHECK (class IN ('interactive', 'sync', 'batch')),
++    class text NOT NULL,
+     tokens real NOT NULL,
+     issued_at timestamptz NOT NULL
+ );

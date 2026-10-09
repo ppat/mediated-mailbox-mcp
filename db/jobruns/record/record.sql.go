@@ -51,7 +51,7 @@ LIMIT 1
 type LatestRunParams struct {
 	AccountID string
 	Workload  string
-	Pass      pgtype.Text
+	Pass      string
 }
 
 type LatestRunRow struct {
@@ -208,7 +208,7 @@ type StartRunParams struct {
 	AccountID   string
 	RunID       string
 	Workload    string
-	Pass        pgtype.Text
+	Pass        string
 	ResumedFrom pgtype.Text
 	Checkpoint  []byte
 	Counters    []byte

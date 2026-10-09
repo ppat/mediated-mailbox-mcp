@@ -55,8 +55,8 @@ const (
 // not confine. It restarts every serial column, so identities such as an audit row's are the same
 // whichever tests ran before it and the recorded fixtures do not move. Message-derived text carries field markers, and the markup markers among them are the
 // ones every surface must show inert (ADR-0044, ADR-0064). The plan description and operation reason
-// are the client's text, and the run errors and the authentication outcome provider text, so they
-// carry markers too.
+// are the client's text, and the run errors provider text, so they carry markers too. The
+// authentication outcome is one of the schema's closed words, so it carries none.
 func seed(t *testing.T) {
 	t.Helper()
 	ctx := t.Context()
@@ -78,7 +78,7 @@ func seed(t *testing.T) {
 		{"TRUNCATE accounts, account_state, rate_state, senders, messages, scan_gate_decisions, policy_candidates, masking_events, reorg_plans, reorg_plan_ops, reorg_op_log, job_runs, job_run_events, job_run_failures, audit_log RESTART IDENTITY CASCADE", nil},
 		{"INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail'), ($2, 'gmail')", []any{personal, other}},
 		{`INSERT INTO account_state (account_id, credential, backfill_pass1_complete, backfill_pass2_complete, sync_cursor, sync_cursor_at, last_auth_at, last_auth_outcome)
-			VALUES ($1, '\x00', true, false, 'cursor-1', $2, $3, $4)`, []any{personal, at(4 * time.Minute), at(6 * time.Hour), marker.MarkupField("authoutcome")}},
+			VALUES ($1, '\x00', true, false, 'cursor-1', $2, $3, $4)`, []any{personal, at(4 * time.Minute), at(6 * time.Hour), "succeeded"}},
 		{
 			`INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, last_throttle_at, backoff_until, classes)
 			VALUES ($1, 3.1, 5.0, 8.0, $2, NULL, '{"interactive": {"reserved": 1.5, "used": 0.4}, "sync": {"reserved": 1.0, "used": 0.8}, "batch": {"reserved": 2.5, "used": 1.9}}')`,
@@ -139,18 +139,16 @@ func seed(t *testing.T) {
 		{
 			`INSERT INTO job_runs (account_id, run_id, workload, pass, state, plan_id, resumed_from, started_at, finished_at, heartbeat_at, checkpoint, counters, last_error) VALUES
 			($1, 'r-0901', 'backfill', 'pass1', 'succeeded', NULL, NULL, $2, $3, $3, '{"page": 3368, "of": 3368}', '{"pages": 3368, "messages": 84212}', NULL),
-			($1, 'r-0912', 'backfill', 'pass2', 'failed', NULL, NULL, $16, $17, $17, '{"page": 14, "of": 3368}', '{"pages": 14, "decided": 350, "pending": 83862, "scanned": 330, "skipped": 20}', $18),
-			($1, 'r-0913', 'backfill', 'pass2', 'running', NULL, 'r-0912', $4, NULL, $5, '{"page": 3065, "of": 3368}', '{"pages": 3065, "decided": 76610, "pending": 7602, "scanned": 70100, "skipped": 6510}', NULL),
+			($1, 'r-0912', 'backfill', 'pass2', 'failed', NULL, NULL, $11, $12, $12, '{"page": 14, "of": 3368}', '{"pages": 14, "decided": 350, "pending": 83862, "scanned": 330, "skipped": 20}', $13),
+			($1, 'r-0913', 'backfill', 'pass2', 'running', NULL, 'r-0912', $4, NULL, $5, '{"page": 3065, "of": 3368}', '{"pages": 3065, "decided": 76610, "pending": 7602, "scanned": 70100, "skipped": 6510}', $8),
 			($1, 'r-0914', 'sync', 'tick', 'succeeded', NULL, NULL, $6, $5, $5, NULL, '{"added": 3, "modified": 1, "removed": 0}', NULL),
+			($1, 'r-0908', 'sync', 'gap_recovery', 'running', NULL, NULL, $14, NULL, $14, NULL, '{"window_start": "2026-09-10T08:00:00Z", "window_end": "2026-09-10T09:00:00Z", "reconciled": 0}', NULL),
 			($1, 'r-0911', 'sync', 'gap_recovery', 'succeeded', NULL, NULL, $7, $7, $7, NULL, '{"window_start": "2026-09-08T00:00:00Z", "window_end": "2026-09-08T06:00:00Z", "reconciled": 41}', NULL),
-			($1, 'r-0910', 'apply', 'apply', 'succeeded', $8, NULL, $9, $9, $9, '{"seq": 2, "of": 2}', '{"ops_done": 2, "ops_total": 2, "failures": 0}', NULL),
-			($1, 'r-0915', 'apply', 'apply', 'running', $10, NULL, $11, NULL, $5, '{"seq": 1, "of": 2}', '{"ops_done": 1, "ops_total": 2, "failures": 0}', $12),
-			($1, 'r-0909', 'heuristics', NULL, 'succeeded', NULL, NULL, $13, $13, $13, NULL, '{"candidates": 2}', NULL),
-			($14, 'r-other', 'backfill', 'pass1', 'running', NULL, NULL, $4, NULL, $5, NULL, '{}', $15)`,
+			($9, 'r-other', 'backfill', 'pass1', 'running', NULL, NULL, $4, NULL, $5, NULL, '{}', $10)`,
 			[]any{
 				personal, at(9 * 24 * time.Hour), at(8 * 24 * time.Hour), at(40 * time.Minute), at(time.Minute), at(5 * time.Minute),
-				at(2 * 24 * time.Hour), appliedPlan, at(10 * 24 * time.Hour), applyingPlan, at(3 * time.Hour), marker.MarkupField("runerror"),
-				at(20 * time.Hour), other, marker.Field("other"), at(50 * time.Hour), at(49 * time.Hour), marker.MarkupField("runfailure"),
+				at(2 * 24 * time.Hour), marker.MarkupField("runerror"), other, marker.Field("other"), at(50 * time.Hour), at(49 * time.Hour),
+				marker.MarkupField("runfailure"), at(50 * time.Minute),
 			},
 		},
 		{

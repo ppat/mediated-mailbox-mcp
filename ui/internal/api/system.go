@@ -182,7 +182,7 @@ func (s *Server) system(ctx context.Context, q systemQueries, account string, no
 	}
 
 	runs := q.runs
-	latest, err := runs.LatestRuns(ctx, account)
+	latest, err := latestRuns(ctx, runs, account)
 	if err != nil {
 		return err
 	}
@@ -191,10 +191,10 @@ func (s *Server) system(ctx context.Context, q systemQueries, account string, no
 		if row.State == "running" {
 			running[row.Workload] = true
 		}
-		if row.Workload == "backfill" && row.Pass.Valid && row.Pass.String == "pass1" {
+		if row.Workload == "backfill" && row.Pass == "pass1" {
 			op.BackfillPass1Run = latestRun(row)
 		}
-		if row.Workload == "backfill" && row.Pass.Valid && row.Pass.String == "pass2" {
+		if row.Workload == "backfill" && row.Pass == "pass2" {
 			op.BackfillPass2Run = latestRun(row)
 		}
 	}

@@ -159,7 +159,7 @@ func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]e
 		}
 		for _, row := range runs {
 			e := runEvent{Account: account, run: run{
-				RunID: row.RunID, Workload: row.Workload, Pass: optionalText(row.Pass), State: row.State,
+				RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
 				PlanID: optionalUUID(row.PlanID), PlanDescription: optionalText(row.PlanDescription),
 				PlanStatus: optionalText(row.PlanStatus), ResumedFrom: optionalText(row.ResumedFrom),
 				StartedAt: registry.Stamp(row.StartedAt.Time), FinishedAt: optionalStamp(row.FinishedAt),

@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_row_level_security.sql b/db/migrations/00003_row_level_security.sql
-index a23f65e..89f14af 100644
+index 77a39501..79c151f2 100644
 --- a/db/migrations/00003_row_level_security.sql
 +++ b/db/migrations/00003_row_level_security.sql
-@@ -41,7 +41,7 @@ USING (account_id = current_setting('app.account'));
+@@ -62,7 +62,7 @@ USING (account_id = current_setting('app.account'));
  ALTER TABLE policy_rules ENABLE ROW LEVEL SECURITY;
  CREATE POLICY policy_rules_account ON policy_rules
  USING (account_id = current_setting('app.account'));
@@ -17,4 +17,4 @@ index a23f65e..89f14af 100644
 +CREATE POLICY policy_rules_base ON policy_rules
  USING (account_id IS NULL);
  
- ALTER TABLE masking_events ENABLE ROW LEVEL SECURITY;
+ ALTER TABLE policy_changes ENABLE ROW LEVEL SECURITY;

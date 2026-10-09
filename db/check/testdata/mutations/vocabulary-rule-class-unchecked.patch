@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a policy rule's class is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..504e9345 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -225,7 +225,7 @@ CREATE TABLE policy_rules (
+     account_id text REFERENCES accounts,
+     -- candidate.{account}.{domain} when a confirmation minted it.
+     rule_id text NOT NULL,
+-    class text NOT NULL CHECK (class IN ('restricted')),
++    class text NOT NULL,
+     domain_suffix text[] NOT NULL,
+     source text NOT NULL CHECK (source IN ('operator', 'candidate')),
+     created_at timestamptz NOT NULL DEFAULT now(),

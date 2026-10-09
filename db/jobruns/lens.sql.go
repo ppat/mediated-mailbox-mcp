@@ -61,8 +61,8 @@ type RunFiguresRow struct {
 // The runs dataset's figures under its range and filters (docs/UI.md sections 8.3 and 17.1). runs is
 // also the count the row pages count from. The last failure is the latest failed run's finish, or its
 // start while it has none, with its identity for the figure's link, empty with no failed run. A null
-// range bound is no bound, a null array no filter. A run that records no pass is outside every pass
-// inclusion and passes every pass exclusion, and a day is the UTC date its run started on.
+// range bound is no bound, a null array no filter. Every run records a pass (ADR-0016), so the null
+// test in a pass exclusion matches no run, and a day is the UTC date its run started on.
 func (q *Queries) RunFigures(ctx context.Context, arg RunFiguresParams) (RunFiguresRow, error) {
 	row := q.db.QueryRow(ctx, runFigures,
 		arg.AccountID,
@@ -167,7 +167,7 @@ type RunRowsParams struct {
 type RunRowsRow struct {
 	RunID           string
 	Workload        string
-	Pass            pgtype.Text
+	Pass            string
 	State           string
 	PlanID          pgtype.UUID
 	PlanDescription pgtype.Text

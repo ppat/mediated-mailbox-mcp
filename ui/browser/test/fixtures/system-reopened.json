@@ -76,7 +76,7 @@
       }
     },
     "last_auth_at": "2026-09-10T04:16:04Z",
-    "last_auth_outcome": "\u003cscript\u003emmfieldmarker-authoutcome\u003c/script\u003e"
+    "last_auth_outcome": "succeeded"
   },
   "corpus": {
     "messages": 5,
@@ -95,6 +95,6 @@
   "decisions": {
     "plans_draft": 1,
     "candidates_pending": 6,
-    "workloads_running": 3
+    "workloads_running": 2
   }
 }

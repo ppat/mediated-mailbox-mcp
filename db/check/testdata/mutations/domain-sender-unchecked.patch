@@ -1,0 +1,20 @@
+control: A sender domain is stored in the normalizer's form
+removes: the sender statistics' domain is not checked
+packages: ./db/check
+tests: TestASenderDomainIsStoredInTheNormalizersForm
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..8ba1b938 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -125,7 +125,7 @@ CREATE TABLE senders (
+     account_id text NOT NULL REFERENCES accounts,
+     -- Stored lowercase, as the one Go normalizer writes it (ADR-0016). The check refuses an ASCII
+     -- capital and means the same on every database, since the C collation folds only A to Z.
+-    domain text NOT NULL CHECK (domain = lower(domain COLLATE "C")),
++    domain text NOT NULL,
+     local_part_sample text[],
+     display_names text[],
+     message_count bigint NOT NULL DEFAULT 0,

@@ -14,6 +14,7 @@ import {
 import { refusedCredential } from "../src/app/frame.tsx";
 import { readPasted } from "../src/app/guide.ts";
 import { App } from "../src/app/router.tsx";
+import { health as credentialHealth } from "../src/screens/account.tsx";
 import { proposeIdentifier } from "../src/screens/connect.tsx";
 import { projectProblem, readClientFile } from "../src/screens/steps.ts";
 import { homeAnswers, testDeps, TestGuides, type Connection } from "./app.ts";
@@ -426,11 +427,9 @@ test("account settings show the client, the credential's health, the target and 
   expect(button(root, "Move to another client")?.getAttribute("href")).toBe(
     "/personal/account/reauthorize",
   );
-  // The recorded outcome carries markup, which the wording does not know, so it is shown as itself, inert.
   const health = root.querySelector('section[aria-labelledby="credential-title"] p');
-  expect(health?.querySelector(".badge")?.textContent).toBe("unknown");
-  expect(health?.textContent).toContain("<script>mmfieldmarker-authoutcome</script>");
-  expect(health?.querySelectorAll("script").length).toBe(0);
+  expect(health?.querySelector(".badge")?.textContent).toBe("accepted");
+  expect(health?.textContent).toBe("accepted Gmail accepted the credential at 2026-09-10 04:16Z.");
   expect(root.textContent).toContain(
     "Lowered to 30% of Gmail's declared ceiling · now 5.0 units/s",
   );
@@ -485,6 +484,23 @@ test("the refused-credential banner reads the latest authentication, and a faile
     ),
   ).toBeUndefined();
   expect(refusedCredential(system, "gmail")).toBeUndefined();
+});
+
+test("an authentication outcome the wording does not know is shown as itself with an unknown badge", async () => {
+  // The schema's check stores only the three words the wording knows, so no recorded answer reaches
+  // this branch, and it is tested on its own (docs/UI.md section 7.1).
+  const answer: Parameters<typeof credentialHealth>[0] = JSON.parse(
+    await Bun.file(new URL("fixtures/account-personal.json", import.meta.url)).text(),
+  );
+  for (const outcome of ["expired", "<script>mmfieldmarker-outcome</script>"]) {
+    expect(credentialHealth({ ...answer, last_auth_outcome: outcome })).toEqual({
+      badge: "unknown",
+      tone: "muted",
+      sentence: outcome,
+      primary: false,
+    });
+  }
+  expect(credentialHealth(answer).badge).toBe("accepted");
 });
 
 test("re-authorizing shows the account as a summary and asks for no mailbox it remembers", async () => {

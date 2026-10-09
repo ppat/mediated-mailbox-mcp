@@ -5,16 +5,18 @@ tests: TestOneClientIsNeverStoredTwice
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00021_oauth_clients_by_name.sql b/db/migrations/00021_oauth_clients_by_name.sql
-index 8ec4c03b..fe8da4fa 100644
---- a/db/migrations/00021_oauth_clients_by_name.sql
-+++ b/db/migrations/00021_oauth_clients_by_name.sql
-@@ -11,7 +11,7 @@ ALTER TABLE oauth_clients ADD COLUMN name text;
- UPDATE oauth_clients SET name = provider;
- ALTER TABLE oauth_clients ALTER COLUMN name SET NOT NULL;
- ALTER TABLE oauth_clients DROP CONSTRAINT oauth_clients_pkey;
--ALTER TABLE oauth_clients ADD PRIMARY KEY (name);
-+ALTER TABLE oauth_clients ADD PRIMARY KEY (name, provider);
- -- What an account's reference names, so the reference carries the provider.
- ALTER TABLE oauth_clients ADD UNIQUE (name, provider);
- -- One client is never stored twice under two names.
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..a4a75141 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -12,8 +12,9 @@
+ -- column, so grants alone decide who reaches it (ADR-0016). A provider that authenticates otherwise
+ -- has no row, and no account refers to one.
+ CREATE TABLE oauth_clients (
+-    name text PRIMARY KEY,
++    name text,
+     provider text NOT NULL,
++    PRIMARY KEY (name, provider),
+     client_id text NOT NULL,
+     -- The client's secret, sealed to the current public key and bound to this row (ADR-0081, ADR-0088).
+     client_secret bytea NOT NULL,

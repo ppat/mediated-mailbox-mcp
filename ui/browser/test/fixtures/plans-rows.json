@@ -23,10 +23,7 @@
       "approved_by": "operator",
       "refusal_reason": null,
       "messages": 2,
-      "apply_run": {
-        "run_id": "r-0915",
-        "state": "running"
-      },
+      "apply_run": null,
       "rollback_run": null
     },
     {
@@ -52,10 +49,7 @@
       "approved_by": "operator",
       "refusal_reason": null,
       "messages": 2,
-      "apply_run": {
-        "run_id": "r-0910",
-        "state": "succeeded"
-      },
+      "apply_run": null,
       "rollback_run": null
     }
   ]

@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: the content flags are checked to overlap the set rather than to sit inside it, so an unknown flag beside a known one is stored
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..30ec7210 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -165,7 +165,7 @@ CREATE TABLE messages (
+     size_bytes int,
+     auth_results jsonb,
+     sender_class text NOT NULL CHECK (sender_class IN ('normal', 'restricted')),
+-    content_flags text[] NOT NULL DEFAULT '{}' CHECK (content_flags <@ '{mfa_code,login_link}'),
++    content_flags text[] NOT NULL DEFAULT '{}' CHECK (content_flags = '{}' OR content_flags && '{mfa_code,login_link}'),
+     -- The content rules that set content_flags (ADR-0009).
+     rule_ids text[] NOT NULL DEFAULT '{}',
+     -- The identifier of the policy rule that set sender_class, NULL when none did. An identifier, which

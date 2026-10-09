@@ -1,0 +1,25 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a run's job kind and pass are not checked
+packages: ./db/check
+tests: TestARunRecordsOneOfTheBuiltJobKindsPairs
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..a6d6404b 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -342,12 +342,7 @@ CREATE TABLE job_runs (
+     counters jsonb NOT NULL DEFAULT '{}',
+     -- Provider or scanner text, never a body.
+     last_error text,
+-    PRIMARY KEY (account_id, run_id),
+-    -- A closed set of the pairs the built job kinds record. Each job kind adds its own pairs in the
+-    -- migration that brings its role.
+-    CONSTRAINT job_runs_workload_pass_check CHECK (
+-        (workload, pass) IN (('backfill', 'pass1'), ('backfill', 'pass2'), ('sync', 'tick'), ('sync', 'gap_recovery'))
+-    )
++    PRIMARY KEY (account_id, run_id)
+ );
+ 
+ -- A run's timeline.

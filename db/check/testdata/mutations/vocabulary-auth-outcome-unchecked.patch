@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: the last authentication's outcome is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..fcd32422 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -69,7 +69,7 @@ CREATE TABLE account_state (
+     -- The latest provider authentication attempt recorded and its outcome (ADR-0097), exposed by
+     -- ADR-0034.
+     last_auth_at timestamptz,
+-    last_auth_outcome text CHECK (last_auth_outcome IN ('succeeded', 'refused', 'failed'))
++    last_auth_outcome text
+ );
+ 
+ -- Cross-process rate coordination (ADR-0025). The issuer recomputes the target and the hard cap from

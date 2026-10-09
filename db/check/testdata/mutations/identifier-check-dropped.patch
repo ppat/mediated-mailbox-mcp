@@ -1,20 +1,17 @@
 control: an account identifier no screen or path could reach is refused, and nothing is stored
-removes: the migration adds no check refusing an identifier exactly ., .. or /
+removes: the grammar migration's check refuses only the identifier ., so .. and / are stored
 packages: ./db/check
 tests: TestNoAccountIdentifierIsAPathSegmentThePathCannotHold
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00022_ui_setups.sql b/db/migrations/00022_ui_setups.sql
-index 38f2557c..26113dd3 100644
---- a/db/migrations/00022_ui_setups.sql
-+++ b/db/migrations/00022_ui_setups.sql
-@@ -13,7 +13,7 @@ ALTER TABLE account_state ADD COLUMN mailbox text;
- -- No account identifier is exactly ., .. or /, which the mediator's API root cannot address as a path
- -- segment (ADR-0087). Account setup refuses them first, with its own wording.
- ALTER TABLE accounts ADD CONSTRAINT accounts_account_id_addressable
--CHECK (account_id NOT IN ('.', '..', '/'));
-+CHECK (account_id NOT IN ('.'));
- 
- -- The UI's client setup lists each client's identity, adds a client, replaces a client's identifier,
- -- secret and project ID, and removes a client no account connects through. Its statements sit in
+diff --git a/db/migrations/00005_account_identifier_grammar.sql b/db/migrations/00005_account_identifier_grammar.sql
+index b9f33379..333f3b3f 100644
+--- a/db/migrations/00005_account_identifier_grammar.sql
++++ b/db/migrations/00005_account_identifier_grammar.sql
+@@ -6,4 +6,4 @@
+ -- rewrites it, since an account is system-of-record data (ADR-0048).
+ ALTER TABLE accounts
+ DROP CONSTRAINT accounts_account_id_addressable,
+-ADD CONSTRAINT accounts_account_id_grammar CHECK (account_id ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$');
++ADD CONSTRAINT accounts_account_id_grammar CHECK (account_id NOT IN ('.'));

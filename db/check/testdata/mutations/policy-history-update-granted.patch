@@ -5,14 +5,16 @@ tests: TestNoRuntimeRoleCanAlterThePolicyHistory TestNoRuntimeRoleCanAlterThePol
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00023_policy_management.sql b/db/migrations/00023_policy_management.sql
-index de58e776..be189f36 100644
---- a/db/migrations/00023_policy_management.sql
-+++ b/db/migrations/00023_policy_management.sql
-@@ -70,5 +70,5 @@ GRANT UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
- 
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index eba1d5bc..171b4093 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -495,7 +495,7 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
+ GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
  -- Each policy write appends its history row, and the policy screens read the history. Insert alone,
  -- so evidence of who lifted a restriction survives the UI's compromise (ADR-0102).
 -GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;
 +GRANT SELECT, INSERT, UPDATE, DELETE ON policy_changes TO mediated_mailbox_ui;
  GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui;
+ 
+ -- The rate limiter's statements, in db/ratestate, run under the role of each deployable that spends

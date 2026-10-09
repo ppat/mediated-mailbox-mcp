@@ -20,12 +20,13 @@ WITH scoped AS (SELECT domain, message_count FROM fixture_senders WHERE account_
 SELECT message_count FROM scoped WHERE domain = @domain::text;
 
 -- The same comparison without a cast, a parameter cast to the case-insensitive type, and a cast compared
--- against a text column, must not be reported.
--- name: ListSendersInDomainsCitext :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = any(@domains::citext[]);
+-- against a text column, must not be reported. The parameters cast to the case-insensitive type are
+-- compared with the index's address column, since the domain check refuses that cast beside a domain.
+-- name: ListMessagesFromAddressesCitext :many
+SELECT message_id FROM messages WHERE account_id = @account_id AND from_email = any(@addresses::citext[]);
 
--- name: GetSenderByDomainCitext :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = @domain::citext;
+-- name: GetMessageFromAddressCitext :one
+SELECT message_id FROM messages WHERE account_id = @account_id AND from_email = @address::citext;
 
 -- name: GetSenderByDomainNoCast :one
 SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = @domain;

@@ -14,8 +14,10 @@ image. The library's layout is [db/README.md](../../db/README.md), and the migra
 tripwires:
 
 - **Migrations are hand-written, forward-only SQL** (ADR-0048), and no migration creates a trigger,
-  a procedure or a function (ADR-0060). Grants name roles literally, and roles and extensions come
-  from the superuser bootstrap before the chain (ADR-0048).
+  a procedure or a function (ADR-0060). Grants name roles literally. The roles come from the
+  bootstrap before the chain, and the chain's first migration creates the one extension the schema
+  needs, which is trusted, so nothing runs as a superuser inside the application database
+  (ADR-0048).
 - **SQL lives only in statement files**, grouped by concern into data-access subsections, never as
   strings in a component (ADR-0047, ADR-0066). The one exception is the transaction helper's own
   setting and reading back of the account, and of the base policy's scope (ADR-0112), the

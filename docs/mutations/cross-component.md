@@ -110,9 +110,9 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## An account identifier no screen or path could reach is refused, and nothing is stored
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
-- **Break (1):** the migration adds no check refusing an identifier exactly ., .. or /
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestNoAccountIdentifierIsAPathSegmentThePathCannotHold`
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Break (1):** the grammar migration's check refuses only the identifier ., so .. and / are stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestNoAccountIdentifierIsAPathSegmentThePathCannotHold`, `TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt`
 - **Break (2):** the words the UI's top-level paths use are listed as setup and api alone rather than read from the bundle
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestAnIdentifierNoScreenCouldReachIsRefused`
 - **Break (3):** an identifier exactly ., .. or / is admitted
@@ -193,7 +193,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## Each account spends under the lowered target its state row sets, and a target outside its range stops the run
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), and every break again on 2026-10-09, after the logger hand-off was rebased onto the sender-domain normalizer and the re-mask from the store · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), and every break again on 2026-10-09, after the logger hand-off was rebased onto the sender-domain normalizer and the re-mask from the store · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), and breaks 2 and 3 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
 - **Break (1):** the run builds its limiter without the targets its accounts' state rows set
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/backfill/app`:** `TestAStoredTargetAboveHalfTheCeilingStopsTheRun`, `TestTheLimiterSpendsUnderTheStoredTarget`
 - **Break (2):** a target outside its range is taken as it is given

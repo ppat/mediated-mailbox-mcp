@@ -1,0 +1,19 @@
+control: The run and audit indexes' migration leaves stored rows unchanged and builds every index
+removes: the migration marks every running run failed while it builds the indexes
+packages: ./db/check
+tests: TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00006_run_and_audit_indexes.sql b/db/migrations/00006_run_and_audit_indexes.sql
+index af48ab48..93e39d80 100644
+--- a/db/migrations/00006_run_and_audit_indexes.sql
++++ b/db/migrations/00006_run_and_audit_indexes.sql
+@@ -7,6 +7,7 @@
+ -- per job kind and pass, and the job mechanism's due decisions. It ends with run_id because the
+ -- statements break ties on it, in either direction.
+ CREATE INDEX ON job_runs (account_id, workload, pass, started_at DESC, run_id);
++UPDATE job_runs SET state = 'failed' WHERE state = 'running';
+ -- The runs still running, which the event stream follows.
+ CREATE INDEX ON job_runs (account_id) WHERE state = 'running';
+ -- The runs finished since a time, which the event stream follows too.

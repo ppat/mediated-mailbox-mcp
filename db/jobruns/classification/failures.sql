@@ -20,11 +20,11 @@ WHERE
     AND (@disposition_in::text[] IS NULL OR f.disposition = any(@disposition_in::text[]))
     AND (@disposition_out::text[] IS NULL OR f.disposition != all(@disposition_out::text[]))
     AND (
-        (@sender_in::citext[] IS NULL AND NOT @sender_in_none::boolean)
-        OR m.from_domain = any(@sender_in::citext[])
+        (@sender_in::text[] IS NULL AND NOT @sender_in_none::boolean)
+        OR m.from_domain = any(@sender_in::text[])
         OR (@sender_in_none::boolean AND m.from_domain IS NULL)
     )
-    AND (@sender_out::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::citext[]))
+    AND (@sender_out::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::text[]))
     AND (NOT @sender_out_none::boolean OR m.from_domain IS NOT NULL)
     AND (
         (@page_in::integer[] IS NULL AND NOT @page_in_none::boolean)
@@ -55,11 +55,11 @@ WHERE
     AND (@disposition_in::text[] IS NULL OR f.disposition = any(@disposition_in::text[]))
     AND (@disposition_out::text[] IS NULL OR f.disposition != all(@disposition_out::text[]))
     AND (
-        (@sender_in::citext[] IS NULL AND NOT @sender_in_none::boolean)
-        OR m.from_domain = any(@sender_in::citext[])
+        (@sender_in::text[] IS NULL AND NOT @sender_in_none::boolean)
+        OR m.from_domain = any(@sender_in::text[])
         OR (@sender_in_none::boolean AND m.from_domain IS NULL)
     )
-    AND (@sender_out::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::citext[]))
+    AND (@sender_out::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::text[]))
     AND (NOT @sender_out_none::boolean OR m.from_domain IS NOT NULL)
     AND (
         (@page_in::integer[] IS NULL AND NOT @page_in_none::boolean)
@@ -94,11 +94,11 @@ WHERE
     AND (@disposition_in::text[] IS NULL OR f.disposition = any(@disposition_in::text[]))
     AND (@disposition_out::text[] IS NULL OR f.disposition != all(@disposition_out::text[]))
     AND (
-        (@sender_in::citext[] IS NULL AND NOT @sender_in_none::boolean)
-        OR m.from_domain = any(@sender_in::citext[])
+        (@sender_in::text[] IS NULL AND NOT @sender_in_none::boolean)
+        OR m.from_domain = any(@sender_in::text[])
         OR (@sender_in_none::boolean AND m.from_domain IS NULL)
     )
-    AND (@sender_out::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::citext[]))
+    AND (@sender_out::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::text[]))
     AND (NOT @sender_out_none::boolean OR m.from_domain IS NOT NULL)
     AND (
         (@page_in::integer[] IS NULL AND NOT @page_in_none::boolean)
@@ -129,11 +129,11 @@ WHERE
     AND (@disposition_in::text[] IS NULL OR f.disposition = any(@disposition_in::text[]))
     AND (@disposition_out::text[] IS NULL OR f.disposition != all(@disposition_out::text[]))
     AND (
-        (@sender_in::citext[] IS NULL AND NOT @sender_in_none::boolean)
-        OR m.from_domain = any(@sender_in::citext[])
+        (@sender_in::text[] IS NULL AND NOT @sender_in_none::boolean)
+        OR m.from_domain = any(@sender_in::text[])
         OR (@sender_in_none::boolean AND m.from_domain IS NULL)
     )
-    AND (@sender_out::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::citext[]))
+    AND (@sender_out::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::text[]))
     AND (NOT @sender_out_none::boolean OR m.from_domain IS NOT NULL)
     AND (
         (@page_in::integer[] IS NULL AND NOT @page_in_none::boolean)
@@ -163,11 +163,11 @@ WHERE
     AND (@disposition_in::text[] IS NULL OR f.disposition = any(@disposition_in::text[]))
     AND (@disposition_out::text[] IS NULL OR f.disposition != all(@disposition_out::text[]))
     AND (
-        (@sender_in::citext[] IS NULL AND NOT @sender_in_none::boolean)
-        OR m.from_domain = any(@sender_in::citext[])
+        (@sender_in::text[] IS NULL AND NOT @sender_in_none::boolean)
+        OR m.from_domain = any(@sender_in::text[])
         OR (@sender_in_none::boolean AND m.from_domain IS NULL)
     )
-    AND (@sender_out::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::citext[]))
+    AND (@sender_out::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::text[]))
     AND (NOT @sender_out_none::boolean OR m.from_domain IS NOT NULL)
     AND (
         (@page_in::integer[] IS NULL AND NOT @page_in_none::boolean)
@@ -214,11 +214,11 @@ WHERE
     AND (@disposition_in::text[] IS NULL OR f.disposition = any(@disposition_in::text[]))
     AND (@disposition_out::text[] IS NULL OR f.disposition != all(@disposition_out::text[]))
     AND (
-        (@sender_in::citext[] IS NULL AND NOT @sender_in_none::boolean)
-        OR m.from_domain = any(@sender_in::citext[])
+        (@sender_in::text[] IS NULL AND NOT @sender_in_none::boolean)
+        OR m.from_domain = any(@sender_in::text[])
         OR (@sender_in_none::boolean AND m.from_domain IS NULL)
     )
-    AND (@sender_out::citext[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::citext[]))
+    AND (@sender_out::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all(@sender_out::text[]))
     AND (NOT @sender_out_none::boolean OR m.from_domain IS NOT NULL)
     AND (
         (@page_in::integer[] IS NULL AND NOT @page_in_none::boolean)

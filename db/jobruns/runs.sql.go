@@ -88,7 +88,7 @@ LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.p
 WHERE
     r.account_id = $1
     AND r.workload = $2
-    AND r.pass IS NOT DISTINCT FROM $3::text
+    AND r.pass = $3
     AND r.state = any($4::text[])
 ORDER BY r.started_at DESC, r.run_id ASC
 LIMIT 1
@@ -97,14 +97,14 @@ LIMIT 1
 type LatestRunInStatesParams struct {
 	AccountID string
 	Workload  string
-	Pass      pgtype.Text
+	Pass      string
 	States    []string
 }
 
 type LatestRunInStatesRow struct {
 	RunID           string
 	Workload        string
-	Pass            pgtype.Text
+	Pass            string
 	State           string
 	PlanID          pgtype.UUID
 	PlanDescription pgtype.Text
@@ -120,7 +120,7 @@ type LatestRunInStatesRow struct {
 
 // The latest run of one workload and pass whose state is one of the given states. The jobs cards read
 // the last finished run beside a running one, and the system screen the last successful sync tick
-// (docs/UI.md sections 8.3 and 8.8). A null pass matches a workload that records none.
+// (docs/UI.md sections 8.3 and 8.8).
 func (q *Queries) LatestRunInStates(ctx context.Context, arg LatestRunInStatesParams) (LatestRunInStatesRow, error) {
 	row := q.db.QueryRow(ctx, latestRunInStates,
 		arg.AccountID,
@@ -149,31 +149,62 @@ func (q *Queries) LatestRunInStates(ctx context.Context, arg LatestRunInStatesPa
 }
 
 const latestRuns = `-- name: LatestRuns :many
-SELECT DISTINCT ON (r.workload, r.pass)
-    r.run_id,
-    r.workload,
-    r.pass,
-    r.state,
-    r.plan_id,
-    pl.description AS plan_description,
-    pl.status AS plan_status,
-    r.resumed_from,
-    r.started_at,
-    r.finished_at,
-    r.heartbeat_at,
-    r.checkpoint,
-    r.counters,
-    r.last_error
-FROM job_runs AS r
-LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-WHERE r.account_id = $1
-ORDER BY r.workload ASC, r.pass ASC, r.started_at DESC, r.run_id ASC
+SELECT
+    l.run_id,
+    l.workload,
+    l.pass,
+    l.state,
+    l.plan_id,
+    l.plan_description,
+    l.plan_status,
+    l.resumed_from,
+    l.started_at,
+    l.finished_at,
+    l.heartbeat_at,
+    l.checkpoint,
+    l.counters,
+    l.last_error
+FROM (
+    SELECT
+        unnest($1::text[]) AS workload,
+        unnest($2::text[]) AS pass
+) AS k
+CROSS JOIN
+    LATERAL (
+        SELECT
+            r.run_id,
+            r.workload,
+            r.pass,
+            r.state,
+            r.plan_id,
+            pl.description AS plan_description,
+            pl.status AS plan_status,
+            r.resumed_from,
+            r.started_at,
+            r.finished_at,
+            r.heartbeat_at,
+            r.checkpoint,
+            r.counters,
+            r.last_error
+        FROM job_runs AS r
+        LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
+        WHERE r.account_id = $3 AND r.workload = k.workload AND r.pass = k.pass
+        ORDER BY r.started_at DESC, r.run_id ASC
+        LIMIT 1
+    ) AS l
+ORDER BY l.workload ASC, l.pass ASC
 `
+
+type LatestRunsParams struct {
+	Workloads []string
+	Passes    []string
+	AccountID string
+}
 
 type LatestRunsRow struct {
 	RunID           string
 	Workload        string
-	Pass            pgtype.Text
+	Pass            string
 	State           string
 	PlanID          pgtype.UUID
 	PlanDescription pgtype.Text
@@ -187,11 +218,13 @@ type LatestRunsRow struct {
 	LastError       pgtype.Text
 }
 
-// The latest run of each workload and pass, which the jobs cards read (docs/UI.md section 8.3). An
-// apply or rollback run carries its plan's description and status, so the card can title the run and
-// say whether rollback is available.
-func (q *Queries) LatestRuns(ctx context.Context, accountID string) ([]LatestRunsRow, error) {
-	rows, err := q.db.Query(ctx, latestRuns, accountID)
+// The latest run of each workload and pass the caller names, which the jobs cards read (docs/UI.md
+// section 8.3). The pairs are the closed set the schema's check on job_runs holds, given as two arrays
+// of one length read in step. Each pair is one lookup on the run index, newest first, and a pair with
+// no run has no row. An apply or rollback run carries its plan's description and status, so the card
+// can title the run and say whether rollback is available.
+func (q *Queries) LatestRuns(ctx context.Context, arg LatestRunsParams) ([]LatestRunsRow, error) {
+	rows, err := q.db.Query(ctx, latestRuns, arg.Workloads, arg.Passes, arg.AccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +306,7 @@ WHERE
 type RunsStartedSinceParams struct {
 	AccountID string
 	Workload  string
-	Pass      pgtype.Text
+	Pass      string
 	Since     pgtype.Timestamptz
 }
 
@@ -323,7 +356,7 @@ type StreamRunsParams struct {
 type StreamRunsRow struct {
 	RunID           string
 	Workload        string
-	Pass            pgtype.Text
+	Pass            string
 	State           string
 	PlanID          pgtype.UUID
 	PlanDescription pgtype.Text

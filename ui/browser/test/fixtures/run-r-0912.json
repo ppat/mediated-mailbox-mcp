@@ -49,7 +49,7 @@
       "scanned": 70100,
       "skipped": 6510
     },
-    "last_error": null
+    "last_error": "\u003cscript\u003emmfieldmarker-runerror\u003c/script\u003e"
   },
   "failures": {
     "count": 5,

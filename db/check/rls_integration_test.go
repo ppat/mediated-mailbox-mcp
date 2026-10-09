@@ -37,7 +37,7 @@ type accountTable struct {
 var accountTables = map[string]accountTable{
 	"accounts":            {"INSERT INTO accounts (account_id, provider) VALUES ($1, $2)", accountD},
 	"account_state":       {"INSERT INTO account_state (account_id, sync_cursor) VALUES ($1, $2)", accountC},
-	"rate_grants":         {"INSERT INTO rate_grants (account_id, class, tokens, issued_at) VALUES ($1, $2, 1, now())", accountB},
+	"rate_grants":         {"INSERT INTO rate_grants (account_id, class, tokens, issued_at) VALUES ($1, 'batch', length($2::text), now())", accountB},
 	"rate_state":          {"INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, classes) VALUES ($1, 1, 1, 1, jsonb_build_object('key', $2::text))", accountC},
 	"senders":             {"INSERT INTO senders (account_id, domain) VALUES ($1, $2)", accountB},
 	"messages":            {"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ($1, $2, 't', 'a@example.com', 'example.com', now(), false, 'normal')", accountB},
@@ -48,7 +48,7 @@ var accountTables = map[string]accountTable{
 	"masking_events":      {"INSERT INTO masking_events (account_id, message_id, field, rule_id, tier) VALUES ($1, $2, 'subject', 'rule', 1)", accountB},
 	"reorg_plans":         {"INSERT INTO reorg_plans (plan_id, account_id, status, plan) VALUES (gen_random_uuid(), $1, 'DRAFT', jsonb_build_object('key', $2::text))", accountB},
 	"reorg_plan_ops":      {"INSERT INTO reorg_plan_ops (account_id, plan_id, message_id) VALUES ($1, '" + planB + "', $2)", accountB},
-	"job_runs":            {"INSERT INTO job_runs (account_id, run_id, workload, state, started_at) VALUES ($1, $2, 'sync', 'running', now())", accountB},
+	"job_runs":            {"INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at) VALUES ($1, $2, 'sync', 'tick', 'running', now())", accountB},
 	"job_run_events":      {"INSERT INTO job_run_events (account_id, run_id, kind) VALUES ($1, $2, 'start')", accountB},
 	"job_run_failures":    {"INSERT INTO job_run_failures (account_id, run_id, item_kind, item_id, error_class, first_at, last_at) VALUES ($1, $2, 'page', '1', 'throttled', now(), now())", accountB},
 	"audit_log":           {"INSERT INTO audit_log (account_id, actor, action) VALUES ($1, $2, 'READ_BODY')", accountB},

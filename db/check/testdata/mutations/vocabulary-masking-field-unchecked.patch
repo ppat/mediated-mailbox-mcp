@@ -1,0 +1,20 @@
+control: The checked vocabularies refuse a value outside their closed set
+removes: a masking event's field is not checked
+packages: ./db/check
+tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index f40c7fd3..20ca3724 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -258,7 +258,7 @@ CREATE TABLE masking_events (
+     -- Indexed below with masked_at.
+     account_id text NOT NULL,
+     message_id text NOT NULL,
+-    field text NOT NULL CHECK (field IN ('subject')),
++    field text NOT NULL,
+     rule_id text NOT NULL,
+     tier int NOT NULL,
+     -- The scanner the masking ran under (ADR-0120).

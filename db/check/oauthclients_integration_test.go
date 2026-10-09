@@ -3,22 +3,12 @@
 package check_test
 
 import (
-	"context"
 	"errors"
-	"fmt"
-	neturl "net/url"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-
-	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
-	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
 // attempt runs one statement in a savepoint of tx, keeping its effect when it succeeds and undoing it
@@ -159,131 +149,19 @@ func TestOneClientIsNeverStoredTwice(t *testing.T) {
 	}
 }
 
-// keyedOnNameVersion is the migration that keys oauth_clients on the client's name. The chain before it
-// keys the table on the provider.
-const keyedOnNameVersion = 21
-
-// The migration that keys oauth_clients on the client's name names the client already stored after
-// its provider, leaves its sealed secret's bytes as they were, so the secret stays bound to the row
-// its name keys, and points every account of that provider at it. An account of a provider with no
-// client names none (ADR-0106, ADR-0088, ADR-0048).
-func TestTheStoredClientIsNamedAfterItsProviderAndItsAccountsPointAtIt(t *testing.T) {
-	ctx := t.Context()
-	admin := os.Getenv(postgres.EnvAdminURL)
-	if admin == "" {
-		t.Fatalf("run under pgrun, which sets %s", postgres.EnvAdminURL)
-	}
-	migrations, err := filepath.Glob(filepath.Join("..", "migrations", "*.sql"))
-	if err != nil || len(migrations) == 0 {
-		t.Fatalf("no migrations found: %v", err)
-	}
-	before := t.TempDir()
-	for _, path := range migrations {
-		var version int
-		if _, err := fmt.Sscanf(filepath.Base(path), "%d_", &version); err != nil {
-			t.Fatal(err)
-		}
-		if version >= keyedOnNameVersion {
-			continue
-		}
-		src, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		//nolint:gosec // The name is a checked-in migration's, written into the test's own directory.
-		if err := os.WriteFile(filepath.Join(before, filepath.Base(path)), src, 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	migrate, err := neturl.Parse(admin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// A space encoded as a plus sign reaches the server as a plus sign.
-	migrate.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+postgres.MigrationRole), "+", "%20")
-	name := fmt.Sprintf("check_clients_by_name_%d", os.Getpid())
-	adminConn, err := pgx.Connect(ctx, admin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if _, err := adminConn.Exec(context.Background(), "DROP DATABASE IF EXISTS "+pgx.Identifier{name}.Sanitize()+" WITH (FORCE)"); err != nil {
-			t.Error(err)
-		}
-		if err := adminConn.Close(context.Background()); err != nil {
-			t.Error(err)
-		}
-	})
-	if err := postgres.ApplyChain(ctx, admin, migrate.String(), name, filepath.Join("..", "bootstrap", "extensions.sql"), before); err != nil {
-		t.Fatal(err)
-	}
-	database := *migrate
-	database.Path = "/" + name
-	conn, err := pgx.Connect(ctx, database.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := conn.Close(context.Background()); err != nil {
-			t.Error(err)
-		}
-	}()
-	sealed := []byte("the sealed secret's bytes")
-	for _, sql := range []string{
-		"INSERT INTO oauth_clients (provider, client_id, client_secret) VALUES ('gmail', 'gmail-id', $1)",
-		"INSERT INTO accounts (account_id, provider) VALUES ('personal', 'gmail'), ('work', 'gmail'), ('other', 'fastmail')",
-	} {
-		args := []any{}
-		if strings.Contains(sql, "$1") {
-			args = append(args, sealed)
-		}
-		if _, err := conn.Exec(ctx, sql, args...); err != nil {
-			t.Fatalf("%s: %v", sql, err)
-		}
-	}
-
-	//nolint:gosec // The URL is the one pgrun exported for this run's own database, and the command is goose.
-	goose := exec.CommandContext(ctx, "goose", "-dir", filepath.Join("..", "migrations"), "postgres", database.String(), "up")
-	goose.Env = append(os.Environ(), "GOOSE_DRIVER=", "GOOSE_DBSTRING=", "GOOSE_MIGRATION_DIR=")
-	if out, err := goose.CombinedOutput(); err != nil {
-		t.Fatalf("migrating the stored rows: %v\n%s", err, out)
-	}
-
-	var clientName, provider, clientID string
-	var secret []byte
-	if err := conn.QueryRow(ctx, "SELECT name, provider, client_id, client_secret FROM oauth_clients").Scan(&clientName, &provider, &clientID, &secret); err != nil {
-		t.Fatal(err)
-	}
-	if clientName != "gmail" || provider != "gmail" || clientID != "gmail-id" || string(secret) != string(sealed) {
-		t.Errorf("the stored client migrated to %q, %q, %q with secret %q, want it named gmail with its bytes unchanged", clientName, provider, clientID, secret)
-	}
-	rows, err := conn.Query(ctx, "SELECT account_id, coalesce(oauth_client, 'none') FROM accounts ORDER BY account_id")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := map[string]string{}
-	var account, client string
-	if _, err := pgx.ForEachRow(rows, []any{&account, &client}, func() error { got[account] = client; return nil }); err != nil {
-		t.Fatal(err)
-	}
-	want := map[string]string{"personal": "gmail", "work": "gmail", "other": "none"}
-	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
-		t.Errorf("the clients the accounts name (-want +got):\n%s", diff)
-	}
-}
-
-// M7's row for an account identifier the mediator's API root cannot address. Storing an account whose
-// identifier is exactly ., .. or / is refused by the schema, whatever writes it, and an identifier
-// holding a dot among other characters is stored, so the refusal is the three identifiers' alone
-// (ADR-0087).
+// M7's row for an account identifier the mediator's API root cannot address, and F11's grammar that
+// replaced its check. Storing an account whose identifier is exactly ., .. or /, or any identifier
+// outside the grammar of one lowercase DNS label, is refused by the schema, whatever writes it, and an
+// identifier inside the grammar is stored, so the refusal is the grammar's alone (ADR-0087, ADR-0016).
 func TestNoAccountIdentifierIsAPathSegmentThePathCannotHold(t *testing.T) {
 	tx := seeded(t)
-	for _, id := range []string{".", "..", "/"} {
-		if code := attempt(t, tx, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", id); code != "23514" {
-			t.Errorf("storing the account %q: %q, want 23514", id, code)
+	label := strings.Repeat("a", 63)
+	for _, id := range []string{".", "..", "/", "...", "jo.smith", "a/b", "Personal", "-personal", "personal-", "per_sonal", "", label + "a"} {
+		if code := attempt(t, tx, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", id); code != checkViolation {
+			t.Errorf("storing the account %q: %q, want %s", id, code, checkViolation)
 		}
 	}
-	for _, id := range []string{"...", "jo.smith", "a/b"} {
+	for _, id := range []string{"personal", "a", "7", "work-2", "9lives", label} {
 		if code := attempt(t, tx, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", id); code != "" {
 			t.Errorf("storing the account %q: %q, want it stored", id, code)
 		}

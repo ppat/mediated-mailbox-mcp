@@ -75,8 +75,10 @@ var unsafeName = regexp.MustCompile(`[^a-z0-9]+`)
 func newAccounts(t *testing.T, conn *pgx.Conn, n int) []string {
 	t.Helper()
 	must(t, conn, "DELETE FROM policy_rules")
-	prefix := "acct-" + strings.Trim(unsafeName.ReplaceAllString(strings.ToLower(t.Name()), "-"), "-") +
-		"-" + strings.ToLower(rand.Text()[:8])
+	// The test's name is cut short, so each identifier stays within the grammar the schema checks, one
+	// DNS label of at most 63 characters.
+	name := strings.Trim(unsafeName.ReplaceAllString(strings.ToLower(t.Name()), "-"), "-")
+	prefix := "acct-" + strings.TrimRight(name[:min(len(name), 40)], "-") + "-" + strings.ToLower(rand.Text()[:8])
 	var accounts []string
 	for i := range n {
 		account := prefix + "-" + string(rune('a'+i))

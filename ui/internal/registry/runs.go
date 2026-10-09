@@ -21,6 +21,13 @@ func passes() []string {
 
 func runStates() []string { return []string{"running", "succeeded", "failed"} }
 
+// RecordedRuns returns the workload and pass pairs the built job kinds record, in step, the closed set
+// the schema's check on job_runs holds (ADR-0016). The jobs cards read the latest run of each. A job
+// kind's pairs join it in the release whose migration adds them to the check.
+func RecordedRuns() (workloads, passes []string) {
+	return []string{"backfill", "backfill", "sync", "sync"}, []string{"pass1", "pass2", "tick", "gap_recovery"}
+}
+
 // Run is a job run's whole recorded state, the same shape on the jobs endpoint, in the stream's run
 // event and in the runs dataset's rows (docs/UI.md sections 8.3 and 17.5). The checkpoint and the
 // counters are the workload's own JSON (ADR-0016), which the cards read their fields from. last_error
@@ -181,7 +188,7 @@ func runRows(ctx context.Context, q Queries, r Read) (any, error) {
 	}
 	for _, row := range rows {
 		out = append(out, RunRow{Run: Run{
-			RunID: row.RunID, Workload: row.Workload, Pass: text(row.Pass.Valid, row.Pass.String), State: row.State,
+			RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
 			PlanID: uuid(row.PlanID), PlanDescription: text(row.PlanDescription.Valid, row.PlanDescription.String),
 			PlanStatus: text(row.PlanStatus.Valid, row.PlanStatus.String), ResumedFrom: text(row.ResumedFrom.Valid, row.ResumedFrom.String),
 			StartedAt: stamp(row.StartedAt), FinishedAt: optionalStamp(row.FinishedAt), HeartbeatAt: optionalStamp(row.HeartbeatAt),
