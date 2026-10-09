@@ -1,0 +1,19 @@
+control: Each deployable logs at the level its configuration sets
+removes: backfill's entry reads log_level and never sets the level variable, so the logger stays at info
+packages: ./backfill/app
+tests: TestTheConfiguredLevelGovernsTheLog/warn TestTheConfiguredLevelGovernsTheLog/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/a_refused_value_at_warn
+scheduled-count: no
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index d6ba7c2..e16bafd 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -115,7 +115,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+-	level.Set(lv)
++	_ = lv
+ 	c := loaded.Config
+ 	if err := dbconnectcore.Validate(c.Database); err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)

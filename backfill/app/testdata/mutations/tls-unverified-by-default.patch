@@ -5,15 +5,15 @@ tests: TestTheDefaults
 scheduled-count: no
 
 diff --git a/backfill/app/app.go b/backfill/app/app.go
-index 1691e4f5..d28a5d15 100644
+index 964716b..324aaaa 100644
 --- a/backfill/app/app.go
 +++ b/backfill/app/app.go
-@@ -75,7 +75,7 @@ type Configuration struct {
+@@ -78,7 +78,7 @@ type Configuration struct {
  func defaults() Configuration {
  	return Configuration{
  		ProbeListen: ":8080",
 -		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
 +		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "prefer"},
  		Scanner:     scan.DefaultConfig(),
+ 		LogLevel:    logging.DefaultLevel,
  	}
- }

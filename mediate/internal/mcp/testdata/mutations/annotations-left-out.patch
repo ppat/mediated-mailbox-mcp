@@ -6,14 +6,14 @@ scheduled-count: no
 
 
 diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
-index 526f5ce..e25e84a 100644
+index 18f0dae..242f1a5 100644
 --- a/mediate/internal/mcp/mcp.go
 +++ b/mediate/internal/mcp/mcp.go
-@@ -29,7 +29,6 @@ func Handler(reg service.Registry, version string) http.Handler {
+@@ -30,7 +30,6 @@ func Handler(reg service.Registry, version string, logger *slog.Logger) http.Han
  			Description:  op.Description,
  			InputSchema:  op.Input,
  			OutputSchema: op.Output,
 -			Annotations:  annotations(op.Annotations),
- 		}, call(reg, op.Name))
+ 		}, call(reg, op.Name, logger))
  	}
  	server.AddReceivingMiddleware(refuseBeyondTools)

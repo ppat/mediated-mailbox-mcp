@@ -1,0 +1,20 @@
+control: An unknown log level is refused, and each of the four names reads as its own level
+removes: a name that is none of the four reads as info instead of being refused
+packages: ./process/logging ./mediate/app ./ui/app ./backfill/app ./sync/app
+tests: TestTheConfiguredLevelGovernsTheLog/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/an_offset TestTheConfiguredLevelGovernsTheLog/warning TestALevelIsOneOfFourNames/refused_empty TestALevelIsOneOfFourNames/refused_upper_case TestALevelIsOneOfFourNames/refused_title_case TestALevelIsOneOfFourNames/refused_warning TestALevelIsOneOfFourNames/refused_an_offset_up TestALevelIsOneOfFourNames/refused_an_offset_down TestALevelIsOneOfFourNames/refused_trace TestALevelIsOneOfFourNames/refused_a_leading_space TestALevelIsOneOfFourNames/refused_a_trailing_newline
+scheduled-count: no
+
+diff --git a/process/logging/logging.go b/process/logging/logging.go
+index fbdbd35..012d79f 100644
+--- a/process/logging/logging.go
++++ b/process/logging/logging.go
+@@ -41,7 +41,8 @@ func ParseLevel(name string) (slog.Level, error) {
+ 	case "error":
+ 		return slog.LevelError, nil
+ 	default:
+-		return 0, fmt.Errorf("log_level %q is not one of debug, info, warn and error", name)
++		_ = fmt.Sprintf
++		return slog.LevelInfo, nil
+ 	}
+ }
+ 

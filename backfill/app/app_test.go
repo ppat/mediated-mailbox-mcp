@@ -31,6 +31,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"Database core.Config",
 		"Credential core.Config",
 		"Scanner scan.Config",
+		"LogLevel string",
 	)
 }
 
@@ -43,11 +44,12 @@ func TestTheDefaults(t *testing.T) {
 		ProbeListen: ":8080",
 		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
 		Scanner:     scan.DefaultConfig(),
+		LogLevel:    "info",
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), nil, nil, discard())
+	err := Run(t.Context(), nil, nil, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
@@ -56,7 +58,7 @@ func TestTheDefaults(t *testing.T) {
 
 // A password variable refuses the start before any configuration is read.
 func TestAPasswordVariableRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, discard())
+	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, discard(), new(slog.LevelVar))
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -65,7 +67,7 @@ func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 
 // The start validates the merged configuration before it configures the connection.
 func TestAnEmptyHostRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), append([]string{"--database.host=", "--database.name=mailbox", "--database.password_file=/absent"}, absentKeys...), nil, discard())
+	err := Run(t.Context(), append([]string{"--database.host=", "--database.name=mailbox", "--database.password_file=/absent"}, absentKeys...), nil, discard(), new(slog.LevelVar))
 	want := "validating the configuration: database.host is empty"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -89,7 +91,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
 	err := Run(t.Context(), append([]string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys...),
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the keyring's refusal", err)
 	}
@@ -103,6 +105,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
 		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_backfill`,
+		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
 		`level=INFO msg=configuration path=scanner.window source=default value=8`,
 	}
@@ -132,7 +135,7 @@ var database = []string{"--database.host=db.example", "--database.name=mailbox",
 
 // The start validates the credential section before it reads a key file.
 func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), append(slices.Clone(database), "--credential.public_key_file=/absent/public", "--credential.private_key_files=[]"), nil, discard())
+	err := Run(t.Context(), append(slices.Clone(database), "--credential.public_key_file=/absent/public", "--credential.private_key_files=[]"), nil, discard(), new(slog.LevelVar))
 	want := "validating the configuration: credential.private_key_files names no file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -144,7 +147,7 @@ func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 // ADR-0080).
 func TestAnAccountArgumentRefusesTheStart(t *testing.T) {
 	for _, arg := range []string{"one@example.com", "database.port=5433"} {
-		err := Run(t.Context(), append(slices.Clone(database), arg), nil, discard())
+		err := Run(t.Context(), append(slices.Clone(database), arg), nil, discard(), new(slog.LevelVar))
 		want := fmt.Sprintf("loading the configuration: argument %q: it is not a flag, and flags are written --path=VALUE", arg)
 		if err == nil || err.Error() != want {
 			t.Errorf("Run returned %v, want %q", err, want)
@@ -166,7 +169,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, discard())
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("Run returned %v, want the configuration library's refusal", err)
 			}
@@ -207,7 +210,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		args := append(slices.Clone(database), "--credential.public_key_file="+public, "--credential.private_key_files=["+strings.Join(privates, ", ")+"]")
-		return Run(t.Context(), args, nil, discard())
+		return Run(t.Context(), args, nil, discard(), new(slog.LevelVar))
 	}
 	pastTheKeyring := "configuring the database connection: reading the password file: "
 	for _, c := range []struct {
@@ -245,7 +248,7 @@ func TestAnInvalidScannerSectionRefusesTheStart(t *testing.T) {
 		{"--scanner.link_words=[]", "no link word or no link parameter is configured"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, discard())
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "validating the configuration: scanner: ") || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("Run returned %v, want the scanner's refusal containing %q", err, c.want)
 			}
@@ -329,5 +332,56 @@ func TestARunDecidesUnderTheSharedThresholdsAndScanner(t *testing.T) {
 	const syncs = "version 1 revision c9fa3ff13948e4f89ac094b91a27455c"
 	if got := fmt.Sprintf("version %d revision %s", v.Version(), v.Revision()); got != syncs {
 		t.Errorf("the scanner records %s, want delta sync's %s", got, syncs)
+	}
+}
+
+// The start writes the effective configuration with each value's source before the level applies,
+// then sets the level of the logger it was handed from log_level. So whatever the level, a refused
+// value's source is written, log_level's own included, and once the level is set no record below it
+// is written. A level that names none is refused (ADR-0078, ADR-0122).
+func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
+	refused := func(name string) string {
+		return `validating the configuration: log_level "` + name + `" is not one of debug, info, warn and error`
+	}
+	logLevelFrom := func(source, value string) string {
+		return `"msg":"configuration","path":"log_level","source":"` + source + `","value":"` + value + `"`
+	}
+	cases := []struct {
+		name    string
+		args    []string
+		environ []string
+		wantErr string
+		// wantLine is a record the start must write, whatever the level.
+		wantLine string
+		// wantInfo is whether an info record is written once the start has returned.
+		wantInfo bool
+	}{
+		{name: "no level", wantErr: "loading the keyring: ", wantLine: logLevelFrom("default", "info"), wantInfo: true},
+		{name: "info", args: []string{"--log_level=info"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "info"), wantInfo: true},
+		{name: "warn", args: []string{"--log_level=warn"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "warn")},
+		{name: "error, from the environment", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=error"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "error")},
+		{name: "a name in upper case", args: []string{"--log_level=INFO"}, wantErr: refused("INFO"), wantLine: logLevelFrom("flag --log_level", "INFO"), wantInfo: true},
+		{name: "an offset", args: []string{"--log_level=info+2"}, wantErr: refused("info+2"), wantLine: logLevelFrom("flag --log_level", "info+2"), wantInfo: true},
+		{name: "warning", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=warning"}, wantErr: refused("warning"), wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "warning"), wantInfo: true},
+		{name: "a refused value at warn", args: append([]string{"--log_level=warn"}, []string{"--scanner.window=0"}...), wantErr: "validating the configuration: scanner: ", wantLine: `"msg":"configuration","path":"scanner.window","source":"flag --scanner.window","value":0`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			level := new(slog.LevelVar)
+			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
+			err := Run(t.Context(), append(append(slices.Clone(database), absentKeys...), c.args...), c.environ, logger, level)
+			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
+				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
+			}
+			if !strings.Contains(out.String(), c.wantLine) {
+				t.Errorf("the start did not write %s:\n%s", c.wantLine, out.String())
+			}
+			out.Reset()
+			logger.Info("after the start")
+			if written := out.Len() != 0; written != c.wantInfo {
+				t.Errorf("an info record after the start was written: %v, want %v", written, c.wantInfo)
+			}
+		})
 	}
 }

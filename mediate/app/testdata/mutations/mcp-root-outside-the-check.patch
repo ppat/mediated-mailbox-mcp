@@ -6,19 +6,19 @@ scheduled-count: no
 
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..cb311185 100644
+index 523220a..5fb7429 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -529,9 +529,10 @@ func surface(registry service.Registry, tokenFile string) (http.Handler, error)
+@@ -545,9 +545,10 @@ func surface(registry service.Registry, tokenFile string, logger *slog.Logger) (
  		return nil, err
  	}
  	roots := http.NewServeMux()
 -	roots.Handle("/api/", apiRoot)
-+	roots.Handle("/api/", bearer(tokenFile, apiRoot))
- 	roots.Handle("/mcp", mcp.Handler(registry, version()))
--	return noStore(bearer(tokenFile, roots)), nil
-+	roots.Handle("/", bearer(tokenFile, http.NotFoundHandler()))
-+	return noStore(roots), nil
++	roots.Handle("/api/", bearer(tokenFile, logger, apiRoot))
+ 	roots.Handle("/mcp", mcp.Handler(registry, version(), logger))
+-	return noStore(logger, bearer(tokenFile, logger, roots)), nil
++	roots.Handle("/", bearer(tokenFile, logger, http.NotFoundHandler()))
++	return noStore(logger, roots), nil
  }
  
  // noStore marks every response uncacheable, before its handler runs, so a response its handler

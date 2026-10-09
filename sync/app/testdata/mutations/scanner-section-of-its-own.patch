@@ -5,15 +5,15 @@ tests: TestATickDecidesUnderBackfillsThresholdsAndScanner
 scheduled-count: no
 
 diff --git a/sync/app/app.go b/sync/app/app.go
-index 7e99a2d2..982e8a82 100644
+index 4a5cc85..16b95f8 100644
 --- a/sync/app/app.go
 +++ b/sync/app/app.go
-@@ -88,7 +88,7 @@ func defaults() Configuration {
+@@ -91,7 +91,7 @@ func defaults() Configuration {
  		FirstWindow:      7 * 24 * time.Hour,
  		DecisionsPerTick: 200,
  		Database:         dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_sync", SSLMode: "verify-full"},
 -		Scanner:          scan.DefaultConfig(),
 +		Scanner:          func() scan.Config { c := scan.DefaultConfig(); c.Window++; return c }(),
+ 		LogLevel:         logging.DefaultLevel,
  	}
  }
- 

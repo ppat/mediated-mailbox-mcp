@@ -16,6 +16,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 )
 
 // Serve serves the health probe and the metrics endpoint on ln until the returned function stops
@@ -25,12 +27,13 @@ func Serve(ln net.Listener, registry *prometheus.Registry, logger *slog.Logger) 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		// A failed write means the prober went away, which leaves the operator nothing to act on.
 		if _, err := fmt.Fprintln(w, "ok"); err != nil {
-			logger.WarnContext(r.Context(), "writing a probe answer failed", "error", err)
+			logger.DebugContext(r.Context(), "writing a probe answer failed", "error", err)
 		}
 	})
 	mux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second, ErrorLog: logging.ServerErrorLog(logger)}
 	served := make(chan error, 1)
 	go func() {
 		err := srv.Serve(ln)

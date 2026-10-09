@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 )
@@ -81,6 +82,25 @@ func Classify(err error) (Origin, string) {
 		return OriginProvider, provider.message
 	}
 	return OriginMediator, mediatorMessage
+}
+
+// FailureLevel returns the level a failed call is logged at, by its origin, so both roots log a
+// failure alike (ADR-0122, ADR-0053). A failure inside the mediator is an error an operator acts on.
+// A provider's failure, a throttle or a refused credential among them, is a warning, since an
+// operator acts on it when it persists. A client's refused request is routine progress, since the
+// client is told why and the operator has nothing to act on.
+func FailureLevel(err error) slog.Level {
+	origin, _ := Classify(err)
+	switch origin {
+	case OriginClient:
+		return slog.LevelInfo
+	case OriginProvider:
+		return slog.LevelWarn
+	case OriginMediator:
+		return slog.LevelError
+	default:
+		return slog.LevelError
+	}
 }
 
 // Failure returns the structured content a failed call answers with on both roots, its origin and

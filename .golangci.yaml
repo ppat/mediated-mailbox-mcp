@@ -129,6 +129,17 @@ linters:
       - pattern: ^promhttp\.Handler$
         pkg: ^github\.com/prometheus/client_golang/prometheus/promhttp$
         msg: it serves the default registry, and a process serves its own through promhttp.HandlerFor (ADR-0076)
+      # The process's default loggers and the built-in print functions. Every Go file logs through a logger it was
+      # handed. main.go makes its logger the default only for code the project does not own, so the setters stay
+      # allowed (ADR-0122).
+      - pattern: ^slog\.(Default|Debug|DebugContext|Info|InfoContext|Warn|WarnContext|Error|ErrorContext|Log|LogAttrs)$
+        pkg: ^log/slog$
+        msg: code logs through the logger it was handed, never the process default (ADR-0122)
+      - pattern: ^log\.(Print|Printf|Println|Fatal|Fatalf|Fatalln|Panic|Panicf|Panicln|Output|Default|Writer)$
+        pkg: ^log$
+        msg: code logs through the logger it was handed, never the process default (ADR-0122)
+      - pattern: ^(print|println)$
+        msg: a built-in print writes plain text to standard error, outside the handed logger (ADR-0122)
 
     depguard:
       # How to read these lists.
@@ -305,8 +316,21 @@ linters:
           - "${base-path}/process/probes/**.go"
           allow:
           - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
+
+        # The logger, every file, a package of the process family. It builds a logger over the standard library
+        # alone and its tests compare through the shared options value (ADR-0122, ADR-0070).
+        logging:
+          list-mode: strict
+          files:
+          - "${base-path}/process/logging/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
 
         # The data-access library, every file.
         db:
@@ -570,6 +594,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The probe and metrics listener the composition root serves (ADR-0051).
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
@@ -628,6 +653,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
@@ -733,6 +759,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The probe and metrics listener the composition root serves (ADR-0051, ADR-0103).
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
@@ -821,6 +848,7 @@ linters:
           # The composition root's configuration (ADR-0078) and its database section, in ui/app.
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
           - "github.com/ppat/mediated-mailbox-mcp/provider/fake$"
           # Gmail's consent, which the composition root hands the server.
@@ -933,6 +961,8 @@ linters:
           - "encoding/json$"
           - "errors$"
           - "fmt$"
+          # The level a failed call is logged at, which the service layer decides once for both roots (ADR-0122).
+          - "log/slog$"
           - "regexp$"
           - "slices$"
           - "strconv$"
@@ -1023,6 +1053,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/propose/"
@@ -1078,6 +1109,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/organize/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/propose/"
@@ -1119,6 +1151,7 @@ linters:
           - "!${base-path}/mediate/**"
           - "!${base-path}/organize/**"
           - "!${base-path}/process/dbconnect/**"
+          - "!${base-path}/process/logging/**"
           - "!${base-path}/process/probes/**"
           - "!${base-path}/process/settings/**"
           - "!${base-path}/propose/**"

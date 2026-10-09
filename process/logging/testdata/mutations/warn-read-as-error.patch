@@ -1,0 +1,19 @@
+control: An unknown log level is refused, and each of the four names reads as its own level
+removes: warn reads as the error level
+packages: ./process/logging
+tests: TestALevelIsOneOfFourNames/warn
+scheduled-count: no
+
+diff --git a/process/logging/logging.go b/process/logging/logging.go
+index fbdbd35..a8e3670 100644
+--- a/process/logging/logging.go
++++ b/process/logging/logging.go
+@@ -37,7 +37,7 @@ func ParseLevel(name string) (slog.Level, error) {
+ 	case "info":
+ 		return slog.LevelInfo, nil
+ 	case "warn":
+-		return slog.LevelWarn, nil
++		return slog.LevelError, nil
+ 	case "error":
+ 		return slog.LevelError, nil
+ 	default:

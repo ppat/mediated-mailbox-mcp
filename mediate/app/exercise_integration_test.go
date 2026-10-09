@@ -116,7 +116,7 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	if err := os.WriteFile(tokenPath, []byte(token), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	handler, err := surface(reg, tokenPath)
+	handler, err := surface(reg, tokenPath, slog.New(slog.NewTextHandler(os.Stderr, nil)))
 	if err != nil {
 		t.Fatal(err)
 	}

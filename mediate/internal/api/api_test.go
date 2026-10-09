@@ -1,11 +1,13 @@
 package api_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -24,7 +26,7 @@ import (
 // root returns the API root over reg.
 func root(t *testing.T, reg service.Registry) http.Handler {
 	t.Helper()
-	h, err := api.Handler(reg)
+	h, err := api.Handler(reg, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +180,7 @@ func TestBothRootsCarryExactlyTheRegistry(t *testing.T) {
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
-	mcp.Handler(reg, "test").ServeHTTP(rec, req)
+	mcp.Handler(reg, "test", slog.New(slog.DiscardHandler)).ServeHTTP(rec, req)
 	var listed struct {
 		Result struct {
 			Tools []struct {
@@ -263,6 +265,49 @@ func TestAServedRouteTakesOnlyTheArgumentsItDeclares(t *testing.T) {
 	} {
 		if got := send(t, h, http.MethodGet, target, ""); got.Status != http.StatusBadRequest {
 			t.Errorf("GET %s answered %d %s, want 400", target, got.Status, got.Body)
+		}
+	}
+}
+
+// A failed call is logged at the level its origin sets, a client's refusal at info, a provider's
+// failure at warn and a failure inside the mediator at error (ADR-0122).
+func TestAFailedCallIsLoggedAtItsOriginsLevel(t *testing.T) {
+	failing := func(name string, err error) service.Operation {
+		return service.Operation{
+			Name: name, Description: "A fixture " + name + ".", Effect: service.Read,
+			Path: "/api/accounts/{account_id}/" + strings.ReplaceAll(name, "_", "-"), Input: json.RawMessage(`{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}`),
+			Output: json.RawMessage(`{"type":"object"}`),
+			Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) { return nil, err },
+		}
+	}
+	reg, err := service.NewRegistry([]string{"acct-a"},
+		failing("refuse_it", service.Refuse("limit is not a number")),
+		failing("throttle_it", service.FromProvider(fmt.Errorf("listing: %w", mail.ErrThrottled))),
+		failing("fail_it", errors.New("the database did not answer")),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	h, err := api.Handler(reg, slog.New(slog.NewJSONHandler(&out, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ path, want string }{{"refuse-it", "INFO"}, {"throttle-it", "WARN"}, {"fail-it", "ERROR"}} {
+		out.Reset()
+		send(t, h, http.MethodGet, "/api/accounts/acct-a/"+c.path, "")
+		var levels []any
+		for _, line := range bytes.Split(bytes.TrimSpace(out.Bytes()), []byte("\n")) {
+			var r map[string]any
+			if err := json.Unmarshal(line, &r); err != nil {
+				t.Fatalf("a log line is not one JSON object: %q: %v", line, err)
+			}
+			if r["msg"] == "operation failed" {
+				levels = append(levels, r["level"])
+			}
+		}
+		if diff := cmp.Diff([]any{c.want}, levels, compare.Options); diff != "" {
+			t.Errorf("%s logged its failure at (-want +got):\n%s", c.path, diff)
 		}
 	}
 }

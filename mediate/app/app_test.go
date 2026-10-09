@@ -63,7 +63,7 @@ func counted(t *testing.T) (service.Registry, *atomic.Int64) {
 // mustSurface returns the client surface over reg behind the token in tokenFile.
 func mustSurface(t *testing.T, reg service.Registry, tokenFile string) http.Handler {
 	t.Helper()
-	h, err := surface(reg, tokenFile)
+	h, err := surface(reg, tokenFile, discard())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestTheProbes(t *testing.T) {
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{Name: "mediated_mailbox_test_gauge", Help: "A test gauge."})
 	metrics.MustRegister(gauge)
 	var ready readiness.State
-	h := probes(&ready, metrics)
+	h := probes(&ready, metrics, discard())
 	get := func(path string) string {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil))
@@ -361,6 +361,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"Credential core.Config",
 		"Scanner scan.Config",
 		"ProviderTimeout time.Duration",
+		"LogLevel string",
 	)
 }
 
@@ -375,11 +376,12 @@ func TestTheDefaults(t *testing.T) {
 		Listen: ":8443", ProbeListen: ":8080", AccountReloadInterval: time.Minute,
 		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
 		Scanner:  scan.DefaultConfig(), ProviderTimeout: 30 * time.Second,
+		LogLevel: "info",
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), nil, nil, discard())
+	err := Run(t.Context(), nil, nil, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: token_file is required, and neither the file, MEDIATED_MAILBOX_TOKEN_FILE nor --token_file sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
@@ -433,7 +435,7 @@ func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 // An argument that is not a configuration flag is refused, so no account reaches the mediator from its
 // command line (ADR-0080).
 func TestAnAccountArgumentIsRefused(t *testing.T) {
-	err := Run(t.Context(), []string{"acct-a"}, nil, discard())
+	err := Run(t.Context(), []string{"acct-a"}, nil, discard(), new(slog.LevelVar))
 	if err == nil || !strings.Contains(err.Error(), "loading the configuration") {
 		t.Errorf("Run returned %v, want the argument refused", err)
 	}
@@ -479,7 +481,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
 	err := Run(t.Context(), args(servingArgs, []string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys),
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the keyring's refusal", err)
 	}
@@ -495,6 +497,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
 		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_mediate`,
 		`level=INFO msg=configuration path=listen source=default value=:8443`,
+		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
 		`level=INFO msg=configuration path=provider_timeout source=default value=30s`,
 		`level=INFO msg=configuration path=scanner.dense_entropy source=default value=3`,
@@ -537,7 +540,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard())
+			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("Run returned %v, want the configuration library's refusal", err)
 			}
@@ -575,7 +578,7 @@ func TestNoConfigurationValueWeakensTheGate(t *testing.T) {
 		{"a scanner section with nothing to match", []string{"--config-file=" + emptied}, nil, "validating the configuration: scanner: "},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard())
+			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), c.want) {
 				t.Errorf("Run returned %v, want an error starting %q", err, c.want)
 			}
@@ -616,7 +619,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		keys := []string{"--credential.public_key_file=" + public, "--credential.private_key_files=[" + strings.Join(privates, ", ") + "]"}
-		return Run(t.Context(), args(servingArgs, database, keys), nil, discard())
+		return Run(t.Context(), args(servingArgs, database, keys), nil, discard(), new(slog.LevelVar))
 	}
 	pastTheKeyring := "configuring the database connection: reading the password file: "
 	for _, c := range []struct {
@@ -649,7 +652,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 // (ADR-0086).
 func TestMCPGODEBUGStopsTheStart(t *testing.T) {
 	for _, value := range []string{"allowsessionsinstateless=1", ""} {
-		err := Run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, discard())
+		err := Run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, discard(), new(slog.LevelVar))
 		if err == nil || !strings.Contains(err.Error(), "MCPGODEBUG is set") {
 			t.Errorf("with MCPGODEBUG=%q, run returned %v", value, err)
 		}
@@ -693,7 +696,7 @@ func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
 func TestAPasswordInTheEnvironmentStopsTheStart(t *testing.T) {
 	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {
 		for _, value := range []string{"s3cret", ""} {
-			err := Run(t.Context(), nil, []string{name + "=" + value}, discard())
+			err := Run(t.Context(), nil, []string{name + "=" + value}, discard(), new(slog.LevelVar))
 			if err == nil || !strings.Contains(err.Error(), "the environment sets "+name) {
 				t.Errorf("with %s=%q, run returned %v", name, value, err)
 			}
@@ -720,7 +723,7 @@ func TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
 		"--database.password_file=" + password, "--database.sslmode=disable",
 		"--credential.public_key_file=" + public, "--credential.private_key_files=[" + private + "]",
 	})
-	err := Run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, logger)
+	err := Run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, logger, new(slog.LevelVar))
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -834,12 +837,63 @@ func TestNoStoreOverridesAHandlersCaching(t *testing.T) {
 	}
 	for name, handler := range cases {
 		rec := httptest.NewRecorder()
-		noStore(handler).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
+		noStore(discard(), handler).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
 		if got := rec.Header().Get("Cache-Control"); got != "no-store" {
 			t.Errorf("%s: Cache-Control %q", name, got)
 		}
 		if got := rec.Header().Values("ETag"); len(got) != 0 {
 			t.Errorf("%s: ETag %q", name, got)
 		}
+	}
+}
+
+// The start writes the effective configuration with each value's source before the level applies,
+// then sets the level of the logger it was handed from log_level. So whatever the level, a refused
+// value's source is written, log_level's own included, and once the level is set no record below it
+// is written. A level that names none is refused (ADR-0078, ADR-0122).
+func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
+	refused := func(name string) string {
+		return `validating the configuration: log_level "` + name + `" is not one of debug, info, warn and error`
+	}
+	logLevelFrom := func(source, value string) string {
+		return `"msg":"configuration","path":"log_level","source":"` + source + `","value":"` + value + `"`
+	}
+	cases := []struct {
+		name    string
+		args    []string
+		environ []string
+		wantErr string
+		// wantLine is a record the start must write, whatever the level.
+		wantLine string
+		// wantInfo is whether an info record is written once the start has returned.
+		wantInfo bool
+	}{
+		{name: "no level", wantErr: "loading the keyring: ", wantLine: logLevelFrom("default", "info"), wantInfo: true},
+		{name: "info", args: []string{"--log_level=info"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "info"), wantInfo: true},
+		{name: "warn", args: []string{"--log_level=warn"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "warn")},
+		{name: "error, from the environment", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=error"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "error")},
+		{name: "a name in upper case", args: []string{"--log_level=INFO"}, wantErr: refused("INFO"), wantLine: logLevelFrom("flag --log_level", "INFO"), wantInfo: true},
+		{name: "an offset", args: []string{"--log_level=info+2"}, wantErr: refused("info+2"), wantLine: logLevelFrom("flag --log_level", "info+2"), wantInfo: true},
+		{name: "warning", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=warning"}, wantErr: refused("warning"), wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "warning"), wantInfo: true},
+		{name: "a refused value at warn", args: append([]string{"--log_level=warn"}, []string{"--provider_timeout=0s"}...), wantErr: "validating the configuration: provider_timeout 0s is not positive", wantLine: `"msg":"configuration","path":"provider_timeout","source":"flag --provider_timeout","value":0`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			level := new(slog.LevelVar)
+			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
+			err := Run(t.Context(), append(args(servingArgs, database, absentKeys), c.args...), c.environ, logger, level)
+			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
+				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
+			}
+			if !strings.Contains(out.String(), c.wantLine) {
+				t.Errorf("the start did not write %s:\n%s", c.wantLine, out.String())
+			}
+			out.Reset()
+			logger.Info("after the start")
+			if written := out.Len() != 0; written != c.wantInfo {
+				t.Errorf("an info record after the start was written: %v, want %v", written, c.wantInfo)
+			}
+		})
 	}
 }

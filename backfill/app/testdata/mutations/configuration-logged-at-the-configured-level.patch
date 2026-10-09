@@ -1,0 +1,28 @@
+control: The effective configuration is logged at start, each value with its source
+removes: backfill's entry sets the level before it logs the effective configuration, so under warn a refused value's source, log_level's included, is never written
+packages: ./backfill/app
+tests: TestTheConfiguredLevelGovernsTheLog/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/an_offset TestTheConfiguredLevelGovernsTheLog/warning TestTheConfiguredLevelGovernsTheLog/warn TestTheConfiguredLevelGovernsTheLog/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/a_refused_value_at_warn
+scheduled-count: no
+
+diff --git a/backfill/app/app.go b/backfill/app/app.go
+index d6ba7c2..0c371dc 100644
+--- a/backfill/app/app.go
++++ b/backfill/app/app.go
+@@ -108,14 +108,14 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
+ 	}
+ 	// The effective configuration is written before the level applies, so a refused value's source,
+ 	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
+-	for _, v := range loaded.Values {
+-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+-	}
+ 	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+ 	level.Set(lv)
++	for _, v := range loaded.Values {
++		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
++	}
+ 	c := loaded.Config
+ 	if err := dbconnectcore.Validate(c.Database); err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)

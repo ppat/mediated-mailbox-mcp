@@ -37,6 +37,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/probes"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
@@ -72,6 +73,8 @@ type Configuration struct {
 	Database    dbconnectcore.Config  `yaml:"database"`
 	Credential  credentialcore.Config `yaml:"credential"`
 	Scanner     scan.Config           `yaml:"scanner"`
+	// LogLevel is the lowest level the deployable logs at, debug, info, warn or error (ADR-0122).
+	LogLevel string `yaml:"log_level"`
 }
 
 // defaults are backfill's defaults. The user is backfill's own runtime role (ADR-0075), and the TLS
@@ -82,6 +85,7 @@ func defaults() Configuration {
 		ProbeListen: ":8080",
 		Database:    dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_backfill", SSLMode: "verify-full"},
 		Scanner:     scan.DefaultConfig(),
+		LogLevel:    logging.DefaultLevel,
 	}
 }
 
@@ -91,7 +95,10 @@ func defaults() Configuration {
 // built from its section before anything else starts, so a section it refuses refuses the start. The
 // keyring is loaded before any connection is made, so a public key matching none of the private keys
 // refuses the start (ADR-0088).
-func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error {
+//
+// logger is the logger main.go built over level, at info until Run sets level from log_level once
+// the effective configuration is written, so every logger derived from logger follows it (ADR-0122).
+func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level *slog.LevelVar) error {
 	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
 		return err
 	}
@@ -104,9 +111,16 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
 	if err != nil {
 		return fmt.Errorf("loading the configuration: %w", err)
 	}
+	// The effective configuration is written before the level applies, so a refused value's source,
+	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
 	for _, v := range loaded.Values {
 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 	}
+	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
+	if err != nil {
+		return fmt.Errorf("validating the configuration: %w", err)
+	}
+	level.Set(lv)
 	c := loaded.Config
 	if err := dbconnectcore.Validate(c.Database); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)

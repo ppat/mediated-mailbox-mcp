@@ -5,10 +5,10 @@ tests: TestEachFailureNamesItsOrigin TestAToolCallRunsTheOperation
 scheduled-count: no
 
 diff --git a/mediate/internal/service/failure.go b/mediate/internal/service/failure.go
-index c2cba09..86a6724 100644
+index edb01ed..06c3404 100644
 --- a/mediate/internal/service/failure.go
 +++ b/mediate/internal/service/failure.go
-@@ -80,7 +80,7 @@ func Classify(err error) (Origin, string) {
+@@ -81,7 +81,7 @@ func Classify(err error) (Origin, string) {
  	if errors.As(err, &provider) {
  		return OriginProvider, provider.message
  	}
@@ -16,4 +16,4 @@ index c2cba09..86a6724 100644
 +	return OriginMediator, err.Error()
  }
  
- // Failure returns the structured content a failed call answers with on both roots, its origin and
+ // FailureLevel returns the level a failed call is logged at, by its origin, so both roots log a

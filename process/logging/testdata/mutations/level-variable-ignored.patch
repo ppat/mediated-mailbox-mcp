@@ -1,0 +1,19 @@
+control: Each deployable logs at the level its configuration sets
+removes: the logger is built without the level variable, so it writes at info whatever the variable holds
+packages: ./process/logging
+tests: TestTheLoggerWritesJSONAtTheLevelItsVariableHolds TestAServersErrorLogWritesAtWarn
+scheduled-count: no
+
+diff --git a/process/logging/logging.go b/process/logging/logging.go
+index fbdbd35..4ad7ccb 100644
+--- a/process/logging/logging.go
++++ b/process/logging/logging.go
+@@ -23,7 +23,7 @@ const DefaultLevel = "info"
+ 
+ // New returns a logger writing one JSON object per record to w, at the level level holds.
+ func New(w io.Writer, level slog.Leveler) *slog.Logger {
+-	return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{Level: level}))
++	return slog.New(slog.NewJSONHandler(w, nil))
+ }
+ 
+ // ParseLevel returns the level name names, one of debug, info, warn and error, spelled exactly so.

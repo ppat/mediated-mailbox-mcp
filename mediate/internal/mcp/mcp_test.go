@@ -5,14 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -195,7 +199,7 @@ const (
 // four annotations its effect class derives, literally and with every hint present, at either
 // revision (ADR-0053, ADR-0087, ADR-0086).
 func TestTheToolListIsTheRegistry(t *testing.T) {
-	h := mcp.Handler(registry(t), "test")
+	h := mcp.Handler(registry(t), "test", slog.New(slog.DiscardHandler))
 	fixture := func(name, annotations string) tool {
 		return tool{Name: name, Description: "A fixture " + name + ".", InputSchema: json.RawMessage(accountInput), OutputSchema: json.RawMessage(objectOutput), Annotations: annotations}
 	}
@@ -230,7 +234,7 @@ func TestTheToolListIsTheRegistry(t *testing.T) {
 // closes at once rather than being held open, and a request for prompts, resources or a log level
 // is a method the server does not have, carried in a 200 before 2026-07-28 and a 404 from it.
 func TestTheRootOffersToolsOnly(t *testing.T) {
-	h := mcp.Handler(registry(t), "test")
+	h := mcp.Handler(registry(t), "test", slog.New(slog.DiscardHandler))
 	capabilities := func(r response) json.RawMessage {
 		var got struct {
 			Capabilities json.RawMessage `json:"capabilities"`
@@ -324,7 +328,7 @@ func TestTheRootOffersToolsOnly(t *testing.T) {
 // mediator's saying only that it failed, and a missing account and a refused argument are the
 // client's, carrying the refusal (ADR-0101).
 func TestAToolCallRunsTheOperation(t *testing.T) {
-	h := mcp.Handler(registry(t), "test")
+	h := mcp.Handler(registry(t), "test", slog.New(slog.DiscardHandler))
 	for _, e := range []era{legacy, modern} {
 		type result struct {
 			IsError           bool            `json:"isError"`
@@ -393,7 +397,7 @@ func TestARepeatedArgumentIsRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := mcp.Handler(reg, "test")
+	h := mcp.Handler(reg, "test", slog.New(slog.DiscardHandler))
 	for _, args := range []string{`{"account_id":"acct-a","label":"x","label":"y"}`, `{"account_id":"acct-a","label":"x","LABEL":"y"}`} {
 		body := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_thing","arguments":` + args + `}}`
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", bytes.NewReader([]byte(body)))
@@ -422,7 +426,7 @@ func TestAServedToolTakesOnlyTheArgumentsItDeclares(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := mcp.Handler(reg, "test")
+	h := mcp.Handler(reg, "test", slog.New(slog.DiscardHandler))
 	for _, e := range []era{legacy, modern} {
 		for args, want := range map[string]string{
 			`{"account_id":"acct-a","SINCE":"2026-07-21T20:00:00Z"}`: `{"error":{"origin":"client","message":"the arguments name one the operation does not take"}}`,
@@ -456,4 +460,81 @@ func (unreachable) Begin(context.Context) (pgx.Tx, error) {
 
 func (unreachable) BeginTx(context.Context, pgx.TxOptions) (pgx.Tx, error) {
 	return nil, errors.New("the test reaches no database")
+}
+
+// records decodes each JSON line of out.
+func records(t *testing.T, out *bytes.Buffer) []map[string]any {
+	t.Helper()
+	var got []map[string]any
+	for _, line := range bytes.Split(bytes.TrimSpace(out.Bytes()), []byte("\n")) {
+		if len(line) == 0 {
+			continue
+		}
+		var r map[string]any
+		if err := json.Unmarshal(line, &r); err != nil {
+			t.Fatalf("a log line is not one JSON object: %q: %v", line, err)
+		}
+		got = append(got, r)
+	}
+	return got
+}
+
+// A failed call is logged at the level its origin sets, a client's refusal at info, a provider's
+// failure at warn and a failure inside the mediator at error (ADR-0122).
+func TestAFailedCallIsLoggedAtItsOriginsLevel(t *testing.T) {
+	failing := func(name string, err error) service.Operation {
+		return service.Operation{
+			Name: name, Description: "A fixture " + name + ".", Effect: service.Read,
+			Path: "/api/accounts/{account_id}/" + strings.ReplaceAll(name, "_", "-"), Input: json.RawMessage(accountInput), Output: json.RawMessage(`{"type":"object"}`),
+			Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) { return nil, err },
+		}
+	}
+	reg, err := service.NewRegistry([]string{"acct-a"},
+		failing("refuse_it", service.Refuse("limit is not a number")),
+		failing("throttle_it", service.FromProvider(fmt.Errorf("listing: %w", mail.ErrThrottled))),
+		failing("fail_it", errors.New("the database did not answer")),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	h := mcp.Handler(reg, "test", slog.New(slog.NewJSONHandler(&out, nil)))
+	for _, c := range []struct{ tool, want string }{{"refuse_it", "INFO"}, {"throttle_it", "WARN"}, {"fail_it", "ERROR"}} {
+		out.Reset()
+		call(t, h, legacy, "tools/call", c.tool, map[string]any{"name": c.tool, "arguments": map[string]any{"account_id": "acct-a"}})
+		var levels []any
+		for _, r := range records(t, &out) {
+			if r["msg"] == "operation failed" {
+				levels = append(levels, r["level"])
+			}
+		}
+		if diff := cmp.Diff([]any{c.want}, levels, compare.Options); diff != "" {
+			t.Errorf("%s logged its failure at (-want +got):\n%s", c.tool, diff)
+		}
+	}
+}
+
+// The server's own records reach the handed logger. Its line per request is detail, written at
+// debug and not at the default level (ADR-0122).
+func TestTheServersRoutineRecordsAreDetail(t *testing.T) {
+	for _, c := range []struct {
+		level slog.Level
+		want  []any
+	}{
+		{slog.LevelInfo, nil},
+		{slog.LevelDebug, []any{"DEBUG"}},
+	} {
+		var out bytes.Buffer
+		h := mcp.Handler(registry(t), "test", slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: c.level})))
+		call(t, h, legacy, "tools/call", "echo", map[string]any{"name": "echo", "arguments": map[string]any{"account_id": "acct-a"}})
+		var levels []any
+		for _, r := range records(t, &out) {
+			if r["msg"] == "server connecting" {
+				levels = append(levels, r["level"])
+			}
+		}
+		if diff := cmp.Diff(c.want, levels, compare.Options); diff != "" {
+			t.Errorf("at %v the server's connection record was written at (-want +got):\n%s", c.level, diff)
+		}
+	}
 }

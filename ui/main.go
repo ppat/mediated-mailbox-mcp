@@ -20,6 +20,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/ui/app"
 )
 
@@ -27,9 +28,13 @@ import (
 var embedded embed.FS
 
 func main() {
+	// The entry sets the level once the configuration has loaded. The logger is the process default
+	// only for code this project does not own, which logs through the default (ADR-0122).
+	level := new(slog.LevelVar)
+	logger := logging.New(os.Stdout, level)
+	slog.SetDefault(logger)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	err := app.Run(ctx, os.Args[1:], os.Environ(), logger, embedded)
+	err := app.Run(ctx, os.Args[1:], os.Environ(), logger, level, embedded)
 	stop()
 	if err != nil {
 		logger.Error("ui stopped", "error", err)

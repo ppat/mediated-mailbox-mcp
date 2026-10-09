@@ -128,7 +128,7 @@ perfected up front.
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
 | Verifications | The verification column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated) says whose rows each pull request proved, and each proven row names its pull request as the proof in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | The demonstrations each pull request recorded are the Mutations column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
-| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8 and F9, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
+| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8, F9 and F8, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
 
 ### What each pull request landed, proved and demonstrated
 
@@ -202,6 +202,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#320](https://github.com/ppat/mediated-mailbox-mcp/pull/320) | F9 | F9's conventions pass over the document set, with comment-only changes to the Go code, and F9 moved to the delivered register | — | — |
 | [#321](https://github.com/ppat/mediated-mailbox-mcp/pull/321) | D2 | D2's re-mask from the store as later work, a backfill run's start masking every stale subject stored unmasked again from the index in batches, the first pass fetching again by identifier only the subjects stored masked once its enumeration has ended and enumerating nothing when reopened, the call size moved to `core/mail` for delta sync and backfill alike, and Home, Jobs, System and the partial-index banner showing the subjects fetched again | D2's rows for the re-mask from the store and for a call fetching subjects again that leaves every one of them stale, and D2's rows for a change of scanner, for killing the process running backfill mid-run and for the leak search over persisted rows proven again for its mechanism, with M3's render-counter row for the strip's fetch | The controls of the re-mask from the store, the fetch by identifier, the pass ending only while no subject is stale and a call that leaves every subject it fetched stale failing the run, and it demonstrates again every control whose code, tests or patches the change touched, with every other patch of those controls, the live strip's included |
 | [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322) | D3 | D3's later work, sender domains stored and bound through one normalizer in Go, `index.StoredDomain`, with a statement check refusing the case-folding forms over a domain its scope names, and the sender class term classifying the domains the statistics hold and matching them by a join ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0108](./docs/adr/operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)) | D3's rows for a stored domain in the normalizer's form classifying as its address, for every caller binding the normalizer's output and for the statement check refusing the case-folding forms over a domain its scope names, and the sender class row again | The normalizer's two controls, the sender class row with its patches regenerated, and every break whose tests the change edited |
+| [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323) | F8 | F8's `log_level` value in every running deployable, the logger and level `main.go` hands each entry package and the entry hands its shells, `process/logging`, the shells' levels, and the ban on reading a process default logger | The rows it adds for the configured level, the ban on reading a default logger and a pure core's refusal of a logging import | Those of the configured level and of the refusal of a level that names none, and a break per entry package of the effective configuration's logging, whose row moves to the cross-component file |
 
 ### What each composition root runs
 
@@ -209,10 +210,10 @@ What the code on `main` runs today, per composition root, none of it yet release
 
 | Composition root | What it runs |
 | --- | --- |
-| Backfill | It reads its database, credential and scanner sections and its probe address through the configuration library and validates them, loads its keyring and refuses to start when the public key matches none of its private keys, builds its connection pool, takes its accounts, the OAuth clients and the opened credentials from the database through `executioncontext/accountload/` once at the start of a run, loads the policy of every listed account, and builds a Gmail token source for each connected account it can serve. It runs pass 1 over each of them a page at a time, spending under the account's target, and hands the account's current refresh token back after every page with the adoption stamp of the credential its source was built over, so a rotated one is written to the account's state row unless the loader has since adopted a value someone else stored there, and records the account's latest provider authentication attempt there after every page too. A call the provider refuses as a refused credential has the account's credential read again from its row, and when the row holds another, the account's token source and port are built again over it and the call made once more, while a row holding the refused credential, or none, has the refusal reported. Once an account's pass 1 has ended it runs pass 2 over the account the same way, running the delisting transition and then the restriction of the stored classes a rule added since restricts, deciding each waiting message through the scan gate, fetching and scanning in memory the bodies the gate selects in the batch class, and setting the account's scan backlog series after every page. Each pass runs again when the scanner backfill runs with differs from the one the stored subjects or verdicts were decided under, a run returning the verdicts made under another scanner to pending and masking every stale subject stored unmasked again from the store before the first pass, the first pass, once its enumeration has ended, fetching again by identifier only the stale subjects, those stored masked, and enumerating nothing when it was reopened after its enumeration ended, and the second returning the skips decided without their subject's signal to pending before its first page. Every run also decides each stored gate skip again before the first pass, under the thresholds it holds, and returns to pending each one the gate no longer decides as the same skip, reopening the second pass. It serves the health probe and the metrics endpoint while it runs, and logs as JSON |
-| The mediator | It serves both roots, whose registry holds the reads of the index and of the recorded state, the search, counts and sender statistics of the index, and the body operation, which releases a body the gate lets through. It reads its configuration through the library, takes the accounts it serves from the account snapshot at start and on its reload interval, loads their policy at every reload and before every body request, and carries the rate-state series of each account it serves through the Gmail adapter on its metrics endpoint |
-| The UI | It reads its configuration through the library, loads the key pair and logs the key identifier it seals to, builds the sender classifier's lookups, and serves its read API, the setups' requests, the policy writes, the import and export of the policy and the browser app, whose chrome frames the home screen, the system screen, the jobs screen, the run screen, the installation screens, account settings, the policy screens and the base policy screens. The home screen's running-work strip, the jobs screen and the run screen follow the event stream as live surfaces, and the chrome's partial-index banner follows it while the banner shows, every surface on a tab sharing one connection per account. Of the keys [docs/UI.md section 18.1](./docs/UI.md#181-the-configuration-the-ui-declares) declares, it reads `database`, `listen`, `probe_listen`, `tls_cert`, `tls_key`, `insecure_http`, `sync_interval`, `heuristics_interval`, `stream_interval`, `default_theme`, `stream_reconnect_max`, `stream_poll_interval`, `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `seal_public_key_file`, `private_key_files`, `token_key_file`, `consent_redirect`, `identity_header` and `operator_name`, which defaults to `operator`, with `default_theme`, `stream_reconnect_max`, `stream_poll_interval` and `consent_redirect` rendered into the entry document for the browser |
-| Delta sync | It reads its configuration through the library, refuses to start when the public key matches none of its private keys, and runs until stopped, serving the health probe and the metrics endpoint between ticks as during them. Each tick takes the account snapshot again, re-seals what it opened with an old key and sets the scan series, applies every change set since each account's cursor, recovers a cursor gap in a run of its own, and once an account's backfill second pass has ended runs the delisting transition and the restriction of the stored classes, then decides and scans a bounded number of the messages waiting for a scan |
+| Backfill | It reads its database, credential and scanner sections and its probe address through the configuration library and validates them, loads its keyring and refuses to start when the public key matches none of its private keys, builds its connection pool, takes its accounts, the OAuth clients and the opened credentials from the database through `executioncontext/accountload/` once at the start of a run, loads the policy of every listed account, and builds a Gmail token source for each connected account it can serve. It runs pass 1 over each of them a page at a time, spending under the account's target, and hands the account's current refresh token back after every page with the adoption stamp of the credential its source was built over, so a rotated one is written to the account's state row unless the loader has since adopted a value someone else stored there, and records the account's latest provider authentication attempt there after every page too. A call the provider refuses as a refused credential has the account's credential read again from its row, and when the row holds another, the account's token source and port are built again over it and the call made once more, while a row holding the refused credential, or none, has the refusal reported. Once an account's pass 1 has ended it runs pass 2 over the account the same way, running the delisting transition and then the restriction of the stored classes a rule added since restricts, deciding each waiting message through the scan gate, fetching and scanning in memory the bodies the gate selects in the batch class, and setting the account's scan backlog series after every page. Each pass runs again when the scanner backfill runs with differs from the one the stored subjects or verdicts were decided under, a run returning the verdicts made under another scanner to pending and masking every stale subject stored unmasked again from the store before the first pass, the first pass, once its enumeration has ended, fetching again by identifier only the stale subjects, those stored masked, and enumerating nothing when it was reopened after its enumeration ended, and the second returning the skips decided without their subject's signal to pending before its first page. Every run also decides each stored gate skip again before the first pass, under the thresholds it holds, and returns to pending each one the gate no longer decides as the same skip, reopening the second pass. It serves the health probe and the metrics endpoint while it runs, and logs as JSON to standard output at the level its `log_level` sets |
+| The mediator | It serves both roots, whose registry holds the reads of the index and of the recorded state, the search, counts and sender statistics of the index, and the body operation, which releases a body the gate lets through. It reads its configuration through the library, takes the accounts it serves from the account snapshot at start and on its reload interval, loads their policy at every reload and before every body request, and carries the rate-state series of each account it serves through the Gmail adapter on its metrics endpoint. It logs as JSON to standard output at the level its `log_level` sets |
+| The UI | It reads its configuration through the library, loads the key pair and logs the key identifier it seals to, builds the sender classifier's lookups, and serves its read API, the setups' requests, the policy writes, the import and export of the policy and the browser app, whose chrome frames the home screen, the system screen, the jobs screen, the run screen, the installation screens, account settings, the policy screens and the base policy screens. The home screen's running-work strip, the jobs screen and the run screen follow the event stream as live surfaces, and the chrome's partial-index banner follows it while the banner shows, every surface on a tab sharing one connection per account. Of the keys [docs/UI.md section 18.1](./docs/UI.md#181-the-configuration-the-ui-declares) declares, it reads `database`, `listen`, `probe_listen`, `tls_cert`, `tls_key`, `insecure_http`, `sync_interval`, `heuristics_interval`, `stream_interval`, `default_theme`, `stream_reconnect_max`, `stream_poll_interval`, `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `seal_public_key_file`, `private_key_files`, `token_key_file`, `consent_redirect`, `identity_header`, `operator_name`, which defaults to `operator`, and `log_level`, which sets the level it logs at as JSON to standard output, with `default_theme`, `stream_reconnect_max`, `stream_poll_interval` and `consent_redirect` rendered into the entry document for the browser |
+| Delta sync | It reads its configuration through the library, refuses to start when the public key matches none of its private keys, and runs until stopped, serving the health probe and the metrics endpoint between ticks as during them. Each tick takes the account snapshot again, re-seals what it opened with an old key and sets the scan series, applies every change set since each account's cursor, recovers a cursor gap in a run of its own, and once an account's backfill second pass has ended runs the delisting transition and the restriction of the stored classes, then decides and scans a bounded number of the messages waiting for a scan. It logs as JSON to standard output at the level its `log_level` sets |
 | The reorg workload and the Heuristics Job | Still empty, so neither reads its configuration through the library or runs any of it |
 
 ## Delivered, mapped to outcomes
@@ -948,6 +949,30 @@ What the code on `main` runs today, per composition root, none of it yet release
   [USE_CASES.md](./USE_CASES.md) are outside the conventions pass and keep their own form. The
   background worker and the schema baseline the reorganization prepares for, which are
   [F10](#group-f--foundation)'s and [F11](#group-f--foundation)'s.
+- [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
+  [V3](#v3--the-agent-arrives-read-only) · finished at image
+  Delivered by pull request [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), which
+  closed its ticket [#266](https://github.com/ppat/mediated-mailbox-mcp/issues/266), and not yet
+  released. Every deployable that runs, the mediator, the UI, backfill and delta sync, logs as JSON
+  to standard output at the level its `log_level` sets, `info` by default, and refuses at start a
+  value that names no level, through the configuration library
+  ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md),
+  [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md),
+  [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). Each `main.go` builds the logger
+  and its level variable through `process/logging` and hands both to its entry package, which sets
+  the level from the configuration and hands the logger to every shell that logs, so no project
+  code reads a process default, which a `forbidigo` ban refuses
+  ([ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md),
+  [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)). The shells log errors
+  and the decisions an operator acts on at `warn` or above, routine progress at `info` and detail
+  at `debug`. No pure core logs, and the pure-core import lists' refusal of a logging import is
+  proven by violation files. Every verification row keyed to it is proven, and every control it
+  delivered has its mutation demonstration. It changed the composition roots, so it finished at
+  image. **What it did not deliver.** The job kind and the account on the worker's job loggers,
+  which are [F10](#group-f--foundation)'s, derived from the logger its entry package receives. The
+  reorganization and heuristics job kinds, which log through the worker once
+  [M2](#group-m--mutation-and-approval) and [M4](#group-m--mutation-and-approval) add them. The
+  collection and shipping of the logs, which are the platform's.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. The mediator's API
 and MCP roots serve the reads of the index and the recorded state, release the bodies the gate lets
@@ -1001,9 +1026,9 @@ redesign after agent workflows exist.
 
 **Units:** [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
 [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
-[M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) ·
-[F11](#group-f--foundation) · [R1](#group-r--packaging), then
-[production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
+[M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
+[F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#group-f--foundation) ·
+[R1](#group-r--packaging), then [production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
 the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
 invariant proven against a live adversary (an agent the operator, or a session on the operator's
 instruction, deliberately tries to talk into a restricted body) before the point, the UI's screens
@@ -1070,8 +1095,9 @@ holds, with an entry naming the point.
   [F3](#delivered-mapped-to-outcomes) · [F6](#delivered-mapped-to-outcomes) · [D1](#delivered-mapped-to-outcomes) ·
   [D2](#delivered-mapped-to-outcomes) · [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
   [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
-  [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) ·
-  [F11](#group-f--foundation) · [R1](#group-r--packaging), the end of
+  [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
+  [F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#group-f--foundation) ·
+  [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
   [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
   [D3](#delivered-mapped-to-outcomes), [F6](#delivered-mapped-to-outcomes),
@@ -1225,16 +1251,17 @@ check runs inside the sanitization step
 ### Group F — foundation
 
 What everything runs on. The tooling, the store, the adapter, the budget, where accounts and their
-credentials are kept, how the code is organized, the background worker and the schema production
-point 1 locks in. F1 is retired. Its application half lives in [F5](#delivered-mapped-to-outcomes)
-and its platform half at [production point 1](#production-point-1--the-read-path). F7 is retired.
+credentials are kept, how the code is organized, how each deployable logs, the background worker
+and the schema production point 1 locks in. F1 is retired. Its application half lives in
+[F5](#delivered-mapped-to-outcomes) and its platform half at
+[production point 1](#production-point-1--the-read-path). F7 is retired.
 Its criterion, that an account newly connected, a credential replaced by re-authorization and a
 policy edit each reach every process that acts on them with no manual step and no restart, is met
 by [F10](#group-f--foundation)'s worker, which picks each change up within one reload and starts an
 account's backfill when the account appears, beside the reloads the mediator already makes
 ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
 [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), so
-no signal between deployables is built. F4, F2, F5, F3, F6 and F9 are delivered and sit in the
+no signal between deployables is built. F4, F2, F5, F3, F6, F9 and F8 are delivered and sit in the
 [delivered register](#delivered-mapped-to-outcomes), and F10 and F11 remain, in that order. F5
 also carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the
 scope that excludes permanent delete, because the grant is the adapter's.
@@ -1731,7 +1758,7 @@ about its cluster.
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | M3 | The conversion, the delimiters and the serve-time check landed with S3, which is delivered. Serving every body through them landed with D3, a G1 unit, which is delivered. The volume alert rides M3, an O4 unit, as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), over the audit rows D3 writes |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | — | The rate limiter and the Gmail cost profile landed with F3, which is delivered. The real ceiling reveals itself at production point 1 |
-| [O2](./USE_CASES.md#o2--observable) observable | — | No dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carries the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
+| [O2](./USE_CASES.md#o2--observable) observable | — | Logging at a configured level through a logger every shell is handed landed with F8, which is delivered. Otherwise no dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carries the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | F11 | Writing the account-handling rules once where copies drifted landed with F9, which is delivered. F11 settles the schema before production point 1 makes the chain history. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
@@ -1758,6 +1785,8 @@ lands in is the [value path](#the-value-path)'s.
 | F6 → D1, F6 → D3 | The accounts, their state rows and the sealed credentials the first provider-calling deployables read, the library that opens them, and `executioncontext/accountload/`, which builds the account snapshot from them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
 | F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, the several clients per provider F6's discovery [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244) landed, and the UI's server and browser app its screens live in |
 | F9 → F10 | The entry package per deployable, the account session package and the families, which the worker's composition root composes and its job kinds' import lists name |
+| F9 → F8 | The entry package per deployable, which takes the logger and its level from `main.go`, and the process family `process/logging` joins |
+| F8 → F10 | The logger and level variable each entry package takes, from which the worker derives each job's logger with its job kind and account ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) |
 | D1 → F10, D2 → F10, D4 → F10 | Backfill's two passes and delta sync, the job kinds the worker runs from the start |
 | F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the grants in `00004` that ingest's insert of the attachment types is added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
 | F10 → D4's deletion later work, F11 → D4's deletion later work | The worker the index's reflection of deleted messages runs in as a job kind, with its scheduler, and the schema baseline whose closed set of `job_runs (workload, pass)` pairs a new pair joins with its migration |
@@ -1837,7 +1866,8 @@ supplies, including edges another edge implies.
 | X3 | M2 · M4 · X2 |
 | X4 | M2 · X2 |
 | F9 | D4 · M8 |
-| F10 | F9 |
+| F8 | F9 |
+| F10 | F8 |
 | F11 | F9 |
 | R1 | F10 · F11 |
 | M4 | F10 · F11 |
@@ -1866,7 +1896,8 @@ flowchart LR
     M7 --> M8
     D2 --> M8
     M8 --> F9
-    F9 --> F10
+    F9 --> F8
+    F8 --> F10
     F9 --> F11
     F10 --> R1
     F11 --> R1

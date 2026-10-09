@@ -5,14 +5,14 @@ tests: TestTheConfigurationTypeIsPinned
 scheduled-count: no
 
 diff --git a/backfill/app/app.go b/backfill/app/app.go
-index 1691e4f5..7ee99fff 100644
+index 964716b..80630d2 100644
 --- a/backfill/app/app.go
 +++ b/backfill/app/app.go
-@@ -67,6 +67,7 @@ type Configuration struct {
+@@ -68,6 +68,7 @@ type Configuration struct {
  	Database    dbconnectcore.Config  `yaml:"database"`
  	Credential  credentialcore.Config `yaml:"credential"`
  	Scanner     scan.Config           `yaml:"scanner"`
 +	Extra       dbconnectcore.Config  `yaml:"extra"`
+ 	// LogLevel is the lowest level the deployable logs at, debug, info, warn or error (ADR-0122).
+ 	LogLevel string `yaml:"log_level"`
  }
- 
- // defaults are backfill's defaults. The user is backfill's own runtime role (ADR-0075), and the TLS
