@@ -22,7 +22,8 @@
 -- The sender domain term, the grouping by sender domain and the read of the distinct senders the
 -- service layer classifies read messages.from_domain (ADR-0108, ADR-0109). The gate's read in
 -- db/messages names the content rules that set a message's flags, which the body request's audit row
--- records (ADR-0002).
+-- records (ADR-0002). Its message reads read each message's attachment media, from which the service
+-- layer derives the types it serves (ADR-0123).
 GRANT SELECT (
     account_id,
     message_id,
@@ -35,11 +36,11 @@ GRANT SELECT (
     labels,
     flags,
     has_attachments,
-    attachment_types,
     content_flags,
     rule_ids,
     scan_state
 ) ON messages TO mediated_mailbox_mediate;
+GRANT SELECT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_mediate;
 GRANT SELECT (id, account_id, message_id, field, rule_id, tier, masked_at) ON masking_events
 TO mediated_mailbox_mediate;
 -- The sender listing reads every column of the sender statistics but the stored sender class, which a
@@ -103,8 +104,9 @@ GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 -- and db/accountstate/authentication, and in db/accountstate, whose read of the lowered target every
 -- role admitted there runs.
 --
--- Pass 1 adds each message's metadata to the index with the pair its subject was masked under, and
--- records the masks applied to its subject. It finds whether any stored subject carries another pair,
+-- Pass 1 adds each message's metadata to the index with the pair its subject was masked under and its
+-- attachments' media, which never change once stored, so no role updates or deletes them
+-- (ADR-0123), and records the masks applied to its subject. It finds whether any stored subject carries another pair,
 -- masks such a subject again, and masks whole the stored subject of a message the provider no longer
 -- has, reading it first (ADR-0096). It writes the policy rule behind each message's class with the
 -- class (ADR-0016). Pass 2 reads the messages waiting for a scan with the inputs the scan gate reads
@@ -168,6 +170,7 @@ UPDATE (
     scanner_version,
     scanner_revision
 ) ON messages TO mediated_mailbox_backfill;
+GRANT INSERT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_backfill;
 GRANT INSERT (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision) ON masking_events
 TO mediated_mailbox_backfill;
 GRANT USAGE ON SEQUENCE masking_events_id_seq TO mediated_mailbox_backfill;
@@ -274,7 +277,8 @@ UPDATE (
 -- db/messages/change, db/accountstate/cursor and db/oauthclients/secret only its list admits.
 -- db/accountstate it reads.
 --
--- A tick adds each message's metadata to the index, masks its subject and records the masks, and
+-- A tick adds each message's metadata to the index with its attachments' media, which it never
+-- updates (ADR-0123), masks its subject and records the masks, and
 -- rebuilds the statistics of each sender it saw from the messages the index holds. It sets a stored
 -- message's labels and flags to the ones the provider reports, removes a message the provider no
 -- longer holds, and removes a sender's statistics once none of its messages is stored (ADR-0018).
@@ -338,6 +342,9 @@ UPDATE (
     scanner_revision
 ),
 DELETE ON messages TO mediated_mailbox_sync;
+-- A message the tick removes takes its attachment media with it through their foreign key, which runs
+-- as the tables' owner, so delta sync's role needs no delete on them (ADR-0123).
+GRANT INSERT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_sync;
 GRANT INSERT (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision) ON masking_events
 TO mediated_mailbox_sync;
 GRANT USAGE ON SEQUENCE masking_events_id_seq TO mediated_mailbox_sync;
@@ -438,12 +445,14 @@ GRANT UPDATE (client_secret) ON oauth_clients TO mediated_mailbox_sync;
 -- The UI (ADR-0084, ADR-0021).
 --
 -- It reads the tables its screens and endpoints read (docs/UI.md). Its write grant is the columns its
--- two decision verbs set and the rule a confirmation inserts.
+-- two decision verbs set and the rule a confirmation inserts. Its list admits db/messages, whose
+-- message reads read the attachment media beside the messages (ADR-0123).
 GRANT SELECT ON
 accounts,
 rate_state,
 senders,
 messages,
+attachment_media,
 scan_gate_decisions,
 policy_candidates,
 policy_rules,

@@ -1,0 +1,21 @@
+control: An attachment's type is a word of the closed vocabulary, set with the names from the same parts
+removes: a part with no media type has a name and no media
+packages: ./core/mail
+tests: TestEveryAttachmentTypeIsAWordOfTheVocabulary
+scheduled-count: no
+
+diff --git a/core/mail/attachment.go b/core/mail/attachment.go
+index c5205199..fdf05195 100644
+--- a/core/mail/attachment.go
++++ b/core/mail/attachment.go
+@@ -112,7 +112,9 @@ func (m *MessageMetadata) SetAttachments(parts []AttachmentPart) {
+ 	m.AttachmentNames, m.AttachmentMedia = nil, nil
+ 	for _, p := range parts {
+ 		m.AttachmentNames = append(m.AttachmentNames, p.Filename)
+-		m.AttachmentMedia = append(m.AttachmentMedia, AttachmentMediaOf(p.MediaType, p.Filename))
++		if p.MediaType != "" {
++			m.AttachmentMedia = append(m.AttachmentMedia, AttachmentMediaOf(p.MediaType, p.Filename))
++		}
+ 	}
+ 	slices.SortFunc(m.AttachmentMedia, compareMedia)
+ 	m.AttachmentMedia = slices.Compact(m.AttachmentMedia)

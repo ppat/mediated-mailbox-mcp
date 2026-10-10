@@ -449,3 +449,13 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/policy`:** `TestComposedPoliciesAreEqualByValue`, `TestComposedPoliciesAreEqualByValue/a_rule_renamed`
 - **Break (3):** the comparison leaves out each rule's domain suffixes, so a rule whose suffixes changed compares equal
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/policy`:** `TestComposedPoliciesAreEqualByValue`, `TestComposedPoliciesAreEqualByValue/a_suffix_changed`
+
+## What is kept of an attachment is its media type and extension in the normalized form
+
+- **Date · evidence:** 2026-10-10 · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Break (1):** a media type is kept with its parameters and case, as the sender wrote it
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAMessagesAttachmentsSetItsNamesAndMediaTogether`, `TestAnAttachmentsMediaIsKeptNormalized`, `TestAnAttachmentsTypeIsAWordOfTheVocabulary`, `TestEveryAttachmentTypeIsAWordOfTheVocabulary`
+- **Break (2):** a media type is lowercased by Unicode case mapping, so a letter outside ASCII can become one inside it
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAnAttachmentsMediaIsKeptNormalized`
+- **Break (3):** an extension is kept whatever its length and characters
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAnAttachmentsMediaIsKeptNormalized`, `TestEveryAttachmentTypeIsAWordOfTheVocabulary`

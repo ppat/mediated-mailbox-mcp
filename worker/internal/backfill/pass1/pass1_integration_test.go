@@ -18,6 +18,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
@@ -838,5 +839,45 @@ func TestAFallingStaleCountIsProgress(t *testing.T) {
 	latest, _ := s.latest()
 	if !s.Ended || latest.ID != "run2" || latest.State != "succeeded" {
 		t.Errorf("the pass ended %v with its latest run %+v, want it ended by run2, the run that reopened it", s.Ended, latest)
+	}
+}
+
+// A pass stores whether each message has attachments and their media, each normalized media type and
+// extension once, as the canonical model gives them, and a message with none stores no media
+// (ADR-0123).
+func TestAPassStoresEachMessagesAttachmentMedia(t *testing.T) {
+	w := realWorld(t, setup{PageSize: 3})
+	var messages []fake.Message
+	for i, f := range []fixture.Message{fixture.Bank(), fixture.Receipt(), fixture.Newsletter()} {
+		id := fmt.Sprintf("a%d", i)
+		m := mail.MessageMetadata{
+			ID: id, ThreadID: "t" + id, From: mail.Address{Email: f.FromAddress}, Subject: f.Subject,
+			Date: mail.UnixMilli(1_700_000_000_000 + int64(i)),
+		}
+		var parts []mail.AttachmentPart
+		for _, a := range f.Attachments {
+			parts = append(parts, mail.AttachmentPart{MediaType: a.MediaType, Filename: a.Name})
+		}
+		m.SetAttachments(parts)
+		messages = append(messages, fake.Message{Metadata: m})
+	}
+	f, err := fake.New(fake.Config{Account: w.account, PageSize: 3}, messages...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.deps.Fetch = f.EnumerateAll
+	w.finish(t, 10)
+	rows, err := superuser(t).Query(t.Context(), `SELECT m.message_id || ' ' || m.has_attachments::text || ' ' || coalesce((SELECT string_agg(a.media_type || ':' || a.extension, ','
+		ORDER BY a.media_type, a.extension) FROM attachment_media AS a WHERE a.account_id = m.account_id AND a.message_id = m.message_id), '')
+		FROM messages AS m WHERE m.account_id = $1 ORDER BY m.message_id`, w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]string{"a0 true application/pdf:pdf", "a1 true application/octet-stream:xlsx,image/png:png", "a2 false "}, got, compare.Options); diff != "" {
+		t.Errorf("the stored attachments (-want +got):\n%s", diff)
 	}
 }

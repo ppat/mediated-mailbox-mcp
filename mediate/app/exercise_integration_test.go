@@ -183,11 +183,16 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p policy.Compose
 			listID = &f.ListID
 		}
 		must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, subject_masked,
-			sent_at, labels, flags, has_attachments, attachment_types, list_id, sender_class, content_flags, rule_ids, scan_state)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+			sent_at, labels, flags, has_attachments, list_id, sender_class, content_flags, rule_ids, scan_state)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
 			account, m.id, m.thread, f.FromAddress, domain, f.FromName, masked.Subject(), len(masked.Events()) > 0, sent,
 			orEmpty(m.labels), fmt.Sprintf(`{"read": %v, "starred": %v}`, m.flags.Read, m.flags.Starred), len(f.Attachments) > 0,
-			orEmpty(attachmentTypes(f.Attachments)), listID, class, orEmpty(contentFlags), orEmpty(rules), scanState)
+			listID, class, orEmpty(contentFlags), orEmpty(rules), scanState)
+		// Each attachment's media, as the index stores them once per pair (ADR-0123).
+		for _, a := range f.Attachments {
+			must(t, conn, `INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, $2, $3, $4)
+				ON CONFLICT DO NOTHING`, account, m.id, a.MediaType, a.Extension)
+		}
 		for _, e := range masked.Events() {
 			must(t, conn, `INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at) VALUES ($1, $2, 'subject', $3, $4, now())`,
 				account, m.id, e.Rule(), e.Tier())
@@ -196,7 +201,7 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p policy.Compose
 			Metadata: mail.MessageMetadata{
 				ID: m.id, ThreadID: m.thread, From: mail.Address{Email: f.FromAddress, Name: f.FromName}, Subject: f.Subject,
 				Date: mail.UnixMilli(sent.UnixMilli()), Labels: m.labels, Flags: m.flags, HasAttachments: len(f.Attachments) > 0,
-				AttachmentNames: f.Attachments, Snippet: firstLine(f.Body), ListID: f.ListID,
+				AttachmentNames: f.Names(), Snippet: firstLine(f.Body), ListID: f.ListID,
 			},
 			Body: mail.MessageBody{Text: f.Body},
 		})
@@ -217,17 +222,6 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p policy.Compose
 		t.Fatal(err)
 	}
 	return f
-}
-
-// attachmentTypes returns the type of each attachment name, its extension, as the index stores it.
-func attachmentTypes(names []string) []string {
-	var types []string
-	for _, n := range names {
-		if dot := strings.LastIndexByte(n, '.'); dot >= 0 {
-			types = append(types, n[dot+1:])
-		}
-	}
-	return types
 }
 
 // firstLine returns the first line of a body, as a provider's snippet previews it.

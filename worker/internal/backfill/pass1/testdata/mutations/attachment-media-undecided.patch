@@ -1,0 +1,20 @@
+control: Each message the first pass or a tick stores carries its attachment media
+removes: the index's decision drops each message's attachment media
+packages: ./core/index ./worker/internal/backfill/pass1 ./worker/internal/deltasync/tick
+tests: TestDecide TestAPassStoresEachMessagesAttachmentMedia TestATickStoresTheAttachmentMediaOfWhatItAdds
+scheduled-count: no
+integration: yes
+
+diff --git a/core/index/index.go b/core/index/index.go
+index f74bff4d..1d46baa3 100644
+--- a/core/index/index.go
++++ b/core/index/index.go
+@@ -114,7 +114,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+ 			Labels:          slices.Clone(m.Labels),
+ 			Flags:           m.Flags,
+ 			HasAttachments:  m.HasAttachments,
+-			AttachmentMedia: slices.Clone(m.AttachmentMedia),
++			AttachmentMedia: nil,
+ 			ListID:          m.ListID,
+ 			SizeBytes:       m.SizeBytes,
+ 			AuthResults:     m.AuthResults,

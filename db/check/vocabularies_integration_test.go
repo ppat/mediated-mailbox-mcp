@@ -3,6 +3,7 @@
 package check_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
@@ -178,6 +179,54 @@ func TestASenderDomainIsStoredInTheNormalizersForm(t *testing.T) {
 			if code := attempt(t, tx, insert, stored); code != "" {
 				t.Errorf("storing the normalizer's %q for %q in %s: %q, want it stored", stored, domain, column, code)
 			}
+		}
+	}
+}
+
+// D1's row for the attachment media at rest. A media type or an extension outside the normalized form
+// ADR-0123 states is refused by the schema, whoever writes it, so no longer or other text the sender
+// wrote is stored, and every form the normalization gives is stored, an empty one included.
+func TestAttachmentMediaHoldsOnlyTheNormalizedForm(t *testing.T) {
+	tx := seeded(t)
+	const message = "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ('" + accountA + "', 'm-media', 't', 'a@example.com', 'example.com', now(), true, 'normal')"
+	if code := attempt(t, tx, message); code != "" {
+		t.Fatalf("storing the message: %q", code)
+	}
+	const insert = "INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ('" + accountA + "', 'm-media', $1, $2)"
+	long := strings.Repeat("a", 127)
+	for _, pair := range [][2]string{
+		{"Application/PDF", "pdf"},
+		{"application/pdf; name=a.pdf", "pdf"},
+		{"application/pdf", "PDF"},
+		{"application", ""},
+		{"application/", ""},
+		{"/pdf", ""},
+		{"application/-pdf", ""},
+		{"text/" + long + "a", ""},
+		{"application/x pdf", ""},
+		{"application/p\u00e9", ""},
+		{"", "statement.pdf"},
+		{"", "p d f"},
+		{"", "abcdefghijklmnopq"},
+		{"", "r\u00e9s"},
+		{"", "mmfieldmarker-statement"},
+	} {
+		if code := attempt(t, tx, insert, pair[0], pair[1]); code != checkViolation {
+			t.Errorf("storing the media %q: %q, want %s", pair, code, checkViolation)
+		}
+	}
+	for _, pair := range [][2]string{
+		{"", ""},
+		{"application/pdf", "pdf"},
+		{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"},
+		{"image/svg+xml", "svg"},
+		{"application/x-419283", "419283"},
+		{"text/" + long, ""},
+		{"application/octet-stream", "abcdefghijklmnop"},
+		{"message/rfc822", "eml"},
+	} {
+		if code := attempt(t, tx, insert, pair[0], pair[1]); code != "" {
+			t.Errorf("storing the media %q: %q, want it stored", pair, code)
 		}
 	}
 }

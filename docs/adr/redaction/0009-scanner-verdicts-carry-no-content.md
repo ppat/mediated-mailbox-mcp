@@ -57,8 +57,11 @@ runs on every message and the body scan does not
   (`emptyDir: {medium: Memory}`) for anything that could spill. How long the process holding a
   body lives adds nothing to this guard, since the mediator and the process running delta sync run
   until stopped.
-- Nothing body-derived is persisted except the masked subject and the flags, so no matched text,
-  no offsets and no excerpts. Scanner logs record counts and rule identifiers only.
+- Nothing body-derived is persisted except the masked subject, the flags and each attachment's
+  normalized media type and extension, which
+  [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md) holds only as
+  its mapping's input, so no matched text, no offsets and no excerpts. Scanner logs record counts
+  and rule identifiers only.
 - `scanner_version` is stamped on every verdict so that when rules improve, affected rows are
   marked stale and reprocessed, which makes re-scanning a planned operation, not a migration. The
   configuration's revision is stamped beside it, so a change to the vocabulary or the tuning marks

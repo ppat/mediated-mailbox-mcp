@@ -154,6 +154,37 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 	}
 }
 
+// A tick stores whether each message it adds has attachments and their media, as the canonical model
+// gives them, and a message with none stores no media. A message the tick removes takes its media
+// with it (ADR-0123).
+func TestATickStoresTheAttachmentMediaOfWhatItAdds(t *testing.T) {
+	conn := superuser(t)
+	account := newAccount(t, conn, false)
+	f := mailbox(t, account, message("m0", "orders@shop.example", now.Add(-day), mail.Inbox))
+	d := deps(t, syncPool(t), &direct{port: f}, listing(t, "bank.example"), account)
+	mustTick(t, d, account)
+	withAttachments := message("m1", "alerts@bank.example", now)
+	withAttachments.Metadata.SetAttachments([]mail.AttachmentPart{
+		{MediaType: "application/octet-stream", Filename: marker.Field("invoice") + ".xlsx"},
+		{MediaType: "application/pdf", Filename: marker.Field("statement") + ".pdf"},
+	})
+	deliver(t, f, withAttachments, message("m2", "orders@shop.example", now))
+	mustTick(t, d, account)
+	got := texts(t, conn, `SELECT m.message_id || ' ' || m.has_attachments::text || ' ' || coalesce((SELECT string_agg(a.media_type || ':' || a.extension, ','
+		ORDER BY a.media_type, a.extension) FROM attachment_media AS a WHERE a.account_id = m.account_id AND a.message_id = m.message_id), '')
+		FROM messages AS m WHERE m.account_id = $1 ORDER BY m.message_id`, account)
+	if diff := cmp.Diff([]string{"m0 false ", "m1 true application/octet-stream:xlsx,application/pdf:pdf", "m2 false "}, got, compare.Options); diff != "" {
+		t.Errorf("the stored attachments (-want +got):\n%s", diff)
+	}
+	if err := f.Remove("m1"); err != nil {
+		t.Fatal(err)
+	}
+	mustTick(t, d, account)
+	if n := count(t, conn, "SELECT count(*) FROM attachment_media WHERE account_id = $1", account); n != 0 {
+		t.Errorf("%d attachment media stay after the tick removed their message, want none", n)
+	}
+}
+
 // mapsKeys returns a map's keys, sorted.
 func mapsKeys[V any](m map[string]V) []string { return slices.Sorted(maps.Keys(m)) }
 

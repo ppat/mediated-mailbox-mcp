@@ -122,7 +122,6 @@ CREATE TABLE messages (
   labels           text[] NOT NULL DEFAULT '{}',
   flags            jsonb NOT NULL DEFAULT '{}',
   has_attachments  boolean NOT NULL,
-  attachment_types text[] NOT NULL DEFAULT '{}',
   list_id          text,
   size_bytes       int,
   auth_results     jsonb,
@@ -147,6 +146,18 @@ CREATE INDEX ON messages (account_id, sent_at DESC);
 CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
 -- no index over labels or subject: no leakproof comparison serves either under row-level security
+
+CREATE TABLE attachment_media (           -- the inputs of a message's attachment types (ADR-0123)
+  account_id  text NOT NULL,
+  message_id  text NOT NULL,
+  media_type  text NOT NULL               -- lowercased, without parameters, '' when malformed
+    CHECK (media_type ~ '^([a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126})?$'),
+  extension   text NOT NULL               -- the filename's last extension, lowercased, '' when none or unusable
+    CHECK (extension ~ '^[a-z0-9]{0,16}$'),
+  PRIMARY KEY (account_id, message_id, media_type, extension),
+  FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
+);
+-- NOTE: no filename column. The filename is body-derived and is never stored (ADR-0001).
 
 CREATE TABLE scan_gate_decisions (        -- makes ADR-0093's residual auditable
   account_id  text NOT NULL,
@@ -363,7 +374,13 @@ CREATE INDEX ON audit_log (account_id, message_id, ts DESC);
 The shape enforces these properties.
 
 - **No body, snippet, or excerpt column exists anywhere.** The comment in the DDL is part of the
-  decision. A future migration adding one is violating the design, not extending it.
+  decision. A future migration adding one is violating the design, not extending it. An
+  attachment's filename is not stored either. Its media type and extension are, in
+  `attachment_media`, normalized to a short, inert form. They are body-derived sender text, held
+  only as the input of
+  [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)'s mapping,
+  which derives the types a client sees when read, and never served or matched raw, as that record
+  states.
 - **Every table keys on `account_id`.** All access goes through a repository layer that requires
   an account, every statement against an account-keyed table carries an account predicate
   ([ADR-0047](./0047-schema-first-data-access.md)), and row-level security stands behind both as a
@@ -426,7 +443,10 @@ The shape enforces these properties.
     sender class of `senders`, the gate's decision, the last authentication outcome, a rule's class
     and source, a candidate's and a plan's status, a grant's class and a masking event's field.
     Readers already fail closed on an unknown value, so the gain is a loud write failure in place of
-    quiet over-redaction.
+    quiet over-redaction. The columns of `attachment_media` sit in this tier too, though theirs is
+    a shape rather than a vocabulary. Each check holds its column to the normalized form
+    [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md) states, so a
+    writer that bypassed the normalization cannot store longer or other text the sender wrote.
   - *Not checked*: `accounts.provider`, since a check would put a storage change in every new
     backend ([P2](../../../USE_CASES.md#p2--backend-swap)), and the vocabularies tuning and new job
     kinds grow on rebuildable rows an update can fix, the gate decision's reason, a run event's

@@ -207,6 +207,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#328](https://github.com/ppat/mediated-mailbox-mcp/pull/328) | F10 | F10's worker, `worker/`, running backfill and delta sync as job kinds, each with its import list, runtime role, connection pool and loaders, its scheduler and the due decisions, the in-run comparisons of a running second pass, the job series and the two alerting rules, the one configuration tree, the `go vet` analysers refusing, in the worker outside its scheduler, a `go` statement and any use of a function that starts a goroutine running what it is given, and, in the module, an import of `unsafe` and any use of reflect's unsafe pointers, the worker's test holding its dependencies that import `unsafe` or hold assembly or object files to a reviewed list, and the retirement of the backfill, delta sync, reorganization and heuristics deployables | F10's rows, the rows it adds for the scheduler's rules, a job's success, the fail-closed reload, the re-seal with no account, the pinned constructors, the due decisions, a page taking the active policy, the per-job-kind and worker import lists, the grant check per job kind's list, the goroutine analyser and the held source's reuse rule, and every row of backfill and delta sync whose code or tests moved, proven again in the worker. The two rows on the heuristics run's job kind key to M4 | The controls of F10's scheduler, job kinds, alerting rules, configuration and isolation checks, and every demonstration whose code, tests or patches moved into the worker, regenerated and demonstrated again |
 | [#336](https://github.com/ppat/mediated-mailbox-mcp/pull/336) | F6 | F6's later work, a known-answer test in `executioncontext/credential/open` holding a key pair and a value sealed by an earlier build, which this build must open, with the seed deriving that public key and the identifier the value names | The row it adds for a build that cannot open a value an earlier build sealed, or derives another public key or key identifier from the same seed | The control that this build opens a value an earlier build sealed, with the key pair an earlier build wrote, broken so this build binds less in the additional data or hashes less into the key identifier, and so it runs another key schedule, expands the seed into another key pair or derives another key identifier |
 | [#337](https://github.com/ppat/mediated-mailbox-mcp/pull/337) | F4 | F4's later work, each kind of test in a CI workflow of its own, the unit tests, the property tests, the crash sequences, the integration tests, the recording of the browser's fixtures and the mutation demonstrations, `go tool testkinds` selecting each kind and checking that every test runs in its kind's workflows and no other, the deep search split into a deep workflow for the property tests and one for the crash sequences, and the whole mutation ledger run weekly and by hand ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)) | It adds and proves the rows for a test that would run outside its kind's workflows or in none and for a ledger run that would pass on a surviving mutant or on no patch | The control that every test runs in the workflows of its kind and level and in no other |
+| [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339) | D1 | D1's later work, messages served with their attachment types, words of a closed vocabulary that one mapping in `core/mail` derives when read from each attachment's media type and extension, which the canonical model normalizes, the Gmail adapter and the provider fake report, the contract suite checks, and pass 1 and delta sync's insert store in `attachment_media`, with its checks on the normalized form, its row-level security and its grants | The rows it adds for an attachment's type being a word of the closed vocabulary, for what is kept of an attachment being normalized, for ingest writing the media and for the media at rest holding only the normalized form, and the row for the redaction matrix on served metadata, proven again with the types | The controls of the attachment type's mapping, the normalization, ingest writing the media and the checks on the media at rest, the redaction matrix on served metadata and the checked vocabularies regenerated and demonstrated again, and the patches whose diff context or tests moved |
 
 ### What each composition root runs
 
@@ -559,15 +560,17 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181),
   [#196](https://github.com/ppat/mediated-mailbox-mcp/pull/196),
   [#221](https://github.com/ppat/mediated-mailbox-mcp/pull/221),
-  [#222](https://github.com/ppat/mediated-mailbox-mcp/pull/222) and
-  [#233](https://github.com/ppat/mediated-mailbox-mcp/pull/233), which closed its tickets
+  [#222](https://github.com/ppat/mediated-mailbox-mcp/pull/222),
+  [#233](https://github.com/ppat/mediated-mailbox-mcp/pull/233) and, as later work,
+  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), which closed its tickets
   [#73](https://github.com/ppat/mediated-mailbox-mcp/issues/73),
   [#166](https://github.com/ppat/mediated-mailbox-mcp/issues/166),
   [#123](https://github.com/ppat/mediated-mailbox-mcp/issues/123),
   [#81](https://github.com/ppat/mediated-mailbox-mcp/issues/81),
   [#209](https://github.com/ppat/mediated-mailbox-mcp/issues/209),
-  [#197](https://github.com/ppat/mediated-mailbox-mcp/issues/197) and
-  [#229](https://github.com/ppat/mediated-mailbox-mcp/issues/229), and not yet released. Pull
+  [#197](https://github.com/ppat/mediated-mailbox-mcp/issues/197),
+  [#229](https://github.com/ppat/mediated-mailbox-mcp/issues/229) and
+  [#302](https://github.com/ppat/mediated-mailbox-mcp/issues/302), and not yet released. Pull
   request [#254](https://github.com/ppat/mediated-mailbox-mcp/pull/254) closed the discovery
   [#250](https://github.com/ppat/mediated-mailbox-mcp/issues/250) after delivery, so backfill's
   hand-over carries the adoption stamp that
@@ -608,7 +611,24 @@ What the code on `main` runs today, per composition root, none of it yet release
   [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The release
   step that builds, signs and attaches the key-generation binaries landed with it. Every
   verification row keyed to it is proven for D1's part, and every control it delivered has its
-  mutation demonstration. **What it did not deliver.** Pass 2 and the scan gate, which are
+  mutation demonstration. As later work before production point 1, since what ingest stores of a
+  message costs a refetch of the corpus to change once the corpus is ingested
+  ([ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md),
+  [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)), messages are served with their
+  attachment types. Ingest stores each attachment's media type and filename extension, normalized to
+  a short, inert form, in `attachment_media`, and no filename, and each type is a word of a closed
+  vocabulary that the canonical model's one mapping derives from them when the message is read, so
+  no text the sender wrote reaches a field served in every sensitivity state, and a change to the
+  vocabulary or the mapping needs no migration and no refetch
+  ([ADR-0123](./docs/adr/provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)). The
+  Gmail adapter, the provider fake and the contract suite carry the media, taken from the same parts
+  as the attachment names, the fixtures carry attachments with media types, one sent as
+  `application/octet-stream`, and pass 1 and delta sync's insert of an added message write the
+  table, which checks hold to the normalized form and which the backfill and sync roles may insert
+  into and never update, the table, its checks and its grants edited into the baseline in place. Its
+  verification rows are proven, its controls have their mutation demonstrations, and the contract
+  suite's run against the Gmail test account through `go tool livecontract gmail` reported the media
+  Gmail returns. **What it did not deliver.** Pass 2 and the scan gate, which are
   [D2](#delivered-mapped-to-outcomes)'s. Recording the last provider authentication outcome, which
   [D3](#delivered-mapped-to-outcomes) added to backfill through pull request
   [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227). The backfill card's rendering of
@@ -618,11 +638,6 @@ What the code on `main` runs today, per composition root, none of it yet release
   published release, which waits on [R1](#group-r--packaging). Meeting the real corpus, killing the
   process running backfill mid-run on real substrate, the rotation write-back against the real provider and watching the
   rate gauge for the real ceiling, all at [production point 1](#production-point-1--the-read-path).
-  **Later work.** Before production point 1, messages carry their attachment types from ingest,
-  through the adapter and the canonical model, since a column whose value comes from the provider
-  costs a refetch of the corpus once the corpus is ingested
-  ([ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md),
-  [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)).
 
 - [x] **D2 — Scan gate + backfill pass 2** → [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at image
@@ -1030,15 +1045,16 @@ What the code on `main` runs today, per composition root, none of it yet release
   demonstrated again. Its criteria hold. Every grant of a role sits in one section, and the
   generated data-access code changed only where a column's type or nullability changed, the domain
   parameters and `job_runs.pass`. It changed no composition root, so it finished at tested. **What
-  it did not deliver.** The typed audit row, attachment types' writer and grant, and the identifier
-  grammar in the UI's proposal and server check, which are the later work of
+  it did not deliver.** The typed audit row, the attachment types' stored form, writer and grant,
+  and the identifier grammar in the UI's proposal and server check, which are the later work of
   [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
-  [M7](#delivered-mapped-to-outcomes). The chart's database setup without an extension step, which
-  is [R1](#group-r--packaging)'s. The rollback request's status, and the heuristics run's pass and
-  the storage of its embeddings, which are [M2](#group-m--mutation-and-approval)'s and
-  [M4](#group-m--mutation-and-approval)'s. The UI's tests seed no apply or heuristics run, since the
-  closed set of run pairs refuses them, so the proof of those surfaces is M2's and M4's, which add
-  those pairs.
+  [M7](#delivered-mapped-to-outcomes), D1's delivered by pull request
+  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339). The chart's database setup without
+  an extension step, which is [R1](#group-r--packaging)'s. The rollback request's status, and the
+  heuristics run's pass and the storage of its embeddings, which are
+  [M2](#group-m--mutation-and-approval)'s and [M4](#group-m--mutation-and-approval)'s. The UI's
+  tests seed no apply or heuristics run, since the closed set of run pairs refuses them, so the
+  proof of those surfaces is M2's and M4's, which add those pairs.
 
 - [x] **F10 — The background worker** →
   [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
@@ -1886,7 +1902,7 @@ lands in is the [value path](#the-value-path)'s.
 | F9 → F8 | The entry package per deployable, which takes the logger and its level from `main.go`, and the process family `process/logging` joins |
 | F8 → F10 | The logger and level variable each entry package takes, from which the worker derives each job's logger with its job kind and account ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) |
 | D1 → F10, D2 → F10, D4 → F10 | Backfill's two passes and delta sync, the job kinds the worker runs from the start |
-| F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the grants in `00004` that ingest's insert of the attachment types is added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
+| F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the schema, row-level security and grants in `00002`, `00003` and `00004` that the attachment media's table, its policy and its grants are added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
 | F10 → D4's deletion later work, F11 → D4's deletion later work | The worker the index's reflection of deleted messages runs in as a job kind, with its scheduler, and the schema baseline whose closed set of `job_runs (workload, pass)` pairs a new pair joins with its migration |
 | D3 → S1's later work | Classification per sender domain in the class-filtered read, which S1's later work measures its saving against |
 | D3's statement-timeout later work → M3's statement-timeout later work | The bounded transaction in `db/tx` the UI's dataset reads run in |

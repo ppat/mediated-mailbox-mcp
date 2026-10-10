@@ -1,0 +1,20 @@
+control: Each message the first pass or a tick stores carries its attachment media
+removes: the first pass stores each medium's media type with an empty extension
+packages: ./worker/internal/backfill/pass1
+tests: TestAPassStoresEachMessagesAttachmentMedia
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index 0e5eb5ee..6610b22d 100644
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -265,7 +265,7 @@ func media(ctx context.Context, q *messageingest.Queries, account string, m inde
+ 	p := messageingest.InsertAttachmentMediaParams{AccountID: account, MessageID: m.ID}
+ 	for _, a := range m.AttachmentMedia {
+ 		p.MediaTypes = append(p.MediaTypes, a.MediaType)
+-		p.Extensions = append(p.Extensions, a.Extension)
++		p.Extensions = append(p.Extensions, "")
+ 	}
+ 	return q.InsertAttachmentMedia(ctx, p)
+ }

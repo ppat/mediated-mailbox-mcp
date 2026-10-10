@@ -7,12 +7,12 @@ integration: yes
 
 
 diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
-index 38bb177..65e500e 100644
+index 7a8570fa..d09173dd 100644
 --- a/mediate/internal/service/present.go
 +++ b/mediate/internal/service/present.go
-@@ -120,7 +120,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
+@@ -122,7 +122,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
  		HasAttachments:  m.HasAttachments,
- 		AttachmentTypes: nonNil(m.AttachmentTypes),
+ 		AttachmentTypes: types(m.AttachmentMedia),
  		Sensitivity:     shownState{SenderClass: class, ContentFlags: shownFlags, ScanState: scan.String()},
 -		BodyAvailable:   v.ReleasesBody(),
 +		BodyAvailable:   true,

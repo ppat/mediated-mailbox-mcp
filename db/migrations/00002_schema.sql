@@ -160,7 +160,6 @@ CREATE TABLE messages (
     labels text[] NOT NULL DEFAULT '{}',
     flags jsonb NOT NULL DEFAULT '{}',
     has_attachments boolean NOT NULL,
-    attachment_types text[] NOT NULL DEFAULT '{}',
     list_id text,
     size_bytes int,
     auth_results jsonb,
@@ -188,6 +187,22 @@ CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
 CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
+
+-- The inputs a message's attachment types are derived from when read, one row per distinct pair its
+-- attachments carry, written once when the message is first stored (ADR-0123). No filename is
+-- stored, since filenames are body-derived (ADR-0001), and each column holds only the normalized
+-- form, so the sender text at rest is short and inert. A message removed takes its rows with it.
+CREATE TABLE attachment_media (
+    account_id text NOT NULL,
+    message_id text NOT NULL,
+    -- Lowercase, without parameters, a type and a subtype of RFC 6838's restricted names, or empty.
+    media_type text NOT NULL
+    CHECK (media_type ~ '^([a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126})?$'),
+    -- The filename's last extension, lowercase, one to 16 ASCII letters and digits, or empty.
+    extension text NOT NULL CHECK (extension ~ '^[a-z0-9]{0,16}$'),
+    PRIMARY KEY (account_id, message_id, media_type, extension),
+    FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
+);
 
 -- Makes ADR-0093's residual auditable.
 CREATE TABLE scan_gate_decisions (

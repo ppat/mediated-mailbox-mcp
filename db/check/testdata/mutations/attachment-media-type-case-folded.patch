@@ -1,0 +1,20 @@
+control: The attachment media at rest hold only the normalized form
+removes: a stored media type is checked without regard to case, so one in capitals is stored
+packages: ./db/check
+tests: TestAttachmentMediaHoldsOnlyTheNormalizedForm
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 1cc76a9a..9ea20fbf 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -197,7 +197,7 @@ CREATE TABLE attachment_media (
+     message_id text NOT NULL,
+     -- Lowercase, without parameters, a type and a subtype of RFC 6838's restricted names, or empty.
+     media_type text NOT NULL
+-    CHECK (media_type ~ '^([a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126})?$'),
++    CHECK (media_type ~* '^([a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126})?$'),
+     -- The filename's last extension, lowercase, one to 16 ASCII letters and digits, or empty.
+     extension text NOT NULL CHECK (extension ~ '^[a-z0-9]{0,16}$'),
+     PRIMARY KEY (account_id, message_id, media_type, extension),

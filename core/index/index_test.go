@@ -2,6 +2,7 @@ package index_test
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -64,17 +65,24 @@ func scanner(t *testing.T) scan.Scanner {
 
 // metadata returns a fixture as the metadata a page carries.
 func metadata(id string, f fixture.Message, date mail.UnixMilli, labels ...string) mail.MessageMetadata {
-	return mail.MessageMetadata{
-		AccountID: account,
-		ID:        id,
-		ThreadID:  "t-" + id,
-		From:      mail.Address{Email: f.FromAddress, Name: f.FromName},
-		Subject:   f.Subject,
-		Date:      date,
-		Labels:    labels,
-		ListID:    f.ListID,
-		SizeBytes: 2048,
+	m := mail.MessageMetadata{
+		AccountID:       account,
+		ID:              id,
+		ThreadID:        "t-" + id,
+		From:            mail.Address{Email: f.FromAddress, Name: f.FromName},
+		Subject:         f.Subject,
+		Date:            date,
+		Labels:          labels,
+		HasAttachments:  len(f.Attachments) > 0,
+		AttachmentNames: f.Names(),
+		ListID:          f.ListID,
+		SizeBytes:       2048,
 	}
+	for _, a := range f.Attachments {
+		m.AttachmentMedia = append(m.AttachmentMedia, mail.AttachmentMedia{MediaType: a.MediaType, Extension: a.Extension})
+	}
+	slices.SortFunc(m.AttachmentMedia, func(a, b mail.AttachmentMedia) int { return strings.Compare(a.MediaType, b.MediaType) })
+	return m
 }
 
 // codeSubject is the one-time code fixture's subject as the index stores it, the code masked.
@@ -86,7 +94,8 @@ func codeSubject() string {
 // sender's included, and stamped with the scanner version and revision it was masked under (ADR-0003,
 // ADR-0004, ADR-0120). A listed sender carries the rule that restricted it, and no other sender
 // carries a rule (ADR-0016). An address whose domain cannot be read is restricted and
-// marked unclassified. The domains are listed once each, sorted.
+// marked unclassified. Each row keeps whether its message has attachments and their media, and no
+// name (ADR-0123). The domains are listed once each, sorted.
 func TestDecide(t *testing.T) {
 	bank := fixture.Bank()
 	bankCode := bank
@@ -99,12 +108,14 @@ func TestDecide(t *testing.T) {
 		metadata("m3", fixture.Newsletter(), 3000, "Newsletters", "INBOX"),
 		metadata("m4", undated, 4000),
 		metadata("m5", bank, 5000),
+		metadata("m6", fixture.Receipt(), 6000),
 	}
 	code := []index.Mask{{Rule: scan.RuleTriggerWindow, Tier: 1}}
 	message := func(m mail.MessageMetadata, domain, subject string, class index.Class, rule string, masks []index.Mask) index.Message {
 		return index.Message{
 			ID: m.ID, ThreadID: m.ThreadID, From: m.From, Domain: domain, Subject: subject,
-			SubjectMasked: len(masks) > 0, Date: m.Date, Labels: m.Labels, ListID: m.ListID,
+			SubjectMasked: len(masks) > 0, Date: m.Date, Labels: m.Labels, HasAttachments: m.HasAttachments,
+			AttachmentMedia: m.AttachmentMedia, ListID: m.ListID,
 			SizeBytes: m.SizeBytes, Class: class, ClassRule: rule, Unclassified: m.From.Email == "no-address-at-all", Masks: masks,
 			Stamp: index.Stamp{Version: 1, Revision: "a-revision"},
 		}
@@ -116,8 +127,9 @@ func TestDecide(t *testing.T) {
 			message(items[2], "newsletter.example", items[2].Subject, index.Normal, "", nil),
 			message(items[3], "", items[3].Subject, index.Restricted, "", nil),
 			message(items[4], "bank.example", items[4].Subject, index.Restricted, "rule.bank", nil),
+			message(items[5], "shop.example", items[5].Subject, index.Normal, "", nil),
 		},
-		Domains: []string{"", "bank.example", "newsletter.example", "security.example"},
+		Domains: []string{"", "bank.example", "newsletter.example", "security.example", "shop.example"},
 	}
 	if diff := cmp.Diff(want, index.Decide(items, composed(t), scanner(t), lookups), compare.Options); diff != "" {
 		t.Errorf("Decide (-want +got):\n%s", diff)
