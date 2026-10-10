@@ -52,7 +52,7 @@ past runs.
 | Which production points are crossed | Each point's `Crossed:` line in ROADMAP.md on `main`, which the roadmap ticket mirrors |
 | What blocks a ticket | The ticket's own `Blocked by` line, which is the authority where its State in its increment issue or ROADMAP.md's dependency table disagrees |
 | What is built and what each unit still needs | [ROADMAP.md](../ROADMAP.md) on `main` |
-| Which ticket sessions are live, and their tab and pane | `herdr agent list`. A session is live while a row there carries its session ID from the roster. A row named `mmm-*` whose session ID neither the roster nor `other-sessions.md` holds is a ticket session too, and you add it to the roster from that ID and name it in the report. A session `other-sessions.md` holds is never added to the roster, whatever its name |
+| Which ticket sessions are live, and their tab and pane | `herdr agent list`. A session is live while a row there carries its session ID from the roster. |
 | Each session's ticket, session ID, launch time and slot kind | The roster |
 | When this loop started | The roster. When the user starts the loop with `/loop`, record that time, replacing any earlier one |
 | Whether a ticket landed | The ticket is closed and its closing pull request is merged into `main` |
@@ -120,6 +120,13 @@ Work through these in order. Each step is cheap when there is nothing to do.
      against `memory.max` with its percentage, and `memory.current`. For example `Memory: anon 6.10
      · slab 0.42 · stack 0.03 · non-reclaimable 6.55 GiB of 16 GiB (40.9%) · memory.current 9.80
      GiB`.
+
+     ```bash
+     max=$(cat /sys/fs/cgroup/memory.max)
+     cur=$(cat /sys/fs/cgroup/memory.current)
+     grep -E '^(anon|slab_unreclaimable|kernel_stack) ' /sys/fs/cgroup/memory.stat | awk -v max=$max -v cur=$cur '{v[$1]=$2; s+=$2} END {printf "Memory: anon %.2f · slab %.2f · stack %.2f · non-reclaimable %.2f GiB of %.0f GiB (%.1f%%) · memory.current %.2f GiB\n", v["anon"]/2^30, v["slab_unreclaimable"]/2^30, v["kernel_stack"]/2^30, s/2^30, max/2^30, s*100/max, cur/2^30}'
+     ```
+
    - **A disk line,** only when the home share's write check has failed, saying that launches are
      stopped and whether the incident notice went out.
    - **A table of every active session,** ticket sessions, non-ticket sessions and the user's own
