@@ -48,6 +48,10 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY messages_account ON messages
 USING (account_id = current_setting('app.account'));
 
+ALTER TABLE attachment_media ENABLE ROW LEVEL SECURITY;
+CREATE POLICY attachment_media_account ON attachment_media
+USING (account_id = current_setting('app.account'));
+
 ALTER TABLE scan_gate_decisions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY scan_gate_decisions_account ON scan_gate_decisions
 USING (account_id = current_setting('app.account'));

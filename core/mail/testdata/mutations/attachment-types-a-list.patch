@@ -1,0 +1,20 @@
+control: An attachment's type is a word of the closed vocabulary, set with the names from the same parts
+removes: the types served are a list with one entry per medium rather than a sorted set
+packages: ./core/mail
+tests: TestAMessagesAttachmentsSetItsNamesAndMediaTogether TestEveryAttachmentTypeIsAWordOfTheVocabulary
+scheduled-count: no
+
+diff --git a/core/mail/attachment.go b/core/mail/attachment.go
+index c5205199..abd4b317 100644
+--- a/core/mail/attachment.go
++++ b/core/mail/attachment.go
+@@ -129,8 +129,7 @@ func AttachmentTypes(media []AttachmentMedia) []AttachmentType {
+ 	for _, m := range media {
+ 		out = append(out, AttachmentTypeOf(m))
+ 	}
+-	slices.Sort(out)
+-	return slices.Compact(out)
++	return out
+ }
+ 
+ // AttachmentTypeOf returns the type of an attachment with the media given. The media type decides,

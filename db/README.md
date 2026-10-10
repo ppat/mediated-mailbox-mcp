@@ -36,7 +36,7 @@ The writes the tables' readers are not granted sit apart the same way.
 
 | Path | Holds |
 | --- | --- |
-| `db/messages/ingest` | Adding a message's metadata to the index and masking a stored subject again |
+| `db/messages/ingest` | Adding a message's metadata to the index with its attachment media, and masking a stored subject again |
 | `db/maskingevents/record` | Recording a mask applied to a subject |
 | `db/auditlog/record` | The mediator's recording of each body it serves or denies |
 | `db/jobruns/record` | A job kind recording its own runs, their timelines and failed items with the read it resumes from, and `RecordedSuccess`, the read of the account's latest recorded success and earliest run's start that each job's latest success starts from at its ensure ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |

@@ -517,9 +517,20 @@ SELECT
     m.labels,
     m.flags,
     m.has_attachments,
-    m.attachment_types,
     m.content_flags,
-    m.scan_state
+    m.scan_state,
+    -- The attachments' media, each media type paired with the extension at the same position, in
+    -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+    coalesce((
+        SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_media_types,
+    coalesce((
+        SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE
     m.account_id = $1
@@ -625,18 +636,19 @@ type SearchPageParams struct {
 }
 
 type SearchPageRow struct {
-	MessageID       string
-	ThreadID        string
-	FromEmail       string
-	FromName        pgtype.Text
-	Subject         pgtype.Text
-	SentAt          pgtype.Timestamptz
-	Labels          []string
-	Flags           []byte
-	HasAttachments  bool
-	AttachmentTypes []string
-	ContentFlags    []string
-	ScanState       string
+	MessageID            string
+	ThreadID             string
+	FromEmail            string
+	FromName             pgtype.Text
+	Subject              pgtype.Text
+	SentAt               pgtype.Timestamptz
+	Labels               []string
+	Flags                []byte
+	HasAttachments       bool
+	ContentFlags         []string
+	ScanState            string
+	AttachmentMediaTypes []string
+	AttachmentExtensions []string
 }
 
 // One page of the messages the query selects, in the order sort_by and descending name, after the
@@ -684,9 +696,10 @@ func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]Searc
 			&i.Labels,
 			&i.Flags,
 			&i.HasAttachments,
-			&i.AttachmentTypes,
 			&i.ContentFlags,
 			&i.ScanState,
+			&i.AttachmentMediaTypes,
+			&i.AttachmentExtensions,
 		); err != nil {
 			return nil, err
 		}

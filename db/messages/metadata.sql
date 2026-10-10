@@ -13,9 +13,20 @@ SELECT
     m.labels,
     m.flags,
     m.has_attachments,
-    m.attachment_types,
     m.content_flags,
-    m.scan_state
+    m.scan_state,
+    -- The attachments' media, each media type paired with the extension at the same position, in
+    -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+    coalesce((
+        SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_media_types,
+    coalesce((
+        SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE
     m.account_id = @account_id
@@ -39,9 +50,20 @@ SELECT
     m.labels,
     m.flags,
     m.has_attachments,
-    m.attachment_types,
     m.content_flags,
-    m.scan_state
+    m.scan_state,
+    -- The attachments' media, each media type paired with the extension at the same position, in
+    -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+    coalesce((
+        SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_media_types,
+    coalesce((
+        SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE m.account_id = @account_id AND m.message_id = @message_id;
 
@@ -58,9 +80,20 @@ SELECT
     m.labels,
     m.flags,
     m.has_attachments,
-    m.attachment_types,
     m.content_flags,
-    m.scan_state
+    m.scan_state,
+    -- The attachments' media, each media type paired with the extension at the same position, in
+    -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+    coalesce((
+        SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_media_types,
+    coalesce((
+        SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE m.account_id = @account_id AND m.thread_id = @thread_id
 ORDER BY m.sent_at ASC, m.message_id ASC;

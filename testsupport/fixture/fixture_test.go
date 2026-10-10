@@ -13,7 +13,8 @@ import (
 )
 
 // texts returns the text each field of m holds, a list field's elements joined. A field is read by
-// reflection, so a field added to Message shows up here without being named.
+// reflection, so a field added to Message shows up here without being named. An attachment's text is
+// its name. Its media type and type are words of fixed vocabularies, which carry no marker.
 func texts(m fixture.Message) map[string]string {
 	out := map[string]string{}
 	v := reflect.ValueOf(m)
@@ -22,7 +23,11 @@ func texts(m fixture.Message) map[string]string {
 		if f.Kind() == reflect.Slice {
 			parts := make([]string, f.Len())
 			for j := range f.Len() {
-				parts[j] = f.Index(j).String()
+				e := f.Index(j)
+				if e.Kind() == reflect.Struct {
+					e = e.FieldByName("Name")
+				}
+				parts[j] = e.String()
 			}
 			out[v.Type().Field(i).Name] = strings.Join(parts, " ")
 			continue

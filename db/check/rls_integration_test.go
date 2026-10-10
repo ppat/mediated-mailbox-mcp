@@ -41,6 +41,7 @@ var accountTables = map[string]accountTable{
 	"rate_state":          {"INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, classes) VALUES ($1, 1, 1, 1, jsonb_build_object('key', $2::text))", accountC},
 	"senders":             {"INSERT INTO senders (account_id, domain) VALUES ($1, $2)", accountB},
 	"messages":            {"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ($1, $2, 't', 'a@example.com', 'example.com', now(), false, 'normal')", accountB},
+	"attachment_media":    {"INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, 'm-media', '', $2)", accountB},
 	"scan_gate_decisions": {"INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason) VALUES ($1, $2, 'SCAN', 'restricted')", accountB},
 	"policy_candidates":   {"INSERT INTO policy_candidates (account_id, domain, signals, score) VALUES ($1, $2, '[]', 0.5)", accountB},
 	"policy_changes":      {"INSERT INTO policy_changes (account_id, actor, action, rule_id) VALUES ($1, 'operator', 'added', $2)", accountB},
@@ -92,6 +93,8 @@ func TestRowLevelSecurityScopesEveryAccountTable(t *testing.T) {
 		"INSERT INTO reorg_plans (plan_id, account_id, status, plan) VALUES ('" + planB + "', '" + accountB + "', 'DRAFT', '{}')",
 		"INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES (NULL, 'base.example.org', 'restricted', '{example.org}', 'operator', 'operator')",
 		"CREATE ROLE " + rowSecurityRole + " NOLOGIN",
+		// The message whose attachment media the attachment_media rows describe, which their foreign key requires.
+		"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ('" + accountB + "', 'm-media', 't', 'a@example.com', 'example.com', now(), true, 'normal')",
 		"GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO " + rowSecurityRole,
 		"GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO " + rowSecurityRole,
 	}

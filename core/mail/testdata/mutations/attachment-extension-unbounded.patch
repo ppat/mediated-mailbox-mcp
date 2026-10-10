@@ -1,0 +1,19 @@
+control: What is kept of an attachment is its media type and extension in the normalized form
+removes: an extension is kept whatever its length and characters
+packages: ./core/mail
+tests: TestAnAttachmentsMediaIsKeptNormalized TestEveryAttachmentTypeIsAWordOfTheVocabulary
+scheduled-count: no
+
+diff --git a/core/mail/attachment.go b/core/mail/attachment.go
+index c5205199..23a939ed 100644
+--- a/core/mail/attachment.go
++++ b/core/mail/attachment.go
+@@ -69,7 +69,7 @@ func AttachmentMediaOf(mediaType, filename string) AttachmentMedia {
+ 		out.MediaType = essence
+ 	}
+ 	if dot := strings.LastIndexByte(filename, '.'); dot >= 0 {
+-		if ext := asciiLower(filename[dot+1:]); len(ext) <= extensionMax && strings.Trim(ext, "abcdefghijklmnopqrstuvwxyz0123456789") == "" {
++		if ext := asciiLower(filename[dot+1:]); true {
+ 			out.Extension = ext
+ 		}
+ 	}

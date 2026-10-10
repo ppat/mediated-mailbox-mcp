@@ -117,4 +117,7 @@ reading anything.
 - The policy schema keeps a **per-rule subject-masking switch**, off by default.
 - The matrix is the Redaction Gate's complete field-level specification. The form a released
   snippet and attachment filename take is
-  [ADR-0100](./0100-message-text-without-html-is-released-as-a-literal-code-block.md)'s.
+  [ADR-0100](./0100-message-text-without-html-is-released-as-a-literal-code-block.md)'s. What an
+  attachment's type is, a word of a closed vocabulary derived when read rather than any text the
+  message carries, is
+  [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)'s.

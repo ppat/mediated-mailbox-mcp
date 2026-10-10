@@ -1,0 +1,19 @@
+control: An attachment's type is a word of the closed vocabulary, set with the names from the same parts
+removes: an extension no table names is served as its own type
+packages: ./core/mail
+tests: TestAnAttachmentsTypeIsAWordOfTheVocabulary TestEveryAttachmentTypeIsAWordOfTheVocabulary
+scheduled-count: no
+
+diff --git a/core/mail/attachment.go b/core/mail/attachment.go
+index c5205199..2c0caf43 100644
+--- a/core/mail/attachment.go
++++ b/core/mail/attachment.go
+@@ -219,7 +219,7 @@ func byExtension(extension string) AttachmentType {
+ 	case "eml", "msg":
+ 		return AttachmentMessage
+ 	}
+-	return AttachmentOther
++	return AttachmentType(extension)
+ }
+ 
+ func hasAnyPrefix(s string, prefixes ...string) bool {
