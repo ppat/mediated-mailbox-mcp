@@ -1,0 +1,19 @@
+control: An account's series go once the work that sets them ends
+removes: backfill's unclassified series of an account stays once its job is dropped
+packages: ./worker/internal/backfill
+tests: TestTheKindsSeriesOfAnAccountGoWhenItsWorkEnds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index da77c3d5..48148c60 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -202,7 +202,6 @@ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
+ 		b.logger.Info("an account is no longer listed, so its backfill stops", "account", account)
+ 		b.jobs.Remove(schedule.Key{Kind: Kind, ID: account})
+ 		// The job's run has returned, so nothing sets the account's series again.
+-		b.first.Forget(account)
+ 		b.backlog.Forget(account)
+ 	}
+ 	b.served = kept

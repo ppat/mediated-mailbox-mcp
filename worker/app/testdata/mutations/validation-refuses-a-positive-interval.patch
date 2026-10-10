@@ -1,0 +1,18 @@
+control: Delta sync refuses a configuration it cannot tick with
+removes: the interval is refused when it is positive and taken when it is not
+packages: ./worker/app
+tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheStart/--sync.sync_interval=0s
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -161,7 +161,7 @@
+ 		return fmt.Errorf("reload_interval %s is not positive", c.ReloadInterval)
+ 	case c.Backfill.Concurrency <= 0:
+ 		return fmt.Errorf("backfill.concurrency %d is not positive", c.Backfill.Concurrency)
+-	case c.Sync.SyncInterval <= 0:
++	case c.Sync.SyncInterval > 0:
+ 		return fmt.Errorf("sync.sync_interval %s is not positive", c.Sync.SyncInterval)
+ 	case c.Sync.FirstWindow <= 0:
+ 		return fmt.Errorf("sync.first_window %s is not positive", c.Sync.FirstWindow)

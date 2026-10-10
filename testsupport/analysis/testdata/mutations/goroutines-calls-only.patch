@@ -1,0 +1,29 @@
+control: The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+removes: a starter is reported only where it is called, so a method value or a method expression of one escapes
+packages: ./testsupport/analysis
+tests: TestGoroutines
+scheduled-count: no
+
+diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
+index 42f880fa..055f35d2 100644
+--- a/testsupport/analysis/goroutines.go
++++ b/testsupport/analysis/goroutines.go
+@@ -7,6 +7,7 @@ import (
+ 	"strings"
+ 
+ 	"golang.org/x/tools/go/analysis"
++	"golang.org/x/tools/go/types/typeutil"
+ )
+ 
+ // Goroutines reports a goroutine started in the worker's code outside its scheduler, the rule ADR-0119
+@@ -69,8 +70,8 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
+ 			switch n := n.(type) {
+ 			case *ast.GoStmt:
+ 				pass.Reportf(n.Pos(), goroutinesMessage)
+-			case *ast.Ident:
+-				if fn, ok := pass.TypesInfo.Uses[n].(*types.Func); ok && goroutineStarters[fn.FullName()] {
++			case *ast.CallExpr:
++				if fn, ok := types.Object(typeutil.StaticCallee(pass.TypesInfo, n)).(*types.Func); ok && fn != nil && goroutineStarters[fn.FullName()] {
+ 					pass.Reportf(n.Pos(), goroutinesMessage)
+ 				}
+ 			}

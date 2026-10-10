@@ -1,0 +1,17 @@
+control: Each job kind's constructor takes only what the job kind needs
+removes: backfill's configuration gains delta sync's pool as a field
+packages: ./worker/app
+tests: TestEachJobKindsConstructorTakesOnlyWhatItNeeds
+scheduled-count: no
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -85,6 +85,7 @@
+ type Config struct {
+ 	// Pool is backfill's own pool, which connects as backfill's runtime role (ADR-0118).
+ 	Pool *pgxpool.Pool
++	Sync *pgxpool.Pool
+ 	// Keys open the stored credentials and client secrets.
+ 	Keys *open.Keyring
+ 	// Scanner masks subjects and scans bodies, built once from the worker's scanner section.

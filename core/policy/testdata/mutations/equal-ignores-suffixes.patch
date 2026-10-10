@@ -1,0 +1,19 @@
+control: Two composed policies are equal when they hold the same rules by value, whatever their order
+removes: the comparison leaves out each rule's domain suffixes, so a rule whose suffixes changed compares equal
+packages: ./core/policy
+tests: TestComposedPoliciesAreEqualByValue TestComposedPoliciesAreEqualByValue/a_suffix_changed
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -88,8 +88,7 @@
+ func canonical(rules []Rule) []string {
+ 	out := make([]string, 0, len(rules))
+ 	for _, r := range rules {
+-		suffixes := slices.Sorted(slices.Values(r.suffixes))
+-		out = append(out, strconv.Quote(r.id)+" "+strings.Join(suffixes, " "))
++		out = append(out, strconv.Quote(r.id))
+ 	}
+ 	slices.Sort(out)
+ 	return out

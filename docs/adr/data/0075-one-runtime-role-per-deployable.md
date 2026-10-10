@@ -1,6 +1,7 @@
 # 0075. Each deployable connects to the database as a runtime role of its own
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) ·
 **Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 

@@ -1,0 +1,92 @@
+---
+# promtool's unit tests of the cursor gap rule (ADR-0077, ADR-0105), run by TestAlertingRules. Series are sampled
+# every minute, so each value in a sequence is a minute after the one before it.
+rule_files:
+- ../../../../../packaging/chart/alerting-rules.yaml
+
+evaluation_interval: 1m
+
+tests:
+# A process that has run for ten minutes finds a gap for one account. Another account never has one. The rule fires
+# for the first account from the gap's sample until the hour since its last zero sample has passed.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_sync_cursor_gaps_total{account="personal", instance="sync"}'
+    values: '0x9 1x80'
+  - series: 'mediated_mailbox_sync_cursor_gaps_total{account="work", instance="sync"}'
+    values: '0x90'
+  alert_rule_test:
+  - eval_time: 9m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts: []
+  - eval_time: 10m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts:
+    - exp_labels:
+        account: personal
+        severity: warning
+      exp_annotations:
+        summary: >-
+          Delta sync found a cursor gap for account personal within the last hour and re-enumerated the window since
+          its last cursor. A gap found again and again means delta sync is stuck or stopped for longer than the
+          provider keeps its change history.
+  - eval_time: 1h8m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts:
+    - exp_labels:
+        account: personal
+        severity: warning
+      exp_annotations:
+        summary: >-
+          Delta sync found a cursor gap for account personal within the last hour and re-enumerated the window since
+          its last cursor. A gap found again and again means delta sync is stuck or stopped for longer than the
+          provider keeps its change history.
+  - eval_time: 1h10m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts: []
+
+# A process whose first tick found a gap before its first scrape. Its series starts at one, which no increase can
+# see, and the rule fires until the series is an hour old.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_sync_cursor_gaps_total{account="personal", instance="sync"}'
+    values: '1x80'
+  alert_rule_test:
+  - eval_time: 0m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts:
+    - exp_labels:
+        account: personal
+        severity: warning
+      exp_annotations:
+        summary: >-
+          Delta sync found a cursor gap for account personal within the last hour and re-enumerated the window since
+          its last cursor. A gap found again and again means delta sync is stuck or stopped for longer than the
+          provider keeps its change history.
+  - eval_time: 59m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts:
+    - exp_labels:
+        account: personal
+        severity: warning
+      exp_annotations:
+        summary: >-
+          Delta sync found a cursor gap for account personal within the last hour and re-enumerated the window since
+          its last cursor. A gap found again and again means delta sync is stuck or stopped for longer than the
+          provider keeps its change history.
+  - eval_time: 1h1m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts: []
+
+# A process restarts and its count starts at zero again. The reset is not a gap, and nothing fires.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_sync_cursor_gaps_total{account="personal", instance="sync"}'
+    values: '2x70 0x70'
+  alert_rule_test:
+  - eval_time: 1h15m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts: []
+  - eval_time: 2h15m
+    alertname: MediatedMailboxSyncCursorGap
+    exp_alerts: []

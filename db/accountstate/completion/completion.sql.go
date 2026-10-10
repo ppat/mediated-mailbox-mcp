@@ -42,9 +42,9 @@ WHERE account_id = $1
 `
 
 // Records that backfill's second pass is due again for the account and marks it to start over from the
-// first message waiting for a scan, in the transaction a backfill run makes before its first pass to
-// return the verdicts another scanner made and the overturned gate skips to pending (ADR-0120,
-// ADR-0098).
+// first message waiting for a scan, in the transaction backfill's run-start step makes before its
+// first pass to return the verdicts another scanner made and the overturned gate skips to pending
+// (ADR-0120, ADR-0121).
 func (q *Queries) ReopenBackfillSecond(ctx context.Context, accountID string) error {
 	_, err := q.db.Exec(ctx, reopenBackfillSecond, accountID)
 	return err
@@ -72,7 +72,7 @@ WHERE account_id = $1
 `
 
 // Records that backfill's first pass has ended for the account, in the transaction that finishes the
-// run which ended it (ADR-0017, ADR-0022).
+// run which ended it (ADR-0017, ADR-0117).
 func (q *Queries) SetBackfillFirstComplete(ctx context.Context, accountID string) error {
 	_, err := q.db.Exec(ctx, setBackfillFirstComplete, accountID)
 	return err
@@ -85,7 +85,7 @@ WHERE account_id = $1
 `
 
 // Records that backfill's second pass has ended for the account, in the transaction that finishes the
-// run which ended it (ADR-0017, ADR-0022).
+// run which ended it (ADR-0017, ADR-0117).
 func (q *Queries) SetBackfillSecondComplete(ctx context.Context, accountID string) error {
 	_, err := q.db.Exec(ctx, setBackfillSecondComplete, accountID)
 	return err

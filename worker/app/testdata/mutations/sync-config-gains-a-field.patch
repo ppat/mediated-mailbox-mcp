@@ -1,0 +1,19 @@
+control: Each job kind's constructor takes only what the job kind needs
+removes: delta sync's configuration gains backfill's pool as a field
+packages: ./worker/app
+tests: TestEachJobKindsConstructorTakesOnlyWhatItNeeds
+scheduled-count: no
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -77,7 +77,8 @@
+ // Config is what delta sync's job kind is built from, and nothing more.
+ type Config struct {
+ 	// Pool is delta sync's own pool, which connects as delta sync's runtime role (ADR-0118).
+-	Pool *pgxpool.Pool
++	Pool     *pgxpool.Pool
++	Backfill *pgxpool.Pool
+ 	// Keys open the stored credentials and client secrets, and seal again what was sealed to a key
+ 	// other than the current one (ADR-0092).
+ 	Keys *open.Keyring

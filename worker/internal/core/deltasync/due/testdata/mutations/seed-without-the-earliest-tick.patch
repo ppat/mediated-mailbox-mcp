@@ -1,0 +1,17 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: a delta sync job with ticks and no success counts from its ensure, so ticks failing in a crash loop never age
+packages: ./worker/internal/core/deltasync/due
+tests: TestDeltaSyncsSeed
+scheduled-count: no
+
+diff --git a/worker/internal/core/deltasync/due/due.go b/worker/internal/core/deltasync/due/due.go
+index d64e459d..c3bdab8f 100644
+--- a/worker/internal/core/deltasync/due/due.go
++++ b/worker/internal/core/deltasync/due/due.go
+@@ -25,5 +25,5 @@ func Seed(latestSuccess, earliestStart mail.UnixMilli) mail.UnixMilli {
+ 	if latestSuccess != 0 {
+ 		return latestSuccess
+ 	}
+-	return earliestStart
++	return 0
+ }

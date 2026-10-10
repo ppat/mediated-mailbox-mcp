@@ -425,8 +425,8 @@ reported an aliased import of the same function as well.
   package at `propose/internal/testdata/w` called the sealed credential's statements inside the
   transaction helper, and `propose/internal/leak` imported it. The build, the aggregator, the
   `go vet` analysers and the grant check all passed with propose's list unchanged, so a role
-  [ADR-0075](../data/0075-one-runtime-role-per-deployable.md) bars from the credential reached its
-  statements. The same held, measured, for these:
+  [ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) bars from the
+  credential reached its statements. The same held, measured, for these:
   - A package at `propose/internal/_u`, one at `propose/internal/.d`, and one under
     `ui/browser/node_modules`, which `go.mod` ignores.
   - A symbolic link at `propose/internal/link` to a `testdata` directory.

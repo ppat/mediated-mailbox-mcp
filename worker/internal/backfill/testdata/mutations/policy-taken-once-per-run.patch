@@ -1,0 +1,20 @@
+control: Each page of a run takes the active policy
+removes: a run takes the account's policy once at its start, so a policy edit reaches it only at its next run
+packages: ./worker/internal/backfill
+tests: TestEachPageTakesTheActivePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -254,7 +254,8 @@
+ // policyFor returns the account's policy in the active policy snapshot, which each page takes at its
+ // entry (ADR-0041, ADR-0119).
+ func (b *Backfill) policyFor(account string) func() policy.Composed {
+-	return func() policy.Composed { return b.policies.Snapshot().For(account) }
++	p := b.policies.Snapshot().For(account)
++	return func() policy.Composed { return p }
+ }
+ 
+ // run asks the account's due decision and does the work it names. The run-start step returns the

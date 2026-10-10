@@ -1,0 +1,19 @@
+control: The unsafe analyser refuses an import of unsafe, and a use of reflect's unsafe pointers, in this module's code
+removes: an import of unsafe is not reported
+packages: ./testsupport/analysis
+tests: TestUnsafeImport
+scheduled-count: no
+
+diff --git a/testsupport/analysis/unsafeimport.go b/testsupport/analysis/unsafeimport.go
+index 7766819d..eabb3f69 100644
+--- a/testsupport/analysis/unsafeimport.go
++++ b/testsupport/analysis/unsafeimport.go
+@@ -49,7 +49,7 @@ func runUnsafeImport(pass *analysis.Pass) (any, error) {
+ 			continue
+ 		}
+ 		for _, spec := range file.Imports {
+-			if imported, err := strconv.Unquote(spec.Path.Value); err == nil && imported == "unsafe" {
++			if imported, err := strconv.Unquote(spec.Path.Value); err == nil && imported == "unsafe" && false {
+ 				pass.Reportf(spec.Pos(), unsafeMessage)
+ 			}
+ 		}

@@ -62,7 +62,7 @@ type LatestRunRow struct {
 }
 
 // The account's latest run of one workload and pass, whatever its state, which a workload reads to
-// decide whether it resumes that run (ADR-0017, ADR-0022).
+// decide whether it resumes that run (ADR-0017, ADR-0117).
 func (q *Queries) LatestRun(ctx context.Context, arg LatestRunParams) (LatestRunRow, error) {
 	row := q.db.QueryRow(ctx, latestRun, arg.AccountID, arg.Workload, arg.Pass)
 	var i LatestRunRow
@@ -89,7 +89,7 @@ type RecordEventParams struct {
 }
 
 // Adds one event to a run's timeline. A progress event carries the checkpoint page. The detail is
-// provider or scanner text, never a body (ADR-0022).
+// provider or scanner text, never a body (ADR-0117).
 func (q *Queries) RecordEvent(ctx context.Context, arg RecordEventParams) error {
 	_, err := q.db.Exec(ctx, recordEvent,
 		arg.AccountID,
@@ -144,7 +144,7 @@ type RecordFailureParams struct {
 }
 
 // Records one item a run failed on, with its error class, how many attempts it took, when the first
-// and last were, and what became of it (ADR-0022).
+// and last were, and what became of it (ADR-0117).
 func (q *Queries) RecordFailure(ctx context.Context, arg RecordFailureParams) error {
 	_, err := q.db.Exec(ctx, recordFailure,
 		arg.AccountID,
@@ -187,6 +187,50 @@ func (q *Queries) RecordProgress(ctx context.Context, arg RecordProgressParams) 
 	return err
 }
 
+const recordedSuccess = `-- name: RecordedSuccess :one
+SELECT
+    greatest(
+        (
+            SELECT max(e.at)
+            FROM job_run_events AS e
+            INNER JOIN job_runs AS r ON e.account_id = r.account_id AND e.run_id = r.run_id
+            WHERE r.account_id = $1 AND r.workload = $2 AND e.kind = 'progress'
+        ),
+        (
+            SELECT max(r.finished_at)
+            FROM job_runs AS r
+            WHERE r.account_id = $1 AND r.workload = $2 AND r.state = 'succeeded'
+        )
+    )::timestamptz AS latest_success,
+    (
+        SELECT min(r.started_at)
+        FROM job_runs AS r
+        WHERE r.account_id = $1 AND r.workload = $2
+    )::timestamptz AS earliest_start
+`
+
+type RecordedSuccessParams struct {
+	AccountID string
+	Workload  string
+}
+
+type RecordedSuccessRow struct {
+	LatestSuccess pgtype.Timestamptz
+	EarliestStart pgtype.Timestamptz
+}
+
+// The account's latest success in one workload as its runs record it, the later of the latest page or
+// step a run made durable, which its progress event marks, and the end of the latest run that
+// succeeded, and the start of its earliest run, each null when no run records one. The worker's late
+// alert counts a job from them at its start, so a restart leaves a job that does not succeed ageing
+// (ADR-0119).
+func (q *Queries) RecordedSuccess(ctx context.Context, arg RecordedSuccessParams) (RecordedSuccessRow, error) {
+	row := q.db.QueryRow(ctx, recordedSuccess, arg.AccountID, arg.Workload)
+	var i RecordedSuccessRow
+	err := row.Scan(&i.LatestSuccess, &i.EarliestStart)
+	return i, err
+}
+
 const startRun = `-- name: StartRun :exec
 INSERT INTO job_runs (
     account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
@@ -215,7 +259,7 @@ type StartRunParams struct {
 }
 
 // Records a run as it starts, with the checkpoint and counters it starts from and the run it resumes,
-// if any (ADR-0022).
+// if any (ADR-0117).
 func (q *Queries) StartRun(ctx context.Context, arg StartRunParams) error {
 	_, err := q.db.Exec(ctx, startRun,
 		arg.AccountID,

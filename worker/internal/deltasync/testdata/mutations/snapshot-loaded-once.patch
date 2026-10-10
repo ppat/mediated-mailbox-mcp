@@ -1,0 +1,20 @@
+control: Each reload loads the account snapshot, and a tick takes the active one
+removes: only the first reload loads the account snapshot, so an account connected afterwards is never ticked
+packages: ./worker/internal/deltasync
+tests: TestEachReloadLoadsTheAccountSnapshot
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -194,7 +194,8 @@
+ // read would be decided as if every sender were restricted, and still drops the jobs of the accounts no
+ // longer listed (ADR-0090, ADR-0092, ADR-0041).
+ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
+-	if err := d.loader.Load(ctx); err != nil {
++	if d.served != nil {
++	} else if err := d.loader.Load(ctx); err != nil {
+ 		return fmt.Errorf("loading the accounts: %w", err)
+ 	}
+ 	d.loader.Reseal(ctx)

@@ -1,0 +1,24 @@
+control: Delta sync decides under backfill's gate thresholds and records backfill's scanner version and revision
+removes: the worker hands delta sync a scanner built from a section of its own, so its verdicts and masks record another revision than backfill's
+packages: ./worker/app
+tests: TestBothJobKindsScanWithTheOneScanner
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index 7a6141d8..003e1222 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -329,7 +329,12 @@ func kinds(pools Pools, keys *open.Keyring, scanner scan.Scanner, c Configuratio
+ 		Registry: labelled(registry, backfill.Kind), Logger: logger.With("job_kind", backfill.Kind), Jobs: s,
+ 		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
+ 	}, deltasync.Config{
+-		Pool: pools.Sync, Keys: keys, Scanner: scanner, Client: client,
++		Pool: pools.Sync, Keys: keys, Scanner: func() scan.Scanner {
++			own := scan.DefaultConfig()
++			own.Window++
++			s, _ := scan.New(own, "its-own")
++			return s
++		}(), Client: client,
+ 		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
+ 		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,
+ 		SyncInterval: c.Sync.SyncInterval, FirstWindow: c.Sync.FirstWindow, DecisionsPerTick: c.Sync.DecisionsPerTick,

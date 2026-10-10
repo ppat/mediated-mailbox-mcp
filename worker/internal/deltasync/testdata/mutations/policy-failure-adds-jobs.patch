@@ -1,0 +1,20 @@
+control: No account is added while the policy reload fails, and a dropped account's job is still removed
+removes: a reload whose policy load fails adds the jobs of the accounts newly listed and reports no error
+packages: ./worker/internal/deltasync
+tests: TestNoAccountIsAddedWhileThePolicyReloadFails
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -216,9 +216,6 @@
+ 		d.ticks.Forget(account)
+ 	}
+ 	d.served = kept
+-	if policyErr != nil {
+-		return policyErr
+-	}
+ 	for _, account := range listed {
+ 		if slices.Contains(d.served, account) {
+ 			continue

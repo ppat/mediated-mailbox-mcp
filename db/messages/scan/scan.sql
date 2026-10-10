@@ -90,7 +90,7 @@ WHERE m.account_id = @account_id AND m.scan_state = 'pending';
 -- name: RequeueStaleVerdicts :many
 -- Returns each of the account's scanned messages whose verdict was made under another scanner version
 -- or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
--- Gate denies its body as pending its content scan (ADR-0120). A backfill run makes it at its start,
+-- Gate denies its body as pending its content scan (ADR-0120). Backfill's run-start step makes it,
 -- before the first pass. It returns each message's sender domain, whose prior hits the caller counts
 -- again.
 UPDATE messages
@@ -120,8 +120,8 @@ WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_maske
 -- name: GateSkips :many
 -- The account's messages the scan gate skipped, in the order of their identifiers, each with what the
 -- gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
--- them, so a backfill run decides each skip again under the gate it holds (ADR-0098). A message with no
--- sender statistics reads a volume and hits of zero.
+-- them, so backfill's run-start step decides each skip again under the gate it holds (ADR-0121). A
+-- message with no sender statistics reads a volume and hits of zero.
 SELECT
     m.message_id,
     m.from_email,
@@ -139,7 +139,7 @@ ORDER BY m.message_id;
 
 -- name: RequeueGateSkips :execrows
 -- Returns to pending scan each of the given messages the scan gate skipped, the skips the gate no
--- longer decides as the same skip (ADR-0098). A message no longer skipped by the gate is left as it is
+-- longer decides as the same skip (ADR-0121). A message no longer skipped by the gate is left as it is
 -- and counts no row.
 UPDATE messages
 SET scan_state = 'pending'

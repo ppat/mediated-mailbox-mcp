@@ -1,0 +1,18 @@
+control: Each reload loads the account snapshot, and a tick takes the active one
+removes: each tick loads the account snapshot itself rather than taking the one the last reload loaded, so the tick of an account disconnected since that reload fails on the account it no longer finds, rather than ticking until the next reload drops its job, and the warning for each account the load skips is written at every tick as well as every reload
+packages: ./worker/internal/deltasync
+tests: TestEachReloadLoadsTheAccountSnapshot TestATickTakesItsAccountsFromTheDatabase
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -272,6 +272,7 @@
+ // which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate limiter at the target
+ // the account's state row sets (ADR-0024).
+ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {
++	_ = d.loader.Load(ctx)
+ 	snapshot, policy := d.loader.Snapshot(), d.policies.Snapshot()
+ 	limiter, err := newLimiter(ctx, d.config.Pool, []string{account}, d.leases)
+ 	if err != nil {

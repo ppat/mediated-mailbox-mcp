@@ -169,7 +169,7 @@ third pass none remains.
 | the UI's own configuration contract | docs/UI.md §18.1 |
 | the UI's own observability | docs/UI.md §18.2 |
 | the plan reviewer as the framework's proving screen | docs/UI.md §16 |
-| the database additions the UI implies | ADR-0016, ADR-0020, ADR-0022 |
+| the database additions the UI implies | ADR-0016, ADR-0020, ADR-0117 |
 | data freshness visible on every screen | docs/UI.md §4 (the as-of time), §9 |
 | screens that belong to no account, showing no account's state | docs/UI.md §8.10; ADR-0056 |
 | a guided setup whose full instructions open one step at a time and follow the operator to Google's tab, beside it or on top of it | docs/UI.md §8.11 |

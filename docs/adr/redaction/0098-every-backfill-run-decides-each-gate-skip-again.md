@@ -1,6 +1,7 @@
 # 0098. Every backfill run decides each stored gate skip again, so a change of the scan gate's thresholds reaches the skips made under the earlier ones
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md) ·
 **Pillar:** [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) ·
 **Serves:** [C3](../../../USE_CASES.md#c3--content-based-secrets-caught)
 

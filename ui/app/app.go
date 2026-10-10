@@ -86,9 +86,9 @@ type Configuration struct {
 // reading which mailbox granted it.
 const providerTimeout = 30 * time.Second
 
-// defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0075), the TLS mode is
+// defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0118), the TLS mode is
 // the one that fails closed, the two listen addresses are the mediator's, and the intervals shown
-// on the jobs cards are ADR-0018's sync interval and ADR-0022's heuristics run. The server's stream
+// on the jobs cards are ADR-0018's sync interval and ADR-0117's heuristics run. The server's stream
 // poll and the browser stream client's backoff and fallback poll are ADR-0058's, and the browser
 // follows the OS theme. The worth-a-look thresholds are section 8.1's starting values. A consent
 // redirects to 127.0.0.1 on a high port a web server on the operator's computer is unlikely to

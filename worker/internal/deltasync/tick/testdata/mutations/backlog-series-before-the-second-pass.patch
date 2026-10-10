@@ -1,0 +1,20 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: delta sync sets an account's backlog series before backfill's second pass has ended
+packages: ./worker/internal/deltasync
+tests: TestEachTickFeedsItsUnclassifiedAndBacklogSeries
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/metrics.go b/worker/internal/deltasync/tick/metrics.go
+index 040a582..07de8e7 100644
+--- a/worker/internal/deltasync/tick/metrics.go
++++ b/worker/internal/deltasync/tick/metrics.go
+@@ -52,7 +52,7 @@ func (m *Metrics) Count(account string, r Result) {
+ 	if r.Gap {
+ 		gaps.Inc()
+ 	}
+-	if r.Scanning {
++	if r.Scanning || !r.Scanning {
+ 		m.backlog.WithLabelValues(account).Set(float64(r.Backlog))
+ 	} else {
+ 		m.backlog.DeleteLabelValues(account)

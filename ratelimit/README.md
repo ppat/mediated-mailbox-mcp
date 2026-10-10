@@ -16,17 +16,20 @@ are not split from the code that applies them and the lease code is not duplicat
 call went, a throttle or a server error included, so every spender reports its calls the same way.
 
 The library connects to the database as no role of its own. Its statements in
-`db/ratestate/limiter` run under the role of each deployable that spends from the budget, which is
-why those roles hold the grants the statements need
-([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md),
+`db/ratestate/limiter` run under the role of each deployable or job kind that spends from the
+budget, which is why those roles hold the grants the statements need
+([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)).
 
 ## Series and the rules that read them
 
 The lease code also emits the rate limiter's metrics through the registry each process passes it
 ([ADR-0076](../docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)). Every series is a
-gauge or counter labelled by `account`. The alerting rules that read them are
-`packaging/chart/alerting-rules.yaml`, whose promtool tests sit in `ratelimit/lease/testdata/`
+gauge or counter labelled by `account`. In the worker each job kind passes a registry that also
+labels each series with `job_kind`, the job kind that produced it
+([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). The
+alerting rules that read them are `packaging/chart/alerting-rules.yaml`, whose promtool tests sit
+in `ratelimit/lease/testdata/`
 ([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)).
 
 | Series | Kind and other labels | Emitted by | Read by |

@@ -1,0 +1,19 @@
+control: Every series a job kind emits carries its job kind
+removes: delta sync's Gmail adapter counts its requests on series registered on a registry the kind was not given
+packages: ./worker/internal/deltasync
+tests: TestEverySeriesTheKindEmitsCarriesItsJobKind
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -128,7 +128,7 @@
+ // session builds a Gmail source and adapter over c.Client, fresh for the tick, so delta sync holds no
+ // source across ticks.
+ func New(c Config) (*DeltaSync, error) {
+-	metrics, err := gmail.NewMetrics(c.Registry)
++	metrics, err := gmail.NewMetrics(prometheus.NewRegistry())
+ 	if err != nil {
+ 		return nil, err
+ 	}

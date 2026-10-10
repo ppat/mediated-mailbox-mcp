@@ -14,29 +14,32 @@ import (
 	"testing"
 )
 
-// componentRoles names the database role each deployable's code runs statements as, keyed by the
-// deployable's import list. A deployable's role is mediated_mailbox_ followed by its directory
-// (ADR-0075). A shared library connects as no role of its own, so its list has no entry here. Its
-// statements run under the role of each deployable whose list admits it, and the grant check plans
-// them under each of those roles (ADR-0066). Four deployables here are those that call a provider,
-// whose lists admit the rate limiter and the account snapshot, and the UI names the
-// subsections its read API reads.
+// componentRoles names the database role code runs statements as, keyed by the import list governing
+// that code. A deployable runs as a role of its own, and inside the worker each job kind does, so a
+// deployable's list and each job kind's list map to their role, the worker's job kinds' lists to the
+// roles named for their job kinds, and the worker's own list, which names no subsection and admits no
+// shared library that runs statements, to none (ADR-0118). That list admits the driver only so the
+// worker's composition root can open each job kind's pool, and a statement the worker's own code runs
+// on a pool is left to review. A shared library connects as no role of its own,
+// so its list has no entry here. Its statements run under the role of each list with a role that
+// admits it, and the grant check plans them under each of those roles (ADR-0066). The lists admitting
+// the rate limiter and the account snapshot are those of the code that calls a provider, the
+// mediator's and the two job kinds', and the UI's names the subsections its read API reads.
 //
 // The mediator's code is also governed by narrower lists, and the one over every package but its two
 // protocol roots names the subsections its read operations run. The lists of the two roots and their
 // generators admit that code through the service layer, so each is keyed here to the mediator's role
 // too.
 var componentRoles = map[string]string{
-	"backfill":              "mediated_mailbox_backfill",
 	"mediate":               "mediated_mailbox_mediate",
 	"mediate-api-generator": "mediated_mailbox_mediate",
 	"mediate-api-root":      "mediated_mailbox_mediate",
 	"mediate-mcp-generator": "mediated_mailbox_mediate",
 	"mediate-mcp-root":      "mediated_mailbox_mediate",
-	"organize":              "mediated_mailbox_organize",
-	"sync":                  "mediated_mailbox_sync",
 	"ui":                    "mediated_mailbox_ui",
 	"ui-clientsecret":       "mediated_mailbox_ui",
+	"worker-backfill":       "mediated_mailbox_backfill",
+	"worker-sync":           "mediated_mailbox_sync",
 }
 
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no

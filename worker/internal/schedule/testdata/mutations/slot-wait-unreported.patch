@@ -1,0 +1,23 @@
+control: The time a job waits for a slot of its kind's limit does not count toward its lateness
+removes: the scheduler reports no wait for a slot, so a job queued behind its kind's runs ages as if it were late
+packages: ./worker/internal/schedule
+tests: TestAJobsWaitForASlotIsReported
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 28c25206..6e5ed645 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -390,11 +390,7 @@ func (s *Scheduler) take(ctx context.Context, key Key, st *state, limit *Limit)
+ 	default:
+ 	}
+ 	since := time.Now()
+-	s.owned(key, st, func() { s.observer.Waiting(key, since) })
+-	defer func() {
+-		until := time.Now()
+-		s.owned(key, st, func() { s.observer.Waited(key, since, until) })
+-	}()
++	_ = since
+ 	select {
+ 	case limit.slots <- struct{}{}:
+ 		return true

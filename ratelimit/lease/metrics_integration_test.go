@@ -35,6 +35,15 @@ const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
 // cursorGapsName is delta sync's count of cursor gaps, which the cursor gap rule reads.
 const cursorGapsName = "mediated_mailbox_sync_cursor_gaps_total"
 
+// The worker's series of a job's last success, of its bound and of its waits for a slot, which the
+// rules on a stopped worker and on a late job read, and whose emission the scheduler's own test holds.
+const (
+	lastSuccessName = "mediated_mailbox_job_last_success_timestamp_seconds"
+	lateName        = "mediated_mailbox_job_late_after_seconds"
+	waitedName      = "mediated_mailbox_job_slot_waited_seconds"
+	waitingName     = "mediated_mailbox_job_slot_waiting_since_timestamp_seconds"
+)
+
 // series is one gathered sample, by metric name and account.
 type series struct {
 	name, account, other string
@@ -197,9 +206,10 @@ func TestTheCollectorFailsTheScrapeWhenItCannotRead(t *testing.T) {
 }
 
 // Every series the alerting rules read, apart from the two the provider adapters emit, the
-// reload-failure series the policy loader emits and delta sync's count of cursor gaps, is one the
-// collector or a Limiter emits under that exact name, so a rule never watches a name nothing emits
-// (ADR-0076). The policy loader's and delta sync's own tests hold their series to the same check.
+// reload-failure series the policy loader emits, delta sync's count of cursor gaps and the worker's
+// series of a job's last success and its bound, is one the collector or a Limiter emits under that
+// exact name, so a rule never watches a name nothing emits (ADR-0076). The policy loader's, delta
+// sync's and the worker's scheduler's own tests hold their series to the same check.
 func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
@@ -214,7 +224,10 @@ func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	reg.MustRegister(lease.NewCollector(spenders(t), func(context.Context) ([]lease.Account, error) {
 		return []lease.Account{{ID: account, Ceiling: ceiling}}, nil
 	}))
-	emitted := map[string]bool{requestCostName: true, hardCapName: true, reloadFailedName: true, cursorGapsName: true}
+	emitted := map[string]bool{
+		requestCostName: true, hardCapName: true, reloadFailedName: true, cursorGapsName: true, lastSuccessName: true, lateName: true,
+		waitedName: true, waitingName: true,
+	}
 	for s := range gathered(t, reg) {
 		emitted[s.name] = true
 	}

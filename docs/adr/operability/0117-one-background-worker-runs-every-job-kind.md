@@ -1,6 +1,6 @@
 # 0117. One background worker runs every job kind, in one process, with each job kind's code, role and observability kept apart inside it
 
-**Status:** Proposed (supersedes [ADR-0022](./0022-four-workloads.md)) ·
+**Status:** Accepted (supersedes [ADR-0022](./0022-four-workloads.md)) ·
 **Pillar:** [Concerns stay un-braided; components know only their contracts](../../../DESIGN.md#concerns-stay-un-braided-components-know-only-their-contracts) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes), [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)
 
@@ -59,7 +59,7 @@ roles with each one.
   | | Backfill | Delta sync | Reorg apply and rollback | Heuristics |
   | --- | --- | --- | --- | --- |
   | Runtime | minutes–hours | seconds | minutes | seconds |
-  | Trigger | an account with a pass not ended, the worker's start after a change of scanner or of the scan gate's thresholds, and an account newly connected ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md), [ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md), [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) | a tick every sync interval, five minutes by default ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) | a plan the operator approved, or a rollback the operator requested | daily, or as its unit decides |
+  | Trigger | an account with a pass not ended, the worker's start after a change of scanner or of the scan gate's thresholds, and an account newly connected ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md), [ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md), [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) | a tick every sync interval, five minutes by default ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) | a plan the operator approved, or a rollback the operator requested | daily, or as its unit decides |
   | Reversible | n/a (read-only) | n/a | **must be** | n/a |
   | Writes provider | no | no | **yes, bulk** | no |
 
@@ -89,8 +89,14 @@ roles with each one.
     added for a job. The standard library and the dependencies the module already holds import
     `unsafe`, so the rule applies to what gets added.
 
-  Memory safety is what makes code isolation hold, which is why the last line is part of it. A
-  model runtime that needs cgo runs outside the worker, as
+  Memory safety is what makes code isolation hold, which is why the last line is part of it. The
+  unsafe analyser also refuses this project's code any use of `reflect.NewAt`, `reflect.SliceAt`,
+  `(reflect.Value).UnsafePointer` and `(reflect.Value).SetPointer`, which hand out or take an unsafe
+  pointer with no import of `unsafe`. It leaves to review a use of those through an interface value
+  or reflect's own method lookup, and writing the process's own memory through the operating system,
+  such as through `/proc/self/mem` at an address `(reflect.Value).Pointer` gives, which needs
+  neither. The worker's test counts a dependency holding assembly or a `.syso` object with those
+  that import `unsafe`. A model runtime that needs cgo runs outside the worker, as
   [ADR-0042](../engineering/0042-implementation-stack.md) already allows for an embedding service.
 - **Observability per job kind inside the worker.** Every shared metric series stays attributable
   to the job kind that produced it, the library series for request cost, leases, throttles and the
@@ -148,7 +154,8 @@ roles with each one.
   that fails the liveness probe stops every job, so the failure of an unrelated job can make
   [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s staleness bound reachable. A
   panic is recovered in the run that raised it, each job kind has its own pool, and the alert on a
-  stopped worker and the alert on a job whose last success has aged make it loud
+  stopped worker and the alert on a job whose last success has aged make it loud, a kill repeated
+  at every restart included, since a job's last success starts from what its runs record
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md),
   [ADR-0077](./0077-conditions-raised-as-alerting-rules.md)).
 - **A configuration change restarts every job.** The chart restarts a deployable's pods when its
@@ -182,8 +189,10 @@ roles with each one.
   included, keeps it running and restarts it when it stops
   ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)). It delivers
   the credentials of every role the worker's job kinds run as, and the private key's file to the
-  worker. A job kind's code receives only its own pool, which the composition root wires and review
-  holds, since the grant check sees which statements a list admits and not which pool reaches the
-  code ([ADR-0066](../data/0066-data-access-generated-from-sql.md)).
+  worker. A job kind's code receives only its own pool, which the composition root wires, since the
+  grant check sees which statements a list admits and not which pool reaches the code
+  ([ADR-0066](../data/0066-data-access-generated-from-sql.md)). A test of the composition root holds
+  the pools it opens and the pool it hands each job kind, and review holds that its run passes the
+  pools it opened on to the job kinds.
 - The rules above that are enforced or checked are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

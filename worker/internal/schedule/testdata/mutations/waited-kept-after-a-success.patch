@@ -1,0 +1,18 @@
+control: The time a job waits for a slot of its kind's limit does not count toward its lateness
+removes: a success leaves the time waited before it counted, so the job's lateness after the success loses that time
+packages: ./worker/internal/schedule
+tests: TestAJobsWaitForASlotIsReported
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/metrics.go b/worker/internal/schedule/metrics.go
+index afbc5273..3362eb65 100644
+--- a/worker/internal/schedule/metrics.go
++++ b/worker/internal/schedule/metrics.go
+@@ -126,7 +126,6 @@ func (m *Metrics) Finished(key Key, outcome Outcome, took time.Duration) {
+ // Succeeded implements Observer.
+ func (m *Metrics) Succeeded(key Key, at time.Time) {
+ 	m.lastSuccess.WithLabelValues(key.Kind, key.ID).Set(seconds(at))
+-	m.waited.WithLabelValues(key.Kind, key.ID).Set(0)
+ }
+ 
+ // BackingOff implements Observer.

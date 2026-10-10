@@ -1,0 +1,20 @@
+control: A change of scanner reopens a pass whose stored work another scanner decided
+removes: a reopened first pass runs while it stays recorded as ended
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass1 ./worker/internal/backfill/pass2
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index f2756aa..06311c7 100644
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -123,7 +123,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
+ 		return err
+ 	}
+ 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+-		if start.Reopen {
++		if false && start.Reopen {
+ 			if err := completion.New(t).ReopenBackfillFirst(ctx, account); err != nil {
+ 				return fmt.Errorf("recording the pass as due again: %w", err)
+ 			}

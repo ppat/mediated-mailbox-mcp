@@ -1,0 +1,19 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: delta sync names no provider as authenticating through a client, so the loader connects a Gmail account that names none
+packages: ./worker/internal/deltasync
+tests: TestATickTakesItsAccountsFromTheDatabase
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -168,7 +168,7 @@
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	loader := accountload.New(c.Pool, c.Keys, c.Logger, []string{gmailProvider})
++	loader := accountload.New(c.Pool, c.Keys, c.Logger, nil)
+ 	return &DeltaSync{
+ 		config: c, limit: schedule.NewLimit(c.Concurrency), loader: loader,
+ 		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors}),

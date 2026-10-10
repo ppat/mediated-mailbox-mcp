@@ -1,6 +1,6 @@
 // Package index holds the decisions every workload that writes the metadata index makes about a
 // message, as values (ADR-0040). Backfill and delta sync both write the index, and each must decide
-// a message the way the other does, or each reopens the other's work (ADR-0120, ADR-0098), so the
+// a message the way the other does, or each reopens the other's work (ADR-0120, ADR-0121), so the
 // decisions sit here once.
 //
 // Decide turns provider metadata into the rows the index stores, each sender classified against the

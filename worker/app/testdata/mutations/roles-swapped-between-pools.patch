@@ -1,0 +1,24 @@
+control: Each job kind connects as its own role, through a pool of its own
+removes: the start opens backfill's pool as delta sync's role and delta sync's as backfill's
+packages: ./worker/app
+tests: TestEachJobKindIsHandedThePoolOfItsOwnRole
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index ba65a951..04712a1a 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -242,11 +242,11 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
+ // openPools returns each job kind's pool, connecting as that kind's own role. A pool opens no
+ // connection until its first use (ADR-0118).
+ func openPools(ctx context.Context, d Database) (Pools, error) {
+-	backfillPool, err := connect(ctx, d, d.Backfill)
++	backfillPool, err := connect(ctx, d, d.Sync)
+ 	if err != nil {
+ 		return Pools{}, err
+ 	}
+-	syncPool, err := connect(ctx, d, d.Sync)
++	syncPool, err := connect(ctx, d, d.Backfill)
+ 	if err != nil {
+ 		backfillPool.Close()
+ 		return Pools{}, err

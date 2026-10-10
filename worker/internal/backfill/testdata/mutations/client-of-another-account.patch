@@ -1,0 +1,21 @@
+control: A served account's token source is built from the OAuth client the account connects through and the account's own refresh token
+removes: every account is served with the OAuth client of the snapshot's first account rather than its own
+packages: ./worker/internal/backfill
+tests: TestTheCredentialsAreTheClientAndTheAccountsToken
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+index f4fb328a..38bc4c36 100644
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -158,6 +158,9 @@ func (h *Holder) Open(snapshot *accountload.Snapshot, account string) (*Session,
+ 		return nil, ErrNotConnected
+ 	}
+ 	creds := credentials(a)
++	if first, fok := snapshot.Accounts()[0].Client(); fok {
++		creds.ClientID, creds.ClientSecret = first.ID(), first.Secret()
++	}
+ 	conn := h.source(account, connector, creds)
+ 	port, err := conn.port(account)
+ 	if err != nil {

@@ -1,0 +1,19 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: the rate limiter's series are registered on a registry the metrics endpoint does not serve
+packages: ./worker/app ./worker/internal/deltasync
+tests: TestTheProbesServeEverySeriesBetweenTicks TestEverySeriesTheKindEmitsCarriesItsJobKind
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -164,7 +164,7 @@
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	leases, err := lease.NewMetrics(c.Registry)
++	leases, err := lease.NewMetrics(prometheus.NewRegistry())
+ 	if err != nil {
+ 		return nil, err
+ 	}

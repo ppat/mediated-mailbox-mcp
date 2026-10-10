@@ -1,6 +1,6 @@
 # 0119. The worker's jobs are scheduled by an in-process scheduler that stores nothing, from recorded state read on a cadence, and nothing messages through PostgreSQL
 
-**Status:** Proposed ·
+**Status:** Accepted ·
 **Pillar:** [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes), [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox), [O2](../../../USE_CASES.md#o2--observable)
 
@@ -22,7 +22,7 @@ The records already make correctness independent of when a run happens. Every ru
 scans or classifies compares what the index stores with what it runs with, by effect, and acts on
 the difference ([ADR-0037](../redaction/0037-delisting-transition.md),
 [ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
-[ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md),
+[ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md),
 [ADR-0113](../redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
 Checkpoints commit with the work they cover ([ADR-0017](../data/0017-two-pass-backfill.md),
 [ADR-0045](../engineering/0045-crash-injection-testing.md)), and a body is released only by the
@@ -61,9 +61,14 @@ This record also decides that nothing messages through PostgreSQL.
 | A policy change during a running second pass | The delisting and added-rule comparisons again inside the running run, at its next page boundary, where "changed" means the rules differ by value, not that a reload built a new snapshot ([ADR-0037](../redaction/0037-delisting-transition.md), [ADR-0113](../redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)) |
 | Pass 1 ending | Pass 2 |
 
-A wake for a job that is running, or already waiting to run, coalesces into one further run.
-Nothing wakes the worker from outside it. It serves the health probe and the metrics endpoint and
-nothing else ([ADR-0051](../engineering/0051-environment-contract.md)).
+A wake for a job that is running, or already waiting to run, coalesces into one further run. A job
+ensured again while its removal waits for its loop starts once that loop has returned, and a removed
+job's loop reports nothing on the key once the job is ensured again, so the new job's series are its
+own. A job's own timer asks on its interval's phase, as a ticker ticks, and each ask carries the
+latest time on the ticker's phase at or before the ask. Delta sync measures its interval from that
+time for its last tick, so a tick at the end of a backoff keeps the phase. Nothing wakes the worker
+from outside it. It serves the health probe and the metrics endpoint and nothing else
+([ADR-0051](../engineering/0051-environment-contract.md)).
 
 **Units of work take the active snapshots.** Each job kind's unit of work takes its kind's active
 account snapshot and policy snapshot at its entry
@@ -91,7 +96,13 @@ the run.
   for the backoff to end. A failing job never retries in a tight loop and never holds up another.
 - **A panic is recovered within the run that raised it**, recorded as that run's failure with its
   stack, and stops nothing else. Go cannot recover a panic in a goroutine the run did not start
-  itself, so job code starts no goroutine outside a helper that recovers.
+  itself, so job code starts no goroutine outside a helper that recovers. The goroutines analyser
+  holds the worker's code outside its scheduler to this, refusing a `go` statement and any use of
+  a function that starts a goroutine running what it is given, the standard library's and those of
+  `golang.org/x/sync`. Left to review are such a function reached through an interface value or
+  reflection, a dependency that calls a function or value it was given on a goroutine of its own,
+  such as a metrics collector gathered concurrently, a connection pool's hook or a reader that
+  `os/exec` copies, and a function of any other module that starts a goroutine.
 - **Stopping.** Shutdown and an account dropped from a reload cancel the run's context, and the run
   stops at its next unit boundary with its checkpoint durable. A later interrupt is a cancelled
   context. A later pause is a decision recorded through the UI that the due decision reads.
@@ -104,7 +115,10 @@ it rotated itself, as each deployable does
 ([ADR-0082](./0082-rotation-writeback-to-the-database.md),
 [ADR-0089](./0089-sealed-values-written-by-compare-and-set.md)). Two job kinds that both rotate a
 credential reconcile through the stored bytes by compare-and-set. Each job kind's loader adds and
-drops its own jobs. The heuristics run holds no credential loader. It reads the list of account
+drops its own jobs, from a reload that is itself a job of the kind, so the reload is asked, backed
+off and watched as every job is. A reload whose policy load fails adds no job and still drops the
+jobs of the accounts it no longer lists, because an account whose rules were never read would be
+decided as if every sender were restricted. The heuristics run holds no credential loader. It reads the list of account
 identifiers under its own role if the heuristics unit decides it reads `accounts`, which is not
 decided here and is tracked in [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions)
 ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). The loader design changes no
@@ -114,9 +128,52 @@ grant.
 worker builds ([ADR-0076](../engineering/0076-metrics-emitted-through-client-golang.md)). The shared
 library series carry the job kind, and the scheduler gives each job its identity as a constructor
 parameter, never through ambient context. Logs carry the job kind and the account. An alert fires
-when the worker stops, and one per job kind when a job's last success grows too old, which for
-delta sync is how [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a chronically
+when the worker stops, and one fires for each job of every job kind whose last success grows too
+old, which for delta sync is how [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a chronically
 stuck sync job looks healthy" is caught ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)).
+
+- **A job's success is a run that succeeds or a unit of work a run makes durable**, such as a page
+  of backfill. A pass that runs for hours therefore stays silent while its pages land, and a run
+  stuck on one call ages from its last page. A run whose due decision finds nothing to do succeeds,
+  so a job that has caught up keeps succeeding. A run asked before it is due, such as a tick asked at
+  the end of a backoff before its interval has passed, is neither a success nor a failure. Not due
+  means only that the job's own interval or condition for asking again has not come, never that the
+  job found no work, which is a success.
+- **Each job exports its own bound** beside its last success, and the alerting rule on a job's last
+  success compares the two per job, so a job kind added later brings its bound and needs no rule of
+  its own.
+- **Waiting for a slot is not lateness.** The time a job waits for a slot of its kind's limit, while
+  every slot is held, does not count toward its age. Each job exports the waits that ended since its
+  latest success, which a success clears, and when the wait in progress began, and the alerting rule
+  subtracts both from the job's age. A run that holds a slot without a success still ages. Only the
+  process that saw a wait knows it, so a wait from before a restart counts as lateness after it. The
+  operator chose not to record waits across a restart.
+- **A job's latest success starts from what its job kind's runs record.** At its ensure, a job's
+  latest success is its kind's latest recorded success for the account, under the meaning of success
+  above, so a page made durable counts. A restart therefore leaves a job that does not succeed
+  ageing, and a worker killed again and again is caught by the alerting rule on a job's last
+  success.
+  - Delta sync takes the later of its latest succeeded tick's end and its latest recorded progress.
+    With ticks and no success, it takes its earliest tick's start, and with no tick, the ensure.
+  - Backfill with work outstanding, a pass not ended or the second marked to start over, takes the
+    later of its latest progress event and its latest succeeded run's end. With neither, it takes
+    its earliest run's start, so a first pass in a crash loop ages from its first attempt, and with
+    no run, the ensure.
+  - Backfill with no work outstanding takes the ensure, since it has nothing that can fall behind. A
+    worker in a crash loop is still loud, through the backfill job of any account with work
+    outstanding, whose latest success stops moving, and through every account's delta sync job,
+    whose ticks stop.
+  - A job kind's reload job takes the ensure.
+  - A failed read of what the runs record is logged as a warning, and the job counts from the ensure.
+
+  After real downtime, delta sync's jobs fire the rule until their first ticks land, seconds after
+  the start, since the accounts really were late.
+- **An account's series go once the work that sets them ends.** Backfill removes an account's scan
+  backlog series when its second pass ends, after which delta sync's tick emits it
+  ([ADR-0104](../redaction/0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md)),
+  and its backlog and unclassified series when its job is dropped. Delta sync removes its tick
+  series when its job is dropped. Between the second pass's end and delta sync's next tick, the
+  account has no backlog series, for at most one sync interval.
 
 **The line between reading recorded state and messaging through PostgreSQL.** The test is to remove
 the reader and ask whether the row still means something.
@@ -191,6 +248,20 @@ reflection or annotation ([ADR-0040](../engineering/0040-pure-core-decisions-as-
   for it: the convention the project already uses elsewhere. Not chosen for the scheduler, because
   `synctest` tests its timing with no clock parameter in the package. Due decisions still take the
   time as a value.
+- **A job's success is the end of a run that succeeded, and nothing during a run.** The case for
+  it: one meaning of success for every job kind, read where the scheduler already sees each run end.
+  Not chosen, because a backfill pass runs for hours, so the alert on a job's last success would
+  either fire on a healthy pass or need a bound longer than any pass, which would hide a stuck run
+  for as long.
+- **A job decides whether it is due before it takes a slot of its kind's limit**, so only a run with
+  work takes one. The case for it: an idle job keeps succeeding while other jobs of its kind hold
+  every slot, so it never ages while it waits. Not chosen by the operator, who kept the slot taken
+  after a job's wake and given back when its run ends, and took the time spent waiting out of the
+  job's age instead.
+- **An alert on the worker's restarts, from the process series client_golang's process collector
+  emits.** The case for it: it is the smallest change that makes a worker restarting again and
+  again loud. Not chosen by the operator, who chose to start each job's latest success from what
+  its job kind's runs record, so the rule on a job's last success catches a crash loop itself.
 
 ## Consequences
 

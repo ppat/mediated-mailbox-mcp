@@ -1,0 +1,19 @@
+control: A timed job is asked on its interval's phase, and a job with no interval only when woken
+removes: a job with no interval is asked again at once after every run
+packages: ./worker/internal/schedule
+tests: TestAJobWithNoIntervalIsAskedOnlyWhenWoken
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 5a62353c..7f184cdf 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -328,7 +328,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 			continue
+ 		case NotDue:
+ 		}
+-		due, timed = point.Add(job.Interval), job.Interval > 0
++		due, timed = point.Add(job.Interval), true
+ 	}
+ }
+ 

@@ -1,0 +1,18 @@
+control: A stopped worker and a job whose last success has aged are loud
+removes: the absence rule fires at the first evaluation that finds no worker
+packages: ./worker/internal/schedule
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+index 659ddde1..05ed9787 100644
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -128,7 +128,6 @@ groups:
+   # been scraped for five minutes the rule fires, the same delay the mediator's absence rule uses.
+   - alert: MediatedMailboxWorkerAbsent
+     expr: absent(mediated_mailbox_job_last_success_timestamp_seconds)
+-    for: 5m
+     labels:
+       severity: warning
+     annotations:

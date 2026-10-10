@@ -1,0 +1,19 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: a reload sets none of the key-scan series
+packages: ./worker/app ./worker/internal/deltasync
+tests: TestAReloadReSealsWhatItOpensWithAnOldKey TestTheProbesServeEverySeriesBetweenTicks
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -198,7 +198,7 @@
+ 		return fmt.Errorf("loading the accounts: %w", err)
+ 	}
+ 	d.loader.Reseal(ctx)
+-	d.keyScan.Set(d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
++	d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool))
+ 	snapshot := d.loader.Snapshot()
+ 	listed := d.sessions.Accounts(snapshot)
+ 	policyErr := d.loadPolicy(ctx, ids(snapshot))

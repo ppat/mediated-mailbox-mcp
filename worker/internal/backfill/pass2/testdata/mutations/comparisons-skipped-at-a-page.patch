@@ -1,0 +1,19 @@
+control: A policy edit reaches a running second pass within one reload and one page
+removes: a page never makes the comparisons again, so an edit reaches the stored classes only at the next run
+packages: ./worker/internal/backfill/pass2
+tests: TestAPolicyEditReachesARunningSecondPassWithinAPage TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -244,7 +244,7 @@
+ 		}
+ 	}()
+ 	composed := p.deps.Policy()
+-	if !composed.Equal(p.compared) {
++	if false && !composed.Equal(p.compared) {
+ 		if err := p.compare(ctx, composed); err != nil {
+ 			return Step{}, err
+ 		}

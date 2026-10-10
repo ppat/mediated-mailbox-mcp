@@ -1,0 +1,16 @@
+control: Backfill's due decision asks for the run-start step once for each job's life and for the passes while either has work
+removes: a second pass marked to start over is not due
+packages: ./worker/internal/core/backfill/due
+tests: TestBackfillsDueDecision TestBackfillsDueDecision/the_second_pass_marked_to_start_over
+scheduled-count: no
+
+diff --git a/worker/internal/core/backfill/due/due.go b/worker/internal/core/backfill/due/due.go
+--- a/worker/internal/core/backfill/due/due.go
++++ b/worker/internal/core/backfill/due/due.go
+@@ -29,5 +29,5 @@
+ // not ended or the second is marked to start over, and the run-start step opens them too, since it
+ // may reopen them.
+ func Decide(s State, started bool) Work {
+-	return Work{Start: !started, Passes: !started || !s.FirstEnded || !s.SecondEnded || s.Restart}
++	return Work{Start: !started, Passes: !started || !s.FirstEnded || !s.SecondEnded}
+ }

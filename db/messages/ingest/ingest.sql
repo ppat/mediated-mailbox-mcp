@@ -100,8 +100,8 @@ LIMIT @batch_size;
 -- Up to the number given of the account's messages after the identifier given whose stored subject
 -- is unmasked and was masked under another scanner version or configuration revision than the one
 -- given, or under none recorded, with the subject as stored, in the order of their identifiers. A
--- subject stored unmasked is the subject the provider returned, so a backfill run's start masks it
--- again from what is stored (ADR-0120).
+-- subject stored unmasked is the subject the provider returned, so backfill's run-start step masks
+-- it again from what is stored (ADR-0120).
 SELECT
     m.message_id,
     coalesce(m.subject, '')::text AS subject

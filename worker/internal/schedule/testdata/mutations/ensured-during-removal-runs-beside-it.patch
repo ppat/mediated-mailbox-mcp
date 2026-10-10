@@ -1,0 +1,21 @@
+control: One run per job, with wakes coalesced, held in the process
+removes: a job ensured again while its removal waits starts its loop at once, beside the removed loop still ending its run
+packages: ./worker/internal/schedule
+tests: TestAJobEnsuredWhileItIsRemovedNeverRunsTwiceAtOnce TestEnsuringAndRemovingAJobRapidlyLeavesNoLoopRunning
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 6ce1069b..86b8c24f 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -224,9 +224,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
+ 		defer close(st.done)
+ 		// The key's removed loop returns first, whether or not this one is removed meanwhile, so a
+ 		// chain of removals and ensures still runs one loop of the key at a time.
+-		if previous != nil {
+-			<-previous
+-		}
++		_ = previous
+ 		s.loop(ctx, key, job, st)
+ 	}()
+ 	return nil

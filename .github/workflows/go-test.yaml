@@ -20,24 +20,21 @@ on:
     - go.sum
     - mise.lock
     - mise.toml
-    - backfill/**
     - content/**
     - core/**
     - db/**
     - executioncontext/**
     - mediate/**
-    - organize/**
     - packaging/chart/alerting-rules.yaml
     - packaging/chart/templates/prometheusrule.yaml
     - process/**
-    - propose/**
     - provider/**
     - ratelimit/**
-    - sync/**
     - testsupport/**
     - ui/*.go
     - ui/contract/**
     - ui/internal/**
+    - worker/**
   workflow_dispatch:
 
 concurrency:
@@ -68,3 +65,13 @@ jobs:
         RAPID_CHECKS: '200'
         RAPID_NOFAILFILE: 'true'
       run: mise exec -- go test ./...
+
+    # The worker's scheduler is concurrency code the project owns, so its tests run again under the race detector,
+    # the run its test of ensuring and removing one job from many goroutines is written for (ADR-0119). The race
+    # detector needs cgo, which the test build alone uses. No image is built with it.
+    - name: Run the scheduler's tests under the race detector
+      shell: bash
+      working-directory: ./current
+      env:
+        CGO_ENABLED: '1'
+      run: mise exec -- go test -race -count=1 ./worker/internal/schedule/...

@@ -107,8 +107,8 @@ ticket makes, so nothing is created ahead of its consumer. How packages and fami
   returns one layer down with its dependency tree inside every image.
 - **No shared code, with batch workloads calling the mediator for shared decisions.** The case
   for it: nothing shared at all. Rejected: it couples every batch workload to the mediator's
-  availability, defeating the point of separate workloads
-  ([ADR-0022](../operability/0022-four-workloads.md)).
+  availability, defeating the point of running the background work in a deployable apart from
+  the mediator ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
 - **Per-component copies of the shared logic.** No case was tabled for it. Not weighable, because
   the one-gate pillar already forbids any path holding its own copy of the rules.
 - **One separate top-level library per concern, founded at its second consumer by the ticket that

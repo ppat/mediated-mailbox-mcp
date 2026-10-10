@@ -1,0 +1,22 @@
+control: A job's last success is a run that succeeded or a unit of work made durable, and its series follow every way a run ends
+removes: a removed loop reports on the key whatever job holds it, so a run that makes a unit durable as it stops sets the latest success of the job ensured in its place
+packages: ./worker/internal/schedule
+tests: TestARemovedLoopReportsNothingOnTheJobEnsuredInItsPlace
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 28c25206..9f352f41 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -375,9 +375,8 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ func (s *Scheduler) owned(key Key, st *state, f func()) {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+-	if s.jobs[key] == st {
+-		f()
+-	}
++	_ = st
++	f()
+ }
+ 
+ // take takes a slot of limit for key's job, waiting for one while every slot is held, and reports

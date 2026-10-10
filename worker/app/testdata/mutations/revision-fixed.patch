@@ -1,0 +1,18 @@
+control: The revision a verdict records is the scanner section's, and an empty revision is refused
+removes: the scanner is built under a fixed revision, so a change to its section leaves the revision as it was
+packages: ./worker/app
+tests: TestAVerdictsRevisionFollowsTheScannerSection
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -261,7 +261,7 @@
+ // changes the revision every verdict and mask records, and a change to another section does not
+ // (ADR-0005, ADR-0078, ADR-0120).
+ func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
+-	s, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection])
++	s, err := scan.New(loaded.Config.Scanner, "1")
+ 	if err != nil {
+ 		return scan.Scanner{}, fmt.Errorf("scanner: %w", err)
+ 	}

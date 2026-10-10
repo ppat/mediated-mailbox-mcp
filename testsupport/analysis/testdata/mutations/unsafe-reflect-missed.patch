@@ -1,0 +1,19 @@
+control: The unsafe analyser refuses an import of unsafe, and a use of reflect's unsafe pointers, in this module's code
+removes: a use of reflect's unsafe pointers is not reported
+packages: ./testsupport/analysis
+tests: TestUnsafeImport
+scheduled-count: no
+
+diff --git a/testsupport/analysis/unsafeimport.go b/testsupport/analysis/unsafeimport.go
+index 7766819d..ca826d11 100644
+--- a/testsupport/analysis/unsafeimport.go
++++ b/testsupport/analysis/unsafeimport.go
+@@ -55,7 +55,7 @@ func runUnsafeImport(pass *analysis.Pass) (any, error) {
+ 		}
+ 		ast.Inspect(file, func(n ast.Node) bool {
+ 			if id, ok := n.(*ast.Ident); ok {
+-				if fn, ok := pass.TypesInfo.Uses[id].(*types.Func); ok && reflectUnsafe[fn.FullName()] {
++				if fn, ok := pass.TypesInfo.Uses[id].(*types.Func); ok && false && reflectUnsafe[fn.FullName()] {
+ 					pass.Reportf(id.Pos(), reflectUnsafeMessage)
+ 				}
+ 			}

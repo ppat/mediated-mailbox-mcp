@@ -1,0 +1,19 @@
+control: A job's last success is a run that succeeded or a unit of work made durable, and its series follow every way a run ends
+removes: a run that answers it was not due counts as a success
+packages: ./worker/internal/schedule
+tests: TestANotDueAnswerChangesNeitherFailuresNorSuccess TestTheJobSeriesFollowEveryWayARunEnds
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 5a62353c..750fb478 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -344,7 +344,7 @@ func (s *Scheduler) ask(ctx context.Context, key Key, job Job, at time.Time) (Ou
+ 	case panicked || errors.Is(err, ErrPanicked):
+ 		outcome = Panic
+ 	case errors.Is(err, ErrNotDue):
+-		outcome = NotDue
++		outcome = Succeeded
+ 	case err != nil:
+ 		outcome = Failed
+ 	}

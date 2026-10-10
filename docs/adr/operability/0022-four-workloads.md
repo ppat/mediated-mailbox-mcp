@@ -1,6 +1,7 @@
 # 0022. The batch work is four workloads, not one background process
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0117](./0117-one-background-worker-runs-every-job-kind.md) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 
 ## Context

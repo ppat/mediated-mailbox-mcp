@@ -1,0 +1,23 @@
+control: A tick hands its account over and records its latest authentication attempt when it ends
+removes: a tick that fails hands nothing over and records no attempt
+packages: ./worker/internal/deltasync
+tests: TestEachTickHandsItsAccountOverAndRecordsItsAttempt
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -300,8 +300,11 @@
+ 		logger.Info("the account's tick ended", "run", result.Run, "recovery", result.Recovery, "gap", result.Gap,
+ 			"added", c.Added, "modified", c.Modified, "removed", c.Removed, "decided", c.Decided, "scanned", c.Scanned, "skipped", c.Skipped)
+ 	}
++	if err != nil {
++		return err
++	}
+ 	handedOver, recorded := sess.End(ctx)
+-	return errors.Join(err, handedOver, recorded)
++	return errors.Join(handedOver, recorded)
+ }
+ 
+ // tickDeps returns what the account's tick runs with over provider. The gate decides under the

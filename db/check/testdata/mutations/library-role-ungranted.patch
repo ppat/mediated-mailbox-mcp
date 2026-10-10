@@ -1,23 +1,23 @@
-control: A shared library's statements are planned under the role of each deployable that admits it
-removes: the reorganization workload's role gets no grant on the rate limiter's tables
+control: A shared library's statements are planned under the role of each deployable and job kind that admits it
+removes: backfill's job kind's role gets no grant on the rate limiter's tables, which its import list admits
 packages: ./db/check
 tests: TestGrantsCoverAdmittedSubsections
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
-index eba1d5bc..d57cef6e 100644
+index fbdc919a..51b91d91 100644
 --- a/db/migrations/00004_grants.sql
 +++ b/db/migrations/00004_grants.sql
-@@ -521,9 +521,9 @@ UPDATE (
+@@ -529,9 +529,9 @@ UPDATE (
      classes,
      updated_at
  ) ON rate_state
 -TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-+TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
++TO mediated_mailbox_mediate, mediated_mailbox_sync, mediated_mailbox_organize;
  GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
 -TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-+TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
++TO mediated_mailbox_mediate, mediated_mailbox_sync, mediated_mailbox_organize;
  
- -- The policy loader's statement, in db/policyrules, runs under the role of each deployable that loads
- -- policy (ADR-0075), the mediator, backfill and delta sync. It reads the account, the identifier, the
+ -- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
+ -- policy (ADR-0118), the mediator, backfill and delta sync. It reads the account, the identifier, the

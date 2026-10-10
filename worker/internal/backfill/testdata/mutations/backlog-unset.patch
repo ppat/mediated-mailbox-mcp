@@ -1,0 +1,19 @@
+control: The scan backlog depth is emitted after each step of the second pass
+removes: the backlog series is never set
+packages: ./worker/internal/backfill
+tests: TestEachSecondPassPageIsAUnitOfWork
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -545,7 +545,7 @@
+ 			handOvers = append(handOvers, hoErr)
+ 		}
+ 		if pending, bErr := deps.Store.Backlog(ctx, account); bErr == nil {
+-			metrics.Backlog(account, pending)
++			_ = pending
+ 		} else {
+ 			logger.Warn("reading the scan backlog failed", "error", bErr)
+ 		}

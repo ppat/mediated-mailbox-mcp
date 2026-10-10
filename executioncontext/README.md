@@ -38,8 +38,8 @@ code, or the policy loader growing behaviour unrelated to holding a snapshot. Ei
 an entry its import list does not hold.
 
 The family connects to the database as no role of its own. Its statements run under the role of
-each deployable that imports the package running them
-([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md),
+each deployable, or inside the worker each job kind, that imports the package running them
+([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)), which `db/check` tests. When a
 process reloads is its caller's. Each loader loads when asked and swaps only on a read it can trust.
 
@@ -98,7 +98,8 @@ The listing comes from `db/accounts` and each account's credential from `db/acco
 ([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)). The re-seal of an
 OAuth client's secret writes through a compare-and-set its caller supplies, because only delta
 sync's role may write a client secret ([ADR-0016](../docs/adr/data/0016-schema.md)), and a
-statement this package ran would be planned under the role of every deployable that imports it.
+statement this package ran would be planned under the role of every deployable and job kind that
+imports it.
 Delta sync supplies the write from `db/oauthclients/secret`, which only its list admits. A unit of
 work takes the snapshot once.
 
@@ -117,13 +118,13 @@ no adoption stamp while every other hand-over carried one. `session` writes them
 of this family, because it hides a decision of the same concept, how a process holds an account's
 credential while it uses it.
 
-It is one mechanism with two parameters, so it never branches on which deployable calls it.
+It is one mechanism with two parameters, so it never branches on which caller holds it.
 
 - **How long a held source lives.** For one unit of work, or across units while the stored
   credential is the one the source was built from or the one it rotated to. The mediator holds
   across requests, so an access token the provider issued serves the requests after it. Backfill
-  holds for its run, which is the same rule over one run's life. Delta sync builds a fresh source
-  for each tick.
+  holds across the pages of its runs by the same rule. Delta sync builds a fresh source for each
+  tick.
 - **Which units run concurrently.** Only the mediator runs concurrent units for one account, so the
   holder takes a lock around what it holds, which costs the batch callers nothing.
 
@@ -158,7 +159,7 @@ sees the rate limiter.
 Its import list, `session` in `.golangci.yaml`, admits `accountload`, `core/mail`, `db/tx`,
 `db/accountstate/authentication`, the database driver's root package and its `pgtype` package, which
 the recording's statement takes, and the standard library. The recording runs under the role of each
-deployable whose list admits the package. No adapter, no rate limiter, no policy and no scanner
+deployable or job kind whose list admits the package. No adapter, no rate limiter, no policy and no scanner
 belong in it. The limiter at each account's lowered target stays in each composition root, since it
 belongs to the rate budget rather than to the account's credential.
 
@@ -186,7 +187,7 @@ the series is defined once, in this package.
 
 | Series | Kind | Emitted by | Read by |
 | --- | --- | --- | --- |
-| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each loading process, on the registry it passes in | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/alerting-rules.yaml`, whose promtool tests sit in `policyload/testdata/` |
+| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each loading process, on the registry it passes in, which in the worker also labels it with `job_kind`, the job kind whose loader it is ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/alerting-rules.yaml`, whose promtool tests sit in `policyload/testdata/` |
 
 The series is a gauge rather than a counter because a process first loads policy as it starts,
 usually before its first scrape, and a rule over a counter whose first sample is already 1 sees no

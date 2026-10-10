@@ -1,0 +1,20 @@
+control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
+removes: a page that fails ends the pass before the hand-over, so a rotation made before the failure is lost
+packages: ./worker/internal/backfill
+tests: TestAFailedPageIsStillHandedOver
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -488,6 +488,9 @@
+ 			return errors.Join(append(handOvers, err)...)
+ 		}
+ 		step, err := p.Next(ctx)
++		if err != nil {
++			return err
++		}
+ 		if hoErr := u.end(ctx); hoErr != nil {
+ 			handOvers = append(handOvers, hoErr)
+ 		}

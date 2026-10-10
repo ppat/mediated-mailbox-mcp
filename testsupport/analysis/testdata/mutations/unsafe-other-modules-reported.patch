@@ -1,0 +1,21 @@
+control: The unsafe analyser refuses an import of unsafe, and a use of reflect's unsafe pointers, in this module's code
+removes: code of other modules is reported as this module's
+packages: ./testsupport/analysis
+tests: TestUnsafeImport
+scheduled-count: no
+
+diff --git a/testsupport/analysis/unsafeimport.go b/testsupport/analysis/unsafeimport.go
+index 7766819d..ae6d69d3 100644
+--- a/testsupport/analysis/unsafeimport.go
++++ b/testsupport/analysis/unsafeimport.go
+@@ -39,9 +39,7 @@ const (
+ 
+ func runUnsafeImport(pass *analysis.Pass) (any, error) {
+ 	path := pass.Pkg.Path()
+-	if path != modulePath && !strings.HasPrefix(path, modulePath+"/") {
+-		return nil, nil
+-	}
++	_ = path
+ 	for _, file := range pass.Files {
+ 		// A file not named .go is one the go command generates, such as a test binary's main.
+ 		base := filepath.Base(pass.Fset.File(file.Pos()).Name())

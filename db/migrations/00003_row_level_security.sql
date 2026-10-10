@@ -111,7 +111,7 @@ USING (account_id = current_setting('app.account'));
 -- The operation log carries no account column, ADR-0016's second exception, so it is scoped through
 -- its plan. The subquery does not refer to the row, so it runs once per statement rather than once
 -- per row. It runs with the querying role's privileges, so a role reading or writing the log also
--- needs to read reorg_plans(plan_id, account_id) (ADR-0075), and reorg_plans' own policy applies to
+-- needs to read reorg_plans(plan_id, account_id) (ADR-0118), and reorg_plans' own policy applies to
 -- it as well.
 ALTER TABLE reorg_op_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY reorg_op_log_plan ON reorg_op_log

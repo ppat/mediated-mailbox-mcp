@@ -13,7 +13,7 @@ other unscanned mail ([ADR-0037](./0037-delisting-transition.md)). Backfill's se
 what waits while it runs, and it ends ([ADR-0017](../data/0017-two-pass-backfill.md)). Backfill runs
 again only after a change of scanner or of the gate's thresholds
 ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
-[ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)). A growing pending backlog is
+[ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)). A growing pending backlog is
 a failure in its own right, since pending denies the body
 ([ADR-0093](./0093-composite-scan-gate.md)). The question is how a message that goes back to pending
 after the second pass has ended is reached.
@@ -63,9 +63,9 @@ the start of each tick.
   keeps all scanning of what is stored. Against it, backfill runs again only after a change
   ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), so nothing
   would run the reopened pass.
-- **A separate scanning workload.** For it, scanning would have a process of its own. Against it, a
-  fifth workload beside the four [ADR-0022](../operability/0022-four-workloads.md) decides, with its
-  own role, image and schedule, for work delta sync already runs on its cadence.
+- **A separate scanning job kind.** For it, scanning would have a job kind of its own. Against it, a
+  job kind beside those [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)
+  names, with its own role and schedule, for work delta sync already runs on its cadence.
 - **Scanning every pending message in each tick, unbounded.** For it, the backlog empties at once.
   Against it, a large delisting would make one tick last as long as a backfill pass, against the
   short tick [ADR-0018](../data/0018-delta-sync-polls.md) describes.
@@ -80,14 +80,14 @@ the start of each tick.
 - Delta sync and backfill run the same scanner section and the same gate thresholds, or each
   reopens the other's work
   ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
-  [ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)).
+  [ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)).
 - Assumptions about other components. Backfill's second pass sets its completion flag when it ends
-  and clears it when a backfill run reopens it, so delta sync stops scanning from its next tick while
-  the second pass is due again. The flag is read once, at a tick's start, so a backfill run that
-  reopens the second pass during a tick can decide the same messages as that tick's remaining
-  reads. A message's decision is recorded only while it still waits for a scan, so the workload that
-  commits second has its whole commit refused and fails, leaving each message as the other recorded
-  it. Delta sync rebuilds the statistics of each sender whose messages it adds, so the gate
-  reads them warm.
+  and clears it when backfill's run-start step reopens it, so delta sync stops scanning from its
+  next tick while the second pass is due again. The flag is read once, at a tick's start, so a
+  backfill run whose run-start step reopens the second pass during a tick can decide the same
+  messages as that tick's remaining reads. A message's decision is recorded only while it still
+  waits for a scan, so the workload that commits second has its whole commit refused and fails,
+  leaving each message as the other recorded it. Delta sync rebuilds the statistics of each sender
+  whose messages it adds, so the gate reads them warm.
 - The rules above are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

@@ -67,10 +67,14 @@ paged.
 - **A stopped worker, and a job whose last success has aged past a bound, are rules of the same
   form**, over the series the worker emits per job kind and per job
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). One rule fires when
-  the worker stops, so every job stopping together is loud. One rule per job kind fires when a job's
-  time of last success grows older than that job kind's bound. For delta sync that rule is what
-  catches [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a chronically stuck
-  sync job looks healthy". Each bound is a value of the rule, set where the rule is written.
+  the worker stops, so every job stopping together is loud. One rule fires, for each job of every job
+  kind, when the job's time of last success grows older than its job kind's bound. For delta sync
+  that rule is what catches [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a
+  chronically stuck sync job looks healthy". Each job emits its bound beside its last success, set
+  by its job kind, so a job kind added later brings its bound and needs no rule of its own. The
+  rule does not count the time a job waited for a slot of its kind's limit, which each job emits
+  beside its last success, and a job's last success starts from what its job kind's runs record
+  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
 
 ## Alternatives considered
 

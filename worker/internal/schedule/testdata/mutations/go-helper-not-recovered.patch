@@ -1,0 +1,24 @@
+control: A panic in one job is its run's failure and stops nothing else
+removes: schedule.Go starts its goroutine with no recovery, so a panic in a goroutine a run started stops the worker
+packages: ./worker/internal/schedule
+tests: TestAPanicIsItsRunsFailureAndStopsNothingElse/in_a_goroutine_it_started
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 5a62353c..0f8ee014 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -87,12 +87,7 @@ func Go(f func() error) (wait func() error) {
+ 	done := make(chan error, 1)
+ 	go func() {
+ 		var err error
+-		defer func() {
+-			if r := recover(); r != nil {
+-				err = Panicked(r)
+-			}
+-			done <- err
+-		}()
++		defer func() { done <- err }()
+ 		err = f()
+ 	}()
+ 	return func() error { return <-done }

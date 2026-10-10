@@ -1,0 +1,21 @@
+control: A job's last success is a run that succeeded or a unit of work made durable, and its series follow every way a run ends
+removes: a unit of work a run makes durable records no success
+packages: ./worker/internal/schedule
+tests: TestAUnitMadeDurableIsASuccess TestTheJobSeriesFollowEveryWayARunEnds
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 5a62353c..f29f4100 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -54,9 +54,7 @@ type Ask struct {
+ // Progressed records that the run made a unit of work durable, which is the job's latest success,
+ // as the end of a run that succeeded is.
+ func (a Ask) Progressed() {
+-	if a.progressed != nil {
+-		a.progressed()
+-	}
++
+ }
+ 
+ // Run is one run of a job. It returns nil when the run succeeded, including when its due decision

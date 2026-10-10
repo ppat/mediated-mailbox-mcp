@@ -16,21 +16,18 @@ on:
     - go.sum
     - mise.lock
     - mise.toml
-    - backfill/**
     - content/**
     - core/**
     - db/**
     - executioncontext/**
     - mediate/**
-    - organize/**
     - process/**
-    - propose/**
     - provider/**
     - ratelimit/**
-    - sync/**
     - testsupport/**
     - ui/*.go
     - ui/internal/**
+    - worker/**
   workflow_dispatch:
 
 concurrency:

@@ -1,0 +1,36 @@
+control: The worker refuses a configuration it cannot run its job kinds with
+removes: each job kind's pool size, each job kind's concurrency and the reload interval are not validated
+packages: ./worker/app
+tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheStart/--sync.concurrency=0 TestATickThatCannotRunRefusesTheStart/--backfill.concurrency=0 TestATickThatCannotRunRefusesTheStart/--reload_interval=0s TestATickThatCannotRunRefusesTheStart/--database.backfill.pool_size=0 TestATickThatCannotRunRefusesTheStart/--database.sync.pool_size=0
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -152,14 +152,14 @@
+ 		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
+ 			return err
+ 		}
+-		if kind.role.PoolSize <= 0 {
++		if false && kind.role.PoolSize <= 0 {
+ 			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
+ 		}
+ 	}
+ 	switch {
+-	case c.ReloadInterval <= 0:
++	case false && c.ReloadInterval <= 0:
+ 		return fmt.Errorf("reload_interval %s is not positive", c.ReloadInterval)
+-	case c.Backfill.Concurrency <= 0:
++	case false && c.Backfill.Concurrency <= 0:
+ 		return fmt.Errorf("backfill.concurrency %d is not positive", c.Backfill.Concurrency)
+ 	case c.Sync.SyncInterval <= 0:
+ 		return fmt.Errorf("sync.sync_interval %s is not positive", c.Sync.SyncInterval)
+@@ -167,7 +167,7 @@
+ 		return fmt.Errorf("sync.first_window %s is not positive", c.Sync.FirstWindow)
+ 	case c.Sync.DecisionsPerTick <= 0:
+ 		return fmt.Errorf("sync.decisions_per_tick %d is not positive", c.Sync.DecisionsPerTick)
+-	case c.Sync.Concurrency <= 0:
++	case false && c.Sync.Concurrency <= 0:
+ 		return fmt.Errorf("sync.concurrency %d is not positive", c.Sync.Concurrency)
+ 	}
+ 	return credentialcore.Validate(c.Credential)

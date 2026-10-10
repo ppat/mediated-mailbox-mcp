@@ -1,0 +1,19 @@
+control: The worker serves the health probe and backfill's reload-failure series on its metrics endpoint
+removes: backfill's policy loader registers its reload-failure series on a registry of its own, off the metrics endpoint
+packages: ./worker/app ./worker/internal/backfill
+tests: TestTheProbesServeTheRunsSeries TestEverySeriesTheKindEmitsCarriesItsJobKind
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -226,7 +226,7 @@
+ 		return nil
+ 	}
+ 	if b.policies == nil {
+-		built, err := policyload.New(b.pool, accounts, b.registry)
++		built, err := policyload.New(b.pool, accounts, prometheus.NewRegistry())
+ 		if err != nil {
+ 			return err
+ 		}

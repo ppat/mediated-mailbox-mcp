@@ -1,6 +1,6 @@
 control: A page made durable twice counts nothing twice
 removes: a sender's statistics add a page's count to the count stored, so a page taken twice counts twice
-packages: ./backfill/internal/pass1
+packages: ./worker/internal/backfill/pass1
 tests: TestAPassStartedOverCountsNothingTwice
 scheduled-count: no
 integration: yes

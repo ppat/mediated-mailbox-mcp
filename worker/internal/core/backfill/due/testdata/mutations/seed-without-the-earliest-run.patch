@@ -1,0 +1,17 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: a backfill job with runs and no success counts from its ensure, so a first pass in a crash loop never ages
+packages: ./worker/internal/core/backfill/due
+tests: TestBackfillsSeed
+scheduled-count: no
+
+diff --git a/worker/internal/core/backfill/due/due.go b/worker/internal/core/backfill/due/due.go
+index 753a9b50..873326de 100644
+--- a/worker/internal/core/backfill/due/due.go
++++ b/worker/internal/core/backfill/due/due.go
+@@ -48,5 +48,5 @@ func Seed(s State, latestSuccess, earliestStart mail.UnixMilli) mail.UnixMilli {
+ 	if latestSuccess != 0 {
+ 		return latestSuccess
+ 	}
+-	return earliestStart
++	return 0
+ }

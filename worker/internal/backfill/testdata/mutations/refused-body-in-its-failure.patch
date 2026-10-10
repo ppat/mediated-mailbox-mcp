@@ -1,0 +1,20 @@
+control: No body text reaches the index or the workload's logs
+removes: a refused body's failed item records the start of the body
+packages: ./worker/internal/backfill
+tests: TestNoBodyTextReachesTheIndexOrTheLogs
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index 1fcf569..04eab6b 100644
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -249,7 +249,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
+ 			now := p.deps.Now().UTC()
+ 			refused := &pass1.Item{
+ 				Kind: "message", ID: id, Page: number, Class: string(index.Validation),
+-				Summary: "the conversion refused the body: " + cerr.Error(), Attempts: 1, First: now, Last: now, Disposition: "abandoned",
++				Summary: "the conversion refused the body: " + body.HTML[:min(len(body.HTML), 80)], Attempts: 1, First: now, Last: now, Disposition: "abandoned",
+ 			}
+ 			if item != nil {
+ 				refused.Attempts, refused.First = item.Attempts, item.First

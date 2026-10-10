@@ -1,0 +1,33 @@
+control: A first pass whose enumeration ended fetches again by identifier only the stale subjects, masks each from the subject the provider returns, and enumerates nothing when reopened
+removes: the read of the subjects to fetch again ignores a scanner version that alone differs, so a subject masked under the earlier version is never fetched again and the pass ends with it stale
+packages: ./worker/internal/backfill
+tests: TestAChangeOfScannerVersionAloneMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
+index d48602f4..26c0620d 100644
+--- a/db/messages/ingest/ingest.sql
++++ b/db/messages/ingest/ingest.sql
+@@ -90,7 +90,7 @@ FROM messages AS m
+ WHERE
+     m.account_id = @account_id
+     AND (
+-        m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
++        false AND m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
+         OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
+     )
+ ORDER BY m.message_id
+diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
+index bb55d1ad..5132c68e 100644
+--- a/db/messages/ingest/ingest.sql.go
++++ b/db/messages/ingest/ingest.sql.go
+@@ -273,7 +273,7 @@ FROM messages AS m
+ WHERE
+     m.account_id = $1
+     AND (
+-        m.subject_scanner_version IS DISTINCT FROM $2::int
++        false AND m.subject_scanner_version IS DISTINCT FROM $2::int
+         OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+     )
+ ORDER BY m.message_id

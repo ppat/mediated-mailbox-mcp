@@ -1,0 +1,20 @@
+control: A panic in a job's run is recovered and recorded as the run's failure with its stack
+removes: a panic raised in the comparisons the second pass makes at its start is not recovered, so it ends the process and the recorded run stays running with no error
+packages: ./worker/internal/backfill/pass2
+tests: TestAPanicAtTheSecondPassesStartIsRecordedAsItsRunsFailure
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index 20872564..be27db53 100644
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -181,7 +181,7 @@ func Open(ctx context.Context, deps Deps, account string) (pass *Pass, err error
+ 	// A panic in the comparisons the run starts with is recovered here, once the run is recorded, so it
+ 	// is recorded as the run's failure with its stack, as a panic in a page is (ADR-0119).
+ 	defer func() {
+-		if r := recover(); r != nil {
++		if r := any(nil); r != nil {
+ 			pass, err = nil, p.failed(ctx, schedule.Panicked(r))
+ 		}
+ 	}()

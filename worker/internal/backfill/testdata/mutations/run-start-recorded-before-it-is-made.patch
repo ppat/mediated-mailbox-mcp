@@ -1,0 +1,23 @@
+control: A newly connected account is backfilled within one reload with no manual step, and the run-start step is made once for each job's life
+removes: the run-start step is recorded as made before it is made, so a step that fails is not made again until the process restarts
+packages: ./worker/internal/backfill
+tests: TestAFailedRunStartStepIsMadeAgainAtTheNextAsk
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 48a5fe92..c5ef5862 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -297,10 +297,10 @@ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, a
+ 	ask schedule.Ask, logger *slog.Logger, start bool, started *bool,
+ ) error {
+ 	if start {
++		*started = true
+ 		if err := reopen(ctx, second, account, logger); err != nil {
+ 			return err
+ 		}
+-		*started = true
+ 	}
+ 	if err := passAccount(ctx, first, account, m1, u, ask, logger); err != nil {
+ 		return err

@@ -48,8 +48,8 @@ intended for eventual open sourcing.
   [ADR-0049](./0049-image-per-component-lockstep.md)'s own-code-only posture holds at the source as
   well as in the image.
 - **One convention names everything the project publishes.** A deployable and its image share
-  one name, `mediated-mailbox-` plus the deployable's role in one plain word, and the role word for
-  the reorganization workload is organize. Libraries take the same shape named by their single
+  one name, `mediated-mailbox-` plus the deployable's role in one plain word, such as the worker's,
+  `worker`, which runs every background job kind. Libraries take the same shape named by their single
   concern, and the shared pure library publishes as `mediated-mailbox-core`. In-repo directories carry the
   bare role, because the repository scopes them and the prefix binds published artifacts. The
   chart stands up the whole system rather than any one deployable, so it carries the project's

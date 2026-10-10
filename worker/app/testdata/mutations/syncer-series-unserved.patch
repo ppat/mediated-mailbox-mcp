@@ -1,0 +1,19 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: the worker hands delta sync a registry the metrics endpoint does not serve, so none of its series reach the scrape
+packages: ./worker/app
+tests: TestTheProbesServeEverySeriesBetweenTicks
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -330,7 +330,7 @@
+ 		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
+ 	}, deltasync.Config{
+ 		Pool: pools.Sync, Keys: keys, Scanner: scanner, Client: client,
+-		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
++		Registry: labelled(prometheus.NewRegistry(), deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
+ 		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,
+ 		SyncInterval: c.Sync.SyncInterval, FirstWindow: c.Sync.FirstWindow, DecisionsPerTick: c.Sync.DecisionsPerTick,
+ 	}

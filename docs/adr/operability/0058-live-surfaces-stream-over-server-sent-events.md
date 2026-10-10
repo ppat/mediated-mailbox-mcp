@@ -39,5 +39,5 @@ UI's own choice and touches no other component.
   requirement listed in [docs/UI.md](../../UI.md#16-framework-requirements).
 - Assumptions about other components: the workloads record their progress in the runs, events,
   and failures tables of [ADR-0016](../data/0016-schema.md), which the UI's role can read
-  ([ADR-0022](./0022-four-workloads.md)).
+  ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)).
 - No control. Freshness of a live view is a behavior, and no violation injection is defined for it.

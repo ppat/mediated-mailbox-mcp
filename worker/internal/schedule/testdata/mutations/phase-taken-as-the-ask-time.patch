@@ -1,0 +1,19 @@
+control: A timed job is asked on its interval's phase, and a job with no interval only when woken
+removes: an ask carries its own time as its time on the ticker's phase, so an ask at the end of a backoff or at a wake names a time off the phase
+packages: ./worker/internal/schedule
+tests: TestEachAskCarriesItsTimeOnThePhase
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 28c25206..fb9acae7 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -344,7 +344,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 		}
+ 		var onPhase time.Time
+ 		if job.Interval > 0 {
+-			onPhase = anchor.Add(at.Sub(anchor) / job.Interval * job.Interval)
++			onPhase = at
+ 		}
+ 		outcome, err := s.ask(ctx, key, st, job, at, onPhase)
+ 		if job.Limit != nil {

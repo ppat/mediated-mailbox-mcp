@@ -1,0 +1,20 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: the latest recorded success reads only runs that succeeded and no page made durable, so a pass resumed across a restart counts from before its pages
+packages: ./worker/internal/backfill
+tests: TestEachJobStartsFromItsRecordedLatestSuccess
+scheduled-count: no
+integration: yes
+
+diff --git a/db/jobruns/record/record.sql.go b/db/jobruns/record/record.sql.go
+index 2dfc7e59..cce11ad9 100644
+--- a/db/jobruns/record/record.sql.go
++++ b/db/jobruns/record/record.sql.go
+@@ -194,7 +194,7 @@ SELECT
+             SELECT max(e.at)
+             FROM job_run_events AS e
+             INNER JOIN job_runs AS r ON e.account_id = r.account_id AND e.run_id = r.run_id
+-            WHERE r.account_id = $1 AND r.workload = $2 AND e.kind = 'progress'
++            WHERE r.account_id = $1 AND r.workload = $2 AND e.kind = 'none'
+         ),
+         (
+             SELECT max(r.finished_at)

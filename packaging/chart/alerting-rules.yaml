@@ -4,8 +4,9 @@
 # its own way. Routing a firing rule to a person is the platform's.
 #
 # ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules,
-# executioncontext/policyload/testdata/alerting-rules-test.yaml those of the policy reload rule, and
-# sync/internal/tick/testdata/alerting-rules-test.yaml those of the cursor gap rule, each run from a Go test in its
+# executioncontext/policyload/testdata/alerting-rules-test.yaml those of the policy reload rule,
+# worker/internal/deltasync/tick/testdata/alerting-rules-test.yaml those of the cursor gap rule, and
+# worker/internal/schedule/testdata/alerting-rules-test.yaml those of the worker's rules, each run from a Go test in its
 # package.
 # ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule and the rule for
 # its missing threshold read none of them. They read two series every spending process emits through its provider
@@ -120,3 +121,44 @@ groups:
         Delta sync found a cursor gap for account {{ $labels.account }} within the last hour and re-enumerated the
         window since its last cursor. A gap found again and again means delta sync is stuck or stopped for longer than
         the provider keeps its change history.
+- name: mediated-mailbox-worker
+  rules:
+  # The worker stopped (ADR-0077, ADR-0119). The worker emits a job's latest success for every job it runs from the
+  # job's start, each job kind's reload included, so the series exists whenever a worker is scraped. Once no worker has
+  # been scraped for five minutes the rule fires, the same delay the mediator's absence rule uses.
+  - alert: MediatedMailboxWorkerAbsent
+    expr: absent(mediated_mailbox_job_last_success_timestamp_seconds)
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: >-
+        No worker has been scraped for five minutes, so no background job is known to run, and the index stops
+        tracking the mailbox.
+
+  # A job whose latest success has aged past its bound, per job kind and account (ADR-0077, ADR-0119). A success is a
+  # run that succeeded or a unit of work a run made durable, such as a page of backfill or a tick of delta sync, so a
+  # pass running for hours stays silent while its pages land. The time a job spends waiting for a slot of its kind's
+  # limit does not age it, the waits that ended since its latest success and the one in progress, so a job queued
+  # behind its kind's long runs stays silent, while a run that holds a slot without a success still ages. Only the
+  # process that saw a wait knows it, so a wait from before a restart counts as lateness after it. A job's
+  # latest success starts from the one its kind's recorded state holds, so a worker restarting without the job
+  # succeeding leaves it ageing. Each job exports its own bound beside its latest success, for delta sync three sync
+  # intervals, so this one rule serves every job kind. It catches G4's chronically stuck sync job, a failing job, a run
+  # stuck on a call that never returns, a worker in a crash loop and a scheduler that stopped asking, since each leaves
+  # its jobs' latest success ageing. Every series comes from one process, so the arithmetic matches each job's series
+  # on every label they share.
+  - alert: MediatedMailboxJobLate
+    expr: |
+      time() - mediated_mailbox_job_last_success_timestamp_seconds -
+      mediated_mailbox_job_slot_waited_seconds -
+      (time() - mediated_mailbox_job_slot_waiting_since_timestamp_seconds) *
+      (mediated_mailbox_job_slot_waiting_since_timestamp_seconds > bool 0)
+      > mediated_mailbox_job_late_after_seconds
+    labels:
+      severity: warning
+    annotations:
+      summary: >-
+        The {{ $labels.job_kind }} job{{ with $labels.account }} for account {{ . }}{{ else }} that reloads the
+        accounts and the policy{{ end }} has had no success for longer than its bound, not counting the time it waited
+        for a slot, so it is failing, stuck or no longer asked to run.

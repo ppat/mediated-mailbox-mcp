@@ -3,7 +3,7 @@
 package main // want vetcheck "links to github.com/ppat/mediated-mailbox-mcp/core/sensitivity.ErrBodyWithheld in a pure core"
 
 import (
-	_ "unsafe"
+	_ "unsafe" // want vetcheck "imports unsafe"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 )

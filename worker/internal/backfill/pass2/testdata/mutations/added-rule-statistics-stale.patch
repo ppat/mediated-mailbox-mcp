@@ -1,0 +1,21 @@
+control: An added rule reaches the stored sender classes by its effect
+removes: the comparison restricts the messages but leaves the sender's statistics as they were
+packages: ./worker/internal/backfill/pass2
+tests: TestAnAddedRuleRestrictsTheStoredClasses
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 4295caa9..fc9c7275 100644
+--- a/worker/internal/backfill/pass2/postgres.go
++++ b/worker/internal/backfill/pass2/postgres.go
+@@ -185,9 +185,6 @@ func (s *Postgres) List(ctx context.Context, account string, listed func([]strin
+ 			if err != nil {
+ 				return fmt.Errorf("restricting the stored class of %q: %w", l.Domain, err)
+ 			}
+-			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: l.Domain}); err != nil {
+-				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", l.Domain, err)
+-			}
+ 			marked += int(n)
+ 		}
+ 		return nil

@@ -72,6 +72,29 @@ func (c Composed) RestrictsAll() bool { return !c.loaded }
 // Rules returns a copy of the account's rules, the base rules followed by its overlay rules.
 func (c Composed) Rules() []Rule { return slices.Clone(c.rules) }
 
+// Equal reports whether c and o are the same policy by value, which holds when both restrict every
+// sender, or when both are loaded and hold the same rules, each with the same identifier and the same
+// domain suffixes, in any order. A unit of work that holds a policy compares it with the active one
+// this way, because every reload builds a new snapshot whether or not a rule changed (ADR-0119).
+func (c Composed) Equal(o Composed) bool {
+	if c.loaded != o.loaded {
+		return false
+	}
+	return slices.Equal(canonical(c.rules), canonical(o.rules))
+}
+
+// canonical returns each rule as its identifier followed by its sorted suffixes, sorted, so two
+// lists of rules holding the same rules in any order give the same result.
+func canonical(rules []Rule) []string {
+	out := make([]string, 0, len(rules))
+	for _, r := range rules {
+		suffixes := slices.Sorted(slices.Values(r.suffixes))
+		out = append(out, strconv.Quote(r.id)+" "+strings.Join(suffixes, " "))
+	}
+	slices.Sort(out)
+	return out
+}
+
 // For returns the policy account's decisions are made against. Every operation names its account
 // (ADR-0026), so an empty account name gets the policy that restricts every sender.
 func (s Snapshot) For(account string) Composed {

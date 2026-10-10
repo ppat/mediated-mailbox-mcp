@@ -14,8 +14,8 @@ type Querier interface {
 	Backlog(ctx context.Context, accountID string) (int64, error)
 	// The account's messages the scan gate skipped, in the order of their identifiers, each with what the
 	// gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
-	// them, so a backfill run decides each skip again under the gate it holds (ADR-0098). A message with no
-	// sender statistics reads a volume and hits of zero.
+	// them, so backfill's run-start step decides each skip again under the gate it holds (ADR-0121). A
+	// message with no sender statistics reads a volume and hits of zero.
 	GateSkips(ctx context.Context, accountID string) ([]GateSkipsRow, error)
 	// The delisting transition for one domain the policy in force no longer restricts. Its messages stored
 	// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
@@ -43,7 +43,7 @@ type Querier interface {
 	// content rules alone. A message no longer waiting is left as it is and counts no row.
 	RecordVerdict(ctx context.Context, arg RecordVerdictParams) (int64, error)
 	// Returns to pending scan each of the given messages the scan gate skipped, the skips the gate no
-	// longer decides as the same skip (ADR-0098). A message no longer skipped by the gate is left as it is
+	// longer decides as the same skip (ADR-0121). A message no longer skipped by the gate is left as it is
 	// and counts no row.
 	RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsParams) (int64, error)
 	// Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
@@ -51,7 +51,7 @@ type Querier interface {
 	RequeueSignalledSkips(ctx context.Context, accountID string) (int64, error)
 	// Returns each of the account's scanned messages whose verdict was made under another scanner version
 	// or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
-	// Gate denies its body as pending its content scan (ADR-0120). A backfill run makes it at its start,
+	// Gate denies its body as pending its content scan (ADR-0120). Backfill's run-start step makes it,
 	// before the first pass. It returns each message's sender domain, whose prior hits the caller counts
 	// again.
 	RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerdictsParams) ([]string, error)

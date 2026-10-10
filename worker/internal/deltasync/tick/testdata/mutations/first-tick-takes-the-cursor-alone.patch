@@ -1,0 +1,20 @@
+control: An account with no cursor is reconciled over the first window inside its tick
+removes: an account with no cursor takes the current cursor and lists only what is dated after it
+packages: ./worker/internal/deltasync/tick
+tests: TestATickAppliesTheChangesSinceItsCursor
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index 3237b9b..1bf0823 100644
+--- a/worker/internal/deltasync/tick/tick.go
++++ b/worker/internal/deltasync/tick/tick.go
+@@ -171,7 +171,7 @@ func (t *ticker) first(ctx context.Context) (mail.Cursor, error) {
+ 	now := mail.UnixMilli(t.deps.Now().UnixMilli())
+ 	start, end := core.Window(nil, now, mail.UnixMilli(t.deps.FirstWindow.Milliseconds()))
+ 	t.at.Counters.Window = window(start, end)
+-	reconciled, _, err := t.reconcile(ctx, t.run, start, func(n int) Recorder {
++	reconciled, _, err := t.reconcile(ctx, t.run, now, func(n int) Recorder {
+ 		next := t.at
+ 		w := *t.at.Counters.Window
+ 		w.Reconciled = n

@@ -1,0 +1,18 @@
+control: Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
+removes: the TLS mode defaults to prefer, which does not verify the server
+packages: ./worker/app
+tests: TestTheDefaults
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -114,7 +114,7 @@
+ 		ProbeListen:    ":8080",
+ 		ReloadInterval: time.Minute,
+ 		Database: Database{
+-			Port: 5432, SSLMode: "verify-full",
++			Port: 5432, SSLMode: "prefer",
+ 			Backfill: Role{User: "mediated_mailbox_backfill", PoolSize: 4},
+ 			Sync:     Role{User: "mediated_mailbox_sync", PoolSize: 4},
+ 		},

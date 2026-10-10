@@ -1,0 +1,20 @@
+control: A stale subject is masked again under the scanner in force, each mask recorded under it
+removes: a masking event is recorded with no scanner version or revision
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass1
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index f2756aa..290b33e 100644
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -250,8 +250,6 @@ func recordMasks(ctx context.Context, q *maskingrecord.Queries, account string,
+ 	for _, mask := range m.Masks {
+ 		err := q.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{
+ 			AccountID: account, MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
+-			ScannerVersion:  pgtype.Int4{Int32: version(m.Stamp.Version), Valid: true},
+-			ScannerRevision: pgtype.Text{String: m.Stamp.Revision, Valid: true},
+ 		})
+ 		if err != nil {
+ 			return fmt.Errorf("recording a masking event of message %s: %w", m.ID, err)

@@ -1,0 +1,19 @@
+control: A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
+removes: a tick that finds a gap does not report it, so the gap series never moves
+packages: ./worker/internal/deltasync/tick
+tests: TestAGapIsRecoveredOverTheWindowSinceTheLastCursor TestAFailedRecoveryIsTriedAgainByTheNextTick
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index b5e0a1d..6542505 100644
+--- a/worker/internal/deltasync/tick/tick.go
++++ b/worker/internal/deltasync/tick/tick.go
+@@ -128,7 +128,6 @@ func (t *ticker) changes(ctx context.Context, state State) (mail.Cursor, error)
+ 	for {
+ 		cs, err := t.deps.Provider.ChangesSince(ctx, cursor)
+ 		if errors.Is(err, mail.ErrCursorGap) {
+-			t.result.Gap = true
+ 			return "", t.recover(ctx, state)
+ 		}
+ 		if err != nil {

@@ -1,0 +1,19 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: backfill names no provider as authenticating through a client, so the loader connects a Gmail account that names none
+packages: ./worker/internal/backfill
+tests: TestAnAccountWithoutAClientIsSkipped
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -159,7 +159,7 @@
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	loader := accountload.New(c.Pool, c.Keys, c.Logger, []string{gmailProvider})
++	loader := accountload.New(c.Pool, c.Keys, c.Logger, nil)
+ 	return &Backfill{
+ 		pool: c.Pool, scanner: c.Scanner, registry: c.Registry, logger: c.Logger, jobs: c.Jobs,
+ 		limit: schedule.NewLimit(c.Concurrency), interval: c.ReloadInterval, loader: loader,

@@ -1,6 +1,6 @@
 # 0121. Backfill's run-start step, which the worker makes once per process and account, decides each stored gate skip again, so a change of the scan gate's thresholds reaches the skips made under the earlier ones
 
-**Status:** Proposed (supersedes [ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)) ·
+**Status:** Accepted (supersedes [ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)) ·
 **Pillar:** [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) ·
 **Serves:** [C3](../../../USE_CASES.md#c3--content-based-secrets-caught)
 
@@ -29,7 +29,7 @@ scheduler that makes the run-start step once per process and account, at the wor
 for a newly listed account, and retries a failed run after its backoff without it
 ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
 
-The thresholds have no identity a stored decision could record. Backfill's composition root passes
+The thresholds have no identity a stored decision could record. Backfill's job kind passes
 ADR-0093's defaults, no configuration section carries them, and so a change of thresholds is a
 release. The delisting transition and a change of scanner met the same shape of problem, stored
 state that a change elsewhere made wrong, by comparing what the index stores with what the job kind

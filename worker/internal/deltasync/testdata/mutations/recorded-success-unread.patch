@@ -1,0 +1,20 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: delta sync ensures its jobs without the latest success their ticks record, so each starts at its ensure
+packages: ./worker/internal/deltasync
+tests: TestEachTickJobStartsFromItsRecordedLatestSuccess
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 9e59f786..d0c45bff 100644
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -226,7 +226,7 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
+ 			continue
+ 		}
+ 		job := d.job(account)
+-		job.LastSuccess = d.seed(ctx, account)
++		_ = d.seed
+ 		if err := d.config.Jobs.Ensure(schedule.Key{Kind: Kind, ID: account}, job); err != nil {
+ 			return err
+ 		}

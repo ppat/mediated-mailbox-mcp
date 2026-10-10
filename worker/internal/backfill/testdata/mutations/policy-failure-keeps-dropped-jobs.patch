@@ -1,0 +1,18 @@
+control: No account is added while the policy reload fails, and a dropped account's job is still removed
+removes: a reload whose policy load fails returns before it removes the jobs of the accounts no longer listed
+packages: ./worker/internal/backfill
+tests: TestNoAccountIsAddedWhileThePolicyReloadFails
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -192,6 +192,7 @@
+ 	policyErr := b.loadPolicy(ctx, ids(snapshot))
+ 	if policyErr != nil {
+ 		b.logger.Error("the policy was not reloaded, so no account newly listed is backfilled until it is", "error", policyErr)
++		return policyErr
+ 	}
+ 	var kept []string
+ 	for _, account := range b.served {

@@ -1,0 +1,19 @@
+control: Every series a job kind emits carries its job kind
+removes: backfill's Gmail adapter counts its requests on series registered on a registry the kind was not given
+packages: ./worker/internal/backfill
+tests: TestEverySeriesTheKindEmitsCarriesItsJobKind
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -412,7 +412,7 @@
+ // adapter over it, both calling through client, counting its requests on series registry serves, which
+ // every adapter it builds shares. It also returns the builder of the adapter over an account's tokens.
+ func gmailConnector(registry prometheus.Registerer, client *http.Client) (session.Connector, func(string, gmail.Tokens) (mail.Port[context.Context], error), error) {
+-	metrics, err := gmail.NewMetrics(registry)
++	metrics, err := gmail.NewMetrics(prometheus.NewRegistry())
+ 	if err != nil {
+ 		return session.Connector{}, nil, err
+ 	}

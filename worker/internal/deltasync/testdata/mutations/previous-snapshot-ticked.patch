@@ -1,0 +1,44 @@
+control: Each reload loads the account snapshot, and a tick takes the active one
+removes: an account's job ticks the snapshot of the reload that added it, so a credential stored since is never ticked
+packages: ./worker/internal/deltasync
+tests: TestATickTakesTheActiveAccountSnapshot
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 9e59f786..52158313 100644
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -259,6 +259,7 @@ func (d *DeltaSync) loadPolicy(ctx context.Context, accounts []string) error {
+ func (d *DeltaSync) job(account string) schedule.Job {
+ 	logger := d.config.Logger.With("account", account)
+ 	ticked, last := false, mail.UnixMilli(0)
++	held := d.loader.Snapshot()
+ 	return schedule.Job{
+ 		Interval: d.config.SyncInterval, Limit: d.limit, Backoff: backoff, Late: lateIntervals * d.config.SyncInterval, Logger: logger,
+ 		Run: func(ctx context.Context, ask schedule.Ask) error {
+@@ -269,7 +270,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
+ 			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
+ 			// of a backoff leaves the ticker's next tick due.
+ 			ticked, last = true, mail.UnixMilli(ask.Phase.UnixMilli())
+-			return d.tick(ctx, account, logger)
++			return d.tickHeld(ctx, held, account, logger)
+ 		},
+ 	}
+ }
+@@ -318,6 +319,15 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
+ 	return d.tickAccount(ctx, snapshot, account, limiter, policy, logger)
+ }
+ 
++// tickHeld runs one tick over snapshot.
++func (d *DeltaSync) tickHeld(ctx context.Context, snapshot *accountload.Snapshot, account string, logger *slog.Logger) error {
++	limiter, err := newLimiter(ctx, d.config.Pool, []string{account}, d.leases)
++	if err != nil {
++		return err
++	}
++	return d.tickAccount(ctx, snapshot, account, limiter, d.policies.Snapshot(), logger)
++}
++
+ // tickAccount runs one tick over the account in a session opened with the credentials snapshot holds
+ // for it, over a token source built for the tick, then ends the session's unit of work, which hands
+ // its token over with the adoption stamp of the credential it holds and records its latest

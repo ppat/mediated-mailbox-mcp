@@ -1,0 +1,21 @@
+control: A run resuming an enumeration not yet ended that was made under another scanner starts it over from the first page
+removes: a run starting an enumeration over under another scanner keeps the page count of the enumeration it abandoned
+packages: ./worker/internal/core/backfill/pass1 ./worker/internal/backfill/pass1
+tests: TestUnder TestAnEnumerationStartedOverUnderAnotherScannerDropsItsPageCount
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/core/backfill/pass1/pass1.go b/worker/internal/core/backfill/pass1/pass1.go
+index b786cf1e..cd1a6004 100644
+--- a/worker/internal/core/backfill/pass1/pass1.go
++++ b/worker/internal/core/backfill/pass1/pass1.go
+@@ -146,7 +146,9 @@ func Under(start Start[Progress], latest Latest[Progress], s index.Stamp, stale
+ 	at := start.From.Checkpoint
+ 	over := !at.Ended() && at.Stamp != s && at.Page > 0
+ 	if over {
++		of := start.From.Checkpoint.Of
+ 		start.From = Restart(start.From)
++		start.From.Checkpoint.Of = of
+ 	}
+ 	start.From.Checkpoint.Stamp = s
+ 	start.From.Checkpoint.Stale = 0

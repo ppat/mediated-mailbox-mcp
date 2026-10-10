@@ -1,0 +1,23 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a throttled or failed page is asked for again whatever the attempts, so the run never fails on it
+packages: ./worker/internal/core/backfill/pass1 ./worker/internal/backfill/pass1
+tests: TestOnFailure TestOnFailure/a_throttle_on_the_last_attempt TestOnFailure/a_provider_failure_on_the_last_attempt TestAPageFailingEveryAttemptFailsTheRun
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/core/backfill/pass1/pass1.go b/worker/internal/core/backfill/pass1/pass1.go
+index a87b958..5f4648e 100644
+--- a/worker/internal/core/backfill/pass1/pass1.go
++++ b/worker/internal/core/backfill/pass1/pass1.go
+@@ -236,9 +236,9 @@ func OnFailure(f Attempt) Next {
+ 		return FailRun
+ 	case f.Class == index.Validation && f.ResumedToken && !f.Restarted:
+ 		return StartOver
+-	case f.Class == index.Throttled && f.Attempts < MaxAttempts:
++	case f.Class == index.Throttled:
+ 		return Backoff
+-	case f.Class == index.ProviderError && f.Attempts < MaxAttempts:
++	case f.Class == index.ProviderError:
+ 		return Retry
+ 	default:
+ 		return Abandon

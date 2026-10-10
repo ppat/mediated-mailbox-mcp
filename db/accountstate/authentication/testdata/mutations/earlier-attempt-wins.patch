@@ -1,6 +1,6 @@
 control: The recorded authentication outcome is the latest attempt, and recording an older one changes nothing
 removes: the statement replaces the stored attempt only with an older one, so a later attempt never replaces an earlier one
-packages: ./backfill/app
+packages: ./worker/internal/backfill
 tests: TestOnlyALaterAttemptIsRecorded
 scheduled-count: no
 integration: yes

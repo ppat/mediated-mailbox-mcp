@@ -1,0 +1,21 @@
+control: Every subject is masked and every sender classified before the message reaches the index
+removes: every message reaches the index with its sender classified normal
+packages: ./core/index ./worker/internal/backfill/pass1 ./worker/internal/deltasync/tick
+tests: TestDecide TestDecideFailsClosed TestAKilledRunResumesFromItsCheckpoint TestAPassIndexesTheWholeMailbox TestATickAppliesTheChangesSinceItsCursor
+scheduled-count: no
+integration: yes
+
+diff --git a/core/index/index.go b/core/index/index.go
+index f1f7b2f..db4ed2e 100644
+--- a/core/index/index.go
++++ b/core/index/index.go
+@@ -118,9 +118,6 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+ 			ClassRule:      verdict.Rule(),
+ 			Unclassified:   verdict.Reason() == classify.Unclassifiable,
+ 		}
+-		if verdict.Class().Restricted() {
+-			msg.Class = Restricted
+-		}
+ 		for _, e := range masked.Events() {
+ 			msg.Masks = append(msg.Masks, Mask{Rule: e.Rule(), Tier: e.Tier()})
+ 		}

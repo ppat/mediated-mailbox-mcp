@@ -1,0 +1,19 @@
+control: A stopped worker and a job whose last success has aged are loud
+removes: the rule on a job's last success compares it with a fixed fifteen minutes, not the bound the job exports
+packages: ./worker/internal/schedule
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+index f084d381..ee251742 100644
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -153,7 +153,7 @@ groups:
+       mediated_mailbox_job_slot_waited_seconds -
+       (time() - mediated_mailbox_job_slot_waiting_since_timestamp_seconds) *
+       (mediated_mailbox_job_slot_waiting_since_timestamp_seconds > bool 0)
+-      > mediated_mailbox_job_late_after_seconds
++      > 900
+     labels:
+       severity: warning
+     annotations:

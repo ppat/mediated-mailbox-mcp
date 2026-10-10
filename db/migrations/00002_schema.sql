@@ -319,7 +319,7 @@ CREATE TABLE reorg_op_log (
     PRIMARY KEY (plan_id, seq)
 );
 
--- Every background job kind's runs (ADR-0022). The run indexes are 00006's.
+-- Every background job kind's runs (ADR-0117). The run indexes are 00006's.
 CREATE TABLE job_runs (
     account_id text NOT NULL REFERENCES accounts,
     -- A short opaque string.

@@ -69,7 +69,7 @@ to start. Any record cited in a section and not listed here is read when that se
    the browser framework, the browser's tests, and the contract pipeline are what they are, and
    what was rejected.
 5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0093, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
-   ADR-0022, ADR-0025, ADR-0018, for the mechanisms the screens display, and ADR-0080, ADR-0081,
+   ADR-0117, ADR-0025, ADR-0018, for the mechanisms the screens display, and ADR-0080, ADR-0081,
    ADR-0106, ADR-0107, ADR-0091, ADR-0097, ADR-0024, ADR-0037, ADR-0041, ADR-0102, ADR-0110, ADR-0112,
    ADR-0113 and ADR-0114 for the setups, the account settings and the policy writes. Read each when building the screen that shows it.
 6. [TESTING.md](../TESTING.md), ADR-0043, ADR-0044, and the UI's rows in
@@ -453,7 +453,7 @@ with placeholders in braces.
 twice the width of the right. Left, "Awaiting your decision" then "Worth a look". Right, "System".
 
 **Running now**, a live strip fed by the jobs summary endpoint and the event stream. One cell per
-workload of ADR-0022, in order, each with the workload name, its workload state (the vocabulary in
+job kind of ADR-0117, in order, each with the workload name, its workload state (the vocabulary in
 [section 11](#11-rendering-and-formatting-rules)), and the fields below. The strip's title links
 to Jobs.
 
@@ -2510,7 +2510,7 @@ and finds no pasted address to be the redirect's.
 | `token_key_file` | the path of a mounted file holding the key behind the request token and the consent attempt's seal (ADR-0111), at least 32 bytes, replacing the per-process key when more than one replica runs | no |
 | `max_plan_age` | the maximum plan age, from which `expires_at` is computed. The value's home is the roadmap's open decision, and this key mirrors it | no, defaults to that value |
 | `sample_size` | the plan sample's size | no, defaults to 24 |
-| `sync_interval`, `heuristics_interval` | the intervals displayed on the jobs cards (ADR-0018's sync interval of 5 minutes, and the heuristics job's daily run of ADR-0022) | no, defaults to the records' values |
+| `sync_interval`, `heuristics_interval` | the intervals displayed on the jobs cards (ADR-0018's sync interval of 5 minutes, and the heuristics run's daily trigger of ADR-0117, or the one its unit decides) | no, defaults to the records' values |
 | `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `attention_expiry_days` | the "worth a look" thresholds of [section 8.1](#81-home), one key per rule, 0 disabling the rule and a negative value refused. The backlog's is a percent of the corpus, the masking rule's a count of events, the body-serve rule's a multiple of the median, and the sync-gap and expiry rules' a number of days | no, defaulting to the starting values of section 8.1, 5, 20, 2, 7 and 2 |
 | `default_theme` | `system`, `dark`, or `light` | no, defaults to `system` |
 | `stream_interval`, `stream_reconnect_max`, `stream_poll_interval` | the poll cadence behind the event stream, the reconnection backoff ceiling, and the polling fallback interval (ADR-0058) | no, defaults to the record's values |

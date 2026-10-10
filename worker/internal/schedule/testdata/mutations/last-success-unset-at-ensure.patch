@@ -1,0 +1,18 @@
+control: A job's last success is a run that succeeded or a unit of work made durable, and its series follow every way a run ends
+removes: a job's last success is not emitted until its first success, so a job that never succeeds never ages
+packages: ./worker/internal/schedule
+tests: TestTheJobSeriesFollowEveryWayARunEnds
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/metrics.go b/worker/internal/schedule/metrics.go
+index afbc5273..0f3d1334 100644
+--- a/worker/internal/schedule/metrics.go
++++ b/worker/internal/schedule/metrics.go
+@@ -93,7 +93,6 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
+ func (m *Metrics) Ensured(key Key, late time.Duration, at time.Time) {
+ 	m.running.WithLabelValues(key.Kind).Add(0)
+ 	m.backoff.WithLabelValues(key.Kind, key.ID).Set(0)
+-	m.lastSuccess.WithLabelValues(key.Kind, key.ID).Set(seconds(at))
+ 	m.late.WithLabelValues(key.Kind, key.ID).Set(late.Seconds())
+ 	m.waited.WithLabelValues(key.Kind, key.ID).Set(0)
+ 	m.waiting.WithLabelValues(key.Kind, key.ID).Set(0)

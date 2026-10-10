@@ -1,0 +1,30 @@
+control: A page made durable twice counts nothing twice
+removes: a page counts every message with an unclassified sender, the ones the index already held included
+packages: ./worker/internal/backfill/pass1
+tests: TestAPassStartedOverCountsNothingTwice
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index f2756aa..34beb62 100644
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -142,15 +142,15 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+ 		added, remasked, unclassified := 0, 0, 0
+ 		messages, events := messageingest.New(t), maskingrecord.New(t)
+ 		for _, m := range p.Messages {
++			if m.Unclassified {
++				unclassified++
++			}
+ 			ok, err := insert(ctx, messages, account, m)
+ 			if err != nil {
+ 				return fmt.Errorf("adding message %s: %w", m.ID, err)
+ 			}
+ 			if ok {
+ 				added++
+-				if m.Unclassified {
+-					unclassified++
+-				}
+ 			} else {
+ 				if ok, err = remask(ctx, messages, account, m); err != nil {
+ 					return fmt.Errorf("masking the subject of message %s again: %w", m.ID, err)

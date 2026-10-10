@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 env:
-  IMAGES: backfill mediate migrate organize propose sync ui
+  IMAGES: mediate migrate ui worker
 
 jobs:
   resolve:

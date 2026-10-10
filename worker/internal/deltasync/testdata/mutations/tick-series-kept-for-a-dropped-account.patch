@@ -1,0 +1,19 @@
+control: An account's series go once the work that sets them ends
+removes: delta sync's tick series of an account stay once its job is dropped
+packages: ./worker/internal/deltasync
+tests: TestADroppedAccountsTickSeriesGoWithItsJob
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 207aeaa0..5b701de7 100644
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -213,7 +213,6 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
+ 		}
+ 		d.config.Logger.Info("an account is no longer listed, so its delta sync stops", "account", account)
+ 		d.config.Jobs.Remove(schedule.Key{Kind: Kind, ID: account})
+-		d.ticks.Forget(account)
+ 	}
+ 	d.served = kept
+ 	if policyErr != nil {

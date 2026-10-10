@@ -1,0 +1,19 @@
+control: Each reload loads the account snapshot, and a failed read keeps the previous one
+removes: the policy is loaded only for the accounts the kind serves rather than every listed one
+packages: ./worker/internal/backfill
+tests: TestARunTakesItsAccountsFromTheDatabase
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -189,7 +189,7 @@
+ 	}
+ 	snapshot := b.loader.Snapshot()
+ 	listed := b.sessions.Accounts(snapshot)
+-	policyErr := b.loadPolicy(ctx, ids(snapshot))
++	policyErr := b.loadPolicy(ctx, listed)
+ 	if policyErr != nil {
+ 		b.logger.Error("the policy was not reloaded, so no account newly listed is backfilled until it is", "error", policyErr)
+ 	}

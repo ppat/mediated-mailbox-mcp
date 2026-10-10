@@ -1,0 +1,18 @@
+control: The messages whose sender could not be classified are counted per account
+removes: a page's unclassified senders never reach the account's series
+packages: ./worker/internal/backfill
+tests: TestEachPageIsAUnitOfWork
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -491,7 +491,6 @@
+ 		if hoErr := u.end(ctx); hoErr != nil {
+ 			handOvers = append(handOvers, hoErr)
+ 		}
+-		metrics.Count(account, step)
+ 		if err != nil {
+ 			logger.Error("the first pass failed", "run", p.Run(), "error", err)
+ 			return errors.Join(append(handOvers, err)...)

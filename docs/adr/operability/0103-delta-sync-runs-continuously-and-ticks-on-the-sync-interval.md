@@ -7,9 +7,10 @@
 ## Context
 
 Delta sync runs on its sync interval, for seconds at a time
-([ADR-0018](../data/0018-delta-sync-polls.md), [ADR-0022](./0022-four-workloads.md)). Two of the
-series it emits are read across scrapes. The runaway rule sums the cost of provider requests counted
-in each spending process, and reads the hard cap each process emits beside its count
+([ADR-0018](../data/0018-delta-sync-polls.md),
+[ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)). Two of the series it emits are read
+across scrapes. The runaway rule sums the cost of provider requests counted in each spending
+process, and reads the hard cap each process emits beside its count
 ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)). A counter's increase needs two samples
 inside the rule's window, so a process that exits between two scrapes leaves its requests uncounted.
 Key replacement waits until delta sync reports a scan series for every listed account and every
@@ -34,26 +35,28 @@ platform runs ([ADR-0051](../engineering/0051-environment-contract.md)).
 - **A tick that starts records as failed the account's latest tick and latest gap recovery still
   recorded as running.** Ticks do not overlap, so a run still running when the next tick starts
   was stopped before it recorded its end, as backfill records a run it resumes after one stopped
-  ([ADR-0017](../data/0017-two-pass-backfill.md), [ADR-0022](./0022-four-workloads.md)).
+  ([ADR-0017](../data/0017-two-pass-backfill.md),
+  [ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)).
 - **It serves the health probe and the metrics endpoint for its whole life**, so every series it
   emits stays in the scrape between ticks. The request cost and the hard cap of
   [ADR-0077](./0077-conditions-raised-as-alerting-rules.md) are counted on one registry for the
   process, and a counter keeps its value from one tick to the next.
 - **Each tick takes the latest account snapshot**, the one delta sync's own loader holds, reloaded
-  on its schedule, re-seals what it opens with a key that is not the current one and sets the
-  key-scan series from what it found
-  ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md),
-  [ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). It also takes the latest policy
+  on its schedule ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Each of
+  those reloads re-seals what it opens with a key that is not the current one and sets the key-scan
+  series from what it found, whether or not it lists an account, so an OAuth client's secret is
+  re-sealed in an installation with no account
+  ([ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). A tick also takes the latest policy
   snapshot delta sync's own policy loader holds for the accounts the snapshot lists, and builds the
   rate limiter under the target each account's state row sets.
-- **The key-scan series are two gauges.** `mediated_mailbox_sync_credential_on_old_key` carries one
+- **The key-scan series are two gauges.** `mediated_mailbox_credential_on_old_key` carries one
   series per account `accounts` lists, labelled by the account, and
-  `mediated_mailbox_sync_client_secret_on_old_key` one series per row of `oauth_clients`, labelled by
+  `mediated_mailbox_client_secret_on_old_key` one series per row of `oauth_clients`, labelled by
   the client's name, since a provider may have several clients
   ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   Each reads 1 while its value is sealed to a key other than the current one or cannot be opened,
   and 0 once it is sealed to the current key or when there is no value to seal. A series
-  whose account or client a later tick no longer lists is removed.
+  whose account or client a later reload no longer lists is removed.
 
 The deciding argument. A process that stays up keeps its counters and gauges in every scrape, so the
 runaway rule and the key-retirement gate read delta sync the way they read the mediator, with no

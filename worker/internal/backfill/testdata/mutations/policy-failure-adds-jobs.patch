@@ -1,0 +1,21 @@
+control: No account is added while the policy reload fails, and a dropped account's job is still removed
+removes: a reload whose policy load fails adds the jobs of the accounts newly listed and reports no error
+packages: ./worker/internal/backfill
+tests: TestNoAccountIsAddedWhileThePolicyReloadFails
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 4ce81b71..9a6b3e63 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -206,9 +206,6 @@ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
+ 		b.backlog.Forget(account)
+ 	}
+ 	b.served = kept
+-	if policyErr != nil {
+-		return policyErr
+-	}
+ 	for _, account := range listed {
+ 		if slices.Contains(b.served, account) {
+ 			continue

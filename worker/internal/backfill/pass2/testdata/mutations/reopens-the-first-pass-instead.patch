@@ -1,0 +1,20 @@
+control: A reopened first pass always leads to a run of the second pass
+removes: the run-start step records the first pass as not ended in place of the second
+packages: ./worker/internal/backfill
+tests: TestAReopenedFirstPassLeadsToASecondPass
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index e076d2bb..f4e6527a 100644
+--- a/worker/internal/backfill/pass2/postgres.go
++++ b/worker/internal/backfill/pass2/postgres.go
+@@ -240,7 +240,7 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
+ 			return nil
+ 		}
+-		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
++		if err := completion.New(t).ReopenBackfillFirst(ctx, account); err != nil {
+ 			return fmt.Errorf("recording the pass as due again: %w", err)
+ 		}
+ 		return nil

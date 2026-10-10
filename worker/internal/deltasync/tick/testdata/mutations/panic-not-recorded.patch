@@ -1,0 +1,19 @@
+control: A panic in a job's run is recovered and recorded as the run's failure with its stack
+removes: a panic raised in a tick is recovered and returned, and the tick is never recorded as failed
+packages: ./worker/internal/deltasync
+tests: TestAPanicInATickIsRecordedAsTheTicksFailure
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+--- a/worker/internal/deltasync/tick/tick.go
++++ b/worker/internal/deltasync/tick/tick.go
+@@ -90,7 +90,7 @@
+ 	}
+ 	defer func() {
+ 		if r := recover(); r != nil {
+-			result, err = t.result, t.failed(ctx, schedule.Panicked(r))
++			result, err = t.result, schedule.Panicked(r)
+ 		}
+ 	}()
+ 	cursor, err := t.changes(ctx, state)

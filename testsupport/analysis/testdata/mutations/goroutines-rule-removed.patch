@@ -1,0 +1,19 @@
+control: The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+removes: nothing is reported
+packages: ./testsupport/analysis
+tests: TestGoroutines
+scheduled-count: no
+
+diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
+index 42f880fa..c7fb8152 100644
+--- a/testsupport/analysis/goroutines.go
++++ b/testsupport/analysis/goroutines.go
+@@ -59,7 +59,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
+ 	if path != workerPath && !strings.HasPrefix(path, workerPath+"/") || path == schedulerPath || strings.HasPrefix(path, schedulerPath+"/") {
+ 		return nil, nil
+ 	}
+-	for _, file := range pass.Files {
++	for _, file := range pass.Files[:0] {
+ 		// A file not named .go is one the go command generates, such as a test binary's main.
+ 		base := filepath.Base(pass.Fset.File(file.Pos()).Name())
+ 		if !strings.HasSuffix(base, ".go") || strings.HasSuffix(base, "_test.go") {

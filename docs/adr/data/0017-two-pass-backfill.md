@@ -45,7 +45,7 @@ Two rules set what pass 2 scans of a gated-in body, and what it records when it 
 - **A body the converter refuses stays pending.** It is never scanned, its message stays pending
   scan, which denies its body, and the run records it as a failed item of kind `message` with error
   class `validation` and disposition `abandoned`
-  ([ADR-0022](../operability/0022-four-workloads.md)). The pass moves on to the next message.
+  ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). The pass moves on to the next message.
 
 The split buys these properties.
 
@@ -85,12 +85,12 @@ The split buys these properties.
 ## Consequences
 
 - Both passes run again after a change of scanner, the first to fetch again and mask again the
-  stored subjects that were masked, once the run's start has masked the others again from the
+  stored subjects that were masked, once the run-start step has masked the others again from the
   store, and the second to scan again what an earlier scanner decided
   ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
-  The second pass also runs again when a backfill run's start returns to pending a gate skip the
-  gate no longer decides as the same skip
-  ([ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)).
+  The second pass also runs again when backfill's run-start step returns to pending a gate skip
+  the gate no longer decides as the same skip
+  ([ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)).
 - Backfill is the first workload long enough to trip real provider limits, so it depends on the
   rate controller.
 - Pass-1-then-pass-2 is also the corpus's first real test of the canonical mapping against messy

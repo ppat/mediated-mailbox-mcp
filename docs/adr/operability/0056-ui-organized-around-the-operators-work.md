@@ -27,8 +27,8 @@ Every view is a lens over an account-scoped dataset, viewed on one zoom ladder.
 - **Every analytical view is the zoom ladder over its dataset**, with
   [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s views as the default
   groupings. Nothing analytical is a bespoke page.
-- **Batch work is visible and inspectable.** A live view of every workload of
-  [ADR-0022](../operability/0022-four-workloads.md), and a failed run drilled as a dataset whose
+- **Batch work is visible and inspectable.** A live view of every job kind of
+  [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md), and a failed run drilled as a dataset whose
   rows are its failures.
 - **Every view is per account.** The account is chosen explicitly, is always visible, rides in
   the URL, and nothing aggregates across accounts.
@@ -77,7 +77,8 @@ serves the use case best.
   when a plan is saved ([ADR-0016](../data/0016-schema.md), [ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)).
 - The jobs and failed-run screens read only recorded state, the bound
   [ADR-0034](./0034-system-status-operation.md) sets for the client surface. Each workload
-  records its runs, timeline events, and per-item failures ([ADR-0022](./0022-four-workloads.md)).
+  records its runs, timeline events, and per-item failures
+  ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)).
 - The attention rules behind "worth a look" are the UI's own design, defined in
   [docs/UI.md section 8.1](../../UI.md#81-home). They are derived at read time from thresholds in
   the UI's configuration and carry no state and no verb.

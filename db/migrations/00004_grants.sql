@@ -1,8 +1,8 @@
 -- +goose Up
--- The runtime roles' grants (ADR-0075), one section per runtime role in the order db/bootstrap creates
+-- The runtime roles' grants (ADR-0118), one section per runtime role in the order db/bootstrap creates
 -- the roles, then one section per shared library whose statements run under the role of each
--- deployable that imports it, naming every role it covers. Each role gets only what its own
--- statements need, under ADR-0075's three lines. Nothing automated refuses a grant beyond what a
+-- deployable or job kind that imports it, naming every role it covers. Each role gets only what its own
+-- statements need, under ADR-0118's three lines. Nothing automated refuses a grant beyond what a
 -- role's statements need, so a migration that grants is reviewed against the statements it serves.
 --
 -- No runtime role holds UPDATE, DELETE or TRUNCATE on audit_log or policy_changes (ADR-0016, ADR-0102).
@@ -10,7 +10,7 @@
 --
 -- The migration role owns every table, so no runtime role can change the schema (ADR-0048).
 
--- The mediator (ADR-0075).
+-- The mediator (ADR-0118).
 --
 -- Its read operations and its system status read the index and the recorded state through the
 -- subsections its list admits, db/messages, db/maskingevents, db/senders, db/jobruns and
@@ -44,7 +44,7 @@ GRANT SELECT (id, account_id, message_id, field, rule_id, tier, masked_at) ON ma
 TO mediated_mailbox_mediate;
 -- The sender listing reads every column of the sender statistics but the stored sender class, which a
 -- record forbids the mediator to act on, and the prior scan hits, which no read serves (ADR-0002,
--- ADR-0075). The rebuild of the statistics and the counts of prior scan hits sit in
+-- ADR-0118). The rebuild of the statistics and the counts of prior scan hits sit in
 -- db/senders/statistics, which the mediator's list does not admit.
 GRANT SELECT (
     account_id,
@@ -72,7 +72,7 @@ GRANT SELECT (
 UPDATE (last_auth_at, last_auth_outcome) ON account_state TO mediated_mailbox_mediate;
 -- The runs, their timelines and their failures' dispositions, which the system status and the UI's
 -- reads in db/jobruns, the tables' own subsection, read. Reads beyond the mediator's own need are
--- accepted by ADR-0075's three lines, and none of these columns is one a record forbids it.
+-- accepted by ADR-0118's three lines, and none of these columns is one a record forbids it.
 GRANT SELECT (
     account_id,
     run_id,
@@ -96,7 +96,7 @@ GRANT SELECT (account_id, plan_id, description, status) ON reorg_plans TO mediat
 GRANT INSERT (account_id, actor, action, message_id, sensitivity, rule_ids) ON audit_log TO mediated_mailbox_mediate;
 GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 
--- Backfill (ADR-0075, ADR-0017).
+-- Backfill (ADR-0118, ADR-0017).
 --
 -- Its statements sit in db/messages/ingest, db/messages/scan, db/maskingevents/record,
 -- db/senders/statistics, db/scangatedecisions/record, db/jobruns/record, db/accountstate/completion
@@ -111,7 +111,7 @@ GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 -- and records each message's scan verdict or skip state. The delisting transition reads the domains
 -- of the messages stored as restricted or skipped as restricted, and marks those messages of a domain
 -- the policy now classifies normal back to a normal sender class and pending scan, clearing the rule
--- with the class (ADR-0037). A backfill run, before its first pass, returns each scanned message whose
+-- with the class (ADR-0037). Backfill's run-start step, before the first pass, returns each scanned message whose
 -- verdict carries another pair to pending with its verdict cleared.
 GRANT SELECT (
     account_id,
@@ -216,15 +216,17 @@ UPDATE (
 GRANT SELECT (account_id, message_id, decision, reason),
 INSERT (account_id, message_id, decision, reason),
 UPDATE (decision, reason, decided_at) ON scan_gate_decisions TO mediated_mailbox_backfill;
--- Every run is recorded with its checkpoint, counters, timeline and failed items (ADR-0022). A run
--- reads the latest run of its pass to resume from it.
-GRANT SELECT (account_id, run_id, workload, pass, state, started_at, checkpoint, counters),
+-- Every run is recorded with its checkpoint, counters, timeline and failed items (ADR-0117). A run
+-- reads the latest run of its pass to resume from it. Each account's job, at every ensure, reads its
+-- latest success from its runs' ends, starts and progress events (ADR-0119).
+GRANT SELECT (account_id, run_id, workload, pass, state, started_at, finished_at, checkpoint, counters),
 INSERT (
     account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
 ),
 UPDATE (state, finished_at, heartbeat_at, checkpoint, counters, last_error) ON job_runs
 TO mediated_mailbox_backfill;
-GRANT INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_backfill;
+GRANT SELECT (account_id, run_id, kind, at),
+INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_backfill;
 GRANT USAGE ON SEQUENCE job_run_events_seq_seq TO mediated_mailbox_backfill;
 GRANT INSERT (
     account_id,
@@ -263,7 +265,7 @@ UPDATE (
     last_auth_outcome
 ) ON account_state TO mediated_mailbox_backfill;
 
--- Delta sync (ADR-0075, ADR-0018).
+-- Delta sync (ADR-0118, ADR-0018).
 --
 -- Its statements sit in the subsections its list admits. db/messages/ingest, db/maskingevents/record,
 -- db/senders/statistics, db/jobruns/record, db/messages/scan, db/scangatedecisions/record and
@@ -383,14 +385,17 @@ GRANT SELECT (account_id, message_id, decision, reason),
 INSERT (account_id, message_id, decision, reason),
 UPDATE (decision, reason, decided_at) ON scan_gate_decisions TO mediated_mailbox_sync;
 -- Every tick and every gap recovery is recorded with its checkpoint, counters, timeline and failed
--- items (ADR-0022). A tick reads the latest tick's checkpoint to continue its scanning from there.
-GRANT SELECT (account_id, run_id, workload, pass, state, started_at, checkpoint, counters),
+-- items (ADR-0117). A tick reads the latest tick's checkpoint to continue its scanning from there.
+-- Each account's job, at every ensure, reads its latest success from its ticks' ends, starts and
+-- progress events (ADR-0119).
+GRANT SELECT (account_id, run_id, workload, pass, state, started_at, finished_at, checkpoint, counters),
 INSERT (
     account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
 ),
 UPDATE (state, finished_at, heartbeat_at, checkpoint, counters, last_error) ON job_runs
 TO mediated_mailbox_sync;
-GRANT INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_sync;
+GRANT SELECT (account_id, run_id, kind, at),
+INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_sync;
 GRANT USAGE ON SEQUENCE job_run_events_seq_seq TO mediated_mailbox_sync;
 GRANT INSERT (
     account_id,
@@ -425,10 +430,10 @@ TO mediated_mailbox_sync;
 -- of oauth_clients beside the UI's setup (ADR-0089, ADR-0092, ADR-0016).
 GRANT UPDATE (client_secret) ON oauth_clients TO mediated_mailbox_sync;
 
--- The reorganization workload (ADR-0075). Its own grants arrive with its statements. It spends from the
+-- The reorganization workload (ADR-0118). Its own grants arrive with its statements. It spends from the
 -- budget and holds an account snapshot, through the shared libraries' sections below.
 
--- The heuristics workload (ADR-0075). Its grants arrive with its statements, so it holds none.
+-- The heuristics workload (ADR-0118). Its grants arrive with its statements, so it holds none.
 
 -- The UI (ADR-0084, ADR-0021).
 --
@@ -498,10 +503,12 @@ GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox
 GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;
 GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui;
 
--- The rate limiter's statements, in db/ratestate, run under the role of each deployable that spends
--- from the budget (ADR-0075), the mediator, backfill, delta sync and the reorganization workload. They
--- insert the account's rate state when it has none, read it, and update every column but the account.
--- They read, insert and delete grants, and move a grant stamped ahead of the clock back to it.
+-- The rate limiter's statements, in db/ratestate, run under the role of each deployable or job kind
+-- that spends from the budget (ADR-0118), the mediator, backfill and delta sync. The grants also name
+-- mediated_mailbox_organize, the role of reorg apply and rollback (ADR-0118), a job kind that spends
+-- from the budget. They insert the account's rate state when it has none, read it, and update every
+-- column but the account. They read, insert and delete grants, and move a grant stamped ahead of the
+-- clock back to it.
 GRANT SELECT, INSERT (account_id, current_rate, target_rate, hard_cap),
 UPDATE (
     current_rate,
@@ -525,8 +532,8 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, m
 GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
 TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 
--- The policy loader's statement, in db/policyrules, runs under the role of each deployable that loads
--- policy (ADR-0075), the mediator, backfill and delta sync. It reads the account, the identifier, the
+-- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
+-- policy (ADR-0118), the mediator, backfill and delta sync. It reads the account, the identifier, the
 -- class and the domain suffixes of the base rules and the account's own, so the roles get SELECT on
 -- exactly those columns. Who created a rule and when stay out of their reach. Row-level security still
 -- shows each only the base rules and its transaction's account's rules.
@@ -534,11 +541,12 @@ GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
 TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
 
 -- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run
--- under the role of each deployable that calls a provider, whose list admits accountload (ADR-0075,
--- ADR-0090), the mediator, backfill, delta sync and the reorganization workload. Each lists the
--- accounts with the client each names, reads an account's sealed credential, writes a rotated
--- credential back by compare-and-set on the bytes it last knew (ADR-0082, ADR-0089), and reads every
--- OAuth client.
+-- under the role of each deployable or job kind that calls a provider, whose list admits accountload
+-- (ADR-0118, ADR-0090), the mediator, backfill and delta sync. The grants also name
+-- mediated_mailbox_organize, the role of reorg apply and rollback (ADR-0118), a job kind that calls a
+-- provider. Each lists the accounts with the client each names, reads an account's sealed credential,
+-- writes a rotated credential back by compare-and-set on the bytes it last knew (ADR-0082, ADR-0089),
+-- and reads every OAuth client.
 GRANT SELECT (account_id, provider, oauth_client) ON accounts
 TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state

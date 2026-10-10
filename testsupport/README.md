@@ -38,8 +38,11 @@ an image, because only test files and the tooling programs import it. Its packag
 - `analysis`, the `go vet` analysers, for ADR-0069's placement rules, ADR-0071's rules against
   package-level state in a pure core, against a route the UI registers other than through its
   recording mux and against a statement the UI runs other than through the data-access library,
-  ADR-0078's rule against reading the environment outside a deployable's `main.go` and
-  ADR-0047's rule that every generated data-access function runs inside the transaction helper.
+  ADR-0078's rule against reading the environment outside a deployable's `main.go`, ADR-0047's
+  rule that every generated data-access function runs inside the transaction helper, and
+  ADR-0119's rule that the worker's job code starts a goroutine only through its scheduler's
+  helper, and ADR-0117's rule that no code of this project imports `unsafe` or takes an unsafe
+  pointer from `reflect`.
 - `livecontract`, the guard a contract run against a real provider calls first, which skips the
   run unless `cmd/livecontract` started it, and the invocation that command runs
   ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)).

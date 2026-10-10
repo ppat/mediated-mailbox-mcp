@@ -1,0 +1,19 @@
+control: An account's tick runs only once its sync interval has passed since the last
+removes: a tick asked exactly one interval after the last is not due
+packages: ./worker/internal/core/deltasync/due
+tests: TestDeltaSyncsDueDecision TestDeltaSyncsDueDecision/asked_one_interval_after_the_last_tick
+scheduled-count: no
+
+diff --git a/worker/internal/core/deltasync/due/due.go b/worker/internal/core/deltasync/due/due.go
+index d64e459d..1a51bfd9 100644
+--- a/worker/internal/core/deltasync/due/due.go
++++ b/worker/internal/core/deltasync/due/due.go
+@@ -13,7 +13,7 @@ import "github.com/ppat/mediated-mailbox-mcp/core/mail"
+ // whatever delayed each one's start. A tick asked off the phase, at a backoff's end, is recorded at
+ // the time on the phase before it, so the ticker's next tick is due.
+ func Decide(ticked bool, last, at mail.UnixMilli, intervalMillis int64) bool {
+-	return !ticked || int64(at-last) >= intervalMillis
++	return !ticked || int64(at-last) > intervalMillis
+ }
+ 
+ // Seed returns when the account's delta sync job's latest success is counted from at the job's

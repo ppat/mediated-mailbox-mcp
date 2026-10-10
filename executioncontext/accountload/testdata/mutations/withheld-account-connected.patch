@@ -1,6 +1,6 @@
 control: An account of a provider that authenticates through an OAuth client is connected only through its own client
 removes: an account left without its client still reads as connected, with its credential
-packages: ./executioncontext/accountload ./backfill/app ./mediate/app ./sync/app
+packages: ./executioncontext/accountload ./worker/internal/backfill ./mediate/app ./worker/internal/deltasync
 tests: TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected TestAnAccountWithoutAClientIsSkipped TestAnAccountNamingNoClientIsNotConnected TestATickTakesItsAccountsFromTheDatabase
 scheduled-count: no
 integration: yes

@@ -1,0 +1,223 @@
+---
+# promtool's unit tests of the worker's rules (ADR-0077, ADR-0119), run by TestAlertingRules. Series are sampled
+# every minute. promtool evaluates time() as the seconds since its run began, so a latest success sampled as the
+# minute it was taken in seconds is a job succeeding every minute, and one held at a value is a job whose latest
+# success stopped there.
+rule_files:
+- ../../../../packaging/chart/alerting-rules.yaml
+
+evaluation_interval: 1m
+
+tests:
+# A worker scraped for four minutes and then not at all. The absence rule stays silent while it is scraped and for
+# the first five minutes after, and fires from then on.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="sync",account="a"}'
+    values: '0+60x3'
+  alert_rule_test:
+  - eval_time: 3m
+    alertname: MediatedMailboxWorkerAbsent
+    exp_alerts: []
+  - eval_time: 8m
+    alertname: MediatedMailboxWorkerAbsent
+    exp_alerts: []
+  - eval_time: 14m
+    alertname: MediatedMailboxWorkerAbsent
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+      exp_annotations:
+        summary: >-
+          No worker has been scraped for five minutes, so no background job is known to run, and the index stops
+          tracking the mailbox.
+
+# Four jobs over half an hour. Delta sync for account a succeeds every minute. Delta sync for account b stops
+# succeeding at its start, and its bound is three sync intervals, fifteen minutes. Backfill for account a stops at
+# its start too, with a bound of an hour. The reload of delta sync stops at minute five, with a bound of five
+# minutes. Only b's delta sync fires, once fifteen minutes have passed, and the reload once ten minutes have.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="sync",account="a"}'
+    values: '0+60x40'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="sync",account="a"}'
+    values: '900x40'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="sync",account="a"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="sync",account="a"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="sync",account="b"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="sync",account="b"}'
+    values: '900x40'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="sync",account="b"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="sync",account="b"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="backfill",account="a"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="backfill",account="a"}'
+    values: '3600x40'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="backfill",account="a"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="backfill",account="a"}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="sync",account=""}'
+    values: '0+60x5 300x35'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="sync",account=""}'
+    values: '300x40'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="sync",account=""}'
+    values: '0x40'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="sync",account=""}'
+    values: '0x40'
+  alert_rule_test:
+  - eval_time: 9m
+    alertname: MediatedMailboxJobLate
+    exp_alerts: []
+  - eval_time: 11m
+    alertname: MediatedMailboxJobLate
+    exp_alerts:
+    - exp_labels:
+        job_kind: sync
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The sync job that reloads the accounts and the policy has had no success for longer than its bound, not
+          counting the time it waited for a slot, so it is failing, stuck or no longer asked to run.
+  - eval_time: 16m
+    alertname: MediatedMailboxJobLate
+    exp_alerts:
+    - exp_labels:
+        job_kind: sync
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The sync job that reloads the accounts and the policy has had no success for longer than its bound, not
+          counting the time it waited for a slot, so it is failing, stuck or no longer asked to run.
+    - exp_labels:
+        job_kind: sync
+        account: b
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The sync job for account b has had no success for longer than its bound, not counting the time it waited for a
+          slot, so it is failing, stuck or no longer asked to run.
+
+# Backfill's limit of two slots held for hours by the passes of accounts a and b, each making a page durable every
+# minute, with an hour as backfill's bound. Account c's backfill has ended, and its job waits for a slot from its first
+# minute to minute 100, ninety-nine minutes, so its latest success holds where it started. Account d's pass holds a
+# slot and makes no page durable from its start. The time c waits does not age it, so it stays silent, and the passes
+# landing pages stay silent, while d, holding a slot without a success, fires once its hour has passed. Once c's wait
+# ends at minute 100 with no success after it, it ages from there and fires an hour after, at minute 159.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="backfill",account="a"}'
+    values: '0+60x170'
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="backfill",account="b"}'
+    values: '0+60x170'
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="backfill",account="c"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="backfill",account="c"}'
+    values: '0 60x99 0x70'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="backfill",account="c"}'
+    values: '0x100 5940x70'
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="backfill",account="d"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="backfill",account="a"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="backfill",account="a"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="backfill",account="b"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="backfill",account="b"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="backfill",account="d"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="backfill",account="d"}'
+    values: '0x170'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="backfill",account="a"}'
+    values: '3600x170'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="backfill",account="b"}'
+    values: '3600x170'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="backfill",account="c"}'
+    values: '3600x170'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="backfill",account="d"}'
+    values: '3600x170'
+  alert_rule_test:
+  - eval_time: 59m
+    alertname: MediatedMailboxJobLate
+    exp_alerts: []
+  - eval_time: 90m
+    alertname: MediatedMailboxJobLate
+    exp_alerts:
+    - exp_labels:
+        job_kind: backfill
+        account: d
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The backfill job for account d has had no success for longer than its bound, not counting the time it
+          waited for a slot, so it is failing, stuck or no longer asked to run.
+  - eval_time: 158m
+    alertname: MediatedMailboxJobLate
+    exp_alerts:
+    - exp_labels:
+        job_kind: backfill
+        account: d
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The backfill job for account d has had no success for longer than its bound, not counting the time it
+          waited for a slot, so it is failing, stuck or no longer asked to run.
+  - eval_time: 160m
+    alertname: MediatedMailboxJobLate
+    exp_alerts:
+    - exp_labels:
+        job_kind: backfill
+        account: c
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The backfill job for account c has had no success for longer than its bound, not counting the time it
+          waited for a slot, so it is failing, stuck or no longer asked to run.
+    - exp_labels:
+        job_kind: backfill
+        account: d
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The backfill job for account d has had no success for longer than its bound, not counting the time it
+          waited for a slot, so it is failing, stuck or no longer asked to run.
+
+# A worker in a crash loop, restarting every twenty minutes for four hours before backfill's pass for account a makes
+# a page durable. Each start ensures the job again with the latest success its kind's recorded state holds, which no
+# restart moves, and with no wait, so the series hold through every restart and the job fires once its hour has
+# passed. The worker is scraped between restarts, so the absence rule stays silent.
+- interval: 1m
+  input_series:
+  - series: 'mediated_mailbox_job_last_success_timestamp_seconds{job_kind="backfill",account="a"}'
+    values: '0x240'
+  - series: 'mediated_mailbox_job_late_after_seconds{job_kind="backfill",account="a"}'
+    values: '3600x240'
+  - series: 'mediated_mailbox_job_slot_waited_seconds{job_kind="backfill",account="a"}'
+    values: '0x240'
+  - series: 'mediated_mailbox_job_slot_waiting_since_timestamp_seconds{job_kind="backfill",account="a"}'
+    values: '0x240'
+  alert_rule_test:
+  - eval_time: 59m
+    alertname: MediatedMailboxJobLate
+    exp_alerts: []
+  - eval_time: 230m
+    alertname: MediatedMailboxJobLate
+    exp_alerts:
+    - exp_labels:
+        job_kind: backfill
+        account: a
+        severity: warning
+      exp_annotations:
+        summary: >-
+          The backfill job for account a has had no success for longer than its bound, not counting the time it
+          waited for a slot, so it is failing, stuck or no longer asked to run.
+  - eval_time: 230m
+    alertname: MediatedMailboxWorkerAbsent
+    exp_alerts: []

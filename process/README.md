@@ -67,8 +67,9 @@ in `dbconnect/core`. The shell renders every setting into the connection string,
 from the mounted password file
 ([ADR-0079](../docs/adr/operability/0079-secrets-arrive-as-mounted-files.md)) and refuses a start
 while `PGPASSWORD` or `PGSSLPASSWORD` is set. Each deployable supplies its own defaults, the user
-being its own runtime role
-([ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md)).
+being its own runtime role. The worker names the server once and gives each job kind a user of its
+own, its job kind's runtime role, with a password file and a pool of its own
+([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
 
 The case for one package over per-deployable glue is the database driver's fallbacks. pgx reads its
 `PG*` environment variables on every parse, with no option to stop it. A copy that left a setting
@@ -84,14 +85,13 @@ configuration, and the deployable opens the pool.
 
 ## The probe and metrics listener, `probes`
 
-Backfill and delta sync each serve a health probe and their metrics endpoint on a listener of their
-own while they run ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md),
-[ADR-0103](../docs/adr/operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)).
+The worker serves a health probe and its metrics endpoint on a listener of its own while it runs
+([ADR-0051](../docs/adr/engineering/0051-environment-contract.md),
+[ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
 `/healthz` answers 200 while the process runs, and `/metrics` serves the registry the composition
 root passes in, so every series a process registers reaches its scrape, between units of work as
-during them. Both composition roots held the same listener, and the probe the platform reads is the
-contract a copy could quietly break, a path renamed or a registry other than the process's own
-served. Written once, the endpoints are the same in every process that runs work. The listener is
+during them. The probe the platform reads is the contract a copy could quietly break, a path renamed
+or a registry other than the process's own served. Written once, the endpoints are the same in every process that runs work. The listener is
 stopped by the function it returns, which shuts it down within five seconds.
 
 ## The logs, `logging`

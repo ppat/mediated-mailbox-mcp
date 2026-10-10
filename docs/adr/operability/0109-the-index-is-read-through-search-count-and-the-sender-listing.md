@@ -84,7 +84,8 @@ operation one route, a structured read a `:search` route, and a read with only s
   no stored message sits in its own subsection for a message's changes, which the mediator does not
   admit either. The mediator's role holds a read of the sender domain on messages and of the
   statistics' columns, apart from the stored sender class
-  ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)) and the prior scan hits.
+  ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)) and the prior
+  scan hits.
 
 ## Alternatives considered
 
