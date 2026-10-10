@@ -130,7 +130,6 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
 	return out
 }
 
-// nonNil returns s, or an empty list for nil, so a list is never written as null.
 // types returns the types of a message's attachments, derived from their stored media by the one
 // mapping, each word once and sorted, so no stored value is served (ADR-0123).
 func types(media []mail.AttachmentMedia) []string {
@@ -141,6 +140,7 @@ func types(media []mail.AttachmentMedia) []string {
 	return out
 }
 
+// nonNil returns s, or an empty list for nil, so a list is never written as null.
 func nonNil(s []string) []string {
 	if s == nil {
 		return []string{}

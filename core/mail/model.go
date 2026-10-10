@@ -16,8 +16,9 @@
 //
 // Metadata and the body never share a type. No type a metadata operation returns has a field for the
 // full body, and the body arrives only through GetMessageBody, the one operation the gate guards
-// (ADR-0010). The metadata does carry two fields derived from the body, the snippet and the
-// attachment names, which the gate withholds with it (ADR-0001).
+// (ADR-0010). The metadata does carry three fields derived from the body. The gate withholds the
+// snippet and the attachment names with it (ADR-0001), and the attachment media, normalized from
+// the names and the parts' headers, reach a client only as the types derived from them (ADR-0123).
 package mail
 
 // UnixMilli is an instant as milliseconds since the Unix epoch, in UTC.

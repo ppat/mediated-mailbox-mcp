@@ -121,7 +121,7 @@ func compareMedia(a, b mail.AttachmentMedia) int {
 	return cmp.Or(strings.Compare(a.MediaType, b.MediaType), strings.Compare(a.Extension, b.Extension))
 }
 
-// kind names what a drawn message exercises, by how its first attachment's type is decided.
+// attachmentKind names what a drawn message exercises, by how its first attachment's type is decided.
 func attachmentKind(parts []part) string {
 	if len(parts) == 0 {
 		return "no attachments"

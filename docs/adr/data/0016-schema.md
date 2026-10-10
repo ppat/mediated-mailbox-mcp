@@ -152,7 +152,7 @@ CREATE TABLE attachment_media (           -- the inputs of a message's attachmen
   message_id  text NOT NULL,
   media_type  text NOT NULL               -- lowercased, without parameters, '' when malformed
     CHECK (media_type ~ '^([a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126})?$'),
-  extension   text NOT NULL               -- the filename's last, lowercased, '' when none or unusable
+  extension   text NOT NULL               -- the filename's last extension, lowercased, '' when none or unusable
     CHECK (extension ~ '^[a-z0-9]{0,16}$'),
   PRIMARY KEY (account_id, message_id, media_type, extension),
   FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
@@ -376,10 +376,11 @@ The shape enforces these properties.
 - **No body, snippet, or excerpt column exists anywhere.** The comment in the DDL is part of the
   decision. A future migration adding one is violating the design, not extending it. An
   attachment's filename is not stored either. Its media type and extension are, in
-  `attachment_media`, normalized to a short, inert form and never served as they are, since the
-  types a client sees are derived from them by
-  [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)'s mapping
-  when read. They describe the attachment's kind and are no excerpt of what it says.
+  `attachment_media`, normalized to a short, inert form. They are body-derived sender text, held
+  only as the input of
+  [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)'s mapping,
+  which derives the types a client sees when read, and never served or matched raw, as that record
+  states.
 - **Every table keys on `account_id`.** All access goes through a repository layer that requires
   an account, every statement against an account-keyed table carries an account predicate
   ([ADR-0047](./0047-schema-first-data-access.md)), and row-level security stands behind both as a

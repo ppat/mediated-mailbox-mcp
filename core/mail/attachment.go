@@ -51,7 +51,8 @@ type AttachmentMedia struct {
 }
 
 // The longest name RFC 6838 allows a type or a subtype, and the longest extension kept. No standard
-// bounds an extension, and 16 is twice the longest one the mapping names (ADR-0123).
+// bounds an extension, and 16 is more than twice the longest one the mapping names, numbers at seven
+// characters (ADR-0123).
 const (
 	mediaNameMax = 127
 	extensionMax = 16

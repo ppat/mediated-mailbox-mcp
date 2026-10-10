@@ -90,7 +90,9 @@ client's question, not the surface's.
   R9).
 - **The terms are those of the metadata the client surface serves**
   ([ADR-0001](../redaction/0001-redaction-matrix.md)). Nothing body-derived is a term, because the
-  index holds nothing body-derived ([ADR-0016](../data/0016-schema.md)).
+  index's only body-derived text, apart from the masked subject, is the attachment media, held as
+  the input of [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)'s
+  mapping and never served or matched raw ([ADR-0016](../data/0016-schema.md)).
 - **Each value a term takes is discoverable on the surface**
   ([ADR-0035](./0035-required-identifiers-are-discoverable.md)). Labels come from the labels listing,
   addresses from any served message, and domains from the sender listing.

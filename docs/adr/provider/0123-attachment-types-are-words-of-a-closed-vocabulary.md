@@ -45,14 +45,19 @@ extension, with no filename at rest.
   released body. The two inputs are the least of the attachment that any rule of the mapping reads
   or a later rule plausibly would. The extension is stored for every attachment, not only for one
   sent as `application/octet-stream`, so a later rule may read it.
+- **The stored pair is body-derived sender text, held only as the mapping's input.** The extension
+  is a piece of the filename, which ADR-0001 holds body-derived, and the media type is the sender's
+  part header. Both are kept at rest only in the normalized form below, read only by the mapping,
+  and never served or matched raw, so they reach the outside only as the types the mapping
+  derives.
 - **The inputs are normalized in the canonical model before they are stored**, so the sender text
   at rest is short and inert. The media type is cut at its first `;`, trimmed, lowercased, and kept
   only when it is a type and a subtype, each one to 127 characters of the restricted-name
   characters [RFC 6838](https://www.rfc-editor.org/rfc/rfc6838#section-4.2) allows, and stored
   empty otherwise. The extension is the text after the filename's last `.`, lowercased, and kept
   only when it is one to 16 ASCII letters and digits, and stored empty otherwise. No standard bounds
-  an extension's length, and 16 is twice the longest one the mapping names, `numbers`, with room to
-  spare. A check on each column of `attachment_media` holds it to the normalized form, so a writer
+  an extension's length, and 16 is more than twice the longest one the mapping names, `numbers` at
+  seven characters. A check on each column of `attachment_media` holds it to the normalized form, so a writer
   that bypassed the normalization fails at insert.
 - **The mapping is one pure function of the canonical model** in `core/mail`, which runs where the
   types are served, over the stored pairs. Media types are
@@ -139,8 +144,8 @@ extension, with no filename at rest.
 - **The full filename stored beside the media type.** The case for it is that a later mapping rule
   could read any part of the name. ADR-0001 treats filenames as body-derived, and today they reach
   a client only fetched from the provider with a released body, after the serve-time pattern check
-  reads them. Storing them would put unscanned sender text at rest for the first time. The operator
-  ruled for the extension alone.
+  reads them. Storing them would put every whole name at rest, unscanned, where this record keeps
+  only each name's normalized extension. The operator ruled for the extension alone.
 - **A row per attachment, with its name's position.** The case for it is that a count of attachments
   by type falls out of it. No reader of the index asks for one, and a row per attachment belongs to
   the design for retrieving attachments, which this record leaves open.

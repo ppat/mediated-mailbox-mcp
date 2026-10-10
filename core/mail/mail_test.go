@@ -253,10 +253,10 @@ func TestOnlyTheBodyFetchReturnsABody(t *testing.T) {
 
 // No metadata type has a field for the full body. Each type a metadata operation returns holds
 // exactly these fields, so a field holding the body cannot be added unnoticed under any type, a
-// string included. Two metadata fields are derived from the body, the snippet and the attachment
-// names. ADR-0010 marks the snippet redactable, and the gate withholds both with the body
-// (ADR-0001). The attachment media hold each attachment's normalized media type and extension, which
-// no client is served, only the types derived from them (ADR-0123).
+// string included. Three metadata fields are derived from the body. ADR-0010 marks the snippet
+// redactable, and the gate withholds it and the attachment names with the body (ADR-0001). The
+// attachment media hold each attachment's normalized media type and extension, which no client is
+// served, only the types derived from them (ADR-0123).
 func TestMetadataTypesHaveNoBodyField(t *testing.T) {
 	mustnotcompile.RequireFields(t, pkg, "MessageMetadata",
 		"AccountID string", "ID string", "ThreadID string", "From Address", "To []Address", "Cc []Address",
