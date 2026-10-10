@@ -131,16 +131,18 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## An attachment's type is a word of the closed vocabulary, set with the names from the same parts
 
-- **Date · evidence:** 2026-10-10 · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and breaks 1 and 2 again on 2026-10-10, after the table test gained media types, a parameter and file names holding marker text · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
-- **Break (1):** a generic part whose extension no table names takes its extension as its type
+- **Date · evidence:** 2026-10-10 · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Break (1):** the media are a list with one entry per attachment, in part order, rather than a sorted set
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAMessagesAttachmentsSetItsNamesAndMediaTogether`, `TestEveryAttachmentTypeIsAWordOfTheVocabulary`
+- **Break (2):** an extension no table names is served as its own type
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAnAttachmentsTypeIsAWordOfTheVocabulary`, `TestEveryAttachmentTypeIsAWordOfTheVocabulary`
-- **Break (2):** a media type no table names is its own type
+- **Break (3):** a media type no table names is served as its own type
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAnAttachmentsTypeIsAWordOfTheVocabulary`, `TestEveryAttachmentTypeIsAWordOfTheVocabulary`
-- **Break (3):** the types are a list with one entry per attachment, in part order, rather than a sorted set
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAMessagesAttachmentsSetItsNamesAndTypesTogether`, `TestEveryAttachmentTypeIsAWordOfTheVocabulary`
-- **Break (4):** a part with no media type has a name and no type
+- **Break (4):** a part with no media type has a name and no media
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestEveryAttachmentTypeIsAWordOfTheVocabulary`
-- **Break (5):** the Gmail adapter hands the model each attachment's file name without its part's media type
+- **Break (5):** the types served are a list with one entry per medium rather than a sorted set
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestAMessagesAttachmentsSetItsNamesAndMediaTogether`, `TestEveryAttachmentTypeIsAWordOfTheVocabulary`
+- **Break (6):** the Gmail adapter hands the model each attachment's file name without its part's media type
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestMetadata`
 
 ## An unknown log level is refused, and each of the four names reads as its own level
@@ -220,7 +222,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## Only the body fetch returns a body, and no metadata type has a field for it
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and breaks 3, 5, 6 and 8 again on 2026-10-10, after the test pinning the metadata types' fields gained the attachment types · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-10, after the test pinning the metadata types' fields gained the attachment media · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
 - **Break (1):** the body fetch returns the message's metadata beside its body, so body and metadata travel together
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/mail`:** `TestOnlyTheBodyFetchReturnsABody`
 - **Break (2):** the body fetch returns the body as a plain string, so no operation returns the body type

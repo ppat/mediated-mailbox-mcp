@@ -92,7 +92,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## A message whose body is denied stays in every count, group and search result of the index reads
 
-- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and breaks 2, 3, 4 and 5 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #246](https://github.com/ppat/mediated-mailbox-mcp/pull/246), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the domain normalizer and the sender class term over domains changed the code or tests the row rests on · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and breaks 2, 3, 4 and 5 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the index reads' test stored attachment media for its messages with attachments · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
 - **Break (1):** the search leaves out every message whose body the gate denies
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestTheDomainAndClassTermsReadTheStoredForm`, `TestTheIndexReadsClassifySendersUnderThePolicyInForce`
 - **Break (2):** the summary of a selection leaves out the messages pending their content scan
@@ -311,7 +311,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, with breaks 6 and 7 added for the attachment types every state serves · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, with breaks 6 to 8 added for the attachment types every state serves, derived from the stored media · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
 - **Break (1):** every served message says its body is available, whatever the gate decided
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestEveryServedMessageFollowsTheRedactionMatrix`
 - **Break (2):** the gate decides every served message under no policy, so it restricts every sender instead of the ones the policy lists
@@ -325,6 +325,8 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 - **Break (6):** a served message carries its attachment types only when its body is available, as its filenames would
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
 - **Break (7):** no served message carries its attachment types
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
+- **Break (8):** a served message carries its attachments' stored media types as its types, never passing them through the mapping
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
 
 ## Every request to the client surface passes the bearer check before either root
