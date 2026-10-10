@@ -43,8 +43,7 @@ past runs.
 
 | File at the notes root | Holds |
 | --- | --- |
-| `sessions.md` | The roster. Each ticket session's ticket, its Claude Code session ID, when it was launched and whether it holds a tiny slot. Also the user rulings, the instructions the user has given the control session for the loop |
-| `other-sessions.md` | The sessions outside the ticket slots, each by its session ID. The non-ticket sessions launched at the user's request, each with its purpose and brief, and the sessions the user runs outside the loop, each with the tickets it owns |
+| `sessions.md` | The roster. Each ticket session's ticket, its Claude Code session ID, when it was launched and whether it holds a tiny slot. Also the user rulings, the instructions the user has given the control session for the loop. Additionally, the sessions outside the ticket slots are also tracked here, each by its session ID. The non-ticket sessions launched at the user's request, each with its purpose and brief, and the sessions the user runs outside the loop, each with the tickets it owns |
 | `number-claims.md` | The decision record and migration numbers granted to live sessions and not yet on `main` |
 
 | Question | Source |
@@ -55,8 +54,6 @@ past runs.
 | What is built and what each unit still needs | [ROADMAP.md](../ROADMAP.md) on `main` |
 | Which ticket sessions are live, and their tab and pane | `herdr agent list`. A session is live while a row there carries its session ID from the roster. A row named `mmm-*` whose session ID neither the roster nor `other-sessions.md` holds is a ticket session too, and you add it to the roster from that ID and name it in the report. A session `other-sessions.md` holds is never added to the roster, whatever its name |
 | Each session's ticket, session ID, launch time and slot kind | The roster |
-| Whether launches are paused | `launch-pause.md` |
-| Which tickets the user's own sessions own | `other-sessions.md` |
 | When this loop started | The roster. When the user starts the loop with `/loop`, record that time, replacing any earlier one |
 | Whether a ticket landed | The ticket is closed and its closing pull request is merged into `main` |
 
@@ -137,11 +134,11 @@ Work through these in order. Each step is cheap when there is nothing to do.
      remind the user that a self-paced loop expires after seven days and must be started again with
      `/loop`.
 
-   The report covers this repository's tickets and pull requests, the sessions on the roster and in
-   `other-sessions.md`, the roadmap ticket and the increment issues, and the pod's memory and disk,
-   and nothing else. Work in another repository, a bot's pull request, or a release stays out of
-   it. Never ask the user to decide something this prompt or a user ruling in `sessions.md` already
-   decides. Follow it, and report the outcome.
+   The report covers this repository's tickets and pull requests, the sessions on the roster, the
+   roadmap ticket and the increment issues, and the pod's memory and disk, and nothing else. Work
+   in another repository, a bot's pull request, or a release stays out of it. Never ask the user
+   to decide something this prompt or a user ruling in `sessions.md` already decides. Follow it,
+   and report the outcome.
 9. **Schedule the next iteration.** Landing messages may not wake a sleeping loop, so the loop also
    finds landings by polling. While any session is working, wake again in 20 to 30 minutes.
    Otherwise, wake in an hour.
@@ -165,7 +162,12 @@ It finds a share already full, and gives no warning before that. When the file d
 whole, launch nothing, give the disk line in the report, and send every live session the
 [incident notice](#messages).
 
-**Pause and holds.** The user can pause all new agent session launches and/or hold individual tickets. Holds you can record by writing hold as its State in its increment issue. Since pauses affect all new session launches, it's best recorded up front in `sessions.md`. Both stay until the user lifts them. While launches are paused, launch nothing, and say so in the report. A held ticket is never launched. When the user lifts a hold, write the State that step 5 of every iteration gives the ticket by the rules below its hold rule.
+**Pause and holds.** The user can pause all new agent session launches and/or hold individual
+tickets. Holds you can record by writing hold as its State in its increment issue. Since pauses
+affect all new session launches, it's best recorded up front in `sessions.md`. Both stay until
+the user lifts them. While launches are paused, launch nothing, and say so in the report. A held
+ticket is never launched. When the user lifts a hold, write the State that step 5 of every
+iteration gives the ticket by the rules below its hold rule.
 
 **Which ticket.** Take pending tickets increment by increment along the roadmap's value path, and
 within an increment in the order its increment issue lists them. Launch one only when every
@@ -182,8 +184,15 @@ instruction to proceed past it.
 `<name>`.
 
 1. Create a tab in your own workspace, without focus, at the repository's main checkout, labelled
-   `<name>`, with `herdr tab create`. Take the tab and its root pane from the response. The root
-   pane is the shell pane `herdr agent start` needs, so no split is needed.
+   `<name>`, using the specific Claude account as instructed (otherwise defaulting as shown below).
+
+   ```bash
+   export ACCT=$(ls --sort=name ~/.claude-accounts/ | head -1)
+   herdr tab create --env CLAUDE_CONFIG_DIR=~/.claude-accounts/${ACCT} --label <NAME> --no-focus --cwd <PATH>
+   ```
+
+   Take the tab and its root pane from the response. The root pane is the shell pane that the next
+   step needs, so no split is needed.
 2. Generate a new UUID as the session's ID. Start Claude Code in that pane as a Herdr agent with the
    same name, passing the name on as the session name and the UUID as its session ID,
    `herdr agent start <name> --kind claude --pane <pane> -- --name <name> --session-id <uuid>`.
