@@ -4,6 +4,8 @@
 #   the browser's generated types and sqlc's output, in the library and in db/check's test library.
 # - Lock files, which bun writes, the root one for commitlint included.
 # - Golden files and the browser tests' recorded JSON, which tests compare byte for byte.
+# - Known-answer files, raw bytes an earlier build wrote that a test reads as they stand, where the end-of-file fixer
+#   appends a newline to a seed and the text hooks fail to decode it.
 # - Mutation patches, whose context lines git apply matches exactly, so stripping a trailing space stops a patch
 #   applying.
 # - The synthetic fixtures' test data, where mail uses CRLF line endings and may carry characters the text
@@ -18,6 +20,7 @@ exclude: |
   db/(.+/)?(db|models|querier|[^/]+\.sql)\.go|
   (ui/browser/(codegen/)?)?bun\.lock|
   (.+/)?testdata/golden/.*|
+  (.+/)?testdata/knownanswer/.*|
   (.+/)?testdata/mutations/[^/]+\.patch|
   ui/browser/test/.*\.json|
   testsupport/fixture/testdata/.*|
