@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/tx/tx.go b/db/tx/tx.go
-index 4dfea7f0..fd0f0454 100644
+index 0f753e6..cd4ac22 100644
 --- a/db/tx/tx.go
 +++ b/db/tx/tx.go
 @@ -95,7 +95,7 @@ func RunBase(ctx context.Context, db Beginner, fn func(pgx.Tx) error) error {
  		return ErrInsideTransaction
  	}
  	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
--		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', '', true), set_config('app.base', 'on', true)"); err != nil {
-+		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', '', true), set_config('app.base', 'on', false)"); err != nil {
+-		if _, err := tx.Exec(ctx, "-- name: SetBaseScope :exec\nSELECT set_config('app.account', '', true), set_config('app.base', 'on', true)"); err != nil {
++		if _, err := tx.Exec(ctx, "-- name: SetBaseScope :exec\nSELECT set_config('app.account', '', true), set_config('app.base', 'on', false)"); err != nil {
  			return fmt.Errorf("setting the base policy's scope: %w", err)
  		}
  		var account, base string

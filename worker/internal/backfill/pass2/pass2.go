@@ -31,6 +31,7 @@ import (
 	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // Store is where a pass keeps the index and its runs. Each method is one transaction.
@@ -105,6 +106,8 @@ type Deps struct {
 	Lookups classify.Lookups
 	Gate    scangate.Config
 	Scanner scan.Scanner
+	// Processing times each body's conversion and scan, and a nil one times nothing (ADR-0125).
+	Processing *series.Processing
 	// PageSize is how many waiting messages one page reads.
 	PageSize int
 	// RunID returns a new run's identifier, a short opaque string.
@@ -129,6 +132,8 @@ type Step struct {
 	// Done is set once the pass has ended for the account, or was found ended or not yet due when
 	// the run opened.
 	Done bool
+	// Scanned counts the messages the page scanned and made durable.
+	Scanned int
 }
 
 // Reopened counts what backfill's run-start step returned to pending, the verdicts made under another
@@ -291,8 +296,9 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 	if err := p.deps.Store.Commit(ctx, p.account, p.run, page, items, at); err != nil {
 		return Step{}, p.failed(ctx, fmt.Errorf("making page %d durable: %w", number, err))
 	}
+	scanned := at.Counters.Scanned - p.at.Counters.Scanned
 	p.at = at
-	return Step{}, nil
+	return Step{Scanned: scanned}, nil
 }
 
 // scan fetches the message's body, converts its HTML part and scans both parts. It returns what the
@@ -305,7 +311,9 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
 	}
 	var md string
 	if body.HTML != "" {
+		start := time.Now()
 		converted, cerr := markdown.Convert(body.HTML)
+		p.deps.Processing.Since(series.StepConvert, start)
 		if cerr != nil {
 			now := p.deps.Now().UTC()
 			refused := &pass1.Item{
@@ -319,7 +327,9 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
 		}
 		md = converted
 	}
+	start := time.Now()
 	scanned := index.Scan(p.deps.Scanner, md, body.Text)
+	p.deps.Processing.Since(series.StepScan, start)
 	return &scanned, item, nil
 }
 

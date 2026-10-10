@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/metrics.go b/worker/internal/deltasync/tick/metrics.go
-index 022ece07..1dee8360 100644
+index 46f13d6..13d74e4 100644
 --- a/worker/internal/deltasync/tick/metrics.go
 +++ b/worker/internal/deltasync/tick/metrics.go
-@@ -51,9 +51,8 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
- // (ADR-0104).
- func (m *Metrics) Count(account string, r Result) {
+@@ -60,9 +60,8 @@ func (m *Metrics) Count(account string, r Result) {
  	m.unclassified.WithLabelValues(account).Add(float64(r.Unclassified))
+ 	m.messages.Add(account, series.StageIndexed, r.Indexed)
+ 	m.messages.Add(account, series.StageScanned, r.Scanned)
 -	gaps := m.gaps.WithLabelValues(account)
  	if r.Gap {
 -		gaps.Inc()

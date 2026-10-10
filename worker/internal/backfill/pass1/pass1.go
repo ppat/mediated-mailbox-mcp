@@ -165,6 +165,8 @@ type Step struct {
 	Done bool
 	// Unclassified counts the messages of the page made durable whose sender could not be classified.
 	Unclassified int
+	// Added counts the messages the page added to the index, leaving out the ones it already held.
+	Added int
 }
 
 // Open starts a run of the pass over the account, resuming its latest run when that run stopped
@@ -236,12 +238,12 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 		return Step{}, p.failed(ctx, fmt.Errorf("making page %d durable: %w", from.Checkpoint.Page+1, err))
 	}
 	p.at, p.resumed = c.Progress, ""
-	made := Step{Unclassified: c.Unclassified}
+	made := Step{Unclassified: c.Unclassified, Added: c.Progress.Counters.Messages - from.Counters.Messages}
 	if p.at.Checkpoint.Ended() {
 		// The page that ended the enumeration ends the pass too, unless a subject is stale, which the
 		// next steps fetch again.
 		finished, err := p.finish(ctx)
-		finished.Unclassified = made.Unclassified
+		finished.Unclassified, finished.Added = made.Unclassified, made.Added
 		return finished, err
 	}
 	return made, nil

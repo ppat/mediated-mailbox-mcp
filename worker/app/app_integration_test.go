@@ -16,28 +16,32 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/probes"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync"
 )
 
 func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// pool returns a pool connecting as the runtime role, so row-level security and its grants apply as
-// in production.
-func pool(t *testing.T, role string) *pgxpool.Pool {
+// measuredPool returns a pool of four connections connecting as the runtime role, measured on registry
+// as the worker's composition root measures each job kind's pool (ADR-0125).
+func measuredPool(t *testing.T, role string, registry prometheus.Registerer) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + role
-	p, err := pgxpool.NewWithConfig(t.Context(), cfg)
+	cfg.MaxConns = 4
+	p, err := measured(t.Context(), cfg, registry)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,8 +154,15 @@ func scrape(t *testing.T, want []string) {
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	w, err := assemble(ctx, Pools{Backfill: pool(t, "mediated_mailbox_backfill"), Sync: pool(t, "mediated_mailbox_sync")},
-		ring, scanner, defaults(), unreachable(t), slog.New(slog.DiscardHandler))
+	registry := prometheus.NewRegistry()
+	if err := registerProcess(registry); err != nil {
+		t.Fatal(err)
+	}
+	pools := Pools{
+		Backfill: measuredPool(t, "mediated_mailbox_backfill", labelled(registry, backfill.Kind)),
+		Sync:     measuredPool(t, "mediated_mailbox_sync", labelled(registry, deltasync.Kind)),
+	}
+	w, err := assemble(ctx, registry, pools, ring, scanner, defaults(), unreachable(t), slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +182,8 @@ func scrape(t *testing.T, want []string) {
 	missing := func() []string {
 		var out []string
 		for _, line := range want {
-			if !strings.Contains(body, "\n"+line+"\n") {
+			// A line with no value matches a series of that name and labels whatever its value.
+			if !strings.Contains(body, "\n"+line+"\n") && (strings.Contains(line, " ") || !strings.Contains(body, "\n"+line+" ")) {
 				out = append(out, line)
 			}
 		}
@@ -223,5 +235,27 @@ func TestTheProbesServeEverySeriesBetweenTicks(t *testing.T) {
 		`mediated_mailbox_unclassified_senders_total{account="personal",job_kind="sync"} 0`,
 		`mediated_mailbox_policyload_reload_failed{job_kind="sync"} 0`,
 		`mediated_mailbox_ratelimit_granted_total{account="personal",class="sync",job_kind="sync"} 1`,
+	})
+}
+
+// The worker's metrics endpoint serves the performance measurements once per process for the Go
+// runtime and the process, and per job kind for its pool, its statements, its reload's duration apart
+// from its account jobs' and its leases' waits (ADR-0125).
+func TestTheProbesServeThePerformanceSeries(t *testing.T) {
+	scrape(t, []string{
+		"go_goroutines",
+		"go_gc_heap_live_bytes",
+		"go_cpu_classes_gc_total_cpu_seconds_total",
+		"go_cpu_classes_total_cpu_seconds_total",
+		"go_sched_latencies_seconds_count",
+		"process_start_time_seconds",
+		`mediated_mailbox_db_pool_max_connections{job_kind="backfill"} 4`,
+		`mediated_mailbox_db_pool_max_connections{job_kind="sync"} 4`,
+		`mediated_mailbox_db_pool_acquires_total{job_kind="sync"}`,
+		`mediated_mailbox_db_statement_duration_seconds_count{job_kind="sync",statement="Accounts"}`,
+		`mediated_mailbox_db_statement_duration_seconds_count{job_kind="backfill",statement="SetTransactionAccount"}`,
+		`mediated_mailbox_policyload_reload_duration_seconds_count{job_kind="sync"}`,
+		`mediated_mailbox_job_run_duration_seconds_count{job="reload",job_kind="sync"} 1`,
+		`mediated_mailbox_ratelimit_lease_wait_seconds_count{class="sync",job_kind="sync"} 1`,
 	})
 }

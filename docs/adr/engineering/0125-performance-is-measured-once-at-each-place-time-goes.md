@@ -105,8 +105,9 @@ with no label of its own, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 
 - **Evidence.** The pipeline guidance on per-stage cost, and ADR-0099's placement of the load on
   the request path.
 - **Capture.** `(*policyload.Loader).Reload`, the one load every process uses, beside its
-  reload-failure gauge. It observes every reload that read, succeeded or failed, and not one its
-  caller cancelled.
+  reload-failure gauge. It observes every reload its caller did not cancel, succeeded or failed,
+  from its call to its outcome, so a wait for the turn of a reload already running counts, as it
+  does for the body request waiting on it.
 
 ### Provider calls
 

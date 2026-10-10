@@ -23,6 +23,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // revoke revokes a grant of delta sync's role for the rest of the test, and grants it again when the
@@ -130,6 +131,9 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 	}
 	if second.Unclassified != 1 {
 		t.Errorf("the tick counted %d unclassified senders, want the one with no domain", second.Unclassified)
+	}
+	if first.Indexed != 2 || second.Indexed != 3 {
+		t.Errorf("the ticks counted %d and %d messages indexed, want the first window's two and the three that arrived", first.Indexed, second.Indexed)
 	}
 	if c, _ := cursorOf(t, conn, account); c != "h6" {
 		t.Errorf("the cursor reads %q after the second tick, want the provider's h6", c)
@@ -361,6 +365,12 @@ func TestOnceTheSecondPassHasEndedATickScansWhatWaits(t *testing.T) {
 	)
 	p := &direct{port: f, failBody: map[string]error{"m4": fmt.Errorf("body: %w", mail.ErrNotFound)}}
 	d := deps(t, syncPool(t), p, listing(t, "bank.example"), account)
+	reg := prometheus.NewRegistry()
+	processing, err := series.NewProcessing(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.Processing = processing
 
 	r := mustTick(t, d, account)
 
@@ -396,10 +406,41 @@ func TestOnceTheSecondPassHasEndedATickScansWhatWaits(t *testing.T) {
 	if !r.Scanning || r.Backlog != 2 {
 		t.Errorf("the tick reported scanning %v with a backlog of %d, want scanning and the two left waiting", r.Scanning, r.Backlog)
 	}
+	// The two bodies scanned are counted and their scans timed, and the one HTML body, which the
+	// conversion refused, has its conversion timed (ADR-0125).
+	if r.Scanned != 2 {
+		t.Errorf("the tick counted %d messages scanned, want 2", r.Scanned)
+	}
+	if diff := cmp.Diff(map[string]uint64{series.StepConvert: 1, series.StepScan: 2}, processed(t, reg), compare.Options); diff != "" {
+		t.Errorf("the steps timed (-want +got):\n%s", diff)
+	}
 	last := runs(t, conn, account)
 	if c := last[len(last)-1].Counters; c["decided"] != 5.0 || c["scanned"] != 2.0 || c["skipped"] != 1.0 || c["pending"] != 2.0 {
 		t.Errorf("the tick's counters are %v, want five decided, two scanned, one skipped and two pending", c)
 	}
+}
+
+// processed returns how many times the body processing series on reg observed each step.
+func processed(t *testing.T, reg prometheus.Gatherer) map[string]uint64 {
+	t.Helper()
+	families, err := reg.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]uint64{}
+	for _, f := range families {
+		if f.GetName() != series.ProcessingName {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "step" {
+					out[l.GetValue()] = m.GetHistogram().GetSampleCount()
+				}
+			}
+		}
+	}
+	return out
 }
 
 // Before backfill's second pass has ended, a tick adds what arrived and leaves it waiting, so the

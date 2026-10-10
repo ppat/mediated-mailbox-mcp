@@ -12,8 +12,8 @@ index 71c01d0..1459889 100644
  // caller has checked id with validID.
  func threadRequest(id string) request {
  	q := url.Values{"format": {formatFull}, "fields": {"id,historyId,messages(" + metadataFields() + ")"}}
--	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet}
-+	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsList}
+-	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet, Endpoint: "threads.get"}
++	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsList, Endpoint: "threads.get"}
  }
  
  // modifyRequest adds and removes label identifiers on a message, or on every message of a thread.

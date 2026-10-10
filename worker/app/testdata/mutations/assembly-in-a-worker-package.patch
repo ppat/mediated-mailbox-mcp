@@ -16,12 +16,12 @@ index 00000000..61892bbc
 +TEXT ·noop(SB), NOSPLIT, $0-0
 +	RET
 diff --git a/worker/internal/series/series.go b/worker/internal/series/series.go
-index 68467aea..046fa21a 100644
+index 5aa00b7..23de8d6 100644
 --- a/worker/internal/series/series.go
 +++ b/worker/internal/series/series.go
-@@ -39,3 +39,6 @@ func NewBacklog(reg prometheus.Registerer) (*prometheus.GaugeVec, error) {
+@@ -123,3 +123,6 @@ func (p *Processing) Since(step string, start time.Time) {
+ 		p.duration.WithLabelValues(step).Observe(time.Since(start).Seconds())
  	}
- 	return g, nil
  }
 +
 +// noop is written in assembly, which reaches memory as unsafe does with no import of it.
