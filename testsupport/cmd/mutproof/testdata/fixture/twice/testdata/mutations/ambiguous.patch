@@ -1,0 +1,15 @@
+control: Admit refuses flagged items
+removes: Admit returns true for a flagged item, in a hunk whose context matches Allow too
+packages: ./twice
+tests: TestAdmitRefusesFlagged
+scheduled-count: no
+
+diff --git a/twice/twice.go b/twice/twice.go
+index 479b2be..dcd45c4 100644
+--- a/twice/twice.go
++++ b/twice/twice.go
+@@ -15,3 +15,3 @@ func Admit(flagged bool) bool {
+ 	if flagged {
+-		return false
++		return true
+ 	}

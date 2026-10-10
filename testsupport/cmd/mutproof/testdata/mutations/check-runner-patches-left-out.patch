@@ -1,0 +1,18 @@
+control: The mutation-patches check refuses a patch that no longer applies, and never passes on nothing checked
+removes: the check leaves out all of the runner's testdata, its own mutation patches with its fixtures
+packages: ./testsupport/cmd/mutproof/...
+tests: TestCheckTree
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/check.go b/testsupport/cmd/mutproof/check.go
+--- a/testsupport/cmd/mutproof/check.go
++++ b/testsupport/cmd/mutproof/check.go
+@@ -15,7 +15,7 @@ import (
+ // fixtureDir holds mutproof's own fixtures, relative to the repository root. Their patches target
+ // the fixture module its tests build, not the repository, so checkTree leaves them out. The
+ // runner's own mutation patches, in its testdata/mutations, are checked like any other.
+-const fixtureDir = "testsupport/cmd/mutproof/testdata/fixture"
++const fixtureDir = "testsupport/cmd/mutproof/testdata"
+ 
+ // checkTree checks every mutation patch under root without running a demonstration, which is what
+ // the mutation-patches workflow runs on every pull request. A mutation patch is a .patch file under

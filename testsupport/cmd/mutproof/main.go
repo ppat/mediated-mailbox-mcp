@@ -23,6 +23,17 @@
 //	diff --git a/core/redact/redact.go b/core/redact/redact.go
 //	...
 //
+// Before it runs any test, the runner requires the patch to apply, by git apply --check, and every
+// hunk of it to apply at one place only (internal/hunkmatch), since git apply puts a hunk whose
+// context matches at more than one place at the match nearest its header line, which can be the
+// wrong one.
+//
+// Run with -check, the runner runs no demonstration. It checks, the same two ways, every mutation
+// patch under the directory it is given, the current directory by default (check.go), which is
+// what the mutation-patches workflow runs on every pull request.
+//
+//	go tool mutproof -check
+//
 // A package entry that is not a relative path is refused, because it would reach go test as a flag.
 // A patch whose file names mark it as touching test code, a _test.go file, a browser test file or
 // anything under a testdata or test directory, is refused, because a red from a changed test says nothing about the
@@ -122,16 +133,35 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch"
 )
 
 func main() {
 	host := flag.String("host", "", "passed to pgrun as -host for a patch whose tests are integration tests")
 	port := flag.Int("port", 0, "passed to pgrun as -port for a patch whose tests are integration tests")
+	check := flag.Bool("check", false, "check that every mutation patch under the root, the current directory by default, applies at exactly one place, and run no demonstration")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: go tool mutproof [-host address] [-port port] patch...")
+		fmt.Fprintln(os.Stderr, "       go tool mutproof -check [root]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+	if *check {
+		if flag.NArg() > 1 || *host != "" || *port != 0 {
+			flag.Usage()
+			os.Exit(2)
+		}
+		root := "."
+		if flag.NArg() == 1 {
+			root = flag.Arg(0)
+		}
+		if err := checkTree(os.Stdout, root); err != nil {
+			fmt.Fprintln(os.Stderr, "mutproof:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if flag.NArg() == 0 {
 		flag.Usage()
 		os.Exit(2)
@@ -270,6 +300,9 @@ func demonstrate(ctx context.Context, root string, environ, pgrun []string, patc
 	defer removeCopy(patched)
 	if _, err := gitApply(pristine, "--check", absPatch); err != nil {
 		return result{}, fmt.Errorf("the patch does not apply: %w", err)
+	}
+	if err := hunkmatch.Check(pristine, src); err != nil {
+		return result{}, fmt.Errorf("the patch could apply somewhere other than its author meant: %w", err)
 	}
 	paths, err := touchedPaths(pristine, absPatch, src)
 	if err != nil {

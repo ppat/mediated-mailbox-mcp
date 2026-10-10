@@ -207,6 +207,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#328](https://github.com/ppat/mediated-mailbox-mcp/pull/328) | F10 | F10's worker, `worker/`, running backfill and delta sync as job kinds, each with its import list, runtime role, connection pool and loaders, its scheduler and the due decisions, the in-run comparisons of a running second pass, the job series and the two alerting rules, the one configuration tree, the `go vet` analysers refusing, in the worker outside its scheduler, a `go` statement and any use of a function that starts a goroutine running what it is given, and, in the module, an import of `unsafe` and any use of reflect's unsafe pointers, the worker's test holding its dependencies that import `unsafe` or hold assembly or object files to a reviewed list, and the retirement of the backfill, delta sync, reorganization and heuristics deployables | F10's rows, the rows it adds for the scheduler's rules, a job's success, the fail-closed reload, the re-seal with no account, the pinned constructors, the due decisions, a page taking the active policy, the per-job-kind and worker import lists, the grant check per job kind's list, the goroutine analyser and the held source's reuse rule, and every row of backfill and delta sync whose code or tests moved, proven again in the worker. The two rows on the heuristics run's job kind key to M4 | The controls of F10's scheduler, job kinds, alerting rules, configuration and isolation checks, and every demonstration whose code, tests or patches moved into the worker, regenerated and demonstrated again |
 | [#336](https://github.com/ppat/mediated-mailbox-mcp/pull/336) | F6 | F6's later work, a known-answer test in `executioncontext/credential/open` holding a key pair and a value sealed by an earlier build, which this build must open, with the seed deriving that public key and the identifier the value names | The row it adds for a build that cannot open a value an earlier build sealed, or derives another public key or key identifier from the same seed | The control that this build opens a value an earlier build sealed, with the key pair an earlier build wrote, broken so this build binds less in the additional data or hashes less into the key identifier, and so it runs another key schedule, expands the seed into another key pair or derives another key identifier |
 | [#337](https://github.com/ppat/mediated-mailbox-mcp/pull/337) | F4 | F4's later work, each kind of test in a CI workflow of its own, the unit tests, the property tests, the crash sequences, the integration tests, the recording of the browser's fixtures and the mutation demonstrations, `go tool testkinds` selecting each kind and checking that every test runs in its kind's workflows and no other, the deep search split into a deep workflow for the property tests and one for the crash sequences, and the whole mutation ledger run weekly and by hand ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)) | It adds and proves the rows for a test that would run outside its kind's workflows or in none and for a ledger run that would pass on a surviving mutant or on no patch | The control that every test runs in the workflows of its kind and level and in no other |
+| [#338](https://github.com/ppat/mediated-mailbox-mcp/pull/338) | F4 | F4's mutation runner refusing a patch with a hunk whose context matches at more than one place in its file, before a demonstration and as its `-check` mode, which the `mutation-patches` workflow runs in place of its shell check, with a property test holding its count to git apply's, and seven patches regenerated with wider context | It adds and proves the row for a hunk whose context matches twice, and proves the row for a patch's diff context going stale again | The controls of the hunk-match check and of the `mutation-patches` check, and it demonstrates again the seven regenerated patches |
 
 ### What each composition root runs
 
@@ -239,16 +240,18 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#199](https://github.com/ppat/mediated-mailbox-mcp/pull/199),
   [#198](https://github.com/ppat/mediated-mailbox-mcp/pull/198),
   [#211](https://github.com/ppat/mediated-mailbox-mcp/pull/211),
-  [#243](https://github.com/ppat/mediated-mailbox-mcp/pull/243) and
-  [#251](https://github.com/ppat/mediated-mailbox-mcp/pull/251) closed the discoveries
+  [#243](https://github.com/ppat/mediated-mailbox-mcp/pull/243),
+  [#251](https://github.com/ppat/mediated-mailbox-mcp/pull/251) and
+  [#338](https://github.com/ppat/mediated-mailbox-mcp/pull/338) closed the discoveries
   [#148](https://github.com/ppat/mediated-mailbox-mcp/issues/148),
   [#187](https://github.com/ppat/mediated-mailbox-mcp/issues/187),
   [#188](https://github.com/ppat/mediated-mailbox-mcp/issues/188),
   [#192](https://github.com/ppat/mediated-mailbox-mcp/issues/192),
   [#194](https://github.com/ppat/mediated-mailbox-mcp/issues/194),
   [#210](https://github.com/ppat/mediated-mailbox-mcp/issues/210),
-  [#242](https://github.com/ppat/mediated-mailbox-mcp/issues/242) and
-  [#245](https://github.com/ppat/mediated-mailbox-mcp/issues/245) after delivery. Every
+  [#242](https://github.com/ppat/mediated-mailbox-mcp/issues/242),
+  [#245](https://github.com/ppat/mediated-mailbox-mcp/issues/245) and
+  [#319](https://github.com/ppat/mediated-mailbox-mcp/issues/319) after delivery. Every
   component laid out as documented packages, the Go module with its linters, formatters and the
   ban-proof program over its violation files, the data-access checks, the browser's build, lint and
   test runner, every Dockerfile, the chart skeleton, the chainsaw configuration and every CI

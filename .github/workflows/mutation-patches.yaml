@@ -2,10 +2,11 @@
 # yamllint disable rule:line-length
 name: mutation-patches
 
-# git apply --check over every mutation patch under a testdata/mutations directory, excluding
-# mutproof's own fixtures under testsupport/cmd/mutproof/testdata/. Unconditional rather than
-# path-filtered, because a patch's diff context can span any file in the tree, not only the
-# package its control lives in.
+# go tool mutproof -check over every mutation patch under a testdata/mutations directory, excluding
+# mutproof's own fixtures under testsupport/cmd/mutproof/testdata/fixture/. It refuses a patch git
+# apply --check refuses and a patch with a hunk whose context matches at more than one place in its
+# file. Unconditional rather than path-filtered, because a patch's diff context can span any file in
+# the tree, not only the package its control lives in.
 #
 # Its own workflow, run by neither go-unit nor go-integration. A patch's applicability is a
 # standing guard on every pull request, apart from the mutation demonstration itself, which runs
@@ -35,13 +36,13 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     # First, so that the verdict below comes from a checker that has just shown it catches a patch
-    # whose context has gone stale.
+    # whose context has gone stale and a hunk whose context matches twice.
     - name: Self-test
       shell: bash
       working-directory: ./current
       run: .github/scripts/mutation-patches/self-test.sh
 
-    - name: Check every mutation patch still applies
+    - name: Check every mutation patch applies at exactly one place
       shell: bash
       working-directory: ./current
-      run: .github/scripts/mutation-patches/check.sh
+      run: go tool mutproof -check

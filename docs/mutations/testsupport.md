@@ -23,6 +23,29 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/no_marker`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract`:** `TestRequire`, `TestRequire/a_marker_in_another_case`, `TestRequire/an_empty_marker`, `TestRequire/another_provider's_marker`, `TestRequire/its_provider's_marker`, `TestRequire/no_marker`
 
+## A mutation patch is refused when a hunk's context matches at more than one place in its file
+
+- **Date · evidence:** 2026-10-10 · [pull request #338](https://github.com/ppat/mediated-mailbox-mcp/pull/338)
+- **Break (1):** the check of every patch in the tree checks where the hunks of an empty patch match, not the patch's own, so it runs git apply --check alone
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestCheckTree`, `TestCheckTree/nested`, `TestCheckTree/repeated`, `TestCheckTree/runner's_own_patches_checked`
+- **Break (2):** a demonstration checks where the hunks of an empty patch match, not the patch's own, so it runs a patch without checking where its hunks match
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestPatchWhoseHunkMatchesTwiceIsRefused`
+- **Break (3):** a hunk git holds to the start or the end of its file is matched anywhere, so one whose context repeats elsewhere is refused though git gives it one place
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch`:** `TestHunkMatchAgreesWithGitApply`, `TestHunkMatchCountsByGitsAnchors`, `TestHunkMatchCountsByGitsAnchors/end`, `TestHunkMatchCountsByGitsAnchors/start`, `TestHunkMatchHoldsAnEndAnchoredLastLineExactly`
+- **Break (4):** every hunk of a file is matched against the file as it stands, not as the hunks before it leave it
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch`:** `TestHunkMatchAcceptsAUniqueMatchAtAnOffset`, `TestHunkMatchAgreesWithGitApply`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix/a_newline`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix/spaces,_a_tab,_a_return_and_a_newline`, `TestHunkMatchComparesLineEndings`, `TestHunkMatchCountsByGitsAnchors`, `TestHunkMatchCountsByGitsAnchors/end`, `TestHunkMatchCountsByGitsAnchors/start`, `TestHunkMatchFindsALastLineWithoutANewlineBeforeOtherLines`, `TestHunkMatchFollowsNewDeletedAndRenamedFiles`, `TestHunkMatchIgnoresThePreamble`, `TestHunkMatchNeverMatchesOverAnEarlierHunk`, `TestHunkMatchReadsTheFileAsEarlierHunksLeaveIt`
+- **Break (5):** the search for a hunk's place stops at its first match, so a hunk whose context matches twice is never seen
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestCheckTree`, `TestCheckTree/nested`, `TestCheckTree/repeated`, `TestCheckTree/runner's_own_patches_checked`, `TestPatchWhoseHunkMatchesTwiceIsRefused`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch`:** `TestHunkMatchAgreesWithGitApply`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix/a_newline`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix/spaces,_a_tab,_a_return_and_a_newline`, `TestHunkMatchFollowsNewDeletedAndRenamedFiles`, `TestHunkMatchRefusesAHunkWhoseContextRepeats`, `TestHunkMatchRefusesARepeatAtTheHeaderLine`
+- **Break (6):** lines are compared with a carriage return before the newline ignored, so a hunk matches lines git apply does not match it to
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch`:** `TestHunkMatchAgreesWithGitApply`, `TestHunkMatchComparesLineEndings`
+- **Break (7):** a last preimage line without a newline is compared exactly rather than as git compares it, a prefix followed only by whitespace, so its matches earlier in the file are missed
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch`:** `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix/a_newline`, `TestHunkMatchComparesALastLineWithoutANewlineAsAPrefix/spaces,_a_tab,_a_return_and_a_newline`, `TestHunkMatchFindsALastLineWithoutANewlineBeforeOtherLines`
+- **Break (8):** a last preimage line without a newline is compared as a prefix even in a hunk that must match at the end of the file, where git compares it exactly
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch`:** `TestHunkMatchHoldsAnEndAnchoredLastLineExactly`
+- **Break (9):** a hunk is matched over lines an earlier hunk wrote, which git apply never does
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch`:** `TestHunkMatchNeverMatchesOverAnEarlierHunk`
+
 ## Every test runs in the workflows of its kind and level and in no other
 
 - **Date · evidence:** 2026-10-10 · [pull request #337](https://github.com/ppat/mediated-mailbox-mcp/pull/337)
@@ -375,6 +398,20 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 - **Break (6):** a goroutine a test file starts is reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+
+## The mutation-patches check refuses a patch that no longer applies, and never passes on nothing checked
+
+- **Date · evidence:** 2026-10-10 · [pull request #338](https://github.com/ppat/mediated-mailbox-mcp/pull/338)
+- **Break (1):** a tree holding no mutation patch passes the check
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestCheckTree`, `TestCheckTree/no_patch`
+- **Break (2):** the check takes every .patch file in the tree as a mutation patch, so a patch file that is no mutation patch fails the check
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestCheckTree`, `TestCheckTree/no_patch`, `TestCheckTree/not_a_mutation_patch`
+- **Break (3):** the check leaves out all of the runner's testdata, its own mutation patches with its fixtures
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestCheckTree`, `TestCheckTree/runner's_own_patches_checked`
+- **Break (4):** the check of every patch in the tree no longer runs git apply --check, so a patch git apply refuses for another reason than its context, such as creating a file that exists, passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestCheckTree`, `TestCheckTree/creates_a_file_that_exists`
+- **Break (5):** a directory the walk cannot read is passed over, so a patch in it goes unchecked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof`:** `TestCheckTreeRefusesAnUnreadableDirectory`
 
 ## The operation sampler draws each operation under a fresh set of weights from rapid's own stream
 

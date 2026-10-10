@@ -48,7 +48,8 @@ an image, because only test files and the tooling programs import it. Its packag
   ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)).
 - `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run), `cmd/vetcheck` (the
   analysers' program), `cmd/mutproof` (the runner that records mutation demonstrations, of
-  [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)),
+  [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), and with
+  `-check` the check that every mutation patch applies at one place only),
   `cmd/livecontract` (the one command that runs a provider's contract run against the real
   provider) and `cmd/testkinds` (the selection of each kind of test for its workflows, and the
   check that every test runs in its kind's workflows and no other, of
