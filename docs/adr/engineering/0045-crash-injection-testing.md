@@ -37,9 +37,10 @@ invariants checked after recovery, and a deliberately coarse crash model.
   scheduled, never gating.** The bounded runs ride the gating suite on every pull request beside
   the integration tests, in a workflow of their own, and the deep exploration runs in another
   ([ADR-0124](./0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)), because a sequence runs
-  against an in-memory model and replays against PostgreSQL only when reduced or drawn from a fixed
-  seed, so the backfill target's bounded runs take seconds. A target whose bounded runs proved too
-  slow for the gate would run them on the scheduled, non-gating workflow instead.
+  against an in-memory model and replays against PostgreSQL only when reduced, drawn from a fixed
+  seed, or written to reach a kind of sequence those draws reach by chance, so the backfill target's
+  bounded runs take seconds. A target whose bounded runs proved too slow for the gate would run them
+  on the scheduled, non-gating workflow instead.
 - **The physical drills stay.** Killing the real process mid-run proves the real substrate once,
   and the in-process harness explores the sequence space cheaply and continuously. Disjoint
   kinds, not substitutes.
