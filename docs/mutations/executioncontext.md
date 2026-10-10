@@ -263,3 +263,17 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows`
 - **Break (3):** a credential that does not open reads as done
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows`
+
+## This build opens a value an earlier build sealed, with the key pair an earlier build wrote
+
+- **Date · evidence:** 2026-10-10 · [pull request #336](https://github.com/ppat/mediated-mailbox-mcp/pull/336)
+- **Break (1):** a key identifier is the last 16 bytes of its hash rather than the first, so this build names the earlier build's key by another identifier
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestTheSeedDerivesThePublicKeyAnEarlierBuildWrote`, `TestThisBuildOpensAValueAnEarlierBuildSealed`
+- **Break (2):** the additional data no longer binds the key identifier, so this build authenticates less than the earlier build sealed under, while a value sealed and opened by one build still opens
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestThisBuildOpensAValueAnEarlierBuildSealed`
+- **Break (3):** the key identifier is hashed from the public key without the domain string, so this build names the earlier build's key by another identifier
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestTheSeedDerivesThePublicKeyAnEarlierBuildWrote`, `TestThisBuildOpensAValueAnEarlierBuildSealed`
+- **Break (4):** the suite's key schedule runs on HKDF-SHA384, so this build derives other keys from an encapsulated key an earlier build made, as a Go release following a changed X-Wing draft would
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestThisBuildOpensAValueAnEarlierBuildSealed`
+- **Break (5):** a seed is expanded into its key pair by HPKE's DeriveKeyPair, so this build derives another key pair from the seed an earlier build wrote
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestAKeyringLoadsItsKeysFromFiles`, `TestAKeyringRefusesAPublicKeyMatchingNoPrivateKey`, `TestAMissingKeyIsToldApartFromTampering`, `TestAValueOpensOnlyInItsOwnRowAndPurpose`, `TestEveryAlterationIsRefused`, `TestEverySealerNamesTheCurrentKey`, `TestOnlyThePrivateKeyItWasSealedToOpensAValue`, `TestReSealingMovesAValueToTheCurrentKey`, `TestTheSeedDerivesThePublicKeyAnEarlierBuildWrote`, `TestThisBuildOpensAValueAnEarlierBuildSealed`

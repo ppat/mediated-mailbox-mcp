@@ -205,6 +205,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323) | F8 | F8's `log_level` value in every running deployable, the logger and level `main.go` hands each entry package and the entry hands its shells, `process/logging`, the shells' levels, and the ban on reading a process default logger | The rows it adds for the configured level, the ban on reading a default logger and a pure core's refusal of a logging import | Those of the configured level and of the refusal of a level that names none, and a break per entry package of the effective configuration's logging, whose row moves to the cross-component file |
 | [#326](https://github.com/ppat/mediated-mailbox-mcp/pull/326) | F11 | F11's schema baseline, the migration chain flattened into four files and two migrations after it, the sender domains as lowercase `text`, the checked vocabularies, `job_runs.pass` never null with the run and audit indexes, pgvector, the label and subject indexes and `pg_trgm` removed with the extension bootstrap, the helper for a migration tested over rows, and the statement check refusing a cast to `citext` beside a domain | F11's rows, and it demonstrates again the F2 rows whose migration or test changed | The controls of F11's checks, migrations and chain, and every demonstration whose patch carried a migration file's diff context, regenerated |
 | [#328](https://github.com/ppat/mediated-mailbox-mcp/pull/328) | F10 | F10's worker, `worker/`, running backfill and delta sync as job kinds, each with its import list, runtime role, connection pool and loaders, its scheduler and the due decisions, the in-run comparisons of a running second pass, the job series and the two alerting rules, the one configuration tree, the `go vet` analysers refusing, in the worker outside its scheduler, a `go` statement and any use of a function that starts a goroutine running what it is given, and, in the module, an import of `unsafe` and any use of reflect's unsafe pointers, the worker's test holding its dependencies that import `unsafe` or hold assembly or object files to a reviewed list, and the retirement of the backfill, delta sync, reorganization and heuristics deployables | F10's rows, the rows it adds for the scheduler's rules, a job's success, the fail-closed reload, the re-seal with no account, the pinned constructors, the due decisions, a page taking the active policy, the per-job-kind and worker import lists, the grant check per job kind's list, the goroutine analyser and the held source's reuse rule, and every row of backfill and delta sync whose code or tests moved, proven again in the worker. The two rows on the heuristics run's job kind key to M4 | The controls of F10's scheduler, job kinds, alerting rules, configuration and isolation checks, and every demonstration whose code, tests or patches moved into the worker, regenerated and demonstrated again |
+| [#336](https://github.com/ppat/mediated-mailbox-mcp/pull/336) | F6 | F6's later work, a known-answer test in `executioncontext/credential/open` holding a key pair and a value sealed by an earlier build, which this build must open, with the seed deriving that public key and the identifier the value names | The row it adds for a build that cannot open a value an earlier build sealed, or derives another public key or key identifier from the same seed | The control that this build opens a value an earlier build sealed, with the key pair an earlier build wrote, broken so this build binds less in the additional data or hashes less into the key identifier, and so it runs another key schedule, expands the seed into another key pair or derives another key identifier |
 
 ### What each composition root runs
 
@@ -414,16 +415,18 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#172](https://github.com/ppat/mediated-mailbox-mcp/issues/172) and
   [#180](https://github.com/ppat/mediated-mailbox-mcp/issues/180), and by pull request
   [#255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), which closed its discovery
-  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244), and not yet released. Accounts
+  [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244), and, as later work, by pull
+  request [#336](https://github.com/ppat/mediated-mailbox-mcp/pull/336), which closed its ticket
+  [#294](https://github.com/ppat/mediated-mailbox-mcp/issues/294), and not yet released. Accounts
   and their provider credentials live in the database
-  ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), split
-  between `accounts` and `account_state`
+  ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), split between
+  `accounts` and `account_state`
   ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md),
   [ADR-0016](./docs/adr/data/0016-schema.md)), with any number of OAuth clients for a provider that
   authenticates through one in `oauth_clients`, each account naming the client it connects through
   ([ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
-  The three tables' statements sit in `db/accounts`, `db/accountstate` and `db/oauthclients`, and the
-  statements for an account's sealed credential in `db/accountstate/credential`
+  The three tables' statements sit in `db/accounts`, `db/accountstate` and `db/oauthclients`, and
+  the statements for an account's sealed credential in `db/accountstate/credential`
   ([ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)), and each grant on the
   columns the UI's two setups write arrives with the statement that uses it
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
@@ -442,25 +445,27 @@ What the code on `main` runs today, per composition root, none of it yet release
   [executioncontext/README.md](./executioncontext/README.md) describes. The Gmail adapter takes its
   credential from what a deployable supplies, and its token source holds a rotated refresh token for
   the deployable to persist
-  ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)). Every
+  ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)). A known-answer
+  test holds a key pair and a value sealed by an earlier build, which this build must open to the
+  plaintext sealed, with the seed deriving that public key and the identifier the value names, so a
+  Go release or a change to the format an account credential is sealed in that would stop opening
+  the stored values fails CI
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Every
   verification row keyed to it is proven for F6's part, and every control it delivered has its
-  mutation demonstration. **What it did not deliver.** Each deployable's composition root taking
-  its account snapshot and persisting a rotated credential at the end of each unit of work, which
-  landed for backfill with [D1](#delivered-mapped-to-outcomes)'s
+  mutation demonstration. **What it did not deliver.** Each deployable's composition root taking its
+  account snapshot and persisting a rotated credential at the end of each unit of work, which landed
+  for backfill with [D1](#delivered-mapped-to-outcomes)'s
   [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181) and is each later deployable's in
   its own unit. The re-seal of an OAuth client's secret, with its statement and delta sync's grant,
-  and the scan's series, which [D4](#delivered-mapped-to-outcomes) delivered. Attaching the key-generation
-  command's signed binaries to each release, which landed with
-  [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), its run against a published
-  release waiting on [R1](#group-r--packaging). The UI's grants for its two setups, which landed
-  with [M7](#delivered-mapped-to-outcomes)'s statements. The UI's read of `account_state`, which
-  landed with [M3](#group-m--mutation-and-approval)'s
-  [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182) and never covers the credential.
-  The rotation
-  write-back against the real provider, proven at
-  [production point 1](#production-point-1--the-read-path). **Later work.** Before production
-  point 1, a known-answer test proves this build still opens values sealed by an earlier one
-  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)).
+  and the scan's series, which [D4](#delivered-mapped-to-outcomes) delivered. Attaching the
+  key-generation command's signed binaries to each release, which landed with
+  [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), its run against a published release
+  waiting on [R1](#group-r--packaging). The UI's grants for its two setups, which landed with
+  [M7](#delivered-mapped-to-outcomes)'s statements. The UI's read of `account_state`, which landed
+  with [M3](#group-m--mutation-and-approval)'s
+  [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182) and never covers the credential. The
+  rotation write-back against the real provider, proven at [production point
+  1](#production-point-1--the-read-path).
 - [x] **S1 — Redaction Gate + Sender Classifier + Mutation Authorizer, isolated** →
   [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -1223,7 +1228,6 @@ holds, with an entry naming the point.
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
   [F4](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes),
   [D2](#delivered-mapped-to-outcomes), [D3](#delivered-mapped-to-outcomes),
-  [F6](#delivered-mapped-to-outcomes),
   [M3](#group-m--mutation-and-approval) and [M7](#delivered-mapped-to-outcomes) that is placed before
   this point.
 - **Supplied there:**

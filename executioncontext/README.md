@@ -253,6 +253,15 @@ value ([ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re
 | The purpose spellings `account credential` and `oauth client secret` | The additional data, naming what the value holds |
 | A four-byte big-endian length before the purpose and before the row | The additional data, so no two contexts encode alike |
 
+A known-answer test in `credential/open/` holds, under `testdata/knownanswer/`, a key pair the
+key-generation command wrote and a value an earlier build sealed to it. This build must open the
+value to the plaintext sealed, and the seed must derive that public key and the identifier the value
+names. A change to any value above other than the purpose spelling `oauth client secret`, which the
+value is not sealed under and which `credential/seal`'s additional-data test pins, or a Go release
+whose X-Wing derives other keys or another public key, then fails the test before it ships, where it
+would otherwise refuse every stored value or every opener's start. The files are the expectation, so
+they are never regenerated, and the key pair was generated for the test and protects nothing.
+
 `credential/cmd/keygen` takes two flags, both required. `-private-key-file` names the file the
 32-byte seed is written to with mode 0600, and `-public-key-file` the file the 1216-byte public key
 is written to with mode 0644. Each file holds the raw key and nothing else, and the command refuses
