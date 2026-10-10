@@ -117,9 +117,7 @@ Work through these in order. Each step is cheap when there is nothing to do.
 8. **Report** to the user, in this shape and this order.
    - **One memory line,** read from the cgroup's `memory.stat`, `memory.max` and `memory.current`,
      giving anonymous memory, unreclaimable slab, kernel stack, their sum as non-reclaimable memory
-     against `memory.max` with its percentage, and `memory.current`. For example `Memory: anon 6.10
-     · slab 0.42 · stack 0.03 · non-reclaimable 6.55 GiB of 16 GiB (40.9%) · memory.current 9.80
-     GiB`.
+     against `memory.max` with its percentage, and `memory.current`.
 
      ```bash
      max=$(cat /sys/fs/cgroup/memory.max)
