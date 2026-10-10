@@ -1045,16 +1045,16 @@ What the code on `main` runs today, per composition root, none of it yet release
   demonstrated again. Its criteria hold. Every grant of a role sits in one section, and the
   generated data-access code changed only where a column's type or nullability changed, the domain
   parameters and `job_runs.pass`. It changed no composition root, so it finished at tested. **What
-  it did not deliver.** The typed audit row, attachment types' writer and grant, and the identifier
-  grammar in the UI's proposal and server check, which are the later work of
+  it did not deliver.** The typed audit row, the attachment types' stored form, writer and grant,
+  and the identifier grammar in the UI's proposal and server check, which are the later work of
   [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
   [M7](#delivered-mapped-to-outcomes), D1's delivered by pull request
-  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339). The chart's database setup without an extension step, which
-  is [R1](#group-r--packaging)'s. The rollback request's status, and the heuristics run's pass and
-  the storage of its embeddings, which are [M2](#group-m--mutation-and-approval)'s and
-  [M4](#group-m--mutation-and-approval)'s. The UI's tests seed no apply or heuristics run, since the
-  closed set of run pairs refuses them, so the proof of those surfaces is M2's and M4's, which add
-  those pairs.
+  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339). The chart's database setup without
+  an extension step, which is [R1](#group-r--packaging)'s. The rollback request's status, and the
+  heuristics run's pass and the storage of its embeddings, which are
+  [M2](#group-m--mutation-and-approval)'s and [M4](#group-m--mutation-and-approval)'s. The UI's
+  tests seed no apply or heuristics run, since the closed set of run pairs refuses them, so the
+  proof of those surfaces is M2's and M4's, which add those pairs.
 
 - [x] **F10 — The background worker** →
   [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
@@ -1902,7 +1902,7 @@ lands in is the [value path](#the-value-path)'s.
 | F9 → F8 | The entry package per deployable, which takes the logger and its level from `main.go`, and the process family `process/logging` joins |
 | F8 → F10 | The logger and level variable each entry package takes, from which the worker derives each job's logger with its job kind and account ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) |
 | D1 → F10, D2 → F10, D4 → F10 | Backfill's two passes and delta sync, the job kinds the worker runs from the start |
-| F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the grants in `00004` that ingest's insert of the attachment types is added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
+| F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the schema, row-level security and grants in `00002`, `00003` and `00004` that the attachment media's table, its policy and its grants are added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
 | F10 → D4's deletion later work, F11 → D4's deletion later work | The worker the index's reflection of deleted messages runs in as a job kind, with its scheduler, and the schema baseline whose closed set of `job_runs (workload, pass)` pairs a new pair joins with its migration |
 | D3 → S1's later work | Classification per sender domain in the class-filtered read, which S1's later work measures its saving against |
 | D3's statement-timeout later work → M3's statement-timeout later work | The bounded transaction in `db/tx` the UI's dataset reads run in |
