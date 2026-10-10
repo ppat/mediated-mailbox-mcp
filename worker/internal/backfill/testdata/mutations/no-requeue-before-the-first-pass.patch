@@ -1,0 +1,20 @@
+control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
+removes: backfill's run-start step returns no verdict to pending before the first pass, so stale verdicts keep releasing bodies
+packages: ./worker/internal/backfill
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -297,9 +297,6 @@
+ 	ask schedule.Ask, logger *slog.Logger, start bool, started *bool,
+ ) error {
+ 	if start {
+-		if err := reopen(ctx, second, account, logger); err != nil {
+-			return err
+-		}
+ 		*started = true
+ 	}
+ 	if err := passAccount(ctx, first, account, m1, u, ask, logger); err != nil {

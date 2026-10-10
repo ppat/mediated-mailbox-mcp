@@ -1,0 +1,18 @@
+control: Delta sync decides under backfill's gate thresholds and records backfill's scanner version and revision
+removes: delta sync's gate decides under thresholds of its own
+packages: ./worker/internal/deltasync
+tests: TestATickDecidesUnderBackfillsThresholdsAndScanner
+scheduled-count: no
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -314,7 +314,7 @@
+ 		Provider:    provider,
+ 		Policy:      policy.For(account),
+ 		Lookups:     d.lookups,
+-		Gate:        scangate.DefaultConfig(),
++		Gate:        scangate.Config{SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 1},
+ 		Scanner:     d.config.Scanner,
+ 		FirstWindow: d.config.FirstWindow,
+ 		Decisions:   d.config.DecisionsPerTick,

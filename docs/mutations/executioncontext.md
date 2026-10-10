@@ -18,6 +18,14 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 - **Break (2):** a write-back that failed is logged at debug level, which a deployable does not emit
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestAFailedWriteBackIsHeldLoggedAndKeptByAReload`
 
+## A held source serves its account until its credential or its client changes
+
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)
+- **Break (1):** a held source is kept whatever client the account now connects through, so an account moved to another client is served through the old one
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/session`:** `TestAHeldSourceServesItsAccountUntilItsCredentialOrClientChanges`
+- **Break (2):** a held source is kept only while the snapshot holds the credential it was built from, so a source that rotated its refresh token is built again at the next unit
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/session`:** `TestAHeldSourceServesItsAccountUntilItsCredentialOrClientChanges`
+
 ## A keyring re-seals a value to the current key
 
 - **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
@@ -138,7 +146,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## An account is loaded with the OAuth client it names, and an account that names none with none
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 5 again on 2026-10-10, after the worker merged backfill and delta sync into one deployable, which moved the tests it rests on · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)
 - **Break (1):** an account that names no client is handed any client that opened, another provider's included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`, `TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne`, `TestEachAccountIsLoadedWithTheClientItNamesAndNoOther`
 - **Break (2):** an account that names no client is handed the client named after its provider
@@ -148,7 +156,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 - **Break (4):** no OAuth client is loaded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestAValueCopiedToAnotherRowOrPurposeDoesNotOpen`, `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`, `TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne`, `TestEachAccountIsLoadedWithTheClientItNamesAndNoOther`, `TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows`
 - **Break (5):** a client read again after a refused re-seal is handed to every account that names a client, the ones naming another client included
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/sync/internal/reseal`:** `TestAReSealNeverPutsBackAReplacedSecret`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/reseal`:** `TestAReSealNeverPutsBackAReplacedSecret`
 - **Break (6):** a credential read again keeps the client the snapshot held rather than the one the account now names
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestARereadPairsTheCredentialWithTheClientTheAccountMovedTo`
 

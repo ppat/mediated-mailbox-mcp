@@ -1,0 +1,21 @@
+control: A failed job is asked again after a capped exponential backoff, which a success resets and a wake waits out
+removes: a wake is answered during a backoff, so a failing job woken often runs at the rate it is woken
+packages: ./worker/internal/schedule
+tests: TestAWakeDuringABackoffWaitsForItsEnd
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 5a62353c..704b32e2 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -270,9 +270,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 	defer timer.Stop()
+ 	for {
+ 		wake := st.wake
+-		if backingOff {
+-			wake = nil
+-		}
++
+ 		var fired <-chan time.Time
+ 		if timed {
+ 			timer.Reset(time.Until(due))

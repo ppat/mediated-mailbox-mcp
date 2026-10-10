@@ -1,0 +1,21 @@
+control: A stored subject whose message the provider no longer has is masked whole under the scanner in force
+removes: a call fetching subjects again masks no subject whose message the provider left out of its answer, leaving it masked under the earlier scanner
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass1
+tests: TestAChangeOfScannerMasksAndScansAgain TestASubjectWhoseMessageIsGoneIsMaskedWholeAndRecordedGone
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
+index cdcc76d9..fbd93564 100644
+--- a/worker/internal/backfill/pass1/pass1.go
++++ b/worker/internal/backfill/pass1/pass1.go
+@@ -259,7 +259,8 @@ func (p *Pass) refetch(ctx context.Context) (Step, error) {
+ 	if err != nil {
+ 		return Step{}, err
+ 	}
+-	remasked, gone := core.Refetch(stored, got, p.deps.Scanner)
++	remasked, _ := core.Refetch(stored, got, p.deps.Scanner)
++	var gone []index.Message
+ 	from := p.at
+ 	at, err := p.deps.Store.Refetch(ctx, p.account, p.run, stamp, Refetched{Remasked: remasked, Gone: gone, Recovered: recovered, Now: p.deps.Now().UTC()},
+ 		func(fetched, stale int) core.Progress { return core.Fetched(from, fetched, stale) })

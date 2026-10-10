@@ -1,6 +1,6 @@
 control: An account is loaded with the OAuth client it names, and an account that names none with none
 removes: a client read again after a refused re-seal is handed to every account that names a client, the ones naming another client included
-packages: ./sync/internal/reseal
+packages: ./worker/internal/deltasync/reseal
 tests: TestAReSealNeverPutsBackAReplacedSecret
 scheduled-count: no
 integration: yes

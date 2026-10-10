@@ -1,0 +1,20 @@
+control: A stored subject whose message the provider no longer has is masked whole under the scanner in force
+removes: a subject whose message the provider left out of its answer keeps its stored text under the scanner in force instead of being masked whole
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass1 ./worker/internal/core/backfill/pass1
+tests: TestAChangeOfScannerMasksAndScansAgain TestASubjectWhoseMessageIsGoneIsMaskedWholeAndRecordedGone TestUnfound TestRefetch
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/core/backfill/pass1/pass1.go b/worker/internal/core/backfill/pass1/pass1.go
+index b786cf1e..434cd685 100644
+--- a/worker/internal/core/backfill/pass1/pass1.go
++++ b/worker/internal/core/backfill/pass1/pass1.go
+@@ -217,7 +217,7 @@ func Unfound(stored []Stored, s index.Stamp) []index.Message {
+ 	var out []index.Message
+ 	for _, m := range stored {
+ 		msg := masked(m.ID, m.Subject, scan.Scanner{})
+-		msg.Stamp = s
++		msg.Stamp, msg.Subject = s, m.Subject
+ 		out = append(out, msg)
+ 	}
+ 	return out

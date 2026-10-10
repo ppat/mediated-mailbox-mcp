@@ -1,0 +1,19 @@
+control: A timed job is asked on its interval's phase, and a job with no interval only when woken
+removes: a run moves the phase to its own start, so after a run that outlasts the interval the phase never resumes
+packages: ./worker/internal/schedule
+tests: TestATimedJobIsAskedOnTheIntervalsPhase
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 23d24f2b..a8164b67 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -332,7 +332,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 		if phase && job.Interval > 0 {
+ 			// The time on the phase answered is the latest one passed, so ticks missed while a run
+ 			// outlasted the interval give one run between them, as a ticker's one buffered tick does.
+-			point = anchor.Add(time.Since(anchor) / job.Interval * job.Interval)
++			point = time.Now()
+ 		}
+ 		// A wake that came before this point is answered by the run about to start.
+ 		select {

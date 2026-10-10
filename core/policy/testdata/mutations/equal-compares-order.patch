@@ -1,0 +1,17 @@
+control: Two composed policies are equal when they hold the same rules by value, whatever their order
+removes: two policies holding the same rules are equal only when the rules come in the same order
+packages: ./core/policy
+tests: TestComposedPoliciesAreEqualByValue TestComposedPoliciesAreEqualByValue/the_same_rules_in_another_order
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -91,7 +91,6 @@
+ 		suffixes := slices.Sorted(slices.Values(r.suffixes))
+ 		out = append(out, strconv.Quote(r.id)+" "+strings.Join(suffixes, " "))
+ 	}
+-	slices.Sort(out)
+ 	return out
+ }
+ 

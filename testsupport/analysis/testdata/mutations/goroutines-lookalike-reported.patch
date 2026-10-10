@@ -1,0 +1,19 @@
+control: The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+removes: a package whose path only starts with the worker's is reported as the worker's
+packages: ./testsupport/analysis
+tests: TestGoroutines
+scheduled-count: no
+
+diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
+index 42f880fa..f4a24eda 100644
+--- a/testsupport/analysis/goroutines.go
++++ b/testsupport/analysis/goroutines.go
+@@ -56,7 +56,7 @@ const goroutinesMessage = "starts a goroutine outside schedule.Go, so a panic in
+ 
+ func runGoroutines(pass *analysis.Pass) (any, error) {
+ 	path := pass.Pkg.Path()
+-	if path != workerPath && !strings.HasPrefix(path, workerPath+"/") || path == schedulerPath || strings.HasPrefix(path, schedulerPath+"/") {
++	if path != workerPath && !strings.HasPrefix(path, workerPath) || path == schedulerPath || strings.HasPrefix(path, schedulerPath+"/") {
+ 		return nil, nil
+ 	}
+ 	for _, file := range pass.Files {

@@ -70,7 +70,7 @@ distinct meanings with different consequences.
 | `SCANNED` | Scanner ran, verdict recorded | Yes, if no flags and sender normal |
 | `SKIPPED_RESTRICTED` | Sender restricted; scan pointless | No — denied by sender class |
 | `SKIPPED_GATE` | Gate said don't scan | **Yes** — accepted risk, after the serve-time pattern check ([ADR-0002](./0002-fetch-time-re-evaluation.md)) |
-| `PENDING` | Not yet scanned. Backfill or sync has not reached it, or delisting ([ADR-0037](./0037-delisting-transition.md)), a change of scanner ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)) or a gate skip the gate no longer decides as the same skip ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)) re-queued it | No — fail closed |
+| `PENDING` | Not yet scanned. Backfill or sync has not reached it, or delisting ([ADR-0037](./0037-delisting-transition.md)), a change of scanner ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)) or a gate skip the gate no longer decides as the same skip ([ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)) re-queued it | No — fail closed |
 
 `SKIPPED_GATE` is the compromise made explicit in the type system, the one state where a body is
 released without having been scanned.
@@ -119,5 +119,6 @@ content scan" so the agent explains rather than misreports.
 - The gate needs sender statistics to evaluate, which is why backfill runs metadata-first
   ([ADR-0017](../data/0017-two-pass-backfill.md)). The gate cannot run on a cold index.
 - Widening or narrowing the gate is a policy change with observable effect, not a redesign. A
-  change of thresholds reaches the skips already stored at the next backfill run
-  ([ADR-0098](./0098-every-backfill-run-decides-each-gate-skip-again.md)).
+  change of thresholds reaches the skips already stored at backfill's run-start step, which the
+  worker makes when it starts with the new thresholds
+  ([ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)).

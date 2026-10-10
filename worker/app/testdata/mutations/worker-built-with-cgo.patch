@@ -1,0 +1,18 @@
+control: No dependency added for a job imports unsafe or holds assembly, and the worker builds without cgo
+removes: the worker's image builds its binary with cgo switched on
+packages: ./worker/app
+tests: TestTheWorkerBuildsWithoutCgo
+scheduled-count: no
+
+diff --git a/worker/Dockerfile b/worker/Dockerfile
+--- a/worker/Dockerfile
++++ b/worker/Dockerfile
+@@ -16,7 +16,7 @@
+ COPY worker/main.go worker/main.go
+ COPY worker/app worker/app
+ COPY worker/internal worker/internal
+-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-worker ./worker
++RUN CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-worker ./worker
+ 
+ FROM gcr.io/distroless/static-debian13:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3
+ COPY --from=server /out/mediated-mailbox-worker /mediated-mailbox-worker

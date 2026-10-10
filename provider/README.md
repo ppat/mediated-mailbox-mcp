@@ -80,8 +80,11 @@ its credential was refused when Google's token endpoint was unreachable
 ## Series and the rules that read them
 
 Every adapter emits both series, labelled by `account` and by `provider`, whose value is the
-adapter's own name, such as `gmail`. Two alerting rules in `packaging/chart/alerting-rules.yaml`
-read them, and neither holds a provider's number of its own.
+adapter's own name, such as `gmail`. In the worker each job kind passes a registry that also labels
+each series with `job_kind`, the job kind that produced it
+([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). Two
+alerting rules in `packaging/chart/alerting-rules.yaml` read them, and neither holds a provider's
+number of its own.
 
 | Rule | Reads | Fires when |
 | --- | --- | --- |

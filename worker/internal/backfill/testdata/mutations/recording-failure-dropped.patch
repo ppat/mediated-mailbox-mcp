@@ -1,0 +1,21 @@
+control: The latest authentication attempt is recorded at the end of every unit of work, a failed one included, and a failed recording ends the pass in an error
+removes: a recording that fails is dropped, so the pass ends as if the attempt had been recorded
+packages: ./worker/internal/backfill
+tests: TestAFailedRecordingIsReturned
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+index f4fb328a..b1ebb7ea 100644
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -269,8 +269,6 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
+ 			AccountID:   account,
+ 		})
+ 	})
+-	if err != nil {
+-		return fmt.Errorf("account %s: recording the last authentication attempt: %w", account, err)
+-	}
++	_ = err
+ 	return nil
+ }

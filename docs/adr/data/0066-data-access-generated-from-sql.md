@@ -123,22 +123,21 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   of a subsection under the role of each component whose list admits it, planning each one with
   `EXPLAIN (GENERIC_PLAN)` so nothing executes, so a list admitting a statement the role's grants do
   not allow fails naming the list, the statement and the role. Which role each component connects as
-  is [ADR-0075](./0075-one-runtime-role-per-deployable.md)'s, and the check reads that mapping from
-  one place in `db/check`, failing a deployable's list that names subsections without a role and a
-  role whose deployable's list reaches no subsection, directly or through a shared library. Inside
-  the worker, each job kind has a list and a role of its own, and the mapping holds per job kind as
-  it holds per deployable
-  ([ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). A shared library
-  connects as no role of its own. Its statements run under the role of each deployable, or in the
-  worker of each job kind, whose list admits the library, and the check plans them under each of
-  those roles, reading which admit it from their lists. A table's statements sit in the table's
-  subsection. A statement that a role admitted to that subsection may not be granted under
-  [ADR-0075](./0075-one-runtime-role-per-deployable.md)'s three lines sits one directory further
-  down, in a subsection named for what it holds, which only the roles that may run it admit. Three
-  rules hold that layout, each checked in `db/check`. No package of the data-access library imports
-  a subsection unless it is itself a subsection. No hand-written non-test Go file other than a
-  `doc.go` sits in a subsection's directory, in a directory above one, or in the library's root. No
-  component's list admits the library's root package.
+  is [ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s, and the check
+  reads that mapping from one place in `db/check`, failing a deployable's list that names
+  subsections without a role and a role whose deployable's list reaches no subsection, directly or
+  through a shared library. Inside the worker, each job kind has a list and a role of its own, and
+  the mapping holds per job kind as it holds per deployable. A shared library connects as no role
+  of its own. Its statements run under the role of each deployable, or in the worker of each job
+  kind, whose list admits the library, and the check plans them under each of those roles, reading
+  which admit it from their lists. A table's statements sit in the table's subsection. A statement
+  that a role admitted to that subsection may not be granted under
+  [ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s three lines sits one
+  directory further down, in a subsection named for what it holds, which only the roles that may
+  run it admit. Three rules hold that layout, each checked in `db/check`. No package of the
+  data-access library imports a subsection unless it is itself a subsection. No hand-written
+  non-test Go file other than a `doc.go` sits in a subsection's directory, in a directory above one,
+  or in the library's root. No component's list admits the library's root package.
 
 ### How the decision meets each requirement
 

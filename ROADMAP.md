@@ -69,7 +69,7 @@ which lists the increment's tickets by unit. Each increment's issue is a sub-iss
 re-dated whenever the checklists are reconciled against the tickets, so staleness is detectable
 instead of silent.
 
-**Position: 2026-10-09.**
+**Position: 2026-10-10.**
 
 ## Delivery posture
 
@@ -128,7 +128,7 @@ perfected up front.
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
 | Verifications | The verification column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated) says whose rows each pull request proved, and each proven row names its pull request as the proof in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | The demonstrations each pull request recorded are the Mutations column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
-| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8, F9, F8 and F11, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
+| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8, F9, F8, F11 and F10, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
 
 ### What each pull request landed, proved and demonstrated
 
@@ -204,6 +204,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322) | D3 | D3's later work, sender domains stored and bound through one normalizer in Go, `index.StoredDomain`, with a statement check refusing the case-folding forms over a domain its scope names, and the sender class term classifying the domains the statistics hold and matching them by a join ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0108](./docs/adr/operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)) | D3's rows for a stored domain in the normalizer's form classifying as its address, for every caller binding the normalizer's output and for the statement check refusing the case-folding forms over a domain its scope names, and the sender class row again | The normalizer's two controls, the sender class row with its patches regenerated, and every break whose tests the change edited |
 | [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323) | F8 | F8's `log_level` value in every running deployable, the logger and level `main.go` hands each entry package and the entry hands its shells, `process/logging`, the shells' levels, and the ban on reading a process default logger | The rows it adds for the configured level, the ban on reading a default logger and a pure core's refusal of a logging import | Those of the configured level and of the refusal of a level that names none, and a break per entry package of the effective configuration's logging, whose row moves to the cross-component file |
 | [#326](https://github.com/ppat/mediated-mailbox-mcp/pull/326) | F11 | F11's schema baseline, the migration chain flattened into four files and two migrations after it, the sender domains as lowercase `text`, the checked vocabularies, `job_runs.pass` never null with the run and audit indexes, pgvector, the label and subject indexes and `pg_trgm` removed with the extension bootstrap, the helper for a migration tested over rows, and the statement check refusing a cast to `citext` beside a domain | F11's rows, and it demonstrates again the F2 rows whose migration or test changed | The controls of F11's checks, migrations and chain, and every demonstration whose patch carried a migration file's diff context, regenerated |
+| [#328](https://github.com/ppat/mediated-mailbox-mcp/pull/328) | F10 | F10's worker, `worker/`, running backfill and delta sync as job kinds, each with its import list, runtime role, connection pool and loaders, its scheduler and the due decisions, the in-run comparisons of a running second pass, the job series and the two alerting rules, the one configuration tree, the `go vet` analysers refusing, in the worker outside its scheduler, a `go` statement and any use of a function that starts a goroutine running what it is given, and, in the module, an import of `unsafe` and any use of reflect's unsafe pointers, the worker's test holding its dependencies that import `unsafe` or hold assembly or object files to a reviewed list, and the retirement of the backfill, delta sync, reorganization and heuristics deployables | F10's rows, the rows it adds for the scheduler's rules, a job's success, the fail-closed reload, the re-seal with no account, the pinned constructors, the due decisions, a page taking the active policy, the per-job-kind and worker import lists, the grant check per job kind's list, the goroutine analyser and the held source's reuse rule, and every row of backfill and delta sync whose code or tests moved, proven again in the worker. The two rows on the heuristics run's job kind key to M4 | The controls of F10's scheduler, job kinds, alerting rules, configuration and isolation checks, and every demonstration whose code, tests or patches moved into the worker, regenerated and demonstrated again |
 
 ### What each composition root runs
 
@@ -211,11 +212,9 @@ What the code on `main` runs today, per composition root, none of it yet release
 
 | Composition root | What it runs |
 | --- | --- |
-| Backfill | It reads its database, credential and scanner sections and its probe address through the configuration library and validates them, loads its keyring and refuses to start when the public key matches none of its private keys, builds its connection pool, takes its accounts, the OAuth clients and the opened credentials from the database through `executioncontext/accountload/` once at the start of a run, loads the policy of every listed account, and builds a Gmail token source for each connected account it can serve. It runs pass 1 over each of them a page at a time, spending under the account's target, and hands the account's current refresh token back after every page with the adoption stamp of the credential its source was built over, so a rotated one is written to the account's state row unless the loader has since adopted a value someone else stored there, and records the account's latest provider authentication attempt there after every page too. A call the provider refuses as a refused credential has the account's credential read again from its row, and when the row holds another, the account's token source and port are built again over it and the call made once more, while a row holding the refused credential, or none, has the refusal reported. Once an account's pass 1 has ended it runs pass 2 over the account the same way, running the delisting transition and then the restriction of the stored classes a rule added since restricts, deciding each waiting message through the scan gate, fetching and scanning in memory the bodies the gate selects in the batch class, and setting the account's scan backlog series after every page. Each pass runs again when the scanner backfill runs with differs from the one the stored subjects or verdicts were decided under, a run returning the verdicts made under another scanner to pending and masking every stale subject stored unmasked again from the store before the first pass, the first pass, once its enumeration has ended, fetching again by identifier only the stale subjects, those stored masked, and enumerating nothing when it was reopened after its enumeration ended, and the second returning the skips decided without their subject's signal to pending before its first page. Every run also decides each stored gate skip again before the first pass, under the thresholds it holds, and returns to pending each one the gate no longer decides as the same skip, reopening the second pass. It serves the health probe and the metrics endpoint while it runs, and logs as JSON to standard output at the level its `log_level` sets |
+| The worker | It reads one configuration tree through the configuration library and validates it, a `database` section naming the server once with a block per job kind, `backfill` and `sync`, each holding its user, password file and pool size, the credential and scanner sections, its probe address, `reload_interval`, backfill's `concurrency`, delta sync's `sync_interval`, `first_window`, `decisions_per_tick` and `concurrency`, and `log_level`. It loads its keyring and refuses to start when the public key matches none of its private keys, builds one scanner from its one scanner section for both job kinds, and opens a connection pool per job kind under that job kind's own runtime role. Its one scheduler runs each job kind's reload as a job of the kind on the reload interval. The reload takes the kind's accounts, the OAuth clients and the opened credentials through the kind's own account loader and the policy through its own policy loader, adds a job for each account it can serve and drops the job of each it no longer lists, cancelling that job's run, and adds no job while its policy load fails. The scheduler holds one run per job, coalesces wakes, bounds each job kind's runs at once by its concurrency, backs a failing job off and recovers a panic in the run that raised it as that run's failure. Backfill's job for an account makes the run-start step once in the process, returning the verdicts made under another scanner to pending, masking every stale subject stored unmasked again from the store, and deciding each stored gate skip again under the thresholds it holds, returning to pending each one the gate no longer decides as the same skip and reopening the second pass. It then runs whichever pass has not ended, a page at a time, each page taking the account snapshot and the policy its job kind holds. Pass 1 spends under the account's target, and once its enumeration has ended after a change of scanner fetches again by identifier only the stale subjects stored masked. Pass 2 runs the delisting transition and then the restriction of the stored classes a rule added since restricts, makes both again in the same run at a page boundary where the policy's rules differ by value from those it last compared under, decides each waiting message through the scan gate, fetches and scans in memory the bodies the gate selects in the batch class, and sets the account's scan backlog series after every page. Delta sync's job ticks its account on the sync interval's phase, applying every change set since the account's cursor, recovering a cursor gap in a run of its own, and once the account's backfill second pass has ended running the delisting transition and the restriction of the stored classes, then deciding and scanning a bounded number of the messages waiting for a scan. Delta sync's reload also re-seals what it opened with an old key and sets the key-scan series, whether or not it lists an account. Each job hands the account's current refresh token back at the end of each unit of work with the adoption stamp of the credential its source was built over, records the account's latest provider authentication attempt, and has a credential the provider refuses read again from the account's row, building its token source and port again over a replaced one and making the call once more. It serves the health probe and the metrics endpoint for its whole life, every job kind's series labelled with its job kind beside each job's latest success and its bound, and logs as JSON to standard output at the level its `log_level` sets, each job's lines carrying its job kind and account |
 | The mediator | It serves both roots, whose registry holds the reads of the index and of the recorded state, the search, counts and sender statistics of the index, and the body operation, which releases a body the gate lets through. It reads its configuration through the library, takes the accounts it serves from the account snapshot at start and on its reload interval, loads their policy at every reload and before every body request, and carries the rate-state series of each account it serves through the Gmail adapter on its metrics endpoint. It logs as JSON to standard output at the level its `log_level` sets |
 | The UI | It reads its configuration through the library, loads the key pair and logs the key identifier it seals to, builds the sender classifier's lookups, and serves its read API, the setups' requests, the policy writes, the import and export of the policy and the browser app, whose chrome frames the home screen, the system screen, the jobs screen, the run screen, the installation screens, account settings, the policy screens and the base policy screens. The home screen's running-work strip, the jobs screen and the run screen follow the event stream as live surfaces, and the chrome's partial-index banner follows it while the banner shows, every surface on a tab sharing one connection per account. Of the keys [docs/UI.md section 18.1](./docs/UI.md#181-the-configuration-the-ui-declares) declares, it reads `database`, `listen`, `probe_listen`, `tls_cert`, `tls_key`, `insecure_http`, `sync_interval`, `heuristics_interval`, `stream_interval`, `default_theme`, `stream_reconnect_max`, `stream_poll_interval`, `attention_backlog_share`, `attention_mask_count`, `attention_serve_factor`, `attention_gap_days`, `seal_public_key_file`, `private_key_files`, `token_key_file`, `consent_redirect`, `identity_header`, `operator_name`, which defaults to `operator`, and `log_level`, which sets the level it logs at as JSON to standard output, with `default_theme`, `stream_reconnect_max`, `stream_poll_interval` and `consent_redirect` rendered into the entry document for the browser |
-| Delta sync | It reads its configuration through the library, refuses to start when the public key matches none of its private keys, and runs until stopped, serving the health probe and the metrics endpoint between ticks as during them. Each tick takes the account snapshot again, re-seals what it opened with an old key and sets the scan series, applies every change set since each account's cursor, recovers a cursor gap in a run of its own, and once an account's backfill second pass has ended runs the delisting transition and the restriction of the stored classes, then decides and scans a bounded number of the messages waiting for a scan. It logs as JSON to standard output at the level its `log_level` sets |
-| The reorg workload and the Heuristics Job | Still empty, so neither reads its configuration through the library or runs any of it |
 
 ## Delivered, mapped to outcomes
 
@@ -297,8 +296,10 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
   [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)), holding no database-resident code
   ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). The runtime roles, one per
-  deployable ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)), the UI's
-  decision grants ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)),
+  deployable and one per job kind of the worker
+  ([ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), the
+  UI's decision grants
+  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)),
   the audit log append-only to every
   runtime role, row-level security on every account-keyed table with the operation log scoped
   through its plan, and the transaction helper that sets and verifies the account
@@ -410,9 +411,9 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)), and each grant on the
   columns the UI's two setups write arrives with the statement that uses it
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
-  [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md)). The credential library,
-  `executioncontext/credential/`, seals to the public key and opens with a keyring of private keys,
-  and its `keygen` command writes the key pair
+  [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
+  credential library, `executioncontext/credential/`, seals to the public key and opens with a
+  keyring of private keys, and its `keygen` command writes the key pair
   ([ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
   [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)).
   `executioncontext/accountload/` builds the account snapshot
@@ -549,8 +550,9 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#250](https://github.com/ppat/mediated-mailbox-mcp/issues/250) after delivery, so backfill's
   hand-over carries the adoption stamp that
   [ADR-0089](./docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md) describes.
-  The backfill workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) makes the first
-  pass of [ADR-0017](./docs/adr/data/0017-two-pass-backfill.md) over every served account,
+  The backfill workload
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)) makes the
+  first pass of [ADR-0017](./docs/adr/data/0017-two-pass-backfill.md) over every served account,
   enumerating the full history a page at a time. Each page's messages are classified against the
   account's policy and their subjects masked, a restricted sender's included
   ([ADR-0003](./docs/adr/redaction/0003-subject-masking.md)), and the page's rows, the masking
@@ -624,12 +626,14 @@ What the code on `main` runs today, per composition root, none of it yet release
   gated-in body with [S3](#delivered-mapped-to-outcomes)'s converter and scans it, as
   [ADR-0017](./docs/adr/data/0017-two-pass-backfill.md) states. It records its runs, progress events
   and per-item failures, sets its completion flag when it ends
-  ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)), and emits the scan backlog depth as a
-  metric ([ADR-0093](./docs/adr/redaction/0093-composite-scan-gate.md)). A change of scanner
-  re-opens backfill
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)), and
+  emits the scan backlog depth as a metric
+  ([ADR-0093](./docs/adr/redaction/0093-composite-scan-gate.md)). A change of scanner re-opens
+  backfill
   ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)),
-  and every run decides each stored gate skip again under the thresholds it holds
-  ([ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)), as
+  and backfill's run-start step, which the worker makes once per process and account, at its start
+  and for a newly listed account, decides each stored gate skip again under the thresholds it holds
+  ([ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)), as
   each record states. Every verification row keyed to it is proven for D2's part, and every
   control it delivered has its mutation demonstration. **What it did not deliver.** Running backfill
   after each release and each change to the scanner's section with no manual step, which is
@@ -649,13 +653,14 @@ What the code on `main` runs today, per composition root, none of it yet release
   [V3](#v3--the-agent-arrives-read-only) · finished at image
   Delivered by pull request [#239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), which closed its ticket
   [#89](https://github.com/ppat/mediated-mailbox-mcp/issues/89), and not yet released. The sync
-  workload ([ADR-0022](./docs/adr/operability/0022-four-workloads.md)) runs as its own process until
-  stopped, ticking on the sync interval and serving its probe, metrics and logs between ticks as
-  during them
+  workload runs as delta sync's job kind in the worker, a process that runs until stopped
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)), ticking
+  on the sync interval and serving its probe, metrics and logs between ticks as during them
   ([ADR-0103](./docs/adr/operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md),
   [ADR-0018](./docs/adr/data/0018-delta-sync-polls.md),
-  [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). Each tick takes the account
-  snapshot and policy again, re-seals what it opened with an old key and sets the key-scan series
+  [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). Each reload of delta sync's
+  account snapshot re-seals what it opened with an old key and sets the key-scan series, and each
+  tick takes the latest account snapshot and policy
   ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
   [ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md),
   [ADR-0089](./docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)), applies
@@ -677,7 +682,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   attempt when the account's tick ends, and reads a refused credential again before it reports the
   refusal ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md),
   [ADR-0097](./docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
-  It refuses to start unless its public key matches one of its private keys
+  The worker it runs in refuses to start unless its public key matches one of its private keys
   ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Every
   verification row keyed to it is proven for D4's part, and every control it delivered has its
   mutation demonstration. **What it did not deliver.** Running beside backfill for days and
@@ -832,7 +837,8 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)). The UI's role gains exactly
   the columns the two setups write, the removal of an unused client, and a read of `oauth_clients`,
   its sealed `client_secret` for the client-secret part alone, and a migration adds `project_id`
-  and the account's mailbox ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md),
+  and the account's mailbox
+  ([ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md),
   [ADR-0016](./docs/adr/data/0016-schema.md)). Its composition root reads the key pair, logs the
   key identifier it seals to
   ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)) and reaches
@@ -847,7 +853,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   list's base policy item, the installation's Base policy navigation and the base policy sentence a
   connection's success adds, which [M8](#delivered-mapped-to-outcomes) delivered. Each workload
   picking up a connected account and a replaced credential with no manual step, which the worker of
-  [F10](#group-f--foundation) does within a reload, beside the mediator's own reload. **Later
+  [F10](#delivered-mapped-to-outcomes) does within a reload, beside the mediator's own reload. **Later
   work.** Before production point 1, account identifiers follow one grammar, in the UI's proposal,
   the server's check and the database, and the UI names its key files as the credential section
   does.
@@ -896,7 +902,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   mutation demonstration. **What it did not deliver.** Importing the real policy, at
   [production point 1](#production-point-1--the-read-path). Any signal telling a process of a
   policy edit, which none needs, since an edit takes effect at each process's own next reload,
-  within a minute in the mediator and in [F10](#group-f--foundation)'s worker. The `senders`
+  within a minute in the mediator and in [F10](#delivered-mapped-to-outcomes)'s worker. The `senders`
   analysis lens, its groupable dimensions and its range, which are [M6](#group-m--mutation-and-approval)'s. A confirmed candidate's rule and
   its history row, which are [M5](#group-m--mutation-and-approval)'s.
 - [x] **F9 — The code organized for growth** →
@@ -947,15 +953,15 @@ What the code on `main` runs today, per composition root, none of it yet release
   did not deliver.** [docs/UI.md](./docs/UI.md), [DESIGN.md](./DESIGN.md) and
   [USE_CASES.md](./USE_CASES.md) are outside the conventions pass and keep their own form. The
   background worker and the schema baseline the reorganization prepares for, which are
-  [F10](#group-f--foundation)'s and [F11](#delivered-mapped-to-outcomes)'s.
+  [F10](#delivered-mapped-to-outcomes)'s and [F11](#delivered-mapped-to-outcomes)'s.
 
 - [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image
   Delivered by pull request [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), which
   closed its ticket [#266](https://github.com/ppat/mediated-mailbox-mcp/issues/266), and not yet
-  released. Every deployable that runs, the mediator, the UI, backfill and delta sync, logs as JSON
-  to standard output at the level its `log_level` sets, `info` by default, and refuses at start a
-  value that names no level, through the configuration library
+  released. Every deployable that runs, the mediator, the UI and the worker, logs as JSON to
+  standard output at the level its `log_level` sets, `info` by default, and refuses at start a value
+  that names no level, through the configuration library
   ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md),
   [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). Each `main.go` builds the logger
@@ -969,8 +975,8 @@ What the code on `main` runs today, per composition root, none of it yet release
   proven by violation files. Every verification row keyed to it is proven, and every control it
   delivered has its mutation demonstration. It changed the composition roots, so it finished at
   image. **What it did not deliver.** The job kind and the account on the worker's job loggers,
-  which are [F10](#group-f--foundation)'s, derived from the logger its entry package receives. The
-  reorganization and heuristics job kinds, which log through the worker once
+  which are [F10](#delivered-mapped-to-outcomes)'s, derived from the logger its entry package
+  receives. The reorganization and heuristics job kinds, which log through the worker once
   [M2](#group-m--mutation-and-approval) and [M4](#group-m--mutation-and-approval) add them. The
   collection and shipping of the logs, which are the platform's.
 
@@ -1011,6 +1017,66 @@ What the code on `main` runs today, per composition root, none of it yet release
   [M4](#group-m--mutation-and-approval)'s. The UI's tests seed no apply or heuristics run, since the
   closed set of run pairs refuses them, so the proof of those surfaces is M2's and M4's, which add
   those pairs.
+
+- [x] **F10 — The background worker** →
+  [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
+  [V3](#v3--the-agent-arrives-read-only) · finished at image
+  Delivered by pull request [#328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), which
+  closed its ticket [#304](https://github.com/ppat/mediated-mailbox-mcp/issues/304), and not yet
+  released. One deployable, the worker, published as `mediated-mailbox-worker` from `worker/`, runs
+  backfill and delta sync as job kinds in one process, each with its own import list, runtime role,
+  connection pool, account loader and policy loader, and replaces the backfill and delta sync
+  deployables, their images and composition roots, and the empty reorganization and heuristics
+  deployables ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md),
+  [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). Its
+  scheduler is hand-written on Go's standard library and stores nothing. It asks a timed job on its
+  interval's phase, coalesces wakes, holds one run per job, bounds each job kind's runs at once by
+  its concurrency, backs a failing job off and resets the backoff on success, and recovers a panic
+  in the run that raised it, and job code starts a goroutine only through its recovering helper,
+  which a `go vet` analyser holds apart from the forms ADR-0119 leaves to review
+  ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
+  Each job kind's due decision is a pure core, and backfill makes its run-start step once per
+  process and account
+  ([ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)), so a
+  newly connected account is backfilled with no manual step, and a dropped account's runs are
+  cancelled. Each page takes its job kind's active policy, and a running second pass makes the
+  delisting and added-rule comparisons again when the rules differ by value
+  ([ADR-0037](./docs/adr/redaction/0037-delisting-transition.md),
+  [ADR-0113](./docs/adr/redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
+  A reload whose policy load fails adds no job, and delta sync's reload re-seals what it opens with
+  an old key whether or not it lists an account
+  ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md),
+  [ADR-0103](./docs/adr/operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)).
+  A job's success is a run that succeeds or a unit of work a run makes durable, each job exports its
+  latest success, starting from what its job kind's runs record, its bound and its waits for a slot
+  of its kind's limit, and the rules on a stopped worker and on a job whose latest success has aged
+  past its bound, not counting those waits, ship with the chart
+  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). Every series
+  carries its job kind, the scan backlog and the unclassified senders each have one series name for
+  both job kinds, and each job's logs carry its job kind and account. It reads one configuration
+  tree, a `database` section naming the server once with a block per job kind, and a section per
+  job kind ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). Code
+  isolation per job kind is carried by the import lists, the grant check keyed per job kind's list,
+  the pinned entry constructors, and the checks refusing `unsafe` and reflect's unsafe pointers in
+  the project's own code, a dependency added for a job that imports `unsafe` or holds assembly or an
+  object file, and cgo in the worker's build. It sets ADR-0117, ADR-0118, ADR-0119 and ADR-0121
+  Accepted, superseding
+  [ADR-0022](./docs/adr/operability/0022-four-workloads.md),
+  [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) and
+  [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md). Every
+  verification row keyed to F10 is proven, apart from the two on the heuristics run's job kind,
+  which key to [M4](#group-m--mutation-and-approval), every row of backfill and delta sync whose
+  code or tests moved is proven again in the worker, and every control it delivered has its
+  mutation demonstration. It changed the composition roots, so it finished at image. **What it did
+  not deliver.** The chart's object for the worker, a single copy, its role credentials, its
+  scratch space and one scanner block, which ticket
+  [#103](https://github.com/ppat/mediated-mailbox-mcp/issues/103) builds for
+  [R1](#group-r--packaging). Reorg apply and rollback and the heuristics run as job kinds, which are
+  [M2](#group-m--mutation-and-approval)'s and [M4](#group-m--mutation-and-approval)'s. Replicas of
+  the worker, ruled out while the platform runs one copy. Interrupting and pausing a job. The hint
+  from the mediator that a body waits, built only if
+  [production point 1](#production-point-1--the-read-path) shows agents waiting. The worker killed
+  mid-run on real substrate, at production point 1.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. The mediator's API
 and MCP roots serve the reads of the index and the recorded state, release the bodies the gate lets
@@ -1065,7 +1131,7 @@ redesign after agent workflows exist.
 **Units:** [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
 [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
 [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
-[F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#delivered-mapped-to-outcomes) ·
+[F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
 [R1](#group-r--packaging), then [production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
 the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
 invariant proven against a live adversary (an agent the operator, or a session on the operator's
@@ -1134,7 +1200,7 @@ holds, with an entry naming the point.
   [D2](#delivered-mapped-to-outcomes) · [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
   [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
   [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
-  [F8](#delivered-mapped-to-outcomes) · [F10](#group-f--foundation) · [F11](#delivered-mapped-to-outcomes) ·
+  [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
   [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
   [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
@@ -1218,8 +1284,7 @@ holds, with an entry naming the point.
   for the index to hold the real corpus and the review loops to have traffic.
 - **Supplied there:**
   - The worker's two new role credentials, for its reorganization and heuristics job kinds
-    ([ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md),
-    [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+    ([ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
   - Re-consent on the first account's grant for the calendar scope
     ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md),
     [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)).
@@ -1292,53 +1357,25 @@ What everything runs on. The tooling, the store, the adapter, the budget, where 
 credentials are kept, how the code is organized, how each deployable logs, the background worker
 and the schema production point 1 locks in. F1 is retired. Its application half lives in
 [F5](#delivered-mapped-to-outcomes) and its platform half at
-[production point 1](#production-point-1--the-read-path). F7 is retired.
-Its criterion, that an account newly connected, a credential replaced by re-authorization and a
-policy edit each reach every process that acts on them with no manual step and no restart, is met
-by [F10](#group-f--foundation)'s worker, which picks each change up within one reload and starts an
-account's backfill when the account appears, beside the reloads the mediator already makes
-([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+[production point 1](#production-point-1--the-read-path). F7 is retired. Its criterion, that an
+account newly connected, a credential replaced by re-authorization and a policy edit each reach
+every process that acts on them with no manual step and no restart, is met by
+[F10](#delivered-mapped-to-outcomes)'s worker, which picks each change up within one reload and
+starts an account's backfill when the account appears, beside the reloads the mediator already
+makes ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
 [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), so
-no signal between deployables is built. F4, F2, F5, F3, F6, F9, F8 and F11 are delivered and sit in
-the [delivered register](#delivered-mapped-to-outcomes), and F10 remains. F5
-also carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the
+no signal between deployables is built. F4, F2, F5, F3, F6, F9, F8, F11 and F10 are delivered and
+sit in the [delivered register](#delivered-mapped-to-outcomes), so no unit of this group remains.
+F5 also carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the
 scope that excludes permanent delete, because the grant is the adapter's.
-[F10](#group-f--foundation) serves [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) and
-also carries [O6](./USE_CASES.md#o6--deployable)'s connection of an account with no manual step,
-because the worker's reload of accounts is what starts a new account's backfill, flagged here
-rather than split. [F11](#delivered-mapped-to-outcomes) served
+[F10](#delivered-mapped-to-outcomes) served
+[G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) and also carried
+[O6](./USE_CASES.md#o6--deployable)'s connection of an account with no manual step, because the
+worker's reload of accounts is what starts a new account's backfill, flagged here rather than
+split. [F11](#delivered-mapped-to-outcomes) served
 [O3](./USE_CASES.md#o3--survives-its-failure-modes) and also carried
 [O2](./USE_CASES.md#o2--observable)'s checked spellings on the append-only policy history, because
 the schema's checks are one baseline.
-
-- [ ] **F10 — The background worker** →
-  [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
-  [V3](#v3--the-agent-arrives-read-only) · finishes at image
-  One deployable runs every background job kind, backfill and delta sync from the start and reorg
-  apply and the heuristics run as their units build them, in one process with a database role,
-  a connection pool and an import list per job kind
-  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md),
-  [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). Its
-  scheduler stores nothing, asks each job kind's pure due decision when to run, coalesces wakes,
-  holds one run per job, recovers a panic in the run that raised it, and backs off on failure, and
-  each credential-holding job kind has its own account and policy loader
-  ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
-  A running second pass makes the delisting and added-rule comparisons again when the policy it
-  holds changes ([ADR-0037](./docs/adr/redaction/0037-delisting-transition.md),
-  [ADR-0113](./docs/adr/redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
-  Its series carry the job kind, the shared library series included, its logs carry the job kind
-  and the account, and the stopped-worker rule and the rule per job kind on a last success that has
-  aged ship with the chart
-  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). It reads one
-  configuration tree with a section per job kind
-  ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It
-  replaces the backfill and delta sync deployables and the reorganization and heuristics
-  deployables' empty roots, so it finishes at image. What proves it is its rows over the provider
-  fake and a real database, the scheduler's timing tested under `testing/synctest`
-  ([TESTING.md](./TESTING.md)). The worker killed mid-run on real substrate waits for
-  [production point 1](#production-point-1--the-read-path). *Criteria:* every job kind's series
-  attributable to it, each job's time of last success emitted, and the two alerting rules firing
-  above their bounds and silent below them.
 
 ### Group D — data flows
 
@@ -1453,7 +1490,7 @@ classifications already stored in the index they follow
   authorizer, spends from the batch class, writes its audit row and is counted as a metric, and its
   series and logs carry its job kind
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
-  [ADR-0022](./docs/adr/operability/0022-four-workloads.md),
+  [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md),
   [ADR-0016](./docs/adr/data/0016-schema.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The apply job kind takes its
   account snapshot from its own loader at each batch, and the worker refuses to start unless its
@@ -1547,7 +1584,7 @@ classifications already stored in the index they follow
   heuristics runs again, so it restores the proof of the heuristics card's last run and next run and
   the home strip's heuristics cell.
   *Criteria:* each run is recorded, and its series and logs carry its job kind
-  ([ADR-0022](./docs/adr/operability/0022-four-workloads.md),
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)).
 - [ ] **M5 — The UI's decisions** → [G3](./USE_CASES.md#g3--reorganization) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at tested
@@ -1577,7 +1614,7 @@ classifications already stored in the index they follow
   The plans screen and the plan reviewer without its decision controls, over the `ops` dataset and
   the plan and sample endpoints
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
-  [ADR-0022](./docs/adr/operability/0022-four-workloads.md)), home's plan row and expiry rule, the
+  [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)), home's plan row and expiry rule, the
   analysis lenses over the `messages`, `senders`, `masking`, `gate` and `audit` datasets, and the
   review queue without its decision controls, built to [docs/UI.md](./docs/UI.md) sections 8.2, 8.5,
   8.6 and 8.9. The `senders` dataset exists from [M8](#delivered-mapped-to-outcomes) at levels 0
@@ -1724,9 +1761,9 @@ about its cluster.
   no manual step, as [D2](#delivered-mapped-to-outcomes)'s re-scan after a change of scanner and
   its re-decision of the gate skips after a change of the gate's thresholds need
   ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
-  [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md),
+  [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md),
   [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). It builds on
-  [F9](#delivered-mapped-to-outcomes), [F10](#group-f--foundation) and [F11](#delivered-mapped-to-outcomes), whose
+  [F9](#delivered-mapped-to-outcomes), [F10](#delivered-mapped-to-outcomes) and [F11](#delivered-mapped-to-outcomes), whose
   worker, schema and roles it packages, and has no extension bootstrap to run.
   Against the first
   release that attaches the key-generation binaries, the binary is downloaded, its keyless signature
@@ -1765,7 +1802,7 @@ about its cluster.
 | [G1](./USE_CASES.md#g1--whole-mailbox-visibility) whole-mailbox view | — | The data layer landed with F2, the adapter with F5 and the client surface with D3, all delivered |
 | [G2](./USE_CASES.md#g2--historical-understanding) historical understanding | — | The full-history index landed with D1, and the agent's reads over sender aggregates and label distribution with D3, both delivered |
 | [G3](./USE_CASES.md#g3--reorganization) reorganization | M2 · M5 | — |
-| [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | F10 | Delta sync landed with D4, which is delivered. F10 keeps it fresh inside the worker, with the alert on a sync job whose last success has aged |
+| [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) index tracks live | — | Delta sync landed with D4, and the worker that keeps it fresh, with the alert on a sync job whose last success has aged, landed with F10, both delivered |
 | [P1](./USE_CASES.md#p1--one-contract) one contract | — | No dedicated unit, correctly. The contract is authored in the decision records, first compiled by F5, which is delivered, and proven by X4 |
 | [P2](./USE_CASES.md#p2--backend-swap) backend swap | X4 | — |
 | [P3](./USE_CASES.md#p3--multi-account) multi-account | X3 | Accounts and their sealed credentials in the database landed with F6, which is delivered. The identifier-discoverability criterion ([ADR-0035](./docs/adr/operability/0035-required-identifiers-are-discoverable.md)) landed with D3, which is delivered |
@@ -1778,7 +1815,7 @@ about its cluster.
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | Writing the account-handling rules once where copies drifted landed with F9, and the schema settled before production point 1 makes the chain history landed with F11, both delivered. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
-| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step rides F10, a G4 unit, flagged in Group F's preamble |
+| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
 
 ## Dependencies
 
@@ -1821,7 +1858,7 @@ lands in is the [value path](#the-value-path)'s.
 | S1 → M3, S1 → F5 | The marker text and synthetic fixtures the UI's recorded fixtures, the provider fake and the adapter's tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | S1 → M8, D1 → M8, D2 → M8 | The policy snapshot validation a reload applies to every published edit, the stored senders the search picks from, and how a removed rule reaches the delisting transition |
 | M7 → M8 | The request token every policy request is bound to ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
-| D2 → R1 | The re-scan after a change of scanner and the re-decision of the gate skips after a change of the gate's thresholds, which the packaged read path runs because the chart restarts the worker after each release and each change to its configuration, and the worker makes backfill's run-start step at its start ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md), [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)) |
+| D2 → R1 | The re-scan after a change of scanner and the re-decision of the gate skips after a change of the gate's thresholds, which the packaged read path runs because the chart restarts the worker after each release and each change to its configuration, and the worker makes backfill's run-start step at its start ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md), [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)) |
 | S1 → D1, S2 → D1 | Sender classification, the policy snapshot the policy loader builds on, and subject masking, which pass 1 applies |
 | F2 → D1, F3 → D1, F5 → D1 | The schema backfill writes through, the budget it spends from, the adapter it reads with |
 | F3 → D1, F3 → D4 | The form conditions are raised in, an alerting rule over emitted metrics ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The policy loader's reload-failure alarm and delta sync's gap alert take the same form |
@@ -2005,5 +2042,4 @@ index](./docs/adr/README.md).
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
 | How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which row-level security confines to one account, so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role joins ADR-0091's list of roles |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |
-| How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval **[inferred]**, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. No runtime role may delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep every read of them fast through the first year ([F11](#delivered-mapped-to-outcomes)). So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |
-| Ratifying [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md), [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) and [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | F10 | The operator ruled each on 2026-10-07, and each is Proposed until the first pull request whose implementation it shapes, which sets it Accepted, marks [ADR-0022](./docs/adr/operability/0022-four-workloads.md), [ADR-0075](./docs/adr/data/0075-one-runtime-role-per-deployable.md) and [ADR-0098](./docs/adr/redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) superseded, and re-points their citations ([docs/adr/README.md](./docs/adr/README.md)) |
+| How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval **[inferred]**, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. No runtime role may delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep the reads of them [F11](#delivered-mapped-to-outcomes) measured fast through the first year. So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |

@@ -1,0 +1,20 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a page the run fails on after its last attempt records no failed item
+packages: ./worker/internal/backfill/pass1
+tests: TestAPageFailingEveryAttemptFailsTheRun TestARefusedCredentialFailsTheRunAtOnce TestARefusedTokenTheRunGotFailsTheRun
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
+--- a/worker/internal/backfill/pass1/pass1.go
++++ b/worker/internal/backfill/pass1/pass1.go
+@@ -232,9 +232,6 @@ func (p *Pass) fetch(ctx context.Context) (mail.Page[mail.MessageMetadata], *Fai
+ 		case core.Abandon:
+ 			failure.Disposition = "abandoned"
+ 			cause := fmt.Errorf("asking for page %d: %w", number, err)
+-			if recErr := p.deps.Store.Failure(ctx, p.account, p.run, *failure); recErr != nil {
+-				return page, nil, p.failed(ctx, errors.Join(cause, recErr))
+-			}
+ 			return page, nil, p.failed(ctx, cause)
+ 		}
+ 		if err := p.deps.Store.Event(ctx, p.account, p.run, e); err != nil {

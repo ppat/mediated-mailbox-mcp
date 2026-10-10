@@ -1,0 +1,28 @@
+control: A concurrency limit per job kind bounds its runs at once
+removes: a run never takes a slot of its job's limit, so the limit bounds nothing
+packages: ./worker/internal/schedule
+tests: TestALimitBoundsTheRunsOfAJobKindAtOnce
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 28c25206..f935f901 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -339,7 +339,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 		case <-st.wake:
+ 		default:
+ 		}
+-		if job.Limit != nil && !s.take(ctx, key, st, job.Limit) {
++		if job.Limit != nil && false && !s.take(ctx, key, st, job.Limit) {
+ 			return
+ 		}
+ 		var onPhase time.Time
+@@ -347,7 +347,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 			onPhase = anchor.Add(at.Sub(anchor) / job.Interval * job.Interval)
+ 		}
+ 		outcome, err := s.ask(ctx, key, st, job, at, onPhase)
+-		if job.Limit != nil {
++		if job.Limit != nil && false {
+ 			<-job.Limit.slots
+ 		}
+ 		switch outcome {

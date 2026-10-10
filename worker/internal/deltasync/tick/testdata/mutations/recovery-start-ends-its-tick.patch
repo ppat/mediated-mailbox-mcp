@@ -1,0 +1,20 @@
+control: A tick records as failed the account's tick and gap recovery a stopped process left running
+removes: a recovery's start also records the tick that started it, still running, as failed
+packages: ./worker/internal/deltasync/tick
+tests: TestATickRecordsAStoppedRunAsFailed
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
+index e6cc3e0..8d9a6ff 100644
+--- a/worker/internal/deltasync/tick/postgres.go
++++ b/worker/internal/deltasync/tick/postgres.go
+@@ -93,7 +93,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
+ 	}
+ 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+ 		q := runrecord.New(t)
+-		if pass == PassTick {
++		if pass == PassTick || pass == PassGapRecovery {
+ 			if err := endStopped(ctx, q, account); err != nil {
+ 				return err
+ 			}

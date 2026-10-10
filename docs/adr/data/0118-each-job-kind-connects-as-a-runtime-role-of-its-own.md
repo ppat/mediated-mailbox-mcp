@@ -1,6 +1,6 @@
 # 0118. Each deployable, and inside the worker each job kind, connects to the database as a runtime role of its own, and inside one process the roles bound a buggy job, not a compromised process
 
-**Status:** Proposed (supersedes [ADR-0075](./0075-one-runtime-role-per-deployable.md)) ·
+**Status:** Accepted (supersedes [ADR-0075](./0075-one-runtime-role-per-deployable.md)) ·
 **Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 
@@ -84,8 +84,9 @@ connects as is held in one place in `db/check`.
   [ADR-0016](./0016-schema.md)'s policy on the log looks up, because PostgreSQL runs a policy's
   lookup with the querying role's privileges. Those columns are part of what its statements need.
 - The bug bound inside the worker holds only while each job kind's code receives its own pool. The
-  composition root wires that, and review holds it, since the grant check sees which statements a
-  list admits, not which pool reaches the code.
+  composition root wires that, since the grant check sees which statements a list admits, not which
+  pool reaches the code. A test of the composition root holds the pools it opens and the pool it
+  hands each job kind, and review holds that its run passes the pools it opened on to the job kinds.
 - Assumptions about other components. The roles are created once per cluster before the chain runs,
   and the chain's grant statements name them ([ADR-0048](./0048-forward-only-migrations.md)). The
   grant check shows a role's grants are enough for the statements its list admits

@@ -1,0 +1,20 @@
+control: A credential the provider refuses is read again from the account's row before the refusal is reported, and a replaced one is used for the call it refused
+removes: the re-read's adoption stamp is made the account's holding but its new source is not, so the hand-over writes the refused credential over the one the operator stored
+packages: ./worker/internal/backfill
+tests: TestARefusedCallUsesTheCredentialTheOperatorStored/the_first_pass TestARefusedCallUsesTheCredentialTheOperatorStored/the_second_pass
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+index f4fb328a..3ac2036a 100644
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -239,7 +239,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+ 		return out, errors.Join(err, cerr)
+ 	}
+ 	s.h.keep(s.account, creds, conn)
+-	s.built, s.adoption, s.conn, s.port = creds, reread.Adoption(), conn, port
++	s.adoption, s.port = reread.Adoption(), port
+ 	return call(ctx, port)
+ }
+ 

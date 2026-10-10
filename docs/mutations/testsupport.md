@@ -320,6 +320,22 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (2):** no kind is ever below its minimum
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReportFailsAGeneratorThatMissesItsMix`
 
+## The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1
+- **Break (1):** a starter is reported only where it is called, so a method value or a method expression of one escapes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+- **Break (2):** a package whose path only starts with the worker's is reported as the worker's
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+- **Break (3):** nothing is reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+- **Break (4):** the scheduler's own goroutines are reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+- **Break (5):** only go statements are reported, so a function that starts a goroutine running what it is given escapes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+- **Break (6):** a goroutine a test file starts is reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+
 ## The operation sampler draws each operation under a fresh set of weights from rapid's own stream
 
 - **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196)
@@ -443,3 +459,15 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (3):** a literal passed to tx.RunBase is not a transaction literal, so every subsection built in one is reported as outside the helper
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
+
+## The unsafe analyser refuses an import of unsafe, and a use of reflect's unsafe pointers, in this module's code
+
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1
+- **Break (1):** an import of unsafe is not reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestUnsafeImport`
+- **Break (2):** code of other modules is reported as this module's
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestUnsafeImport`
+- **Break (3):** a use of reflect's unsafe pointers is not reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestUnsafeImport`
+- **Break (4):** an import of unsafe or a use of reflect's unsafe pointers in a test file is reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestUnsafeImport`

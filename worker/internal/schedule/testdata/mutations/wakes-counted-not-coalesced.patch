@@ -1,0 +1,19 @@
+control: One run per job, with wakes coalesced, held in the process
+removes: every wake waits in a queue of its own, so wakes during a run are counted as further runs, not coalesced into one
+packages: ./worker/internal/schedule
+tests: TestWakesDuringARunCoalesceIntoOneRun
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 23d24f2b..7d779212 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -228,7 +228,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
+ 		job.Logger = slog.New(slog.DiscardHandler)
+ 	}
+ 	ctx, cancel := context.WithCancel(s.ctx)
+-	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{})}
++	st := &state{cancel: cancel, wake: make(chan struct{}, 100), done: make(chan struct{})}
+ 	s.jobs[key] = st
+ 	seed := job.LastSuccess
+ 	if seed.IsZero() {

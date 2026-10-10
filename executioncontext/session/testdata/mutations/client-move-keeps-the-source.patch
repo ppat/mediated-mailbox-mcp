@@ -1,0 +1,19 @@
+control: A held source serves its account until its credential or its client changes
+removes: a held source is kept whatever client the account now connects through, so an account moved to another client is served through the old one
+packages: ./executioncontext/session
+tests: TestAHeldSourceServesItsAccountUntilItsCredentialOrClientChanges
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -175,7 +175,7 @@
+ 	h.mu.Lock()
+ 	defer h.mu.Unlock()
+ 	kept, ok := h.held[account]
+-	sameClient := kept.built.ClientID == creds.ClientID && bytes.Equal(kept.built.ClientSecret, creds.ClientSecret)
++	sameClient := true
+ 	if ok && sameClient && (bytes.Equal(kept.built.Credential, creds.Credential) || bytes.Equal(kept.conn.source.Credential(), creds.Credential)) {
+ 		return kept.conn
+ 	}

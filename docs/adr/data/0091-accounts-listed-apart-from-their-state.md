@@ -52,8 +52,9 @@ column grant cannot tell the two reads apart.
   stays whole. Against it, the schema checks in `db/check` model tables only, so the view would be
   a blind spot for the predicate and account checks.
 - **A listing role that bypasses row-level security.** For it, nothing else changes. Against it,
-  [ADR-0075](./0075-one-runtime-role-per-deployable.md) gives roles to deployables only, and the
-  roles test refuses any runtime role that bypasses row-level security.
+  [ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) gives roles to
+  deployables and the worker's job kinds only, and the roles test refuses any runtime role that
+  bypasses row-level security.
 
 ## Consequences
 

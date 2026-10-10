@@ -1,0 +1,18 @@
+control: A failed job is asked again after a capped exponential backoff, which a success resets and a wake waits out
+removes: a success leaves the count of failures as it was, so the backoff never resets
+packages: ./worker/internal/schedule
+tests: TestASuccessResetsTheBackoff
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 5a62353c..efdd0849 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -318,7 +318,6 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 		case Cancelled:
+ 			return
+ 		case Succeeded:
+-			failures = 0
+ 		case Failed, Panic:
+ 			failures++
+ 			delay := job.Backoff.after(failures)

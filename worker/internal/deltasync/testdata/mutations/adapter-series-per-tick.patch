@@ -1,0 +1,23 @@
+control: Every series a job kind emits carries its job kind
+removes: every Gmail adapter after the first counts on series of its own, so only the first adapter's requests reach the kind's registry
+packages: ./worker/internal/deltasync
+tests: TestEverySeriesTheKindEmitsCarriesItsJobKind
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -150,7 +150,11 @@
+ // and counting its requests on metrics, which every adapter it builds shares (ADR-0077).
+ func gmailPort(metrics *gmail.Metrics, client *http.Client) func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
+ 	return func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
+-		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: metrics})
++		counted := metrics
++		if own, err := gmail.NewMetrics(prometheus.NewRegistry()); err == nil {
++			metrics = own
++		}
++		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: counted})
+ 	}
+ }
+ 

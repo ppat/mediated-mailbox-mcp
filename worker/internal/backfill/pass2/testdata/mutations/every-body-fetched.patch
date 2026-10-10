@@ -1,0 +1,19 @@
+control: Backfill's second pass never asks for a restricted sender's body
+removes: every message is scanned whatever the gate decided, a restricted sender's included
+packages: ./worker/internal/backfill/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -263,7 +263,7 @@
+ 	var items []pass1.Item
+ 	for _, m := range messages {
+ 		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(composed, p.deps.Lookups, p.deps.Gate, now, m, hits[m.Domain])}
+-		if o.Verdict.Scans() {
++		if true {
+ 			scanned, item, err := p.scan(ctx, m.ID, number)
+ 			if err != nil {
+ 				return Step{}, err

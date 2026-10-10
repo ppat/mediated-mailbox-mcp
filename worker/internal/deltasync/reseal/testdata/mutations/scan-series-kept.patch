@@ -1,0 +1,19 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: a series whose account or client a later scan no longer holds stays reported
+packages: ./worker/internal/deltasync/reseal
+tests: TestTheSeriesFollowTheLastScan
+scheduled-count: no
+
+diff --git a/worker/internal/deltasync/reseal/reseal.go b/worker/internal/deltasync/reseal/reseal.go
+index 7dd6b6e..44b0fad 100644
+--- a/worker/internal/deltasync/reseal/reseal.go
++++ b/worker/internal/deltasync/reseal/reseal.go
+@@ -83,7 +83,7 @@ func (m *Metrics) Set(s accountload.Scan) {
+ func set(g *prometheus.GaugeVec, before []string, now map[string]bool) []string {
+ 	for _, k := range before {
+ 		if _, ok := now[k]; !ok {
+-			g.DeleteLabelValues(k)
++			_ = k
+ 		}
+ 	}
+ 	for k, old := range now {

@@ -439,3 +439,13 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scan`:** `TestSubjectThreshold`
 - **Break (5):** a body is scored against the subject threshold
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scan`:** `TestSubjectThreshold`
+
+## Two composed policies are equal when they hold the same rules by value, whatever their order
+
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)
+- **Break (1):** two policies holding the same rules are equal only when the rules come in the same order
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/policy`:** `TestComposedPoliciesAreEqualByValue`, `TestComposedPoliciesAreEqualByValue/the_same_rules_in_another_order`
+- **Break (2):** the comparison leaves out each rule's identifier, so a renamed rule compares equal
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/policy`:** `TestComposedPoliciesAreEqualByValue`, `TestComposedPoliciesAreEqualByValue/a_rule_renamed`
+- **Break (3):** the comparison leaves out each rule's domain suffixes, so a rule whose suffixes changed compares equal
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/policy`:** `TestComposedPoliciesAreEqualByValue`, `TestComposedPoliciesAreEqualByValue/a_suffix_changed`

@@ -1,0 +1,19 @@
+control: A removed rule returns its sender's messages to pending scan, and the pass starts over
+removes: a run that marked messages keeps its checkpoint, so marked messages before it wait until the pass ends
+packages: ./worker/internal/backfill/pass2
+tests: TestARemovedRuleReturnsItsSendersMessagesToPendingScan TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -201,7 +201,7 @@
+ // value from the active one, so a policy edit reaches the stored classes within one reload and one
+ // page (ADR-0119).
+ func (p *Pass) compare(ctx context.Context, composed policy.Composed) error {
+-	restart := core.Restart(p.at)
++	restart := p.at
+ 	marked, err := p.deps.Store.Delist(ctx, p.account, p.run, func(restricted []string) []string {
+ 		return index.Delisted(composed, p.deps.Lookups, restricted)
+ 	}, restart)

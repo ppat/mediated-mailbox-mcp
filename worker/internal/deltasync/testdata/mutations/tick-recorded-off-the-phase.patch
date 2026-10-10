@@ -1,0 +1,20 @@
+control: An account's tick runs only once its sync interval has passed since the last
+removes: a tick is recorded at the time it was asked rather than at its time on the ticker's phase, so after a tick at the end of a backoff the ticker's next tick reads not due and the account waits one interval more
+packages: ./worker/internal/deltasync
+tests: TestATickAtTheEndOfABackoffKeepsThePhase
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 9e59f786..69eced3d 100644
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -268,7 +268,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
+ 			}
+ 			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
+ 			// of a backoff leaves the ticker's next tick due.
+-			ticked, last = true, mail.UnixMilli(ask.Phase.UnixMilli())
++			ticked, last = true, at
+ 			return d.tick(ctx, account, logger)
+ 		},
+ 	}

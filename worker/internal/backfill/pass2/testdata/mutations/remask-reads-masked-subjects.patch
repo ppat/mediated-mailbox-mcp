@@ -1,0 +1,47 @@
+control: A backfill run's start masks every stale subject stored unmasked again from the store, a batch at a time, with a masking event for each mask
+removes: the run-start step masks the subjects stored masked again from their masked text too, so a subject whose masks hid what the new scanner reads is never fetched again
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass2
+tests: TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
+index d48602f4..18b57862 100644
+--- a/db/messages/ingest/ingest.sql
++++ b/db/messages/ingest/ingest.sql
+@@ -108,7 +108,6 @@ SELECT
+ FROM messages AS m
+ WHERE
+     m.account_id = @account_id
+-    AND NOT m.subject_masked
+     AND (
+         m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
+         OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
+@@ -139,7 +138,6 @@ FROM (
+ WHERE
+     m.account_id = @account_id
+     AND m.message_id = r.message_id
+-    AND NOT m.subject_masked
+     AND (
+         m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
+         OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
+diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
+index bb55d1ad..6d790d05 100644
+--- a/db/messages/ingest/ingest.sql.go
++++ b/db/messages/ingest/ingest.sql.go
+@@ -155,7 +155,6 @@ FROM (
+ WHERE
+     m.account_id = $3
+     AND m.message_id = r.message_id
+-    AND NOT m.subject_masked
+     AND (
+         m.subject_scanner_version IS DISTINCT FROM $1::int
+         OR m.subject_scanner_revision IS DISTINCT FROM $2::text
+@@ -329,7 +328,6 @@ SELECT
+ FROM messages AS m
+ WHERE
+     m.account_id = $1
+-    AND NOT m.subject_masked
+     AND (
+         m.subject_scanner_version IS DISTINCT FROM $2::int
+         OR m.subject_scanner_revision IS DISTINCT FROM $3::text

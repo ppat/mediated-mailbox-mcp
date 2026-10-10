@@ -1,4 +1,4 @@
-control: A shared library's statements are planned under the role of each deployable that admits it
+control: A shared library's statements are planned under the role of each deployable and job kind that admits it
 removes: the spenders' roles may read and write grants but not delete them
 packages: ./db/check
 tests: TestGrantsCoverAdmittedSubsections
@@ -17,4 +17,4 @@ index eba1d5bc..c5ea8852 100644
 +GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at) ON rate_grants
  TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
  
- -- The policy loader's statement, in db/policyrules, runs under the role of each deployable that loads
+ -- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads

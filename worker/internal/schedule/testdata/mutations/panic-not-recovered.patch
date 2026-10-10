@@ -1,0 +1,21 @@
+control: A panic in one job is its run's failure and stops nothing else
+removes: a run is called with no recovery, so its panic stops the worker
+packages: ./worker/internal/schedule
+tests: TestAPanicIsItsRunsFailureAndStopsNothingElse/in_the_run
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 41b5d3ba..9995c861 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -357,10 +357,5 @@ func (s *Scheduler) ask(ctx context.Context, key Key, job Job, at time.Time) (Ou
+ 
+ // call runs run, recovering a panic in it as an error wrapping ErrPanicked.
+ func call(ctx context.Context, run Run, ask Ask) (panicked bool, err error) {
+-	defer func() {
+-		if r := recover(); r != nil {
+-			panicked, err = true, Panicked(r)
+-		}
+-	}()
+ 	return false, run(ctx, ask)
+ }

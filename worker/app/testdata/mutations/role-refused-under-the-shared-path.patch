@@ -1,0 +1,22 @@
+control: The worker refuses a configuration it cannot run its job kinds with
+removes: a job kind's empty user or password file is refused by the composed section's validation, under the shared section's path rather than the job kind's own
+packages: ./worker/app
+tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheStart/--database.backfill.user= TestATickThatCannotRunRefusesTheStart/--database.sync.user= TestATickThatCannotRunRefusesTheStart/backfill_password_file TestATickThatCannotRunRefusesTheStart/sync_password_file
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -143,12 +143,6 @@
+ 	}{{backfill.Kind, c.Database.Backfill}, {deltasync.Kind, c.Database.Sync}} {
+ 		// The role's own values are refused by their own paths, so the shared ones are all a refusal
+ 		// of the composed section can name, and its paths are the worker's too.
+-		switch {
+-		case kind.role.User == "":
+-			return fmt.Errorf("database.%s.user is empty", kind.name)
+-		case kind.role.PasswordFile == "":
+-			return fmt.Errorf("database.%s.password_file is empty", kind.name)
+-		}
+ 		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
+ 			return err
+ 		}

@@ -1,0 +1,34 @@
+control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
+removes: the account's token is handed over only once the pass ends, not after every page
+packages: ./worker/internal/backfill
+tests: TestEachPageIsAUnitOfWork
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -488,7 +488,7 @@
+ 			return errors.Join(append(handOvers, err)...)
+ 		}
+ 		step, err := p.Next(ctx)
+-		if hoErr := u.end(ctx); hoErr != nil {
++		if hoErr := endAtTheEnd(ctx, u, err, step); hoErr != nil {
+ 			handOvers = append(handOvers, hoErr)
+ 		}
+ 		metrics.Count(account, step)
+@@ -506,6 +506,14 @@
+ 			return errors.Join(handOvers...)
+ 		}
+ 	}
++}
++
++// endAtTheEnd ends the unit of work only when the pass is over.
++func endAtTheEnd(ctx context.Context, u *unit, err error, step pass1.Step) error {
++	if err == nil && !step.Done {
++		return nil
++	}
++	return u.end(ctx)
+ }
+ 
+ // leasedBody returns the body fetch the second pass uses, a call of port's body read under a lease in

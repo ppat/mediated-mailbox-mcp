@@ -1,0 +1,17 @@
+control: Each job kind's constructor takes only what the job kind needs
+removes: the jobs delta sync adds and drops are reached through an interface that also stops the scheduler
+packages: ./worker/app
+tests: TestEachJobKindsConstructorTakesOnlyWhatItNeeds
+scheduled-count: no
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -72,6 +72,7 @@
+ type Jobs interface {
+ 	Ensure(key schedule.Key, job schedule.Job) error
+ 	Remove(key schedule.Key)
++	Stop()
+ }
+ 
+ // Config is what delta sync's job kind is built from, and nothing more.

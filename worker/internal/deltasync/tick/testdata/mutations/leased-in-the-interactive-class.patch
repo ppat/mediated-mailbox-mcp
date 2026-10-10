@@ -1,0 +1,20 @@
+control: A tick spends from the account's budget in the sync class
+removes: a tick's calls are leased in the interactive class
+packages: ./worker/internal/deltasync/tick
+tests: TestATickSpendsInTheSyncClass
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/provider.go b/worker/internal/deltasync/tick/provider.go
+index 8d27af8..73aeff0 100644
+--- a/worker/internal/deltasync/tick/provider.go
++++ b/worker/internal/deltasync/tick/provider.go
+@@ -30,7 +30,7 @@ type Leased struct {
+ var _ Provider = Leased{}
+ 
+ func call[T any](ctx context.Context, l Leased, op mail.ProviderOp, do func(context.Context) (T, error)) (T, error) {
+-	return lease.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, op, do)
++	return lease.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Interactive, op, do)
+ }
+ 
+ // CurrentCursor implements Provider.

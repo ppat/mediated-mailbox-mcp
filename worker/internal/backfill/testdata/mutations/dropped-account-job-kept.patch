@@ -1,0 +1,19 @@
+control: An account no longer served has its job removed, and its running run cancelled
+removes: the reload never removes the job of an account it no longer lists, so its run keeps running
+packages: ./worker/internal/backfill
+tests: TestADroppedAccountsRunIsCancelled
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 4ce81b71..3ec0ddef 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -200,7 +200,6 @@ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
+ 			continue
+ 		}
+ 		b.logger.Info("an account is no longer listed, so its backfill stops", "account", account)
+-		b.jobs.Remove(schedule.Key{Kind: Kind, ID: account})
+ 		// The job's run has returned, so nothing sets the account's series again.
+ 		b.first.Forget(account)
+ 		b.backlog.Forget(account)

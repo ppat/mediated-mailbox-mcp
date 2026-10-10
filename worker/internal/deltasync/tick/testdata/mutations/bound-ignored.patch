@@ -1,0 +1,22 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: a tick decides every waiting message whatever its bound
+packages: ./worker/internal/deltasync/tick
+tests: TestATickDecidesABoundedNumberAndTheNextGoesOn
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index ce882013..b4c9e8a2 100644
+--- a/worker/internal/deltasync/tick/tick.go
++++ b/worker/internal/deltasync/tick/tick.go
+@@ -332,8 +332,8 @@ func (t *ticker) scanning(ctx context.Context) error {
+ 		return fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err)
+ 	}
+ 	decided := 0
+-	for decided < t.deps.Decisions {
+-		waiting, err := t.deps.Store.Pending(ctx, t.account, t.at.Checkpoint.After, min(t.deps.PageSize, t.deps.Decisions-decided))
++	for decided < 1<<30 {
++		waiting, err := t.deps.Store.Pending(ctx, t.account, t.at.Checkpoint.After, t.deps.PageSize)
+ 		if err != nil {
+ 			return fmt.Errorf("reading the messages waiting for a scan: %w", err)
+ 		}

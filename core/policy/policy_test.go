@@ -237,3 +237,49 @@ func TestNoPolicyValueExposesAField(t *testing.T) {
 	mustnotcompile.RequireNoExportedFields(t, "github.com/ppat/mediated-mailbox-mcp/core/policy",
 		"Rule", "Snapshot", "Composed", "Outcome")
 }
+
+// Two composed policies are equal when they hold the same rules by value, in any order, and not when
+// a rule is added, removed, renamed or given another suffix, or when one restricts every sender
+// (ADR-0119).
+func TestComposedPoliciesAreEqualByValue(t *testing.T) {
+	a := load(t, valid).For("acct-a")
+	reordered := load(t, []policy.Row{
+		rule("acct-a", "candidate.acct-a.examplebank.com", "examplebank.com"),
+		rule("", "gov.federal.irs", "irs.gov"),
+		rule("", "financial.brokerage.fidelity", "fmr.com", "fidelity.com"),
+	}).For("acct-a")
+	cases := []struct {
+		name  string
+		other policy.Composed
+		equal bool
+	}{
+		{"the same rows loaded again", load(t, valid).For("acct-a"), true},
+		{"the same rules in another order", reordered, true},
+		{"a rule added", load(t, append(valid[:len(valid):len(valid)], rule("acct-a", "candidate.acct-a.new.example", "new.example"))).For("acct-a"), false},
+		{"a rule removed", load(t, valid[1:]).For("acct-a"), false},
+		{"a suffix changed", load(t, []policy.Row{
+			rule("", "financial.brokerage.fidelity", "fidelity.com"),
+			rule("", "gov.federal.irs", "irs.gov"),
+			rule("acct-a", "candidate.acct-a.examplebank.com", "examplebank.com"),
+		}).For("acct-a"), false},
+		{"a rule renamed", load(t, []policy.Row{
+			rule("", "financial.brokerage.fidelity", "fidelity.com", "fmr.com"),
+			rule("", "gov.federal.irs.renamed", "irs.gov"),
+			rule("acct-a", "candidate.acct-a.examplebank.com", "examplebank.com"),
+		}).For("acct-a"), false},
+		{"no policy loaded", policy.Composed{}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := a.Equal(c.other); got != c.equal {
+				t.Errorf("Equal = %v, want %v", got, c.equal)
+			}
+			if got := c.other.Equal(a); got != c.equal {
+				t.Errorf("Equal reversed = %v, want %v", got, c.equal)
+			}
+		})
+	}
+	if !(policy.Composed{}).Equal(policy.Composed{}) {
+		t.Error("two policies restricting every sender are not equal")
+	}
+}

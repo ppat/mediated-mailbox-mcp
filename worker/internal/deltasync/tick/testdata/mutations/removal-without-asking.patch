@@ -1,0 +1,20 @@
+control: A gap recovery removes a stored message dated in its window once a complete listing left it out and the provider no longer returns it by its identifier
+removes: a gap recovery removes every stored message its listing left out, the ones the provider still returns by identifier included
+packages: ./worker/internal/deltasync/tick ./worker/internal/core/deltasync/tick
+tests: TestARecoveryRemovesWhatTheProviderNoLongerHolds TestRemoval
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/core/deltasync/tick/tick.go b/worker/internal/core/deltasync/tick/tick.go
+index bda2d1c..25ea5ff 100644
+--- a/worker/internal/core/deltasync/tick/tick.go
++++ b/worker/internal/core/deltasync/tick/tick.go
+@@ -52,7 +52,7 @@ func Gone(asked []string, held []mail.MessageMetadata) []string {
+ 	}
+ 	var out []string
+ 	for _, id := range asked {
+-		if !returned[id] {
++		if !returned[id] || returned[id] {
+ 			out = append(out, id)
+ 		}
+ 	}

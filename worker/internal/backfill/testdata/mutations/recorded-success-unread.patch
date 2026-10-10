@@ -1,0 +1,20 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: backfill ensures its jobs without the latest success its runs record, so each starts at its ensure
+packages: ./worker/internal/backfill
+tests: TestEachJobStartsFromItsRecordedLatestSuccess
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 04162043..570ed7f7 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -216,7 +216,7 @@ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
+ 			continue
+ 		}
+ 		job := b.job(account)
+-		job.LastSuccess = b.seed(ctx, account)
++		_ = b.seed
+ 		if err := b.jobs.Ensure(schedule.Key{Kind: Kind, ID: account}, job); err != nil {
+ 			return err
+ 		}

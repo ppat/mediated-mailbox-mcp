@@ -1,0 +1,19 @@
+control: An account's series go once the work that sets them ends
+removes: the second pass's backlog series stays once the pass ends, reading its last value beside delta sync's
+packages: ./worker/internal/backfill
+tests: TestTheKindsSeriesOfAnAccountGoWhenItsWorkEnds TestEachSecondPassPageIsAUnitOfWork
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index da77c3d5..a715b262 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -559,7 +559,6 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
+ 		ask.Progressed()
+ 		at := p.Progress()
+ 		if step.Done {
+-			metrics.Forget(account)
+ 			logger.Info("the second pass ended", "run", p.Run(), "pages", at.Counters.Pages,
+ 				"decided", at.Counters.Decided, "scanned", at.Counters.Scanned, "skipped", at.Counters.Skipped, "pending", at.Counters.Pending)
+ 			return errors.Join(handOvers...)

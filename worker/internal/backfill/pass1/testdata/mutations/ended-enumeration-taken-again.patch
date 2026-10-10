@@ -1,0 +1,20 @@
+control: A killed backfill run resumes from its last checkpointed page, with at most one page of rework
+removes: a run resuming a pass whose enumeration has ended asks for the first page again rather than fetching the stale subjects and finishing
+packages: ./worker/internal/backfill/pass1
+tests: TestARunKilledBeforeItsEndFinishesWithoutEnumeratingAgain TestAPassReopenedAfterItsEnumerationEndedFetchesTheStaleSubjectsAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
+--- a/worker/internal/backfill/pass1/pass1.go
++++ b/worker/internal/backfill/pass1/pass1.go
+@@ -220,9 +220,6 @@
+ 			step, err = Step{}, p.failed(ctx, schedule.Panicked(r))
+ 		}
+ 	}()
+-	if p.at.Checkpoint.Ended() {
+-		return p.refetch(ctx)
+-	}
+ 	page, recovered, err := p.fetch(ctx)
+ 	if err != nil {
+ 		return Step{}, err

@@ -1,0 +1,18 @@
+control: Two composed policies are equal when they hold the same rules by value, whatever their order
+removes: the comparison leaves out each rule's identifier, so a renamed rule compares equal
+packages: ./core/policy
+tests: TestComposedPoliciesAreEqualByValue TestComposedPoliciesAreEqualByValue/a_rule_renamed
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -89,7 +89,7 @@
+ 	out := make([]string, 0, len(rules))
+ 	for _, r := range rules {
+ 		suffixes := slices.Sorted(slices.Values(r.suffixes))
+-		out = append(out, strconv.Quote(r.id)+" "+strings.Join(suffixes, " "))
++		out = append(out, strings.Join(suffixes, " "))
+ 	}
+ 	slices.Sort(out)
+ 	return out

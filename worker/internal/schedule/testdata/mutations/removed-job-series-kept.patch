@@ -1,0 +1,23 @@
+control: A job's last success is a run that succeeded or a unit of work made durable, and its series follow every way a run ends
+removes: a removed job's series stay, reading the time of its last success
+packages: ./worker/internal/schedule
+tests: TestTheJobSeriesFollowEveryWayARunEnds
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/metrics.go b/worker/internal/schedule/metrics.go
+index afbc5273..1e173312 100644
+--- a/worker/internal/schedule/metrics.go
++++ b/worker/internal/schedule/metrics.go
+@@ -136,11 +136,7 @@ func (m *Metrics) BackingOff(key Key, delay time.Duration) {
+ 
+ // Removed implements Observer. A removed job's own series go with it.
+ func (m *Metrics) Removed(key Key) {
+-	m.backoff.DeleteLabelValues(key.Kind, key.ID)
+-	m.lastSuccess.DeleteLabelValues(key.Kind, key.ID)
+-	m.late.DeleteLabelValues(key.Kind, key.ID)
+-	m.waited.DeleteLabelValues(key.Kind, key.ID)
+-	m.waiting.DeleteLabelValues(key.Kind, key.ID)
++
+ }
+ 
+ // seconds returns t in seconds since the epoch, to the millisecond.

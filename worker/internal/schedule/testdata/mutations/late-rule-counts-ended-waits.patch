@@ -1,0 +1,18 @@
+control: The time a job waits for a slot of its kind's limit does not count toward its lateness
+removes: the late rule counts the waits that ended, so a job that waited for a slot fires sooner after its wait than its bound
+packages: ./worker/internal/schedule
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+index f084d381..4412d7dc 100644
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -150,7 +150,6 @@ groups:
+   - alert: MediatedMailboxJobLate
+     expr: |
+       time() - mediated_mailbox_job_last_success_timestamp_seconds -
+-      mediated_mailbox_job_slot_waited_seconds -
+       (time() - mediated_mailbox_job_slot_waiting_since_timestamp_seconds) *
+       (mediated_mailbox_job_slot_waiting_since_timestamp_seconds > bool 0)
+       > mediated_mailbox_job_late_after_seconds

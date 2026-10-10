@@ -1,0 +1,26 @@
+control: A page's rows, masking events, sender statistics and checkpoint become durable together or not at all
+removes: a checkpoint that fails to record is ignored, so the page's rows commit without it
+packages: ./worker/internal/backfill/pass1
+tests: TestAPageThatFailsToCommitLeavesNothing
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -160,9 +160,14 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+ 		if err != nil {
+ 			return err
+ 		}
+-		if err := RecordProgress(ctx, q, account, runID, cp, ct, at.Checkpoint.Page); err != nil {
++		if _, err := t.Exec(ctx, "SAVEPOINT progress"); err != nil {
+ 			return err
+ 		}
++		if err := RecordProgress(ctx, q, account, runID, cp, ct, at.Checkpoint.Page); err != nil {
++			if _, err := t.Exec(ctx, "ROLLBACK TO SAVEPOINT progress"); err != nil {
++				return err
++			}
++		}
+ 		c = Committed{Progress: at, Unclassified: unclassified}
+ 		return nil
+ 	})

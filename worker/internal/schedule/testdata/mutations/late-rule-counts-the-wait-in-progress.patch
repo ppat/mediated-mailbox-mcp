@@ -1,0 +1,21 @@
+control: The time a job waits for a slot of its kind's limit does not count toward its lateness
+removes: the late rule counts the wait in progress, so a job waiting for a slot ages while it waits
+packages: ./worker/internal/schedule
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+index f084d381..9886f77a 100644
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -150,9 +150,7 @@ groups:
+   - alert: MediatedMailboxJobLate
+     expr: |
+       time() - mediated_mailbox_job_last_success_timestamp_seconds -
+-      mediated_mailbox_job_slot_waited_seconds -
+-      (time() - mediated_mailbox_job_slot_waiting_since_timestamp_seconds) *
+-      (mediated_mailbox_job_slot_waiting_since_timestamp_seconds > bool 0)
++      mediated_mailbox_job_slot_waited_seconds
+       > mediated_mailbox_job_late_after_seconds
+     labels:
+       severity: warning

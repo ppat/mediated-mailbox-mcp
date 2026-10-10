@@ -1,0 +1,20 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: a throttled body fetch leaves its message waiting and the tick goes on fetching
+packages: ./worker/internal/deltasync/tick
+tests: TestAThrottledBodyStopsTheAccountsScanning
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index 3237b9b..13238d8 100644
+--- a/worker/internal/deltasync/tick/tick.go
++++ b/worker/internal/deltasync/tick/tick.go
+@@ -367,7 +367,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
+ 			if item != nil {
+ 				items = append(items, *item)
+ 			}
+-			if next == core.StopScanning {
++			if next == core.StopScanning && false {
+ 				stop = true
+ 				break
+ 			}

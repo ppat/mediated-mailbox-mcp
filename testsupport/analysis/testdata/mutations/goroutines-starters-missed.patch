@@ -1,0 +1,19 @@
+control: The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+removes: only go statements are reported, so a function that starts a goroutine running what it is given escapes
+packages: ./testsupport/analysis
+tests: TestGoroutines
+scheduled-count: no
+
+diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
+index 42f880fa..3e79e9d4 100644
+--- a/testsupport/analysis/goroutines.go
++++ b/testsupport/analysis/goroutines.go
+@@ -70,7 +70,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
+ 			case *ast.GoStmt:
+ 				pass.Reportf(n.Pos(), goroutinesMessage)
+ 			case *ast.Ident:
+-				if fn, ok := pass.TypesInfo.Uses[n].(*types.Func); ok && goroutineStarters[fn.FullName()] {
++				if fn, ok := pass.TypesInfo.Uses[n].(*types.Func); ok && false && goroutineStarters[fn.FullName()] {
+ 					pass.Reportf(n.Pos(), goroutinesMessage)
+ 				}
+ 			}

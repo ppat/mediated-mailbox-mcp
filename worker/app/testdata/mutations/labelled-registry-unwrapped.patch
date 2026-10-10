@@ -1,0 +1,19 @@
+control: Every series a job kind emits carries its job kind
+removes: each job kind is handed the process registry unlabelled, so its series carry no job kind and the two job kinds register one library's series under one name
+packages: ./worker/app
+tests: TestTheProbesServeTheRunsSeries TestTheProbesServeEverySeriesBetweenTicks
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -329,7 +329,7 @@
+ // series a shared library registers once per job kind stay attributable to the kind that emits them,
+ // and two job kinds registering one library's series do not collide (ADR-0117).
+ func labelled(registry prometheus.Registerer, kind string) prometheus.Registerer {
+-	return prometheus.WrapRegistererWith(prometheus.Labels{"job_kind": kind}, registry)
++	return registry
+ }
+ 
+ // run ensures each job kind's reload, whose first run comes at once and ensures the kind's account

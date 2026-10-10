@@ -1,0 +1,21 @@
+control: Each deployable's and each job kind's import list names only subsections its role is granted
+removes: backfill's role is not granted the read of its runs' progress events, which the latest recorded success its list admits reads
+packages: ./db/check
+tests: TestGrantsCoverAdmittedSubsections
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+index fbdc919a..1040a129 100644
+--- a/db/migrations/00004_grants.sql
++++ b/db/migrations/00004_grants.sql
+@@ -226,8 +226,7 @@ INSERT (
+ ),
+ UPDATE (state, finished_at, heartbeat_at, checkpoint, counters, last_error) ON job_runs
+ TO mediated_mailbox_backfill;
+-GRANT SELECT (account_id, run_id, kind, at),
+-INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_backfill;
++GRANT INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_backfill;
+ GRANT USAGE ON SEQUENCE job_run_events_seq_seq TO mediated_mailbox_backfill;
+ GRANT INSERT (
+     account_id,

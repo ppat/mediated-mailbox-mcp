@@ -12,10 +12,11 @@ key ([ADR-0081](./0081-credentials-sealed-to-a-public-key.md),
 decides to, and every stored value then has to be sealed again to the new key before the old
 private key can go.
 Re-sealing needs the plaintext, so only a process holding the private key can do it, and only the
-four deployables that call a provider and the UI hold it
+processes that call a provider and the UI hold it
 ([ADR-0079](./0079-secrets-arrive-as-mounted-files.md)). Each of those processes serves every
 account ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)), and
-delta sync runs on its sync interval ([ADR-0022](./0022-four-workloads.md),
+delta sync runs on its sync interval
+([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md),
 [ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) and opens every
 account's credential and each stored client secret each time it loads its accounts
 ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
@@ -58,10 +59,10 @@ account's credential and each stored client secret each time it loads its accoun
   Against it, each opener's role would need a write on the client secrets, beyond the credential
   write ADR-0082 grants, and delta sync already opens every value on each run.
 - **A command that re-seals every account under a role of its own.** For it, key replacement would
-  not wait on a sync run. Against it, the command would need the private key that only the four
-  deployables and the UI hold, and a role reading every account, which
-  [ADR-0075](../data/0075-one-runtime-role-per-deployable.md) gives no process that is not a
-  deployable.
+  not wait on a sync run. Against it, the command would need the private key that only the
+  processes that call a provider and the UI hold, and a role reading every account, which
+  [ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) gives only to a
+  deployable or a job kind of the worker.
 - **Retire on silence, when no deployable reports an old key.** For it, no series per account.
   Against it, a value no process opens reports nothing, and the gate would pass while it is still
   sealed to the old key.
@@ -73,7 +74,7 @@ account's credential and each stored client secret each time it loads its accoun
 - A value that cannot be opened keeps the old key in service until the operator re-authorizes that
   account or sets up that OAuth client again.
 - Delta sync's role writes the client secrets as well as the credential
-  ([ADR-0075](../data/0075-one-runtime-role-per-deployable.md)). The shared library
+  ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The shared library
   [`executioncontext/accountload/`](../../../executioncontext/README.md#the-account-snapshot-accountload)
   carries the re-seal.
 - Assumptions about other components. Delta sync ticks every account on its sync interval. The

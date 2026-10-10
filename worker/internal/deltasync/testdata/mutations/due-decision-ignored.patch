@@ -1,0 +1,22 @@
+control: An account's tick runs only once its sync interval has passed since the last
+removes: an account's job ticks whenever it is asked, the end of a backoff included, whatever its due decision says
+packages: ./worker/internal/deltasync
+tests: TestAJobAskedBeforeItsIntervalDoesNotTick
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 9e59f786..1b14c688 100644
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -263,9 +263,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
+ 		Interval: d.config.SyncInterval, Limit: d.limit, Backoff: backoff, Late: lateIntervals * d.config.SyncInterval, Logger: logger,
+ 		Run: func(ctx context.Context, ask schedule.Ask) error {
+ 			at := mail.UnixMilli(ask.At.UnixMilli())
+-			if !due.Decide(ticked, last, at, d.config.SyncInterval.Milliseconds()) {
+-				return schedule.ErrNotDue
+-			}
++			_ = due.Decide(ticked, last, at, d.config.SyncInterval.Milliseconds())
+ 			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
+ 			// of a backoff leaves the ticker's next tick due.
+ 			ticked, last = true, mail.UnixMilli(ask.Phase.UnixMilli())

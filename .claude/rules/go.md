@@ -44,6 +44,23 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   parameters, outside the recording mux's own `Handle`. Registration through reflection, by an
   imported package on the default mux, or through an interface method one of whose parameter types
   is a type parameter is left to review (ADR-0071, CLAUDE.md, Static analysis and formatting).
+- **The worker's job code starts a goroutine only through `schedule.Go`.** The `go vet` goroutines
+  analyser refuses, in a non-test file under `worker/` outside `worker/internal/schedule`, a `go`
+  statement and any use of a function that starts a goroutine running what it is given, the
+  standard library's and those of `golang.org/x/sync`, because a panic is recovered only on the
+  goroutine that raised it, and one on any other goroutine would stop every job. Such a function
+  reached through an interface value or reflection, a dependency that calls what it was given on a
+  goroutine of its own, and any other module's goroutine starter are left to review (ADR-0119,
+  CLAUDE.md, Static analysis and formatting).
+- **No code of this project imports `unsafe`**, a `go:linkname`'s included, **or takes an unsafe
+  pointer from `reflect`**. The `go vet` unsafeimport analyser refuses an import of `unsafe` and any
+  use of `reflect.NewAt`, `reflect.SliceAt`, `(reflect.Value).UnsafePointer` and
+  `(reflect.Value).SetPointer` in every non-test file of the module, because code isolation per job
+  kind rests on memory safety. A use through an interface value or reflect's own method lookup, and
+  writing the process's own memory through the operating system, such as through `/proc/self/mem`,
+  are left to review. The worker's own test holds the dependencies of its build that import `unsafe`
+  or hold assembly or a `.syso` object to the list it names (ADR-0117, CLAUDE.md, Static analysis
+  and formatting).
 - **Deployables never import each other**, and a component imports only the data-access subsections
   its import list names (ADR-0054, ADR-0066, ADR-0071).
 - **Test files are named by kind** (`_property_test.go`, `_crash_test.go`, `_integration_test.go`

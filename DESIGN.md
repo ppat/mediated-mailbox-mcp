@@ -447,17 +447,19 @@ top-level documents, a decision record, or a ticket from here without guessing.
   deployment, separate identity, and a database role that never reads a stored credential. It holds
   the private key, and one isolated part of it opens an OAuth client's secret and nothing else.
   Carries the approval verbs no client has. Its design is [docs/UI.md](./docs/UI.md).
-- **The worker** — the one deployable that runs every background job kind, scheduled and
-  triggered side by side in one process, with each job kind's code, database role and series kept
-  apart inside it. It holds provider credentials, so it is inside the trust anchor (rules in
-  ADR-0117 and ADR-0119, via the [decision-record index](./docs/adr/README.md)). Distinct from a
-  *worker* in the rate limiter's records, ADR-0024, ADR-0025 and ADR-0077, which is any caller
-  asking for or holding a **Lease**.
+- **The worker** (published as `mediated-mailbox-worker` from the directory `worker/`) — the one
+  deployable that runs every background job kind, scheduled and triggered side by side in one
+  process, with each job kind's code, database role and series kept apart inside it. It holds
+  provider credentials, so it is inside the trust anchor (rules in ADR-0117 and ADR-0119, via the
+  [decision-record index](./docs/adr/README.md)). Distinct from a *worker* in the rate limiter's
+  records, ADR-0024, ADR-0025 and ADR-0077, which is any caller asking for or holding a **Lease**.
 - **Job kind** — one kind of background work the worker runs, such as backfill, delta sync, reorg
-  apply and rollback, or the heuristics run, the unit `job_runs.workload` records. A **job** is one
-  job kind for one account, or for one plan in the case of apply and rollback, and a **run** is one
-  execution of a job (ADR-0117, via the [decision-record index](./docs/adr/README.md)). The word
-  *workload* names the same thing where older text and the UI's copy use it.
+  apply and rollback, or the heuristics run, the unit `job_runs.workload` records and the
+  `job_kind` label on the worker's series and logs names, spelled as `job_runs.workload` spells
+  it. A **job** is one job kind for one account, or for one plan in the case of apply and rollback,
+  and a **run** is one execution of a job (ADR-0117, via the
+  [decision-record index](./docs/adr/README.md)). The word *workload* names the same thing where
+  older text and the UI's copy use it.
 - **The shared pure library** — the pure-core-only library every deployable may
   import. Impure shared needs live in narrow, named exception libraries instead (rule in
   ADR-0050, via the [decision-record index](./docs/adr/README.md)).
@@ -602,7 +604,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   metadata first, gated body scanning after. It starts for an account when the account appears and
   runs again at the worker's start after each change of scanner or of the scan gate's thresholds,
   to mask and scan again what an earlier scanner decided and decide again the skips earlier
-  thresholds made (rules in ADR-0120, ADR-0098 and ADR-0119, via the
+  thresholds made (rules in ADR-0120, ADR-0121 and ADR-0119, via the
   [decision-record index](./docs/adr/README.md)).
 - **Delta sync** — the job kind of the worker that keeps the index current against provider change
   feeds, one tick every sync interval, in a process that runs until stopped.
@@ -626,9 +628,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   one must do, how the set of them is established, and which tables are excepted are ADR-0047's
   (via the [decision-record index](./docs/adr/README.md)).
 - **Runtime role** — a database role a running deployable, or inside the worker a job kind,
-  connects as, whose grants ADR-0075 bounds, as distinct from the schema-owning role the migration
+  connects as, whose grants ADR-0118 bounds, as distinct from the schema-owning role the migration
   step uses. The worker holds one per job kind, so a role bounds a buggy job and not a compromised
-  process (roles in ADR-0048, ADR-0084, ADR-0075 and ADR-0118, via the
+  process (roles in ADR-0048, ADR-0084 and ADR-0118, via the
   [decision-record index](./docs/adr/README.md)).
 - **The migration chain** — the ordered set of hand-written migration files that builds the
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's

@@ -1,0 +1,20 @@
+control: A tick applies each change set in the transaction that advances the cursor past it
+removes: a message the provider no longer holds stays in the index
+packages: ./worker/internal/deltasync/tick
+tests: TestATickAppliesTheChangesSinceItsCursor
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
+index 8fb4cdc..d728063 100644
+--- a/worker/internal/deltasync/tick/postgres.go
++++ b/worker/internal/deltasync/tick/postgres.go
+@@ -109,7 +109,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
+ 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+ 		applied = Applied{}
+ 		touched := map[string]bool{}
+-		if len(a.Removed) > 0 {
++		if false && len(a.Removed) > 0 {
+ 			domains, err := change.New(t).RemoveMessages(ctx, change.RemoveMessagesParams{AccountID: account, MessageIds: a.Removed})
+ 			if err != nil {
+ 				return fmt.Errorf("removing the messages the provider no longer holds: %w", err)

@@ -61,3 +61,19 @@ func TestRawSQL(t *testing.T) {
 	analysistest.Run(t, analysistest.TestData(), analysis.RawSQL,
 		m+"/ui/internal/store", m+"/db/statements", m+"/uix/lookalike")
 }
+
+// The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for a job kind's code in the
+// worker with its test file, the worker's entry, its scheduler, and a directory whose name only starts
+// with worker.
+func TestGoroutines(t *testing.T) {
+	const m = "github.com/ppat/mediated-mailbox-mcp"
+	analysistest.Run(t, analysistest.TestData(), analysis.Goroutines,
+		m+"/worker/internal/job", m+"/worker", m+"/worker/internal/schedule", m+"/workerx/lookalike")
+}
+
+// The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for project code importing
+// unsafe, with a test file that may, and a package outside this module, which is not checked.
+func TestUnsafeImport(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), analysis.UnsafeImport,
+		"github.com/ppat/mediated-mailbox-mcp/worker/internal/unsafeuser", "example.com/other")
+}

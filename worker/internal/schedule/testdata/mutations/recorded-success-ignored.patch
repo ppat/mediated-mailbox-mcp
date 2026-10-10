@@ -1,0 +1,19 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: the scheduler starts every job's latest success at its ensure, whatever its job kind's runs record
+packages: ./worker/internal/schedule
+tests: TestAJobsLatestSuccessStartsFromItsRecordedOne
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 23d24f2b..7a4caa30 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -230,7 +230,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
+ 	ctx, cancel := context.WithCancel(s.ctx)
+ 	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{})}
+ 	s.jobs[key] = st
+-	seed := job.LastSuccess
++	seed := time.Time{}
+ 	if seed.IsZero() {
+ 		seed = time.Now()
+ 	}

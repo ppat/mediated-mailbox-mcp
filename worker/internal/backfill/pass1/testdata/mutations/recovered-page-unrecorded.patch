@@ -1,0 +1,19 @@
+control: Every backfill run is recorded with its checkpoint, counters, timeline and failed items
+removes: a page that failed and then became durable records no failed item
+packages: ./worker/internal/backfill/pass1
+tests: TestAThrottledPageIsRetriedAndRecorded
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -183,7 +183,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+ 			}
+ 		}
+ 		q := runrecord.New(t)
+-		if recovered != nil {
++		if false && recovered != nil {
+ 			if err := recordFailure(ctx, q, account, runID, *recovered); err != nil {
+ 				return fmt.Errorf("recording the page's recovered failure: %w", err)
+ 			}

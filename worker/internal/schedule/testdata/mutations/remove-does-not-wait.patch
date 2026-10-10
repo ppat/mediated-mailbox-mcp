@@ -1,0 +1,18 @@
+control: Remove and Stop cancel a job's run and wait for it to return
+removes: removing a job cancels its run and returns before the run has returned
+packages: ./worker/internal/schedule
+tests: TestRemoveAndStopCancelTheirRunsAndWaitForThem
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 6ce1069b..0a49bd28 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -245,7 +245,6 @@ func (s *Scheduler) Remove(key Key) {
+ 		return
+ 	}
+ 	st.cancel()
+-	<-st.done
+ 	// A job ensured again for the key while this one stopped holds the key and keeps the series its
+ 	// ensure set.
+ 	s.mu.Lock()

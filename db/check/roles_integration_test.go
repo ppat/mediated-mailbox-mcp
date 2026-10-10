@@ -23,7 +23,7 @@ import (
 // migrationRole owns the schema (ADR-0048).
 const migrationRole = "mediated_mailbox_migrate"
 
-// runtimeRoles is one role per deployable, named for its directory (ADR-0075).
+// runtimeRoles is one role per deployable, and inside the worker one per job kind (ADR-0118).
 var runtimeRoles = []string{
 	"mediated_mailbox_backfill",
 	"mediated_mailbox_mediate",
@@ -118,7 +118,7 @@ func refusedByPolicy(err error) bool {
 }
 
 // TestTheBootstrapCreatesOneRuntimeRolePerDeployable requires the bootstrap's roles to be exactly the
-// migration role and ADR-0075's runtime roles, so the tests below, which run under each runtime role
+// migration role and ADR-0118's runtime roles, so the tests below, which run under each runtime role
 // in turn, cannot miss one. A runtime role must also hold nothing beyond its grants. It must not be a
 // superuser, bypass row-level security, create roles or databases, or belong to another role, since a
 // member acts with that role's privileges.
@@ -410,7 +410,7 @@ func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 
 // opLogWriter stands in for a role whose statements write the operation log. No runtime role writes
 // it yet, and the policy applies to every role alike. It holds the plan columns the policy looks up
-// (ADR-0075).
+// (ADR-0118).
 const opLogWriter = "check_op_log_writer"
 
 // TestTheOperationLogIsScopedThroughItsPlan reads and writes the operation log under an account that

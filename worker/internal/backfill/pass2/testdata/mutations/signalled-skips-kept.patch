@@ -1,0 +1,21 @@
+control: A message the gate skipped whose subject is now masked returns to pending
+removes: a gate skip decided without the subject's signal the message now carries stays in force
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass2
+tests: TestAGateSkipWhoseSubjectIsMaskedReturnsToPendingAtTheSecondPassesStart
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 0ae704b..ab8c357 100644
+--- a/worker/internal/backfill/pass2/postgres.go
++++ b/worker/internal/backfill/pass2/postgres.go
+@@ -230,7 +230,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
+ func (s *Postgres) RequeueSkips(ctx context.Context, account, runID string) (int, error) {
+ 	marked := 0
+ 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
+-		skips, err := scan.New(t).RequeueSignalledSkips(ctx, account)
++		var skips int64
++		var err error
+ 		if err != nil {
+ 			return fmt.Errorf("returning the skips decided without their subject's signal to pending scan: %w", err)
+ 		}

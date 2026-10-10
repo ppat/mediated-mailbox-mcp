@@ -1,0 +1,21 @@
+control: The scanner's section is validated before the start
+removes: a scanner section the scanner refuses does not refuse the start
+packages: ./worker/app
+tests: TestAnInvalidScannerSectionRefusesTheStart
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -210,10 +210,7 @@
+ 	if err := validate(c); err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+-	scanner, err := buildScanner(loaded)
+-	if err != nil {
+-		return fmt.Errorf("validating the configuration: %w", err)
+-	}
++	scanner, _ := buildScanner(loaded)
+ 	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
+ 	if err != nil {
+ 		return fmt.Errorf("loading the keyring: %w", err)

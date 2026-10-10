@@ -1,0 +1,19 @@
+control: A held source serves its account until its credential or its client changes
+removes: a held source is kept only while the snapshot holds the credential it was built from, so a source that rotated its refresh token is built again at the next unit
+packages: ./executioncontext/session
+tests: TestAHeldSourceServesItsAccountUntilItsCredentialOrClientChanges
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -176,7 +176,7 @@
+ 	defer h.mu.Unlock()
+ 	kept, ok := h.held[account]
+ 	sameClient := kept.built.ClientID == creds.ClientID && bytes.Equal(kept.built.ClientSecret, creds.ClientSecret)
+-	if ok && sameClient && (bytes.Equal(kept.built.Credential, creds.Credential) || bytes.Equal(kept.conn.source.Credential(), creds.Credential)) {
++	if ok && sameClient && bytes.Equal(kept.built.Credential, creds.Credential) {
+ 		return kept.conn
+ 	}
+ 	conn := connector.connect(creds)

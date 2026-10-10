@@ -1,0 +1,20 @@
+control: Each page of a run takes the active policy
+removes: the first pass's composition hands it the account's policy taken once at the run's start, so a policy edit reaches the pages it stores only at the next run, while the second pass is still handed the active one at each page
+packages: ./worker/internal/backfill
+tests: TestEachPageOfTheFirstPassTakesTheActivePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 48a5fe92..9b319d08 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -281,7 +281,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
+ 	u := &unit{sessions: b.sessions, loader: b.loader, account: account}
+ 	first := pass1.Deps{
+ 		Store: b.store, Fetch: u.fetch(limiter), Metadata: u.metadata(limiter), PerCall: perCall(gmail.Profile{}),
+-		Policy: b.policyFor(account), Scanner: b.scanner, Lookups: b.lookups, RunID: runID, Now: time.Now,
++		Policy: func() func() policy.Composed { p := b.policyFor(account)(); return func() policy.Composed { return p } }(), Scanner: b.scanner, Lookups: b.lookups, RunID: runID, Now: time.Now,
+ 	}
+ 	second := secondDeps(b.second, u.body(limiter), b.policyFor(account), b.lookups, b.scanner)
+ 	return backfillAccount(ctx, first, second, account, b.first, b.backlog, u, ask, logger, work.Start, started)

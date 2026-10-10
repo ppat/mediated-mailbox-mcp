@@ -1,0 +1,33 @@
+control: A newly connected account is backfilled within one reload with no manual step, and the run-start step is made once for each job's life
+removes: the run-start step is made once for the job kind's life rather than each job's, so an account served again after another account's step never gets it
+packages: ./worker/internal/backfill
+tests: TestANewAccountIsBackfilledWithNoManualStep
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -127,7 +127,8 @@
+ 	// a test reaches the adapter series the kind serves.
+ 	port func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error)
+ 	// served are the accounts the reload ensured a job for.
+-	served []string
++	served  []string
++	started bool
+ }
+ 
+ // New returns backfill's job kind with its series registered on c.Registry. Its account sessions
+@@ -242,11 +243,10 @@
+ // listed again gets it again (ADR-0121).
+ func (b *Backfill) job(account string) schedule.Job {
+ 	logger := b.logger.With("account", account)
+-	started := false
+ 	return schedule.Job{
+ 		Interval: b.interval, Limit: b.limit, Backoff: backoff, Late: late, Logger: logger,
+ 		Run: func(ctx context.Context, ask schedule.Ask) error {
+-			return b.run(ctx, ask, account, &started, logger)
++			return b.run(ctx, ask, account, &b.started, logger)
+ 		},
+ 	}
+ }

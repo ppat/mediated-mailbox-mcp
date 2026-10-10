@@ -34,7 +34,8 @@ immutable snapshot that a process reloads and that a unit of work takes once
   under that job kind's own role
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). Every unit of work
   takes the latest snapshot its loader holds when it starts, whether the unit is a body request, a
-  tick of delta sync or a page of backfill ([ADR-0022](./0022-four-workloads.md),
+  tick of delta sync or a page of backfill
+  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md),
   [ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)). A process
   that runs and exits takes the snapshot once at start.
 - **A unit of work takes the snapshot once** and never reads it again mid-flight.

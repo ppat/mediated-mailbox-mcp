@@ -1,0 +1,19 @@
+control: A policy edit reaches a running second pass within one reload and one page
+removes: every page makes the comparisons again whatever the policy, so a reload with the same rules rewrites the stored classes
+packages: ./worker/internal/backfill/pass2
+tests: TestAPolicyEditReachesARunningSecondPassWithinAPage
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -244,7 +244,7 @@
+ 		}
+ 	}()
+ 	composed := p.deps.Policy()
+-	if !composed.Equal(p.compared) {
++	if true || !composed.Equal(p.compared) {
+ 		if err := p.compare(ctx, composed); err != nil {
+ 			return Step{}, err
+ 		}

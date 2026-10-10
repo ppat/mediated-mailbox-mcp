@@ -1,0 +1,22 @@
+control: An added rule reaches the stored sender classes by its effect
+removes: a run of the second pass makes no comparison for an added rule, so the stored classes stay as ingested
+packages: ./worker/internal/backfill/pass2
+tests: TestAnAddedRuleRestrictsTheStoredClasses
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -208,11 +208,6 @@
+ 	if err != nil {
+ 		return p.failed(ctx, fmt.Errorf("running the delisting transition: %w", err))
+ 	}
+-	if _, err := p.deps.Store.List(ctx, p.account, func(normal []string) []index.Listing {
+-		return index.Listed(composed, p.deps.Lookups, normal)
+-	}); err != nil {
+-		return p.failed(ctx, fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err))
+-	}
+ 	if marked > 0 {
+ 		p.at = restart
+ 	}

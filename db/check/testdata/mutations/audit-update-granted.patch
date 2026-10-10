@@ -16,4 +16,4 @@ index eba1d5bc..92b019cb 100644
 +GRANT INSERT, UPDATE ON audit_log TO mediated_mailbox_mediate;
  GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
  
- -- Backfill (ADR-0075, ADR-0017).
+ -- Backfill (ADR-0118, ADR-0017).

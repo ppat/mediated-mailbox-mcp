@@ -1,0 +1,33 @@
+control: A change of scanner reopens a pass whose stored work another scanner decided
+removes: a stored subject whose scanner version differs and whose revision matches does not make the first pass due again
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass1
+tests: TestAChangeOfScannerVersionAloneMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
+index 00c07741..37a5e50a 100644
+--- a/db/messages/ingest/ingest.sql
++++ b/db/messages/ingest/ingest.sql
+@@ -73,7 +73,7 @@ FROM messages AS m
+ WHERE
+     m.account_id = @account_id
+     AND (
+-        m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
++        false AND m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
+         OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
+     );
+ 
+diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
+index d69a713c..777f23d6 100644
+--- a/db/messages/ingest/ingest.sql.go
++++ b/db/messages/ingest/ingest.sql.go
+@@ -17,7 +17,7 @@ FROM messages AS m
+ WHERE
+     m.account_id = $1
+     AND (
+-        m.subject_scanner_version IS DISTINCT FROM $2::int
++        false AND m.subject_scanner_version IS DISTINCT FROM $2::int
+         OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+     )
+ `

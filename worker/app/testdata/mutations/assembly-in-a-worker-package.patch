@@ -1,0 +1,28 @@
+control: No dependency added for a job imports unsafe or holds assembly, and the worker builds without cgo
+removes: a package of the worker holds assembly and imports no unsafe, so code outside memory safety joins a job kind's build
+packages: ./worker/app
+tests: TestNoDependencyAddedForAJobImportsUnsafe TestNoDependencyAddedForAJobImportsUnsafe/amd64 TestNoDependencyAddedForAJobImportsUnsafe/arm64
+scheduled-count: no
+
+diff --git a/worker/internal/series/noop.s b/worker/internal/series/noop.s
+new file mode 100644
+index 00000000..61892bbc
+--- /dev/null
++++ b/worker/internal/series/noop.s
+@@ -0,0 +1,5 @@
++#include "textflag.h"
++
++// noop returns at once.
++TEXT ·noop(SB), NOSPLIT, $0-0
++	RET
+diff --git a/worker/internal/series/series.go b/worker/internal/series/series.go
+index 68467aea..046fa21a 100644
+--- a/worker/internal/series/series.go
++++ b/worker/internal/series/series.go
+@@ -39,3 +39,6 @@ func NewBacklog(reg prometheus.Registerer) (*prometheus.GaugeVec, error) {
+ 	}
+ 	return g, nil
+ }
++
++// noop is written in assembly, which reaches memory as unsafe does with no import of it.
++func noop()

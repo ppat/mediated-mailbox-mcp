@@ -1,0 +1,20 @@
+control: One run per job, with wakes coalesced, held in the process
+removes: removing a job neither cancels nor waits for its loop, so the loop keeps asking the job after its removal
+packages: ./worker/internal/schedule
+tests: TestEnsuringAndRemovingAJobRapidlyLeavesNoLoopRunning TestRemoveAndStopCancelTheirRunsAndWaitForThem
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 6ce1069b..8bac2010 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -244,8 +244,7 @@ func (s *Scheduler) Remove(key Key) {
+ 	if !ok {
+ 		return
+ 	}
+-	st.cancel()
+-	<-st.done
++	_ = st
+ 	// A job ensured again for the key while this one stopped holds the key and keeps the series its
+ 	// ensure set.
+ 	s.mu.Lock()

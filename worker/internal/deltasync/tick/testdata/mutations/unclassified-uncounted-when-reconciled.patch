@@ -1,0 +1,19 @@
+control: The messages whose sender could not be classified are counted per account
+removes: a reconciliation adds its unclassified senders to the index without counting them in the tick's result
+packages: ./worker/internal/deltasync
+tests: TestEachTickFeedsItsUnclassifiedAndBacklogSeries
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index 3237b9b..b38f88b 100644
+--- a/worker/internal/deltasync/tick/tick.go
++++ b/worker/internal/deltasync/tick/tick.go
+@@ -270,7 +270,6 @@ func (t *ticker) reconcile(ctx context.Context, run string, start mail.UnixMilli
+ 			return 0, nil, fmt.Errorf("applying the window's messages: %w", err)
+ 		}
+ 		reconciled += applied.Inserted + applied.Changed
+-		t.result.Unclassified += applied.Unclassified
+ 		if page.Next == "" {
+ 			return reconciled, listed, nil
+ 		}

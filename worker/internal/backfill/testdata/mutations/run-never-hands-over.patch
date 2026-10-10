@@ -1,0 +1,21 @@
+control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
+removes: the run never ends a unit of work over an account's session, so no source's token reaches the database
+packages: ./worker/internal/backfill
+tests: TestARunHandsEachAccountOverWhenItsUnitEnds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -364,9 +364,8 @@
+ 	if u.current == nil {
+ 		return nil
+ 	}
+-	handOver, record := u.current.End(ctx)
+ 	u.current = nil
+-	return errors.Join(handOver, record)
++	return nil
+ }
+ 
+ // fetch returns the first pass's enumeration over the unit's session, under a lease (ADR-0025). A

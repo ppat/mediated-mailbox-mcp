@@ -1,0 +1,19 @@
+control: An account's series go once the work that sets them ends
+removes: backfill's backlog series of an account stays once its job is dropped
+packages: ./worker/internal/backfill
+tests: TestTheBacklogSeriesOfADroppedAccountGoesWithItsJob
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index da77c3d5..433fec54 100644
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -203,7 +203,6 @@ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
+ 		b.jobs.Remove(schedule.Key{Kind: Kind, ID: account})
+ 		// The job's run has returned, so nothing sets the account's series again.
+ 		b.first.Forget(account)
+-		b.backlog.Forget(account)
+ 	}
+ 	b.served = kept
+ 	if policyErr != nil {

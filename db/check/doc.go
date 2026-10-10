@@ -3,7 +3,7 @@
 // tables from the chain, assert that generated packages declare no table types and leave no stale
 // file, and require sqlc to refuse a statement reading a column the chain does not hold. As
 // integration tests against the chain applied from empty, they run every statement under each role
-// the import lists admit to it, a shared library's under the role of each deployable admitting it, and attempt what the runtime roles must be refused, a schema change,
+// the import lists admit to it, a shared library's under the role of each deployable or job kind admitting it, and attempt what the runtime roles must be refused, a schema change,
 // an audit row altered, a write by the UI beyond its grant, and the operation log reached from
 // another account.
 //

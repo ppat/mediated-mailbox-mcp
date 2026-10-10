@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
-index eba1d5bc..171b4093 100644
+index de2c2d24..8d6a3131 100644
 --- a/db/migrations/00004_grants.sql
 +++ b/db/migrations/00004_grants.sql
 @@ -495,7 +495,7 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
@@ -17,4 +17,4 @@ index eba1d5bc..171b4093 100644
 +GRANT SELECT, INSERT, UPDATE, DELETE ON policy_changes TO mediated_mailbox_ui;
  GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui;
  
- -- The rate limiter's statements, in db/ratestate, run under the role of each deployable that spends
+ -- The rate limiter's statements, in db/ratestate, run under the role of each deployable or job kind

@@ -1,0 +1,23 @@
+control: A panic in a job's run is recovered and recorded as the run's failure with its stack
+removes: a panic raised in a page of the first pass is not recovered, so it ends the process and the run's record says nothing
+packages: ./worker/internal/backfill
+tests: TestAPanicInARunIsRecordedAsTheRunsFailure
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
+--- a/worker/internal/backfill/pass1/pass1.go
++++ b/worker/internal/backfill/pass1/pass1.go
+@@ -215,11 +215,7 @@
+ 	if p.done {
+ 		return Step{Done: true}, nil
+ 	}
+-	defer func() {
+-		if r := recover(); r != nil {
+-			step, err = Step{}, p.failed(ctx, schedule.Panicked(r))
+-		}
+-	}()
++	_ = schedule.Panicked
+ 	if p.at.Checkpoint.Ended() {
+ 		return p.refetch(ctx)
+ 	}

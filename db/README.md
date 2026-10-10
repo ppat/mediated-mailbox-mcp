@@ -8,7 +8,7 @@ every component are [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 | --- | --- |
 | `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of four files, the one extension the schema needs, which the migration role creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, the row-level security policies, and the grants with one section per runtime role followed by one per shared library, then the migrations after it, each tested over rows the chain before it wrote |
 | `db/bootstrap/` | `roles.sql`, run once per cluster before the chain by a role allowed to create roles, the one privileged step a deployment takes, since nothing runs inside the application database before the chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). It is also the contract a deployment platform follows. It grants nothing on the schema, so confining schema change to the migration role rests on PostgreSQL 15 or later, where PUBLIC holds no CREATE on the public schema. PUBLIC keeps TEMP on the database on every version, so a runtime role can create temporary objects in its own session |
-| `db/<subsection>/` | One subsection per table or closely related group of tables of [ADR-0016](../docs/adr/data/0016-schema.md), each holding its statement files and the package generated from them ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). A table's statements sit in the table's subsection. A statement that a role admitted to that subsection may not be granted under [ADR-0075](../docs/adr/data/0075-one-runtime-role-per-deployable.md)'s three lines sits one directory further down, in a subsection named for what it holds, which only the roles that may run it admit. They are listed under [Subsections one directory down](#subsections-one-directory-down). `db/policychanges` is the policy history's own subsection, which only the UI admits. How each subsection's package is named is under [Package names](#package-names) |
+| `db/<subsection>/` | One subsection per table or closely related group of tables of [ADR-0016](../docs/adr/data/0016-schema.md), each holding its statement files and the package generated from them ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). A table's statements sit in the table's subsection. A statement that a role admitted to that subsection may not be granted under [ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s three lines sits one directory further down, in a subsection named for what it holds, which only the roles that may run it admit. They are listed under [Subsections one directory down](#subsections-one-directory-down). `db/policychanges` is the policy history's own subsection, which only the UI admits. How each subsection's package is named is under [Package names](#package-names) |
 | `db/tx/` | The shared transaction helper that sets and verifies the account ([ADR-0047](../docs/adr/data/0047-schema-first-data-access.md)). `Run` opens its transaction at the database's default isolation level, where each statement reads the state committed when it starts. A unit whose statements must read one state passes `Run` the source `Snapshot` wraps, whose transactions are repeatable read and read-only, as the client surface's index reads do ([ADR-0109](../docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)). The wrapper takes only a pool or a connection, never a transaction, so it cannot hide one from `Run`'s refusal. `RunBase` opens the base-policy transaction, which sets the account empty and `app.base` on and reads both back, the one unit of data access that names no account ([ADR-0112](../docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)) |
 | `db/check/` | The checks over the library's own files, run as Go tests, listed under [The checks](#the-checks). Their test inputs, including a small library of their own and the SQL violation files, sit under `db/check/testdata/`. Each check runs over the real library, which must be clean, and over that test library, which must produce exactly its listed problems, so no check passes over an empty input |
 
@@ -39,7 +39,7 @@ The writes the tables' readers are not granted sit apart the same way.
 | `db/messages/ingest` | Adding a message's metadata to the index and masking a stored subject again |
 | `db/maskingevents/record` | Recording a mask applied to a subject |
 | `db/auditlog/record` | The mediator's recording of each body it serves or denies |
-| `db/jobruns/record` | A job kind recording its own runs, their timelines and failed items with the read it resumes from |
+| `db/jobruns/record` | A job kind recording its own runs, their timelines and failed items with the read it resumes from, and `RecordedSuccess`, the read of the account's latest recorded success and earliest run's start that each job's latest success starts from at its ensure ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
 | `db/accountstate/completion` | Setting backfill's completion flags and clearing them when a pass is due again, and setting, reading and clearing the mark that starts the second pass over |
 | `db/accountstate/authentication` | Recording the last provider authentication attempt |
 | `db/senders/statistics` | The rebuild of a sender's statistics from the stored messages and the counts of prior scan hits. Delta sync's removal of a sender with no stored message sits in `db/messages/change` |
@@ -96,17 +96,22 @@ being unique in the library.
 - The check that a component's list admits the library only by naming `db/tx` and generated
   subsections exactly, never the library's root package or a directory holding no statements.
 - The check that every list naming data-access subsections has a database role to be tested under,
-  its own or that of a deployable whose list admits it, directly or through the lists of other
-  shared libraries that admit it, as the account session's list admits the account snapshot's
+  its own or that of a deployable or job kind whose list admits it, directly or through the lists of
+  other shared libraries that admit it, as the account session's list admits the account snapshot's
   package, and every role names a list that names such subsections or admits a library's list that
   does.
 - The integration tests that hold each runtime role and the operation log's policy to their grants.
-- The grant check, which plans each statement under the role of every deployable whose list admits
-  its subsection, directly or through the lists of one or more shared libraries.
+- The grant check, which plans each statement under the role of every deployable or job kind whose
+  list admits its subsection, directly or through the lists of one or more shared libraries.
 
 A list admits a library when one of its entries admits a package of the library that runs the
 library's statements, one that imports one of the library's subsections or, through the library's
 own packages, reaches one that does, so admitting only a library's pure core does not count. The
-map from deployable to database role those checks read is held in `db/check`, keyed by the
-deployable's import list and by each narrower list governing part of its code that admits code
-naming subsections, and a shared library has no entry, since it connects as no role of its own.
+map from import list to database role those checks read is held in `db/check`, keyed by the
+mediator's and the UI's import lists, by each narrower list governing part of their code that admits
+code naming subsections, and by each list of a job kind of the worker
+([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
+worker's own list names no subsection and admits no shared library that runs statements, so it has
+no entry, and a shared library has none either, since it connects as no role of its own. The
+worker's list admits the driver only so its composition root can open each job kind's pool, and a
+statement the worker's own code runs on a pool is left to review.

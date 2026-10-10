@@ -1,0 +1,19 @@
+control: A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
+removes: the cursor gap rule reads only the count's increase, so a gap the series' first sample counts never fires
+packages: ./worker/internal/deltasync/tick
+tests: TestAlertingRules
+scheduled-count: no
+
+diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+index ca2d76e..b0666a6 100644
+--- a/packaging/chart/alerting-rules.yaml
++++ b/packaging/chart/alerting-rules.yaml
+@@ -109,8 +109,6 @@ groups:
+   - alert: MediatedMailboxSyncCursorGap
+     expr: |
+       sum by (account) (increase(mediated_mailbox_sync_cursor_gaps_total[1h])) > 0
+-      or sum by (account) (mediated_mailbox_sync_cursor_gaps_total
+-      unless mediated_mailbox_sync_cursor_gaps_total offset 1h) > 0
+     labels:
+       severity: warning
+     annotations:

@@ -1,0 +1,20 @@
+control: Every subject is masked and every sender classified before the message reaches the index
+removes: a message reaches the index with its subject as the provider gave it
+packages: ./core/index ./worker/internal/backfill/pass1 ./worker/internal/deltasync/tick
+tests: TestDecide TestDecideFailsClosed TestAKilledRunResumesFromItsCheckpoint TestAPassIndexesTheWholeMailbox TestATickAppliesTheChangesSinceItsCursor
+scheduled-count: no
+integration: yes
+
+diff --git a/core/index/index.go b/core/index/index.go
+index f1f7b2f..3a622cb 100644
+--- a/core/index/index.go
++++ b/core/index/index.go
+@@ -105,7 +105,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+ 			ThreadID:       m.ThreadID,
+ 			From:           m.From,
+ 			Domain:         domain(m.From.Email),
+-			Subject:        masked.Subject(),
++			Subject:        m.Subject,
+ 			Date:           m.Date,
+ 			Labels:         slices.Clone(m.Labels),
+ 			Flags:          m.Flags,

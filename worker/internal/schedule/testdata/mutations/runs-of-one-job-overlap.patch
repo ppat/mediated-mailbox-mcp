@@ -1,0 +1,20 @@
+control: One run per job, with wakes coalesced, held in the process
+removes: the loop starts each run on a goroutine of its own and asks again without waiting for it, so runs of one job overlap
+packages: ./worker/internal/schedule
+tests: TestARunIsAskedAgainOnlyAfterItReturns
+scheduled-count: no
+
+diff --git a/worker/internal/schedule/schedule.go b/worker/internal/schedule/schedule.go
+index 28c25206..4cb635fd 100644
+--- a/worker/internal/schedule/schedule.go
++++ b/worker/internal/schedule/schedule.go
+@@ -346,7 +346,8 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 		if job.Interval > 0 {
+ 			onPhase = anchor.Add(at.Sub(anchor) / job.Interval * job.Interval)
+ 		}
+-		outcome, err := s.ask(ctx, key, st, job, at, onPhase)
++		go s.ask(ctx, key, st, job, at, onPhase)
++		outcome, err := Succeeded, error(nil)
+ 		if job.Limit != nil {
+ 			<-job.Limit.slots
+ 		}

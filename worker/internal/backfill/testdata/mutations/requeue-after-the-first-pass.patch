@@ -1,0 +1,28 @@
+control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
+removes: backfill's run-start step returns stale verdicts to pending only after the first pass ends, so they keep releasing bodies while it runs or fails
+packages: ./worker/internal/backfill
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -296,14 +296,14 @@
+ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u *unit,
+ 	ask schedule.Ask, logger *slog.Logger, start bool, started *bool,
+ ) error {
++	if err := passAccount(ctx, first, account, m1, u, ask, logger); err != nil {
++		return err
++	}
+ 	if start {
+ 		if err := reopen(ctx, second, account, logger); err != nil {
+ 			return err
+ 		}
+ 		*started = true
+-	}
+-	if err := passAccount(ctx, first, account, m1, u, ask, logger); err != nil {
+-		return err
+ 	}
+ 	return secondPassAccount(ctx, second, account, m2, u, ask, logger)
+ }

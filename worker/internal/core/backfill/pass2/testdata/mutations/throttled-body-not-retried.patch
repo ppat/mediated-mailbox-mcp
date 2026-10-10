@@ -1,0 +1,20 @@
+control: A failed body fetch is retried, recorded gone or abandoned, or stops the run, by its class
+removes: a throttled body fetch stops the run at once
+packages: ./worker/internal/core/backfill/pass2 ./worker/internal/backfill/pass2
+tests: TestOnFailure TestAFailedBodyFetch
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/core/backfill/pass2/pass2.go b/worker/internal/core/backfill/pass2/pass2.go
+index 702bfb7..bc49d3e 100644
+--- a/worker/internal/core/backfill/pass2/pass2.go
++++ b/worker/internal/core/backfill/pass2/pass2.go
+@@ -132,7 +132,7 @@ func OnFailure(f Attempt) Next {
+ 	case f.Class == index.NotProvider:
+ 		return FailRun
+ 	case f.Class == index.Throttled && f.Attempts < pass1.MaxAttempts:
+-		return Backoff
++		return Stop
+ 	case f.Class == index.ProviderError && f.Attempts < pass1.MaxAttempts:
+ 		return Retry
+ 	case f.Class == index.ProviderError, f.Class == index.Validation:

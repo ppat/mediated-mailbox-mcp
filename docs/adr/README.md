@@ -78,12 +78,12 @@ moves it. Records themselves link freely and deep, into
 | 0093 | [A composite scan gate with a measured, accepted residual](./redaction/0093-composite-scan-gate.md) | Accepted |
 | 0094 | [The scan gate evaluates every message, and no gate decision is memoized](./redaction/0094-scan-gate-decisions-are-not-memoized.md) | Accepted |
 | 0096 | [A change of scanner re-opens backfill, whose passes re-mask and re-scan what an earlier scanner decided](./redaction/0096-a-scanner-change-reopens-backfill.md) | **Superseded** |
-| 0098 | [Every backfill run decides each stored gate skip again, so a change of thresholds reaches the skips made under the earlier ones](./redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) | Accepted |
+| 0098 | [Every backfill run decides each stored gate skip again, so a change of thresholds reaches the skips made under the earlier ones](./redaction/0098-every-backfill-run-decides-each-gate-skip-again.md) | **Superseded** |
 | 0100 | [Message text with no HTML form is released as a fenced code block that shows it exactly](./redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md) | Accepted |
 | 0104 | [Once backfill's second pass has ended, each delta sync tick decides and scans what waits for a scan, a bounded number per tick](./redaction/0104-once-pass-2-has-ended-each-delta-sync-tick-scans-what-waits.md) | Accepted |
 | 0113 | [An added rule reaches the stored sender classes by its effect, through the comparison every scanning workload already makes](./redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md) | Accepted |
 | 0120 | [A change of scanner re-masks unmasked stored subjects from the store and fetches again only the masked ones, by identifier](./redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) | Accepted |
-| 0121 | [Backfill's run-start step, made once per process and account, decides each stored gate skip again](./redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | **Proposed** |
+| 0121 | [Backfill's run-start step, made once per process and account, decides each stored gate skip again](./redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | Accepted |
 
 ## Classification — `classification/`
 
@@ -120,12 +120,12 @@ moves it. Records themselves link freely and deep, into
 | 0048 | [Migrations are hand-written SQL, forward-only, run under their own role](./data/0048-forward-only-migrations.md) | Accepted |
 | 0066 | [Data access is generated from hand-written SQL, and the dataset endpoint is enumerated rather than composed](./data/0066-data-access-generated-from-sql.md) | Accepted |
 | 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | Accepted |
-| 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | Accepted |
+| 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | **Superseded** |
 | 0080 | [Accounts and their provider credentials are created and repaired through the UI and live in the database](./data/0080-accounts-and-credentials-live-in-the-database.md) | Accepted |
 | 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
 | 0105 | [A cursor gap re-enumerates from an hour before the last cursor was written, with no cap, and an account with no cursor is reconciled over a first window](./data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md) | Accepted |
 | 0112 | [The base policy is read and written in a transaction of its own, which names no account and reaches only the base policy's rows](./data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md) | Accepted |
-| 0118 | [Each deployable, and inside the worker each job kind, connects as a runtime role of its own](./data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) | **Proposed** |
+| 0118 | [Each deployable, and inside the worker each job kind, connects as a runtime role of its own](./data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -146,7 +146,7 @@ moves it. Records themselves link freely and deep, into
 | --- | --- | --- |
 | 0013 | [Credentials as mounted files via the external secret store; rotation writes back](./operability/0013-credentials-and-rotation-writeback.md) | **Superseded** |
 | 0014 | [LAN-only transport; egress restriction is the control that matters](./operability/0014-lan-only-transport.md) | Deprecated |
-| 0022 | [The batch work is four workloads, not one background process](./operability/0022-four-workloads.md) | Accepted |
+| 0022 | [The batch work is four workloads, not one background process](./operability/0022-four-workloads.md) | **Superseded** |
 | 0023 | [The adapter declares what operations cost; the limiter is provider-agnostic](./operability/0023-adapter-declares-cost.md) | Accepted |
 | 0024 | [Target half the ceiling, hard-cap at 80%, adapt below with AIMD](./operability/0024-conservative-target-aimd.md) | Accepted |
 | 0025 | [One budget per account, split by priority class, shared via database leases](./operability/0025-priority-classes-and-leases.md) | Accepted |
@@ -178,8 +178,8 @@ moves it. Records themselves link freely and deep, into
 | 0108 | [The index reads select messages by an index query of the client surface's own, never by the Provider Port's canonical query](./operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) | Accepted |
 | 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
 | 0111 | [A consent attempt travels in a cookie the UI server seals, bound to the session that started it](./operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md) | Accepted |
-| 0117 | [One background worker runs every job kind, with each job kind's code, role and observability kept apart inside it](./operability/0117-one-background-worker-runs-every-job-kind.md) | **Proposed** |
-| 0119 | [The worker's jobs are scheduled by an in-process scheduler that stores nothing, from recorded state, with no messaging through PostgreSQL](./operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) | **Proposed** |
+| 0117 | [One background worker runs every job kind, with each job kind's code, role and observability kept apart inside it](./operability/0117-one-background-worker-runs-every-job-kind.md) | Accepted |
+| 0119 | [The worker's jobs are scheduled by an in-process scheduler that stores nothing, from recorded state, with no messaging through PostgreSQL](./operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) | Accepted |
 
 ## Engineering — `engineering/`
 

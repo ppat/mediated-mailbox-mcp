@@ -262,7 +262,7 @@ CREATE TABLE reorg_op_log (
   PRIMARY KEY (plan_id, seq)
 );
 
-CREATE TABLE job_runs (                   -- every background job kind's runs (ADR-0022)
+CREATE TABLE job_runs (                   -- every background job kind's runs (ADR-0117)
   account_id    text NOT NULL REFERENCES accounts,
   run_id        text NOT NULL,            -- short opaque string
   workload      text NOT NULL,            -- the job kind: backfill | sync | apply | heuristics
@@ -460,7 +460,7 @@ The shape enforces these properties.
   audit row before it releases anything, so a token the check does not know fails the request
   closed and loudly and never serves a body without its record.
 - **The background job kinds' runs, timeline events, and per-item failures are rows**
-  ([ADR-0022](../operability/0022-four-workloads.md)), and their free-text columns hold provider
+  ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), and their free-text columns hold provider
   or scanner text and never a body, under the same comment that binds every table.
 - **The UI's decisions are recorded in the columns its verbs set and the rule row its confirm
   verb inserts** ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), so a

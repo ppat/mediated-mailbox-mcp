@@ -115,7 +115,7 @@ const maxProviderTimeout = 5 * time.Minute
 // pattern check runs under (ADR-0078).
 const scannerSection = "scanner"
 
-// defaults are the mediator's defaults. The user is the mediator's own runtime role (ADR-0075), and
+// defaults are the mediator's defaults. The user is the mediator's own runtime role (ADR-0118), and
 // the TLS mode is the one that fails closed. The TLS, token and key files have no default, since a
 // default path assumes the environment.
 func defaults() Configuration {

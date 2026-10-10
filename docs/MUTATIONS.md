@@ -62,7 +62,6 @@ at different places in the file. A component's first row creates its file and it
 | [mutations/ratelimit.md](./mutations/ratelimit.md) | `ratelimit/` |
 | [mutations/testsupport.md](./mutations/testsupport.md) | `testsupport/` |
 | [mutations/mediate.md](./mutations/mediate.md) | `mediate/` |
-| [mutations/backfill.md](./mutations/backfill.md) | `backfill/` |
-| [mutations/sync.md](./mutations/sync.md) | `sync/` |
+| [mutations/worker.md](./mutations/worker.md) | `worker/` |
 | [mutations/ui.md](./mutations/ui.md) | `ui/` |
 | [mutations/cross-component.md](./mutations/cross-component.md) | More than one component's directory |

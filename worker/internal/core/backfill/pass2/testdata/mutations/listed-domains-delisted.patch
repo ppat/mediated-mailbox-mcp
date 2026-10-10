@@ -1,0 +1,20 @@
+control: A removed rule returns its sender's messages to pending scan, and the pass starts over
+removes: the comparison delists the domains the policy still restricts
+packages: ./core/index ./worker/internal/backfill/pass2 ./worker/internal/deltasync/tick
+tests: TestDelisted TestARemovedRuleReturnsItsSendersMessagesToPendingScan TestTheTransitionMarksNothingTwice TestAKilledSecondPassResumesFromItsCheckpoint TestATickScansADelistedSendersMessages
+scheduled-count: no
+integration: yes
+
+diff --git a/core/index/scan.go b/core/index/scan.go
+index 5e07cbf..5a7e653 100644
+--- a/core/index/scan.go
++++ b/core/index/scan.go
+@@ -19,7 +19,7 @@ import (
+ func Delisted(p policy.Composed, l classify.Lookups, restricted []string) []string {
+ 	var out []string
+ 	for _, d := range restricted {
+-		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
++		if classify.Classify(p, "@"+d, l).Class().Restricted() {
+ 			out = append(out, d)
+ 		}
+ 	}

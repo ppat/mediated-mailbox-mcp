@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 }
 
 // The role the loader connects as in these tests. Delta sync's role reads and writes everything the
-// library's statements reach, as the mediator's, backfill's and the reorg workload's do (ADR-0075).
+// library's statements reach, as the mediator's and the worker's other job kinds' do (ADR-0118).
 const role = "mediated_mailbox_sync"
 
 // pool returns a pool connecting as role, so row-level security and the role's grants apply as they

@@ -1,0 +1,18 @@
+control: No account is added while the policy reload fails, and a dropped account's job is still removed
+removes: a reload whose policy load fails returns before it removes the jobs of the accounts no longer listed
+packages: ./worker/internal/deltasync
+tests: TestNoAccountIsAddedWhileThePolicyReloadFails
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -204,6 +204,7 @@
+ 	policyErr := d.loadPolicy(ctx, ids(snapshot))
+ 	if policyErr != nil {
+ 		d.config.Logger.Error("the policy was not reloaded, so no account newly listed is synced until it is", "error", policyErr)
++		return policyErr
+ 	}
+ 	var kept []string
+ 	for _, account := range d.served {

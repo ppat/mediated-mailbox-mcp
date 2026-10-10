@@ -1,0 +1,18 @@
+control: The effective configuration is logged at start, each value with its source
+removes: each value is logged without the layer that set it
+packages: ./worker/app
+tests: TestTheEffectiveConfigurationIsLogged
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -199,7 +199,7 @@
+ 	// The effective configuration is written before the level applies, so a refused value's source,
+ 	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
+ 	for _, v := range loaded.Values {
+-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
++		logger.Info("configuration", "path", v.Path, "value", v.Value)
+ 	}
+ 	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
+ 	if err != nil {

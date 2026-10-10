@@ -6,8 +6,9 @@
 
 ## Context
 
-The system is deliberately several workloads ([ADR-0022](../operability/0022-four-workloads.md)),
-the trust anchor's runtime is hardened to carry nothing beyond what it needs
+The system is deliberately several deployables
+([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), the trust anchor's
+runtime is hardened to carry nothing beyond what it needs
 ([ADR-0028](../operability/0028-trust-anchor-hardening.md)), and every dependency inside a process
 holding full-mailbox credentials is attack surface. Packaging is where those commitments either
 extend to the artifact layer or quietly stop at the process boundary.
@@ -50,6 +51,10 @@ extend to the artifact layer or quietly stop at the process boundary.
   buys that convenience by putting all code everywhere, the content scanner's body-reading
   machinery inside the UI's container and the mutation engine inside the heuristics job, which is
   the braid at the artifact layer and the inverse of the minimal-contents posture.
+  [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md) runs reorg apply
+  and rollback and the heuristics run as job kinds of one worker, so the mutation engine and the
+  heuristics share the worker's image, and code isolation per job kind takes the place of image
+  isolation between them.
 - **Independent per-deployable versioning.** The case for it: deployables could release on their
   own cadence. Rejected: it creates a version-compatibility matrix that a single-operator
   system would never keep honest, for a cadence freedom nothing here needs.
@@ -71,7 +76,7 @@ extend to the artifact layer or quietly stop at the process boundary.
   look like.
 - The worker's image holds the code of every job kind it runs, so the exactness this record keeps
   per deployable is the worker's as a whole, not each job kind's. The alternative of one shared
-  image for four batch workloads no longer has a subject, because the background work is one
-  deployable ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
+  image for four batch workloads has no subject, because the background work is one deployable
+  ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
 - Assumptions about other components: the build-and-publish machinery is parameterized per
   deployable, and the deployment artifact consumes every image at the same lockstep version.

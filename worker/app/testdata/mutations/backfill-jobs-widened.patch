@@ -1,0 +1,17 @@
+control: Each job kind's constructor takes only what the job kind needs
+removes: the jobs backfill adds and drops are reached through an interface that also stops the scheduler
+packages: ./worker/app
+tests: TestEachJobKindsConstructorTakesOnlyWhatItNeeds
+scheduled-count: no
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -79,6 +79,7 @@
+ type Jobs interface {
+ 	Ensure(key schedule.Key, job schedule.Job) error
+ 	Remove(key schedule.Key)
++	Stop()
+ }
+ 
+ // Config is what backfill's job kind is built from, and nothing more.

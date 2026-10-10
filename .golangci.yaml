@@ -183,14 +183,11 @@ linters:
           - "strings$"
           - "unicode$"
           - "unicode/utf8$"
-          - "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/organize/internal/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/propose/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/"
 
         # Test files of every pure-core package. What the non-test files may import, plus test tooling and the
         # functions a shell passes in.
@@ -221,11 +218,8 @@ linters:
           # against the real lookups. Neither is pure, so neither is on the pure-core list for non-test files.
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
-          - "github.com/ppat/mediated-mailbox-mcp/backfill/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/organize/internal/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/propose/internal/core/"
           # The rate limiter's pure core is one package rather than a directory of packages, so its external tests
           # import it by its exact path.
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core$"
@@ -233,18 +227,18 @@ linters:
           # The database connection's and the credential code's pure cores are one package each too.
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/sync/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/"
           - "pgregory.net/rapid$"
 
         # The account snapshot, every file, a package of the execution context family. It is a library, so it
         # connects as no role of its own. db/check plans the statements of the subsections it names under the role of
-        # each deployable whose list admits it (ADR-0066, ADR-0075).
+        # each deployable or job kind whose list admits it (ADR-0066, ADR-0118).
         accountload:
           list-mode: strict
           files:
@@ -266,20 +260,28 @@ linters:
 
         # The account session, every file, a package of the execution context family. It holds an account's provider
         # connection over the account snapshot and records the latest authentication attempt, under the role of each
-        # deployable whose list admits it. It imports no provider adapter and no rate limiter, since each composition
-        # root passes it a connector per provider and leases inside each call (ADR-0089, ADR-0097).
+        # deployable or job kind whose list admits it. It imports no provider adapter and no rate limiter, since each
+        # composition root passes it a connector per provider and leases inside each call (ADR-0089, ADR-0097).
         session:
           list-mode: strict
           files:
           - "${base-path}/executioncontext/session/**.go"
           allow:
           - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/pgtype$"
+          # Its tests' pool, keys and database, under the role of a job kind that holds sources.
+          - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/mail$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
 
         # The sealed credentials, every file, packages of the execution context family.
         credential:
@@ -361,8 +363,8 @@ linters:
 
         # The policy loader, every file, a package of the execution context family. It is a library, so it connects
         # as no role of its own. db/check plans the statements of the subsection it names under the role of each
-        # deployable whose list admits it (ADR-0066, ADR-0075). client_golang is admitted for the reload-failure
-        # series (ADR-0076, ADR-0077).
+        # deployable or job kind whose list admits it (ADR-0066, ADR-0118). client_golang is admitted for the
+        # reload-failure series (ADR-0076, ADR-0077).
         policyload:
           list-mode: strict
           files:
@@ -420,7 +422,7 @@ linters:
 
         # The rate limiter, every file. Its pure rules under ratelimit/core also meet the pure-core lists. It is a
         # library, so it connects as no role of its own. db/check plans the statements of the subsections it names
-        # under the role of each deployable whose list admits it (ADR-0066, ADR-0075).
+        # under the role of each deployable or job kind whose list admits it (ADR-0066, ADR-0118).
         ratelimit:
           list-mode: strict
           files:
@@ -557,62 +559,6 @@ linters:
           - "go/"
           - "golang.org/x/tools/go/"
 
-        # Deployable backfill, every file. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
-        # It names each data-access subsection it may use, which db/check tests against its role's grants.
-        backfill:
-          list-mode: strict
-          files:
-          - "${base-path}/backfill/**.go"
-          allow:
-          - "$gostd"
-          - "github.com/google/go-cmp/cmp$"
-          - "github.com/google/go-cmp/cmp/cmpopts$"
-          - "github.com/jackc/pgx/v5$"
-          - "github.com/jackc/pgx/v5/"
-          - "github.com/ppat/mediated-mailbox-mcp/backfill/"
-          - "github.com/ppat/mediated-mailbox-mcp/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
-          # The two passes' statements. The writes sit in subsections the readers' lists do not admit, which
-          # backfill shares with delta sync apart from the completion flags, and the lowered target's read in
-          # db/accountstate (ADR-0075, ADR-0066). The recording of the last authentication attempt runs in the
-          # account session, which executioncontext/session admits (ADR-0097).
-          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
-          # The probe and metrics listener the composition root serves (ADR-0051).
-          - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/"
-          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
-          - "github.com/prometheus/client_golang/prometheus$"
-          # The sender classifier's domain functions, which the composition root passes pass 1.
-          - "golang.org/x/net/idna$"
-          - "golang.org/x/net/publicsuffix$"
-          - "pgregory.net/rapid$"
-
         # Deployable mediate, every file. A deployable imports its own code and the shared libraries, never another
         # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
         # It names each data-access subsection it may use, which db/check tests against its role's grants.
@@ -667,116 +613,6 @@ linters:
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
           # The sender classifier's domain functions, which the composition root passes the read operations.
-          - "golang.org/x/net/idna$"
-          - "golang.org/x/net/publicsuffix$"
-          - "pgregory.net/rapid$"
-
-        # Deployable organize, every file. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
-        # It names each data-access subsection it may use, which db/check tests against its role's grants.
-        organize:
-          list-mode: strict
-          files:
-          - "${base-path}/organize/**.go"
-          allow:
-          - "$gostd"
-          - "github.com/google/go-cmp/cmp$"
-          - "github.com/google/go-cmp/cmp/cmpopts$"
-          - "github.com/ppat/mediated-mailbox-mcp/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
-          - "github.com/ppat/mediated-mailbox-mcp/organize/"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/"
-          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
-          - "pgregory.net/rapid$"
-
-        # Deployable propose, every file. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
-        # It names each data-access subsection it may use, which db/check tests against its role's grants.
-        # It admits neither the provider adapters nor the rate limiter, because the Heuristics Job calls no provider
-        # and does not spend the rate budget (ADR-0025, ADR-0038).
-        propose:
-          list-mode: strict
-          files:
-          - "${base-path}/propose/**.go"
-          allow:
-          - "$gostd"
-          - "github.com/google/go-cmp/cmp$"
-          - "github.com/google/go-cmp/cmp/cmpopts$"
-          - "github.com/ppat/mediated-mailbox-mcp/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/propose/"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
-          - "pgregory.net/rapid$"
-
-        # Deployable sync, every file. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
-        # It names each data-access subsection it may use, which db/check tests against its role's grants.
-        sync:
-          list-mode: strict
-          files:
-          - "${base-path}/sync/**.go"
-          allow:
-          - "$gostd"
-          - "github.com/google/go-cmp/cmp$"
-          - "github.com/google/go-cmp/cmp/cmpopts$"
-          - "github.com/jackc/pgx/v5$"
-          - "github.com/jackc/pgx/v5/"
-          - "github.com/ppat/mediated-mailbox-mcp/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
-          # A tick's statements. It adds and masks mail and records its runs as backfill's first pass does,
-          # and decides and scans what waits as its second pass does, through the subsections it shares with
-          # backfill. The change cursor, a change's labels, flags and removals, and the re-seal of a client
-          # secret sit in subsections only this list admits. The account's progress and lowered target are
-          # read in db/accountstate (ADR-0075, ADR-0066, ADR-0104, ADR-0092). The recording of the last
-          # authentication attempt runs in the account session, which executioncontext/session admits (ADR-0097).
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/cursor$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/messages/change$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
-          # The probe and metrics listener the composition root serves (ADR-0051, ADR-0103).
-          - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/"
-          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
-          # A tick converts a body's HTML as backfill's second pass and release do (ADR-0104, ADR-0036).
-          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
-          - "github.com/ppat/mediated-mailbox-mcp/sync/"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
-          - "github.com/prometheus/client_golang/prometheus$"
-          # The sender classifier's domain functions, which the composition root passes a tick.
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
@@ -927,6 +763,155 @@ linters:
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid"
 
+        # Deployable worker, every file outside its job kinds' code: its entry, its composition root, its scheduler and
+        # the code its job kinds share. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. It names
+        # no data-access subsection and admits no shared library that runs statements, so this list needs no role in
+        # db/check (ADR-0118, ADR-0066). It admits the driver only so the composition root can open each job kind's pool
+        # under that job kind's role. A statement the worker's own code runs on a pool is left to review.
+        worker:
+          list-mode: strict
+          files:
+          - "${base-path}/worker/**.go"
+          - "!${base-path}/worker/internal/backfill/**"
+          - "!${base-path}/worker/internal/core/backfill/**"
+          - "!${base-path}/worker/internal/deltasync/**"
+          - "!${base-path}/worker/internal/core/deltasync/**"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          # The probe and metrics listener the composition root serves (ADR-0051).
+          - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/"
+          - "github.com/prometheus/client_golang/prometheus$"
+
+        # Backfill's job kind in the worker, its shell code and its pure core. A job kind imports its own code, the
+        # worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names each
+        # data-access subsection it may use, which db/check tests against backfill's role's grants. The two passes'
+        # writes sit in subsections the readers' lists do not admit, which backfill shares with delta sync apart
+        # from the completion flags, and the progress, restart mark and lowered target are read in
+        # db/accountstate and its completion subsection (ADR-0118, ADR-0066). The recording of the last
+        # authentication attempt runs in the account session, which executioncontext/session admits (ADR-0097).
+        worker-backfill:
+          list-mode: strict
+          files:
+          - "${base-path}/worker/internal/backfill/**.go"
+          - "${base-path}/worker/internal/core/backfill/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/series$"
+          - "github.com/prometheus/client_golang/prometheus$"
+          # The sender classifier's domain functions, which the job kind passes pass 1.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
+          - "pgregory.net/rapid$"
+
+        # Delta sync's job kind in the worker, its shell code and its pure core. A job kind imports its own code,
+        # the worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names
+        # each data-access subsection it may use, which db/check tests against delta sync's role's grants. A tick
+        # adds and masks mail and records its runs as backfill's first pass does, and decides and scans what waits
+        # as its second pass does, through the subsections it shares with backfill. The change cursor, a change's
+        # labels, flags and removals, and the re-seal of a client secret sit in subsections only this list admits.
+        # The account's progress and lowered target are read in db/accountstate (ADR-0118, ADR-0066, ADR-0104,
+        # ADR-0092). The recording of the last authentication attempt runs in the account session, which
+        # executioncontext/session admits (ADR-0097).
+        worker-sync:
+          list-mode: strict
+          files:
+          - "${base-path}/worker/internal/deltasync/**.go"
+          - "${base-path}/worker/internal/core/deltasync/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          # A tick converts a body's HTML as backfill's second pass and release do (ADR-0104, ADR-0036).
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/cursor$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/change$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/series$"
+          - "github.com/prometheus/client_golang/prometheus$"
+          # The sender classifier's domain functions, which the job kind passes a tick.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
+          - "pgregory.net/rapid$"
+
         # The mediator's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated
         # from the operation registry by one file, its generator, and only the generator imports the library its
         # protocol is served with, so an operation cannot be registered on a root anywhere else (ADR-0053). The
@@ -1039,7 +1024,6 @@ linters:
           - "github.com/jackc/pgx/v5/"
           - "github.com/modelcontextprotocol/go-sdk/jsonrpc$"
           - "github.com/modelcontextprotocol/go-sdk/mcp$"
-          - "github.com/ppat/mediated-mailbox-mcp/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/content/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
@@ -1050,21 +1034,19 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
-          - "github.com/ppat/mediated-mailbox-mcp/organize/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
-          - "github.com/ppat/mediated-mailbox-mcp/propose/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/caldav$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gcal$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/jmap$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
-          - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/"
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
           # The configuration library's decoder (ADR-0078).
@@ -1095,7 +1077,6 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/pganalyze/pg_query_go/v6$"
-          - "github.com/ppat/mediated-mailbox-mcp/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/content/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
@@ -1106,16 +1087,13 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
-          - "github.com/ppat/mediated-mailbox-mcp/organize/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
-          - "github.com/ppat/mediated-mailbox-mcp/propose/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
-          - "github.com/ppat/mediated-mailbox-mcp/sync/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
@@ -1123,6 +1101,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/"
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_model/go$"
           - "github.com/wasilibs/go-pgquery$"
@@ -1140,7 +1119,6 @@ linters:
           list-mode: strict
           files:
           - "$all"
-          - "!${base-path}/backfill/**"
           - "!${base-path}/content/**"
           - "!${base-path}/core/**"
           - "!${base-path}/db/**"
@@ -1149,16 +1127,14 @@ linters:
           - "!${base-path}/executioncontext/policyload/**"
           - "!${base-path}/executioncontext/session/**"
           - "!${base-path}/mediate/**"
-          - "!${base-path}/organize/**"
           - "!${base-path}/process/dbconnect/**"
           - "!${base-path}/process/logging/**"
           - "!${base-path}/process/probes/**"
           - "!${base-path}/process/settings/**"
-          - "!${base-path}/propose/**"
           - "!${base-path}/provider/**"
           - "!${base-path}/ratelimit/**"
-          - "!${base-path}/sync/**"
           - "!${base-path}/testsupport/**"
           - "!${base-path}/ui/**"
+          - "!${base-path}/worker/**"
           allow:
           - "$gostd"

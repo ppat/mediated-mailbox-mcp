@@ -1,0 +1,33 @@
+control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
+removes: a verdict whose scanner version differs and whose revision matches stays in force
+packages: ./worker/internal/backfill
+tests: TestAChangeOfScannerVersionAloneMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
+index 615ead7..00587dc 100644
+--- a/db/messages/scan/scan.sql
++++ b/db/messages/scan/scan.sql
+@@ -86,7 +86,7 @@ WHERE
+     account_id = @account_id
+     AND scan_state = 'scanned'
+     AND (
+-        scanner_version IS DISTINCT FROM @scanner_version::int
++        false AND scanner_version IS DISTINCT FROM @scanner_version::int
+         OR scanner_revision IS DISTINCT FROM @scanner_revision::text
+     )
+ RETURNING from_domain;
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index 3868ecd..7d03833 100644
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -211,7 +211,7 @@ WHERE
+     account_id = $1
+     AND scan_state = 'scanned'
+     AND (
+-        scanner_version IS DISTINCT FROM $2::int
++        false AND scanner_version IS DISTINCT FROM $2::int
+         OR scanner_revision IS DISTINCT FROM $3::text
+     )
+ RETURNING from_domain

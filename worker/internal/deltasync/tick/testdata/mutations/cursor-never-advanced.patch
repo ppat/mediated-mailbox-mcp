@@ -1,0 +1,20 @@
+control: A tick applies each change set in the transaction that advances the cursor past it
+removes: a change set's application stores no cursor, so the next tick asks for the same changes again
+packages: ./worker/internal/deltasync/tick
+tests: TestATickAppliesTheChangesSinceItsCursor TestTheCursorNeverRunsAheadOfTheIndex
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
+index 8fb4cdc..cce67bb 100644
+--- a/worker/internal/deltasync/tick/postgres.go
++++ b/worker/internal/deltasync/tick/postgres.go
+@@ -152,7 +152,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
+ 				return fmt.Errorf("removing the statistics of the sender at %q: %w", d, err)
+ 			}
+ 		}
+-		if a.Cursor != "" {
++		if false && a.Cursor != "" {
+ 			if err := advance(ctx, cursor.New(t), account, a.Cursor); err != nil {
+ 				return err
+ 			}

@@ -1,0 +1,21 @@
+control: Each reload loads the account snapshot, and a failed read keeps the previous one
+removes: a reload whose read fails is ignored, so it goes on with the previous snapshot as if it were fresh and reports nothing
+packages: ./worker/internal/backfill
+tests: TestAFailedSnapshotReadKeepsThePreviousSnapshot
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -184,9 +184,7 @@
+ // adds no job, because an account whose rules were never read would be decided as if every sender were
+ // restricted, and still drops the jobs of the accounts no longer listed (ADR-0090, ADR-0041).
+ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
+-	if err := b.loader.Load(ctx); err != nil {
+-		return fmt.Errorf("loading the accounts: %w", err)
+-	}
++	_ = b.loader.Load(ctx)
+ 	snapshot := b.loader.Snapshot()
+ 	listed := b.sessions.Accounts(snapshot)
+ 	policyErr := b.loadPolicy(ctx, ids(snapshot))

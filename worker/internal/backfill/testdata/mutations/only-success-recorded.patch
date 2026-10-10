@@ -1,0 +1,20 @@
+control: The latest authentication attempt is recorded at the end of every unit of work, a failed one included, and a failed recording ends the pass in an error
+removes: only an attempt that succeeded is recorded, so a refused or failed one never reaches the account's state row
+packages: ./worker/internal/backfill
+tests: TestARunRecordsEachAccountsAttemptWhenItsUnitEnds TestOnlyALaterAttemptIsRecorded TestAFailedRecordingIsReturned
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+index f4fb328a..ea0d07d7 100644
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -259,7 +259,7 @@ func (s *Session) End(ctx context.Context) (handOver, record error) {
+ // statement keeps a later attempt another deployable recorded (ADR-0097). A recording that fails is
+ // returned, and the next unit of work records the attempt again.
+ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt mail.AuthAttempt) error {
+-	if attempt == (mail.AuthAttempt{}) {
++	if attempt.Outcome != mail.AuthSucceeded {
+ 		return nil
+ 	}
+ 	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {

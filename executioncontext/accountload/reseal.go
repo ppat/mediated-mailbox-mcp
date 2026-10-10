@@ -35,7 +35,7 @@ func (l *Loader) Scan() Scan {
 
 // Reseal seals every account credential the last load opened with a key that is not the current one
 // again to the current key, and writes it by compare-and-set on the bytes the loader knew (ADR-0089,
-// ADR-0092). Delta sync is the one process that calls it. A value someone else replaced meanwhile is
+// ADR-0092). Delta sync is the one job kind that calls it. A value someone else replaced meanwhile is
 // read again and not re-sealed until the next run. A write that fails is logged and leaves the value
 // on its old key. It returns the scan that results. It re-seals account credentials only, and
 // ResealClients re-seals the OAuth clients' secrets through the write its caller supplies, since no
@@ -86,7 +86,7 @@ type ClientWriter func(ctx context.Context, name string, known, sealed []byte) (
 
 // ResealClients seals every OAuth client secret the last load opened with a key that is not the
 // current one again to the current key, and writes it through write by compare-and-set on the bytes
-// the loader knew (ADR-0089, ADR-0092). Delta sync is the one process that calls it. A secret someone
+// the loader knew (ADR-0089, ADR-0092). Delta sync is the one job kind that calls it. A secret someone
 // else replaced meanwhile is read again, opened and published in a new snapshot, and not re-sealed
 // until the next run. A write that fails is logged and leaves the secret on its old key. It returns
 // the scan that results.

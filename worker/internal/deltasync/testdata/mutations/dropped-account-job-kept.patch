@@ -1,0 +1,18 @@
+control: An account no longer served has its job removed, and its running run cancelled
+removes: the reload never removes the job of an account it no longer lists, so its tick keeps running
+packages: ./worker/internal/deltasync
+tests: TestADroppedAccountsTickIsCancelled
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -212,7 +212,6 @@
+ 			continue
+ 		}
+ 		d.config.Logger.Info("an account is no longer listed, so its delta sync stops", "account", account)
+-		d.config.Jobs.Remove(schedule.Key{Kind: Kind, ID: account})
+ 		d.ticks.Forget(account)
+ 	}
+ 	d.served = kept

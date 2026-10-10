@@ -1,0 +1,24 @@
+control: Delta sync refuses a configuration it cannot tick with
+removes: the interval, the first window and the bound on decisions are not validated
+packages: ./worker/app
+tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheStart/--sync.sync_interval=0s TestATickThatCannotRunRefusesTheStart/--sync.first_window=-1h TestATickThatCannotRunRefusesTheStart/--sync.decisions_per_tick=0
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -161,11 +161,11 @@
+ 		return fmt.Errorf("reload_interval %s is not positive", c.ReloadInterval)
+ 	case c.Backfill.Concurrency <= 0:
+ 		return fmt.Errorf("backfill.concurrency %d is not positive", c.Backfill.Concurrency)
+-	case c.Sync.SyncInterval <= 0:
++	case false && c.Sync.SyncInterval <= 0:
+ 		return fmt.Errorf("sync.sync_interval %s is not positive", c.Sync.SyncInterval)
+-	case c.Sync.FirstWindow <= 0:
++	case false && c.Sync.FirstWindow <= 0:
+ 		return fmt.Errorf("sync.first_window %s is not positive", c.Sync.FirstWindow)
+-	case c.Sync.DecisionsPerTick <= 0:
++	case false && c.Sync.DecisionsPerTick <= 0:
+ 		return fmt.Errorf("sync.decisions_per_tick %d is not positive", c.Sync.DecisionsPerTick)
+ 	case c.Sync.Concurrency <= 0:
+ 		return fmt.Errorf("sync.concurrency %d is not positive", c.Sync.Concurrency)

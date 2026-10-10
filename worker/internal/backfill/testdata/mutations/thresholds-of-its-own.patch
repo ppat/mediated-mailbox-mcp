@@ -1,0 +1,18 @@
+control: Delta sync decides under backfill's gate thresholds and records backfill's scanner version and revision
+removes: backfill's second pass decides under thresholds of its own
+packages: ./worker/internal/backfill
+tests: TestARunDecidesUnderTheSharedThresholdsAndScanner
+scheduled-count: no
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -438,7 +438,7 @@
+ // work (ADR-0120, ADR-0121, ADR-0104).
+ func secondDeps(store pass2.Store, body pass2.Body, policy func() policy.Composed, lookups classify.Lookups, scanner scan.Scanner) pass2.Deps {
+ 	return pass2.Deps{
+-		Store: store, Body: body, Policy: policy, Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
++		Store: store, Body: body, Policy: policy, Lookups: lookups, Gate: scangate.Config{SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 1}, Scanner: scanner,
+ 		PageSize: pageSize, RunID: runID, Now: time.Now,
+ 	}
+ }

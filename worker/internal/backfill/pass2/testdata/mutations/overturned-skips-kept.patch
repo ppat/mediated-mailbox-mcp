@@ -1,0 +1,21 @@
+control: A stored gate skip the gate no longer decides as the same skip returns to pending at backfill's run-start step
+removes: the run-start step reads the gate skips and returns none to pending, so every skip made under earlier thresholds stays in force
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass2
+tests: TestAChangeOfThresholdsDecidesTheStoredSkipsAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 86c762e..95fc692 100644
+--- a/worker/internal/backfill/pass2/postgres.go
++++ b/worker/internal/backfill/pass2/postgres.go
+@@ -227,7 +227,8 @@ func requeueOverturned(ctx context.Context, q *scan.Queries, account string, ove
+ 			SizeBytes: r.SizeBytes, SentAt: mail.UnixMilli(r.SentAt.Time.UnixMilli()), SenderVolume: r.SenderVolume, SenderHits: r.SenderHits,
+ 		})
+ 	}
+-	ids := overturned(skips)
++	_ = overturned(skips)
++	var ids []string
+ 	if len(ids) == 0 {
+ 		return 0, nil
+ 	}

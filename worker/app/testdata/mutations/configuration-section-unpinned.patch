@@ -1,0 +1,17 @@
+control: A deployable's configuration type is pinned field by field
+removes: a section is added to the worker's root configuration type without updating the pinned field list
+packages: ./worker/app
+tests: TestTheConfigurationTypeIsPinned
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -59,6 +59,7 @@
+ 	LogLevel string   `yaml:"log_level"`
+ 	Backfill Backfill `yaml:"backfill"`
+ 	Sync     Sync     `yaml:"sync"`
++	Extra    Backfill `yaml:"extra"`
+ }
+ 
+ // Database is the worker's database section. The server is named once, and each job kind connects as

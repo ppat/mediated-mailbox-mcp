@@ -1,0 +1,19 @@
+control: The database section is validated before anything else starts
+removes: the start configures each job kind's connection without validating the database section
+packages: ./worker/app
+tests: TestAnEmptyHostRefusesTheStart
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -149,9 +149,6 @@
+ 		case kind.role.PasswordFile == "":
+ 			return fmt.Errorf("database.%s.password_file is empty", kind.name)
+ 		}
+-		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
+-			return err
+-		}
+ 		if kind.role.PoolSize <= 0 {
+ 			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
+ 		}

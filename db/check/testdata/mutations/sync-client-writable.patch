@@ -16,5 +16,5 @@ index eba1d5bc..83848fd2 100644
 -GRANT UPDATE (client_secret) ON oauth_clients TO mediated_mailbox_sync;
 +GRANT UPDATE (client_secret, client_id) ON oauth_clients TO mediated_mailbox_sync;
  
- -- The reorganization workload (ADR-0075). Its own grants arrive with its statements. It spends from the
+ -- The reorganization workload (ADR-0118). Its own grants arrive with its statements. It spends from the
  -- budget and holds an account snapshot, through the shared libraries' sections below.

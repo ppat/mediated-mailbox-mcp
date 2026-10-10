@@ -15,8 +15,8 @@ type Querier interface {
 	RecordMaskingEvent(ctx context.Context, arg RecordMaskingEventParams) error
 	// Records a batch of masks applied to the subjects of the account's messages, one row for each
 	// message, rule and tier named in the same position of the three lists, naming never the text
-	// (ADR-0003), all under the scanner version and configuration revision given, in one statement, as a
-	// backfill run's start masks the stored subjects again in batches (ADR-0120).
+	// (ADR-0003), all under the scanner version and configuration revision given, in one statement, as
+	// backfill's run-start step masks the stored subjects again in batches (ADR-0120).
 	RecordMaskingEvents(ctx context.Context, arg RecordMaskingEventsParams) error
 }
 

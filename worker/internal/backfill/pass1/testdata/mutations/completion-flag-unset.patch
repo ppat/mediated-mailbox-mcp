@@ -1,0 +1,22 @@
+control: Pass 1 sets its completion flag when it ends, and a pass that ended and is not due again does no work
+removes: the run that ends the pass records its end and leaves the account's completion flag unset
+packages: ./worker/internal/backfill/pass1
+tests: TestAKilledRunResumesFromItsCheckpoint TestAPassIndexesTheWholeMailbox TestAPassThatEndedIsSkipped
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index 07d93c91..3f487d94 100644
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -373,9 +373,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
+ 		if len(stale) > 0 {
+ 			return nil
+ 		}
+-		if err := completion.New(t).SetBackfillFirstComplete(ctx, account); err != nil {
+-			return fmt.Errorf("setting the completion flag: %w", err)
+-		}
++		_ = completion.New
+ 		ended = true
+ 		return SucceedRun(ctx, runrecord.New(t), account, runID)
+ 	})
