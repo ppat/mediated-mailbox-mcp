@@ -1,0 +1,104 @@
+---
+# yamllint disable rule:line-length
+name: go-unit
+
+# The unit tests of every Go package, the example tests that need no build tag, and no other kind (ADR-0124).
+# go tool testkinds selects them, and its check in go-lint.yaml holds every test to its workflows. db/check
+# reads .golangci.yaml's import lists, ui/internal/contract compares ui/contract/openapi.json with what it
+# generates, ratelimit/lease runs promtool over the chart's alerting rules and renders the template that ships
+# them, and executioncontext/policyload runs promtool over the same rules, so those files are watched too.
+#
+# The run sets RAPID_SEED non-zero, RAPID_CHECKS to the gating case count and RAPID_NOFAILFILE=true, and passes
+# no -short, the values every gating test run sets (ADR-0069).
+on:
+  pull_request:
+    paths:
+    - .github/workflows/go-unit.yaml
+    - .golangci.yaml
+    - '*.go'
+    - '**/*.go'
+    - go.mod
+    - go.sum
+    - mise.lock
+    - mise.toml
+    - content/**
+    - core/**
+    - db/**
+    - executioncontext/**
+    - mediate/**
+    - packaging/chart/alerting-rules.yaml
+    - packaging/chart/templates/prometheusrule.yaml
+    - process/**
+    - provider/**
+    - ratelimit/**
+    - testsupport/**
+    - ui/*.go
+    - ui/browser/bun.lock
+    - ui/browser/bunfig.toml
+    - ui/browser/package.json
+    - ui/browser/scripts/**
+    - ui/browser/src/**
+    - ui/browser/tsconfig.json
+    - ui/contract/**
+    - ui/internal/**
+    - worker/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # The UI's tests read the built browser bundle, the policy scan of every bundled file, the entry document
+    # loading the bundle's entry module, and the reserved words a bundle's top level holds, so the bundle is built
+    # first, as the ui workflow builds it. A fresh clone holds only its placeholder, against which those tests skip
+    # or check less.
+    - name: Build the browser bundle the UI's tests read
+      shell: bash
+      working-directory: ./current/ui/browser
+      # yamllint disable-line rule:indentation
+      run: |
+        mise exec -- bun install --frozen-lockfile
+        mise exec -- bun run build
+
+    # testkinds fails when no unit test exists, so the run never passes having selected nothing.
+    - name: Run the unit tests
+      shell: bash
+      working-directory: ./current
+      env:
+        RAPID_SEED: '1'
+        RAPID_CHECKS: '200'
+        RAPID_NOFAILFILE: 'true'
+      # yamllint disable-line rule:indentation
+      run: |
+        selection="$(mise exec -- go tool testkinds args unit unit)"
+        mapfile -t args <<< "$selection"
+        mise exec -- go test "${args[@]}"
+
+    # The worker's scheduler is concurrency code the project owns, so its tests run again under the race detector,
+    # the run its test of ensuring and removing one job from many goroutines is written for (ADR-0119). The race
+    # detector needs cgo, which the test build alone uses. No image is built with it.
+    - name: Run the scheduler's tests under the race detector
+      shell: bash
+      working-directory: ./current
+      env:
+        CGO_ENABLED: '1'
+      # yamllint disable-line rule:indentation
+      run: |
+        selection="$(mise exec -- go tool testkinds args unit unit ./worker/internal/schedule/...)"
+        mapfile -t args <<< "$selection"
+        mise exec -- go test -race -count=1 "${args[@]}"

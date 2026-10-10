@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a test file compiled at neither level, so a test no run compiles passes
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckRefusesAFileNoWorkflowRuns/a_file_compiled_at_neither_level
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..5d9ef7c9 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -351,7 +351,7 @@ func (t *tree) check() []string {
+ 		case strings.HasSuffix(f.name, "_live_test.go"):
+ 			problems = append(problems, fmt.Sprintf("%s: a contract run against a real provider compiled at the %s level, so a test workflow would run it. It runs only in gmail-contract through go tool livecontract, so it carries its provider's build tag", path, f.level))
+ 		case f.level == "":
+-			problems = append(problems, fmt.Sprintf("%s: compiled neither with no build tag nor with the integration tag, so no workflow runs it", path))
++			continue
+ 		default:
+ 			if _, ok := workflows[f.pair()]; !ok {
+ 				problems = append(problems, fmt.Sprintf("%s: a %s test at %s level, which no workflow runs. %s", path, f.kind, f.level, fix(f)))

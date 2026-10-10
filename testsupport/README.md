@@ -48,9 +48,12 @@ an image, because only test files and the tooling programs import it. Its packag
   ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)).
 - `cmd/banproof` (the ban-proof script), `cmd/pgrun` (the integration run), `cmd/vetcheck` (the
   analysers' program), `cmd/mutproof` (the runner that records mutation demonstrations, of
-  [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)) and
+  [ADR-0046](../docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)),
   `cmd/livecontract` (the one command that runs a provider's contract run against the real
-  provider), each run through `go tool`.
+  provider) and `cmd/testkinds` (the selection of each kind of test for its workflows, and the
+  check that every test runs in its kind's workflows and no other, of
+  [ADR-0124](../docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)),
+  each run through `go tool`.
 
 The import rules are written per file, so packages importing the property-testing library and
 packages every test may import sit in the one library without one reaching the other.

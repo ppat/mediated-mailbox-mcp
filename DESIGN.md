@@ -692,6 +692,16 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Operation sampler** — the test support this project writes that draws a fresh mix of
   operations for each sequence the crash harness generates (rule in ADR-0069, via the
   [decision-record index](./docs/adr/README.md)).
+- **Test kind** and **test level** — of a Go test file, its kind, read from its name, unit,
+  property, crash, integration or recorded fixtures, and whether it compiles with no build tag, the
+  unit level, or only with the integration tag, the integration level. Each of these is one of the
+  kinds of test [TESTING.md](./TESTING.md#what-to-test-with-what) lists, recorded fixtures being
+  integration tests that record the browser's fixtures, and "test kinds" used of the whole strategy
+  keeps TESTING.md's broader sense, browser tests, drills and the rest included. A Go test file's
+  kind at a level is one run, in the CI workflow that gates on it and, for a property test or a
+  crash sequence, in its deep workflow too (rule in ADR-0124, via the
+  [decision-record index](./docs/adr/README.md)). Where the files sit is
+  [CLAUDE.md](./CLAUDE.md#tests)'s.
 - **Marker text** — the searchable strings designed into synthetic fixture bodies and metadata
   fields so a leak check over any output surface, a rendering surface included, is deterministic
   (rule in ADR-0044, via the

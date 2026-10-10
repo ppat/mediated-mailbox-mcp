@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a run with no test, so a step asking for it selects nothing and passes
+packages: ./testsupport/cmd/testkinds
+tests: TestArgsSelectingNothing
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..cf249327 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -290,7 +290,7 @@ func (t *tree) args(p pair, patterns []string) ([]string, error) {
+ 	}
+ 	sel := t.selection(p)
+ 	if len(sel.names) == 0 {
+-		return nil, fmt.Errorf("no %s test at %s level exists, so the step would select nothing", p.kind, p.level)
++		return nil, nil
+ 	}
+ 	pkgs := sel.pkgs
+ 	if len(patterns) > 0 {

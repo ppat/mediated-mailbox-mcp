@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the fixtures kind, so a test that records the browser's fixtures is read as an integration test and runs in the integration workflow
+packages: ./testsupport/cmd/testkinds
+tests: TestKindOf TestLoadReadsEachFilesKindLevelAndTests
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..10010445 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -178,8 +178,6 @@ func goList(root, level string) ([]listedPackage, error) {
+ // tests.
+ func kindOf(name string) string {
+ 	switch {
+-	case strings.HasSuffix(name, "_fixtures_integration_test.go"):
+-		return kindFixtures
+ 	case strings.HasSuffix(name, "_integration_test.go"):
+ 		return kindIntegration
+ 	case strings.HasSuffix(name, "_property_test.go"):

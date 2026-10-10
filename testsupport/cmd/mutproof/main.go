@@ -76,7 +76,7 @@
 // of them, such as -run or -short, changes which tests run or how. The GOFLAGS=-trimpath it sets
 // itself is applied after that check and changes neither which tests run nor what they assert. A
 // patch with scheduled-count yes runs with RAPID_CHECKS set from RAPID_SCHEDULED_CHECKS, which the
-// author sets to the count the deep-tests workflow runs, because a rare failure can be reached at
+// author sets to the count the property and crash workflows' scheduled runs use, because a rare failure can be reached at
 // the gating count only by luck (ADR-0069). The runner refuses such a patch when
 // RAPID_SCHEDULED_CHECKS is not a positive number.
 // RAPID_SEED passes through when it is set and non-zero. Otherwise the runner picks a seed. Both

@@ -1,0 +1,94 @@
+---
+# yamllint disable rule:line-length
+name: mutation-demonstrations
+
+# Every mutation demonstration in the ledger, run by go tool mutproof (ADR-0046). A demonstration still runs
+# by hand when its control lands or changes, which this workflow does not replace. This run catches a
+# demonstration that stopped holding without its control, its tests or a generator they draw from changing.
+# A full run takes hours of runner time, so it runs on a schedule and when started by hand, never on every pull
+# request (ADR-0124), and on a pull request only when it changes this file, so the workflow is exercised before
+# the change lands. The patches are split across parallel jobs, and a job fails when a demonstration in it did
+# not hold, a mutant survived, or a demonstration could not be judged.
+on:
+  schedule:
+  - cron: '0 6 * * 0'
+  workflow_dispatch:
+  pull_request:
+    paths:
+    - .github/workflows/mutation-demonstrations.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A full run is never cancelled by the next one.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  demonstrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    # Sixteen jobs, each taking every sixteenth patch. The values only make the jobs. Each job reads its index
+    # and the number of jobs from the strategy context, so every patch falls in exactly one job whatever the
+    # matrix holds.
+    strategy:
+      fail-fast: false
+      matrix:
+        job: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    env:
+      # The gating run's values (ADR-0069), so a demonstration proves the tests the gating run runs go red.
+      # RAPID_SCHEDULED_CHECKS is the deep search's count, which a patch marked scheduled-count yes runs at.
+      RAPID_SEED: '1'
+      RAPID_CHECKS: '200'
+      RAPID_NOFAILFILE: 'true'
+      RAPID_SCHEDULED_CHECKS: '10000'
+      JOB_INDEX: ${{ strategy.job-index }}
+      JOB_TOTAL: ${{ strategy.job-total }}
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # A patch whose runner is bun runs the browser tests from the checkout's installed packages.
+    - name: Install the browser layer's packages
+      shell: bash
+      working-directory: ./current/ui/browser
+      run: mise exec -- bun install --frozen-lockfile
+
+    # The patches are found as the mutation-patches workflow finds them, every .patch under a testdata/mutations
+    # directory apart from mutproof's own fixtures. Sorted by the kind of tests they run, integration tests under
+    # pgrun first, then bun tests, then ordinary go tests, and dealt in turn, each job gets an even share of each
+    # kind. Finding no patch, or a share with none, fails the job rather than passing with nothing demonstrated.
+    # mutproof exits non-zero when a demonstration did not hold, survived or could not be judged. It prints one
+    # PASS line per demonstration that held, which must number the patches given, so a run that skipped one fails.
+    - name: Run this job's share of the demonstrations
+      shell: bash
+      working-directory: ./current
+      # yamllint disable-line rule:indentation
+      run: |
+        list="$(mktemp)"
+        find . -path '*/testdata/mutations/*.patch' -not -path '*/testsupport/cmd/mutproof/testdata/*' -print > "$list"
+        mapfile -t patches < <(
+          while read -r patch; do
+            if grep -qx 'integration: yes' "$patch"; then rank=0; elif grep -qx 'runner: bun' "$patch"; then rank=1; else rank=2; fi
+            printf '%s %s\n' "$rank" "${patch#./}"
+          done < "$list" | sort | cut -d' ' -f2 | awk -v i="$JOB_INDEX" -v n="$JOB_TOTAL" '(NR - 1) % n == i'
+        )
+        found="$(wc -l < "$list")"
+        if (( found == 0 || ${#patches[@]} == 0 )); then
+          echo "::error::This job's share of the ${found} patches found is empty, so it would demonstrate nothing."
+          exit 1
+        fi
+        log="${RUNNER_TEMP}/mutproof.log"
+        start="$(date +%s)"
+        mise exec -- go tool mutproof "${patches[@]}" | tee "$log"
+        held="$(grep -c '^PASS ' "$log" || true)"
+        echo "Job ${JOB_INDEX} of ${JOB_TOTAL}: ${held} of ${#patches[@]} demonstrations held, of ${found} patches in all, in $(( $(date +%s) - start )) seconds" | tee -a "$GITHUB_STEP_SUMMARY"
+        if (( held != ${#patches[@]} )); then
+          echo "::error::${held} of ${#patches[@]} demonstrations reported held."
+          exit 1
+        fi

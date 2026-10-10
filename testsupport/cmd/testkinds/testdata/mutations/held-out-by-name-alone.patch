@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the build-tag condition on the violation and live exemption, so an untagged test file whose name holds _violation has no kind and runs nowhere
+packages: ./testsupport/cmd/testkinds
+tests: TestLoadReadsEachFilesKindLevelAndTests
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..a94efbd8 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -130,7 +130,7 @@ func load(root string) (*tree, error) {
+ 			case slices.Contains(p.compiled[levelIntegration], name):
+ 				f.level = levelIntegration
+ 			}
+-			if heldOut(name) && f.level == "" {
++			if heldOut(name) {
+ 				f.kind = ""
+ 			}
+ 			f.tests, err = declaredTests(filepath.Join(abs, filepath.FromSlash(dir), name))

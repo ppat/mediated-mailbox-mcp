@@ -2,7 +2,8 @@
 # yamllint disable rule:line-length
 name: data
 
-# The data-access library's generated code and its checks.
+# The data-access library's SQL lint and generated code. The db/check tests, which check statement files, the
+# migration chain, generated code and import lists, run in the workflow of their kind (ADR-0124).
 on:
   pull_request:
     paths:
@@ -53,8 +54,3 @@ jobs:
       shell: bash
       working-directory: ./current/db
       run: mise exec -- sqlc diff
-
-    - name: Check statement files, the migration chain, generated code and import lists
-      shell: bash
-      working-directory: ./current
-      run: mise exec -- go test ./db/check

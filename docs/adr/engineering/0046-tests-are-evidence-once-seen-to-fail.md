@@ -56,14 +56,19 @@ that stands in for a control.
   testing well is a candidate for removal.
 - **The demonstration is event-driven per control, never a standing gate.** The table is produced
   when the control lands and reproduced when the control, its tests, or a generator its tests
-  draw from changes, at no other time. A generator is named because one edited until its report
+  draw from changes. A generator is named because one edited until its report
   passed moved a planted failure out of the gating run's reach while every test stayed green
   ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). A move of the control's
   code or its tests is a change, a move of a path alone included, so the affected tests and
   mutation demonstrations run again after it. There is no exemption for a move that changes only
-  paths. A control is defined in the design, or when an outcome or feature is added, and its
-  verification is defined with it. A mutation demonstration proves the control and its
-  verification work, and lands at implementation time. This binds the demonstration alone,
+  paths. Apart from those events, the `mutation-demonstrations` workflow runs every demonstration
+  in the ledger on a schedule, when started by hand, and on a pull request that changes the
+  workflow, and gates nothing. Its run fails when a demonstration no longer holds, so it catches a
+  demonstration that stopped holding without any of those events, at the cadence
+  [ADR-0124](./0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md) sets from the measured
+  cost of a full run. A control is defined in the design, or when an outcome or feature is
+  added, and its verification is defined with it. A mutation demonstration proves the control and
+  its verification work, and lands at implementation time. This binds the demonstration alone,
   proving a control's tests go red with its mechanism removed. Whether a patch still applies is a
   narrower and different question, which the event-driven rule does not answer, and it is guarded
   on every pull request instead. An unrelated later change can edit code a patch's diff context

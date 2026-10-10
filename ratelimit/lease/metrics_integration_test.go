@@ -210,7 +210,7 @@ func TestTheCollectorFailsTheScrapeWhenItCannotRead(t *testing.T) {
 // series of a job's last success and its bound, is one the collector or a Limiter emits under that
 // exact name, so a rule never watches a name nothing emits (ADR-0076). The policy loader's, delta
 // sync's and the worker's scheduler's own tests hold their series to the same check.
-func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
+func TestTheRulesReadOnlyEmittedRateSeries(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
 	reg := prometheus.NewRegistry()

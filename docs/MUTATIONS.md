@@ -36,8 +36,11 @@ content changed.
 tests, or a generator its tests draw from changes. Between those events it is a claim about its
 date, while the permanent CI tests keep the control's green continuously earned. Each
 demonstration is recorded with the implementation work that touches the surface area its control
-interacts with. Whether each demonstration's patch still applies is checked on every pull request
-by the `mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflows)).
+interacts with. Apart from those events, the `mutation-demonstrations` workflow runs every
+demonstration weekly and when started by hand, and fails when one no longer holds, which writes no
+row ([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Whether
+each demonstration's patch still applies is checked on every pull request by the
+`mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflows)).
 
 ## Where the rows are
 

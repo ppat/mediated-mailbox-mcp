@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a workflow that never asks for a run it exists to run, so its tests run in none
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/a_run_no_workflow_asks_for
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..a45a6b0b 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -151,7 +151,7 @@ func checkWorkflows(t *tree, files map[string]string) []string {
+ 			continue
+ 		}
+ 		for _, w := range workflows[p] {
+-			if !slices.Contains(asked[p], w) {
++			if false && !slices.Contains(asked[p], w) {
+ 				problems = append(problems, fmt.Sprintf(".github/workflows/%s: never runs the %s %s tests whole, which it exists to run. An ask narrowed to some packages adds to the whole one and never stands for it", w, p.kind, p.level))
+ 			}
+ 		}

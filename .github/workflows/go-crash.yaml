@@ -1,0 +1,66 @@
+---
+# yamllint disable rule:line-length
+name: go-crash
+
+# The gating run of the crash sequences, generated operation sequences with crashes placed in them, checked after recovery (ADR-0124). It gates every pull request touching Go code, at the
+# gating seed and case count: RAPID_SEED fixed at 1, RAPID_CHECKS at the gating count, RAPID_NOFAILFILE=true
+# and no -short (ADR-0069). The deep search over the same tests is go-crash-deep.yaml, which gates nothing.
+# go tool testkinds selects the tests, fails a step that would select nothing, and its check in go-lint.yaml
+# holds every test to its workflows.
+on:
+  pull_request:
+    paths:
+    - .github/workflows/go-crash.yaml
+    - .golangci.yaml
+    - '*.go'
+    - '**/*.go'
+    - go.mod
+    - go.sum
+    - mise.lock
+    - mise.toml
+    - content/**
+    - core/**
+    - db/**
+    - executioncontext/**
+    - mediate/**
+    - process/**
+    - provider/**
+    - ratelimit/**
+    - testsupport/**
+    - ui/*.go
+    - ui/contract/**
+    - ui/internal/**
+    - worker/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  crash:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RAPID_SEED: '1'
+      RAPID_CHECKS: '200'
+      RAPID_NOFAILFILE: 'true'
+    steps:
+    - name: Setup repository and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run the crash sequences against one PostgreSQL container
+      shell: bash
+      working-directory: ./current
+      # yamllint disable-line rule:indentation
+      run: |
+        selection="$(mise exec -- go tool testkinds args crash integration)"
+        mapfile -t args <<< "$selection"
+        mise exec -- go tool pgrun -- go test "${args[@]}"

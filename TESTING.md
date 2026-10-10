@@ -48,13 +48,23 @@ are its end-to-end tests.
 
 ## When tests run
 
-The gating CI suite carries the permanent verification-proving tests, the bounded deterministic
-property runs, and the bounded fixed-seed crash runs. Deep random search and deep crash-sequence
-exploration run scheduled, never gating
+Each kind of test runs in a CI workflow of its own, the unit tests, the property tests, the crash
+sequences, the integration tests, the recording of the browser's fixtures and the mutation
+demonstrations, and no test runs in another kind's workflow or in none. A test file's kind is read
+from its name and its level from whether it needs the integration tag, and a check refuses a test
+that would run outside its kind's workflows or not at all
+([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). The
+gating CI suite carries the permanent verification-proving tests, the bounded deterministic
+property runs, and the bounded fixed-seed crash runs, on every pull request their paths touch. Deep
+random search and deep crash-sequence exploration run scheduled and by hand, each in a workflow of
+its own apart from its kind's gating one, never gating
 ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md),
-[ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A gating property run takes a
-fixed seed and case count, and a failing property input, once found, is stored and replayed on every
-later run ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)). The seed
+[ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). The whole mutation ledger
+runs weekly and by hand, never on every pull request, because a full run costs hours
+([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). A
+gating property run takes a fixed seed and case count, and a failing property input, once found, is
+stored and replayed on every later run
+([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md)). The seed
 and count reach the gating run through the environment the workflows set, a property run without
 the fixed seed fails, the failing case is kept in a store that survives an edit to its generator,
 and the reduced input is also written out as an example-based test
@@ -94,9 +104,12 @@ The chain from outcome to evidence, stated once.
    the tests must go red on each, and the script records which ones did. The demonstration is
    repeated when the control, its tests or a generator they draw from changes, a move of their
    code or tests to another path included
-   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). Separately,
-   whether each demonstration's patch still applies is a standing guard the `mutation-patches`
-   workflow runs on every pull request, apart from this event-driven trigger
+   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)). Apart from
+   those events, the `mutation-demonstrations` workflow runs every demonstration in the ledger
+   weekly and by hand, and fails when one no longer holds
+   ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)).
+   Separately, whether each demonstration's patch still applies is a standing guard the
+   `mutation-patches` workflow runs on every pull request, apart from this event-driven trigger
    ([CLAUDE.md](./CLAUDE.md#ci-workflows)).
 
 The two catalogues differ by what they prove and when they can be written. A verification row

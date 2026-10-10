@@ -206,6 +206,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#326](https://github.com/ppat/mediated-mailbox-mcp/pull/326) | F11 | F11's schema baseline, the migration chain flattened into four files and two migrations after it, the sender domains as lowercase `text`, the checked vocabularies, `job_runs.pass` never null with the run and audit indexes, pgvector, the label and subject indexes and `pg_trgm` removed with the extension bootstrap, the helper for a migration tested over rows, and the statement check refusing a cast to `citext` beside a domain | F11's rows, and it demonstrates again the F2 rows whose migration or test changed | The controls of F11's checks, migrations and chain, and every demonstration whose patch carried a migration file's diff context, regenerated |
 | [#328](https://github.com/ppat/mediated-mailbox-mcp/pull/328) | F10 | F10's worker, `worker/`, running backfill and delta sync as job kinds, each with its import list, runtime role, connection pool and loaders, its scheduler and the due decisions, the in-run comparisons of a running second pass, the job series and the two alerting rules, the one configuration tree, the `go vet` analysers refusing, in the worker outside its scheduler, a `go` statement and any use of a function that starts a goroutine running what it is given, and, in the module, an import of `unsafe` and any use of reflect's unsafe pointers, the worker's test holding its dependencies that import `unsafe` or hold assembly or object files to a reviewed list, and the retirement of the backfill, delta sync, reorganization and heuristics deployables | F10's rows, the rows it adds for the scheduler's rules, a job's success, the fail-closed reload, the re-seal with no account, the pinned constructors, the due decisions, a page taking the active policy, the per-job-kind and worker import lists, the grant check per job kind's list, the goroutine analyser and the held source's reuse rule, and every row of backfill and delta sync whose code or tests moved, proven again in the worker. The two rows on the heuristics run's job kind key to M4 | The controls of F10's scheduler, job kinds, alerting rules, configuration and isolation checks, and every demonstration whose code, tests or patches moved into the worker, regenerated and demonstrated again |
 | [#336](https://github.com/ppat/mediated-mailbox-mcp/pull/336) | F6 | F6's later work, a known-answer test in `executioncontext/credential/open` holding a key pair and a value sealed by an earlier build, which this build must open, with the seed deriving that public key and the identifier the value names | The row it adds for a build that cannot open a value an earlier build sealed, or derives another public key or key identifier from the same seed | The control that this build opens a value an earlier build sealed, with the key pair an earlier build wrote, broken so this build binds less in the additional data or hashes less into the key identifier, and so it runs another key schedule, expands the seed into another key pair or derives another key identifier |
+| [#337](https://github.com/ppat/mediated-mailbox-mcp/pull/337) | F4 | F4's later work, each kind of test in a CI workflow of its own, the unit tests, the property tests, the crash sequences, the integration tests, the recording of the browser's fixtures and the mutation demonstrations, `go tool testkinds` selecting each kind and checking that every test runs in its kind's workflows and no other, the deep search split into a deep workflow for the property tests and one for the crash sequences, and the whole mutation ledger run weekly and by hand ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)) | It adds and proves the rows for a test that would run outside its kind's workflows or in none and for a ledger run that would pass on a surviving mutant or on no patch | The control that every test runs in the workflows of its kind and level and in no other |
 
 ### What each composition root runs
 
@@ -224,12 +225,14 @@ What the code on `main` runs today, per composition root, none of it yet release
   Delivered by pull requests [#60](https://github.com/ppat/mediated-mailbox-mcp/pull/60),
   [#131](https://github.com/ppat/mediated-mailbox-mcp/pull/131),
   [#132](https://github.com/ppat/mediated-mailbox-mcp/pull/132),
-  [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137) and
-  [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138), which closed its tickets
+  [#137](https://github.com/ppat/mediated-mailbox-mcp/pull/137),
+  [#138](https://github.com/ppat/mediated-mailbox-mcp/pull/138) and
+  [#337](https://github.com/ppat/mediated-mailbox-mcp/pull/337), which closed its tickets
   [#90](https://github.com/ppat/mediated-mailbox-mcp/issues/90),
   [#69](https://github.com/ppat/mediated-mailbox-mcp/issues/69),
-  [#135](https://github.com/ppat/mediated-mailbox-mcp/issues/135) and
-  [#136](https://github.com/ppat/mediated-mailbox-mcp/issues/136), and not yet released. Pull
+  [#135](https://github.com/ppat/mediated-mailbox-mcp/issues/135),
+  [#136](https://github.com/ppat/mediated-mailbox-mcp/issues/136) and
+  [#334](https://github.com/ppat/mediated-mailbox-mcp/issues/334), and not yet released. Pull
   requests [#149](https://github.com/ppat/mediated-mailbox-mcp/pull/149),
   [#189](https://github.com/ppat/mediated-mailbox-mcp/pull/189),
   [#190](https://github.com/ppat/mediated-mailbox-mcp/pull/190),
@@ -285,23 +288,21 @@ What the code on `main` runs today, per composition root, none of it yet release
   release, so the release workflow's keyless signing has run only against a local registry with a
   key pair standing in, and the first real release is the first to exercise it. Component labels on
   a pull request from a fork, whose token cannot write labels, and on the ticket, which the author
-  still corrects by hand. **Later work.** Before production point 1, the kinds of tests, unit,
-  integration, crash-sequence, property-based and mutation demonstrations, are clearly separated
-  in CI, each kind in a workflow of its own. The mutation demonstrations, which no CI workflow runs
-  today, get a job of their own, and so do the crash sequences. The measured weight and speed of
-  each kind decide whether it runs on every pull request or only when started by hand and on a
-  schedule. Where those triggers depart from the records that decide when each kind runs, the later
-  work revises them and [TESTING.md](./TESTING.md) in the same pull request. A CI job running the
-  mutation demonstrations departs from
-  [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), under which a
-  demonstration runs when its control lands and again when the control, its tests or a generator
-  they draw from changes, at no other time. The triggers may also depart from
-  [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md), which runs the bounded crash
-  sequences in the ordinary suite on every pull request, and from
-  [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md). The later work also
-  settles how the tests are organized and separated, since a unit test is example-based, from a
-  table of examples, or property-based, and an integration test is example-based, property-based or
-  a crash sequence.
+  still corrects by hand. Its later work, delivered before production point 1, separated the kinds
+  of tests in CI, each kind in a workflow of its own, the unit tests, the property tests, the crash
+  sequences, the integration tests, the recording of the browser's fixtures beside the browser
+  tests, and the mutation demonstrations
+  ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). A
+  test file's name gives its kind and its build constraint its level, `go tool testkinds` turns a
+  kind and a level into go test's arguments, and its check refuses a test that would run outside
+  its kind's workflows or in none. The property tests and the crash sequences each have a gating
+  workflow on every pull request and a deep workflow on a schedule and by hand, and every
+  workflow's triggers alone decide when it runs. The whole mutation ledger runs
+  weekly and by hand, never on every pull request, because a full run costs hours of runner time,
+  which revised the trigger of
+  [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) in place, and the
+  bounded crash runs keep gating every pull request in a workflow of their own, which clarified
+  [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) in place.
 - [x] **F2 — The data layer** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at tested
   Delivered by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), which
@@ -1859,7 +1860,7 @@ about its cluster.
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | Writing the account-handling rules once where copies drifted landed with F9, and the schema settled before production point 1 makes the chain history landed with F11, both delivered. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
-| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered, and F4's later work separates each kind of test into a CI workflow of its own before production point 1. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
+| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered, and F4's later work, which is delivered, separated each kind of test into a CI workflow of its own before production point 1. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
 
 ## Dependencies
 

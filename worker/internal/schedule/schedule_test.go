@@ -581,7 +581,7 @@ func TestAJobEnsuredWhileItIsRemovedNeverRunsTwiceAtOnce(t *testing.T) {
 
 // Ensuring and removing one job from many goroutines at once never runs two runs of the job at once,
 // and leaves no loop running once the job is removed. A loop left running would keep asking its job on
-// its interval. The race detector runs it in the go-test workflow.
+// its interval. The race detector runs it in the go-unit workflow.
 func TestEnsuringAndRemovingAJobRapidlyLeavesNoLoopRunning(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		s := schedule.New(t.Context(), newRecorder())
