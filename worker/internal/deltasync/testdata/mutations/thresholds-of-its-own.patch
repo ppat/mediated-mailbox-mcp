@@ -5,14 +5,15 @@ tests: TestATickDecidesUnderBackfillsThresholdsAndScanner
 scheduled-count: no
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 896e455..f317c27 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -314,7 +314,7 @@
+@@ -359,7 +359,7 @@ func (d *DeltaSync) tickDeps(account string, provider tick.Provider, policy poli
  		Provider:    provider,
  		Policy:      policy.For(account),
  		Lookups:     d.lookups,
 -		Gate:        scangate.DefaultConfig(),
 +		Gate:        scangate.Config{SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 1},
  		Scanner:     d.config.Scanner,
+ 		Processing:  d.processing,
  		FirstWindow: d.config.FirstWindow,
- 		Decisions:   d.config.DecisionsPerTick,

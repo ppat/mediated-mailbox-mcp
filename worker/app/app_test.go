@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
@@ -510,7 +512,8 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := loaded.Config.Database
-	pools, err := openPools(t.Context(), d)
+	registry := prometheus.NewRegistry()
+	pools, err := openPools(t.Context(), d, registry)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -533,5 +536,32 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 	}
 	if s.Pool != pools.Sync {
 		t.Error("delta sync is handed a pool other than the one of its own role")
+	}
+	// Each job kind's pool traces its statements and is read under its own job kind on the one
+	// registry, so the two kinds' pool series stand apart (ADR-0125).
+	for kind, p := range map[string]*pgxpool.Pool{"backfill": pools.Backfill, "sync": pools.Sync} {
+		if _, traced := p.Config().ConnConfig.Tracer.(*dbmetrics.Tracer); !traced {
+			t.Errorf("%s's pool traces no statement", kind)
+		}
+	}
+	got := map[string]float64{}
+	families, err := registry.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range families {
+		if f.GetName() != "mediated_mailbox_db_pool_max_connections" {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "job_kind" {
+					got[l.GetValue()] = m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+	if diff := cmp.Diff(map[string]float64{"backfill": 4, "sync": 4}, got, compare.Options); diff != "" {
+		t.Errorf("each pool's ceiling by job kind (-want +got):\n%s", diff)
 	}
 }

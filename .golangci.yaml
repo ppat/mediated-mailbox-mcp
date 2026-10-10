@@ -310,6 +310,25 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
+        # The database measurements, every file, a package of the process family. It traces the statements a
+        # connection runs and reads a pool's statistics, on the registerer a composition root passes in, and runs no
+        # statement of its own. Its tests run statements through the transaction helper against the test database
+        # (ADR-0125).
+        dbmetrics:
+          list-mode: strict
+          files:
+          - "${base-path}/process/dbmetrics/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/pgxpool$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/prometheus/client_golang/prometheus$"
+
         # The probe and metrics listener, every file, a package of the process family. client_golang is admitted for
         # the registry it serves (ADR-0051, ADR-0076).
         probes:
@@ -599,6 +618,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
@@ -611,6 +631,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_golang/prometheus/collectors$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
           # The sender classifier's domain functions, which the composition root passes the read operations.
           - "golang.org/x/net/idna$"
@@ -684,6 +705,7 @@ linters:
           # The composition root's configuration (ADR-0078) and its database section, in ui/app.
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
           - "github.com/ppat/mediated-mailbox-mcp/provider/fake$"
@@ -701,6 +723,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           # The read latency and stream subscriber metrics and the metrics endpoint, in ui/internal/api (ADR-0076).
           - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_golang/prometheus/collectors$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
           # The policy file's YAML form, read and written by the policy import and export in ui/internal/api
           # (ADR-0004, ADR-0110), the module the configuration library already reads YAML with.
@@ -789,6 +812,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The probe and metrics listener the composition root serves (ADR-0051).
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
@@ -800,6 +824,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/"
           - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_golang/prometheus/collectors$"
 
         # Backfill's job kind in the worker, its shell code and its pure core. A job kind imports its own code, the
         # worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names each
@@ -1036,6 +1061,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
@@ -1048,6 +1074,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
           - "github.com/ppat/mediated-mailbox-mcp/worker/"
           - "github.com/prometheus/client_golang/prometheus$"
+          - "github.com/prometheus/client_golang/prometheus/collectors$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
           # The configuration library's decoder (ADR-0078).
           - "go.yaml.in/yaml/v3$"
@@ -1089,6 +1116,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/mediate/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
@@ -1128,6 +1156,7 @@ linters:
           - "!${base-path}/executioncontext/session/**"
           - "!${base-path}/mediate/**"
           - "!${base-path}/process/dbconnect/**"
+          - "!${base-path}/process/dbmetrics/**"
           - "!${base-path}/process/logging/**"
           - "!${base-path}/process/probes/**"
           - "!${base-path}/process/settings/**"

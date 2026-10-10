@@ -113,11 +113,11 @@ func thresholdDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fak
 func runThresholds(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake, gate scangate.Config, run string, restricted ...string) {
 	t.Helper()
 	first, second := thresholdDeps(t, pool, account, f, gate, run, restricted...)
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry())
+	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,7 +286,7 @@ func TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned(t *testing.T) {
 	pool := backfillPool(t)
 	f := thresholdMailbox(t, "personal")
 	first, second := thresholdDeps(t, pool, "personal", f, narrowGate, "narrow")
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

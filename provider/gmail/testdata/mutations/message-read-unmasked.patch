@@ -14,6 +14,6 @@ index 71c01d0..b4e773f 100644
  func metadataRequest(id string) request {
 -	q := url.Values{"format": {formatFull}, "fields": {metadataFields()}}
 +	q := url.Values{"format": {formatFull}}
- 	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet}
+ 	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get"}
  }
  

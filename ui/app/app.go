@@ -17,10 +17,12 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 
@@ -29,6 +31,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
@@ -171,13 +174,13 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err != nil {
 		return err
 	}
-	poolConfig, err := dbconnect.PoolConfig(c.Database)
-	if err != nil {
-		return fmt.Errorf("configuring the database connection: %w", err)
+	metrics := prometheus.NewRegistry()
+	if err := registerProcess(metrics); err != nil {
+		return err
 	}
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	pool, err := openPool(ctx, c.Database, metrics)
 	if err != nil {
-		return fmt.Errorf("configuring the database connection: %w", err)
+		return err
 	}
 	defer pool.Close()
 	// The sender classifier's domain functions, which policy management matches senders against
@@ -192,7 +195,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 		Database:       pool,
 		Datasets:       registry.Datasets(lookups),
 		Logger:         logger,
-		Metrics:        prometheus.NewRegistry(),
+		Metrics:        metrics,
 		Clock:          time.Now,
 		Cadences:       api.Cadences{Sync: c.SyncInterval, Heuristics: c.HeuristicsInterval},
 		StreamInterval: c.StreamInterval,
@@ -218,6 +221,48 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	}
 	return serve(ctx, c, server, logger)
 }
+
+// openPool returns the UI's pool, connecting as its own runtime role, with every statement it runs
+// timed and its statistics read on metrics (ADR-0125).
+func openPool(ctx context.Context, database dbconnectcore.Config, metrics prometheus.Registerer) (*pgxpool.Pool, error) {
+	poolConfig, err := dbconnect.PoolConfig(database)
+	if err != nil {
+		return nil, fmt.Errorf("configuring the database connection: %w", err)
+	}
+	tracer, err := dbmetrics.NewTracer(metrics)
+	if err != nil {
+		return nil, err
+	}
+	poolConfig.ConnConfig.Tracer = tracer
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		return nil, fmt.Errorf("configuring the database connection: %w", err)
+	}
+	if err := dbmetrics.RegisterPool(metrics, pool); err != nil {
+		pool.Close()
+		return nil, err
+	}
+	return pool, nil
+}
+
+// registerProcess registers on metrics the Go runtime's series, the default set and the live heap,
+// the garbage collector's and the process's CPU time and the scheduling latency, and the process's
+// own series, once for the process (ADR-0125).
+func registerProcess(metrics prometheus.Registerer) error {
+	for _, c := range []prometheus.Collector{
+		collectors.NewGoCollector(collectors.WithGoCollectorRuntimeMetrics(collectors.GoRuntimeMetricsRule{Matcher: runtimeMetrics})),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	} {
+		if err := metrics.Register(c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// runtimeMetrics names the runtime metrics added to the Go collector's default set, each by its whole
+// name (ADR-0125).
+var runtimeMetrics = regexp.MustCompile(`^(/gc/heap/live:bytes|/cpu/classes/gc/total:cpu-seconds|/cpu/classes/total:cpu-seconds|/sched/latencies:seconds)$`)
 
 // loadTokenKey reads the key behind the request token from its mounted file, or generates one when no
 // file is named, in which case a page from before a restart gets stale_page and an attempt from before

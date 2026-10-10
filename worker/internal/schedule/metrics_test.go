@@ -12,8 +12,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 )
 
-// gathered returns every sample registry holds, keyed by the series' name and its job_kind, account and
-// outcome labels.
+// gathered returns every sample registry holds, keyed by the series' name and its job_kind, job, account
+// and outcome labels.
 func gathered(t *testing.T, registry prometheus.Gatherer) map[string]float64 {
 	t.Helper()
 	families, err := registry.Gather()
@@ -28,7 +28,7 @@ func gathered(t *testing.T, registry prometheus.Gatherer) map[string]float64 {
 				labels[l.GetName()] = l.GetValue()
 			}
 			key := f.GetName()
-			for _, name := range []string{"job_kind", "account", "outcome"} {
+			for _, name := range []string{"job_kind", "job", "account", "outcome"} {
 				if v, ok := labels[name]; ok {
 					key += " " + name + "=" + v
 				}
@@ -166,7 +166,39 @@ func everyWayARunEnds(t *testing.T) {
 	if n := got["mediated_mailbox_job_runs_running job_kind=sync"]; n != 0 {
 		t.Errorf("%v runs running after the removal, want 0", n)
 	}
+	// Only the runs that did their work are timed, the one that succeeded, the one that failed and the
+	// one that panicked, as an account's job, and the run that was not due and the cancelled one are not
+	// (ADR-0125).
+	if n := got["mediated_mailbox_job_run_duration_seconds job_kind=sync job=account"]; n != 3 {
+		t.Errorf("%v runs timed, want 3", n)
+	}
 	s.Stop()
+}
+
+// A run of the job keyed by the kind alone is timed as the kind's reload, apart from its account jobs,
+// so a reload's time and a tick's are read apart (ADR-0125).
+func TestAReloadsRunIsTimedApartFromAnAccountJobs(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		registry := prometheus.NewRegistry()
+		m, err := schedule.NewMetrics(registry)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s := schedule.New(t.Context(), m)
+		defer s.Stop()
+		run := func(context.Context, schedule.Ask) error { time.Sleep(time.Second); return nil }
+		ensure(t, s, schedule.Key{Kind: "sync"}, schedule.Job{Interval: time.Hour, Backoff: backoff, Run: run})
+		ensure(t, s, schedule.Key{Kind: "sync", ID: "a"}, schedule.Job{Interval: time.Hour, Backoff: backoff, Run: run})
+		time.Sleep(2 * time.Second)
+		synctest.Wait()
+		got := gathered(t, registry)
+		for _, job := range []string{"reload", "account"} {
+			if n := got["mediated_mailbox_job_run_duration_seconds job_kind=sync job="+job]; n != 1 {
+				t.Errorf("%v runs of the %s job timed, want 1", n, job)
+			}
+		}
+		s.Stop()
+	})
 }
 
 // The time a job waits for a slot of its kind's limit is reported, so the late rule does not count it:

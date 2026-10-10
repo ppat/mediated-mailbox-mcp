@@ -13,13 +13,16 @@ const apiBase = "https://gmail.googleapis.com/gmail/v1/users/me/"
 
 // request is one call to Gmail's API. Path is relative to apiBase, and Body is a JSON document, empty
 // for a request without one. Units is what Gmail charges for the method, from the rate profile's
-// prices, which the shell counts when it sends the request and holds each port call to.
+// prices, which the shell counts when it sends the request and holds each port call to. Endpoint is
+// the Gmail method the request calls, without its users. prefix, which labels the request's latency,
+// since the path holds identifiers and cannot (ADR-0125).
 type request struct {
-	Method string
-	Path   string
-	Query  url.Values
-	Body   string
-	Units  int
+	Method   string
+	Path     string
+	Query    url.Values
+	Body     string
+	Units    int
+	Endpoint string
 }
 
 // URL returns the address the request is sent to.
@@ -47,7 +50,9 @@ func validID(id string) bool {
 	return true
 }
 
-func labelsRequest() request { return request{Method: "GET", Path: "labels", Units: unitsLabelsList} }
+func labelsRequest() request {
+	return request{Method: "GET", Path: "labels", Units: unitsLabelsList, Endpoint: "labels.list"}
+}
 
 func createLabelRequest(path string) (request, error) {
 	body, err := encode(struct {
@@ -56,7 +61,7 @@ func createLabelRequest(path string) (request, error) {
 	if err != nil {
 		return request{}, err
 	}
-	return request{Method: "POST", Path: "labels", Body: body, Units: unitsLabelsCreate}, nil
+	return request{Method: "POST", Path: "labels", Body: body, Units: unitsLabelsCreate, Endpoint: "labels.create"}, nil
 }
 
 // threadsRequest lists the threads a compiled query selects, trash and spam included.
@@ -71,7 +76,7 @@ func threadsRequest(s search, pageToken string, size int) request {
 	if pageToken != "" {
 		q.Set("pageToken", pageToken)
 	}
-	return request{Method: "GET", Path: "threads", Query: q, Units: unitsThreadsList}
+	return request{Method: "GET", Path: "threads", Query: q, Units: unitsThreadsList, Endpoint: "threads.list"}
 }
 
 // messagesRequest lists every message in the mailbox, trash and spam included.
@@ -80,7 +85,7 @@ func messagesRequest(pageToken string, size int) request {
 	if pageToken != "" {
 		q.Set("pageToken", pageToken)
 	}
-	return request{Method: "GET", Path: "messages", Query: q, Units: unitsMessagesList}
+	return request{Method: "GET", Path: "messages", Query: q, Units: unitsMessagesList, Endpoint: "messages.list"}
 }
 
 // The formats a message is read in. Full holds the body, and minimal holds the identifiers and the
@@ -116,20 +121,20 @@ func metadataFields() string {
 // with validID.
 func metadataRequest(id string) request {
 	q := url.Values{"format": {formatFull}, "fields": {metadataFields()}}
-	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet}
+	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get"}
 }
 
 // messageRequest reads the message id names in a format. The caller has checked id with validID.
 func messageRequest(id, format string) request {
 	q := url.Values{"format": {format}}
-	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet}
+	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get"}
 }
 
 // threadRequest reads the thread id names, every message of it through the metadata mask. The
 // caller has checked id with validID.
 func threadRequest(id string) request {
 	q := url.Values{"format": {formatFull}, "fields": {"id,historyId,messages(" + metadataFields() + ")"}}
-	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet}
+	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet, Endpoint: "threads.get"}
 }
 
 // modifyRequest adds and removes label identifiers on a message, or on every message of a thread.
@@ -142,15 +147,17 @@ func modifyRequest(id string, add, remove []string) (request, error) {
 	if err != nil {
 		return request{}, err
 	}
-	return request{Method: "POST", Path: "messages/" + url.PathEscape(id) + "/modify", Body: body, Units: unitsMessageModify}, nil
+	return request{Method: "POST", Path: "messages/" + url.PathEscape(id) + "/modify", Body: body, Units: unitsMessageModify, Endpoint: "messages.modify"}, nil
 }
 
-func profileRequest() request { return request{Method: "GET", Path: "profile", Units: unitsGetProfile} }
+func profileRequest() request {
+	return request{Method: "GET", Path: "profile", Units: unitsGetProfile, Endpoint: "getProfile"}
+}
 
 // historyRequest lists the mailbox's history records after start.
 func historyRequest(start uint64, size int) request {
 	q := url.Values{"startHistoryId": {strconv.FormatUint(start, 10)}, "maxResults": {strconv.Itoa(size)}}
-	return request{Method: "GET", Path: "history", Query: q, Units: unitsHistoryList}
+	return request{Method: "GET", Path: "history", Query: q, Units: unitsHistoryList, Endpoint: "history.list"}
 }
 
 func encode(v any) (string, error) {

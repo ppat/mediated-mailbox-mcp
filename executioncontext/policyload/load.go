@@ -47,6 +47,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
@@ -143,12 +144,24 @@ func readable(accounts []string) ([]string, error) {
 // a later reload never changes the policy that unit decides against.
 func (l *Loader) Snapshot() Snapshot { return *l.active.Load() }
 
-// Reload reads the policy tables and makes what it read the active snapshot if the read completed
+// Reload reloads the policy, as reload states, and times each reload its caller did not cancel, from
+// its call to its outcome, so the time a caller waits for its turn counts as the time the caller
+// waits for the policy (ADR-0125).
+func (l *Loader) Reload(ctx context.Context) error {
+	start := time.Now()
+	err := l.reload(ctx)
+	if !errors.Is(err, context.Canceled) {
+		l.metrics.took(start)
+	}
+	return err
+}
+
+// reload reads the policy tables and makes what it read the active snapshot if the read completed
 // and the rows validate. A read whose accounts read different base rules is read once more. Otherwise the active snapshot stays, the reload-failure series reads 1
 // until a reload succeeds, and the returned error wraps ErrUntrustedRead or ErrInvalidUpdate. A
 // reload its caller cancelled returns an error wrapping context.Canceled and leaves the series as
 // it was.
-func (l *Loader) Reload(ctx context.Context) error {
+func (l *Loader) reload(ctx context.Context) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	rows, err := l.read(ctx)

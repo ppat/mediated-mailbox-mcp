@@ -6,12 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index a4acf74..a2e1e20 100644
 --- a/worker/internal/backfill/pass2/pass2.go
 +++ b/worker/internal/backfill/pass2/pass2.go
-@@ -193,6 +193,9 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*core.Scanned,
- 	var md string
- 	if body.HTML != "" {
+@@ -314,6 +314,9 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
+ 		start := time.Now()
  		converted, cerr := markdown.Convert(body.HTML)
+ 		p.deps.Processing.Since(series.StepConvert, start)
 +		if cerr != nil {
 +			converted, cerr = body.HTML, nil
 +		}

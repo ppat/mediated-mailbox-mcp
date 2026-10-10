@@ -112,6 +112,27 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	a.metrics.countRequest(a.account, r.Units)
+	start := time.Now()
+	data, err := a.exchange(ctx, req)
+	a.metrics.observeRequest(r.Endpoint, outcomeOf(err), time.Since(start).Seconds())
+	return data, err
+}
+
+// outcomeOf returns how a request ended, as its latency is labelled, throttled when the provider
+// throttled it, failed for any other error, and ok otherwise (ADR-0125).
+func outcomeOf(err error) string {
+	if _, throttled := mail.Throttled(err); throttled {
+		return "throttled"
+	}
+	if err != nil {
+		return "failed"
+	}
+	return "ok"
+}
+
+// exchange sends req and reads its answer, returning the answer's body, or the port error for a
+// request that failed or was refused.
+func (a *Adapter) exchange(ctx context.Context, req *http.Request) ([]byte, error) {
 	res, err := a.client.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {

@@ -6,18 +6,18 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..ca3bcd1e 100644
+index 2b71ad5..d74c845 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -36,6 +36,7 @@ import (
- 	"net/http"
+@@ -38,6 +38,7 @@ import (
  	"os"
+ 	"regexp"
  	"runtime/debug"
 +	"slices"
  	"strings"
  	"sync/atomic"
  	"time"
-@@ -317,6 +318,7 @@ type serving struct {
+@@ -411,6 +412,7 @@ type serving struct {
  	registry service.Registry
  	// snapshot is the account snapshot the registry serves.
  	snapshot atomic.Pointer[accountload.Snapshot]
@@ -25,7 +25,7 @@ index 8f9657ee..ca3bcd1e 100644
  }
  
  // newServing returns the serving state, serving no account until its first reload, and registers on
-@@ -350,7 +352,11 @@ func (s *serving) reload(ctx context.Context) error {
+@@ -444,7 +446,11 @@ func (s *serving) reload(ctx context.Context) error {
  	}
  	next := s.loader.Snapshot()
  	ids := idsOf(next)
