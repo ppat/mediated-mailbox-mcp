@@ -216,3 +216,4 @@ moves it. Records themselves link freely and deep, into
 | 0114 | [A policy reload whose accounts read different base rules reads them all once more, and fails only if they still disagree](./engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md) | Accepted |
 | 0122 | [Every deployable logs through log/slog as JSON to standard output, at a configured level, through a logger its entry package hands its shells](./engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md) | Accepted |
 | 0124 | [Each kind of test runs in a CI workflow of its own, selected by its file's kind, at triggers set by measurement](./engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md) | Accepted |
+| 0125 | [Performance is measured once at each place a request or a job spends its time, each series naming the tuning question it answers](./engineering/0125-performance-is-measured-once-at-each-place-time-goes.md) | Accepted |

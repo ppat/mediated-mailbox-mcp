@@ -474,7 +474,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   account. Its case is [executioncontext/README.md](./executioncontext/README.md)'s.
 - **Process** (the family `process/`) — what every deployable needs to run as a process under the
   environment contract: its configuration layered from defaults, a file, the environment and flags,
-  its database connection, its probe and metrics endpoint, and its logs (contract in ADR-0051,
+  its database connection and what it measures of that connection, its probe and metrics endpoint,
+  and its logs (contract in ADR-0051,
   via the [decision-record index](./docs/adr/README.md)). Its case is
   [process/README.md](./process/README.md)'s. Distinct from a *process* in the operating system's
   sense, a running instance of a deployable, which this family's code runs inside rather than names.

@@ -189,7 +189,12 @@ the series is defined once, in this package.
 | --- | --- | --- | --- |
 | `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each loading process, on the registry it passes in, which in the worker also labels it with `job_kind`, the job kind whose loader it is ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/alerting-rules.yaml`, whose promtool tests sit in `policyload/testdata/` |
 
-The series is a gauge rather than a counter because a process first loads policy as it starts,
+The package also times every reload that read the tables, succeeded or failed, as
+`mediated_mailbox_policyload_reload_duration_seconds`, a histogram on the same registry that no
+rule reads
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+
+The reload-failure series is a gauge rather than a counter because a process first loads policy as it starts,
 usually before its first scrape, and a rule over a counter whose first sample is already 1 sees no
 increase.
 

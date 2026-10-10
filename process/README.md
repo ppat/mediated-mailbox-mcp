@@ -9,15 +9,16 @@ case. The conventions it shares with every component are
 Its concept is the [process](../DESIGN.md#glossary), what every deployable needs to run as a
 process under the environment contract
 ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)), which is its configuration
-layered from defaults, a file, the environment and flags, its database connection, its probe
-and metrics endpoint, and its logs. The decision it hides is how a process meets that contract,
-which changes only when the contract or the platform under it does, and never with what the process
-runs.
+layered from defaults, a file, the environment and flags, its database connection and what it
+measures of that connection, its probe and metrics endpoint, and its logs. The decision it hides is
+how a process meets that contract, which changes only when the contract or the platform under it
+does, and never with what the process runs.
 
 | Package | Holds |
 | --- | --- |
 | `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into each deployable's configuration |
 | `dbconnect/` | A deployable's database section of its configuration, in `dbconnect/core`, and the connection built from it |
+| `dbmetrics/` | The latency of every statement a connection runs, by the statement's name, and the statistics of each connection pool |
 | `probes/` | The health probe and the metrics endpoint of a process that runs work rather than serving requests |
 | `logging/` | The logger every deployable writes its JSON records to standard output through, and the reading of its `log_level` |
 
@@ -82,6 +83,33 @@ with a test and a mutation patch for each rule, they hold in every deployable th
 
 The package connects as no role of its own and runs no statement. It returns the connection's
 configuration, and the deployable opens the pool.
+
+## The database measurements, `dbmetrics`
+
+Every deployable that connects measures its statements and its pools the same way
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+This package holds a pgx query tracer, which a composition root sets on a pool's connection
+configuration, and a collector over a pool, which reads the pool's statistics when it is scraped.
+Both register on the registerer the composition root passes in, which in the worker adds the job
+kind.
+
+| Series | Kind and labels | Value |
+| --- | --- | --- |
+| `mediated_mailbox_db_statement_duration_seconds` | Histogram, `statement` | Each statement's latency, from its start until its result or its rows are closed |
+| `mediated_mailbox_db_pool_acquires_total` | Counter | The connections acquired from the pool |
+| `mediated_mailbox_db_pool_waited_acquires_total` | Counter | The acquires that waited because no connection was idle |
+| `mediated_mailbox_db_pool_acquire_wait_seconds_total` | Counter | The time those acquires waited |
+| `mediated_mailbox_db_pool_canceled_acquires_total` | Counter | The acquires whose caller gave up waiting |
+| `mediated_mailbox_db_pool_acquired_connections` | Gauge | The connections held now |
+| `mediated_mailbox_db_pool_max_connections` | Gauge | The pool's ceiling |
+
+The case for one package over per-deployable glue is the statement label. It is the name in the
+`-- name:` comment the statement's SQL starts with, `begin`, `commit` or `rollback` for a statement
+without one that starts with that keyword, and `unnamed` for every other, so the label never takes
+a value from the SQL's text and its values stay a closed set. A copy that labelled by the text, or
+that read the name differently, would grow a series per distinct statement text or split one
+statement's series in two, and either fails silently. Written once, with a test per rule, the label
+means the same in every deployable.
 
 ## The probe and metrics listener, `probes`
 
