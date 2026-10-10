@@ -1,0 +1,20 @@
+control: Each message the first pass or a tick stores carries its attachment types
+removes: a tick stores every message it adds with no attachment type
+packages: ./worker/internal/deltasync/tick
+tests: TestATickStoresTheAttachmentTypesOfWhatItAdds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
+index 0e55d7bb..d7334ed2 100644
+--- a/worker/internal/deltasync/tick/postgres.go
++++ b/worker/internal/deltasync/tick/postgres.go
+@@ -242,7 +242,7 @@ func insert(ctx context.Context, q *ingest.Queries, account string, m index.Mess
+ 		Labels:                 labels,
+ 		Flags:                  flags,
+ 		HasAttachments:         m.HasAttachments,
+-		AttachmentTypes:        types,
++		AttachmentTypes:        []string{},
+ 		ListID:                 text(m.ListID),
+ 		SizeBytes:              pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
+ 		AuthResults:            auth,

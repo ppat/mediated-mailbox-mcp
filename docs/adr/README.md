@@ -107,6 +107,7 @@ moves it. Records themselves link freely and deep, into
 | 0095 | [Every page of an enumeration carries the total and the page limit together, as one optional field of the port's page](./provider/0095-enumeration-total-on-every-page.md) | Accepted |
 | 0106 | [An installation holds any number of OAuth clients for a provider, and each account connects through one of them, shared or its own](./provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) | Accepted |
 | 0107 | [Gmail connects through an installed-app OAuth client in the installation owner's own Cloud project, set up through the UI, with `gmail.modify`](./provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md) | Accepted |
+| 0123 | [A message's attachment types are words of a closed vocabulary, mapped once in the canonical model from each attachment's media type, and carried as a sorted set](./provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md) | Accepted |
 
 ## Data — `data/`
 

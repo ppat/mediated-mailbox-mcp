@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -196,7 +197,7 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p policy.Compose
 			Metadata: mail.MessageMetadata{
 				ID: m.id, ThreadID: m.thread, From: mail.Address{Email: f.FromAddress, Name: f.FromName}, Subject: f.Subject,
 				Date: mail.UnixMilli(sent.UnixMilli()), Labels: m.labels, Flags: m.flags, HasAttachments: len(f.Attachments) > 0,
-				AttachmentNames: f.Attachments, Snippet: firstLine(f.Body), ListID: f.ListID,
+				AttachmentNames: f.Names(), Snippet: firstLine(f.Body), ListID: f.ListID,
 			},
 			Body: mail.MessageBody{Text: f.Body},
 		})
@@ -219,15 +220,15 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p policy.Compose
 	return f
 }
 
-// attachmentTypes returns the type of each attachment name, its extension, as the index stores it.
-func attachmentTypes(names []string) []string {
+// attachmentTypes returns the types of a fixture's attachments as the index stores them, each word
+// once and sorted (ADR-0123).
+func attachmentTypes(attachments []fixture.Attachment) []string {
 	var types []string
-	for _, n := range names {
-		if dot := strings.LastIndexByte(n, '.'); dot >= 0 {
-			types = append(types, n[dot+1:])
-		}
+	for _, a := range attachments {
+		types = append(types, a.Type)
 	}
-	return types
+	slices.Sort(types)
+	return slices.Compact(types)
 }
 
 // firstLine returns the first line of a body, as a provider's snippet previews it.

@@ -17,11 +17,14 @@
 //
 // The suite never assumes an implementation keeps the identifiers a message was added with, since a
 // real provider assigns its own, and compares only what the seed decides. Every expectation is
-// written out as a literal here rather than computed by logic an implementation could share, so an
-// implementation that ignores a query, drops a field or mutates the wrong message fails.
+// written out as a literal here or in the shared fixtures, such as each attachment's type, rather
+// than computed by logic an implementation could share, so an implementation that ignores a query,
+// drops a field, maps a type wrongly or mutates the wrong message fails.
 package contract
 
 import (
+	"slices"
+
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
@@ -31,9 +34,14 @@ import (
 // Metadata.ThreadID are keys naming the message and its thread within one case's messages, which
 // an implementation may keep or replace with its own. The snippet, the size and the authentication
 // results are left for the implementation to derive, as a provider does.
+//
+// Attachments are the message's attachments as its parts declare them, which a harness that writes
+// the message to a provider gives each part, and Metadata carries the names and types the
+// implementation must report for them, the types written out in the fixtures (ADR-0123).
 type Message struct {
-	Metadata mail.MessageMetadata
-	Body     mail.MessageBody
+	Metadata    mail.MessageMetadata
+	Body        mail.MessageBody
+	Attachments []mail.AttachmentPart
 }
 
 // The labels the mailbox's messages carry beyond the three the disposal verbs manage. They are
@@ -86,13 +94,20 @@ func seed(mark string, base mail.UnixMilli, key, thread string, f fixture.Messag
 		Labels:          labels,
 		Flags:           flags,
 		HasAttachments:  len(f.Attachments) > 0,
-		AttachmentNames: f.Attachments,
+		AttachmentNames: f.Names(),
 		ListID:          f.ListID,
 	}
 	if f.CcAddress != "" {
 		m.Cc = []mail.Address{{Email: f.CcAddress}}
 	}
-	return Message{Metadata: m, Body: mail.MessageBody{Text: f.Body}}
+	var parts []mail.AttachmentPart
+	for _, a := range f.Attachments {
+		parts = append(parts, mail.AttachmentPart{MediaType: a.MediaType, Filename: a.Name})
+		m.AttachmentTypes = append(m.AttachmentTypes, mail.AttachmentType(a.Type))
+	}
+	slices.Sort(m.AttachmentTypes)
+	m.AttachmentTypes = slices.Compact(m.AttachmentTypes)
+	return Message{Metadata: m, Body: mail.MessageBody{Text: f.Body}, Attachments: parts}
 }
 
 // late is a message a case delivers, as mail arriving. It is the receipt fixture with a subject of

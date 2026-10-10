@@ -61,6 +61,15 @@ var vocabularies = []vocabulary{
 		stored:  []any{"{}", "{mfa_code}", "{login_link}", "{mfa_code,login_link}"},
 	},
 	{
+		column:  "messages.attachment_types",
+		insert:  "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, attachment_types) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), true, 'normal', $1::text[])",
+		refused: []any{"{419283}", "{pdf,PDF}", "{application/pdf}", "{xlsx}", `{""}`},
+		stored: []any{
+			"{}", "{pdf}", "{image}", "{audio}", "{video}", "{text}", "{calendar}", "{contact}", "{document}", "{spreadsheet}",
+			"{presentation}", "{archive}", "{message}", "{signature}", "{other}", "{image,pdf,spreadsheet}",
+		},
+	},
+	{
 		column:  "senders.sender_class",
 		insert:  "INSERT INTO senders (account_id, domain, sender_class) VALUES ('" + accountA + "', gen_random_uuid()::text, $1)",
 		refused: []any{"sensitive", "NORMAL"},

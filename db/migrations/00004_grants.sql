@@ -103,7 +103,8 @@ GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 -- and db/accountstate/authentication, and in db/accountstate, whose read of the lowered target every
 -- role admitted there runs.
 --
--- Pass 1 adds each message's metadata to the index with the pair its subject was masked under, and
+-- Pass 1 adds each message's metadata to the index with the pair its subject was masked under and its
+-- attachments' types, which never change once stored, so no role updates them (ADR-0123), and
 -- records the masks applied to its subject. It finds whether any stored subject carries another pair,
 -- masks such a subject again, and masks whole the stored subject of a message the provider no longer
 -- has, reading it first (ADR-0096). It writes the policy rule behind each message's class with the
@@ -148,6 +149,7 @@ INSERT (
     labels,
     flags,
     has_attachments,
+    attachment_types,
     list_id,
     size_bytes,
     auth_results,
@@ -274,7 +276,8 @@ UPDATE (
 -- db/messages/change, db/accountstate/cursor and db/oauthclients/secret only its list admits.
 -- db/accountstate it reads.
 --
--- A tick adds each message's metadata to the index, masks its subject and records the masks, and
+-- A tick adds each message's metadata to the index with its attachments' types, which it never
+-- updates (ADR-0123), masks its subject and records the masks, and
 -- rebuilds the statistics of each sender it saw from the messages the index holds. It sets a stored
 -- message's labels and flags to the ones the provider reports, removes a message the provider no
 -- longer holds, and removes a sender's statistics once none of its messages is stored (ADR-0018).
@@ -315,6 +318,7 @@ INSERT (
     labels,
     flags,
     has_attachments,
+    attachment_types,
     list_id,
     size_bytes,
     auth_results,

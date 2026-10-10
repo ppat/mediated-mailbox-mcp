@@ -82,7 +82,7 @@ func corpus() []stored {
 		},
 		{
 			id: "m-bank", from: bank.FromAddress, scan: "scanned",
-			text: bank.Body, snippet: marker.Body("banksnippet"), names: bank.Attachments,
+			text: bank.Body, snippet: marker.Body("banksnippet"), names: bank.Names(),
 		},
 		{
 			id: "m-pending", from: news.FromAddress, scan: "pending",

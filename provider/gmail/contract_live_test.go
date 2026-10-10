@@ -501,7 +501,8 @@ func (p *provider) searchable(t *testing.T, messageID, id string) error {
 }
 
 // rfc822 writes m as a message. Each part's content is base64, so its bytes arrive exactly as the
-// fixture holds them, and each attachment the metadata names is a part of its own.
+// fixture holds them, and each attachment is a part of its own, declaring the media type the fixture
+// gives it.
 func rfc822(m contract.Message, messageID string, parent thread, inThread bool) ([]byte, error) {
 	md := m.Metadata
 	var b bytes.Buffer
@@ -535,11 +536,11 @@ func rfc822(m contract.Message, messageID string, parent thread, inThread bool) 
 	if m.Body.HTML != "" {
 		parts = append(parts, part{contentType: `text/html; charset="utf-8"`, content: []byte(m.Body.HTML)})
 	}
-	for _, name := range md.AttachmentNames {
+	for _, a := range m.Attachments {
 		parts = append(parts, part{
-			contentType: mime.FormatMediaType("application/octet-stream", map[string]string{"name": name}),
-			disposition: mime.FormatMediaType("attachment", map[string]string{"filename": name}),
-			content:     []byte(name),
+			contentType: mime.FormatMediaType(a.MediaType, map[string]string{"name": a.Filename}),
+			disposition: mime.FormatMediaType("attachment", map[string]string{"filename": a.Filename}),
+			content:     []byte(a.Filename),
 		})
 	}
 	write := func(p part) {

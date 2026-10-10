@@ -122,7 +122,8 @@ CREATE TABLE messages (
   labels           text[] NOT NULL DEFAULT '{}',
   flags            jsonb NOT NULL DEFAULT '{}',
   has_attachments  boolean NOT NULL,
-  attachment_types text[] NOT NULL DEFAULT '{}',
+  attachment_types text[] NOT NULL DEFAULT '{}'  -- ADR-0123's closed vocabulary
+    CHECK (attachment_types <@ '{pdf,image,audio,video,text,calendar,contact,document,spreadsheet,presentation,archive,message,signature,other}'),
   list_id          text,
   size_bytes       int,
   auth_results     jsonb,
@@ -426,7 +427,10 @@ The shape enforces these properties.
     sender class of `senders`, the gate's decision, the last authentication outcome, a rule's class
     and source, a candidate's and a plan's status, a grant's class and a masking event's field.
     Readers already fail closed on an unknown value, so the gain is a loud write failure in place of
-    quiet over-redaction.
+    quiet over-redaction. The attachment types of `messages` sit in this tier too, served in every
+    sensitivity state, where the check holds each element to
+    [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)'s vocabulary,
+    so a writer that bypassed its mapping cannot store text the sender wrote.
   - *Not checked*: `accounts.provider`, since a check would put a storage change in every new
     backend ([P2](../../../USE_CASES.md#p2--backend-swap)), and the vocabularies tuning and new job
     kinds grow on rebuildable rows an update can fix, the gate decision's reason, a run event's

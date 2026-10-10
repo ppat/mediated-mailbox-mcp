@@ -60,10 +60,13 @@ type Message struct {
 	Labels         []string
 	Flags          mail.Flags
 	HasAttachments bool
-	ListID         string
-	SizeBytes      int64
-	AuthResults    mail.AuthResults
-	Class          Class
+	// AttachmentTypes are the words of the closed vocabulary the canonical model gave the message's
+	// attachments, shown in every sensitivity state (ADR-0123).
+	AttachmentTypes []mail.AttachmentType
+	ListID          string
+	SizeBytes       int64
+	AuthResults     mail.AuthResults
+	Class           Class
 	// ClassRule is the identifier of the policy rule that set the class, empty when no rule set it,
 	// which is a sender no rule lists, a classification made while no policy has loaded and an
 	// address that cannot be classified (ADR-0016).
@@ -102,22 +105,23 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
 		verdict := classify.Classify(p, m.From.Email, l)
 		masked := redact.MaskSubject(s, m.Subject)
 		msg := Message{
-			ID:             m.ID,
-			ThreadID:       m.ThreadID,
-			From:           m.From,
-			Domain:         domain(m.From.Email),
-			Subject:        masked.Subject(),
-			Date:           m.Date,
-			Labels:         slices.Clone(m.Labels),
-			Flags:          m.Flags,
-			HasAttachments: m.HasAttachments,
-			ListID:         m.ListID,
-			SizeBytes:      m.SizeBytes,
-			AuthResults:    m.AuthResults,
-			Stamp:          StampOf(s),
-			Class:          Normal,
-			ClassRule:      verdict.Rule(),
-			Unclassified:   verdict.Reason() == classify.Unclassifiable,
+			ID:              m.ID,
+			ThreadID:        m.ThreadID,
+			From:            m.From,
+			Domain:          domain(m.From.Email),
+			Subject:         masked.Subject(),
+			Date:            m.Date,
+			Labels:          slices.Clone(m.Labels),
+			Flags:           m.Flags,
+			HasAttachments:  m.HasAttachments,
+			AttachmentTypes: slices.Clone(m.AttachmentTypes),
+			ListID:          m.ListID,
+			SizeBytes:       m.SizeBytes,
+			AuthResults:     m.AuthResults,
+			Stamp:           StampOf(s),
+			Class:           Normal,
+			ClassRule:       verdict.Rule(),
+			Unclassified:    verdict.Reason() == classify.Unclassifiable,
 		}
 		if verdict.Class().Restricted() {
 			msg.Class = Restricted

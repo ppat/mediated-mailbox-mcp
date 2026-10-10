@@ -32,6 +32,7 @@ class MessageMetadata:
     size_bytes: int
     has_attachments: bool
     attachment_names: list[str]
+    attachment_types: list[AttachmentType]  # a sorted set of closed words, ADR-0123
     snippet: str | None              # redactable
     list_id: str | None              # RFC 2919 — high-signal
     auth_results: AuthResults        # SPF/DKIM/DMARC
@@ -87,7 +88,10 @@ the enumeration path the provider itself guarantees no body crosses the wire, ma
 redaction defense-in-depth rather than sole defense. `format=METADATA` would give the same
 guarantee but returns only headers, with no MIME parts and so no attachment names, which the port
 promises. The mask names each part's type and file name to a fixed nesting depth, so an attachment
-nested deeper than that depth is not seen. The contract is shaped so adapters can exploit such
+nested deeper than that depth is not seen. A message's attachment types are words of the closed
+vocabulary [ADR-0123](./0123-attachment-types-are-words-of-a-closed-vocabulary.md) defines, which
+the canonical model maps from each attachment's media type and file name, so every adapter reports
+the same type for the same attachment. The contract is shaped so adapters can exploit such
 guarantees wherever a provider offers them.
 
 ## Alternatives considered

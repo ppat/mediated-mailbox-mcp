@@ -226,6 +226,10 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
 	if labels == nil {
 		labels = []string{}
 	}
+	types := make([]string, len(m.AttachmentTypes))
+	for i, w := range m.AttachmentTypes {
+		types[i] = string(w)
+	}
 	_, err = q.InsertMessage(ctx, messageingest.InsertMessageParams{
 		AccountID:              account,
 		MessageID:              m.ID,
@@ -239,6 +243,7 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
 		Labels:                 labels,
 		Flags:                  flags,
 		HasAttachments:         m.HasAttachments,
+		AttachmentTypes:        types,
 		ListID:                 text(m.ListID),
 		SizeBytes:              pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
 		AuthResults:            auth,

@@ -260,7 +260,7 @@ func TestMetadataTypesHaveNoBodyField(t *testing.T) {
 	mustnotcompile.RequireFields(t, pkg, "MessageMetadata",
 		"AccountID string", "ID string", "ThreadID string", "From Address", "To []Address", "Cc []Address",
 		"Subject string", "Date UnixMilli", "Labels []string", "Flags Flags", "SizeBytes int64",
-		"HasAttachments bool", "AttachmentNames []string", "Snippet string", "ListID string",
+		"HasAttachments bool", "AttachmentNames []string", "AttachmentTypes []AttachmentType", "Snippet string", "ListID string",
 		"AuthResults AuthResults")
 	mustnotcompile.RequireFields(t, pkg, "Address", "Email string", "Name string")
 	mustnotcompile.RequireFields(t, pkg, "Flags", "Read bool", "Starred bool")

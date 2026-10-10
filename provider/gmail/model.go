@@ -188,8 +188,7 @@ func metadata(account string, labels labelTable, m gmailMessage) mail.MessageMet
 			}
 		}
 	}
-	out.AttachmentNames = attachmentNames(m.Payload)
-	out.HasAttachments = len(out.AttachmentNames) > 0
+	out.SetAttachments(attachments(m.Payload))
 	return out
 }
 
@@ -299,14 +298,15 @@ func methodResult(field string) (string, string) {
 	return strings.ToLower(method), strings.ToLower(keyword)
 }
 
-// attachmentNames returns the file names of the message's parts, depth first.
-func attachmentNames(p gmailPart) []string {
-	var out []string
+// attachments returns the message's parts that have a file name, depth first, each with its media
+// type, from which the canonical model sets the attachment names and types together (ADR-0123).
+func attachments(p gmailPart) []mail.AttachmentPart {
+	var out []mail.AttachmentPart
 	if p.Filename != "" {
-		out = append(out, p.Filename)
+		out = append(out, mail.AttachmentPart{MediaType: p.MimeType, Filename: p.Filename})
 	}
 	for _, c := range p.Parts {
-		out = append(out, attachmentNames(c)...)
+		out = append(out, attachments(c)...)
 	}
 	return out
 }

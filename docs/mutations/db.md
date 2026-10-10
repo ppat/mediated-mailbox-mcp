@@ -160,7 +160,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The checked vocabularies refuse a value outside their closed set
 
-- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, with breaks 18 and 19 added for the check on the attachment types · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
 - **Break (1):** the job kind and the pass are each checked against the words alone, so a pair no job kind records is stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestARunRecordsOneOfTheBuiltJobKindsPairs`
 - **Break (2):** a run's job kind and pass are not checked
@@ -194,6 +194,10 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 - **Break (16):** the scan state's set leaves out skipped_gate, so a state the gate writes is refused
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
 - **Break (17):** the sender statistics' class is not checked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
+- **Break (18):** a message's attachment types are not checked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
+- **Break (19):** a message's attachment types are checked only to hold no media type, so an extension or any other text is stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
 
 ## The identifier grammar's migration stops over a stored account outside it and rewrites none

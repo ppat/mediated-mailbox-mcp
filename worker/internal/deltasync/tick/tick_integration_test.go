@@ -154,6 +154,28 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 	}
 }
 
+// A tick stores whether each message it adds has attachments and their types, as the canonical model
+// gives them, and a message with none stores no type (ADR-0123).
+func TestATickStoresTheAttachmentTypesOfWhatItAdds(t *testing.T) {
+	conn := superuser(t)
+	account := newAccount(t, conn, false)
+	f := mailbox(t, account, message("m0", "orders@shop.example", now.Add(-day), mail.Inbox))
+	d := deps(t, syncPool(t), &direct{port: f}, listing(t, "bank.example"), account)
+	mustTick(t, d, account)
+	withAttachments := message("m1", "alerts@bank.example", now)
+	withAttachments.Metadata.SetAttachments([]mail.AttachmentPart{
+		{MediaType: "application/octet-stream", Filename: marker.Field("invoice") + ".xlsx"},
+		{MediaType: "application/pdf", Filename: marker.Field("statement") + ".pdf"},
+	})
+	deliver(t, f, withAttachments, message("m2", "orders@shop.example", now))
+	mustTick(t, d, account)
+	got := texts(t, conn, `SELECT message_id || ' ' || has_attachments::text || ' ' || attachment_types::text
+		FROM messages WHERE account_id = $1 ORDER BY message_id`, account)
+	if diff := cmp.Diff([]string{"m0 false {}", "m1 true {pdf,spreadsheet}", "m2 false {}"}, got, compare.Options); diff != "" {
+		t.Errorf("the stored attachments (-want +got):\n%s", diff)
+	}
+}
+
 // mapsKeys returns a map's keys, sorted.
 func mapsKeys[V any](m map[string]V) []string { return slices.Sorted(maps.Keys(m)) }
 

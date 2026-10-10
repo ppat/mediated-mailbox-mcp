@@ -53,6 +53,7 @@ INSERT INTO messages (
     labels,
     flags,
     has_attachments,
+    attachment_types,
     list_id,
     size_bytes,
     auth_results,
@@ -79,7 +80,8 @@ INSERT INTO messages (
     $16,
     $17,
     $18,
-    $19
+    $19,
+    $20
 )
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id
@@ -98,6 +100,7 @@ type InsertMessageParams struct {
 	Labels                 []string
 	Flags                  []byte
 	HasAttachments         bool
+	AttachmentTypes        []string
 	ListID                 pgtype.Text
 	SizeBytes              pgtype.Int4
 	AuthResults            []byte
@@ -111,7 +114,8 @@ type InsertMessageParams struct {
 // null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
 // version and configuration revision the masking ran under (ADR-0120). A message the index already
 // holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
-// The row holds no body, snippet or attachment name (ADR-0016).
+// The row holds no body, snippet or attachment name, and holds the attachments' types, which never
+// change once the message is stored (ADR-0016, ADR-0123).
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error) {
 	row := q.db.QueryRow(ctx, insertMessage,
 		arg.AccountID,
@@ -126,6 +130,7 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (s
 		arg.Labels,
 		arg.Flags,
 		arg.HasAttachments,
+		arg.AttachmentTypes,
 		arg.ListID,
 		arg.SizeBytes,
 		arg.AuthResults,

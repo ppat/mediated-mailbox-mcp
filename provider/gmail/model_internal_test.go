@@ -104,8 +104,14 @@ const metadataBody = `{
     ],
     "body": {"size": 0},
     "parts": [
-      {"partId": "0", "mimeType": "text/plain", "filename": "", "body": {"size": 10}},
-      {"partId": "1", "mimeType": "application/pdf", "filename": "statement.pdf", "body": {"attachmentId": "ANGjdJ8", "size": 40000}}
+      {"partId": "0", "mimeType": "multipart/related", "filename": "", "body": {"size": 0}, "parts": [
+        {"partId": "0.0", "mimeType": "text/html", "filename": "", "body": {"size": 10}},
+        {"partId": "0.1", "mimeType": "image/png", "filename": "image001", "body": {"attachmentId": "ANGjdJ7", "size": 900}}
+      ]},
+      {"partId": "1", "mimeType": "Application/PDF", "filename": "statement.pdf", "body": {"attachmentId": "ANGjdJ8", "size": 40000}},
+      {"partId": "2", "mimeType": "application/octet-stream", "filename": "fees.XLSX", "body": {"attachmentId": "ANGjdJ9", "size": 8000}},
+      {"partId": "3", "mimeType": "application/x-419283", "filename": "terms.419283", "body": {"attachmentId": "ANGjdK0", "size": 100}},
+      {"partId": "4", "mimeType": "application/pdf", "filename": "notice.pdf", "body": {"attachmentId": "ANGjdK1", "size": 3000}}
     ]
   }
 }`
@@ -128,7 +134,8 @@ func TestMetadata(t *testing.T) {
 		Flags:           mail.Flags{Read: true, Starred: true},
 		SizeBytes:       48213,
 		HasAttachments:  true,
-		AttachmentNames: []string{"statement.pdf"},
+		AttachmentNames: []string{"image001", "statement.pdf", "fees.XLSX", "terms.419283", "notice.pdf"},
+		AttachmentTypes: []mail.AttachmentType{"image", "other", "pdf", "spreadsheet"},
 		Snippet:         "Your statement is ready & it's <attached>",
 		ListID:          "alerts.bank.example",
 		AuthResults:     mail.AuthResults{SPF: "softfail", DKIM: "pass", DMARC: "fail"},

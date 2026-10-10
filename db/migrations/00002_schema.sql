@@ -160,7 +160,14 @@ CREATE TABLE messages (
     labels text[] NOT NULL DEFAULT '{}',
     flags jsonb NOT NULL DEFAULT '{}',
     has_attachments boolean NOT NULL,
-    attachment_types text[] NOT NULL DEFAULT '{}',
+    -- Words of ADR-0123's closed vocabulary, never text the message carries, since they are served in
+    -- every sensitivity state.
+    attachment_types text[] NOT NULL DEFAULT '{}' CHECK (
+        attachment_types <@ ARRAY[
+            'pdf', 'image', 'audio', 'video', 'text', 'calendar', 'contact', 'document', 'spreadsheet',
+            'presentation', 'archive', 'message', 'signature', 'other'
+        ]
+    ),
     list_id text,
     size_bytes int,
     auth_results jsonb,

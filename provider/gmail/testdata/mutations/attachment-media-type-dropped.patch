@@ -1,0 +1,19 @@
+control: An attachment's type is a word of the closed vocabulary, set with the names from the same parts
+removes: the Gmail adapter hands the model each attachment's file name without its part's media type
+packages: ./provider/gmail
+tests: TestMetadata
+scheduled-count: no
+
+diff --git a/provider/gmail/model.go b/provider/gmail/model.go
+index 402efff5..c500306b 100644
+--- a/provider/gmail/model.go
++++ b/provider/gmail/model.go
+@@ -303,7 +303,7 @@ func methodResult(field string) (string, string) {
+ func attachments(p gmailPart) []mail.AttachmentPart {
+ 	var out []mail.AttachmentPart
+ 	if p.Filename != "" {
+-		out = append(out, mail.AttachmentPart{MediaType: p.MimeType, Filename: p.Filename})
++		out = append(out, mail.AttachmentPart{Filename: p.Filename})
+ 	}
+ 	for _, c := range p.Parts {
+ 		out = append(out, attachments(c)...)

@@ -101,8 +101,11 @@
 //     references decoded.
 //   - The authentication results are read from the first Authentication-Results header whose
 //     authentication service is mx.google.com, so a header the sender wrote is not read.
-//   - Attachment names are the file names of the parts the metadata mask returns. An attachment
-//     nested deeper than the mask's six levels is missing from its metadata.
+//   - An attachment is a part the metadata mask returns that has a file name. Its name is that file
+//     name, and its type is the word the canonical model's mapping gives its mimeType and file name
+//     (ADR-0123), so the names, the types and whether the message has attachments come from the
+//     same parts. An attachment nested deeper than the mask's six levels is missing from its
+//     metadata.
 //   - A label identifier a message carries that labels.list no longer lists belongs to a label
 //     deleted after the message was read, since the labels are listed after the messages, and it is
 //     left out.

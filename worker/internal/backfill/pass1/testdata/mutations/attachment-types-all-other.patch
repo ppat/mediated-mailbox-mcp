@@ -1,0 +1,24 @@
+control: Each message the first pass or a tick stores carries its attachment types
+removes: the first pass stores every message with attachments as having one attachment of no known kind
+packages: ./worker/internal/backfill/pass1
+tests: TestAPassStoresEachMessagesAttachmentTypes
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index 1175f5e1..f27cf683 100644
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -226,9 +226,9 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
+ 	if labels == nil {
+ 		labels = []string{}
+ 	}
+-	types := make([]string, len(m.AttachmentTypes))
+-	for i, w := range m.AttachmentTypes {
+-		types[i] = string(w)
++	types := []string{}
++	if m.HasAttachments {
++		types = []string{"other"}
+ 	}
+ 	_, err = q.InsertMessage(ctx, messageingest.InsertMessageParams{
+ 		AccountID:              account,

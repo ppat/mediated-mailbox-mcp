@@ -3,7 +3,8 @@
 -- null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
 -- version and configuration revision the masking ran under (ADR-0120). A message the index already
 -- holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
--- The row holds no body, snippet or attachment name (ADR-0016).
+-- The row holds no body, snippet or attachment name, and holds the attachments' types, which never
+-- change once the message is stored (ADR-0016, ADR-0123).
 INSERT INTO messages (
     account_id,
     message_id,
@@ -17,6 +18,7 @@ INSERT INTO messages (
     labels,
     flags,
     has_attachments,
+    attachment_types,
     list_id,
     size_bytes,
     auth_results,
@@ -37,6 +39,7 @@ INSERT INTO messages (
     @labels,
     @flags,
     @has_attachments,
+    @attachment_types,
     sqlc.narg(list_id),
     @size_bytes,
     @auth_results,

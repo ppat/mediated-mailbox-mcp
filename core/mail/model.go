@@ -70,6 +70,9 @@ type MessageMetadata struct {
 	HasAttachments bool
 	// AttachmentNames are derived from the body, so the gate withholds them with it (ADR-0001).
 	AttachmentNames []string
+	// AttachmentTypes are the types of the attachments, each word of the vocabulary once and sorted,
+	// shown in every sensitivity state (ADR-0123). SetAttachments sets them with the names.
+	AttachmentTypes []AttachmentType
 	// Snippet is the provider's preview of the body, empty when the provider gives none. It is body
 	// text, so the gate withholds it with the body (ADR-0001).
 	Snippet string

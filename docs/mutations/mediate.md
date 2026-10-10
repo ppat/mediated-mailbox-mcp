@@ -311,7 +311,7 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 
 ## Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
 
-- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-28 · [pull request #186](https://github.com/ppat/mediated-mailbox-mcp/pull/186), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, with breaks 6 and 7 added for the attachment types every state serves · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
 - **Break (1):** every served message says its body is available, whatever the gate decided
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryMessageStaysInEveryIndexRead`, `TestEveryServedMessageFollowsTheRedactionMatrix`
 - **Break (2):** the gate decides every served message under no policy, so it restricts every sender instead of the ones the policy lists
@@ -322,6 +322,10 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnUnnamedStoredStateReadsAsTheMostRestrictive`
 - **Break (5):** a stored scan state the schema does not name is read as scanned, so the message is released
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestAnUnnamedStoredStateReadsAsTheMostRestrictive`
+- **Break (6):** a served message carries its attachment types only when its body is available, as its filenames would
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
+- **Break (7):** no served message carries its attachment types
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEveryServedMessageFollowsTheRedactionMatrix`
 
 ## Every request to the client surface passes the bearer check before either root
 
