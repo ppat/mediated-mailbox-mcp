@@ -106,7 +106,7 @@ because every candidate that reduces at all meets it.
 | The kinds of rule ADR-0055 allows can be expressed | The kinds ADR-0055 admits, among them model-based properties, metamorphic relations, round trips, idempotence, postconditions and stateful properties | [ADR-0055](./0055-property-based-safety-invariants.md) |
 | Reports what the generator produced | States a required mix of input kinds and fails the run when the generator misses it | This record's requirement. It was graded but never used to rule a candidate out. It answers the blind spot [ADR-0055](./0055-property-based-safety-invariants.md) names |
 | Operation sequences with a crash step | Generated sequences of named operations, a crash placeable anywhere and more than once | [ADR-0045](./0045-crash-injection-testing.md) |
-| Reduction does not replay against the real database | Reduction runs against an in-memory model of the machinery. Against PostgreSQL only the reduced sequence replays, beside a fixed number of sequences drawn from fixed seeds that are replayed and never reduced | This record's requirement. Each replay against the database costs a reset |
+| Reduction does not replay against the real database | Reduction runs against an in-memory model of the machinery. Against PostgreSQL only the reduced sequence replays, beside a fixed number of sequences drawn from fixed seeds that are replayed and never reduced, and any sequence a test writes to reach a kind those draws reach by chance | This record's requirement. Each replay against the database costs a reset |
 
 ### How the requirements were weighted
 
@@ -279,7 +279,7 @@ and recovery cycles back to back, to the longer search.
 | The kinds of rule ADR-0055 allows can be expressed | `rapid.Check` for single-value properties and `t.Repeat` for operation sequences |
 | Reports what the generator produced | The generator report, in its own property |
 | Operation sequences with a crash step | `t.Repeat` with the crash as one named operation, lists inside operations built with collection generators, and the operation sampler in every run |
-| Reduction does not replay against the real database | Reduction runs against the in-memory model. The in-memory model and PostgreSQL agreed on every check across 450 cases, and on the two builds with a planted fault at least one check fired in 70 of 150 cases on one and in at least 132 of 150 on the other, so the model can carry the search, and the database only the final replay and the fixed-seed replays that the section on what the backfill target settled describes |
+| Reduction does not replay against the real database | Reduction runs against the in-memory model. The in-memory model and PostgreSQL agreed on every check across 450 cases, and on the two builds with a planted fault at least one check fired in 70 of 150 cases on one and in at least 132 of 150 on the other, so the model can carry the search, and the database only the final replay and the fixed-seed replays that the section on what the backfill target settled describes. The database also runs a sequence a test writes, because the model never runs the store's own code and the fixed-seed replays reach a kind of sequence by chance, as the point on a break in the store's own code, among [what the implementer would otherwise pay to discover](#what-the-implementer-would-otherwise-pay-to-discover), describes |
 
 ### What the implementer would otherwise pay to discover
 
@@ -303,6 +303,13 @@ and recovery cycles back to back, to the longer search.
   to case 291. At gating counts of 100 and 200 the mutation demonstration then stayed green when it
   had to go red, and went red again only at 500. The report was right that the stated mix was
   reached. It cannot say a kind of input nobody named was lost.
+- **A break in the store's own code is seen only by a sequence run against PostgreSQL, and the
+  replays drawn from fixed seeds reach a kind of sequence by chance.** The model never writes the
+  stored form of a checkpoint. With the second pass's stored checkpoint stripped of its position,
+  every sequence against the model stayed green, and none of the backfill second pass's ten
+  fixed-seed replays crashed after a page that a later run resumed from rather than started over, so
+  the crash test stayed green. That crash test therefore also runs a sequence written to reach that
+  kind, a resume after a page that left a message waiting, against PostgreSQL in every run.
 - **The real database is 34 to 40 times slower than the in-memory model** on the same sequences.
 - **Fixed operation weights tuned for one target can destroy another.** Weighting the crash down
   helped the reorganization target slightly and took detection of one planted failure on the
