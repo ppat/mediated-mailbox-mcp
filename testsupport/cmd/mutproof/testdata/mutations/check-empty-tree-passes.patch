@@ -1,0 +1,18 @@
+control: The mutation-patches check refuses a patch that no longer applies, and never passes on nothing checked
+removes: a tree holding no mutation patch passes the check
+packages: ./testsupport/cmd/mutproof/...
+tests: TestCheckTree
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/check.go b/testsupport/cmd/mutproof/check.go
+--- a/testsupport/cmd/mutproof/check.go
++++ b/testsupport/cmd/mutproof/check.go
+@@ -51,7 +51,7 @@ func checkTree(w io.Writer, root string) error {
+ 	if err != nil {
+ 		return fmt.Errorf("listing the mutation patches: %w", err)
+ 	}
+-	if len(patches) == 0 {
++	if len(patches) < 0 {
+ 		return errors.New("found no mutation patch under a testdata/mutations directory, so the check would pass with nothing checked")
+ 	}
+ 	if _, err := fmt.Fprintf(w, "checking %d mutation patches\n", len(patches)); err != nil {

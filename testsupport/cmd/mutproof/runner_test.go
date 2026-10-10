@@ -790,3 +790,18 @@ func TestConflictedPathIsCopiedOnce(t *testing.T) {
 		t.Errorf("the demonstration did not hold:\n%s", res.report())
 	}
 }
+
+// TestPatchWhoseHunkMatchesTwiceIsRefused runs a patch whose one hunk matches both of two
+// functions with the same body. git apply --check accepts it, and git apply would put it at the
+// match nearest its header line, which is where its author meant only until lines move.
+func TestPatchWhoseHunkMatchesTwiceIsRefused(t *testing.T) {
+	root := fixtureRoot(t)
+	path := patchPath(root, "twice", "ambiguous")
+	if _, err := gitApply(root, "--check", path); err != nil {
+		t.Fatalf("git apply --check refuses the fixture patch, so the case does not reach the check of where each hunk matches: %v", err)
+	}
+	_, err := demonstrateFixture(t, root, "twice", "ambiguous", fixtureEnv())
+	if err == nil || !strings.Contains(err.Error(), "twice/twice.go: hunk 1 (@@ -15,3 +15,3 @@") || !strings.Contains(err.Error(), "matches at lines 7, 15") {
+		t.Fatalf("got error %v, want the hunk refused for matching at lines 7 and 15", err)
+	}
+}

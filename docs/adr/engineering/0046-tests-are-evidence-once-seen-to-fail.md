@@ -74,6 +74,19 @@ that stands in for a control.
   on every pull request instead. An unrelated later change can edit code a patch's diff context
   spans and leave the patch unable to apply without touching the control, its tests, or a
   generator, so nothing about the demonstration's own trigger would ever catch it.
+- **A patch applies only where its context places it unambiguously.** A hunk whose context and
+  removed lines match at more than one place in the file it targets is refused, by the runner
+  before it runs a demonstration and by the guard on every pull request. git apply puts such a
+  hunk at the match nearest the line its header names, and an unrelated edit that moves lines can
+  make that the wrong match. A hunk applied at the wrong place breaks code other than the
+  control's mechanism. The patch then survives, or turns a test red for a reason other than the one
+  it states and counts as proof of a control it never broke. The matches are counted by git
+  apply's own rules under its default settings, and a test compares the count with git apply
+  itself over generated patches. A hunk that must match at the start or the end of its file has
+  one place, each hunk of a file is matched against the file as the hunks before it leave it,
+  and a last line without a newline matches as git matches it, the same text followed only by
+  whitespace. A hunk whose context matches once applies wherever lines have moved it, so an edit
+  above it that shifts its lines leaves it valid.
 - **A test that proves a [docs/VERIFICATIONS.md](../../VERIFICATIONS.md) row never retires.**
   Once it passes for the first time, it runs in CI on every change from then on, so the proof
   stays current instead of decaying into a claim about one past date. Rows proven by a drill
@@ -100,6 +113,11 @@ that stands in for a control.
 - **Trusting a lint ban's selector as written.** The case for it is no extra files to keep. Rejected
   because a ban can read correctly and match nothing, as a ban on the browser's raw-markup hatch
   demonstrates in the same spike, catching nothing until a violation file exposes it.
+- **Refusing a hunk that applies at any distance from the line its header names.** The case for it
+  is that it needs no count of matches. Rejected because a hunk whose context matches once has one
+  place to land however far lines have moved it, so the rule would refuse a patch after every edit
+  that shifts lines above it, with nothing gained. It also misses a hunk whose context matches
+  twice when an edit brings the wrong match to the line its header names.
 - **A mutation column on the verification rows.** The case for it is one fewer document.
   Rejected because most row kinds could never fill it, controls with no standing automated
   test having no table, and because it braids a design-time table into an

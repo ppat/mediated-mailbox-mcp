@@ -1,0 +1,18 @@
+control: A mutation patch is refused when a hunk's context matches at more than one place in its file
+removes: every hunk of a file is matched against the file as it stands, not as the hunks before it leave it
+packages: ./testsupport/cmd/mutproof/...
+tests: TestHunkMatchReadsTheFileAsEarlierHunksLeaveIt TestHunkMatchNeverMatchesOverAnEarlierHunk
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+--- a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
++++ b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+@@ -288,7 +288,7 @@ func Place(root string, src []byte) (hunks []Hunk, files map[string]string, err
+ 				// Nothing is left to read the file's later hunks against.
+ 				break
+ 			}
+-			img = splice(img, at, h)
++			_ = at
+ 		}
+ 		if f.oldPath != "" && f.oldPath != f.newPath && !f.copied {
+ 			delete(images, f.oldPath)

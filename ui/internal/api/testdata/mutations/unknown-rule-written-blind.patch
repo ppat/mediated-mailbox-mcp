@@ -6,10 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
-index 60da4717..ebfbb24c 100644
+index 1a18b3e2..61999f56 100644
 --- a/ui/internal/api/rules.go
 +++ b/ui/internal/api/rules.go
-@@ -347,7 +347,7 @@ func (s *Server) editRule(ctx context.Context, account string, isBase bool, id s
+@@ -345,11 +345,11 @@ func (s *Server) editRule(ctx context.Context, account string, isBase bool, id s
+ 		if err != nil {
+ 			return err
  		}
  		i := slices.IndexFunc(stored, func(r registry.StoredRule) bool { return r.ID == id })
  		if i < 0 {
@@ -18,3 +20,5 @@ index 60da4717..ebfbb24c 100644
  		}
  		if !slices.Equal(stored[i].Suffixes, req.SuffixesBefore) {
  			return errStaleRule
+ 		}
+ 		after := toRules(stored)

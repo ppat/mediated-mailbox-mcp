@@ -6,10 +6,17 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index c369b93..30de24f 100644
+index 9f99b323..de2b039b 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -102,6 +102,7 @@ SELECT
+@@ -100,20 +100,21 @@ LIMIT @page_size;
+ SELECT
+     count(*) AS messages,
+     count(DISTINCT m.thread_id) AS threads,
+     count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+     count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+     min(m.sent_at)::timestamptz AS oldest_at,
+     max(m.sent_at)::timestamptz AS newest_at
  FROM messages AS m
  WHERE
      m.account_id = @account_id
@@ -17,11 +24,25 @@ index c369b93..30de24f 100644
      AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
      AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
      AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
+     AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
+     AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
+     AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
+     AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])
+     AND (@subject_patterns::text[] IS NULL OR m.subject ILIKE all(@subject_patterns::text[]))
+     AND (
+         @unread::boolean[] IS NULL
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index e052b44..f1c0edf 100644
+index c65924c5..1fc1d0b8 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -684,6 +684,7 @@ SELECT
+@@ -702,20 +702,21 @@ const searchSummary = `-- name: SearchSummary :one
+ SELECT
+     count(*) AS messages,
+     count(DISTINCT m.thread_id) AS threads,
+     count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+     count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+     min(m.sent_at)::timestamptz AS oldest_at,
+     max(m.sent_at)::timestamptz AS newest_at
  FROM messages AS m
  WHERE
      m.account_id = $1
@@ -29,3 +50,10 @@ index e052b44..f1c0edf 100644
      AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
      AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
      AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
+     AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
+     AND ($6::text[] IS NULL OR m.labels @> $6::text[])
+     AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
+     AND ($8::text[] IS NULL OR m.labels <@ $8::text[])
+     AND ($9::text[] IS NULL OR m.subject ILIKE all($9::text[]))
+     AND (
+         $10::boolean[] IS NULL

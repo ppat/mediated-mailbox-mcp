@@ -1,0 +1,18 @@
+control: The mutation-patches check refuses a patch that no longer applies, and never passes on nothing checked
+removes: the check of every patch in the tree no longer runs git apply --check, so a patch git apply refuses for another reason than its context, such as creating a file that exists, passes
+packages: ./testsupport/cmd/mutproof/...
+tests: TestCheckTree
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/check.go b/testsupport/cmd/mutproof/check.go
+--- a/testsupport/cmd/mutproof/check.go
++++ b/testsupport/cmd/mutproof/check.go
+@@ -87,8 +87,5 @@ func checkPatch(root, rel string) error {
+ 	if err != nil {
+ 		return err
+ 	}
+-	if _, err := gitApply(root, "--check", path); err != nil {
+-		return fmt.Errorf("it no longer applies to the tree: %w", err)
+-	}
+ 	return hunkmatch.Check(root, src)
+ }

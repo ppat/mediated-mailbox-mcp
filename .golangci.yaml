@@ -528,14 +528,16 @@ linters:
           - "golang.org/x/tools/go/"
           - "pgregory.net/rapid$"
 
-        # The shared test tooling outside the rapid-based packages and the analyser's violation
-        # files, which call rapid because the rules they break are about calls into it (ADR-0071).
+        # The shared test tooling outside the rapid-based packages, the mutation runner's property test of where a
+        # hunk matches (ADR-0069), and the analyser's violation files, which call rapid because the rules they break
+        # are about calls into it (ADR-0071).
         testsupport-without-rapid:
           list-mode: strict
           files:
           - "${base-path}/testsupport/**.go"
           - "!${base-path}/testsupport/property/**"
           - "!${base-path}/testsupport/crash/**"
+          - "!${base-path}/testsupport/cmd/mutproof/internal/hunkmatch/**_property_test.go"
           - "!${base-path}/testsupport/analysis/**_violation_test.go"
           allow:
           - "$gostd"
@@ -547,6 +549,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/analysis$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof/internal/hunkmatch$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"

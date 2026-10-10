@@ -1,0 +1,18 @@
+control: The mutation-patches check refuses a patch that no longer applies, and never passes on nothing checked
+removes: a directory the walk cannot read is passed over, so a patch in it goes unchecked
+packages: ./testsupport/cmd/mutproof/...
+tests: TestCheckTreeRefusesAnUnreadableDirectory
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/check.go b/testsupport/cmd/mutproof/check.go
+--- a/testsupport/cmd/mutproof/check.go
++++ b/testsupport/cmd/mutproof/check.go
+@@ -33,7 +33,7 @@ func checkTree(w io.Writer, root string) error {
+ 	var patches []string
+ 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+ 		if err != nil {
+-			return err
++			return nil
+ 		}
+ 		rel, err := filepath.Rel(root, path)
+ 		if err != nil {

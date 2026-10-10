@@ -256,7 +256,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## A write row-level security empties is reported as a rule the account does not hold
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 2 again on 2026-10-10, its patch regenerated with wider context so each of its hunks matches at one place · [pull request #338](https://github.com/ppat/mediated-mailbox-mcp/pull/338)
 - **Break (1):** a rule the account does not hold is reported as the database failing rather than as unknown
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestAReleaseCountsTheSetOfSuffixesRemoved`, `TestAnotherAccountsRuleIsUnknown`
 - **Break (2):** an edit of a rule the account does not hold is reported as a stale conflict
