@@ -11,8 +11,8 @@ library's HTTP middleware and OpenTelemetry. [ADR-0051](./0051-environment-contr
 that the platform scrapes the endpoint and owns collection, shipping and retention, and that the
 app does not know its platform. [ADR-0040](./0040-pure-core-decisions-as-values.md) and
 [ADR-0071](./0071-static-enforcement-toolchain.md) keep every metric in shell code and out of a
-pure core. [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md) labels
-every series the worker emits with its job kind. What is left is which performance measurements
+pure core. [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md) keeps
+every series a job kind of the worker produces attributable to its job kind. What is left is which performance measurements
 the code captures, where each is captured, and how each is exposed.
 
 The series emitted before this record answer correctness and liveness questions, such as the rate
@@ -73,8 +73,9 @@ reading.
 ## Decision
 
 Eleven measurements are kept, each at the one place its time is spent. Every series is a counter, a
-gauge or a classic histogram on the process's registry, and the worker's carry `job_kind` through
-the registerer each job kind is handed. The bucket boundaries are reasoned from the latencies the
+gauge or a classic histogram on the process's registry. The worker's carry `job_kind` through the
+registerer each job kind is handed, apart from the Go runtime's and the process's, which belong to
+the process rather than to a job kind. The bucket boundaries are reasoned from the latencies the
 Context names, since no production run exists yet.
 
 ### The client surface
@@ -171,8 +172,8 @@ histogram labelled by `step`, `convert` or `scan`, with buckets at 0.0005, 0.001
 ### Throughput of the index's passes
 
 **K6. Messages made durable.** `mediated_mailbox_index_messages_total`, a counter labelled by
-`account` and `stage`. `indexed` counts the messages the first pass and a tick's applied changes
-added to the index, and `scanned` the messages the second pass and a tick scanned and made durable.
+`account` and `stage`. `indexed` counts the messages the first pass and a tick, its changes and its
+reconciliation of a window alike, added to the index, and `scanned` the messages the second pass and a tick scanned and made durable.
 
 - **Question.** How fast is each pass going, is the rate steady or decaying as the index grows, and
   how long until a pass ends? Does a tick keep up with what arrives?
@@ -343,7 +344,7 @@ The candidates left out, each with the case for it and why it lost.
 | Go runtime | `go_gc_duration_seconds` read as GC cost | It is in the default set | It is pause time, while the cost is concurrent marking's CPU, hence K10's ratio. It stays in the default set |
 | Histograms | Native histograms beside the classic buckets | Finer resolution at less cost, and harmless to a text scrape | Scraping them is a per-job platform setting the app cannot know (ADR-0051), and [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md)'s rule tests read classic series |
 | Profiling | `net/http/pprof` on the probe listener, off by default | It is the most effective tool for CPU and allocation hot spots | It is an exposure decision on processes that hold full-mailbox credentials, not a measurement, and is the operator's to make in a record of its own |
-| Statement names | Telling two statements with one name apart at run time, such as by their SQL's hash | It survives a repeated name | No two statements of the library share a name, and `db/check` refuses one that would, so the name alone is unambiguous and readable |
+| Statement names | Labelling a statement by its subsection as well as its name | Two subsections could give statements one name | The tracer sees only the statement's SQL, which carries no subsection. No two statements of the library share a name, and `db/check` refuses one that would, so the name alone names one statement |
 
 ## Consequences
 
