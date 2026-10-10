@@ -3,13 +3,19 @@
 package pass2_test
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"pgregory.net/rapid"
 
+	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/crash"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/property"
 	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
+	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
 )
 
 // drawSetup draws a mailbox and a page size. Each message is drawn without seeing the ones before it,
@@ -89,8 +95,58 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // its thresholds were widened past every sender's volume, and no more than a page of bodies fetched
 // again for each crash and the mailbox for each change of scanner (ADR-0017, ADR-0037, ADR-0045,
 // ADR-0120, ADR-0121).
+//
+// The model never writes the stored form of a checkpoint, so a break in it is seen only by a sequence
+// run against PostgreSQL, and the replays drawn from fixed seeds reach a resume after a durable page
+// only by chance. The subtest below runs that sequence against PostgreSQL in every run (ADR-0069).
 func TestAKilledSecondPassResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
+	t.Run("resumed-after-a-page-that-left-a-message-waiting", resumedAfterAPageThatLeftAMessageWaiting)
+}
+
+// resumedAfterAPageThatLeftAMessageWaiting kills the process after its first page is durable, where
+// that page left its one message waiting, a body the conversion refuses (ADR-0017). The next run
+// resumes from page 1 after that message, so it never reads the message again, never asks for its
+// body again and records its failed item once, and the pass ends with the two messages after it
+// scanned. A run that resumed from the first waiting message instead would read the refused message
+// again, which only the position the checkpoint holds tells apart.
+func resumedAfterAPageThatLeftAMessageWaiting(t *testing.T) {
+	refused := "<p>" + strings.Repeat("a", 512*1024-6) + "</p>"
+	w := realWorldOf(t, 1, []fake.Message{
+		message("m01", "a@shop.example", false, marker.Body("refused"), refused),
+		message("m02", "b@shop.example", false, marker.Body("second"), ""),
+		message("m03", "c@shop.example", false, marker.Body("third"), ""),
+	})
+	w.step(t)
+	w.crash(t, betweenSteps)
+	w.open(t)
+	w.persistence(t)
+	got := w.inspect(t)
+	if latest, _ := got.latest(); latest.Progress.Checkpoint != (core.Checkpoint{Page: 1, After: "m01"}) {
+		t.Errorf("the resumed run starts from %+v, want page 1 after m01", latest.Progress.Checkpoint)
+	}
+	for range 10 {
+		if w.step(t) {
+			break
+		}
+	}
+	got = w.inspect(t)
+	if !got.Ended {
+		t.Fatalf("the pass did not end")
+	}
+	states := map[string]string{}
+	for id, m := range got.Messages {
+		states[id] = m.State
+	}
+	if diff := cmp.Diff(map[string]string{"m01": "pending", "m02": "scanned", "m03": "scanned"}, states, compare.Options); diff != "" {
+		t.Errorf("the scan states (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"m01", "m02", "m03"}, w.fetched, compare.Options); diff != "" {
+		t.Errorf("the bodies asked for (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(map[string][]string{"m01": {"abandoned"}}, got.Items, compare.Options); diff != "" {
+		t.Errorf("the failed items (-want +got):\n%s", diff)
+	}
 }
 
 // The generator report for both draws (ADR-0069). Each kind of sequence the checks rest on is reached,
