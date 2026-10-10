@@ -17,13 +17,15 @@
 //
 // The suite never assumes an implementation keeps the identifiers a message was added with, since a
 // real provider assigns its own, and compares only what the seed decides. Every expectation is
-// written out as a literal here or in the shared fixtures, such as each attachment's type, rather
+// written out as a literal here or in the shared fixtures, such as each attachment's media, rather
 // than computed by logic an implementation could share, so an implementation that ignores a query,
-// drops a field, maps a type wrongly or mutates the wrong message fails.
+// drops a field, misreads an attachment's media or mutates the wrong message fails.
 package contract
 
 import (
+	"cmp"
 	"slices"
+	"strings"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
@@ -36,8 +38,8 @@ import (
 // results are left for the implementation to derive, as a provider does.
 //
 // Attachments are the message's attachments as its parts declare them, which a harness that writes
-// the message to a provider gives each part, and Metadata carries the names and types the
-// implementation must report for them, the types written out in the fixtures (ADR-0123).
+// the message to a provider gives each part, and Metadata carries the names and the normalized media
+// the implementation must report for them, the media written out in the fixtures (ADR-0123).
 type Message struct {
 	Metadata    mail.MessageMetadata
 	Body        mail.MessageBody
@@ -103,10 +105,12 @@ func seed(mark string, base mail.UnixMilli, key, thread string, f fixture.Messag
 	var parts []mail.AttachmentPart
 	for _, a := range f.Attachments {
 		parts = append(parts, mail.AttachmentPart{MediaType: a.MediaType, Filename: a.Name})
-		m.AttachmentTypes = append(m.AttachmentTypes, mail.AttachmentType(a.Type))
+		m.AttachmentMedia = append(m.AttachmentMedia, mail.AttachmentMedia{MediaType: a.MediaType, Extension: a.Extension})
 	}
-	slices.Sort(m.AttachmentTypes)
-	m.AttachmentTypes = slices.Compact(m.AttachmentTypes)
+	slices.SortFunc(m.AttachmentMedia, func(a, b mail.AttachmentMedia) int {
+		return cmp.Or(strings.Compare(a.MediaType, b.MediaType), strings.Compare(a.Extension, b.Extension))
+	})
+	m.AttachmentMedia = slices.Compact(m.AttachmentMedia)
 	return Message{Metadata: m, Body: mail.MessageBody{Text: f.Body}, Attachments: parts}
 }
 

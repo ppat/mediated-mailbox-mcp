@@ -842,9 +842,10 @@ func TestAFallingStaleCountIsProgress(t *testing.T) {
 	}
 }
 
-// A pass stores whether each message has attachments and their types, as the canonical model gives
-// them, and a message with none stores no type (ADR-0123).
-func TestAPassStoresEachMessagesAttachmentTypes(t *testing.T) {
+// A pass stores whether each message has attachments and their media, each normalized media type and
+// extension once, as the canonical model gives them, and a message with none stores no media
+// (ADR-0123).
+func TestAPassStoresEachMessagesAttachmentMedia(t *testing.T) {
 	w := realWorld(t, setup{PageSize: 3})
 	var messages []fake.Message
 	for i, f := range []fixture.Message{fixture.Bank(), fixture.Receipt(), fixture.Newsletter()} {
@@ -866,8 +867,9 @@ func TestAPassStoresEachMessagesAttachmentTypes(t *testing.T) {
 	}
 	w.deps.Fetch = f.EnumerateAll
 	w.finish(t, 10)
-	rows, err := superuser(t).Query(t.Context(), `SELECT message_id || ' ' || has_attachments::text || ' ' || attachment_types::text
-		FROM messages WHERE account_id = $1 ORDER BY message_id`, w.account)
+	rows, err := superuser(t).Query(t.Context(), `SELECT m.message_id || ' ' || m.has_attachments::text || ' ' || coalesce((SELECT string_agg(a.media_type || ':' || a.extension, ','
+		ORDER BY a.media_type, a.extension) FROM attachment_media AS a WHERE a.account_id = m.account_id AND a.message_id = m.message_id), '')
+		FROM messages AS m WHERE m.account_id = $1 ORDER BY m.message_id`, w.account)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -875,7 +877,7 @@ func TestAPassStoresEachMessagesAttachmentTypes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff([]string{"a0 true {pdf}", "a1 true {image,spreadsheet}", "a2 false {}"}, got, compare.Options); diff != "" {
+	if diff := cmp.Diff([]string{"a0 true application/pdf:pdf", "a1 true application/octet-stream:xlsx,image/png:png", "a2 false "}, got, compare.Options); diff != "" {
 		t.Errorf("the stored attachments (-want +got):\n%s", diff)
 	}
 }

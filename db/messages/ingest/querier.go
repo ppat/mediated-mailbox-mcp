@@ -14,12 +14,16 @@ type Querier interface {
 	// again, and once its enumeration has ended the first pass records the count in its checkpoint, as
 	// the subjects it has still to fetch again (ADR-0120).
 	CountStaleSubjects(ctx context.Context, arg CountStaleSubjectsParams) (int64, error)
+	// Adds the media of a message's attachments, each normalized media type paired with the extension at
+	// the same position, once each, from which the types a client is served are derived when read
+	// (ADR-0123). It is run for a message InsertMessage has just added, whose media never change once
+	// stored, so a pair already stored is left as it is.
+	InsertAttachmentMedia(ctx context.Context, arg InsertAttachmentMediaParams) error
 	// Adds one message's metadata to the index, with its sender class, the policy rule that set it or
 	// null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
 	// version and configuration revision the masking ran under (ADR-0120). A message the index already
 	// holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
-	// The row holds no body, snippet or attachment name, and holds the attachments' types, which never
-	// change once the message is stored (ADR-0016, ADR-0123).
+	// The row holds no body, snippet or attachment name (ADR-0016).
 	InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error)
 	// Replaces each stored subject named, unmasked and masked under another scanner version or
 	// configuration revision than the one given, or under none recorded, with the subject given, masked

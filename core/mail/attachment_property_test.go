@@ -1,6 +1,8 @@
 package mail_test
 
 import (
+	"cmp"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -59,11 +61,20 @@ func drawParts(t *rapid.T) []part {
 	}), 0, 4).Draw(t, "parts")
 }
 
+// The stored form ADR-0123 states, written out here rather than read from the package. A media type
+// is empty or a lowercase type and subtype of RFC 6838's restricted names, each at most 127 long, and
+// an extension is empty or one to 16 lowercase ASCII letters and digits.
+var (
+	storedMediaType = regexp.MustCompile(`^([a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126})?$`)
+	storedExtension = regexp.MustCompile(`^[a-z0-9]{0,16}$`)
+)
+
 // A postcondition over every message's attachments, whatever the sender wrote in their media types
-// and file names. Every type is a word of the vocabulary, each word once and sorted, and the message
-// has types exactly when it has attachment names, one name for each part in the order given
-// (ADR-0123). A mapping passing on a raw media type or extension fails, and so does a set computed
-// from other parts than the names.
+// and file names. Every type served is a word of the vocabulary, each word once and sorted, every
+// medium kept is in the stored form, each pair once and sorted, and the message has media and types
+// exactly when it has attachment names, one name for each part in the order given (ADR-0123). A
+// mapping passing on a raw media type or extension fails, so does a normalization keeping text the
+// stored form refuses, and so does a set computed from other parts than the names.
 func TestEveryAttachmentTypeIsAWordOfTheVocabulary(t *testing.T) {
 	property.Check(t, drawParts, func(t rapid.TB, parts []part) {
 		in := make([]mail.AttachmentPart, len(parts))
@@ -74,18 +85,40 @@ func TestEveryAttachmentTypeIsAWordOfTheVocabulary(t *testing.T) {
 		}
 		var m mail.MessageMetadata
 		m.SetAttachments(in)
-		for _, w := range m.AttachmentTypes {
+		for _, a := range m.AttachmentMedia {
+			if !storedMediaType.MatchString(a.MediaType) || !storedExtension.MatchString(a.Extension) {
+				t.Fatalf("%+v: the medium %+v is not in the stored form", parts, a)
+			}
+		}
+		if !slices.IsSortedFunc(m.AttachmentMedia, compareMedia) || len(slices.Compact(slices.Clone(m.AttachmentMedia))) != len(m.AttachmentMedia) {
+			t.Fatalf("%+v: the media %+v are not each pair once and sorted", parts, m.AttachmentMedia)
+		}
+		types := mail.AttachmentTypes(m.AttachmentMedia)
+		for _, w := range types {
 			if !vocabulary[w] {
 				t.Fatalf("%+v: the type %q is not a word of the vocabulary", parts, w)
 			}
 		}
-		if !slices.IsSorted(m.AttachmentTypes) || len(slices.Compact(slices.Clone(m.AttachmentTypes))) != len(m.AttachmentTypes) {
-			t.Fatalf("%+v: the types %q are not each word once and sorted", parts, m.AttachmentTypes)
+		if !slices.IsSorted(types) || len(slices.Compact(slices.Clone(types))) != len(types) {
+			t.Fatalf("%+v: the types %q are not each word once and sorted", parts, types)
 		}
-		if m.HasAttachments != (len(parts) > 0) || (len(m.AttachmentTypes) > 0) != (len(parts) > 0) || !slices.Equal(m.AttachmentNames, names) {
-			t.Fatalf("%+v: has attachments %v, names %q, types %q", parts, m.HasAttachments, m.AttachmentNames, m.AttachmentTypes)
+		has := len(parts) > 0
+		if m.HasAttachments != has || (len(m.AttachmentMedia) > 0) != has || (len(types) > 0) != has || !slices.Equal(m.AttachmentNames, names) {
+			t.Fatalf("%+v: has attachments %v, names %q, media %+v, types %q", parts, m.HasAttachments, m.AttachmentNames, m.AttachmentMedia, types)
+		}
+		// The mapping returns only the vocabulary's words over media that were never normalized too,
+		// such as a stored row a writer bypassing the normalization could leave.
+		for _, p := range parts {
+			if w := mail.AttachmentTypeOf(mail.AttachmentMedia{MediaType: p.MediaType, Extension: p.Filename}); !vocabulary[w] {
+				t.Fatalf("%+v: the type %q of raw media is not a word of the vocabulary", p, w)
+			}
 		}
 	})
+}
+
+// compareMedia orders media by media type, then extension, as the model sorts them.
+func compareMedia(a, b mail.AttachmentMedia) int {
+	return cmp.Or(strings.Compare(a.MediaType, b.MediaType), strings.Compare(a.Extension, b.Extension))
 }
 
 // kind names what a drawn message exercises, by how its first attachment's type is decided.
@@ -96,7 +129,7 @@ func attachmentKind(parts []part) string {
 	essence, _, _ := strings.Cut(parts[0].MediaType, ";")
 	switch strings.ToLower(strings.TrimSpace(essence)) {
 	case "application/octet-stream", "":
-		return "the file name decides"
+		return "the extension decides"
 	}
 	for _, k := range knownMediaTypes {
 		if strings.EqualFold(strings.TrimSpace(essence), k) {
@@ -111,7 +144,7 @@ func attachmentKind(parts []part) string {
 func TestEveryAttachmentTypeIsAWordOfTheVocabularyMix(t *testing.T) {
 	property.Report(t, drawParts, attachmentKind, map[string]float64{
 		"no attachments":             0.05,
-		"the file name decides":      0.1,
+		"the extension decides":      0.1,
 		"a known media type decides": 0.1,
 		"a made-up media type":       0.1,
 	})

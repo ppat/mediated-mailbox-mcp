@@ -85,9 +85,11 @@ func newAccount(t *testing.T, conn *pgx.Conn) string {
 type row struct {
 	id, thread, from, name, subject string
 	sentAt                          string
-	labels, types, flags            []string
-	scan                            string
-	storedClass                     string
+	labels, flags                   []string
+	// media are the attachments' stored media, each a media type and an extension.
+	media       [][2]string
+	scan        string
+	storedClass string
 }
 
 func insert(t *testing.T, conn *pgx.Conn, account string, r row) {
@@ -98,10 +100,14 @@ func insert(t *testing.T, conn *pgx.Conn, account string, r row) {
 		class = "normal"
 	}
 	must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject,
-		sent_at, labels, has_attachments, attachment_types, sender_class, content_flags, rule_ids, scan_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, '{}', $14)`,
-		account, r.id, r.thread, r.from, domain, r.name, r.subject, r.sentAt, orEmpty(r.labels), len(r.types) > 0,
-		orEmpty(r.types), class, orEmpty(r.flags), r.scan)
+		sent_at, labels, has_attachments, sender_class, content_flags, rule_ids, scan_state)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, '{}', $13)`,
+		account, r.id, r.thread, r.from, domain, r.name, r.subject, r.sentAt, orEmpty(r.labels), len(r.media) > 0,
+		class, orEmpty(r.flags), r.scan)
+	for _, m := range r.media {
+		must(t, conn, `INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, $2, $3, $4)`,
+			account, r.id, m[0], m[1])
+	}
 }
 
 func orEmpty(s []string) []string {
@@ -216,7 +222,8 @@ func read(t *testing.T, reg service.Registry, name, args string) result {
 // stored flag or scan state the schema does not name, which the schema's checks refuse to store, is
 // TestAnUnnamedStoredStateReadsAsTheMostRestrictive's. No served message carries a snippet, an
 // attachment filename or body text, since the index holds none (ADR-0016), and every one carries its
-// attachments' types in every state (ADR-0001, ADR-0123).
+// attachments' types in every state, each a word the mapping derives from the stored media and never
+// a stored value (ADR-0001, ADR-0123).
 func TestEveryServedMessageFollowsTheRedactionMatrix(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
@@ -224,11 +231,11 @@ func TestEveryServedMessageFollowsTheRedactionMatrix(t *testing.T) {
 	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES ($1, $2, 'restricted', ARRAY['bank.example'], 'operator', 'test')`, account, account+".bank")
 	rows := []row{
-		{id: "m-bank", thread: "t-bank", from: bank.FromAddress, name: bank.FromName, subject: bank.Subject, sentAt: "2026-07-20T09:12:00Z", types: []string{"pdf"}, scan: "scanned", storedClass: "normal"},
-		{id: "m-news", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T18:04:00Z", labels: []string{"INBOX"}, types: []string{"image", "spreadsheet"}, scan: "scanned"},
-		{id: "m-code", thread: "t-code", from: code.FromAddress, name: code.FromName, subject: code.Subject, sentAt: "2026-07-21T11:40:00Z", types: []string{"calendar"}, flags: []string{"mfa_code"}, scan: "scanned"},
-		{id: "m-link", thread: "t-link", from: link.FromAddress, name: link.FromName, subject: link.Subject, sentAt: "2026-07-21T11:41:00Z", types: []string{"document"}, flags: []string{"login_link"}, scan: "scanned"},
-		{id: "m-pending", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T19:00:00Z", types: []string{"archive"}, scan: "pending"},
+		{id: "m-bank", thread: "t-bank", from: bank.FromAddress, name: bank.FromName, subject: bank.Subject, sentAt: "2026-07-20T09:12:00Z", media: [][2]string{{"application/pdf", "pdf"}}, scan: "scanned", storedClass: "normal"},
+		{id: "m-news", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T18:04:00Z", labels: []string{"INBOX"}, media: [][2]string{{"application/octet-stream", "xlsx"}, {"image/png", "png"}}, scan: "scanned"},
+		{id: "m-code", thread: "t-code", from: code.FromAddress, name: code.FromName, subject: code.Subject, sentAt: "2026-07-21T11:40:00Z", media: [][2]string{{"text/calendar", "ics"}}, flags: []string{"mfa_code"}, scan: "scanned"},
+		{id: "m-link", thread: "t-link", from: link.FromAddress, name: link.FromName, subject: link.Subject, sentAt: "2026-07-21T11:41:00Z", media: [][2]string{{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"}}, flags: []string{"login_link"}, scan: "scanned"},
+		{id: "m-pending", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T19:00:00Z", media: [][2]string{{"application/zip", "zip"}}, scan: "pending"},
 		{id: "m-plain", thread: "t-plain", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T19:30:00Z", scan: "scanned"},
 	}
 	for _, r := range rows {

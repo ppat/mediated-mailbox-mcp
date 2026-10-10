@@ -52,9 +52,20 @@ SELECT
     m.labels,
     m.flags,
     m.has_attachments,
-    m.attachment_types,
     m.content_flags,
-    m.scan_state
+    m.scan_state,
+    -- The attachments' media, each media type paired with the extension at the same position, in
+    -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+    coalesce((
+        SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_media_types,
+    coalesce((
+        SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE m.account_id = $1 AND m.message_id = $2
 `
@@ -65,18 +76,19 @@ type MessageParams struct {
 }
 
 type MessageRow struct {
-	MessageID       string
-	ThreadID        string
-	FromEmail       string
-	FromName        pgtype.Text
-	Subject         pgtype.Text
-	SentAt          pgtype.Timestamptz
-	Labels          []string
-	Flags           []byte
-	HasAttachments  bool
-	AttachmentTypes []string
-	ContentFlags    []string
-	ScanState       string
+	MessageID            string
+	ThreadID             string
+	FromEmail            string
+	FromName             pgtype.Text
+	Subject              pgtype.Text
+	SentAt               pgtype.Timestamptz
+	Labels               []string
+	Flags                []byte
+	HasAttachments       bool
+	ContentFlags         []string
+	ScanState            string
+	AttachmentMediaTypes []string
+	AttachmentExtensions []string
 }
 
 // One message of the account by its identifier, with the same columns as a page. No row means the
@@ -100,9 +112,10 @@ func (q *Queries) Message(ctx context.Context, arg MessageParams) ([]MessageRow,
 			&i.Labels,
 			&i.Flags,
 			&i.HasAttachments,
-			&i.AttachmentTypes,
 			&i.ContentFlags,
 			&i.ScanState,
+			&i.AttachmentMediaTypes,
+			&i.AttachmentExtensions,
 		); err != nil {
 			return nil, err
 		}
@@ -125,9 +138,20 @@ SELECT
     m.labels,
     m.flags,
     m.has_attachments,
-    m.attachment_types,
     m.content_flags,
-    m.scan_state
+    m.scan_state,
+    -- The attachments' media, each media type paired with the extension at the same position, in
+    -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+    coalesce((
+        SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_media_types,
+    coalesce((
+        SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE
     m.account_id = $1
@@ -147,18 +171,19 @@ type MessagePageParams struct {
 }
 
 type MessagePageRow struct {
-	MessageID       string
-	ThreadID        string
-	FromEmail       string
-	FromName        pgtype.Text
-	Subject         pgtype.Text
-	SentAt          pgtype.Timestamptz
-	Labels          []string
-	Flags           []byte
-	HasAttachments  bool
-	AttachmentTypes []string
-	ContentFlags    []string
-	ScanState       string
+	MessageID            string
+	ThreadID             string
+	FromEmail            string
+	FromName             pgtype.Text
+	Subject              pgtype.Text
+	SentAt               pgtype.Timestamptz
+	Labels               []string
+	Flags                []byte
+	HasAttachments       bool
+	ContentFlags         []string
+	ScanState            string
+	AttachmentMediaTypes []string
+	AttachmentExtensions []string
 }
 
 // One page of the account's messages, newest first, after the position a cursor names or from the
@@ -189,9 +214,10 @@ func (q *Queries) MessagePage(ctx context.Context, arg MessagePageParams) ([]Mes
 			&i.Labels,
 			&i.Flags,
 			&i.HasAttachments,
-			&i.AttachmentTypes,
 			&i.ContentFlags,
 			&i.ScanState,
+			&i.AttachmentMediaTypes,
+			&i.AttachmentExtensions,
 		); err != nil {
 			return nil, err
 		}
@@ -214,9 +240,20 @@ SELECT
     m.labels,
     m.flags,
     m.has_attachments,
-    m.attachment_types,
     m.content_flags,
-    m.scan_state
+    m.scan_state,
+    -- The attachments' media, each media type paired with the extension at the same position, in
+    -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+    coalesce((
+        SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_media_types,
+    coalesce((
+        SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+        FROM attachment_media AS x
+        WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+    ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE m.account_id = $1 AND m.thread_id = $2
 ORDER BY m.sent_at ASC, m.message_id ASC
@@ -228,18 +265,19 @@ type ThreadMessagesParams struct {
 }
 
 type ThreadMessagesRow struct {
-	MessageID       string
-	ThreadID        string
-	FromEmail       string
-	FromName        pgtype.Text
-	Subject         pgtype.Text
-	SentAt          pgtype.Timestamptz
-	Labels          []string
-	Flags           []byte
-	HasAttachments  bool
-	AttachmentTypes []string
-	ContentFlags    []string
-	ScanState       string
+	MessageID            string
+	ThreadID             string
+	FromEmail            string
+	FromName             pgtype.Text
+	Subject              pgtype.Text
+	SentAt               pgtype.Timestamptz
+	Labels               []string
+	Flags                []byte
+	HasAttachments       bool
+	ContentFlags         []string
+	ScanState            string
+	AttachmentMediaTypes []string
+	AttachmentExtensions []string
 }
 
 // Every message of one of the account's threads, oldest first, with the same columns as a page. No
@@ -263,9 +301,10 @@ func (q *Queries) ThreadMessages(ctx context.Context, arg ThreadMessagesParams) 
 			&i.Labels,
 			&i.Flags,
 			&i.HasAttachments,
-			&i.AttachmentTypes,
 			&i.ContentFlags,
 			&i.ScanState,
+			&i.AttachmentMediaTypes,
+			&i.AttachmentExtensions,
 		); err != nil {
 			return nil, err
 		}

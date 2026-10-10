@@ -52,19 +52,19 @@ func put(t *testing.T, conn *pgx.Conn, account string, m indexed) {
 	if thread == "" {
 		thread = m.id
 	}
-	var types []string
-	if m.attachments {
-		types = []string{"pdf"}
-	}
 	flags := fmt.Sprintf(`{"read": %v, "starred": %v}`, m.read, m.starred)
 	must(t, conn, `WITH stored AS (
 		INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, sent_at, labels,
-		flags, has_attachments, attachment_types, sender_class, content_flags, rule_ids, scan_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, '{}', $14) RETURNING account_id, from_domain)
+		flags, has_attachments, sender_class, content_flags, rule_ids, scan_state)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, '{}', $13) RETURNING account_id, from_domain)
 		INSERT INTO senders (account_id, domain, message_count) SELECT account_id, from_domain, 1 FROM stored
 		ON CONFLICT (account_id, domain) DO UPDATE SET message_count = senders.message_count + 1`,
-		account, m.id, thread, m.from, domain, m.subject, m.sent, orEmpty(m.labels), flags, m.attachments, orEmpty(types),
+		account, m.id, thread, m.from, domain, m.subject, m.sent, orEmpty(m.labels), flags, m.attachments,
 		class, orEmpty(m.flags), scan)
+	if m.attachments {
+		must(t, conn, `INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, $2, 'application/pdf', 'pdf')`,
+			account, m.id)
+	}
 }
 
 // restrict lists domain in the account's policy, as a rule restricting its senders.

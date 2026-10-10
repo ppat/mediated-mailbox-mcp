@@ -60,9 +60,9 @@ type Message struct {
 	Labels         []string
 	Flags          mail.Flags
 	HasAttachments bool
-	// AttachmentTypes are the words of the closed vocabulary the canonical model gave the message's
-	// attachments, shown in every sensitivity state (ADR-0123).
-	AttachmentTypes []mail.AttachmentType
+	// AttachmentMedia are the normalized media types and extensions of the message's attachments,
+	// stored once and mapped to the types a client is served when read (ADR-0123).
+	AttachmentMedia []mail.AttachmentMedia
 	ListID          string
 	SizeBytes       int64
 	AuthResults     mail.AuthResults
@@ -114,7 +114,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
 			Labels:          slices.Clone(m.Labels),
 			Flags:           m.Flags,
 			HasAttachments:  m.HasAttachments,
-			AttachmentTypes: slices.Clone(m.AttachmentTypes),
+			AttachmentMedia: slices.Clone(m.AttachmentMedia),
 			ListID:          m.ListID,
 			SizeBytes:       m.SizeBytes,
 			AuthResults:     m.AuthResults,

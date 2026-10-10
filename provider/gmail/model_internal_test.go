@@ -135,10 +135,15 @@ func TestMetadata(t *testing.T) {
 		SizeBytes:       48213,
 		HasAttachments:  true,
 		AttachmentNames: []string{"image001", "statement.pdf", "fees.XLSX", "terms.419283", "notice.pdf"},
-		AttachmentTypes: []mail.AttachmentType{"image", "other", "pdf", "spreadsheet"},
-		Snippet:         "Your statement is ready & it's <attached>",
-		ListID:          "alerts.bank.example",
-		AuthResults:     mail.AuthResults{SPF: "softfail", DKIM: "pass", DMARC: "fail"},
+		AttachmentMedia: []mail.AttachmentMedia{
+			{MediaType: "application/octet-stream", Extension: "xlsx"},
+			{MediaType: "application/pdf", Extension: "pdf"},
+			{MediaType: "application/x-419283", Extension: "419283"},
+			{MediaType: "image/png"},
+		},
+		Snippet:     "Your statement is ready & it's <attached>",
+		ListID:      "alerts.bank.example",
+		AuthResults: mail.AuthResults{SPF: "softfail", DKIM: "pass", DMARC: "fail"},
 	}
 	if diff := cmp.Diff(want, metadata("a", accountLabels(t), m), compare.Options); diff != "" {
 		t.Errorf("metadata (-want +got):\n%s", diff)

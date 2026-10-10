@@ -3,8 +3,7 @@
 -- null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
 -- version and configuration revision the masking ran under (ADR-0120). A message the index already
 -- holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
--- The row holds no body, snippet or attachment name, and holds the attachments' types, which never
--- change once the message is stored (ADR-0016, ADR-0123).
+-- The row holds no body, snippet or attachment name (ADR-0016).
 INSERT INTO messages (
     account_id,
     message_id,
@@ -18,7 +17,6 @@ INSERT INTO messages (
     labels,
     flags,
     has_attachments,
-    attachment_types,
     list_id,
     size_bytes,
     auth_results,
@@ -39,7 +37,6 @@ INSERT INTO messages (
     @labels,
     @flags,
     @has_attachments,
-    @attachment_types,
     sqlc.narg(list_id),
     @size_bytes,
     @auth_results,
@@ -50,6 +47,24 @@ INSERT INTO messages (
 )
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id;
+
+-- name: InsertAttachmentMedia :exec
+-- Adds the media of a message's attachments, each normalized media type paired with the extension at
+-- the same position, once each, from which the types a client is served are derived when read
+-- (ADR-0123). It is run for a message InsertMessage has just added, whose media never change once
+-- stored, so a pair already stored is left as it is.
+INSERT INTO attachment_media (account_id, message_id, media_type, extension)
+SELECT
+    @account_id,
+    @message_id,
+    u.media_type,
+    u.extension
+FROM (
+    SELECT
+        unnest(@media_types::text[]) AS media_type,
+        unnest(@extensions::text[]) AS extension
+) AS u
+ON CONFLICT DO NOTHING;
 
 -- name: StaleSubject :one
 -- Whether any of the account's stored subjects was masked under another scanner version or

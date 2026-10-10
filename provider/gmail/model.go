@@ -299,7 +299,7 @@ func methodResult(field string) (string, string) {
 }
 
 // attachments returns the message's parts that have a file name, depth first, each with its media
-// type, from which the canonical model sets the attachment names and types together (ADR-0123).
+// type, from which the canonical model sets the attachment names and media together (ADR-0123).
 func attachments(p gmailPart) []mail.AttachmentPart {
 	var out []mail.AttachmentPart
 	if p.Filename != "" {

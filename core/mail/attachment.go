@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 )
@@ -31,37 +32,116 @@ const (
 
 // AttachmentPart is one attachment as a provider describes it, its media type as the part's
 // Content-Type gives it and its file name. An adapter hands a message's attachments to
-// SetAttachments, and the model keeps the names and the types and never the media types.
+// SetAttachments, which keeps the names and the normalized media.
 type AttachmentPart struct {
 	MediaType string
 	Filename  string
 }
 
-// SetAttachments sets whether the message has attachments, their names in the order given, and their
-// types as a set, each word once and sorted, all from the one list of the message's attachments, so
-// the three always describe the same parts (ADR-0123).
-func (m *MessageMetadata) SetAttachments(parts []AttachmentPart) {
-	m.HasAttachments = len(parts) > 0
-	m.AttachmentNames, m.AttachmentTypes = nil, nil
-	for _, p := range parts {
-		m.AttachmentNames = append(m.AttachmentNames, p.Filename)
-		m.AttachmentTypes = append(m.AttachmentTypes, AttachmentTypeOf(p.MediaType, p.Filename))
-	}
-	slices.Sort(m.AttachmentTypes)
-	m.AttachmentTypes = slices.Compact(m.AttachmentTypes)
+// AttachmentMedia is what the model keeps of an attachment to derive its type from, its media type
+// and its file name's extension, each normalized by AttachmentMediaOf (ADR-0123). It is what ingest
+// stores, and never what a client is served, since a client sees only the type the mapping derives.
+type AttachmentMedia struct {
+	// MediaType is lowercase, without parameters, a type and a subtype of RFC 6838's restricted-name
+	// characters, each at most 127 long, or empty.
+	MediaType string
+	// Extension is the text after the file name's last dot, lowercase, one to 16 ASCII letters and
+	// digits, or empty.
+	Extension string
 }
 
-// AttachmentTypeOf returns the type of an attachment with the media type and file name given. The
-// media type decides, its parameters dropped and its case ignored, and the file name's last
-// extension decides only when the media type is application/octet-stream or missing, which say
-// nothing of the content (RFC 2046). Anything neither names is AttachmentOther (ADR-0123).
-func AttachmentTypeOf(mediaType, filename string) AttachmentType {
+// The longest name RFC 6838 allows a type or a subtype, and the longest extension kept. No standard
+// bounds an extension, and 16 is twice the longest one the mapping names (ADR-0123).
+const (
+	mediaNameMax = 127
+	extensionMax = 16
+)
+
+// AttachmentMediaOf returns the normalized media of an attachment with the media type and file name
+// given. A media type that is not a type and a subtype of RFC 6838's restricted names is empty, and
+// so is an extension that is not one to 16 ASCII letters and digits, so only short, inert text the
+// sender wrote is kept.
+func AttachmentMediaOf(mediaType, filename string) AttachmentMedia {
+	var out AttachmentMedia
 	essence, _, _ := strings.Cut(mediaType, ";")
-	essence = strings.ToLower(strings.TrimSpace(essence))
-	if essence == "" || essence == "application/octet-stream" {
-		return byExtension(filename)
+	essence = asciiLower(strings.TrimSpace(essence))
+	if typ, sub, ok := strings.Cut(essence, "/"); ok && restrictedName(typ) && restrictedName(sub) {
+		out.MediaType = essence
 	}
-	return byMediaType(essence)
+	if dot := strings.LastIndexByte(filename, '.'); dot >= 0 {
+		if ext := asciiLower(filename[dot+1:]); len(ext) <= extensionMax && strings.Trim(ext, "abcdefghijklmnopqrstuvwxyz0123456789") == "" {
+			out.Extension = ext
+		}
+	}
+	return out
+}
+
+// restrictedName reports whether s is an RFC 6838 restricted name in lower case, a letter or digit
+// followed by up to 126 letters, digits and the characters ! # $ & - ^ _ . +.
+func restrictedName(s string) bool {
+	if s == "" || len(s) > mediaNameMax || !isLowerAlnum(s[0]) {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		if !isLowerAlnum(s[i]) && !strings.ContainsRune("!#$&-^_.+", rune(s[i])) {
+			return false
+		}
+	}
+	return true
+}
+
+func isLowerAlnum(c byte) bool { return c >= 'a' && c <= 'z' || c >= '0' && c <= '9' }
+
+// asciiLower lowercases the ASCII letters of s and leaves every other byte as it is, so a letter
+// outside ASCII never becomes one inside it.
+func asciiLower(s string) string {
+	b := []byte(s)
+	for i, c := range b {
+		if c >= 'A' && c <= 'Z' {
+			b[i] = c + 'a' - 'A'
+		}
+	}
+	return string(b)
+}
+
+// SetAttachments sets whether the message has attachments, their names in the order given, and their
+// normalized media as a set, each pair once and sorted, all from the one list of the message's
+// attachments, so the three always describe the same parts (ADR-0123).
+func (m *MessageMetadata) SetAttachments(parts []AttachmentPart) {
+	m.HasAttachments = len(parts) > 0
+	m.AttachmentNames, m.AttachmentMedia = nil, nil
+	for _, p := range parts {
+		m.AttachmentNames = append(m.AttachmentNames, p.Filename)
+		m.AttachmentMedia = append(m.AttachmentMedia, AttachmentMediaOf(p.MediaType, p.Filename))
+	}
+	slices.SortFunc(m.AttachmentMedia, compareMedia)
+	m.AttachmentMedia = slices.Compact(m.AttachmentMedia)
+}
+
+func compareMedia(a, b AttachmentMedia) int {
+	return cmp.Or(strings.Compare(a.MediaType, b.MediaType), strings.Compare(a.Extension, b.Extension))
+}
+
+// AttachmentTypes returns the types of a message's attachments from their media, each word once and
+// sorted, which is how every client is served them (ADR-0123).
+func AttachmentTypes(media []AttachmentMedia) []AttachmentType {
+	out := make([]AttachmentType, 0, len(media))
+	for _, m := range media {
+		out = append(out, AttachmentTypeOf(m))
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
+// AttachmentTypeOf returns the type of an attachment with the media given. The media type decides,
+// and the extension decides only when the media type is application/octet-stream or empty, which say
+// nothing of the content (RFC 2046). Anything neither names is AttachmentOther (ADR-0123). It reads
+// the media as normalized, and returns only the vocabulary's words whatever it is given.
+func AttachmentTypeOf(m AttachmentMedia) AttachmentType {
+	if m.MediaType == "" || m.MediaType == "application/octet-stream" {
+		return byExtension(m.Extension)
+	}
+	return byMediaType(m.MediaType)
 }
 
 // byMediaType maps a media type, lowercase and without parameters, to its word.
@@ -109,13 +189,9 @@ func byMediaType(t string) AttachmentType {
 	return AttachmentOther
 }
 
-// byExtension maps a file name's last extension, its case ignored, to its word.
-func byExtension(filename string) AttachmentType {
-	dot := strings.LastIndexByte(filename, '.')
-	if dot < 0 {
-		return AttachmentOther
-	}
-	switch strings.ToLower(filename[dot+1:]) {
+// byExtension maps an extension, lowercase, to its word.
+func byExtension(extension string) AttachmentType {
+	switch extension {
 	case "pdf":
 		return AttachmentPDF
 	case "jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff", "webp", "heic", "heif", "svg":

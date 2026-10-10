@@ -226,10 +226,6 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
 	if labels == nil {
 		labels = []string{}
 	}
-	types := make([]string, len(m.AttachmentTypes))
-	for i, w := range m.AttachmentTypes {
-		types[i] = string(w)
-	}
 	_, err = q.InsertMessage(ctx, messageingest.InsertMessageParams{
 		AccountID:              account,
 		MessageID:              m.ID,
@@ -243,7 +239,6 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
 		Labels:                 labels,
 		Flags:                  flags,
 		HasAttachments:         m.HasAttachments,
-		AttachmentTypes:        types,
 		ListID:                 text(m.ListID),
 		SizeBytes:              pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
 		AuthResults:            auth,
@@ -255,7 +250,24 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}
-	return err == nil, err
+	if err != nil {
+		return false, err
+	}
+	return true, media(ctx, q, account, m)
+}
+
+// media adds the media of a message's attachments, which the index stores once, with the message
+// (ADR-0123).
+func media(ctx context.Context, q *messageingest.Queries, account string, m index.Message) error {
+	if len(m.AttachmentMedia) == 0 {
+		return nil
+	}
+	p := messageingest.InsertAttachmentMediaParams{AccountID: account, MessageID: m.ID}
+	for _, a := range m.AttachmentMedia {
+		p.MediaTypes = append(p.MediaTypes, a.MediaType)
+		p.Extensions = append(p.Extensions, a.Extension)
+	}
+	return q.InsertAttachmentMedia(ctx, p)
 }
 
 // remask masks the subject of a message the index holds again, when its stored subject was masked

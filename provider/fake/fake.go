@@ -506,7 +506,7 @@ func clone(m mail.MessageMetadata) mail.MessageMetadata {
 	m.Cc = slices.Clone(m.Cc)
 	m.Labels = slices.Clone(m.Labels)
 	m.AttachmentNames = slices.Clone(m.AttachmentNames)
-	m.AttachmentTypes = slices.Clone(m.AttachmentTypes)
+	m.AttachmentMedia = slices.Clone(m.AttachmentMedia)
 	return m
 }
 

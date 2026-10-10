@@ -28,7 +28,7 @@ type Message struct {
 }
 
 // Attachment is one attachment a message carries, its file name and the media type its part
-// declares.
+// declares, with the medium and the type the canonical model gives it.
 //
 // Attachment names are derived from the body, so the Redaction Gate withholds them with it
 // (ADR-0001). They carry field markers all the same, because they are visible for a normal sender,
@@ -36,12 +36,14 @@ type Message struct {
 // searches for the attachment markers of the fixture whose body it withholds, the bank's statement
 // or the receipt's invoice and photo.
 //
-// Type is the word of the closed vocabulary the canonical model gives the attachment (ADR-0123),
-// written out here rather than computed, so a test comparing a type against it does not share the
-// mapping it checks.
+// Extension is the file name's extension as the canonical model normalizes it, and Type the word of
+// the closed vocabulary its mapping gives the attachment (ADR-0123). The media type each part
+// declares is already in the normalized form. Both are written out here rather than computed, so a
+// test comparing against them does not share the normalization or the mapping it checks.
 type Attachment struct {
 	Name      string
 	MediaType string
+	Extension string
 	Type      string
 }
 
@@ -62,7 +64,7 @@ func Bank() Message {
 		ToAddress:   marker.Field("bankto") + "@home.example",
 		Subject:     marker.Field("banksubject"),
 		Body:        marker.Body("bank"),
-		Attachments: []Attachment{{Name: marker.Field("statement") + ".pdf", MediaType: "application/pdf", Type: "pdf"}},
+		Attachments: []Attachment{{Name: marker.Field("statement") + ".pdf", MediaType: "application/pdf", Extension: "pdf", Type: "pdf"}},
 	}
 }
 
@@ -142,8 +144,8 @@ func Receipt() Message {
 			"1Z999AA10123456784.\n\n| Item | Price |\n| --- | --- |\n| Lamp | 42.00 |\n| Total | 42.00 |\n\n" +
 			"Questions? Reply to this message or see https://shop.example/help/orders.\n",
 		Attachments: []Attachment{
-			{Name: marker.Field("receiptinvoice") + ".xlsx", MediaType: "application/octet-stream", Type: "spreadsheet"},
-			{Name: marker.Field("receiptphoto") + ".png", MediaType: "image/png", Type: "image"},
+			{Name: marker.Field("receiptinvoice") + ".xlsx", MediaType: "application/octet-stream", Extension: "xlsx", Type: "spreadsheet"},
+			{Name: marker.Field("receiptphoto") + ".png", MediaType: "image/png", Extension: "png", Type: "image"},
 		},
 	}
 }

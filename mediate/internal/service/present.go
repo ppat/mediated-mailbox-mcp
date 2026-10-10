@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
@@ -24,14 +25,15 @@ type stored struct {
 	Labels          []string
 	Flags           []byte
 	HasAttachments  bool
-	AttachmentTypes []string
+	AttachmentMedia []mail.AttachmentMedia
 	ContentFlags    []string
 	ScanState       string
 }
 
 // message is one message as the client surface serves it, the fields ADR-0001's matrix shows for
 // every sensitivity state. The subject is served as stored, since subject masking masks it at rest
-// (ADR-0003). Attachments are named by type only.
+// (ADR-0003). Attachments are named by type only, each type a word the mapping derives from the
+// stored media, never a stored value (ADR-0123).
 type message struct {
 	AccountID       string          `json:"account_id"`
 	MessageID       string          `json:"message_id"`
@@ -118,7 +120,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
 		Labels:          nonNil(m.Labels),
 		Flags:           json.RawMessage(`{}`),
 		HasAttachments:  m.HasAttachments,
-		AttachmentTypes: nonNil(m.AttachmentTypes),
+		AttachmentTypes: types(m.AttachmentMedia),
 		Sensitivity:     shownState{SenderClass: class, ContentFlags: shownFlags, ScanState: scan.String()},
 		BodyAvailable:   v.ReleasesBody(),
 	}
@@ -129,6 +131,16 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
 }
 
 // nonNil returns s, or an empty list for nil, so a list is never written as null.
+// types returns the types of a message's attachments, derived from their stored media by the one
+// mapping, each word once and sorted, so no stored value is served (ADR-0123).
+func types(media []mail.AttachmentMedia) []string {
+	out := []string{}
+	for _, t := range mail.AttachmentTypes(media) {
+		out = append(out, string(t))
+	}
+	return out
+}
+
 func nonNil(s []string) []string {
 	if s == nil {
 		return []string{}

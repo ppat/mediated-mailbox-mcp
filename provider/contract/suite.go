@@ -441,8 +441,8 @@ func seededFields(m mail.MessageMetadata) mail.MessageMetadata {
 	if len(m.AttachmentNames) == 0 {
 		m.AttachmentNames = nil
 	}
-	if len(m.AttachmentTypes) == 0 {
-		m.AttachmentTypes = nil
+	if len(m.AttachmentMedia) == 0 {
+		m.AttachmentMedia = nil
 	}
 	return m
 }

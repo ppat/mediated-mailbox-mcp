@@ -19,10 +19,11 @@ var vocabulary = map[mail.AttachmentType]bool{
 	"signature": true, "other": true,
 }
 
-// ADR-0123's tables. The media type decides, its parameters dropped and its case ignored, the file
-// name's extension decides only when the media type is application/octet-stream or missing, and
-// anything neither names is other. A media type and a file name holding marker text (ADR-0044) give a
-// word holding none of it, so a search of the stored types for marker text finds nothing.
+// ADR-0123's tables, over the media the model keeps of each attachment. The media type decides, its
+// parameters dropped and its case ignored, the extension decides only when the media type is
+// application/octet-stream or missing, and anything neither names is other. A media type and a file
+// name holding marker text (ADR-0044) give a word holding none of it, so a search of the served types
+// for marker text finds nothing.
 func TestAnAttachmentsTypeIsAWordOfTheVocabulary(t *testing.T) {
 	cases := []struct {
 		mediaType, filename string
@@ -70,12 +71,13 @@ func TestAnAttachmentsTypeIsAWordOfTheVocabulary(t *testing.T) {
 		{"application/octet-stream", "no-extension", "other"},
 		{"application/octet-stream", "trailing.", "other"},
 		{"", "", "other"},
+		{"pdf", "statement.pdf", "pdf"},
 		{"application/x-" + marker.Field("attachmenttype"), marker.Field("attachmentname") + ".pdf", "other"},
 		{"application/octet-stream", marker.Field("attachmentname") + "." + marker.Field("attachmentextension"), "other"},
 		{"application/octet-stream; name=" + marker.Field("attachmentparameter"), marker.Field("attachmentname") + ".PDF", "pdf"},
 	}
 	for _, c := range cases {
-		got := mail.AttachmentTypeOf(c.mediaType, c.filename)
+		got := mail.AttachmentTypeOf(mail.AttachmentMediaOf(c.mediaType, c.filename))
 		if got != c.want {
 			t.Errorf("AttachmentTypeOf(%q, %q) = %q, want %q", c.mediaType, c.filename, got, c.want)
 		}
@@ -85,25 +87,66 @@ func TestAnAttachmentsTypeIsAWordOfTheVocabulary(t *testing.T) {
 	}
 }
 
-// What a message's attachments set. The names keep the order given, the types are a sorted set, and
-// the message has attachments exactly when it has names and types (ADR-0123).
-func TestAMessagesAttachmentsSetItsNamesAndTypesTogether(t *testing.T) {
+// What a message's attachments set. The names keep the order given, the media are a sorted set of
+// pairs, the types derived from them a sorted set of words, and the message has attachments exactly
+// when it has names and media (ADR-0123).
+func TestAMessagesAttachmentsSetItsNamesAndMediaTogether(t *testing.T) {
 	var m mail.MessageMetadata
 	m.SetAttachments([]mail.AttachmentPart{
 		{MediaType: "application/octet-stream", Filename: "sheet.xlsx"},
 		{MediaType: "image/png", Filename: "photo.png"},
-		{MediaType: "image/jpeg", Filename: "scan.jpg"},
+		{MediaType: "Image/JPEG; name=scan.jpg", Filename: "scan.JPG"},
+		{MediaType: "image/png", Filename: "copy.png"},
 	})
 	want := mail.MessageMetadata{
 		HasAttachments:  true,
-		AttachmentNames: []string{"sheet.xlsx", "photo.png", "scan.jpg"},
-		AttachmentTypes: []mail.AttachmentType{"image", "spreadsheet"},
+		AttachmentNames: []string{"sheet.xlsx", "photo.png", "scan.JPG", "copy.png"},
+		AttachmentMedia: []mail.AttachmentMedia{
+			{MediaType: "application/octet-stream", Extension: "xlsx"},
+			{MediaType: "image/jpeg", Extension: "jpg"},
+			{MediaType: "image/png", Extension: "png"},
+		},
 	}
 	if diff := cmp.Diff(want, m, compare.Options); diff != "" {
 		t.Errorf("(-want +got):\n%s", diff)
 	}
+	if diff := cmp.Diff([]mail.AttachmentType{"image", "spreadsheet"}, mail.AttachmentTypes(m.AttachmentMedia), compare.Options); diff != "" {
+		t.Errorf("the types (-want +got):\n%s", diff)
+	}
 	m.SetAttachments(nil)
 	if diff := cmp.Diff(mail.MessageMetadata{}, m, compare.Options); diff != "" {
 		t.Errorf("after no attachments (-want +got):\n%s", diff)
+	}
+}
+
+// ADR-0123's normalization. A media type keeps only its lowercase type and subtype, and only when
+// each is an RFC 6838 restricted name of at most 127 characters, and an extension only when it is
+// one to 16 ASCII letters and digits, so what is stored is short and inert.
+func TestAnAttachmentsMediaIsKeptNormalized(t *testing.T) {
+	long := strings.Repeat("a", 127)
+	cases := []struct {
+		mediaType, filename string
+		want                mail.AttachmentMedia
+	}{
+		{"application/pdf", "statement.pdf", mail.AttachmentMedia{MediaType: "application/pdf", Extension: "pdf"}},
+		{` Application/PDF ; name="statement.pdf"`, "Statement.PDF", mail.AttachmentMedia{MediaType: "application/pdf", Extension: "pdf"}},
+		{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "a.b.XLSX", mail.AttachmentMedia{MediaType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Extension: "xlsx"}},
+		{"image/svg+xml", "logo.svg", mail.AttachmentMedia{MediaType: "image/svg+xml", Extension: "svg"}},
+		{"text/" + long, "notes.txt", mail.AttachmentMedia{MediaType: "text/" + long, Extension: "txt"}},
+		{"text/" + long + "a", "notes.txt", mail.AttachmentMedia{Extension: "txt"}},
+		{"pdf", "statement", mail.AttachmentMedia{}},
+		{"application/", "a.", mail.AttachmentMedia{}},
+		{"application/x pdf", "a.p d f", mail.AttachmentMedia{}},
+		{"application/-pdf", "a.pdf ", mail.AttachmentMedia{}},
+		{"application/p\u00e9", "r\u00e9sum\u00e9.p\u00e9", mail.AttachmentMedia{}},
+		{"application/\u212apdf", "a.\u212a", mail.AttachmentMedia{}},
+		{"", "a.abcdefghijklmnop", mail.AttachmentMedia{Extension: "abcdefghijklmnop"}},
+		{"", "a.abcdefghijklmnopq", mail.AttachmentMedia{}},
+		{"", "code.419283", mail.AttachmentMedia{Extension: "419283"}},
+	}
+	for _, c := range cases {
+		if got := mail.AttachmentMediaOf(c.mediaType, c.filename); got != c.want {
+			t.Errorf("AttachmentMediaOf(%q, %q) = %+v, want %+v", c.mediaType, c.filename, got, c.want)
+		}
 	}
 }

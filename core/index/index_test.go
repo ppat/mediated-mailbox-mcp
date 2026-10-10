@@ -79,9 +79,9 @@ func metadata(id string, f fixture.Message, date mail.UnixMilli, labels ...strin
 		SizeBytes:       2048,
 	}
 	for _, a := range f.Attachments {
-		m.AttachmentTypes = append(m.AttachmentTypes, mail.AttachmentType(a.Type))
+		m.AttachmentMedia = append(m.AttachmentMedia, mail.AttachmentMedia{MediaType: a.MediaType, Extension: a.Extension})
 	}
-	slices.Sort(m.AttachmentTypes)
+	slices.SortFunc(m.AttachmentMedia, func(a, b mail.AttachmentMedia) int { return strings.Compare(a.MediaType, b.MediaType) })
 	return m
 }
 
@@ -94,7 +94,7 @@ func codeSubject() string {
 // sender's included, and stamped with the scanner version and revision it was masked under (ADR-0003,
 // ADR-0004, ADR-0120). A listed sender carries the rule that restricted it, and no other sender
 // carries a rule (ADR-0016). An address whose domain cannot be read is restricted and
-// marked unclassified. Each row keeps whether its message has attachments and their types, and no
+// marked unclassified. Each row keeps whether its message has attachments and their media, and no
 // name (ADR-0123). The domains are listed once each, sorted.
 func TestDecide(t *testing.T) {
 	bank := fixture.Bank()
@@ -115,7 +115,7 @@ func TestDecide(t *testing.T) {
 		return index.Message{
 			ID: m.ID, ThreadID: m.ThreadID, From: m.From, Domain: domain, Subject: subject,
 			SubjectMasked: len(masks) > 0, Date: m.Date, Labels: m.Labels, HasAttachments: m.HasAttachments,
-			AttachmentTypes: m.AttachmentTypes, ListID: m.ListID,
+			AttachmentMedia: m.AttachmentMedia, ListID: m.ListID,
 			SizeBytes: m.SizeBytes, Class: class, ClassRule: rule, Unclassified: m.From.Email == "no-address-at-all", Masks: masks,
 			Stamp: index.Stamp{Version: 1, Revision: "a-revision"},
 		}
