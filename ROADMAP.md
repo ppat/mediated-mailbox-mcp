@@ -284,7 +284,23 @@ What the code on `main` runs today, per composition root, none of it yet release
   release, so the release workflow's keyless signing has run only against a local registry with a
   key pair standing in, and the first real release is the first to exercise it. Component labels on
   a pull request from a fork, whose token cannot write labels, and on the ticket, which the author
-  still corrects by hand.
+  still corrects by hand. **Later work.** Before production point 1, the kinds of tests, unit,
+  integration, crash-sequence, property-based and mutation demonstrations, are clearly separated
+  in CI, each kind in a workflow of its own. The mutation demonstrations, which no CI workflow runs
+  today, get a job of their own, and so do the crash sequences. The measured weight and speed of
+  each kind decide whether it runs on every pull request or only when started by hand and on a
+  schedule. Where those triggers depart from the records that decide when each kind runs, the later
+  work revises them and [TESTING.md](./TESTING.md) in the same pull request. A CI job running the
+  mutation demonstrations departs from
+  [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), under which a
+  demonstration runs when its control lands and again when the control, its tests or a generator
+  they draw from changes, at no other time. The triggers may also depart from
+  [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md), which runs the bounded crash
+  sequences in the ordinary suite on every pull request, and from
+  [ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md). The later work also
+  settles how the tests are organized and separated, since a unit test is example-based, from a
+  table of examples, or property-based, and an integration test is example-based, property-based or
+  a crash sequence.
 - [x] **F2 — The data layer** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at tested
   Delivered by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), which
@@ -1132,14 +1148,16 @@ redesign after agent workflows exist.
 [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
 [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
 [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
-[R1](#group-r--packaging), then [production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
+[F12](#group-f--foundation) · [R1](#group-r--packaging), then
+[production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
 the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
 invariant proven against a live adversary (an agent the operator, or a session on the operator's
 instruction, deliberately tries to talk into a restricted body) before the point, the UI's screens
 that show the read path's work, runs, failures, rate and sync state, so the operator can watch
 production point 1 and judge it, the guided flow in the UI through which the operator connects the
-mailbox and repairs it, and the UI's policy management through which the operator imports the
-policy and keeps it current. **Why here:** connecting the agent read-only is the first end-to-end proof of the invariant against a
+mailbox and repairs it, the UI's policy management through which the operator imports the
+policy and keeps it current, and the performance measurements from which the operator tunes the
+system and finds its bottlenecks and problem areas. **Why here:** connecting the agent read-only is the first end-to-end proof of the invariant against a
 real adversary. Mutation capability opens only after that proof exists.
 
 ### V4 — The agent acts, and calendar joins mail
@@ -1201,10 +1219,11 @@ holds, with an entry naming the point.
   [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
   [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
   [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
-  [R1](#group-r--packaging), the end of
+  [F12](#group-f--foundation) · [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
-  [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
-  [D3](#delivered-mapped-to-outcomes), [F6](#delivered-mapped-to-outcomes),
+  [F4](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes),
+  [D2](#delivered-mapped-to-outcomes), [D3](#delivered-mapped-to-outcomes),
+  [F6](#delivered-mapped-to-outcomes),
   [M3](#group-m--mutation-and-approval) and [M7](#delivered-mapped-to-outcomes) that is placed before
   this point.
 - **Supplied there:**
@@ -1354,18 +1373,18 @@ check runs inside the sanitization step
 ### Group F — foundation
 
 What everything runs on. The tooling, the store, the adapter, the budget, where accounts and their
-credentials are kept, how the code is organized, how each deployable logs, the background worker
-and the schema production point 1 locks in. F1 is retired. Its application half lives in
-[F5](#delivered-mapped-to-outcomes) and its platform half at
-[production point 1](#production-point-1--the-read-path). F7 is retired. Its criterion, that an
-account newly connected, a credential replaced by re-authorization and a policy edit each reach
-every process that acts on them with no manual step and no restart, is met by
+credentials are kept, how the code is organized, how each deployable logs, the background worker,
+the schema production point 1 locks in, and the performance measurements the code captures and
+exposes. F1 is retired. Its application half lives in [F5](#delivered-mapped-to-outcomes) and its
+platform half at [production point 1](#production-point-1--the-read-path). F7 is retired. Its
+criterion, that an account newly connected, a credential replaced by re-authorization and a policy
+edit each reach every process that acts on them with no manual step and no restart, is met by
 [F10](#delivered-mapped-to-outcomes)'s worker, which picks each change up within one reload and
 starts an account's backfill when the account appears, beside the reloads the mediator already
 makes ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
 [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), so
 no signal between deployables is built. F4, F2, F5, F3, F6, F9, F8, F11 and F10 are delivered and
-sit in the [delivered register](#delivered-mapped-to-outcomes), so no unit of this group remains.
+sit in the [delivered register](#delivered-mapped-to-outcomes), and F12 remains.
 F5 also carried [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail)'s token half, the
 scope that excludes permanent delete, because the grant is the adapter's.
 [F10](#delivered-mapped-to-outcomes) served
@@ -1376,6 +1395,27 @@ split. [F11](#delivered-mapped-to-outcomes) served
 [O3](./USE_CASES.md#o3--survives-its-failure-modes) and also carried
 [O2](./USE_CASES.md#o2--observable)'s checked spellings on the append-only policy history, because
 the schema's checks are one baseline.
+
+- [ ] **F12 — Performance measurements** → [O2](./USE_CASES.md#o2--observable) ·
+  [V3](#v3--the-agent-arrives-read-only) · finishes at image
+  The code captures and exposes the performance measurements that are known to be useful and
+  effective in tuning its performance and in finding its bottlenecks and problem areas later on,
+  and no more, so nothing is overkill or unnecessary work. The unit first analyzes where in the code
+  base measurements should be captured and exposed, and then implements them. Examples of what it
+  considers are the latency of each database query, counts of what is held in memory where that
+  applies, and the performance measures typical of a Go program. The analysis does not follow best
+  practice blindly. It works out the intent behind each practice, and researches what proves
+  effective in real-world use. Which measurements, where they are captured and how they are exposed
+  are the unit's own decisions. A measurement emitted as a metric goes through
+  [ADR-0076](./docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)'s library. A
+  dashboard on a metric that exists is a configuration change, and the collection, shipping and
+  retention of what is emitted are the platform's
+  ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md)), so neither is this unit's. Its
+  measurements are exposed by the running deployables, so it finishes at image. What proves it is
+  the tests [TESTING.md](./TESTING.md) requires of what it holds. It is done when the analysis
+  names, for each measurement it keeps, the tuning or bottleneck question it answers and the
+  evidence that it is effective, and names what it leaves out as unnecessary, and the code captures
+  and exposes each measurement it keeps.
 
 ### Group D — data flows
 
@@ -1811,11 +1851,11 @@ about its cluster.
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
 | [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | M3 | The conversion, the delimiters and the serve-time check landed with S3, which is delivered. Serving every body through them landed with D3, a G1 unit, which is delivered. The volume alert rides M3, an O4 unit, as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), over the audit rows D3 writes |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | — | The rate limiter and the Gmail cost profile landed with F3, which is delivered. The real ceiling reveals itself at production point 1 |
-| [O2](./USE_CASES.md#o2--observable) observable | — | Logging at a configured level through a logger every shell is handed landed with F8, which is delivered. Otherwise no dedicated unit. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carried the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
+| [O2](./USE_CASES.md#o2--observable) observable | F12 | Logging at a configured level through a logger every shell is handed landed with F8, which is delivered. F12 captures and exposes the performance measurements its analysis finds useful for tuning and for finding bottlenecks. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carried the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | Writing the account-handling rules once where copies drifted landed with F9, and the schema settled before production point 1 makes the chain history landed with F11, both delivered. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
-| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
+| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered, and F4's later work separates each kind of test into a CI workflow of its own before production point 1. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
 
 ## Dependencies
 
@@ -1852,6 +1892,8 @@ lands in is the [value path](#the-value-path)'s.
 | M7 → F10, M8 → F10 | The changes the UI makes that the worker's reloads pick up, a connected account and a replaced credential (M7) and a policy edit (M8) |
 | F9 → F11, D3 → F11 | The families whose paths the chain's tests and patches name, and the one Go normalizer of sender domains that D3 landed, so every writer lowercases before the domain columns become `text` |
 | F9 → R1, F10 → R1, F11 → R1 | The worker, its roles and the schema with no extension bootstrap, which the chart packages |
+| F10 → F12, F11 → F12 | The worker whose job kinds each run with a role and a connection pool of their own and whose series carry the job kind, and the schema baseline the data-access statements run against, which the measurements are captured from |
+| F10 → F4's test-separation later work, F11 → F4's test-separation later work | The worker, into which backfill's and delta sync's tests moved with their job kinds, crash sequences included, and whose scheduler is tested under `testing/synctest`, and the schema baseline's migrations tested over rows through the helper in `testsupport/postgres`, which are among the tests the later work separates by kind |
 | F10 → M2, F10 → M4, F11 → M4, F10 → X2, F9 → X2, F10 → X3, F9 → X4, F10 → X4 | The worker each background job kind runs in, with its scheduler, role, pool and loaders, the schema baseline the heuristics run's candidates and pass are written into, and the account session package through which a provider's connector is passed once |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
 | F2 → every later unit that holds a database role | The runtime database roles, created with the schema, that each unit's component connects to the database as |
@@ -1923,6 +1965,7 @@ supplies, including edges another edge implies.
 | F10 | F8 |
 | F11 | F9 |
 | R1 | F10 · F11 |
+| F12 | F10 · F11 |
 | M4 | F10 · F11 |
 | M6 | M3 · M2 |
 | M5 | M6 · M8 |
@@ -1954,6 +1997,8 @@ flowchart LR
     F9 --> F11
     F10 --> R1
     F11 --> R1
+    F10 --> F12
+    F11 --> F12
     S2 --> D1
     F3 --> D1
     F6 --> D1
