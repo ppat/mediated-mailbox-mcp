@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/core/index/index.go b/core/index/index.go
-index f1f7b2f..57c1e83 100644
+index b9656deb..c9d513d5 100644
 --- a/core/index/index.go
 +++ b/core/index/index.go
-@@ -116,7 +116,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
- 			Stamp:          StampOf(s),
- 			Class:          Normal,
- 			ClassRule:      verdict.Rule(),
--			Unclassified:   verdict.Reason() == classify.Unclassifiable,
-+			Unclassified:   false && verdict.Reason() == classify.Unclassifiable,
+@@ -121,7 +121,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
+ 			Stamp:           StampOf(s),
+ 			Class:           Normal,
+ 			ClassRule:       verdict.Rule(),
+-			Unclassified:    verdict.Reason() == classify.Unclassifiable,
++			Unclassified:    false && verdict.Reason() == classify.Unclassifiable,
  		}
  		if verdict.Class().Restricted() {
  			msg.Class = Restricted

@@ -250,7 +250,24 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}
-	return err == nil, err
+	if err != nil {
+		return false, err
+	}
+	return true, media(ctx, q, account, m)
+}
+
+// media adds the media of a message's attachments, which the index stores once, with the message
+// (ADR-0123).
+func media(ctx context.Context, q *messageingest.Queries, account string, m index.Message) error {
+	if len(m.AttachmentMedia) == 0 {
+		return nil
+	}
+	p := messageingest.InsertAttachmentMediaParams{AccountID: account, MessageID: m.ID}
+	for _, a := range m.AttachmentMedia {
+		p.MediaTypes = append(p.MediaTypes, a.MediaType)
+		p.Extensions = append(p.Extensions, a.Extension)
+	}
+	return q.InsertAttachmentMedia(ctx, p)
 }
 
 // remask masks the subject of a message the index holds again, when its stored subject was masked

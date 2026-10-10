@@ -1,0 +1,20 @@
+control: Each message the first pass or a tick stores carries its attachment media
+removes: a tick stores no attachment media of a message it adds
+packages: ./worker/internal/deltasync/tick
+tests: TestATickStoresTheAttachmentMediaOfWhatItAdds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
+index 7ecc8e20..03e1790b 100644
+--- a/worker/internal/deltasync/tick/postgres.go
++++ b/worker/internal/deltasync/tick/postgres.go
+@@ -252,7 +252,7 @@ func insert(ctx context.Context, q *ingest.Queries, account string, m index.Mess
+ 	if err != nil {
+ 		return false, err
+ 	}
+-	return true, media(ctx, q, account, m)
++	return true, nil
+ }
+ 
+ // media adds the media of a message's attachments, which the index stores once, with the message

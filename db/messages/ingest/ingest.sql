@@ -48,6 +48,24 @@ INSERT INTO messages (
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id;
 
+-- name: InsertAttachmentMedia :exec
+-- Adds the media of a message's attachments, each normalized media type paired with the extension at
+-- the same position, once each, from which the types a client is served are derived when read
+-- (ADR-0123). It is run for a message InsertMessage has just added, whose media never change once
+-- stored, so a pair already stored is left as it is.
+INSERT INTO attachment_media (account_id, message_id, media_type, extension)
+SELECT
+    @account_id,
+    @message_id,
+    u.media_type,
+    u.extension
+FROM (
+    SELECT
+        unnest(@media_types::text[]) AS media_type,
+        unnest(@extensions::text[]) AS extension
+) AS u
+ON CONFLICT DO NOTHING;
+
 -- name: StaleSubject :one
 -- Whether any of the account's stored subjects was masked under another scanner version or
 -- configuration revision than the one given, or under none recorded, which makes the first pass due

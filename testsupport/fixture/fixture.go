@@ -16,11 +16,6 @@ package fixture
 import "github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 
 // Message is one synthetic message. The fields after Body are empty on the fixtures that lack them.
-//
-// Attachment names are derived from the body, so the Redaction Gate withholds them with it
-// (ADR-0001). They carry field markers all the same, because they are visible for a normal sender,
-// and a body marker is found only in text that is never visible. A test of their withholding
-// searches for the one fixture's attachment marker.
 type Message struct {
 	FromAddress string
 	FromName    string
@@ -29,7 +24,36 @@ type Message struct {
 	Body        string
 	CcAddress   string
 	ListID      string
-	Attachments []string
+	Attachments []Attachment
+}
+
+// Attachment is one attachment a message carries, its file name and the media type its part
+// declares, with the medium and the type the canonical model gives it.
+//
+// Attachment names are derived from the body, so the Redaction Gate withholds them with it
+// (ADR-0001). They carry field markers all the same, because they are visible for a normal sender,
+// and a body marker is found only in text that is never visible. A test of their withholding
+// searches for the attachment markers of the fixture whose body it withholds, the bank's statement
+// or the receipt's invoice and photo.
+//
+// Extension is the file name's extension as the canonical model normalizes it, and Type the word of
+// the closed vocabulary its mapping gives the attachment (ADR-0123). The media type each part
+// declares is already in the normalized form. Both are written out here rather than computed, so a
+// test comparing against them does not share the normalization or the mapping it checks.
+type Attachment struct {
+	Name      string
+	MediaType string
+	Extension string
+	Type      string
+}
+
+// Names returns the names of the message's attachments, in order.
+func (m Message) Names() []string {
+	var out []string
+	for _, a := range m.Attachments {
+		out = append(out, a.Name)
+	}
+	return out
 }
 
 // Bank is a notice from a financial institution, the kind of sender a policy restricts.
@@ -40,7 +64,7 @@ func Bank() Message {
 		ToAddress:   marker.Field("bankto") + "@home.example",
 		Subject:     marker.Field("banksubject"),
 		Body:        marker.Body("bank"),
-		Attachments: []string{marker.Field("statement") + ".pdf"},
+		Attachments: []Attachment{{Name: marker.Field("statement") + ".pdf", MediaType: "application/pdf", Extension: "pdf", Type: "pdf"}},
 	}
 }
 
@@ -106,7 +130,9 @@ func LoginLink() Message {
 }
 
 // Receipt is an order receipt full of numbers that are not codes, an order number, a date, a
-// tracking number and prices.
+// tracking number and prices. Its invoice is sent as application/octet-stream, which says nothing of
+// its content, so its type comes from its file name, and its two attachments' types sort apart from
+// the order the parts come in.
 func Receipt() Message {
 	return Message{
 		FromAddress: marker.Field("receiptaddress") + "@shop.example",
@@ -117,6 +143,10 @@ func Receipt() Message {
 		Body: marker.Body("receipt") + "\n\nOrder 20240917 shipped on 2024-09-17 with tracking number " +
 			"1Z999AA10123456784.\n\n| Item | Price |\n| --- | --- |\n| Lamp | 42.00 |\n| Total | 42.00 |\n\n" +
 			"Questions? Reply to this message or see https://shop.example/help/orders.\n",
+		Attachments: []Attachment{
+			{Name: marker.Field("receiptinvoice") + ".xlsx", MediaType: "application/octet-stream", Extension: "xlsx", Type: "spreadsheet"},
+			{Name: marker.Field("receiptphoto") + ".png", MediaType: "image/png", Extension: "png", Type: "image"},
+		},
 	}
 }
 

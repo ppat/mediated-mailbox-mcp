@@ -1,0 +1,20 @@
+control: Each message the first pass or a tick stores carries its attachment media
+removes: the first pass stores no message's attachment media
+packages: ./worker/internal/backfill/pass1
+tests: TestAPassStoresEachMessagesAttachmentMedia
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index 0e5eb5ee..4558761d 100644
+--- a/worker/internal/backfill/pass1/postgres.go
++++ b/worker/internal/backfill/pass1/postgres.go
+@@ -253,7 +253,7 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
+ 	if err != nil {
+ 		return false, err
+ 	}
+-	return true, media(ctx, q, account, m)
++	return true, nil
+ }
+ 
+ // media adds the media of a message's attachments, which the index stores once, with the message

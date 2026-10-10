@@ -16,8 +16,9 @@
 //
 // Metadata and the body never share a type. No type a metadata operation returns has a field for the
 // full body, and the body arrives only through GetMessageBody, the one operation the gate guards
-// (ADR-0010). The metadata does carry two fields derived from the body, the snippet and the
-// attachment names, which the gate withholds with it (ADR-0001).
+// (ADR-0010). The metadata does carry three fields derived from the body. The gate withholds the
+// snippet and the attachment names with it (ADR-0001), and the attachment media, normalized from
+// the names and the parts' headers, reach a client only as the types derived from them (ADR-0123).
 package mail
 
 // UnixMilli is an instant as milliseconds since the Unix epoch, in UTC.
@@ -70,6 +71,10 @@ type MessageMetadata struct {
 	HasAttachments bool
 	// AttachmentNames are derived from the body, so the gate withholds them with it (ADR-0001).
 	AttachmentNames []string
+	// AttachmentMedia are the attachments' normalized media types and extensions, each pair once and
+	// sorted, from which AttachmentTypes derives the types every sensitivity state shows (ADR-0123).
+	// SetAttachments sets them with the names.
+	AttachmentMedia []AttachmentMedia
 	// Snippet is the provider's preview of the body, empty when the provider gives none. It is body
 	// text, so the gate withholds it with the body (ADR-0001).
 	Snippet string

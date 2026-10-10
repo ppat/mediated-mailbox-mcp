@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
@@ -471,10 +472,22 @@ func fromRow(r messages.MessageRow) stored {
 		Labels:          r.Labels,
 		Flags:           r.Flags,
 		HasAttachments:  r.HasAttachments,
-		AttachmentTypes: r.AttachmentTypes,
+		AttachmentMedia: attachmentMedia(r.AttachmentMediaTypes, r.AttachmentExtensions),
 		ContentFlags:    r.ContentFlags,
 		ScanState:       r.ScanState,
 	}
+}
+
+// attachmentMedia pairs each stored media type with the extension at the same position, as the
+// statement returns them (ADR-0123).
+func attachmentMedia(mediaTypes, extensions []string) []mail.AttachmentMedia {
+	out := make([]mail.AttachmentMedia, 0, len(mediaTypes))
+	for i, t := range mediaTypes {
+		if i < len(extensions) {
+			out = append(out, mail.AttachmentMedia{MediaType: t, Extension: extensions[i]})
+		}
+	}
+	return out
 }
 
 // text returns a nullable text column's value, or nil for null.
