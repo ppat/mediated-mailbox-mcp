@@ -1,0 +1,20 @@
+control: The attachment media at rest hold only the normalized form
+removes: a stored extension is not checked
+packages: ./db/check
+tests: TestAttachmentMediaHoldsOnlyTheNormalizedForm
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 1cc76a9a..d9bc74fe 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -199,7 +199,7 @@ CREATE TABLE attachment_media (
+     media_type text NOT NULL
+     CHECK (media_type ~ '^([a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126})?$'),
+     -- The filename's last extension, lowercase, one to 16 ASCII letters and digits, or empty.
+-    extension text NOT NULL CHECK (extension ~ '^[a-z0-9]{0,16}$'),
++    extension text NOT NULL,
+     PRIMARY KEY (account_id, message_id, media_type, extension),
+     FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
+ );

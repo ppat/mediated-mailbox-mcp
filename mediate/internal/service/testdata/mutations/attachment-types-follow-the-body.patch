@@ -1,21 +1,20 @@
 control: Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
-removes: every served message says its body is available, whatever the gate decided
+removes: a served message carries its attachment types only when its body is available, as its filenames would
 packages: ./mediate/internal/service
 tests: TestEveryServedMessageFollowsTheRedactionMatrix
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
-index 7a8570fa..d09173dd 100644
+index 7a8570fa..ede69fc3 100644
 --- a/mediate/internal/service/present.go
 +++ b/mediate/internal/service/present.go
-@@ -122,7 +122,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
+@@ -120,7 +120,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
+ 		Labels:          nonNil(m.Labels),
+ 		Flags:           json.RawMessage(`{}`),
  		HasAttachments:  m.HasAttachments,
- 		AttachmentTypes: types(m.AttachmentMedia),
+-		AttachmentTypes: types(m.AttachmentMedia),
++		AttachmentTypes: types(map[bool][]mail.AttachmentMedia{true: m.AttachmentMedia}[v.ReleasesBody()]),
  		Sensitivity:     shownState{SenderClass: class, ContentFlags: shownFlags, ScanState: scan.String()},
--		BodyAvailable:   v.ReleasesBody(),
-+		BodyAvailable:   true,
+ 		BodyAvailable:   v.ReleasesBody(),
  	}
- 	if json.Valid(m.Flags) && len(m.Flags) > 0 && m.Flags[0] == '{' {
- 		out.Flags = m.Flags

@@ -1,0 +1,19 @@
+control: An attachment's type is a word of the closed vocabulary, set with the names from the same parts
+removes: a media type no table names is served as its own type
+packages: ./core/mail
+tests: TestAnAttachmentsTypeIsAWordOfTheVocabulary TestEveryAttachmentTypeIsAWordOfTheVocabulary
+scheduled-count: no
+
+diff --git a/core/mail/attachment.go b/core/mail/attachment.go
+index c5205199..f3d0b98d 100644
+--- a/core/mail/attachment.go
++++ b/core/mail/attachment.go
+@@ -186,7 +186,7 @@ func byMediaType(t string) AttachmentType {
+ 	case strings.HasPrefix(t, "text/"):
+ 		return AttachmentText
+ 	}
+-	return AttachmentOther
++	return AttachmentType(t)
+ }
+ 
+ // byExtension maps an extension, lowercase, to its word.
