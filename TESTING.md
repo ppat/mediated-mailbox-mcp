@@ -108,9 +108,11 @@ The chain from outcome to evidence, stated once.
    those events, the `mutation-demonstrations` workflow runs every demonstration in the ledger
    weekly and by hand, and fails when one no longer holds
    ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)).
-   Separately, whether each demonstration's patch still applies is a standing guard the
-   `mutation-patches` workflow runs on every pull request, apart from this event-driven trigger
-   ([CLAUDE.md](./CLAUDE.md#ci-workflows)).
+   Separately, whether each demonstration's patch still applies, and applies at one place only, is
+   a standing guard the `mutation-patches` workflow runs on every pull request, apart from this
+   event-driven trigger ([CLAUDE.md](./CLAUDE.md#ci-workflows)). A hunk whose context matches at
+   more than one place in its file is refused there and by the runner before a demonstration
+   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
 
 The two catalogues differ by what they prove and when they can be written. A verification row
 proves the control stops the violation it exists to stop, and it is minted at design time. A

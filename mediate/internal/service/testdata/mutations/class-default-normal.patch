@@ -6,10 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index 5e7f198f..62d20a45 100644
+index 9f99b323..d784b851 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -38,7 +38,7 @@ WHERE
+@@ -35,13 +35,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
+     )
+     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
      AND (
          @restricted::boolean[] IS NULL
          OR (
@@ -18,7 +21,13 @@ index 5e7f198f..62d20a45 100644
                  SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -127,7 +127,7 @@ WHERE
+         ) = any(@restricted::boolean[])
+     )
+     AND (
+@@ -124,13 +124,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
+     )
+     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
      AND (
          @restricted::boolean[] IS NULL
          OR (
@@ -27,7 +36,13 @@ index 5e7f198f..62d20a45 100644
                  SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -168,7 +168,7 @@ WHERE
+         ) = any(@restricted::boolean[])
+     );
+ 
+@@ -165,13 +165,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
+     )
+     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
      AND (
          @restricted::boolean[] IS NULL
          OR (
@@ -36,7 +51,13 @@ index 5e7f198f..62d20a45 100644
                  SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -216,7 +216,7 @@ WHERE
+         ) = any(@restricted::boolean[])
+     )
+ GROUP BY m.from_email
+@@ -213,13 +213,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
+     )
+     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
      AND (
          @restricted::boolean[] IS NULL
          OR (
@@ -45,7 +66,13 @@ index 5e7f198f..62d20a45 100644
                  SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -267,7 +267,7 @@ WHERE
+         ) = any(@restricted::boolean[])
+     )
+ GROUP BY m.from_domain
+@@ -264,13 +264,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
+     )
+     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
      AND (
          @restricted::boolean[] IS NULL
          OR (
@@ -54,7 +81,13 @@ index 5e7f198f..62d20a45 100644
                  SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -319,7 +319,7 @@ FROM (
+         ) = any(@restricted::boolean[])
+     )
+ GROUP BY l.label
+@@ -316,13 +316,13 @@ FROM (
+             OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
+         )
+         AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
          AND (
              @restricted::boolean[] IS NULL
              OR (
@@ -63,11 +96,17 @@ index 5e7f198f..62d20a45 100644
                      SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
                      WHERE n.d = m.from_domain::text
                  )
+             ) = any(@restricted::boolean[])
+         )
+ ) AS g
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index f739f454..c35eb618 100644
+index c65924c5..e492a2f7 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -44,7 +44,7 @@ WHERE
+@@ -41,13 +41,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+     )
+     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
      AND (
          $13::boolean[] IS NULL
          OR (
@@ -76,7 +115,13 @@ index f739f454..c35eb618 100644
                  SELECT 1 FROM unnest($14::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -167,7 +167,7 @@ FROM (
+         ) = any($13::boolean[])
+     )
+ GROUP BY l.label
+@@ -164,13 +164,13 @@ FROM (
+             OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+         )
+         AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
          AND (
              $13::boolean[] IS NULL
              OR (
@@ -85,7 +130,13 @@ index f739f454..c35eb618 100644
                      SELECT 1 FROM unnest($14::text[]) AS n (d)
                      WHERE n.d = m.from_domain::text
                  )
-@@ -284,7 +284,7 @@ WHERE
+             ) = any($13::boolean[])
+         )
+ ) AS g
+@@ -281,13 +281,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+     )
+     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
      AND (
          $13::boolean[] IS NULL
          OR (
@@ -94,7 +145,13 @@ index f739f454..c35eb618 100644
                  SELECT 1 FROM unnest($14::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -411,7 +411,7 @@ WHERE
+         ) = any($13::boolean[])
+     )
+ GROUP BY m.from_email
+@@ -408,13 +408,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+     )
+     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
      AND (
          $13::boolean[] IS NULL
          OR (
@@ -103,7 +160,13 @@ index f739f454..c35eb618 100644
                  SELECT 1 FROM unnest($14::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -543,7 +543,7 @@ WHERE
+         ) = any($13::boolean[])
+     )
+ GROUP BY m.from_domain
+@@ -540,13 +540,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+     )
+     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
      AND (
          $13::boolean[] IS NULL
          OR (
@@ -112,7 +175,13 @@ index f739f454..c35eb618 100644
                  SELECT 1 FROM unnest($14::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-@@ -729,7 +729,7 @@ WHERE
+         ) = any($13::boolean[])
+     )
+     AND (
+@@ -726,13 +726,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+     )
+     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
      AND (
          $13::boolean[] IS NULL
          OR (
@@ -121,11 +190,17 @@ index f739f454..c35eb618 100644
                  SELECT 1 FROM unnest($14::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
+         ) = any($13::boolean[])
+     )
+ `
 diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
 index 2c5d937b..e46a378e 100644
 --- a/mediate/internal/service/query.go
 +++ b/mediate/internal/service/query.go
-@@ -189,7 +189,7 @@ type classes struct {
+@@ -186,13 +186,13 @@ type classes struct {
+ }
+ 
+ // classifyDomains classifies every sender domain under p.
  func classifyDomains(domains []string, p policy.Composed, l classify.Lookups) classes {
  	c := classes{normal: []string{}}
  	for _, d := range domains {
@@ -134,3 +209,6 @@ index 2c5d937b..e46a378e 100644
  			c.normal = append(c.normal, d)
  		}
  	}
+ 	return c
+ }
+ 

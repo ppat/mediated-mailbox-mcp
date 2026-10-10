@@ -39,8 +39,8 @@ demonstration is recorded with the implementation work that touches the surface 
 interacts with. Apart from those events, the `mutation-demonstrations` workflow runs every
 demonstration weekly and when started by hand, and fails when one no longer holds, which writes no
 row ([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Whether
-each demonstration's patch still applies is checked on every pull request by the
-`mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflows)).
+each demonstration's patch still applies, and applies at one place only, is checked on every pull
+request by the `mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflows)).
 
 ## Where the rows are
 

@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index c369b93..1aa0e28 100644
+index 9f99b323..fa606fa6 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -18,6 +18,7 @@ SELECT
+@@ -17,8 +17,9 @@ SELECT
+     m.scan_state
  FROM messages AS m
  WHERE
      m.account_id = @account_id
@@ -17,11 +18,13 @@ index c369b93..1aa0e28 100644
      AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
      AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
      AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
+     AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index e052b44..fb4c08f 100644
+index c65924c5..53590203 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -503,6 +503,7 @@ SELECT
+@@ -522,8 +522,9 @@ SELECT
+     m.scan_state
  FROM messages AS m
  WHERE
      m.account_id = $1
@@ -29,3 +32,4 @@ index e052b44..fb4c08f 100644
      AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
      AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
      AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
+     AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))

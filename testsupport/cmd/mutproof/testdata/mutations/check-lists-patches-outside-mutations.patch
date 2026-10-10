@@ -1,0 +1,18 @@
+control: The mutation-patches check refuses a patch that no longer applies, and never passes on nothing checked
+removes: the check takes every .patch file in the tree as a mutation patch, so a patch file that is no mutation patch fails the check
+packages: ./testsupport/cmd/mutproof/...
+tests: TestCheckTree
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/check.go b/testsupport/cmd/mutproof/check.go
+--- a/testsupport/cmd/mutproof/check.go
++++ b/testsupport/cmd/mutproof/check.go
+@@ -43,7 +43,7 @@ func checkTree(w io.Writer, root string) error {
+ 		if d.IsDir() && rel == fixtureDir {
+ 			return filepath.SkipDir
+ 		}
+-		if !d.IsDir() && strings.HasSuffix(rel, ".patch") && strings.Contains("/"+rel, "/testdata/mutations/") {
++		if !d.IsDir() && strings.HasSuffix(rel, ".patch") {
+ 			patches = append(patches, rel)
+ 		}
+ 		return nil

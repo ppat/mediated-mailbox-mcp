@@ -71,7 +71,7 @@ jobs:
       # yamllint disable-line rule:indentation
       run: |
         list="$(mktemp)"
-        find . -path '*/testdata/mutations/*.patch' -not -path '*/testsupport/cmd/mutproof/testdata/*' -print > "$list"
+        find . -path '*/testdata/mutations/*.patch' -not -path '*/testsupport/cmd/mutproof/testdata/fixture/*' -print > "$list"
         mapfile -t patches < <(
           while read -r patch; do
             if grep -qx 'integration: yes' "$patch"; then rank=0; elif grep -qx 'runner: bun' "$patch"; then rank=1; else rank=2; fi
