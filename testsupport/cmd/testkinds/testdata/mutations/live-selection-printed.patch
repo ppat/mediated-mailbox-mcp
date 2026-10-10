@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: args' refusal to select while a contract run against a real provider compiles at a level, so go flags from the environment put the live test into a test workflow's run
+packages: ./testsupport/cmd/testkinds
+tests: TestArgsRefusesWhileALiveTestCompiles
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..e13d8f79 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -284,7 +284,7 @@ func (t *tree) selection(p pair) selection {
+ // args returns go test's arguments for a pair, narrowed to the package patterns given.
+ func (t *tree) args(p pair, patterns []string) ([]string, error) {
+ 	for _, f := range t.files {
+-		if strings.HasSuffix(f.name, "_live_test.go") && f.level != "" {
++		if false && strings.HasSuffix(f.name, "_live_test.go") && f.level != "" {
+ 			return nil, fmt.Errorf("%s/%s, a contract run against a real provider, compiles at the %s level in this environment, so no selection is printed", f.pkg, f.name, f.level)
+ 		}
+ 	}

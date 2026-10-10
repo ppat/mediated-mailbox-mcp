@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a go test line without the selected arguments, so a bare go test passes
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/go_test_without_the_selection
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..badb9ed8 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -69,7 +69,7 @@ func goTestProblem(line string) string {
+ 			}
+ 		}
+ 	}
+-	if !seen {
++	if false && !seen {
+ 		return fmt.Sprintf("runs go test without %s from go tool testkinds args", selected)
+ 	}
+ 	return ""

@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a condition, continue-on-error or GOFLAGS in a workflow that runs go test, so a step can be skipped, made not to fail or given its own selection
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/a_step_condition TestCheckWorkflows/a_job_condition TestCheckWorkflows/a_step_carrying_on_after_a_failure TestCheckWorkflows/go's_flags_from_the_environment
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..83a18c36 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -127,7 +127,7 @@ func checkWorkflows(t *tree, files map[string]string) []string {
+ 			if name != liveWorkflow && live.MatchString(trimmed) {
+ 				problems = append(problems, fmt.Sprintf("%s: names the livecontract command or its marker, and a contract run against a real provider runs only in %s", where, liveWorkflow))
+ 			}
+-			if runsGoTest && held.MatchString(trimmed) {
++			if false && runsGoTest && held.MatchString(trimmed) {
+ 				problems = append(problems, fmt.Sprintf("%s: a workflow that runs go test holds %q, which can change what its tests select or whether their failure fails it", where, trimmed))
+ 			}
+ 			for _, m := range argsLine.FindAllStringSubmatch(trimmed, -1) {

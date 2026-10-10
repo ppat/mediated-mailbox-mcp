@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the distinction between a whole ask and a narrowed one, so a workflow asking for its run only for some packages passes
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/a_run_asked_for_only_narrowed
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..81869ac1 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -140,7 +140,7 @@ func checkWorkflows(t *tree, files map[string]string) []string {
+ 					problems = append(problems, fmt.Sprintf("%s: the %s %s run belongs to %s", where, p.kind, p.level, strings.Join(want, " and ")))
+ 				case len(t.tests(p)) == 0:
+ 					problems = append(problems, fmt.Sprintf("%s: no %s test at %s level exists, so the step would select nothing", where, p.kind, p.level))
+-				case !strings.Contains(m[3], "./"):
++				default:
+ 					asked[p] = append(asked[p], name)
+ 				}
+ 			}

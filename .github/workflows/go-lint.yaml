@@ -8,7 +8,7 @@ name: go-lint
 on:
   pull_request:
     paths:
-    - .github/workflows/go-lint.yaml
+    - .github/workflows/**
     - .golangci.yaml
     - '*.go'
     - '**/*.go'
@@ -82,3 +82,12 @@ jobs:
       shell: bash
       working-directory: ./current
       run: mise exec -- go tool banproof
+
+    # Every test file has one kind and level, each run selects exactly its own tests, and every workflow line
+    # that runs go test passes what go tool testkinds args selects, so every test runs in its kind's workflows,
+    # in no other and never in none (ADR-0124). It reads every workflow file, which is why this workflow watches
+    # them all.
+    - name: Check that every test runs in its kind's workflows and no other
+      shell: bash
+      working-directory: ./current
+      run: mise exec -- go tool testkinds check

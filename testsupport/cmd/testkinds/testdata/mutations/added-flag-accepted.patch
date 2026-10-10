@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the closed list of flags a go test line may add, so a line adding -run, -skip, -tags, packages or || true passes
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/a_selection_added_to_the_selection TestCheckWorkflows/a_skip_added_to_the_selection TestCheckWorkflows/a_failure_swallowed TestCheckWorkflows/go_test_of_a_package TestCheckWorkflows/go_test_under_pgrun_with_a_tag_of_its_own TestCheckWorkflows/go_test_with_the_live_contract's_tag TestCheckWorkflows/a_line_continued
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..167c9361 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -57,7 +57,7 @@ func goTestProblem(line string) string {
+ 			name, _, hasValue := strings.Cut(tok, "=")
+ 			takesValue, ok := addable[name]
+ 			switch {
+-			case !ok:
++			case false && !ok:
+ 				return fmt.Sprintf("adds %s, which is not one of the flags a go test line may add, -race, -count, -v and -timeout, nor a pipe into tee", tok)
+ 			case takesValue && !hasValue:
+ 				i++

@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of go tool livecontract or its marker variable outside gmail-contract, so a test workflow can start the contract run against the real provider
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/the_live_contract's_command_in_another_workflow TestCheckWorkflows/the_live_contract's_command_run_from_its_directory_in_another_workflow TestCheckWorkflows/the_live_contract's_marker_in_another_workflow
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..63bf98cb 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -124,7 +124,7 @@ func checkWorkflows(t *tree, files map[string]string) []string {
+ 					problems = append(problems, fmt.Sprintf("%s: %s, so it can run a test another workflow runs, or none", where, why))
+ 				}
+ 			}
+-			if name != liveWorkflow && live.MatchString(trimmed) {
++			if false && name != liveWorkflow && live.MatchString(trimmed) {
+ 				problems = append(problems, fmt.Sprintf("%s: names the livecontract command or its marker, and a contract run against a real provider runs only in %s", where, liveWorkflow))
+ 			}
+ 			if runsGoTest && held.MatchString(trimmed) {

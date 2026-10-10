@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a test file whose kind and level no workflow runs, so a plain _test.go file that needs the integration tag passes
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckRefusesAFileNoWorkflowRuns/a_unit-named_file_needing_the_tag TestCheckRefusesAFileNoWorkflowRuns/an_integration_file_compiled_without_the_tag TestCheckRefusesAFileNoWorkflowRuns/a_fixtures_file_compiled_without_the_tag
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..060e292b 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -353,7 +353,7 @@ func (t *tree) check() []string {
+ 		case f.level == "":
+ 			problems = append(problems, fmt.Sprintf("%s: compiled neither with no build tag nor with the integration tag, so no workflow runs it", path))
+ 		default:
+-			if _, ok := workflows[f.pair()]; !ok {
++			if _, ok := workflows[f.pair()]; false && !ok {
+ 				problems = append(problems, fmt.Sprintf("%s: a %s test at %s level, which no workflow runs. %s", path, f.kind, f.level, fix(f)))
+ 			}
+ 		}

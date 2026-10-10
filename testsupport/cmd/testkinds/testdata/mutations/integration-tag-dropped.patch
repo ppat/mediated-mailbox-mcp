@@ -1,0 +1,20 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the integration tag from an integration-level run's arguments, so the run compiles none of the files it names
+packages: ./testsupport/cmd/testkinds
+tests: TestArgs/property_with_the_tag TestArgs/integration
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..571951d1 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -313,9 +313,6 @@ func (t *tree) args(p pair, patterns []string) ([]string, error) {
+ 		pkgs = narrowed
+ 	}
+ 	var out []string
+-	if p.level == levelIntegration {
+-		out = append(out, "-tags=integration")
+-	}
+ 	out = append(out, "-run=^("+strings.Join(sel.names, "|")+")$")
+ 	for _, d := range pkgs {
+ 		out = append(out, "./"+strings.TrimPrefix(d, "./"))

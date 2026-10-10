@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a go test line passing the selection twice
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/the_selection_twice
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..9adfb1cd 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -47,7 +47,7 @@ func goTestProblem(line string) string {
+ 		tok := tokens[i]
+ 		switch {
+ 		case tok == selected:
+-			if seen {
++			if false && seen {
+ 				return "passes the selection twice"
+ 			}
+ 			seen = true

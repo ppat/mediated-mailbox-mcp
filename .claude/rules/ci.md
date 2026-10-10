@@ -29,6 +29,17 @@ formatting to Tools and versions. These are the tripwires:
 - **Integration tests against PostgreSQL run only under `go tool pgrun` with `-tags integration`**,
   and a gating property run sets `RAPID_NOFAILFILE=true`, passes no `-short`, and takes its case
   count and seed from the environment (ADR-0068, ADR-0069).
+- **Every workflow line that runs `go test` passes what `go tool testkinds args <kind> <level>`
+  prints**, so each kind of test runs in its own workflows and in no other, and `go tool testkinds
+  check` in the lint workflow refuses any other `go test` line, any flag it adds beyond `-race`,
+  `-count`, `-v` and `-timeout`, and a run asked for only narrowed. A test workflow holds one role
+  and its triggers alone decide when it runs, with no job or step condition, no
+  `continue-on-error`, no `GOFLAGS` and no job deciding for another. Only `gmail-contract` has a
+  line naming the livecontract command or its marker variable. The check reads workflow text only
+  for these forms and parses neither YAML nor the shell, so a step whose shell, error handling,
+  environment or selection is changed by any other means, `set +e` or a `GOENV` file for example,
+  is left to review, as is a `go test` reached through a variable, a script or another program
+  (ADR-0124).
 - **The chainsaw workflow builds no images**, takes a version, and runs on packaging and suite
   changes only (ADR-0052).
 - **Every release builds, pushes and signs every image and the chart at the release version**

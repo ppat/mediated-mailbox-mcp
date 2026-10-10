@@ -2,6 +2,7 @@
 # yamllint disable rule:line-length
 name: go-integration
 
+# The integration tests, the example tests that run against PostgreSQL under go tool pgrun (ADR-0124).
 on:
   pull_request:
     paths:
@@ -24,6 +25,12 @@ on:
     - ratelimit/**
     - testsupport/**
     - ui/*.go
+    - ui/browser/bun.lock
+    - ui/browser/bunfig.toml
+    - ui/browser/package.json
+    - ui/browser/scripts/**
+    - ui/browser/src/**
+    - ui/browser/tsconfig.json
     - ui/contract/**
     - ui/internal/**
     - worker/**
@@ -48,15 +55,27 @@ jobs:
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Integration tests run only under go tool pgrun with -tags integration, here and in deep-tests.yaml, which adds
-    # flags of its own. pgrun fails a run with the tag forgotten, because no test package creates a database, and
-    # every integration package fails without pgrun. A step running plain go test ./... with neither passes while
-    # running no integration test, and nothing but the workflow files can refuse that.
+    # The UI's tests read the built browser bundle, the policy scan of every bundled file, the entry document
+    # loading the bundle's entry module, and the reserved words a bundle's top level holds, so the bundle is built
+    # first, as the ui workflow builds it. A fresh clone holds only its placeholder, against which those tests skip
+    # or check less.
+    - name: Build the browser bundle the UI's tests read
+      shell: bash
+      working-directory: ./current/ui/browser
+      # yamllint disable-line rule:indentation
+      run: |
+        mise exec -- bun install --frozen-lockfile
+        mise exec -- bun run build
+
+    # Integration tests run only under go tool pgrun with -tags integration, which testkinds passes. pgrun fails a
+    # run with the tag forgotten, because no test package creates a database, and every integration package fails
+    # without pgrun. The run holds the example tests of the integration level and no other kind (ADR-0124). The
+    # integration property tests run in go-property.yaml, the crash sequences in go-crash.yaml, and the tests that
+    # record the browser's fixtures in ui.yaml, so testkinds selects these by name and package.
     #
-    # This run also runs every property test and the crash sequences, so it sets RAPID_SEED non-zero, RAPID_CHECKS
-    # to the gating case count and RAPID_NOFAILFILE=true, and passes no -short (ADR-0069, ADR-0045), the same
-    # values go-test.yaml sets. property.Check and property.Report fail a run whose seed is unset or zero or whose
-    # RAPID_NOFAILFILE is not true.
+    # The run sets RAPID_SEED non-zero, RAPID_CHECKS to the gating case count and RAPID_NOFAILFILE=true, and passes
+    # no -short, the values every gating test run sets (ADR-0069). testkinds fails when no integration test exists,
+    # so the run never passes having selected nothing.
     - name: Run the integration tests against one PostgreSQL container
       shell: bash
       working-directory: ./current
@@ -64,4 +83,8 @@ jobs:
         RAPID_SEED: '1'
         RAPID_CHECKS: '200'
         RAPID_NOFAILFILE: 'true'
-      run: mise exec -- go tool pgrun -- go test -tags integration ./...
+      # yamllint disable-line rule:indentation
+      run: |
+        selection="$(mise exec -- go tool testkinds args integration integration)"
+        mapfile -t args <<< "$selection"
+        mise exec -- go tool pgrun -- go test "${args[@]}"

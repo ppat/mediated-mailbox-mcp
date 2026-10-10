@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a run asked for outside its own workflow, so a kind's tests can run in a second workflow
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/a_run_asked_for_in_another_workflow
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..55f3cdf8 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -136,7 +136,7 @@ func checkWorkflows(t *tree, files map[string]string) []string {
+ 				switch {
+ 				case !ok:
+ 					problems = append(problems, fmt.Sprintf("%s: %s %s is not a run, which are %s", where, p.kind, p.level, runList()))
+-				case !slices.Contains(want, name):
++				case false && !slices.Contains(want, name):
+ 					problems = append(problems, fmt.Sprintf("%s: the %s %s run belongs to %s", where, p.kind, p.level, strings.Join(want, " and ")))
+ 				case len(t.tests(p)) == 0:
+ 					problems = append(problems, fmt.Sprintf("%s: no %s test at %s level exists, so the step would select nothing", where, p.kind, p.level))

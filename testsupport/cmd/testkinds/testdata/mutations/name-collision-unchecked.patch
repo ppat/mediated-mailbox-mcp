@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the check's comparison of each run's selection with its own tests, so a name two runs both select passes
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckRefusesANameTwoRunsSelect
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/tree.go b/testsupport/cmd/testkinds/tree.go
+index 5692b87b..906b8d72 100644
+--- a/testsupport/cmd/testkinds/tree.go
++++ b/testsupport/cmd/testkinds/tree.go
+@@ -361,7 +361,7 @@ func (t *tree) check() []string {
+ 	for _, p := range sortedPairs() {
+ 		own := t.tests(p)
+ 		for _, s := range t.selection(p).selected {
+-			if !slices.Contains(own, s) {
++			if false && !slices.Contains(own, s) {
+ 				dir, name, _ := strings.Cut(s, " ")
+ 				problems = append(problems, fmt.Sprintf("%s: %s, in a file of another kind or level, is also selected by the run of %s tests at %s level, which holds a test of the same name. Rename one", dir, name, p.kind, p.level))
+ 			}

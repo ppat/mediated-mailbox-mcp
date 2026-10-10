@@ -1,0 +1,19 @@
+control: Every test runs in the workflows of its kind and level and in no other
+removes: the refusal of a workflow line asking for a run with no test, so a step that selects nothing passes the check
+packages: ./testsupport/cmd/testkinds
+tests: TestCheckWorkflows/a_run_with_no_test
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/workflows.go b/testsupport/cmd/testkinds/workflows.go
+index 4cf2fb3a..cf0c3b15 100644
+--- a/testsupport/cmd/testkinds/workflows.go
++++ b/testsupport/cmd/testkinds/workflows.go
+@@ -138,7 +138,7 @@ func checkWorkflows(t *tree, files map[string]string) []string {
+ 					problems = append(problems, fmt.Sprintf("%s: %s %s is not a run, which are %s", where, p.kind, p.level, runList()))
+ 				case !slices.Contains(want, name):
+ 					problems = append(problems, fmt.Sprintf("%s: the %s %s run belongs to %s", where, p.kind, p.level, strings.Join(want, " and ")))
+-				case len(t.tests(p)) == 0:
++				case false && len(t.tests(p)) == 0:
+ 					problems = append(problems, fmt.Sprintf("%s: no %s test at %s level exists, so the step would select nothing", where, p.kind, p.level))
+ 				case !strings.Contains(m[3], "./"):
+ 					asked[p] = append(asked[p], name)

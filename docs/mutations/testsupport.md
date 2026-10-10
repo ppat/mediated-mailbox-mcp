@@ -23,6 +23,46 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/no_marker`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract`:** `TestRequire`, `TestRequire/a_marker_in_another_case`, `TestRequire/an_empty_marker`, `TestRequire/another_provider's_marker`, `TestRequire/its_provider's_marker`, `TestRequire/no_marker`
 
+## Every test runs in the workflows of its kind and level and in no other
+
+- **Date · evidence:** 2026-10-10 · [pull request #337](https://github.com/ppat/mediated-mailbox-mcp/pull/337)
+- **Break (1):** the closed list of flags a go test line may add, so a line adding -run, -skip, -tags, packages or || true passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/a_failure_swallowed`, `TestCheckWorkflows/a_line_continued`, `TestCheckWorkflows/a_selection_added_to_the_selection`, `TestCheckWorkflows/a_skip_added_to_the_selection`, `TestCheckWorkflows/go_test_of_a_package`, `TestCheckWorkflows/go_test_under_pgrun_with_a_tag_of_its_own`, `TestCheckWorkflows/go_test_with_the_live_contract's_tag`
+- **Break (2):** the refusal of a workflow line asking for a run with no test, so a step that selects nothing passes the check
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/a_run_with_no_test`
+- **Break (3):** the refusal of a run with no test, so a step asking for it selects nothing and passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestArgsSelectingNothing`
+- **Break (4):** the fixtures kind, so a test that records the browser's fixtures is read as an integration test and runs in the integration workflow
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestKindOf`, `TestLoadReadsEachFilesKindLevelAndTests`
+- **Break (5):** the refusal of a condition, continue-on-error or GOFLAGS in a workflow that runs go test, so a step can be skipped, made not to fail or given its own selection
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/a_job_condition`, `TestCheckWorkflows/a_step_carrying_on_after_a_failure`, `TestCheckWorkflows/a_step_condition`, `TestCheckWorkflows/go's_flags_from_the_environment`
+- **Break (6):** the build-tag condition on the violation and live exemption, so an untagged test file whose name holds _violation has no kind and runs nowhere
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestLoadReadsEachFilesKindLevelAndTests`
+- **Break (7):** the integration tag from an integration-level run's arguments, so the run compiles none of the files it names
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestArgs`, `TestArgs/integration`, `TestArgs/property_with_the_tag`
+- **Break (8):** the refusal of go tool livecontract or its marker variable outside gmail-contract, so a test workflow can start the contract run against the real provider
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/the_live_contract's_command_in_another_workflow`, `TestCheckWorkflows/the_live_contract's_command_run_from_its_directory_in_another_workflow`, `TestCheckWorkflows/the_live_contract's_marker_in_another_workflow`
+- **Break (9):** the refusal of a contract run against a real provider compiled at a level, so a live test without its provider's tag runs in a test workflow
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckRefusesAFileNoWorkflowRuns`, `TestCheckRefusesAFileNoWorkflowRuns/a_live_test_compiled_with_no_build_tag`
+- **Break (10):** args' refusal to select while a contract run against a real provider compiles at a level, so go flags from the environment put the live test into a test workflow's run
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestArgsRefusesWhileALiveTestCompiles`
+- **Break (11):** the check's comparison of each run's selection with its own tests, so a name two runs both select passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckRefusesANameTwoRunsSelect`
+- **Break (12):** the distinction between a whole ask and a narrowed one, so a workflow asking for its run only for some packages passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/a_run_asked_for_only_narrowed`
+- **Break (13):** the refusal of a test file compiled at neither level, so a test no run compiles passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckRefusesAFileNoWorkflowRuns`, `TestCheckRefusesAFileNoWorkflowRuns/a_file_compiled_at_neither_level`
+- **Break (14):** the refusal of a test file whose kind and level no workflow runs, so a plain _test.go file that needs the integration tag passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckRefusesAFileNoWorkflowRuns`, `TestCheckRefusesAFileNoWorkflowRuns/a_fixtures_file_compiled_without_the_tag`, `TestCheckRefusesAFileNoWorkflowRuns/a_unit-named_file_needing_the_tag`, `TestCheckRefusesAFileNoWorkflowRuns/an_integration_file_compiled_without_the_tag`
+- **Break (15):** the refusal of a run asked for outside its own workflow, so a kind's tests can run in a second workflow
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/a_run_asked_for_in_another_workflow`
+- **Break (16):** the refusal of a workflow that never asks for a run it exists to run, so its tests run in none
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/a_run_asked_for_only_narrowed`, `TestCheckWorkflows/a_run_no_workflow_asks_for`
+- **Break (17):** the refusal of a go test line without the selected arguments, so a bare go test passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/go_test_without_the_selection`
+- **Break (18):** the refusal of a go test line passing the selection twice
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestCheckWorkflows`, `TestCheckWorkflows/the_selection_twice`
+
 ## Golden and GoldenAt fail a test whose content differs from its recorded file
 
 - **Date · evidence:** 2026-09-28 · [pull request #182](https://github.com/ppat/mediated-mailbox-mcp/pull/182)

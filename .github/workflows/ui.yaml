@@ -2,9 +2,11 @@
 # yamllint disable rule:line-length
 name: ui
 
-# The UI in one job, in the order each stage's input is produced. The contract document comes first, then the
-# types and descriptor table generated from it, the bundle, the Go code embedding the bundle with the fixtures it
-# records, and the browser checks last.
+# The UI in one job, in the order each stage's input is produced. The types and descriptor table generated from
+# the contract document come first, then the bundle, the Go code embedding the bundle with the fixtures its tests
+# record, and the browser checks last. The contract document's own comparison with the registry is a unit test of
+# ui/internal/contract and runs in go-unit.yaml, and the UI's other Go tests run in the workflow of their kind
+# (ADR-0124).
 # The recorded fixtures are functions of the server's output, so the migration chain is watched as well, and
 # each data-access subsection the UI's list names joins it.
 on:
@@ -59,11 +61,6 @@ jobs:
         cd codegen
         mise exec -- bun install --frozen-lockfile
 
-    - name: Compare the contract document with what the registry generates
-      shell: bash
-      working-directory: ./current
-      run: mise exec -- go test ./ui/internal/contract
-
     - name: Compare the generated types and descriptor table with what the document generates
       shell: bash
       working-directory: ./current/ui/browser
@@ -74,23 +71,27 @@ jobs:
       working-directory: ./current/ui/browser
       run: mise exec -- bun run build
 
-    # The Go tests run under go tool pgrun with -tags integration, so the server's tests against PostgreSQL run
-    # here, and among them the one that records the browser's fixtures from the real server and fails when a
-    # checked-in fixture differs (ADR-0064). That diff runs in this job because the browser tests read the fixtures.
+    # The tests that record the browser's fixtures from the real server and fail when a checked-in fixture differs
+    # run here, under go tool pgrun with -tags integration, because the browser tests read the fixtures and the
+    # recording runs in their job (ADR-0064). They are the fixtures kind of ADR-0124, the files named
+    # _fixtures_integration_test.go, which go tool testkinds selects, and no other workflow runs them.
     #
-    # This run also runs the UI's property tests, so it sets RAPID_SEED non-zero, RAPID_CHECKS to the gating case
-    # count and RAPID_NOFAILFILE=true, and passes no -short (ADR-0069), the same values go-test.yaml sets.
-    # property.Check and property.Report fail a run whose seed is unset or zero or whose RAPID_NOFAILFILE is not true.
-    - name: Compile the UI with the bundle embedded and run its Go tests against one PostgreSQL container
+    # The run sets RAPID_SEED non-zero, RAPID_CHECKS to the gating case count and RAPID_NOFAILFILE=true, and passes
+    # no -short, the values every gating test run sets (ADR-0069). testkinds fails when no such test exists, so the
+    # step never passes having selected nothing.
+    - name: Compile the UI with the bundle embedded and record its fixtures against one PostgreSQL container
       shell: bash
       working-directory: ./current
       env:
         RAPID_SEED: '1'
         RAPID_CHECKS: '200'
         RAPID_NOFAILFILE: 'true'
+      # yamllint disable-line rule:indentation
       run: |
         mise exec -- go build -o /dev/null ./ui
-        mise exec -- go tool pgrun -- go test -tags integration ./ui/...
+        selection="$(mise exec -- go tool testkinds args fixtures integration)"
+        mapfile -t args <<< "$selection"
+        mise exec -- go tool pgrun -- go test "${args[@]}"
 
     - name: Type-check the browser layer
       shell: bash

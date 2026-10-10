@@ -7,10 +7,10 @@ name: mutation-patches
 # path-filtered, because a patch's diff context can span any file in the tree, not only the
 # package its control lives in.
 #
-# Its own workflow, run by neither go-test nor go-integration. A patch's applicability is a
-# standing guard on every pull request, apart from the mutation demonstration itself, which stays
-# event-driven per ADR-0046 and runs only by hand when a control, its tests or a generator
-# changes.
+# Its own workflow, run by neither go-unit nor go-integration. A patch's applicability is a
+# standing guard on every pull request, apart from the mutation demonstration itself, which runs
+# by hand when a control, its tests or a generator changes (ADR-0046), and in full in the
+# mutation-demonstrations workflow on a schedule and on demand (ADR-0124).
 on:
   pull_request:
   workflow_dispatch:

@@ -27,8 +27,8 @@ func TestTheEntryTemplateNeedsNoLooserPolicy(t *testing.T) {
 }
 
 // TestTheBundleNeedsNoLooserPolicy scans every file of the built bundle. On a fresh clone the bundle
-// directory holds only its placeholder, and the ui workflow builds the bundle before this test runs,
-// so the test skips, naming the step, when there is nothing to scan.
+// directory holds only its placeholder, and the go-unit workflow builds the bundle before this test
+// runs, so the test skips, naming the step, when there is nothing to scan.
 func TestTheBundleNeedsNoLooserPolicy(t *testing.T) {
 	dist := filepath.Join("..", "..", "browser", "dist")
 	var scanned int
@@ -50,7 +50,7 @@ func TestTheBundleNeedsNoLooserPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	if scanned == 0 {
-		t.Skip("ui/browser/dist holds no bundle. Build it with bun run build in ui/browser, as the ui workflow does first")
+		t.Skip("ui/browser/dist holds no bundle. Build it with bun run build in ui/browser, as the go-unit workflow does first")
 	}
 }
 

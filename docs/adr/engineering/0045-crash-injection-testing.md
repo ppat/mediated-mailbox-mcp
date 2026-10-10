@@ -34,11 +34,12 @@ invariants checked after recovery, and a deliberately coarse crash model.
   comes second. Lease accounting and sync-cursor recovery come only if the first two prove the
   harness pays.
 - **Bounded, fixed-seed runs gate every pull request, and deep sequence exploration runs
-  scheduled, never gating.** The bounded runs ride the ordinary code-test suite beside the
-  integration tests, because a sequence runs against an in-memory model and replays against
-  PostgreSQL only when reduced or drawn from a fixed seed, so the backfill target's bounded runs
-  take seconds. A target whose bounded runs proved too slow for the gate would run them on the
-  scheduled, non-gating workflow instead.
+  scheduled, never gating.** The bounded runs ride the gating suite on every pull request beside
+  the integration tests, in a workflow of their own, and the deep exploration runs in another
+  ([ADR-0124](./0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)), because a sequence runs
+  against an in-memory model and replays against PostgreSQL only when reduced or drawn from a fixed
+  seed, so the backfill target's bounded runs take seconds. A target whose bounded runs proved too
+  slow for the gate would run them on the scheduled, non-gating workflow instead.
 - **The physical drills stay.** Killing the real process mid-run proves the real substrate once,
   and the in-process harness explores the sequence space cheaply and continuously. Disjoint
   kinds, not substitutes.
