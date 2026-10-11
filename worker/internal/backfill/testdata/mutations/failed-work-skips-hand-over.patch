@@ -8,7 +8,8 @@ integration: yes
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -488,6 +488,9 @@
+@@ -531,8 +531,11 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+ 		if err := u.open(); err != nil {
  			return errors.Join(append(handOvers, err)...)
  		}
  		step, err := p.Next(ctx)
@@ -18,3 +19,4 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  		if hoErr := u.end(ctx); hoErr != nil {
  			handOvers = append(handOvers, hoErr)
  		}
+ 		metrics.Count(account, step)

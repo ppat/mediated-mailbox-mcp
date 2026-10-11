@@ -1,0 +1,17 @@
+control: A mutation patch is refused when a hunk's context matches at more than one place in its file
+removes: the search for a hunk's place stops at its first match, so a hunk whose context matches twice is never seen
+packages: ./testsupport/cmd/mutproof/...
+tests: TestHunkMatchRefusesAHunkWhoseContextRepeats TestHunkMatchRefusesARepeatAtTheHeaderLine TestPatchWhoseHunkMatchesTwiceIsRefused TestCheckTree
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+--- a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
++++ b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+@@ -367,6 +367,7 @@ func place(img []imageLine, h hunk) (at int, matches []int) {
+ 		}
+ 		if matchesAt(img, pos, h.pre, matchEnd) {
+ 			matches = append(matches, pos)
++			break
+ 		}
+ 	}
+ 	if len(matches) == 0 {

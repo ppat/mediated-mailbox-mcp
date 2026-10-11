@@ -1,0 +1,20 @@
+control: A mutation patch is refused when a hunk's context matches at more than one place in its file
+removes: a hunk git holds to the start or the end of its file is matched anywhere, so one whose context repeats elsewhere is refused though git gives it one place
+packages: ./testsupport/cmd/mutproof/...
+tests: TestHunkMatchCountsByGitsAnchors
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+--- a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
++++ b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+@@ -359,8 +359,8 @@ func readImage(root, path string) ([]imageLine, error) {
+ // apply's rules, and the one of them git apply picks, the match nearest the hunk's header line,
+ // after it when two are as near.
+ func place(img []imageLine, h hunk) (at int, matches []int) {
+-	matchBeginning := h.oldStart <= 1
+-	matchEnd := h.trailing == 0
++	matchBeginning := false
++	matchEnd := false
+ 	for pos := 0; pos+len(h.pre) <= len(img); pos++ {
+ 		if matchBeginning && pos != 0 || matchEnd && pos+len(h.pre) != len(img) {
+ 			continue

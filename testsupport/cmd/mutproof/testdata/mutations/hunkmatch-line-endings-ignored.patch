@@ -1,0 +1,18 @@
+control: A mutation patch is refused when a hunk's context matches at more than one place in its file
+removes: lines are compared with a carriage return before the newline ignored, so a hunk matches lines git apply does not match it to
+packages: ./testsupport/cmd/mutproof/...
+tests: TestHunkMatchComparesLineEndings
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+--- a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
++++ b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+@@ -391,7 +391,7 @@ func matchesAt(img []imageLine, pos int, pre []string, matchEnd bool) bool {
+ 		if line.patched {
+ 			return false
+ 		}
+-		if line.text == text {
++		if strings.Replace(line.text, "\r\n", "\n", 1) == strings.Replace(text, "\r\n", "\n", 1) {
+ 			continue
+ 		}
+ 		last := i == len(pre)-1

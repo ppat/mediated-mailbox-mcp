@@ -1,0 +1,18 @@
+control: A mutation patch is refused when a hunk's context matches at more than one place in its file
+removes: a last preimage line without a newline is compared as a prefix even in a hunk that must match at the end of the file, where git compares it exactly
+packages: ./testsupport/cmd/mutproof/...
+tests: TestHunkMatchHoldsAnEndAnchoredLastLineExactly
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+--- a/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
++++ b/testsupport/cmd/mutproof/internal/hunkmatch/hunkmatch.go
+@@ -395,7 +395,7 @@ func matchesAt(img []imageLine, pos int, pre []string, matchEnd bool) bool {
+ 			continue
+ 		}
+ 		last := i == len(pre)-1
+-		if last && !matchEnd && !strings.HasSuffix(text, "\n") && strings.HasPrefix(line.text, text) && onlySpace(line.text[len(text):]) {
++		if last && !strings.HasSuffix(text, "\n") && strings.HasPrefix(line.text, text) && onlySpace(line.text[len(text):]) {
+ 			continue
+ 		}
+ 		return false

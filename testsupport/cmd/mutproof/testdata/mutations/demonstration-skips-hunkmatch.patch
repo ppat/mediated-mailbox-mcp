@@ -1,0 +1,18 @@
+control: A mutation patch is refused when a hunk's context matches at more than one place in its file
+removes: a demonstration checks where the hunks of an empty patch match, not the patch's own, so it runs a patch without checking where its hunks match
+packages: ./testsupport/cmd/mutproof/...
+tests: TestPatchWhoseHunkMatchesTwiceIsRefused
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/main.go b/testsupport/cmd/mutproof/main.go
+--- a/testsupport/cmd/mutproof/main.go
++++ b/testsupport/cmd/mutproof/main.go
+@@ -300,7 +300,7 @@ func demonstrate(ctx context.Context, root string, environ, pgrun []string, patc
+ 	if _, err := gitApply(pristine, "--check", absPatch); err != nil {
+ 		return result{}, fmt.Errorf("the patch does not apply: %w", err)
+ 	}
+-	if err := hunkmatch.Check(pristine, src); err != nil {
++	if err := hunkmatch.Check(pristine, nil); err != nil {
+ 		return result{}, fmt.Errorf("the patch could apply somewhere other than its author meant: %w", err)
+ 	}
+ 	paths, err := touchedPaths(pristine, absPatch, src)

@@ -1,0 +1,17 @@
+control: A mutation patch is refused when a hunk's context matches at more than one place in its file
+removes: the check of every patch in the tree checks where the hunks of an empty patch match, not the patch's own, so it runs git apply --check alone
+packages: ./testsupport/cmd/mutproof/...
+tests: TestCheckTree
+scheduled-count: no
+
+diff --git a/testsupport/cmd/mutproof/check.go b/testsupport/cmd/mutproof/check.go
+--- a/testsupport/cmd/mutproof/check.go
++++ b/testsupport/cmd/mutproof/check.go
+@@ -90,5 +90,6 @@ func checkPatch(root, rel string) error {
+ 	if _, err := gitApply(root, "--check", path); err != nil {
+ 		return fmt.Errorf("it no longer applies to the tree: %w", err)
+ 	}
+-	return hunkmatch.Check(root, src)
++	_ = src
++	return hunkmatch.Check(root, nil)
+ }
