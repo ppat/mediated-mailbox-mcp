@@ -1,6 +1,7 @@
 package rules_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -53,6 +54,22 @@ func TestCheck(t *testing.T) {
 				t.Errorf("Check (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// Each scope's route words are written out, so a word a policy screen's address starts using is a
+// change to this list, which review checks against the rules already stored, since a rule stored under
+// a word that becomes a route word could no longer be reached (docs/UI.md section 5). The browser's
+// test/routes.test.ts pins the router's words after each scope's policy path to the same lists.
+func TestTheRouteWordsAreAClosedList(t *testing.T) {
+	for scope, want := range map[string][]string{
+		rules.Account: {"base", "history", "import", "new", "pick"},
+		rules.Base:    {"history", "import", "new"},
+	} {
+		got := slices.Sorted(slices.Values(rules.Reserved(scope)))
+		if !slices.Equal(got, want) {
+			t.Errorf("the %s scope's route words are %v, and its pinned words are %v", scope, got, want)
+		}
 	}
 }
 

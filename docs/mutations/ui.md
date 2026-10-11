@@ -403,6 +403,34 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 - **Break:** a run event carries the run's state as first read and never the changed checkpoint
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheStreamSendsEachChangedObject`
 
+## Every word the UI's routes use where an account or a rule identifier also sits is a closed list a test pins
+
+- **Date · evidence:** 2026-10-11 · [pull request #348](https://github.com/ppat/mediated-mailbox-mcp/pull/348)
+- **Break (1):** an account's policy screens gain the route word export, which the pinned list does not hold
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules`:** `TestTheRouteWordsAreAClosedList`
+- **Break (2):** the base policy's route words no longer hold import, a pinned word its screens use
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules`:** `TestTheRouteWordsAreAClosedList`
+- **Break (3):** account setup refuses a top-level word the pinned list does not hold, help
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheTopLevelWordsAreAClosedList`
+- **Break (4):** account setup no longer refuses api, a pinned top-level word the server's routes use
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheTopLevelWordsAreAClosedList`
+- **Break (5):** the server registers a route under help, a top-level word the pinned list does not hold
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheTopLevelWordsAreAClosedList`
+- **Break (6):** the build writes robots.txt at the bundle's top level, a name the pinned list does not hold
+  - **Went red in `test/build.test.ts`:** `the bundle's top level is the entry module, its stylesheet and the fonts directory alone`
+- **Break (7):** the build writes the fonts directory as font, so the pinned name fonts is missing from the bundle's top level
+  - **Went red in `test/build.test.ts`:** `the built stylesheet takes each font from a file the build copies, and inlines none`, `the bundle's top level is the entry module, its stylesheet and the fonts directory alone`
+- **Break (8):** the router matches export after an account's policy path before a rule, with the account parameter named acct, a word the pinned list does not hold
+  - **Went red in `test/routes.test.ts`:** `the router's words where an account or a rule identifier also sits are a closed list`
+- **Break (9):** the router matches export after the base policy's path before a rule, a word the pinned list does not hold
+  - **Went red in `test/routes.test.ts`:** `the router's words where an account or a rule identifier also sits are a closed list`
+- **Break (10):** the router no longer matches pick after an account's policy path, a pinned word, so pick is read as a rule
+  - **Went red in `test/routes.test.ts`:** `the router's words where an account or a rule identifier also sits are a closed list`
+- **Break (11):** the router matches help at the top level before an account, written without its leading slash, a word the pinned list does not hold
+  - **Went red in `test/routes.test.ts`:** `the router's words where an account or a rule identifier also sits are a closed list`
+- **Break (12):** the router matches export after an account's policy/base path before a base rule, where the pinned list holds no word
+  - **Went red in `test/routes.test.ts`:** `the router's words where an account or a rule identifier also sits are a closed list`
+
 ## `go vet` refuses a copy of a recording mux
 
 - **Date · evidence:** 2026-09-29 · [pull request #193](https://github.com/ppat/mediated-mailbox-mcp/pull/193), repeated with its patch regenerated in [pull request #207](https://github.com/ppat/mediated-mailbox-mcp/pull/207), and repeated in [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323)

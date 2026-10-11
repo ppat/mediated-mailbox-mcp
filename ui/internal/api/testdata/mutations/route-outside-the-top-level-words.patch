@@ -1,0 +1,22 @@
+control: Every word the UI's routes use where an account or a rule identifier also sits is a closed list a test pins
+removes: the server registers a route under help, a top-level word the pinned list does not hold
+packages: ./ui/internal/api
+tests: TestTheTopLevelWordsAreAClosedList
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 11aa9a43..cc7184a5 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -228,10 +228,11 @@ func New(opts Options) (*Server, error) {
+ 		return nil, fmt.Errorf("handlers with no route: %v", slices.Sorted(maps.Keys(handlers)))
+ 	}
+ 	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
+ 		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+ 	}))
++	mux.Handle("/help", a)
+ 	mux.Handle("/", a)
+ 	s.uiMux = mux
+ 	// Every request is given its session, and every request whose method is not GET or HEAD is refused
+ 	// before it is routed unless it carries the session's request token (ADR-0061).
+ 	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))

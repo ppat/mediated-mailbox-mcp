@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -47,6 +48,47 @@ func TestTheEntryDocumentCarriesTheBrowsersConfiguration(t *testing.T) {
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the entry document lacks %s:\n%s", want, body)
+		}
+	}
+}
+
+// topLevelWords is every word the UI's own top-level paths use, which account setup refuses as an
+// account identifier (docs/UI.md section 5). They are the browser router's setup, the server's api,
+// and the built bundle's main.js, main.css and fonts. The list is written out, so a word the UI starts
+// using is a change to it, which review checks against the accounts already stored. The browser's
+// tests pin the router's word in test/routes.test.ts and the bundle's top level in test/build.test.ts.
+var topLevelWords = []string{"api", "fonts", "main.css", "main.js", "setup"}
+
+// Given a bundle whose top level is the built bundle's, the words account setup refuses are the pinned
+// top-level words, and every route the server registers starts with one of them or is the catch-all
+// that serves the entry document, so a route outside the list fails here even when its contract
+// operation is added with it (docs/UI.md section 5). TestTheBuiltBundleReservesThePinnedWords reads
+// the built bundle itself.
+func TestTheTopLevelWordsAreAClosedList(t *testing.T) {
+	bundle := fstest.MapFS{"main.js": {}, "main.css": {}, "fonts/a.woff2": {}, ".gitkeep": {}}
+	reserved, err := api.Reserved(bundle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slices.Sort(reserved)
+	if !slices.Equal(reserved, topLevelWords) {
+		t.Errorf("account setup refuses %v, and the pinned top-level words are %v", reserved, topLevelWords)
+	}
+	s, err := api.New(api.Options{
+		Bundle: bundle, Datasets: registry.Datasets(lookups), Logger: slog.New(slog.DiscardHandler),
+		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, pattern := range s.Served() {
+		path := pattern
+		if _, after, ok := strings.Cut(pattern, " "); ok {
+			path = after
+		}
+		word, _, _ := strings.Cut(strings.TrimPrefix(path, "/"), "/")
+		if path != "/" && !slices.Contains(topLevelWords, word) {
+			t.Errorf("the server registers %s, whose first word %q is not a pinned top-level word", pattern, word)
 		}
 	}
 }

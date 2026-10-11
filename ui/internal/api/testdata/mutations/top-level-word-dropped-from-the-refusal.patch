@@ -1,0 +1,23 @@
+control: Every word the UI's routes use where an account or a rule identifier also sits is a closed list a test pins
+removes: account setup no longer refuses api, a pinned top-level word the server's routes use
+packages: ./ui/internal/api
+tests: TestTheTopLevelWordsAreAClosedList
+scheduled-count: no
+
+diff --git a/ui/internal/api/entry.go b/ui/internal/api/entry.go
+index 8bfebe5e..66b8a1e4 100644
+--- a/ui/internal/api/entry.go
++++ b/ui/internal/api/entry.go
+@@ -90,11 +90,11 @@ func newApp(bundle fs.FS, browser Browser, k keys) (*app, error) {
+ func Reserved(bundle fs.FS) ([]string, error) {
+ 	entries, err := fs.ReadDir(bundle, ".")
+ 	if err != nil {
+ 		return nil, fmt.Errorf("reading the bundle's top level: %w", err)
+ 	}
+-	reserved := []string{"setup", "api"}
++	reserved := []string{"setup"}
+ 	for _, e := range entries {
+ 		if !strings.HasPrefix(e.Name(), ".") {
+ 			reserved = append(reserved, e.Name())
+ 		}
+ 	}

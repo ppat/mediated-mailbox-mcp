@@ -191,28 +191,17 @@ func TestTheInstallationShowsNoAccountsState(t *testing.T) {
 	}
 }
 
-// The words the UI's own top-level paths use are the router's setup, the read API's api and the name
-// of every file and directory at the top of the bundle, apart from a dot file, which is not served
-// (docs/UI.md section 8.12). The bundle the binary embeds is read here, when it holds a build.
-func TestTheReservedWordsAreTheBundlesTopLevel(t *testing.T) {
-	dist := filepath.Join("..", "..", "browser", "dist")
-	entries, err := os.ReadDir(dist)
+// The words account setup refuses, read from the bundle the binary embeds, are the pinned top-level
+// words (docs/UI.md section 5), so a file or directory the build adds at the bundle's top level fails
+// here until the list names it. The bundle is built first, as the go-integration workflow does, and a
+// bundle directory holding only its placeholder fails the comparison rather than passing unchecked.
+func TestTheBuiltBundleReservesThePinnedWords(t *testing.T) {
+	got, err := api.Reserved(os.DirFS(filepath.Join("..", "..", "browser", "dist")))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"api", "setup"}
-	for _, e := range entries {
-		if !strings.HasPrefix(e.Name(), ".") {
-			want = append(want, e.Name())
-		}
-	}
-	got, err := api.Reserved(os.DirFS(dist))
-	if err != nil {
-		t.Fatal(err)
-	}
-	slices.Sort(want)
 	slices.Sort(got)
-	if !slices.Equal(got, want) {
-		t.Errorf("the reserved words are %v, want %v", got, want)
+	if !slices.Equal(got, topLevelWords) {
+		t.Errorf("the built bundle reserves %v, and the pinned top-level words are %v. A bundle holding only its placeholder is built with bun run build in ui/browser", got, topLevelWords)
 	}
 }

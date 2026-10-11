@@ -196,6 +196,25 @@ unreachable ([sections 8.12](#812-connect-an-account-and-re-authorize),
 goes to that object's list under the new account (a plan to the plans list, a candidate to the
 queue, a run to Jobs, a row detail to its lens).
 
+**The route words are closed lists.** Each refusal is checked only when an account or a rule is
+created, so a word the UI starts using later would make an account or rule already stored under that
+word unreachable, and its bookmarks with it. The words the UI's own top-level paths use, `setup`,
+`api`, `main.js`, `main.css` and `fonts`, and each policy scope's route words are therefore closed
+lists that tests pin as literals. They sit at the positions where an account or a rule identifier
+also sits, the first segment, the segment after an account's `policy`, the segment after
+`setup/policy`, and the segment after an account's `policy/base`, where a base rule's identifier
+sits and no word does, so that list is empty. A word added there would need the base scope's refused
+words to hold it as well. The router's test reads the literal word at each position from every route
+whose earlier segments match that position's path, whatever its parameters are named and however its
+slashes are written. A test fails when such a route, a route the server registers, the built
+bundle's top level or a refusal holds a word its list does not hold, and when the router, the bundle
+or a refusal no longer holds one its list holds. So adding a word is a visible change to a pinned
+list, which review checks against the accounts and rules already stored. A route that puts a
+parameter where those paths have a literal word, such as `/{account}/{section}/{word}`, is left to
+review. The browser's tests and the server's tests each hold their own copy of these lists, and no
+test compares the two, so review keeps them equal. The account refusal still reads the bundle's top
+level when the server starts, and the tests pin what it reads.
+
 **Query parameters.** `level` is explicit, 0 to 3 on a lens route. L0 ignores `group`. L1 requires
 exactly one group. L2 requires exactly one group and at least one dimension filter. L3 ignores
 `group`. A mismatch is a client error. `group=a` names one groupable dimension of the dataset.
