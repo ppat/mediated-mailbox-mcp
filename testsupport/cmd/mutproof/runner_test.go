@@ -692,6 +692,55 @@ func TestCopyIsTheWorkingTreeAsGitSeesIt(t *testing.T) {
 	requireAbsent(t, filepath.Join(dir, "twin", "twin_test.go"))
 }
 
+// TestCopyCarriesTheBuiltBundle builds a bundle into the fixture's ui/browser/dist, which git ignores
+// apart from its placeholder, and tracks the placeholder, as this repository does. The fixture's
+// bundle test reads the entry module there, so a copy that left the built bundle out would be red
+// before the patch. The placeholder is added with -f, so git lists it whatever excludes the
+// developer's own git configuration holds, and a copy that took it twice would fail. Another ignored
+// file stays out of the copy.
+func TestCopyCarriesTheBuiltBundle(t *testing.T) {
+	root := fixtureRoot(t)
+	writeFile(t, filepath.Join(root, ".gitignore"), "ignored.txt\nui/browser/dist/*\n!ui/browser/dist/.gitkeep\n", 0o600)
+	if err := os.MkdirAll(filepath.Join(root, "ui", "browser", "dist", "fonts"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(root, "ui", "browser", "dist", ".gitkeep"), "", 0o600)
+	git(t, root, "add", "-f", "ui/browser/dist/.gitkeep")
+	writeFile(t, filepath.Join(root, "ui", "browser", "dist", "main.js"), "export {};\n", 0o600)
+	writeFile(t, filepath.Join(root, "ui", "browser", "dist", "fonts", "plex.woff2"), "font\n", 0o600)
+	writeFile(t, filepath.Join(root, "gate", "ignored.txt"), "ignored\n", 0o600)
+	res, err := demonstrateFixture(t, root, "bundle", "red", fixtureEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := outcome{Red: []string{"fixture/bundle TestTheEntryIsBuilt"}, Held: true}
+	if diff := cmp.Diff(want, outcomeOf(res), compare.Options); diff != "" {
+		t.Errorf("outcome (-want +got):\n%s", diff)
+	}
+	files, err := workingTreeFiles(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if files, err = withBuiltBundle(root, files); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := copyTree(root, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Error(err)
+		}
+	})
+	for _, rel := range []string{".gitkeep", "main.js", filepath.Join("fonts", "plex.woff2")} {
+		if _, err := os.Stat(filepath.Join(dir, "ui", "browser", "dist", rel)); err != nil {
+			t.Errorf("the built bundle's %s is not in the copy: %v", rel, err)
+		}
+	}
+	requireAbsent(t, filepath.Join(dir, "gate", "ignored.txt"))
+}
+
 func TestCopyRefusesASymbolicLink(t *testing.T) {
 	root := fixtureRoot(t)
 	if err := os.Symlink("gate.go", filepath.Join(root, "gate", "link")); err != nil {

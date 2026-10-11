@@ -100,7 +100,10 @@ stale.
   policy, the entry document loading the bundle's entry module, and the reserved words a bundle's
   top level holds. Against the checked-in placeholder they skip, check less or fail. So the unit and
   the integration workflows build the bundle before their run, as the `ui` workflow builds it before
-  the recording, and watch the bundle's sources.
+  the recording, and watch the bundle's sources. The mutation workflow runs those same tests in the
+  runner's copies of the tree, so it builds the bundle before the runner starts, and the runner
+  carries the checkout's built bundle into each copy, which git ignores and so leaves out of the
+  tree it lists.
 - **The triggers follow the measured cost of each kind.** Measured on this repository's CI runners,
   in the pull request that implements this record. Each time is the wall time of the step that runs
   the tests on a fresh GitHub-hosted `ubuntu-24.04` runner, compilation and PostgreSQL's start under
@@ -191,6 +194,12 @@ stale.
   none.
 - The `-run` pattern grows with the number of tests. An argument past the operating system's limit
   fails the go command loudly rather than running fewer tests.
+- The runner's two copies of a demonstration carry the same built bundle, the checkout's, so a go
+  test demonstration whose patch edits the bundle's sources or its build reaches no bundle built
+  from the patch. Its named tests read the checkout's bundle under the patch, so a red the runner
+  reports comes from the patch's other edits, and a demonstration whose red must come from the
+  bundle reports the named test green or the mutant surviving. The browser's own tests build into
+  a directory of their own, so a bun test demonstration is not affected.
 - Assumptions about other components: `go list` reports which test files compile under a set of
   build tags as go test compiles them, and go test's `-run` selects top-level tests, examples and
   fuzz targets by name, with every subtest of a selected test running. What a workflow's text

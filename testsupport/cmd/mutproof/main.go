@@ -44,7 +44,9 @@
 // The runner never writes to the checkout it is run from. Each demonstration works in throwaway
 // copies of the working tree as git sees it, which is the tracked files and the untracked files git
 // does not ignore, so an author's uncommitted control and patch are included and ignored build
-// output is not. Both copies of a demonstration are taken before any of its tests run, the second
+// output is not. The one exception is the built browser bundle, which git ignores and the UI's tests
+// read, so the copies carry the checkout's, as the workflows build it before the tests (copy.go).
+// Both copies of a demonstration are taken before any of its tests run, the second
 // from the first, so the two runs see the same files apart from the patch even when the checkout
 // changes meanwhile. A copy is removed on every path out of the demonstration. Go's build and
 // module caches live outside the copies, and the runner sets GOFLAGS=-trimpath in the environment
@@ -283,6 +285,9 @@ func demonstrate(ctx context.Context, root string, environ, pgrun []string, patc
 	}
 	files, err := workingTreeFiles(root)
 	if err != nil {
+		return result{}, err
+	}
+	if files, err = withBuiltBundle(root, files); err != nil {
 		return result{}, err
 	}
 
