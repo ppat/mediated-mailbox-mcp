@@ -53,7 +53,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"InsecureHTTP bool", "SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
 		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
-		"SealPublicKeyFile string", "PrivateKeyFiles []string", "TokenKeyFile string",
+		"Credential core.Config", "TokenKeyFile string",
 		"ConsentRedirect string", "IdentityHeader string", "OperatorName string", "LogLevel string")
 }
 
@@ -97,11 +97,26 @@ func TestTheDefaults(t *testing.T) {
 func TestPlainHTTPRefusesTheStart(t *testing.T) {
 	args := []string{
 		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent",
-		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true", "--seal_public_key_file=/absent",
-		"--private_key_files=[/absent]",
+		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true", "--credential.public_key_file=/absent",
+		"--credential.private_key_files=[/absent]",
 	}
 	err := Run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard(), new(slog.LevelVar), bundle)
 	want := "validating the configuration: insecure_http is true, and a binary built without the devloop build tag serves TLS only"
+	if err == nil || err.Error() != want {
+		t.Errorf("Run returned %v, want %q", err, want)
+	}
+}
+
+// The credential section is validated as the mediator's and the worker's is, so an empty list of
+// private keys refuses the start before any key file is read (ADR-0078, VERIFICATIONS, the row for a
+// configuration mistake refused).
+func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
+	args := []string{
+		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
+		"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[]",
+	}
+	err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
+	want := "validating the configuration: credential.private_key_files names no file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
 	}
@@ -111,7 +126,7 @@ func TestPlainHTTPRefusesTheStart(t *testing.T) {
 func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
 	args := []string{
 		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
-		"--tls_cert=/tls/cert", "--seal_public_key_file=/absent", "--private_key_files=[/absent]",
+		"--tls_cert=/tls/cert", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]",
 	}
 	err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
 	want := "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true"
@@ -255,8 +270,8 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	}}))
 	err := Run(bounded(t), []string{
 		"--database.host=db.example", "--database.password_file=" + passwordFile, "--tls_cert=/absent/tls.crt", "--tls_key=/absent/tls.key",
-		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--seal_public_key_file=" + publicKeyFile,
-		"--private_key_files=[" + privateKeyFile + "]",
+		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--credential.public_key_file=" + publicKeyFile,
+		"--credential.private_key_files=[" + privateKeyFile + "]",
 	},
 		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, new(slog.LevelVar), bundle)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
@@ -268,6 +283,8 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=attention_mask_count source=default value=20`,
 		`level=INFO msg=configuration path=attention_serve_factor source=default value=2`,
 		`level=INFO msg=configuration path=consent_redirect source=default value=http://127.0.0.1:47823/`,
+		`level=INFO msg=configuration path=credential.private_key_files source="flag --credential.private_key_files" value=[` + privateKeyFile + `]`,
+		`level=INFO msg=configuration path=credential.public_key_file source="flag --credential.public_key_file" value=` + publicKeyFile,
 		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
 		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
 		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
@@ -282,9 +299,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
 		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=operator_name source=default value=operator`,
-		`level=INFO msg=configuration path=private_key_files source="flag --private_key_files" value=[` + privateKeyFile + `]`,
 		`level=INFO msg=configuration path=probe_listen source="flag --probe_listen" value=127.0.0.1:0`,
-		`level=INFO msg=configuration path=seal_public_key_file source="flag --seal_public_key_file" value=` + publicKeyFile,
 		`level=INFO msg=configuration path=stream_interval source=default value=2s`,
 		`level=INFO msg=configuration path=stream_poll_interval source=default value=5s`,
 		`level=INFO msg=configuration path=stream_reconnect_max source=default value=30s`,
@@ -346,7 +361,7 @@ func TestANonLoopbackConsentRedirectRefusesTheStart(t *testing.T) {
 	for _, value := range []string{"http://localhost:47823/", "http://127.0.0.1/", "http://192.0.2.1:47823/"} {
 		args := []string{
 			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
-			"--tls_key=/tls/key", "--seal_public_key_file=/absent", "--private_key_files=[/absent]", "--consent_redirect=" + value,
+			"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]", "--consent_redirect=" + value,
 		}
 		err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
 		want := "validating the configuration: consent_redirect is not an http address on a loopback IP literal with an explicit port"
@@ -391,7 +406,7 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 			var out bytes.Buffer
 			level := new(slog.LevelVar)
 			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
-			err := Run(t.Context(), append([]string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert", "--seal_public_key_file=/absent", "--private_key_files=[/absent]"}, c.args...), c.environ, logger, level, bundle)
+			err := Run(t.Context(), append([]string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, c.args...), c.environ, logger, level, bundle)
 			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
 				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
 			}

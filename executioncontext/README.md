@@ -231,10 +231,12 @@ once, the construction and its refusals hold in every deployable that touches a 
 Its packages are cut so an import list can admit the sealing half without the opening half, so the
 UI's code outside its one opening part links no code that opens a value. `seal` seals to the current
 public key. `open` holds the keyring of private keys and opens a value by the key its header names.
-`core` holds the configuration section naming the key files a deployable loads. `cmd/keygen` writes
-a key pair, since no standard tool writes X-Wing keys. The construction and the sealed value's bytes
-are [ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a key
-is replaced is
+`core` holds the configuration section naming the key files a deployable loads, which every process
+that reads them holds under the same keys, the UI's composition root included, since it holds paths
+and opens nothing. `cmd/keygen` writes a key pair, since no standard tool writes X-Wing keys. The
+construction and the sealed value's bytes are
+[ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a key is
+replaced is
 [ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)'s. Every write of
 a sealed value by a deployable is the compare-and-set of
 [ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md).
