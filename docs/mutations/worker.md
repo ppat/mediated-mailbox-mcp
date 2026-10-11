@@ -876,6 +876,18 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 - **Break:** removing a job cancels its run and returns before the run has returned
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule`:** `TestAJobEnsuredWhileItIsRemovedNeverRunsTwiceAtOnce`, `TestEnsuringAndRemovingAJobRapidlyLeavesNoLoopRunning`, `TestRemoveAndStopCancelTheirRunsAndWaitForThem`
 
+## The default scanner section's revision is the known answer checked in
+
+- **Date · evidence:** 2026-10-11 · [pull request #343](https://github.com/ppat/mediated-mailbox-mcp/pull/343), at RAPID_SEED=1
+- **Break (1):** the configuration library's revision algorithm takes the last 16 bytes of the section's hash rather than the first
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheScannerSectionBuildsTheSharedScanner`
+- **Break (2):** the configuration library's revision algorithm keeps only the first 8 bytes of the section's hash
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheScannerSectionBuildsTheSharedScanner`
+- **Break (3):** a field is added to the scanner's configuration type with a default that keeps today's behaviour, a third tier's switch, off, that nothing reads
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheScannerSectionBuildsTheSharedScanner`
+- **Break (4):** a field of the scanner's configuration type is given another YAML name, dense_length rendered as dense_run_length, its value unchanged
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheScannerSectionBuildsTheSharedScanner`
+
 ## The first pass ends only while no stored subject is masked under another scanner
 
 - **Date · evidence:** 2026-10-08 · [pull request #321](https://github.com/ppat/mediated-mailbox-mcp/pull/321), at RAPID_SEED=1, and every break again on 2026-10-10 at RAPID_SEED=1, after the worker merged backfill and delta sync into one deployable, which moved the code, tests or patches the row rests on · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)

@@ -1,0 +1,19 @@
+control: The default scanner section's revision is the known answer checked in
+removes: a field of the scanner's configuration type is given another YAML name, dense_length rendered as dense_run_length, its value unchanged
+packages: ./worker/app
+tests: TestTheScannerSectionBuildsTheSharedScanner
+scheduled-count: no
+
+diff --git a/core/scan/scan.go b/core/scan/scan.go
+index c5f2c44c..0536e58c 100644
+--- a/core/scan/scan.go
++++ b/core/scan/scan.go
+@@ -68,7 +68,7 @@ type Config struct {
+ 	Window int `yaml:"window"`
+ 	// DenseLength and DenseEntropy make a path segment or a parameter value dense, at least that
+ 	// many characters and at least that many bits of Shannon entropy per character.
+-	DenseLength  int     `yaml:"dense_length"`
++	DenseLength  int     `yaml:"dense_run_length"`
+ 	DenseEntropy float64 `yaml:"dense_entropy"`
+ 	// Weights and Threshold are tier 2's. A span scoring at or above the threshold is a one-time
+ 	// code. SubjectThreshold replaces Threshold on a subject, and may not exceed it, because masking a

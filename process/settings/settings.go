@@ -38,10 +38,10 @@
 // # What Load returns
 //
 // Load returns the merged configuration, each value's path with the layer that set it, and a
-// revision for each top-level section. The revision is a digest of the section's effective value,
-// so a change in any layer changes it and a change to another section does not. Load holds no
-// package-level state and shares no map or list with its defaults, so two loads in one process
-// hold nothing of each other.
+// revision for each top-level section. The revision is a digest of the section's YAML rendering
+// (ADR-0078), so a change in any layer changes it and a change to another section does not. Load
+// holds no package-level state and shares no map or list with its defaults, so two loads in one
+// process hold nothing of each other.
 package settings
 
 import (
