@@ -95,8 +95,9 @@ is pattern-checked at serve time and denied on a hit.
 **Making it auditable.** Every skip is recorded with its reason, and the UI surfaces skip rates by
 reason and by sender, so the gate is tuned from evidence. A growing `PENDING` backlog is its own
 failure mode. It silently converts messages into body-denials that read like permission bugs, so
-backlog depth is a watched metric, and the denial envelope for pending messages says "pending
-content scan" so the agent explains rather than misreports.
+backlog depth is a watched metric, and the denial envelope for pending messages carries the
+`pending_scan` reason, with a note saying it is backlog, so the agent explains rather than
+misreports.
 
 ## Alternatives considered
 

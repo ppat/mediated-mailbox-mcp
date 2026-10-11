@@ -1,0 +1,22 @@
+control: The audit row's closed columns refuse a value outside their sets, and a body decision's row names what it rests on
+removes: a body decision's row is stored with no reason, sender class or scan state
+packages: ./db/check
+tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 8f6d933f..b1ee7afa 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -443,10 +443,6 @@ CREATE TABLE audit_log (
+     scanner_revision text,
+     -- A body decision's row names its reason, sender class and scan state, and a mutation's row is
+     -- left to the columns its migration adds.
+-    CHECK (
+-        action NOT IN ('READ_BODY', 'DENY_BODY')
+-        OR (reason IS NOT null AND sender_class IS NOT null AND scan_state IS NOT null)
+-    ),
+     -- A class rule is recorded with its scope, or neither is.
+     CHECK ((class_rule_id IS null) = (class_rule_scope IS null))
+ );

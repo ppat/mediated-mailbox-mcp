@@ -45,23 +45,24 @@ const (
 	Released
 )
 
-// String names the reason.
+// String names the reason by its token, the one the client surface returns and the audit row and the
+// metrics record (ADR-0101).
 func (r Reason) String() string {
 	switch r {
 	case PendingScan:
-		return "pending content scan"
+		return "pending_scan"
 	case SkippedRestricted:
-		return "skipped as restricted"
+		return "skipped_restricted"
 	case RestrictedSender:
-		return "restricted sender"
+		return "restricted_sender"
 	case ContentFlagged:
-		return "content flagged"
+		return "content_flagged"
 	case Released:
 		return "released"
 	case InvalidState:
-		return "invalid stored state"
+		return "invalid_stored_state"
 	default:
-		return "invalid stored state"
+		return "invalid_stored_state"
 	}
 }
 

@@ -1,0 +1,19 @@
+control: A listed sender's verdict names the scope of the rule that matched
+removes: a listed sender's verdict names the rule without its scope
+packages: ./core/classify
+tests: TestTheVerdictNamesTheScopeOfTheRuleThatMatched TestClassify
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index 89f470a5..f9d53e83 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -111,7 +111,7 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
+ 	for _, r := range p.Rules() {
+ 		for _, suffix := range r.DomainSuffixes() {
+ 			if sender.Under(SuffixName(suffix, l)) {
+-				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID(), scope: r.Scope()}
++				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID()}
+ 			}
+ 		}
+ 	}

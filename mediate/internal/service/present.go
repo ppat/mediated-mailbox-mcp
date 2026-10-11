@@ -35,18 +35,43 @@ type stored struct {
 // (ADR-0003). Attachments are named by type only, each type a word the mapping derives from the
 // stored media, never a stored value (ADR-0123).
 type message struct {
-	AccountID       string          `json:"account_id"`
-	MessageID       string          `json:"message_id"`
-	ThreadID        string          `json:"thread_id"`
-	Subject         *string         `json:"subject"`
-	From            sender          `json:"from"`
-	Date            string          `json:"date"`
-	Labels          []string        `json:"labels"`
-	Flags           json.RawMessage `json:"flags"`
-	HasAttachments  bool            `json:"has_attachments"`
-	AttachmentTypes []string        `json:"attachment_types"`
-	Sensitivity     shownState      `json:"sensitivity"`
-	BodyAvailable   bool            `json:"body_available"`
+	AccountID       string       `json:"account_id"`
+	MessageID       string       `json:"message_id"`
+	ThreadID        string       `json:"thread_id"`
+	Subject         *string      `json:"subject"`
+	From            sender       `json:"from"`
+	Date            string       `json:"date"`
+	Labels          []string     `json:"labels"`
+	Flags           messageFlags `json:"flags"`
+	HasAttachments  bool         `json:"has_attachments"`
+	AttachmentTypes []string     `json:"attachment_types"`
+	Sensitivity     shownState   `json:"sensitivity"`
+	BodyAvailable   bool         `json:"body_available"`
+}
+
+// messageFlags are a message's states that are not labels, exactly the two the canonical model holds
+// (core/mail.Flags), so the contract states their keys and an agent never learns them from the data.
+type messageFlags struct {
+	Read    bool `json:"read"`
+	Starred bool `json:"starred"`
+}
+
+// storedMessageFlags reads the flags the index stores as a JSON object, which every writer writes as
+// two booleans (core/index). A missing key reads as false, as the search statements' filters read it,
+// a value that is not a JSON boolean reads as false too, and a key beside read and starred is not
+// served.
+func storedMessageFlags(stored []byte) messageFlags {
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(stored, &keys); err != nil {
+		return messageFlags{}
+	}
+	return messageFlags{Read: storedBool(keys["read"]), Starred: storedBool(keys["starred"])}
+}
+
+// storedBool reads one stored flag, false unless it is the JSON boolean true.
+func storedBool(raw json.RawMessage) bool {
+	var b bool
+	return json.Unmarshal(raw, &b) == nil && b
 }
 
 type sender struct {
@@ -118,14 +143,11 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
 		From:            sender{Email: m.FromEmail, DisplayName: m.FromName},
 		Date:            formatUTC(m.SentAt),
 		Labels:          nonNil(m.Labels),
-		Flags:           json.RawMessage(`{}`),
+		Flags:           storedMessageFlags(m.Flags),
 		HasAttachments:  m.HasAttachments,
 		AttachmentTypes: types(m.AttachmentMedia),
 		Sensitivity:     shownState{SenderClass: class, ContentFlags: shownFlags, ScanState: scan.String()},
 		BodyAvailable:   v.ReleasesBody(),
-	}
-	if json.Valid(m.Flags) && len(m.Flags) > 0 && m.Flags[0] == '{' {
-		out.Flags = m.Flags
 	}
 	return out
 }
@@ -155,7 +177,8 @@ const messageSchema = `{"type":"object","properties":{` +
 	`"from":{"type":"object","properties":{"email":{"type":"string"},"display_name":{"type":["string","null"]}},"required":["email","display_name"]},` +
 	`"date":` + timestampSchema + `,` +
 	`"labels":{"type":"array","items":{"type":"string"}},` +
-	`"flags":{"type":"object"},` +
+	`"flags":{"type":"object","properties":{"read":{"type":"boolean"},"starred":{"type":"boolean"}},` +
+	`"required":["read","starred"],"additionalProperties":false},` +
 	`"has_attachments":{"type":"boolean"},` +
 	`"attachment_types":{"type":"array","items":{"type":"string"}},` +
 	`"sensitivity":{"type":"object","properties":{` +

@@ -26,6 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
@@ -36,6 +37,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
 // stored is one message as the test writes it to the index and to the provider fake. The index row
@@ -315,29 +317,67 @@ func (h *harness) request(t *testing.T, id string) (body, string) {
 	return b, string(out)
 }
 
-// auditRow is one audit row as the test reads it back.
+// auditRow is one audit row as the test reads it back, with every column a body decision's row
+// records (ADR-0016). A NULL column reads as nil.
 type auditRow struct {
-	Actor, Action, Message, Sensitivity string
-	Rules                               []string
+	Actor, Action, Message     string
+	Stage, Reason, SenderClass *string
+	ClassRule, ClassScope      *string
+	ContentFlags, ContentRules []string
+	ServeRules                 []string
+	ScanState                  *string
+	ScannerVersion             *int32
+	ScannerRevision            *string
 }
 
 // audit returns the account's audit rows, oldest first.
 func (h *harness) audit(t *testing.T) []auditRow {
 	t.Helper()
-	rows, err := h.conn.Query(t.Context(), `SELECT actor, action, message_id, sensitivity::text, rule_ids FROM audit_log
-		WHERE account_id = $1 ORDER BY id`, h.account)
+	rows, err := h.conn.Query(t.Context(), `SELECT actor, action, message_id, stage, reason, sender_class, class_rule_id,
+		class_rule_scope, content_flags, content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
+		FROM audit_log WHERE account_id = $1 ORDER BY id`, h.account)
 	if err != nil {
 		t.Fatal(err)
 	}
 	out, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (auditRow, error) {
 		var a auditRow
-		err := r.Scan(&a.Actor, &a.Action, &a.Message, &a.Sensitivity, &a.Rules)
+		err := r.Scan(&a.Actor, &a.Action, &a.Message, &a.Stage, &a.Reason, &a.SenderClass, &a.ClassRule, &a.ClassScope,
+			&a.ContentFlags, &a.ContentRules, &a.ServeRules, &a.ScanState, &a.ScannerVersion, &a.ScannerRevision)
 		return a, err
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return out
+}
+
+// decided is the audit row a body decision writes when no policy rule set its sender class, no content
+// flag is stored and the serve-time pattern check did not run. The methods below add each of those.
+func decided(action, message, stage, reason, class, scan string) auditRow {
+	return auditRow{
+		Actor: "client", Action: action, Message: message, Stage: &stage, Reason: &reason, SenderClass: &class,
+		ContentFlags: []string{}, ContentRules: []string{}, ScanState: &scan,
+	}
+}
+
+// classRule records the policy rule that set the sender class, in its scope.
+func (a auditRow) classRule(id, scope string) auditRow {
+	a.ClassRule, a.ClassScope = &id, &scope
+	return a
+}
+
+// flagged records the stored content flags with the content rules that set them.
+func (a auditRow) flagged(flags, rules []string) auditRow {
+	a.ContentFlags, a.ContentRules = flags, rules
+	return a
+}
+
+// checked records the serve-time pattern check's run under the harness's scanner, with the rules it
+// matched.
+func (a auditRow) checked(rules []string) auditRow {
+	version, revision := int32(scan.Version), scannerRevision
+	a.ServeRules, a.ScannerVersion, a.ScannerRevision = rules, &version, &revision
+	return a
 }
 
 // counter returns the value of a counter series with the given labels, or for a histogram how many it
@@ -373,18 +413,38 @@ func counter(t *testing.T, metrics prometheus.Gatherer, name string, labels map[
 // provider never contacted, and for an ex-restricted, still-unscanned message whose body would pass
 // the serve-time pattern check. Each denial carries the gate's reason, the pending one told apart from
 // a restricted sender, and no snippet, filename or body text of the message reaches the response or
-// the audit row (ADR-0001). Every denial writes one DENY_BODY row naming the rules behind it, and is
-// counted as a gate denial (ADR-0036).
+// the audit row (ADR-0001). Every denial writes one DENY_BODY row with every column its decision rests
+// on, one case for each reason the gate gives and for each way a restricted sender's row differs, and
+// is counted as a gate denial (ADR-0016, ADR-0036). A flag stored on a message not yet scanned is an
+// invalid stored state, and its row keeps the flag and the rules behind it, the only evidence of why.
+// A sender the classifier cannot read is restricted with no rule behind it, and a restricted sender's
+// stored flag keeps its content rules apart from the policy rule.
 func TestTheGateDeniesFromTheIndexWithoutReachingTheProvider(t *testing.T) {
 	h := newHarness(t)
+	for _, m := range []struct{ id, from, domain, scan, flag, rule string }{
+		{"m-invalid", "news@newsletter.example", "newsletter.example", "pending", "login_link", "link.query_token"},
+		{"m-unreadable", "someone@com", "com", "scanned", "", ""},
+		{"m-bankcode", "codes@bank.example", "bank.example", "scanned", "mfa_code", "mfa.trigger_window"},
+	} {
+		flags, rules := []string{}, []string{}
+		if m.flag != "" {
+			flags, rules = []string{m.flag}, []string{m.rule}
+		}
+		must(t, h.conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
+			sender_class, scan_state, content_flags, rule_ids) VALUES ($1, $2, $2, $3, $4, now(), false, 'normal', $5, $6, $7)`,
+			h.account, m.id, m.from, m.domain, m.scan, flags, rules)
+	}
 	cases := []struct {
 		id, reason string
-		rules      []string
+		row        auditRow
 	}{
-		{"m-bank", "restricted sender", []string{"base.bank"}},
-		{"m-pending", "pending content scan", []string{}},
-		{"m-flagged", "content flagged", []string{"link.query_token"}},
-		{"m-oldrestricted", "skipped as restricted", []string{}},
+		{"m-bank", "restricted_sender", decided("DENY_BODY", "m-bank", "gate", "restricted_sender", "restricted", "scanned").classRule("base.bank", "base")},
+		{"m-pending", "pending_scan", decided("DENY_BODY", "m-pending", "gate", "pending_scan", "normal", "pending")},
+		{"m-flagged", "content_flagged", decided("DENY_BODY", "m-flagged", "gate", "content_flagged", "normal", "scanned").flagged([]string{"login_link"}, []string{"link.query_token"})},
+		{"m-oldrestricted", "skipped_restricted", decided("DENY_BODY", "m-oldrestricted", "gate", "skipped_restricted", "normal", "skipped_restricted")},
+		{"m-invalid", "invalid_stored_state", decided("DENY_BODY", "m-invalid", "gate", "invalid_stored_state", "normal", "pending").flagged([]string{"login_link"}, []string{"link.query_token"})},
+		{"m-unreadable", "restricted_sender", decided("DENY_BODY", "m-unreadable", "gate", "restricted_sender", "restricted", "scanned")},
+		{"m-bankcode", "restricted_sender", decided("DENY_BODY", "m-bankcode", "gate", "restricted_sender", "restricted", "scanned").classRule("base.bank", "base").flagged([]string{"mfa_code"}, []string{"mfa.trigger_window"})},
 	}
 	for _, c := range cases {
 		t.Run(c.id, func(t *testing.T) {
@@ -396,12 +456,12 @@ func TestTheGateDeniesFromTheIndexWithoutReachingTheProvider(t *testing.T) {
 			if strings.Contains(out, marker.BodyPrefix) || strings.Contains(out, ".pdf") {
 				t.Errorf("the denial carries message text: %s", out)
 			}
-			if c.reason == "pending content scan" && !strings.Contains(*got.Note, "backlog") {
+			if c.reason == "pending_scan" && !strings.Contains(*got.Note, "backlog") {
 				t.Errorf("the pending denial's note does not read as backlog: %s", *got.Note)
 			}
 			// A sender left unscanned as restricted may have been delisted since, so the note must not
 			// say the policy lists it (ADR-0037).
-			if c.reason == "skipped as restricted" && strings.Contains(*got.Note, "is on the sensitive-sender policy") {
+			if c.reason == "skipped_restricted" && strings.Contains(*got.Note, "is on the sensitive-sender policy") {
 				t.Errorf("the note for a message skipped as restricted says the policy lists its sender: %s", *got.Note)
 			}
 		})
@@ -409,25 +469,20 @@ func TestTheGateDeniesFromTheIndexWithoutReachingTheProvider(t *testing.T) {
 	if n := h.providerCalls(); n != 0 {
 		t.Errorf("the provider received %d calls for bodies the gate denied", n)
 	}
-	rows := h.audit(t)
-	if len(rows) != len(cases) {
-		t.Fatalf("%d audit rows for %d denials: %+v", len(rows), len(cases), rows)
-	}
-	for i, c := range cases {
-		r := rows[i]
-		if r.Action != "DENY_BODY" || r.Message != c.id || r.Actor != "client" || !slices.Equal(r.Rules, c.rules) {
-			t.Errorf("the audit row of %s is %+v", c.id, r)
-		}
-		if strings.Contains(r.Sensitivity, marker.BodyPrefix) {
-			t.Errorf("the audit row of %s carries message text: %s", c.id, r.Sensitivity)
-		}
-	}
-	if want := `{"scan_state": "scanned", "sender_class": "restricted", "class_rule_id": "base.bank", "content_flags": []}`; rows[0].Sensitivity != want {
-		t.Errorf("the restricted sender's audit row records %s, want %s", rows[0].Sensitivity, want)
-	}
+	var want []auditRow
 	for _, c := range cases {
-		if got := counter(t, h.metrics, bodiesDeniedName, map[string]string{"account": h.account, "stage": "gate", "reason": c.reason}); got != 1 {
-			t.Errorf("the gate denials for %q count %v, want 1", c.reason, got)
+		want = append(want, c.row)
+	}
+	if diff := cmp.Diff(want, h.audit(t), compare.Options); diff != "" {
+		t.Errorf("the gate denials' audit rows (-want +got):\n%s", diff)
+	}
+	counts := map[string]float64{}
+	for _, c := range cases {
+		counts[c.reason]++
+	}
+	for reason, want := range counts {
+		if got := counter(t, h.metrics, bodiesDeniedName, map[string]string{"account": h.account, "stage": "gate", "reason": reason}); got != want {
+			t.Errorf("the gate denials for %q count %v, want %v", reason, got, want)
 		}
 	}
 	if got := counter(t, h.metrics, bodiesServedName, map[string]string{"account": h.account}); got != 0 {
@@ -483,9 +538,14 @@ func TestAReleasedBodyIsCleanMarkdown(t *testing.T) {
 	if n := h.providerCalls(); n != 4 {
 		t.Errorf("two releases made %d provider calls, want a body and a metadata call each", n)
 	}
-	rows := h.audit(t)
-	if len(rows) != 2 || rows[0].Action != "READ_BODY" || rows[1].Action != "READ_BODY" || rows[0].Message != "m-news" {
-		t.Fatalf("the audit rows are %+v", rows)
+	// Each release is the serve stage's, and the serve-time pattern check ran over its filenames,
+	// even none, under the harness's scanner and matched nothing.
+	want := []auditRow{
+		decided("READ_BODY", "m-news", "serve", "released", "normal", "scanned").checked([]string{}),
+		decided("READ_BODY", "m-plain", "serve", "released", "normal", "scanned").checked([]string{}),
+	}
+	if diff := cmp.Diff(want, h.audit(t), compare.Options); diff != "" {
+		t.Errorf("the releases' audit rows (-want +got):\n%s", diff)
 	}
 	if got := counter(t, h.metrics, bodiesServedName, map[string]string{"account": h.account}); got != 2 {
 		t.Errorf("two serves counted %v", got)
@@ -534,7 +594,7 @@ func TestTheServeTimeCheckReadsEverythingReleased(t *testing.T) {
 	h := newHarness(t)
 	for _, id := range []string{"m-link", "m-snippetlink", "m-namecode", "m-scannedname"} {
 		got, out := h.request(t, id)
-		if got.Released || got.Reason != "serve-time pattern check matched" || got.Body != nil || got.Snippet != nil || got.AttachmentNames != nil {
+		if got.Released || got.Reason != "serve_time_check_matched" || got.Body != nil || got.Snippet != nil || got.AttachmentNames != nil {
 			t.Errorf("%s answered %s", id, out)
 		}
 		if strings.Contains(out, marker.BodyPrefix) || strings.Contains(out, "482913") || strings.Contains(out, "Zq8XvB3n") {
@@ -544,19 +604,22 @@ func TestTheServeTimeCheckReadsEverythingReleased(t *testing.T) {
 	if got, out := h.request(t, "m-skipped"); !got.Released || got.Snippet == nil {
 		t.Errorf("a clean gate-skipped message answered %s", out)
 	}
-	rows := h.audit(t)
-	if len(rows) != 5 {
-		t.Fatalf("the audit rows are %+v", rows)
+	// Each denial names the pattern rules that matched apart from the content rules, which none of
+	// these messages stores.
+	matched := func(id, scan string, rules ...string) auditRow {
+		return decided("DENY_BODY", id, "serve", "serve_time_check_matched", "normal", scan).checked(rules)
 	}
-	for _, r := range rows[:4] {
-		if r.Action != "DENY_BODY" || len(r.Rules) == 0 {
-			t.Errorf("a serve-time denial's audit row is %+v", r)
-		}
+	want := []auditRow{
+		matched("m-link", "skipped_gate", "link.path_token", "link.query_token"),
+		matched("m-snippetlink", "skipped_gate", "link.query_token"),
+		matched("m-namecode", "skipped_gate", "mfa.trigger_window"),
+		matched("m-scannedname", "scanned", "mfa.trigger_window"),
+		decided("READ_BODY", "m-skipped", "serve", "released", "normal", "skipped_gate").checked([]string{}),
 	}
-	if rows[4].Action != "READ_BODY" {
-		t.Errorf("the clean message's audit row is %+v", rows[4])
+	if diff := cmp.Diff(want, h.audit(t), compare.Options); diff != "" {
+		t.Errorf("the serve-time check's audit rows (-want +got):\n%s", diff)
 	}
-	labels := map[string]string{"account": h.account, "stage": "serve", "reason": "serve-time pattern check matched"}
+	labels := map[string]string{"account": h.account, "stage": "serve", "reason": "serve_time_check_matched"}
 	if got := counter(t, h.metrics, bodiesDeniedName, labels); got != 4 {
 		t.Errorf("the serve-time denials count %v, want 4", got)
 	}
@@ -619,13 +682,16 @@ func TestABodyTheConversionRefusesIsDenied(t *testing.T) {
 	must(t, h.conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
 		sender_class, scan_state) VALUES ($1, 'm-huge', 'm-huge', 'a@newsletter.example', 'newsletter.example', now(), false, 'normal', 'scanned')`, h.account)
 	got, _ := h.request(t, "m-huge")
-	if got.Released || got.Reason != "the conversion refused the body" || got.Body != nil {
+	if got.Released || got.Reason != "conversion_refused" || got.Body != nil {
 		t.Errorf("a body the conversion refuses answered %+v", got)
 	}
-	if rows := h.audit(t); len(rows) != 1 || rows[0].Action != "DENY_BODY" {
-		t.Errorf("the audit rows are %+v", rows)
+	// The conversion refused the body before the serve-time pattern check could read it, so the row
+	// names no check, which tells it apart from the check's own denial.
+	want := []auditRow{decided("DENY_BODY", "m-huge", "serve", "conversion_refused", "normal", "scanned")}
+	if diff := cmp.Diff(want, h.audit(t), compare.Options); diff != "" {
+		t.Errorf("the refusal's audit row (-want +got):\n%s", diff)
 	}
-	if got := counter(t, h.metrics, bodiesDeniedName, map[string]string{"account": h.account, "stage": "serve", "reason": "the conversion refused the body"}); got != 1 {
+	if got := counter(t, h.metrics, bodiesDeniedName, map[string]string{"account": h.account, "stage": "serve", "reason": "conversion_refused"}); got != 1 {
 		t.Errorf("the refusal was counted %v times", got)
 	}
 }
@@ -643,7 +709,7 @@ func TestANewlyListedDomainIsDeniedOnTheNextCall(t *testing.T) {
 	must(t, h.conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES (NULL, 'base.news', 'restricted', ARRAY['newsletter.example'], 'operator', 'test')`)
 	calls := h.providerCalls()
-	if got, _ := h.request(t, "m-news"); got.Released || got.Reason != "restricted sender" {
+	if got, _ := h.request(t, "m-news"); got.Released || got.Reason != "restricted_sender" {
 		t.Errorf("the next call after the domain was listed answered %+v", got)
 	}
 	if h.providerCalls() != calls {
@@ -653,7 +719,7 @@ func TestANewlyListedDomainIsDeniedOnTheNextCall(t *testing.T) {
 	const policyRead = "SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules"
 	revoke(t, h.conn, policyRead)
 	must(t, h.conn, "DELETE FROM policy_rules WHERE rule_id = 'base.news'")
-	if got, _ := h.request(t, "m-news"); got.Released || got.Reason != "restricted sender" {
+	if got, _ := h.request(t, "m-news"); got.Released || got.Reason != "restricted_sender" {
 		t.Errorf("with the load failing, the request answered %+v, want the active policy's denial", got)
 	}
 	// A sender the active policy does not list is still released, so a failed load decides under
@@ -720,6 +786,68 @@ func TestNoBodyIsReleasedWithoutItsAuditRow(t *testing.T) {
 	}
 	if got := counter(t, h.metrics, bodiesServedName, map[string]string{"account": h.account}); got != 0 {
 		t.Errorf("a body whose audit write failed was counted as served %v times", got)
+	}
+}
+
+// D3's row for the class rule's scope. The base policy and the account each hold a rule named
+// base.bank, the base one restricting the bank and the account's the newsletter, so each denial's
+// audit row names the identifier with the scope of the rule that restricted its sender (ADR-0016,
+// ADR-0110). The request loads the policy before it decides, so the account's rule binds with no
+// reload (ADR-0099).
+func TestADenialNamesTheScopeOfTheRuleBehindIt(t *testing.T) {
+	h := newHarness(t)
+	must(t, h.conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
+		VALUES ($1, 'base.bank', 'restricted', ARRAY['newsletter.example'], 'operator', 'test')`, h.account)
+	for _, id := range []string{"m-bank", "m-news"} {
+		if got, out := h.request(t, id); got.Released || got.Reason != "restricted_sender" {
+			t.Fatalf("%s answered %s", id, out)
+		}
+	}
+	want := []auditRow{
+		decided("DENY_BODY", "m-bank", "gate", "restricted_sender", "restricted", "scanned").classRule("base.bank", "base"),
+		decided("DENY_BODY", "m-news", "gate", "restricted_sender", "restricted", "scanned").classRule("base.bank", "account"),
+	}
+	if diff := cmp.Diff(want, h.audit(t), compare.Options); diff != "" {
+		t.Errorf("the denials' audit rows (-want +got):\n%s", diff)
+	}
+}
+
+// D3's row for a reason the audit row's check does not know. A check that refuses the released token
+// stands in for a token the mediator writes and the check was never given. The release's audit write is
+// refused, so the request fails as the mediator's, its body is never returned and nothing is counted as
+// served or written (ADR-0016, ADR-0101).
+func TestAReasonTheAuditCheckDoesNotKnowReleasesNothing(t *testing.T) {
+	h := newHarness(t)
+	must(t, h.conn, "ALTER TABLE audit_log ADD CONSTRAINT audit_log_reason_unknown CHECK (reason <> 'released')")
+	url := postgres.URL(t)
+	t.Cleanup(func() {
+		ctx := context.Background()
+		c, err := pgx.Connect(ctx, url)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			if err := c.Close(ctx); err != nil {
+				t.Error(err)
+			}
+		}()
+		if _, err := c.Exec(ctx, "ALTER TABLE audit_log DROP CONSTRAINT audit_log_reason_unknown"); err != nil {
+			t.Error(err)
+		}
+	})
+	out, err := h.reg.Call(t.Context(), "get_message_body", json.RawMessage(`{"account_id":"`+h.account+`","message_id":"m-news"}`))
+	if err == nil {
+		t.Fatalf("a release whose audit row the check refused answered %s", out)
+	}
+	if origin, _ := service.Classify(err); origin != service.OriginMediator {
+		t.Errorf("the refused audit write is the %s's failure", origin)
+	}
+	if got := counter(t, h.metrics, bodiesServedName, map[string]string{"account": h.account}); got != 0 {
+		t.Errorf("a body whose audit row was refused was counted as served %v times", got)
+	}
+	if rows := h.audit(t); len(rows) != 0 {
+		t.Errorf("the refused write left the audit rows %+v", rows)
 	}
 }
 

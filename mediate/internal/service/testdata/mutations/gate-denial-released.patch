@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
-index 4c0a9c5..2444b97 100644
+index b868a7c7..b79b7619 100644
 --- a/mediate/internal/service/body.go
 +++ b/mediate/internal/service/body.go
-@@ -156,7 +156,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
- 	shown := audited(v, flags, state)
- 	rules := gateRules(v, flags, row.RuleIds)
+@@ -158,7 +158,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 	v := redact.Decide(p, row.FromEmail, s.Lookups, flags, state)
+ 	g := gateDecided(v, flags, state, row.RuleIds)
  	denied := bodyResult{AccountID: account, MessageID: args.MessageID}
 -	if !v.ReleasesBody() {
 +	if false && !v.ReleasesBody() {
  		reason := v.Reason().String()
- 		if err := s.audit(ctx, account, args.MessageID, actionDeny, shown, rules); err != nil {
+ 		if err := s.audit(ctx, account, args.MessageID, actionDeny, StageGate, reason, g, serveCheck{}); err != nil {
  			return nil, err

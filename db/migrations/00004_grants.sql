@@ -94,7 +94,10 @@ GRANT SELECT (account_id, run_id, disposition, recovered_by) ON job_run_failures
 GRANT SELECT (account_id, plan_id, description, status) ON reorg_plans TO mediated_mailbox_mediate;
 -- Each serve and each denial of a body is recorded through db/auditlog/record, which only the
 -- mediator's list admits, as an insert and nothing else (ADR-0002, ADR-0016).
-GRANT INSERT (account_id, actor, action, message_id, sensitivity, rule_ids) ON audit_log TO mediated_mailbox_mediate;
+GRANT INSERT (
+    account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope, content_flags,
+    content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
+) ON audit_log TO mediated_mailbox_mediate;
 GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 
 -- Backfill (ADR-0118, ADR-0017).

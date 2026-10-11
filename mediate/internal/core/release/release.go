@@ -60,15 +60,17 @@ const (
 	Released
 )
 
-// String names the reason.
+// String names the reason by its token, the one the client surface returns and the audit row and the
+// metrics record (ADR-0101). Undecided's is no token, since nothing serves or records a decision
+// nobody made.
 func (r Reason) String() string {
 	switch r {
 	case NotReleasable:
-		return "scan state not releasable"
+		return "scan_state_not_releasable"
 	case NoScanner:
-		return "no scanner for the serve-time pattern check"
+		return "serve_time_check_no_scanner"
 	case PatternMatched:
-		return "serve-time pattern check matched"
+		return "serve_time_check_matched"
 	case Released:
 		return "released"
 	case Undecided:

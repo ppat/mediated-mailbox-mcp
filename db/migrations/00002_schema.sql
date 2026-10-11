@@ -407,15 +407,47 @@ CREATE TABLE job_run_failures (
 );
 
 -- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention.
+-- A body decision's row records what the decision rests on in typed columns, each closed vocabulary
+-- checked, since a wrong spelling written here stays for good (ADR-0016).
 CREATE TABLE audit_log (
     id bigserial PRIMARY KEY,
     ts timestamptz NOT NULL DEFAULT now(),
     account_id text NOT NULL,
     actor text NOT NULL,
-    -- READ_BODY | DENY_BODY | MUTATE | DENY_MUTATE
-    action text NOT NULL,
+    action text NOT NULL
+    CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),
     message_id text,
-    sensitivity jsonb,
-    rule_ids text[]
+    -- The stage that decided, gate for a gate denial and serve for every row decided after the gate
+    -- released the message.
+    stage text CHECK (stage IN ('gate', 'serve')),
+    -- The reason the client surface returns (ADR-0101).
+    reason text CHECK (
+        reason IN (
+            'released', 'pending_scan', 'skipped_restricted', 'restricted_sender', 'content_flagged',
+            'invalid_stored_state', 'scan_state_not_releasable', 'serve_time_check_no_scanner',
+            'serve_time_check_matched', 'conversion_refused'
+        )
+    ),
+    sender_class text CHECK (sender_class IN ('normal', 'restricted')),
+    -- The policy rule behind sender_class, and the scope that holds it (ADR-0110).
+    class_rule_id text,
+    class_rule_scope text CHECK (class_rule_scope IN ('base', 'account')),
+    content_flags text[] CHECK (content_flags <@ '{mfa_code,login_link}'),
+    -- The scanner rules behind the stored flags.
+    content_rule_ids text[],
+    -- The serve-time pattern check's rules and the scanner it ran under, NULL when it did not run.
+    serve_rule_ids text[],
+    scan_state text
+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
+    scanner_version int,
+    scanner_revision text,
+    -- A body decision's row names its reason, sender class and scan state, and a mutation's row is
+    -- left to the columns its migration adds.
+    CHECK (
+        action NOT IN ('READ_BODY', 'DENY_BODY')
+        OR (reason IS NOT null AND sender_class IS NOT null AND scan_state IS NOT null)
+    ),
+    -- A class rule is recorded with its scope, or neither is.
+    CHECK ((class_rule_id IS null) = (class_rule_scope IS null))
 );
 CREATE INDEX ON audit_log (account_id, ts DESC);

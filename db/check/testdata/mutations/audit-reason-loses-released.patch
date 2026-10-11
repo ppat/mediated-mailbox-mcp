@@ -1,0 +1,20 @@
+control: The audit row's closed columns refuse a value outside their sets, and a body decision's row names what it rests on
+removes: the audit row's reason set leaves out released, so a release's row is refused
+packages: ./db/check
+tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 8f6d933f..729e51ed 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -423,7 +423,7 @@ CREATE TABLE audit_log (
+     -- The reason the client surface returns (ADR-0101).
+     reason text CHECK (
+         reason IN (
+-            'released', 'pending_scan', 'skipped_restricted', 'restricted_sender', 'content_flagged',
++            'pending_scan', 'skipped_restricted', 'restricted_sender', 'content_flagged',
+             'invalid_stored_state', 'scan_state_not_releasable', 'serve_time_check_no_scanner',
+             'serve_time_check_matched', 'conversion_refused'
+         )

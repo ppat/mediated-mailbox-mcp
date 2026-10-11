@@ -1,0 +1,21 @@
+control: Each rule carries the scope that holds it
+removes: a loaded rule carries no scope
+packages: ./core/policy
+tests: TestEachRuleCarriesItsScope
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index 46696ea0..affff865 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -232,10 +232,8 @@ func load(rows []Row) (Snapshot, []string) {
+ 	for _, row := range rows {
+ 		rule := Rule{id: row.ID, suffixes: slices.Clone(row.DomainSuffixes)}
+ 		if row.Account == "" {
+-			rule.scope = BaseScope
+ 			s.base = append(s.base, rule)
+ 		} else {
+-			rule.scope = AccountScope
+ 			s.overlays[row.Account] = append(s.overlays[row.Account], rule)
+ 		}
+ 	}

@@ -1,0 +1,19 @@
+control: Each rule carries the scope that holds it
+removes: an account's overlay rule carries the base scope
+packages: ./core/policy
+tests: TestEachRuleCarriesItsScope
+scheduled-count: no
+
+diff --git a/core/policy/policy.go b/core/policy/policy.go
+index 46696ea0..4e790c57 100644
+--- a/core/policy/policy.go
++++ b/core/policy/policy.go
+@@ -235,7 +235,7 @@ func load(rows []Row) (Snapshot, []string) {
+ 			rule.scope = BaseScope
+ 			s.base = append(s.base, rule)
+ 		} else {
+-			rule.scope = AccountScope
++			rule.scope = BaseScope
+ 			s.overlays[row.Account] = append(s.overlays[row.Account], rule)
+ 		}
+ 	}

@@ -17,10 +17,11 @@ type outcome struct {
 	Restricted bool
 	Reason     string
 	Rule       string
+	Scope      string
 }
 
 func observe(v classify.Verdict) outcome {
-	return outcome{Restricted: v.Class().Restricted(), Reason: v.Reason().String(), Rule: v.Rule()}
+	return outcome{Restricted: v.Class().Restricted(), Reason: v.Reason().String(), Rule: v.Rule(), Scope: v.Scope().String()}
 }
 
 func snapshot(t *testing.T) policy.Snapshot {
@@ -45,7 +46,14 @@ var lookups = classify.Lookups{
 	Registrable: publicsuffix.EffectiveTLDPlusOne,
 }
 
-func listed(rule string) outcome { return outcome{Restricted: true, Reason: "listed", Rule: rule} }
+// listed is a sender a base rule lists, and listedByAccount one the account's own overlay lists.
+func listed(rule string) outcome {
+	return outcome{Restricted: true, Reason: "listed", Rule: rule, Scope: "base"}
+}
+
+func listedByAccount(rule string) outcome {
+	return outcome{Restricted: true, Reason: "listed", Rule: rule, Scope: "account"}
+}
 
 var (
 	unlisted       = outcome{Reason: "unlisted"}
@@ -65,7 +73,7 @@ func TestClassify(t *testing.T) {
 		{"a trailing dot", "acct-a", "x@fidelity.com.", listed("financial.brokerage.fidelity")},
 		{"a sender in punycode against a rule in Unicode", "acct-a", "x@alerts.xn--mnchen-3ya.de", listed("unicode.rule")},
 		{"a sender in Unicode against a rule in punycode", "acct-a", "x@bücher.ch", listed("punycode.rule")},
-		{"the account's own overlay", "acct-a", "x@examplebank.com", listed("candidate.acct-a.examplebank.com")},
+		{"the account's own overlay", "acct-a", "x@examplebank.com", listedByAccount("candidate.acct-a.examplebank.com")},
 		{"another account's overlay", "acct-b", "x@examplebank.com", unlisted},
 		{"a listed name inside a longer label", "acct-a", "x@notfidelity.com", unlisted},
 		{"a listed name followed by another domain", "acct-a", "x@fidelity.com.evil.example", unlisted},
@@ -104,5 +112,27 @@ func TestNoPolicyRestrictsEverySender(t *testing.T) {
 func TestTheZeroVerdictIsRestricted(t *testing.T) {
 	if diff := cmp.Diff(unclassifiable, observe(classify.Verdict{}), compare.Options); diff != "" {
 		t.Errorf("zero Verdict (-want +got):\n%s", diff)
+	}
+}
+
+// A listed sender's verdict names the scope of the rule that matched beside its identifier, since the
+// base policy and an account may each hold a rule of one identifier (ADR-0110). Each rule here
+// restricts its own domain, so the scope named is the matching rule's and not the other's.
+func TestTheVerdictNamesTheScopeOfTheRuleThatMatched(t *testing.T) {
+	s, err := policy.Load([]policy.Row{
+		{ID: "shared", Class: policy.Restricted, DomainSuffixes: []string{"bank.example"}},
+		{Account: "acct-a", ID: "shared", Class: policy.Restricted, DomainSuffixes: []string{"shop.example"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for address, want := range map[string]outcome{
+		"alerts@bank.example": listed("shared"),
+		"orders@shop.example": listedByAccount("shared"),
+		"news@other.example":  unlisted,
+	} {
+		if diff := cmp.Diff(want, observe(classify.Classify(s.For("acct-a"), address, lookups)), compare.Options); diff != "" {
+			t.Errorf("Classify(%q) (-want +got):\n%s", address, diff)
+		}
 	}
 }

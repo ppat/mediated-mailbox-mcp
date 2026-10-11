@@ -206,8 +206,11 @@ func seed(t *testing.T) {
 			},
 		},
 		{
-			`INSERT INTO audit_log (ts, account_id, actor, action, message_id) VALUES
-			($2, $1, 'agent', 'READ_BODY', 'm-news'), ($2, $1, 'agent', 'DENY_BODY', 'm-bank'), ($3, $1, 'agent', 'READ_BODY', 'm-news'), ($2, $4, 'agent', 'READ_BODY', 'm-other')`,
+			`INSERT INTO audit_log (ts, account_id, actor, action, message_id, stage, reason, sender_class, scan_state) VALUES
+			($2, $1, 'agent', 'READ_BODY', 'm-news', 'serve', 'released', 'normal', 'scanned'),
+			($2, $1, 'agent', 'DENY_BODY', 'm-bank', 'gate', 'restricted_sender', 'restricted', 'scanned'),
+			($3, $1, 'agent', 'READ_BODY', 'm-news', 'serve', 'released', 'normal', 'scanned'),
+			($2, $4, 'agent', 'READ_BODY', 'm-other', 'serve', 'released', 'normal', 'scanned')`,
 			[]any{personal, at(2 * time.Hour), at(3 * 24 * time.Hour), other},
 		},
 		{

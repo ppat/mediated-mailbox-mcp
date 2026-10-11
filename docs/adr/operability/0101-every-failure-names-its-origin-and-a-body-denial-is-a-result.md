@@ -56,6 +56,26 @@ The UI's own read API already tells origins apart in one error shape
   pending content scan, skipped as restricted, restricted sender, content flagged and invalid stored
   state, and the release step's, the serve-time pattern check matched, no scanner for the check, a
   scan state the release step never releases, and the conversion refused the body.
+- **A reason is a token of a closed set, and a released body's reason is `released`.** Each token
+  is lowercase snake case and names one meaning, so a client branches on it while the note says
+  why in words.
+
+  | Reason | Token |
+  | --- | --- |
+  | Released | `released` |
+  | Pending content scan | `pending_scan` |
+  | Skipped as restricted | `skipped_restricted` |
+  | Restricted sender | `restricted_sender` |
+  | Content flagged | `content_flagged` |
+  | Invalid stored state | `invalid_stored_state` |
+  | A scan state the release step never releases | `scan_state_not_releasable` |
+  | No scanner for the serve-time pattern check | `serve_time_check_no_scanner` |
+  | The serve-time pattern check matched | `serve_time_check_matched` |
+  | The conversion refused the body | `conversion_refused` |
+
+  The same tokens are the audit row's reason, which its check holds to this set
+  ([ADR-0016](../data/0016-schema.md)), and the reason label of the count of denied bodies, so one
+  vocabulary holds across the response, the evidence and the metric.
 
 ## Alternatives considered
 
@@ -70,6 +90,10 @@ The UI's own read API already tells origins apart in one error shape
   throttle. For it, ordinary HTTP clients branch on the status. Against it, the MCP root has no
   status, so the kind a client can branch on has to travel in the body anyway, and the status is
   then a second place for one fact.
+- **A denial's reason as an English phrase**, such as "pending content scan". For it, the reason
+  reads without the note. Against it, a client told to retry later on a pending scan depends on the
+  phrase's exact spelling, the phrases come in mixed styles, and the note already says why in
+  words.
 - **The provider's own error text in the message.** For it, more detail. Against it, it is
   unbounded text from outside the system in a field every client reads, the reason
   [ADR-0097](./0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)

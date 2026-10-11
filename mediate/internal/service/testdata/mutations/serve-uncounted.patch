@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
-index b89bba9..a86be1c 100644
+index b868a7c7..76efc221 100644
 --- a/mediate/internal/service/body.go
 +++ b/mediate/internal/service/body.go
-@@ -198,7 +198,6 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
- 	if err := s.audit(ctx, account, args.MessageID, actionRead, shown, rules); err != nil {
+@@ -201,7 +201,6 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 	if err := s.audit(ctx, account, args.MessageID, actionRead, StageServe, releasedReason, g, check); err != nil {
  		return nil, err
  	}
 -	s.Bodies.Observe(account, Outcome{Reason: releasedReason})

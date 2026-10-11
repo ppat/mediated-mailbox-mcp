@@ -283,3 +283,23 @@ func TestComposedPoliciesAreEqualByValue(t *testing.T) {
 		t.Error("two policies restricting every sender are not equal")
 	}
 }
+
+// Each rule carries the scope that holds it, so a rule the base policy and an account both hold under
+// one identifier is named apart by the two together (ADR-0110, ADR-0016). The zero Scope names none.
+func TestEachRuleCarriesItsScope(t *testing.T) {
+	s := load(t, []policy.Row{
+		rule("", "shared", "bank.example"),
+		rule("acct-a", "shared", "shop.example"),
+		rule("acct-a", "own", "own.example"),
+	})
+	var got []string
+	for _, r := range s.For("acct-a").Rules() {
+		got = append(got, r.ID()+" "+r.Scope().String())
+	}
+	if diff := cmp.Diff([]string{"shared base", "shared account", "own account"}, got, compare.Options); diff != "" {
+		t.Errorf("the rules' scopes (-want +got):\n%s", diff)
+	}
+	if got := policy.Scope(0).String(); got != "" {
+		t.Errorf("the zero Scope names %q", got)
+	}
+}

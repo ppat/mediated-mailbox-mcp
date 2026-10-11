@@ -1,0 +1,20 @@
+control: The audit row's closed columns refuse a value outside their sets, and a body decision's row names what it rests on
+removes: the audit row's stage is unchecked, so a stage outside gate and serve is stored
+packages: ./db/check
+tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 8f6d933f..7a9de794 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -419,7 +419,7 @@ CREATE TABLE audit_log (
+     message_id text,
+     -- The stage that decided, gate for a gate denial and serve for every row decided after the gate
+     -- released the message.
+-    stage text CHECK (stage IN ('gate', 'serve')),
++    stage text,
+     -- The reason the client surface returns (ADR-0101).
+     reason text CHECK (
+         reason IN (

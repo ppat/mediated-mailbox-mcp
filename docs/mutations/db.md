@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A policy-rule write names the transaction's account
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the base-rule policy admits inserting base rules rather than reading them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAPolicyRuleWriteNamesTheTransactionsAccount`, `TestAPolicyRuleWriteNamesTheTransactionsAccount/the_UI_inserts_a_base_rule`, `TestAPolicyRuleWriteNamesTheTransactionsAccount/the_UI_reads_the_base_rule`, `TestRowLevelSecurityScopesEveryAccountTable`, `TestRowLevelSecurityScopesEveryAccountTable/policy_rules/read_a_base_rule`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/a_transaction_naming_an_account_and_the_base_policy_writes_no_base_row`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/no_other_role_writes_the_base_policy`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_no_base_row_in_an_account's_transaction`
 - **Break (2):** the base-rule policy covers every command rather than reads, so a runtime role writes base rules
@@ -12,7 +12,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A sender domain is stored in the normalizer's form
 
-- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** a candidate's domain is refused only when every letter is a capital, so a domain holding one capital is stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestASenderDomainIsStoredInTheNormalizersForm`
 - **Break (2):** a message's sender domain is not checked, so a domain holding an ASCII capital is stored
@@ -22,7 +22,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A shared library's statements are planned under the role of each deployable and job kind that admits it
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and break (2) again on 2026-10-10 at RAPID_SEED=1, retargeted from the reorganization role, which no import list maps to, to backfill's job kind's role · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and renamed from "A shared library's statements are planned under the role of each deployable that admits it" on 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)
+- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and break (2) again on 2026-10-10 at RAPID_SEED=1, retargeted from the reorganization role, which no import list maps to, to backfill's job kind's role · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and renamed from "A shared library's statements are planned under the role of each deployable that admits it" on 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the spenders' roles may read and write grants but not delete them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestGrantsCoverAdmittedSubsections`
 - **Break (2):** backfill's job kind's role gets no grant on the rate limiter's tables, which its import list admits
@@ -30,7 +30,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A statement cannot read a column the schema does not hold
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the chain gives messages a body column, so the schema no longer withholds it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestGenerationRefusesAColumnTheSchemaDoesNotHold`, `TestGenerationRefusesAColumnTheSchemaDoesNotHold/body_column_violation.sql`
 - **Break (2):** a later migration renames messages.message_id to body, so the schema holds a body column in an identifier's place
@@ -52,7 +52,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## An account cannot name another provider's OAuth client
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the account's reference pairs its provider with the client's name and its client with the client's provider, so it is refused for the account's own provider's client
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAClientAnAccountConnectsThroughCannotBeRemoved`, `TestAnAccountCannotNameAnotherProvidersClient`, `TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/set_up_a_client,_connect_an_account_and_re-authorize_it`
 - **Break (2):** the account's reference names the client alone, so the client's provider is never compared with the account's
@@ -60,7 +60,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## An OAuth client an account connects through cannot be removed
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the account's reference to its client is dropped, so nothing refuses removing a client an account connects through
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAClientAnAccountConnectsThroughCannotBeRemoved`, `TestAnAccountCannotNameAnotherProvidersClient`
 - **Break (2):** removing a client an account connects through clears the account's client rather than being refused
@@ -68,7 +68,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## Each deployable's and each job kind's import list names only subsections its role is granted
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and break (2) on 2026-10-10 at RAPID_SEED=1, added with the grant of the read of its runs that a job's latest recorded success needs · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and break (2) on 2026-10-10 at RAPID_SEED=1, added with the grant of the read of its runs that a job's latest recorded success needs · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** backfill's job kind's import list admits the re-seal of a client's secret, which backfill's role is not granted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestGrantsCoverAdmittedSubsections`
 - **Break (2):** backfill's role is not granted the read of its runs' progress events, which the latest recorded success its list admits reads
@@ -76,13 +76,13 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## No runtime role can update or delete a row of the policy history
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and the break again on 2026-10-10 at RAPID_SEED=1, with its patch regenerated after the grants file's comments around it moved · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and the break again on 2026-10-10 at RAPID_SEED=1, with its patch regenerated after the grants file's comments around it moved · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break:** the UI's role gains update and delete on the policy history, so a compromised UI can rewrite who lifted a restriction
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestNoRuntimeRoleCanAlterThePolicyHistory`, `TestNoRuntimeRoleCanAlterThePolicyHistory/mediated_mailbox_ui/delete`, `TestNoRuntimeRoleCanAlterThePolicyHistory/mediated_mailbox_ui/update`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/delete`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_account_id`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_action`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_actor`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_id`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_rule_id`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_suffixes_after`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_suffixes_before`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_changes/update_ts`
 
 ## No runtime role can update or delete an audit row
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the chain grants DELETE on the audit log to every role
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestNoRuntimeRoleCanAlterTheAuditLog`, `TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_backfill/delete`, `TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_mediate/delete`, `TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_organize/delete`, `TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_propose/delete`, `TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_sync/delete`, `TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_ui/delete`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/audit_log/delete`
 - **Break (2):** the chain grants the reorganization workload's role TRUNCATE on the audit log, an erasing operation other than update and delete
@@ -92,7 +92,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## One OAuth client is never stored twice
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the uniqueness of a provider's client identifier is dropped, so one client may be stored under two names
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestOneClientIsNeverStoredTwice`
 - **Break (2):** a client identifier is unique across providers, so another provider's client holding the same identifier is refused
@@ -102,7 +102,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** delta sync's role loses the read and write of its account's credential that its snapshot's statements need
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestGrantsCoverAdmittedSubsections`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_sync/reads_its_own_account's_state`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_sync/updates_another_account's_credential`
 - **Break (2):** the UI's role reads and writes every account's credential column
@@ -124,7 +124,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## Row-level security scopes every account-keyed table to the transaction's account
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the row-level security test gained the attachment media table · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the row-level security test gained the attachment media table · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** row-level security is not enabled on account_state, so its policy never applies
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestRowLevelSecurityScopesEveryAccountTable`, `TestRowLevelSecurityScopesEveryAccountTable/account_state/insert_by_another_account`, `TestRowLevelSecurityScopesEveryAccountTable/account_state/read_by_another_account`, `TestRowLevelSecurityScopesEveryAccountTable/account_state/update_by_another_account`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_backfill/reads_its_own_account's_state`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_backfill/updates_another_account's_credential`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_mediate/reads_its_own_account's_state`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_mediate/updates_another_account's_credential`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_organize/reads_its_own_account's_state`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_organize/updates_another_account's_credential`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_sync/reads_its_own_account's_state`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_sync/updates_another_account's_credential`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_ui/reads_its_own_account's_progress`
 - **Break (2):** the audit log's policy compares the actor column with the account rather than account_id
@@ -138,7 +138,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## Schema change is confined to the migration role
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the chain grants a runtime role the right to create objects in the schema
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestRuntimeRolesCannotChangeTheSchema`, `TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_backfill/create_a_function`, `TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_backfill/create_a_table`
 - **Break (2):** the bootstrap makes a runtime role a member of the migration role, so it acts as the schema's owner
@@ -146,7 +146,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The attachment media at rest hold only the normalized form
 
-- **Date · evidence:** 2026-10-10 · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Date · evidence:** 2026-10-10 · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** a stored extension is not checked
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAttachmentMediaHoldsOnlyTheNormalizedForm`
 - **Break (2):** a stored media type is checked without regard to case, so one in capitals is stored
@@ -154,9 +154,39 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 - **Break (3):** a stored media type is not checked
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAttachmentMediaHoldsOnlyTheNormalizedForm`
 
+## The audit row's closed columns refuse a value outside their sets, and a body decision's row names what it rests on
+
+- **Date · evidence:** 2026-10-11 · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
+- **Break (1):** the audit row's action is unchecked, so a spelling outside its set is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (2):** every row needs a reason, sender class and scan state, so a mutation's row is refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (3):** a body decision's row is stored with no reason, sender class or scan state
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (4):** a body decision's row is stored with no scan state
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (5):** a class rule's identifier is stored without its scope and a scope without an identifier
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (6):** the audit row's content flags are checked to overlap the set rather than to sit inside it, so an unknown flag beside a known one is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (7):** the audit row's reason set leaves out released, so a release's row is refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAClientAnAccountConnectsThroughCannotBeRemoved`, `TestAPolicyRuleWriteNamesTheTransactionsAccount`, `TestARunRecordsOneOfTheBuiltJobKindsPairs`, `TestASenderDomainIsStoredInTheNormalizersForm`, `TestAnAccountCannotNameAnotherProvidersClient`, `TestAttachmentMediaHoldsOnlyTheNormalizedForm`, `TestEachCheckedColumnRefusesAValueOutsideItsSet`, `TestNoAccountIdentifierIsAPathSegmentThePathCannotHold`, `TestNoRuntimeRoleCanAlterTheAuditLog`, `TestNoRuntimeRoleCanAlterThePolicyHistory`, `TestOneClientIsNeverStoredTwice`, `TestOnlyTheProviderCallingRolesReadTheOAuthClients`, `TestRowLevelSecurityScopesEveryAccountTable`, `TestRuntimeRolesCannotChangeTheSchema`, `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction`, `TestTheListingRolesReadEveryAccount`, `TestTheOperationLogIsScopedThroughItsPlan`, `TestTheProviderCallingRolesReadOnlyTheirAccountsState`, `TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules`
+- **Break (8):** the audit row's reason is unchecked, so a spelling no token names is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (9):** the audit row's scan state set leaves out skipped_gate, so a gate-skipped message's row is refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`, `TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged`
+- **Break (10):** the class rule's scope is unchecked, so a scope outside base and account is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (11):** a scope is stored without a class rule's identifier, while an identifier still needs its scope
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (12):** the audit row's sender class is unchecked, so a class outside normal and restricted is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+- **Break (13):** the audit row's stage is unchecked, so a stage outside gate and serve is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets`
+
 ## The base policy is written only in a base-policy transaction
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and breaks 1 to 3 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and breaks 1 to 3 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the base history's insert policy is dropped, so a base rule's change cannot be recorded and its write fails whole
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_the_base_policy_in_a_base-policy_transaction`
 - **Break (2):** the base rules' write policy applies to every role rather than the UI's, so another runtime role writes base rules in a base-policy transaction
@@ -170,7 +200,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The checked vocabularies refuse a value outside their closed set
 
-- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the test's messages lost the attachment types column the schema no longer holds · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the test's messages lost the attachment types column the schema no longer holds · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the job kind and the pass are each checked against the words alone, so a pair no job kind records is stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestARunRecordsOneOfTheBuiltJobKindsPairs`
 - **Break (2):** a run's job kind and pass are not checked
@@ -208,7 +238,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The identifier grammar's migration stops over a stored account outside it and rewrites none
 
-- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the grammar's check is added without validating the stored accounts, so the migration applies over an account outside it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt`
 - **Break (2):** the migration removes each stored account outside the grammar before adding its check, so a system-of-record row is lost
@@ -216,7 +246,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The listing roles read the accounts table in full and write only their own rows
 
-- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), (1) repeated with its patch regenerated in [pull request #181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the row-level security test gained the attachment media table · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), (1) repeated with its patch regenerated in [pull request #181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the row-level security test gained the attachment media table · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the listing policy is dropped, so a listing role reads only its own row of the accounts table and a listing with no account set raises
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAListingNeedsNoAccountSet`, `TestAListingNeedsNoAccountSet/mediated_mailbox_backfill`, `TestAListingNeedsNoAccountSet/mediated_mailbox_mediate`, `TestAListingNeedsNoAccountSet/mediated_mailbox_organize`, `TestAListingNeedsNoAccountSet/mediated_mailbox_sync`, `TestAListingNeedsNoAccountSet/mediated_mailbox_ui`, `TestTheListingRolesReadEveryAccount`, `TestTheListingRolesReadEveryAccount/mediated_mailbox_backfill/lists_every_account`, `TestTheListingRolesReadEveryAccount/mediated_mailbox_mediate/lists_every_account`, `TestTheListingRolesReadEveryAccount/mediated_mailbox_organize/lists_every_account`, `TestTheListingRolesReadEveryAccount/mediated_mailbox_sync/lists_every_account`, `TestTheListingRolesReadEveryAccount/mediated_mailbox_ui/lists_every_account`
 - **Break (2):** the listing policy names no role, so every role granted a read of accounts lists every account
@@ -226,7 +256,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The operation log is scoped through its plan's account
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** row-level security is not enabled on the operation log, so its policy never applies
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheOperationLogIsScopedThroughItsPlan`, `TestTheOperationLogIsScopedThroughItsPlan/insert_by_another_account`, `TestTheOperationLogIsScopedThroughItsPlan/read_by_another_account`, `TestTheOperationLogIsScopedThroughItsPlan/update_by_another_account`
 - **Break (2):** the policy admits the plans of every account but the transaction's own
@@ -242,7 +272,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The run and audit indexes' migration leaves stored rows unchanged and builds every index
 
-- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the migration marks every running run failed while it builds the indexes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged`
 - **Break (2):** the migration leaves out the index of a job kind's runs by pass
@@ -250,7 +280,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The UI's role writes exactly the policy writes policy management makes, each with its history row
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the UI's role loses the delete on policy_rules, so lifting a rule is refused
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestGrantsCoverAdmittedSubsections`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/a_base-policy_transaction_reaches_no_account's_rows`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_its_account's_rule_in_its_account's_transaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_no_base_row_in_an_account's_transaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_the_base_policy_in_a_base-policy_transaction`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/add,_edit_and_lift_an_account's_rule_with_its_history`
 - **Break (2):** the UI's update on policy_rules covers every column rather than the domain suffixes, so an edit could move a rule between scopes or rename it
@@ -258,7 +288,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The UI's role writes exactly what its decisions and setups write, and reads a client's secret only for its one opening part
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the UI's role loses the read of a client's sealed secret its opening part needs
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestGrantsCoverAdmittedSubsections`, `TestOnlyTheProviderCallingRolesReadTheOAuthClients`, `TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_ui/reads_every_client`
 - **Break (2):** the UI's update grant on account_state covers every column rather than the setups' five
@@ -266,7 +296,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The UI's role writes only its decision columns and policy rules
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the UI's insert grant lands on policy_candidates rather than policy_rules
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestAPolicyRuleWriteNamesTheTransactionsAccount`, `TestAPolicyRuleWriteNamesTheTransactionsAccount/the_UI_inserts_a_base_rule`, `TestAPolicyRuleWriteNamesTheTransactionsAccount/the_UI_inserts_its_account's_rule`, `TestGrantsCoverAdmittedSubsections`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/a_base-policy_transaction_reaches_no_account's_rows`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/a_transaction_naming_an_account_and_the_base_policy_writes_no_base_row`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_no_base_row_in_an_account's_transaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_the_base_policy_in_a_base-policy_transaction`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/add,_edit_and_lift_an_account's_rule_with_its_history`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/confirm_a_candidate`, `TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/policy_candidates/insert`
 - **Break (2):** the UI's update grant on reorg_plans covers every column rather than the three its verb sets
