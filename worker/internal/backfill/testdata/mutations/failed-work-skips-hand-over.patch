@@ -6,9 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index c3cf033..666a919 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -531,8 +531,11 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+@@ -542,10 +542,13 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+ 		}
  		if err := u.open(); err != nil {
  			return errors.Join(append(handOvers, err)...)
  		}
@@ -20,3 +22,4 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  			handOvers = append(handOvers, hoErr)
  		}
  		metrics.Count(account, step)
+ 		if err != nil {

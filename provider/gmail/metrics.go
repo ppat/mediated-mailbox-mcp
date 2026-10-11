@@ -20,8 +20,9 @@ const providerLabel = "gmail"
 // Metrics are the adapter's series in one process (ADR-0076). A process builds them once on its own
 // registry and passes them to every Adapter it builds, one per account.
 type Metrics struct {
-	requestCost *prometheus.CounterVec
-	hardCap     *prometheus.GaugeVec
+	requestCost     *prometheus.CounterVec
+	hardCap         *prometheus.GaugeVec
+	requestDuration *prometheus.HistogramVec
 }
 
 // NewMetrics registers the adapter's series on reg and returns them.
@@ -36,8 +37,13 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 			Name: hardCapName,
 			Help: "The account's hard cap, the most the rate limiter issues in any one second, in the provider's units per second, from the ceiling the provider's adapter declares.",
 		}, labels),
+		requestDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    requestDurationName,
+			Help:    "How long each provider request this process sent took, from sending it to reading its answer, by the provider method it calls and its outcome, ok, throttled or failed.",
+			Buckets: []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
+		}, []string{"provider", "endpoint", "outcome"}),
 	}
-	for _, c := range []prometheus.Collector{m.requestCost, m.hardCap} {
+	for _, c := range []prometheus.Collector{m.requestCost, m.hardCap, m.requestDuration} {
 		if err := reg.Register(c); err != nil {
 			return nil, err
 		}
@@ -51,4 +57,14 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 func (m *Metrics) countRequest(account string, units int) {
 	m.hardCap.WithLabelValues(account, providerLabel).Set(mail.HardCapFraction * Profile{}.BudgetPerSecond())
 	m.requestCost.WithLabelValues(account, providerLabel).Add(float64(units))
+}
+
+// requestDurationName is the series timing each request by the Gmail method it calls and how it
+// ended, which no rule reads (ADR-0125).
+const requestDurationName = "mediated_mailbox_provider_request_duration_seconds"
+
+// observeRequest observes one request's latency in seconds under the Gmail method it called and its
+// outcome.
+func (m *Metrics) observeRequest(endpoint, outcome string, seconds float64) {
+	m.requestDuration.WithLabelValues(providerLabel, endpoint, outcome).Observe(seconds)
 }

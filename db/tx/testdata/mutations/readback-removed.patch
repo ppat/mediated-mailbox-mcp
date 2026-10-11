@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/tx/tx.go b/db/tx/tx.go
-index f565213..d643df8 100644
+index 0f753e6..24ade1d 100644
 --- a/db/tx/tx.go
 +++ b/db/tx/tx.go
-@@ -49,9 +49,6 @@ func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error
- 		if err := tx.QueryRow(ctx, "SELECT coalesce(current_setting('app.account', true), '')").Scan(&got); err != nil {
+@@ -75,9 +75,6 @@ func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error
+ 		if err := tx.QueryRow(ctx, "-- name: ReadTransactionAccount :one\nSELECT coalesce(current_setting('app.account', true), '')").Scan(&got); err != nil {
  			return fmt.Errorf("reading the account back: %w", err)
  		}
 -		if got == "" || got != account {

@@ -40,11 +40,11 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A transaction that did not set the account fails before any data access
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** the helper sets the account for the session rather than the transaction, so it outlives the transaction
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage`, `TestTheAccountEndsWithItsTransaction`
 - **Break (2):** the helper refuses a connection as the Beginner rather than a transaction
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage`, `TestRunRefusesATransaction`, `TestRunScopesTheTransactionToTheAccount`, `TestTheAccountEndsWithItsTransaction`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage`, `TestRunBaseWritesTheBasePolicyAndReadsNoAccount`, `TestRunRefusesATransaction`, `TestRunScopesTheTransactionToTheAccount`, `TestTheAccountEndsWithItsTransaction`, `TestTheBasePolicyEndsWithItsTransaction`
 - **Break (3):** the helper no longer refuses a transaction as the Beginner, so a savepoint's account outlives it in the outer transaction
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestRunRefusesATransaction`
 - **Break (4):** the helper no longer compares the setting it reads back with the account
@@ -156,7 +156,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The base policy is written only in a base-policy transaction
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and breaks 1 to 3 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and breaks 1 to 3 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** the base history's insert policy is dropped, so a base rule's change cannot be recorded and its write fails whole
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction`, `TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction/the_UI_writes_the_base_policy_in_a_base-policy_transaction`
 - **Break (2):** the base rules' write policy applies to every role rather than the UI's, so another runtime role writes base rules in a base-policy transaction

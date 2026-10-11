@@ -79,13 +79,16 @@ func value(m *dto.Metric) float64 {
 		return m.GetGauge().GetValue()
 	case m.GetCounter() != nil:
 		return m.GetCounter().GetValue()
+	case m.GetHistogram() != nil:
+		return float64(m.GetHistogram().GetSampleCount())
 	default:
 		return math.NaN()
 	}
 }
 
 // Each process's Limiter counts the tokens leased to it by class and the throttles it received by
-// scope, and sets the rate it last read or wrote (ADR-0024, ADR-0076).
+// scope, sets the rate it last read or wrote, and times each granted lease's wait by class, with no
+// account (ADR-0024, ADR-0076, ADR-0125). A histogram reads as the number of waits it observed.
 func TestTheLimiterEmitsItsProcesssSeries(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
@@ -108,12 +111,41 @@ func TestTheLimiterEmitsItsProcesssSeries(t *testing.T) {
 		{"mediated_mailbox_ratelimit_rate", account, ""}:                25,
 		{"mediated_mailbox_ratelimit_granted_total", account, "batch"}:  20,
 		{"mediated_mailbox_ratelimit_throttles_total", account, "user"}: 1,
+		{"mediated_mailbox_ratelimit_lease_wait_seconds", "", "batch"}:  2,
 	}
 	if diff := cmp.Diff(want, gathered(t, reg), compare.Options); diff != "" {
 		t.Errorf("series (-want +got):\n%s", diff)
 	}
 	if _, err := lease.NewMetrics(reg); err == nil {
 		t.Error("the series registered twice on one registry without an error")
+	}
+}
+
+// A lease refused at once is not a wait, so it is not timed, and only the granted lease beside it is
+// (ADR-0125).
+func TestARefusedLeaseIsNotTimed(t *testing.T) {
+	conn := superuser(t)
+	account := newAccount(t, conn)
+	reg := prometheus.NewRegistry()
+	metrics, err := lease.NewMetrics(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := lease.New(spenders(t), ceiling, metrics)
+	if _, err := l.Acquire(t.Context(), account, core.Interactive, hardCap+0.5); !errors.Is(err, lease.ErrRefused) {
+		t.Fatalf("Acquire past the hard cap returned %v, want ErrRefused", err)
+	}
+	if _, err := l.Acquire(t.Context(), account, core.Sync, 1); err != nil {
+		t.Fatal(err)
+	}
+	waits := map[string]float64{}
+	for s, v := range gathered(t, reg) {
+		if s.name == "mediated_mailbox_ratelimit_lease_wait_seconds" {
+			waits[s.other] = v
+		}
+	}
+	if diff := cmp.Diff(map[string]float64{"sync": 1}, waits, compare.Options); diff != "" {
+		t.Errorf("leases timed by class (-want +got):\n%s", diff)
 	}
 }
 

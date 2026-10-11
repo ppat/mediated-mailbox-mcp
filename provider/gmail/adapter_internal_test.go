@@ -32,15 +32,17 @@ type counted struct {
 	Value    float64
 }
 
-// The two series the adapter emits, by the names the runaway rule matches.
+// The two series the adapter emits that the runaway rule matches, by their names, and the latency
+// series no rule reads.
 const (
-	costSeries    = "mediated_mailbox_provider_request_cost_total"
-	hardCapSeries = "mediated_mailbox_provider_hard_cap"
+	costSeries     = "mediated_mailbox_provider_request_cost_total"
+	hardCapSeries  = "mediated_mailbox_provider_hard_cap"
+	durationSeries = "mediated_mailbox_provider_request_duration_seconds"
 )
 
 // gathered reads the series named name back from the registry, with the labels the runaway rule
 // matches on. A series the adapter does not emit, or a label the rule does not expect, fails the
-// test.
+// test. The latency series is read by gatheredDurations.
 func gathered(t *testing.T, reg *prometheus.Registry, name string) []counted {
 	t.Helper()
 	families, err := reg.Gather()
@@ -49,7 +51,7 @@ func gathered(t *testing.T, reg *prometheus.Registry, name string) []counted {
 	}
 	var out []counted
 	for _, f := range families {
-		if f.GetName() != costSeries && f.GetName() != hardCapSeries {
+		if f.GetName() != costSeries && f.GetName() != hardCapSeries && f.GetName() != durationSeries {
 			t.Errorf("the registry holds a series named %q", f.GetName())
 			continue
 		}

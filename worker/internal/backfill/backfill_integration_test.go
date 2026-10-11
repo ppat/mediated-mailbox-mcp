@@ -716,14 +716,19 @@ func firstPassDeps(t *testing.T, pool *pgxpool.Pool, account string) pass1.Deps 
 // Every page of the first pass is a unit of work. The account's session is opened before each page
 // and its unit ended after it, handing the token over, so a rotation reaches the database a page after
 // it happens rather than at the end of the run (ADR-0082). The messages whose sender the classifier
-// could not classify are counted on the account's series as each page is made durable (O2).
+// could not classify are counted on the account's series as each page is made durable (O2), and so are
+// the messages each page added to the index, each once (ADR-0125).
 func TestEachPageIsAUnitOfWork(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	account(t, conn, "personal", gmailProvider, nil, false)
 	pool := backfillPool(t)
 	registry := prometheus.NewRegistry()
-	metrics, err := pass1.NewMetrics(registry)
+	messages, err := series.NewMessages(registry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	metrics, err := pass1.NewMetrics(registry, messages)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -740,6 +745,60 @@ func TestEachPageIsAUnitOfWork(t *testing.T) {
 	if got := counterValue(t, registry, series.UnclassifiedName, "personal"); got != 1 {
 		t.Errorf("the unclassified senders series reads %v, want 1", got)
 	}
+	var stored float64
+	if err := conn.QueryRow(t.Context(), "SELECT count(*) FROM messages WHERE account_id = 'personal'").Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if got := stageValue(t, registry, "personal", series.StageIndexed); got != stored || stored == 0 {
+		t.Errorf("the messages series counts %v indexed, want the %v messages the index holds", got, stored)
+	}
+}
+
+// stageValue returns the account's count of messages made durable at stage on registry, or zero when
+// none was counted.
+func stageValue(t *testing.T, registry prometheus.Gatherer, account, stage string) float64 {
+	t.Helper()
+	families, err := registry.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range families {
+		if f.GetName() != series.MessagesName {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			labels := map[string]string{}
+			for _, l := range m.GetLabel() {
+				labels[l.GetName()] = l.GetValue()
+			}
+			if labels["account"] == account && labels["stage"] == stage {
+				return m.GetCounter().GetValue()
+			}
+		}
+	}
+	return 0
+}
+
+// stepCount returns how many times the body processing series on registry observed step.
+func stepCount(t *testing.T, registry prometheus.Gatherer, step string) uint64 {
+	t.Helper()
+	families, err := registry.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range families {
+		if f.GetName() != series.ProcessingName {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "step" && l.GetValue() == step {
+					return m.GetHistogram().GetSampleCount()
+				}
+			}
+		}
+	}
+	return 0
 }
 
 // A hand-over that fails is returned once the pass ends, and the pass still ends, since the loader
@@ -749,7 +808,7 @@ func TestAFailedHandOverFailsThePassAtItsEnd(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	account(t, conn, "personal", gmailProvider, nil, false)
-	metrics, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -847,7 +906,7 @@ func TestAFailedPageIsStillHandedOver(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	account(t, conn, "personal", gmailProvider, nil, false)
-	metrics, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

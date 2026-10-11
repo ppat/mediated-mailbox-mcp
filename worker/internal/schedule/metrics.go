@@ -51,9 +51,9 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 		}, []string{"job_kind", "outcome"}),
 		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    durationName,
-			Help:    "How long the job kind's runs took, from their start to their return.",
+			Help:    "How long the job kind's runs that succeeded, failed or panicked took, from their start to their return, by job, reload for the job of the whole kind and account for an account's.",
 			Buckets: []float64{0.01, 0.1, 1, 10, 60, 300, 1800, 3600, 4 * 3600, 12 * 3600},
-		}, []string{"job_kind"}),
+		}, []string{"job_kind", "job"}),
 		running: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: runningName,
 			Help: "Runs of the job kind's jobs running now.",
@@ -116,11 +116,27 @@ func (m *Metrics) Started(key Key) {
 	m.running.WithLabelValues(key.Kind).Inc()
 }
 
-// Finished implements Observer.
+// Finished implements Observer. Every outcome is counted, and only a run that did its work, one that
+// succeeded, failed or panicked, is timed, by its job, so an instant not_due run or a cancelled one
+// does not pull the distribution down and a reload's time is told apart from an account job's
+// (ADR-0125).
 func (m *Metrics) Finished(key Key, outcome Outcome, took time.Duration) {
 	m.running.WithLabelValues(key.Kind).Dec()
 	m.finished.WithLabelValues(key.Kind, string(outcome)).Inc()
-	m.duration.WithLabelValues(key.Kind).Observe(took.Seconds())
+	switch outcome {
+	case Succeeded, Failed, Panic:
+		m.duration.WithLabelValues(key.Kind, jobOf(key)).Observe(took.Seconds())
+	case NotDue, Cancelled:
+	}
+}
+
+// jobOf returns the job label of key's runs, reload for the job keyed by the kind alone and account
+// for an account's job.
+func jobOf(key Key) string {
+	if key.ID == "" {
+		return "reload"
+	}
+	return "account"
 }
 
 // Succeeded implements Observer.

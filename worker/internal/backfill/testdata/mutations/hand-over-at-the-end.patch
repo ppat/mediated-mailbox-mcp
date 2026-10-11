@@ -6,9 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index c3cf033..6a0802d 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -488,7 +488,7 @@
+@@ -543,9 +543,9 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+ 		if err := u.open(); err != nil {
  			return errors.Join(append(handOvers, err)...)
  		}
  		step, err := p.Next(ctx)
@@ -17,18 +19,21 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  			handOvers = append(handOvers, hoErr)
  		}
  		metrics.Count(account, step)
-@@ -506,6 +506,14 @@
- 			return errors.Join(handOvers...)
+ 		if err != nil {
+@@ -563,8 +563,16 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
  		}
  	}
-+}
-+
+ }
+ 
 +// endAtTheEnd ends the unit of work only when the pass is over.
 +func endAtTheEnd(ctx context.Context, u *unit, err error, step pass1.Step) error {
 +	if err == nil && !step.Done {
 +		return nil
 +	}
 +	return u.end(ctx)
- }
- 
++}
++
  // leasedBody returns the body fetch the second pass uses, a call of port's body read under a lease in
+ // the batch class (ADR-0025).
+ func leasedBody(limiter *lease.Limiter, port mail.Port[context.Context], account string) pass2.Body {
+ 	return func(ctx context.Context, id string) (mail.MessageBody, error) {

@@ -121,14 +121,15 @@ func (o *observing) Backlog(ctx context.Context, account string) (int64, error) 
 // and after the step that ends the pass, and the account's scan backlog series is set after each page,
 // so the last page leaves it reading the messages left waiting. The step that ends the pass removes it,
 // since delta sync's tick emits the account's backlog once the pass has ended (ADR-0082, ADR-0093,
-// ADR-0104).
+// ADR-0104). The messages each page scanned are counted, each scan is timed, and so is each
+// conversion, the one the conversion refused included (ADR-0125).
 func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	account(t, conn, "personal", gmailProvider, nil, false)
 	pool := backfillPool(t)
 	first, second := passesDeps(t, pool, "personal", bodyMailbox(t, "personal"))
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,8 +137,15 @@ func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	registry := prometheus.NewRegistry()
-	metrics, err := pass2.NewMetrics(registry)
+	messages, err := series.NewMessages(registry)
 	if err != nil {
+		t.Fatal(err)
+	}
+	metrics, err := pass2.NewMetrics(registry, messages)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Processing, err = series.NewProcessing(registry); err != nil {
 		t.Fatal(err)
 	}
 	var ends int
@@ -159,6 +167,19 @@ func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 	if got := accountsIn(t, registry, series.BacklogName); len(got) != 0 {
 		t.Errorf("the backlog series names %v once the pass ended, want none", got)
 	}
+	var scanned float64
+	if err := conn.QueryRow(t.Context(), "SELECT count(*) FROM messages WHERE account_id = 'personal' AND scan_state = 'scanned'").Scan(&scanned); err != nil {
+		t.Fatal(err)
+	}
+	if got := stageValue(t, registry, "personal", series.StageScanned); got != scanned || scanned == 0 {
+		t.Errorf("the messages series counts %v scanned, want the %v messages stored as scanned", got, scanned)
+	}
+	if got := stepCount(t, registry, series.StepScan); float64(got) != scanned {
+		t.Errorf("%d scans timed, want one for each of the %v messages scanned", got, scanned)
+	}
+	if got := stepCount(t, registry, series.StepConvert); got == 0 {
+		t.Error("no conversion was timed, while the pass converted at least the body it refused")
+	}
 }
 
 // A hand-over that fails is returned once the second pass ends, and the pass still ends (ADR-0082).
@@ -169,14 +190,14 @@ func TestAFailedHandOverFailsTheSecondPassAtItsEnd(t *testing.T) {
 	reset(t, conn)
 	account(t, conn, "personal", gmailProvider, nil, false)
 	first, second := passesDeps(t, backfillPool(t), "personal", bodyMailbox(t, "personal"))
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := passAccount(t.Context(), first, "personal", metrics1, idleUnit(t, conn, "personal"), schedule.Ask{}, slog.New(slog.DiscardHandler)); err != nil {
 		t.Fatal(err)
 	}
-	metrics, err := pass2.NewMetrics(prometheus.NewRegistry())
+	metrics, err := pass2.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,11 +270,11 @@ func TestNoBodyTextReachesTheIndexOrTheLogs(t *testing.T) {
 	first, second := passesDeps(t, backfillPool(t), "personal", bodyMailbox(t, "personal"))
 	var logs logBuffer
 	logger := logs.logger()
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	metrics, err := pass2.NewMetrics(prometheus.NewRegistry())
+	metrics, err := pass2.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

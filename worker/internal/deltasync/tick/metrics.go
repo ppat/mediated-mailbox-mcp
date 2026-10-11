@@ -18,6 +18,7 @@ type Metrics struct {
 	unclassified *prometheus.CounterVec
 	backlog      *prometheus.GaugeVec
 	gaps         *prometheus.CounterVec
+	messages     *series.Messages
 }
 
 // NewMetrics registers the tick's series on reg and returns them.
@@ -30,9 +31,14 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 	if err != nil {
 		return nil, err
 	}
+	messages, err := series.NewMessages(reg)
+	if err != nil {
+		return nil, err
+	}
 	m := &Metrics{
 		unclassified: unclassified,
 		backlog:      backlog,
+		messages:     messages,
 		gaps: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: gapsName,
 			Help: "The cursor gaps delta sync found, each starting a recovery that re-enumerates the window since the last cursor was written.",
@@ -44,13 +50,16 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 	return m, nil
 }
 
-// Count adds what one tick did to the account's series. The unclassified and gap series exist for
+// Count adds what one tick did to the account's series, its messages added and scanned among them
+// (ADR-0125). The unclassified and gap series exist for
 // every account a tick served, at zero until a sender goes unclassified or a gap is found, so the
 // gap rule sees the first gap as an increase. The backlog series exists only while the tick scans,
 // once backfill's second pass has ended, since backfill's job kind emits the account's own until then
 // (ADR-0104).
 func (m *Metrics) Count(account string, r Result) {
 	m.unclassified.WithLabelValues(account).Add(float64(r.Unclassified))
+	m.messages.Add(account, series.StageIndexed, r.Indexed)
+	m.messages.Add(account, series.StageScanned, r.Scanned)
 	gaps := m.gaps.WithLabelValues(account)
 	if r.Gap {
 		gaps.Inc()
@@ -67,4 +76,5 @@ func (m *Metrics) Forget(account string) {
 	m.unclassified.DeleteLabelValues(account)
 	m.backlog.DeleteLabelValues(account)
 	m.gaps.DeleteLabelValues(account)
+	m.messages.Forget(account)
 }

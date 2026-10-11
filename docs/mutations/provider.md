@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A canonical value cannot change the Gmail request it is written into
 
-- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158)
+- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** any non-empty identifier is written into a request path
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestValidID`
 - **Break (2):** an address is written into the search text whatever characters it holds
@@ -16,7 +16,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A Gmail port call sends no request past the cost it declares, and a caller-sized call fits one lease
 
-- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158)
+- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** a call compares what it spent before the request with its declared cost, so the request that takes it past is sent
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestWithin`
 - **Break (2):** a call sends every request whatever it has spent
@@ -28,7 +28,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A rotated refresh token is held, sent on the next refresh and handed to the deployable
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** a refresh response that leaves the refresh token out counts as rotating it to an empty token
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestARefreshThatDoesNotRotateKeepsTheToken`, `TestARefreshThatDoesNotRotateKeepsTheToken/field_left_out`, `TestARotatedRefreshTokenIsHeldSentAndHandedOver`, `TestAnAccessTokenIsUsedUntilItNearlyExpires`
 - **Break (2):** a rotation holds the new access token as the refresh token
@@ -47,7 +47,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A token request the provider refuses is reported as refused, one that gets no answer as failed, and a cancelled request or a held access token as no attempt
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** every token endpoint answer other than success counts as a refusal, whatever its status
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent`:** `TestARefreshsOutcome`
 - **Break (2):** the token endpoint's answer loses its status, so a refusal reads as an attempt that failed
@@ -63,7 +63,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A token request the provider refuses surfaces as a refused credential, and one that fails any other way before the call is cancelled or its deadline passes as a provider failure
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** every failure to obtain an access token is a refused credential, whatever its outcome
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestATokenFailureIsThePortErrorItsOutcomeNames`, `TestATokenRequestThatGetsNoAnswerIsAProviderError`
 - **Break (2):** a port call reports every failure to obtain an access token as a provider failure, without reading its outcome
@@ -77,7 +77,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Every call the Gmail rate profile sizes fits one second's worth at the hard cap, read from the hard-cap fraction
 
-- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), which regenerates break (2) against the profile read an enumeration page makes and demonstrates the row again, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the call size moved beside the hard-cap fraction and break (1) was regenerated against it · [pull request #321](https://github.com/ppat/mediated-mailbox-mcp/pull/321)
+- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), which regenerates break (2) against the profile read an enumeration page makes and demonstrates the row again, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the call size moved beside the hard-cap fraction and break (1) was regenerated against it · [pull request #321](https://github.com/ppat/mediated-mailbox-mcp/pull/321), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** the hard-cap fraction falls to 0.60 while the Gmail pages stay sized for 0.80, so an enumeration page no longer fits
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_cursor`, `TestEveryRequestSentIsCounted/a_label_listing`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`, `TestTheProfileMeetsTheContract`, `TestTheProfileMeetsTheContract/every_call_the_rate_profile_sizes_fits_one_second_at_the_hard_cap`
 - **Break (2):** an enumeration page holds four messages, 87 units, past the hard cap of 80
@@ -85,7 +85,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
 
-- **Date · evidence:** 2026-10-01 · [pull request #232](https://github.com/ppat/mediated-mailbox-mcp/pull/232), demonstrated again after it changed the tests the row names, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161)
+- **Date · evidence:** 2026-10-01 · [pull request #232](https://github.com/ppat/mediated-mailbox-mcp/pull/232), demonstrated again after it changed the tests the row names, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** a call is counted at the cost it declares when it begins, what its lease covers, rather than each request at what it costs when it is sent
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestARequestNeverSentIsNotCounted`, `TestAnOpChangingNothingReadsItsMessage`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`
 - **Break (2):** a request is counted only once Gmail answers it with success, so a failed request goes uncounted
@@ -93,13 +93,13 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 - **Break (3):** each request is counted as one, whatever Gmail charges for it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestAnOpChangingNothingReadsItsMessage`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/changes`
 - **Break (4):** the count is labelled with a provider value other than the adapter's own name
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestAnOpChangingNothingReadsItsMessage`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_cursor`, `TestEveryRequestSentIsCounted/a_label_listing`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestAnOpChangingNothingReadsItsMessage`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_cursor`, `TestEveryRequestSentIsCounted/a_label_listing`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`, `TestEveryRequestSentIsTimedByItsEndpoint`, `TestEveryRequestSentIsTimedByItsEndpoint/a_body`, `TestEveryRequestSentIsTimedByItsEndpoint/a_cursor`, `TestEveryRequestSentIsTimedByItsEndpoint/a_label_listing`, `TestEveryRequestSentIsTimedByItsEndpoint/a_thread`, `TestEveryRequestSentIsTimedByItsEndpoint/changes`
 - **Break (5):** a thread read carries the price of a thread listing, so it is counted and held at a quarter of what Gmail charges
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_thread`, `TestRequests`, `TestRequests/threads.get`
 
 ## Gmail's cost profile declares each call's worst case, every read of the label table included, and sizes its pages to one second's worth at the hard cap
 
-- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), which adds break (5) and demonstrates again the four breaks of [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158)
+- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), which adds break (5) and demonstrates again the four breaks of [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** EnsureLabel's second read of the label table, after Gmail answers that the label exists, is left out of its cost
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{6_0}`, `TestEachOperationsDearestPathFitsItsCall`, `TestEachOperationsDearestPathFitsItsCall/EnsureLabel`
 - **Break (2):** a metadata fetch naming no identifier is declared to cost nothing, so the rate limiter refuses it
@@ -113,7 +113,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## No credential is read from the environment
 
-- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and again on 2026-10-01 after an import the token source gained moved the context its patches carry, with all six patches regenerated, [pull request #227](https://github.com/ppat/mediated-mailbox-mcp/pull/227), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272)
+- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and again on 2026-10-01 after an import the token source gained moved the context its patches carry, with all six patches regenerated, [pull request #227](https://github.com/ppat/mediated-mailbox-mcp/pull/227), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** an empty refresh token falls back to an environment variable, read through a dot import
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestNoSourceFileReadsTheEnvironment`
 - **Break (2):** an empty refresh token falls back to an environment variable, read inside the receiver of a method call
@@ -253,7 +253,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The Gmail adapter emits its account's hard cap beside the count of request cost, from the ceiling its rate profile declares
 
-- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), demonstrated again after it changed the tests the row names, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161)
+- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), demonstrated again after it changed the tests the row names, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** the adapter emits the declared ceiling rather than the hard cap
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_cursor`, `TestEveryRequestSentIsCounted/a_label_listing`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`
 - **Break (2):** the adapter never sets the hard cap, so the runaway rule has nothing to compare the count against
@@ -261,7 +261,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The Gmail adapter requires only a label an op adds to exist, and an op left with nothing to change still finds its message
 
-- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158)
+- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
 - **Break (1):** an op left with nothing to change is reported applied without reading its message, so an unknown message is never found
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestAnOpChangingNothingReadsItsMessage`
 - **Break (2):** a move from a label the account lacks is not found

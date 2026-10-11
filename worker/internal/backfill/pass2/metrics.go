@@ -8,16 +8,24 @@ import (
 
 // Metrics are pass 2's series on its job kind's registerer (ADR-0076).
 type Metrics struct {
-	backlog *prometheus.GaugeVec
+	backlog  *prometheus.GaugeVec
+	messages *series.Messages
 }
 
-// NewMetrics registers pass 2's series on reg and returns them.
-func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
+// NewMetrics registers pass 2's series on reg and returns them, counting the messages each page scans
+// on messages, which its job kind registered once for every step it runs (ADR-0125). A nil messages
+// counts none.
+func NewMetrics(reg prometheus.Registerer, messages *series.Messages) (*Metrics, error) {
 	backlog, err := series.NewBacklog(reg)
 	if err != nil {
 		return nil, err
 	}
-	return &Metrics{backlog: backlog}, nil
+	return &Metrics{backlog: backlog, messages: messages}, nil
+}
+
+// Count adds the messages one page scanned and made durable to the account's count.
+func (m *Metrics) Count(account string, s Step) {
+	m.messages.Add(account, series.StageScanned, s.Scanned)
 }
 
 // Backlog sets the account's series to the number of its messages waiting for a scan, read after each

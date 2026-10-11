@@ -6,11 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index c3cf033..17f469d 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -545,7 +545,7 @@
- 			handOvers = append(handOvers, hoErr)
+@@ -602,7 +602,7 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
  		}
+ 		metrics.Count(account, step)
  		if pending, bErr := deps.Store.Backlog(ctx, account); bErr == nil {
 -			metrics.Backlog(account, pending)
 +			_ = pending
