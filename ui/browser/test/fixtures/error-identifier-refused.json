@@ -1,7 +1,7 @@
 {
   "error": {
     "code": "identifier_refused",
-    "message": "an account identifier may not be ., .. or /, nor a word the UI's own paths use",
+    "message": "an account identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, and is not a word the UI's own paths use",
     "origin": "client",
     "request_id": "recorded"
   }

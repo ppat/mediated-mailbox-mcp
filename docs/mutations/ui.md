@@ -580,6 +580,30 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 - **Break:** a re-authorization writes only where the account holds no credential, so a credential a deployable rewrote is never replaced. The mechanism has one direction only. It is a write with no condition but its account, so the one break is a condition added. A write landing on another account's row is the opposite, and `account_state_account`'s row-level security refuses it under the transaction set to the account, a control of its own
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestAMoveWritesTheClientAndTheCredentialTogether`, `TestAReauthorizationRecordsItsAttemptAndAlwaysLands`, `TestAnAccountWithNoStateIsConnectedByReauthorizing`
 
+## The proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+
+- **Date · evidence:** 2026-10-11 · [pull request #350](https://github.com/ppat/mediated-mailbox-mcp/pull/350), break 9 run in a copy holding the built bundle, which its package's integration tests read
+- **Break (1):** the server's check reads the identifier trimmed and lowercased, so it accepts identifiers the database refuses
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheServerCheckKeepsToTheIdentifierTable`
+- **Break (2):** the entry document carries no reserved words for the browser's proposal
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheEntryDocumentCarriesTheBrowsersConfiguration`
+- **Break (3):** the proposal is not cut to 63 characters
+  - **Went red in `test/setup.test.tsx`:** `every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case`
+- **Break (4):** the proposal trims no hyphen at its end, before or after the cut
+  - **Went red in `test/setup.test.tsx`:** `every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case`
+- **Break (5):** a suffix is added to the whole proposal, so a long one passes 63 characters
+  - **Went red in `test/setup.test.tsx`:** `every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case`
+- **Break (6):** the proposal avoids only identifiers an account holds, not the top-level words
+  - **Went red in `test/setup.test.tsx`:** `every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case`, `step 1 proposes no word the entry document says account setup refuses`
+- **Break (7):** the connect page proposes without the words the entry document carries
+  - **Went red in `test/setup.test.tsx`:** `step 1 proposes no word the entry document says account setup refuses`
+- **Break (8):** the browser reads no reserved words from the entry document
+  - **Went red in `test/config.test.ts`:** `a tag the browser cannot read takes the record's default`, `each key is read from its meta tag, durations in whole milliseconds`
+- **Break (9):** the database's check is not anchored at its end, so it stores an identifier that only begins inside the grammar
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheDatabaseKeepsToTheIdentifierTable`
+- **Break (10):** the proposal drops the digits that start the local part, so it proposes another identifier inside the grammar than the table's
+  - **Went red in `test/setup.test.tsx`:** `every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case`
+
 ## The statement-set check refuses a dataset without the statements its declarations require, and a dimension named as a parameter
 
 - **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)

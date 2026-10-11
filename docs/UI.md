@@ -1523,19 +1523,37 @@ screen, are one page of three steps, each enabled once the step above is done. N
 until the third succeeds (ADR-0091). Not live.
 
 1. **Name the account.** The mailbox address being connected comes first. The identifier, in mono,
-   is then proposed from the mailbox's local part, lowercased, with characters an identifier cannot
-   hold replaced and a suffix added when an account already holds it, and the operator may edit it.
-   Then "Connect through", the client the consent is issued to (ADR-0106). With one client set up,
-   it shows as a fact, "Gmail, through {name}", with "Set up another client" beside it. With
+   is then proposed from the mailbox's local part, and the operator may edit it. An identifier is
+   one to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, the
+   grammar of one DNS label, which the database's check on `accounts.account_id` holds (ADR-0128).
+   The identifier is permanent and spreads into every table, metric label, path and bookmark of
+   the account, so the grammar keeps it legible there, and every identifier it accepts is a path
+   segment the mediator's API root can address (ADR-0087). The proposal lowercases the local part,
+   replaces each run of characters outside the grammar with a hyphen, trims hyphens at both ends,
+   cuts what is left to 63 characters and trims hyphens again, and takes `account` when nothing is
+   left. When an account already holds the result, or it is a word the UI's own top-level paths
+   use, it adds the first free numeric suffix, `-2`, `-3` and so on, shortening what precedes the
+   suffix so the whole stays within 63 characters. So every proposal is an identifier the server
+   accepts, and the UI never refuses one it proposed. The proposal reads those words from the entry
+   document ([section 18.1](#181-the-configuration-the-ui-declares)), the same words the server's
+   check reads from the bundle when it starts, so the proposal and the refusal cannot differ. Then
+   "Connect through", the client the consent is issued to (ADR-0106). With one client set up, it
+   shows as a fact, "Gmail, through {name}", with "Set up another client" beside it. With
    several, it is a list of the clients by provider, each with its name in mono, its project ID
    and the accounts already on it, nothing preselected unless the address carries `client=`, and the
    step does not confirm until one is chosen. The list closes with "Set up another client", which
    opens a new client's setup ([section 8.11](#811-oauth-client-setup)). The provider is the chosen
    client's. A collapsed "Lower this account's rate target" holds the field of
-   [section 8.13](#813-account-settings). The identifier is refused when it is exactly `.`, `..` or
-   `/` (ADR-0087), when it equals a word the UI's own top-level paths use, which is the router's
-   `setup`, the read API's `api`, and the name of every file or directory at the top of the built
-   bundle, such as `main.js` and `main.css`, or when an account already holds it. The page
+   [section 8.13](#813-account-settings). The identifier is refused when it is outside the grammar,
+   when it equals a word the UI's own top-level paths use, which is the router's `setup`, the read
+   API's `api`, and the name of every file or directory at the top of the built bundle, such as
+   `main.js` and `main.css`, or when an account already holds it. The server checks the identifier
+   as it arrives, neither trimming nor lowercasing it first, so it accepts nothing the database
+   would refuse. A refusal outside the grammar or for a word names the identifier and states the
+   grammar and the words rule, "{identifier} cannot be an account's identifier. An identifier is 1
+   to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, and
+   is not a word the UI's own paths use.", so an operator who edited the proposal knows what to
+   type. The page
    says the identifier cannot change once connected, since every record of the account is keyed on
    it, and that the mailbox is remembered. Confirming the step starts the consent attempt, so an
    identifier refusal shows here, before anything happens at Google.
@@ -2516,10 +2534,15 @@ Four keys are the browser's, `default_theme`, `stream_reconnect_max`, `stream_po
 `consent_redirect`. The Go handler renders each into the entry document on every page load as a
 `meta` tag named `mediated-mailbox.` followed by the key, with the value as its content and a
 duration written in whole milliseconds. The request token rides beside them as
-`mediated-mailbox.request_token`, the placement ADR-0061 gives it. The browser's composition root,
-`main.ts`, is their one reader, and a tag it cannot read takes the record's default, apart from
-`consent_redirect`, which the browser holds no copy of, so a page without it pictures no address
-and finds no pasted address to be the redirect's.
+`mediated-mailbox.request_token`, the placement ADR-0061 gives it, and so do the words the UI's
+own top-level paths use, which account setup refuses as identifiers, as
+`mediated-mailbox.reserved_identifiers`, separated by single spaces, for the connect page's
+proposal to avoid ([section 8.12](#812-connect-an-account-and-re-authorize)). The browser's
+composition root, `main.ts`, is their one reader, and a tag it cannot read takes the record's
+default, apart from `consent_redirect` and the reserved words, which the browser holds no copy of.
+So a page without `consent_redirect` pictures no address and finds no pasted address to be the
+redirect's, and a page without the reserved words proposes without avoiding them, which the
+server then refuses.
 
 | Key | Value | Required |
 | --- | --- | --- |

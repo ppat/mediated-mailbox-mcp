@@ -126,6 +126,10 @@ func viewOf(a attempt) *attemptView {
 	}
 }
 
+// identifierGrammar states the grammar an account identifier keeps, which a refusal names
+// (docs/UI.md section 8.12).
+const identifierGrammar = "an account identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit"
+
 // startConnect starts a consent attempt for the session through the named client, after checking the
 // identifier, replacing any attempt the session held (docs/UI.md sections 8.12 and 17.4). It answers
 // with the consent page's address, which the page opens in a new tab.
@@ -135,7 +139,7 @@ func (s *Server) startConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if refusal := setup.Identifier(body.Account, s.reserved); refusal != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), "an account identifier may not be ., .. or /, nor a word the UI's own paths use"))
+		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), identifierGrammar+", and is not a word the UI's own paths use"))
 		return
 	}
 	if !s.validStart(w, r, body.Mailbox, body.LoweredTarget) {
@@ -500,7 +504,7 @@ func (s *Server) storeFailure(w http.ResponseWriter, r *http.Request, err error)
 	case unique && key == accountKey:
 		writeFailure(w, r, clientFault(http.StatusConflict, "identifier_taken", "an account was connected under this identifier while this one was in progress"))
 	case unreachable:
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "identifier_refused", "an account identifier may not be ., .. or /"))
+		writeFailure(w, r, clientFault(http.StatusBadRequest, "identifier_refused", identifierGrammar))
 	default:
 		s.databaseFailure(w, r, err)
 	}

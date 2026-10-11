@@ -1,0 +1,19 @@
+control: an account identifier no screen or path could reach is refused, and nothing is stored
+removes: an identifier longer than 63 characters is admitted
+packages: ./ui/internal/api
+tests: TestTheServerCheckKeepsToTheIdentifierTable
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index ae6ec6eb..0469117d 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -80,7 +80,7 @@ func Identifier(id string, reserved []string) Refusal {
+ // identifierShaped reports whether id is inside the account identifier grammar,
+ // ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$.
+ func identifierShaped(id string) bool {
+-	if len(id) < 1 || len(id) > 63 || id[0] == '-' || id[len(id)-1] == '-' {
++	if len(id) < 1 || id[0] == '-' || id[len(id)-1] == '-' {
+ 		return false
+ 	}
+ 	for i := range len(id) {

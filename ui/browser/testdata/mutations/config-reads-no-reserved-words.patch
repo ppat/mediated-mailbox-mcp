@@ -1,0 +1,20 @@
+control: the proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+removes: the browser reads no reserved words from the entry document
+packages: ./ui/browser/test/config.test.ts
+tests: each key is read from its meta tag, durations in whole milliseconds
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/config.ts b/ui/browser/src/app/config.ts
+index 30e57935..16c6af46 100644
+--- a/ui/browser/src/app/config.ts
++++ b/ui/browser/src/app/config.ts
+@@ -40,7 +40,7 @@ export function readConfig(read: (key: string) => string | undefined): BrowserCo
+     pollInterval: milliseconds(read("stream_poll_interval")) ?? configDefaults.pollInterval,
+     consentRedirect: read("consent_redirect") ?? configDefaults.consentRedirect,
+     requestToken: read("request_token") ?? configDefaults.requestToken,
+-    reservedIdentifiers: words(read("reserved_identifiers")) ?? configDefaults.reservedIdentifiers,
++    reservedIdentifiers: configDefaults.reservedIdentifiers,
+   };
+ }
+ 

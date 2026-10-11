@@ -212,19 +212,38 @@ function Steps(props: StepsProps) {
   );
 }
 
-// proposeIdentifier proposes an account identifier from a mailbox's local part, lowercased, with each
-// run of characters outside letters, digits and hyphens replaced by a hyphen, and a suffix added when
-// an account already holds it (section 8.12). The operator may edit what it proposes.
-export function proposeIdentifier(mailbox: string, taken: readonly string[]): string {
+// identifierLength is the longest an account identifier may be, the length of one DNS label.
+const identifierLength = 63;
+
+// fit cuts s to length characters and trims the hyphens that end what is left.
+function fit(s: string, length: number): string {
+  return s.slice(0, length).replace(/-+$/, "");
+}
+
+// proposeIdentifier proposes an account identifier from a mailbox's local part, inside the grammar of
+// one lowercase DNS label that the server's check and the database hold (section 8.12). It lowercases
+// the local part, replaces each run of characters outside letters, digits and hyphens with a hyphen,
+// trims hyphens at both ends, cuts the rest to 63 characters and trims hyphens again, and takes
+// account when nothing is left. When an account already holds that, or it is one of reserved, the
+// words the UI's own top-level paths use, it adds the first free numeric suffix, shortening what
+// precedes it so the whole stays within 63 characters. The operator may edit what it proposes.
+export function proposeIdentifier(
+  mailbox: string,
+  taken: readonly string[],
+  reserved: readonly string[],
+): string {
   const at = mailbox.lastIndexOf("@");
   const local = (at < 0 ? mailbox : mailbox.slice(0, at)).toLowerCase();
-  const base = local.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "account";
-  if (!taken.includes(base)) {
+  const base =
+    fit(local.replace(/[^a-z0-9-]+/g, "-").replace(/^-+/, ""), identifierLength) || "account";
+  const free = (candidate: string) => !taken.includes(candidate) && !reserved.includes(candidate);
+  if (free(base)) {
     return base;
   }
   for (let n = 2; ; n++) {
-    const candidate = `${base}-${n}`;
-    if (!taken.includes(candidate)) {
+    const suffix = `-${n}`;
+    const candidate = `${fit(base, identifierLength - suffix.length)}${suffix}`;
+    if (free(candidate)) {
       return candidate;
     }
   }
@@ -260,7 +279,7 @@ function NameStep(props: NameProps) {
   const [failure, setFailure] = useState<Failure | undefined>(undefined);
   const [moving, setMoving] = useState(props.chosen !== undefined);
   const taken = answer.accounts.map((a) => a.account_id);
-  const proposed = identifier ?? proposeIdentifier(mailbox, taken);
+  const proposed = identifier ?? proposeIdentifier(mailbox, taken, deps.config.reservedIdentifiers);
   const clients = clientsFor(answer);
   const remembered = account?.mailbox ?? null;
   const start = async () => {
@@ -838,7 +857,7 @@ export function refusalText(
     case "identifier_taken":
       return `An account named ${identifier} already exists, or was connected while this one was in progress. Nothing was saved. Start again from step 1 with another identifier.`;
     case "identifier_refused":
-      return `${identifier} cannot be an account's identifier. It may not be ., .. or /, nor a word the UI's own paths use.`;
+      return `${identifier} cannot be an account's identifier. An identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, and is not a word the UI's own paths use.`;
     case "client_changed":
       return `The client ${client} changed while this was in progress. Nothing was saved. Start again from step 1.`;
     case "unknown_client":

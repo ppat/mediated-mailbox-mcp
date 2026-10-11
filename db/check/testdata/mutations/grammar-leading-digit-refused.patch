@@ -1,0 +1,17 @@
+control: an account identifier no screen or path could reach is refused, and nothing is stored
+removes: the grammar migration's check requires a leading letter, so an identifier starting with a digit, inside the grammar, is refused
+packages: ./db/check ./ui/internal/api
+tests: TestNoAccountIdentifierIsAPathSegmentThePathCannotHold TestTheDatabaseKeepsToTheIdentifierTable
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00005_account_identifier_grammar.sql b/db/migrations/00005_account_identifier_grammar.sql
+index b9f33379..0195f536 100644
+--- a/db/migrations/00005_account_identifier_grammar.sql
++++ b/db/migrations/00005_account_identifier_grammar.sql
+@@ -6,4 +6,4 @@
+ -- rewrites it, since an account is system-of-record data (ADR-0048).
+ ALTER TABLE accounts
+ DROP CONSTRAINT accounts_account_id_addressable,
+-ADD CONSTRAINT accounts_account_id_grammar CHECK (account_id ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$');
++ADD CONSTRAINT accounts_account_id_grammar CHECK (account_id ~ '^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$');

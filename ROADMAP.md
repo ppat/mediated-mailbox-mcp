@@ -218,6 +218,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347) | D3 | D3's later work, the audit row of a body decision in typed columns each closed vocabulary checks, the stage, the reason, the sender class with the policy rule behind it and that rule's scope, the content flags with the scanner rules behind them, the serve-time check's rules and the scanner it ran under where it ran, and the scan state, edited into the baseline schema and the mediator's insert grant in place, the policy rule's scope carried through the composed policy and the classifier's verdict, a body decision's reason a closed token in the response, the audit row and the count of denied bodies, and a served message's flags exactly `read` and `starred` ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0101](./docs/adr/operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md), [ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)) | The rows it adds for the audit row's closed columns, the class rule's scope and the served flags, the pending row for a body decision's audit row, and the rows for the audit of every serve and denial, the gate's verdict and parameters, the counts of denied bodies and the one shape on both roots, each proven again | The controls of the audit row's checks, the classifier's and the policy's scope and the served flags, new breaks of the audit of every serve and denial and of the reason tokens, and every demonstration whose code, tests, test fixtures or patch context the change touched, regenerated where stale and demonstrated again |
 | [#348](https://github.com/ppat/mediated-mailbox-mcp/pull/348) | M3 | M3's route words made closed lists, with the top-level words account setup refuses, the server's routes, the browser router's words where an account or a rule identifier also sits, the built bundle's top level and each policy scope's refused route words each compared with literals by a test, and the test that read its expectation from the bundle rewritten to compare the built bundle's words with them | It adds and proves the row for a route word added or dropped without the pinned list changing, and proves again the rows for an account identifier equal to a top-level word and for a policy write refused for a route word | The control that the route words are a closed list a test pins, each pinned source, the policy refusal, the account refusal, the server's routes, the built bundle and the router, broken by a word added, and every source but the server's routes also by a word dropped |
 | [#349](https://github.com/ppat/mediated-mailbox-mcp/pull/349) | M7 | M7's later work, the UI naming its key files in the credential section of `executioncontext/credential/core`, `credential.public_key_file` and `credential.private_key_files`, validated as the mediator and the worker validate theirs, in place of its own `seal_public_key_file` and `private_key_files` | The rows that start the UI with its key files, the UI's log of the key identifier it seals to, its pinned configuration type and its refusal of an unusable credential section, proven again under the section's keys | The UI's configuration pin, every other demonstration whose tests start the UI and every break of the credential section's own patches, demonstrated again, and the credential section's validation before any key file is read with a break added for the UI |
+| [#350](https://github.com/ppat/mediated-mailbox-mcp/pull/350) | M7 | M7's later work, account setup's check holding the identifier grammar of one lowercase DNS label beside the refused top-level words, the connect page's proposal kept inside the grammar, within 63 characters and clear of those words, which the entry document hands the browser, and one table of identifier cases the server's check, the proposal and the database's check are each tested over ([ADR-0128](./docs/adr/data/0128-account-identifiers-are-one-lowercase-dns-label.md)) | The row it adds for the proposal, the server's check and the database disagreeing on a case of the table, and M7's row for an identifier outside the grammar, proven again for account setup's check | The control that the three agree on the table, broken in each, the account identifier refusal's breaks of the server's check regenerated for the grammar and demonstrated again with the breaks whose tests changed, each side also broken to refuse or propose otherwise an identifier starting with a digit inside the grammar, and the consent redirect's break whose patch the entry document's new tag moved |
 
 ### What each composition root runs
 
@@ -861,9 +862,11 @@ What the code on `main` runs today, per composition root, none of it yet release
 - [x] **M7 — The UI's OAuth client setup and account setup** → [O6](./USE_CASES.md#o6--deployable)
   · [V3](#v3--the-agent-arrives-read-only) · finished at image
   Delivered by pull requests [#256](https://github.com/ppat/mediated-mailbox-mcp/pull/256) and, as
-  later work, [#349](https://github.com/ppat/mediated-mailbox-mcp/pull/349), which closed its
-  tickets [#174](https://github.com/ppat/mediated-mailbox-mcp/issues/174) and
-  [#299](https://github.com/ppat/mediated-mailbox-mcp/issues/299), and not yet released. The UI
+  later work, [#349](https://github.com/ppat/mediated-mailbox-mcp/pull/349) and
+  [#350](https://github.com/ppat/mediated-mailbox-mcp/pull/350), which closed its tickets
+  [#174](https://github.com/ppat/mediated-mailbox-mcp/issues/174),
+  [#299](https://github.com/ppat/mediated-mailbox-mcp/issues/299) and
+  [#303](https://github.com/ppat/mediated-mailbox-mcp/issues/303), and not yet released. The UI
   builds the installation, OAuth client setup, connecting, re-authorizing and moving an account,
   and account settings screens [docs/UI.md sections 8.10 to 8.13](./docs/UI.md#810-installation)
   design, on
@@ -890,10 +893,15 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)), and the code
   exchange's attempt is recorded as the account's latest
   ([ADR-0097](./docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
-  Account setup refuses an identifier that is exactly `.`, `..` or `/`, as a migration's `CHECK`
-  on `accounts.account_id` does
-  ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)),
-  and one equal to a top-level path segment the UI serves. The consent code lives in
+  Account identifiers follow one grammar, one lowercase DNS label, which account setup's check, the
+  connect page's proposal and a migration's `CHECK` on `accounts.account_id` each hold, proven over
+  one table of identifier cases
+  ([ADR-0128](./docs/adr/data/0128-account-identifiers-are-one-lowercase-dns-label.md)), and every
+  identifier it accepts is a path segment the mediator's API root can address
+  ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)).
+  Account setup also refuses an identifier equal to a top-level path segment the UI serves, which
+  the proposal avoids ([docs/UI.md section 8.12](./docs/UI.md#812-connect-an-account-and-re-authorize)).
+  The consent code lives in
   `provider/gmail/consent`, a package of the provider library holding no Provider Port code, so the
   UI links it without the Gmail adapter, and a consent attempt travels in a cookie the UI's server
   seals
@@ -930,9 +938,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   list's base policy item, the installation's Base policy navigation and the base policy sentence a
   connection's success adds, which [M8](#delivered-mapped-to-outcomes) delivered. Each workload
   picking up a connected account and a replaced credential with no manual step, which the worker of
-  [F10](#delivered-mapped-to-outcomes) does within a reload, beside the mediator's own reload. **Later
-  work.** Before production point 1, account identifiers follow one grammar, in the UI's proposal,
-  the server's check and the database.
+  [F10](#delivered-mapped-to-outcomes) does within a reload, beside the mediator's own reload.
 
 - [x] **M8 — The UI's policy management** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
@@ -1088,8 +1094,9 @@ What the code on `main` runs today, per composition root, none of it yet release
   and the identifier grammar in the UI's proposal and server check, which are the later work of
   [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
   [M7](#delivered-mapped-to-outcomes), D1's delivered by pull request
-  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339) and D3's by pull request
-  [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347). The chart's database setup without
+  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), D3's by pull request
+  [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347) and M7's by pull request
+  [#350](https://github.com/ppat/mediated-mailbox-mcp/pull/350). The chart's database setup without
   an extension step, which is [R1](#group-r--packaging)'s. The rollback request's status, and the
   heuristics run's pass and the storage of its embeddings, which are
   [M2](#group-m--mutation-and-approval)'s and [M4](#group-m--mutation-and-approval)'s. The UI's

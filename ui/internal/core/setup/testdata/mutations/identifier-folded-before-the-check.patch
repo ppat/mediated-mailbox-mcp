@@ -1,0 +1,18 @@
+control: the proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+removes: the server's check reads the identifier trimmed and lowercased, so it accepts identifiers the database refuses
+packages: ./ui/internal/api
+tests: TestTheServerCheckKeepsToTheIdentifierTable
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index d2721060..c2dc602a 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -71,6 +71,7 @@ func ProjectID(id *string) Refusal {
+ // arrives, trimming and folding nothing, so it accepts nothing the database refuses. An identifier
+ // another account holds is refused by the store.
+ func Identifier(id string, reserved []string) Refusal {
++	id = strings.ToLower(strings.TrimSpace(id))
+ 	if !identifierShaped(id) || slices.Contains(reserved, id) {
+ 		return IdentifierRefused
+ 	}

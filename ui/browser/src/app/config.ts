@@ -16,6 +16,10 @@ export type BrowserConfig = {
   // requestToken is the session's request token, which every state-changing request carries
   // (ADR-0061). An entry document without one sends requests the server refuses as a stale page.
   requestToken: string;
+  // reservedIdentifiers are the words account setup refuses as identifiers, which the connect page's
+  // proposal avoids (docs/UI.md section 8.12). The browser holds no copy of them, so a page without
+  // the tag proposes without avoiding them, and the server refuses such a proposal.
+  reservedIdentifiers: readonly string[];
 };
 
 export const configDefaults: BrowserConfig = {
@@ -24,6 +28,7 @@ export const configDefaults: BrowserConfig = {
   pollInterval: 5_000,
   consentRedirect: "",
   requestToken: "",
+  reservedIdentifiers: [],
 };
 
 // readConfig reads each key through read, which returns a meta tag's content by key.
@@ -35,7 +40,13 @@ export function readConfig(read: (key: string) => string | undefined): BrowserCo
     pollInterval: milliseconds(read("stream_poll_interval")) ?? configDefaults.pollInterval,
     consentRedirect: read("consent_redirect") ?? configDefaults.consentRedirect,
     requestToken: read("request_token") ?? configDefaults.requestToken,
+    reservedIdentifiers: words(read("reserved_identifiers")) ?? configDefaults.reservedIdentifiers,
   };
+}
+
+// words reads a tag's words, separated by single spaces.
+function words(value: string | undefined): string[] | undefined {
+  return value?.split(" ").filter((w) => w !== "");
 }
 
 function milliseconds(value: string | undefined): number | undefined {

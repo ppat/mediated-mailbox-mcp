@@ -1,7 +1,7 @@
 control: an account identifier no screen or path could reach is refused, and nothing is stored
 removes: the grammar migration's check refuses only the identifier ., so .. and / are stored
-packages: ./db/check
-tests: TestNoAccountIdentifierIsAPathSegmentThePathCannotHold
+packages: ./db/check ./ui/internal/api
+tests: TestNoAccountIdentifierIsAPathSegmentThePathCannotHold TestTheDatabaseKeepsToTheIdentifierTable
 scheduled-count: no
 integration: yes
 

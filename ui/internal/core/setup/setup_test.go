@@ -32,22 +32,6 @@ func TestAClientNameIsShapedLikeAProjectID(t *testing.T) {
 	}
 }
 
-// An account identifier is refused when the mediator could not address it, or when a top-level path
-// of the UI uses it (ADR-0087, docs/UI.md section 8.12, VERIFICATIONS, the two identifier rows).
-func TestAnIdentifierEveryScreenCanReach(t *testing.T) {
-	reserved := []string{"setup", "api", "main.js", "fonts"}
-	for _, id := range []string{"", ".", "..", "/", "setup", "api", "main.js", "fonts"} {
-		if got := setup.Identifier(id, reserved); got != setup.IdentifierRefused {
-			t.Errorf("%q gave %q, want %q", id, got, setup.IdentifierRefused)
-		}
-	}
-	for _, id := range []string{"personal", "...", "a.b", "setups", "main"} {
-		if got := setup.Identifier(id, reserved); got != setup.None {
-			t.Errorf("%q refused with %q", id, got)
-		}
-	}
-}
-
 // A lowered target is above 5% and at most 50% of the declared ceiling (ADR-0024).
 func TestALoweredTargetStaysInItsRange(t *testing.T) {
 	for _, f := range []float64{0.051, 0.3, 0.5} {

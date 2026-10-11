@@ -82,15 +82,25 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## An account identifier no screen or path could reach is refused, and nothing is stored
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-11, with account setup's check holding the identifier grammar and its tests reading the shared table of identifier cases, breaks 3 to 5 replacing the one that admitted an identifier exactly ., .. or /, break 1 naming the database's table test beside its own, breaks 7 and 8 added so each check is broken to refuse an identifier inside the grammar, and breaks 1, 2 and 8 run in a copy holding the built bundle, which the UI server's integration tests read · [pull request #350](https://github.com/ppat/mediated-mailbox-mcp/pull/350)
 - **Break (1):** the grammar migration's check refuses only the identifier ., so .. and / are stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestNoAccountIdentifierIsAPathSegmentThePathCannotHold`, `TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheDatabaseKeepsToTheIdentifierTable`
 - **Break (2):** the words the UI's top-level paths use are listed as setup and api alone rather than read from the bundle
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestAnIdentifierNoScreenCouldReachIsRefused`
-- **Break (3):** an identifier exactly ., .. or / is admitted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/setup`:** `TestAnIdentifierEveryScreenCanReach`
-- **Break (4):** an identifier equal to a word the UI's own top-level paths use is admitted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/setup`:** `TestAnIdentifierEveryScreenCanReach`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestAnIdentifierNoScreenCouldReachIsRefused`, `TestTheBuiltBundleReservesThePinnedWords`, `TestTheEntryDocumentCarriesTheBrowsersConfiguration`, `TestTheTopLevelWordsAreAClosedList`
+- **Break (3):** an identifier holding a dot, . and .. included, is admitted
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheServerCheckKeepsToTheIdentifierTable`
+- **Break (4):** an identifier longer than 63 characters is admitted
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheServerCheckKeepsToTheIdentifierTable`
+- **Break (5):** an identifier holding an ASCII capital is admitted
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheServerCheckKeepsToTheIdentifierTable`
+- **Break (6):** an identifier equal to a word the UI's own top-level paths use is admitted
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheServerCheckKeepsToTheIdentifierTable`
+- **Break (7):** an identifier starting with a digit, inside the grammar, is refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheServerCheckKeepsToTheIdentifierTable`
+- **Break (8):** the grammar migration's check requires a leading letter, so an identifier starting with a digit, inside the grammar, is refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestNoAccountIdentifierIsAPathSegmentThePathCannotHold`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheDatabaseKeepsToTheIdentifierTable`
 
 ## An account of a provider that authenticates through an OAuth client is connected only through its own client
 
@@ -250,7 +260,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## The consent's redirect address is the configured loopback address, read by every use
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and break 4 again on 2026-10-11, after the entry document gained the reserved words beside the redirect, which moved its patch and its test · [pull request #350](https://github.com/ppat/mediated-mailbox-mcp/pull/350)
 - **Break (1):** a pasted address is read against the default loopback address rather than the configured one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent`:** `TestTheUIsConsentRedirectsToItsGivenAddress`
 - **Break (2):** the paste box checks a pasted address's host against 127.0.0.1 whatever the configuration names

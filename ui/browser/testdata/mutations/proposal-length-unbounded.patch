@@ -1,0 +1,20 @@
+control: the proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+removes: the proposal is not cut to 63 characters
+packages: ./ui/browser/test/setup.test.tsx
+tests: every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/connect.tsx b/ui/browser/src/screens/connect.tsx
+index 4ae6391f..e8388fe1 100644
+--- a/ui/browser/src/screens/connect.tsx
++++ b/ui/browser/src/screens/connect.tsx
+@@ -235,7 +235,7 @@ export function proposeIdentifier(
+   const at = mailbox.lastIndexOf("@");
+   const local = (at < 0 ? mailbox : mailbox.slice(0, at)).toLowerCase();
+   const base =
+-    fit(local.replace(/[^a-z0-9-]+/g, "-").replace(/^-+/, ""), identifierLength) || "account";
++    fit(local.replace(/[^a-z0-9-]+/g, "-").replace(/^-+/, ""), Infinity) || "account";
+   const free = (candidate: string) => !taken.includes(candidate) && !reserved.includes(candidate);
+   if (free(base)) {
+     return base;
