@@ -40,9 +40,9 @@ func NewPostgres(db tx.Beginner) *Postgres { return &Postgres{db: db} }
 // page is the page the jobs card shows, and its token is the provider's token for the next page. Of
 // is the pages the enumeration takes, left out when the provider reported no total, so the card shows
 // no estimate, and a checkpoint stored without it reads as having none (ADR-0095). Its version and
-// revision are the scanner the enumeration masks under. Stale is how many stored subjects the pass
-// has still to fetch again once its enumeration has ended, left out when none is, and the jobs card
-// shows the fetch from it and the refetched counter (ADR-0120).
+// revision are the scanner the run masks under. Stale is how many stored subjects the pass has still
+// to fetch again before it enumerates further or ends, left out when none is, and the jobs card shows
+// the fetch from it and the refetched counter (ADR-0120).
 type checkpoint struct {
 	Page     int    `json:"page"`
 	Token    string `json:"token"`
@@ -196,6 +196,13 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
 			}
 		}
 		at := advance(added, remasked)
+		if at.Checkpoint.Ended() {
+			stale, err := countStale(ctx, messageingest.New(t), account, at.Checkpoint.Stamp)
+			if err != nil {
+				return err
+			}
+			at.Checkpoint.Stale = stale
+		}
 		cp, ct, err := encode(at)
 		if err != nil {
 			return err

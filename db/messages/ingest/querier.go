@@ -11,8 +11,9 @@ import (
 type Querier interface {
 	// How many of the account's stored subjects were masked under another scanner version or
 	// configuration revision than the one given, or under none recorded. Any makes the first pass due
-	// again, and once its enumeration has ended the first pass records the count in its checkpoint, as
-	// the subjects it has still to fetch again (ADR-0120).
+	// again, and the first pass records the count in its checkpoint as the subjects it has still to
+	// fetch again, at a run's start, after each call fetching subjects again and at the page that ends
+	// its enumeration (ADR-0120).
 	CountStaleSubjects(ctx context.Context, arg CountStaleSubjectsParams) (int64, error)
 	// Adds the media of a message's attachments, each normalized media type paired with the extension at
 	// the same position, once each, from which the types a client is served are derived when read
@@ -44,7 +45,7 @@ type Querier interface {
 	// Up to the number given of the account's messages whose stored subject was masked under another
 	// scanner version or configuration revision than the one given, or under none recorded, with the
 	// subject as stored, in the order of their identifiers. They are the subjects the first pass fetches
-	// again by identifier once its enumeration has ended, each masked again under the pair given, so a
+	// again by identifier before it enumerates further, each masked again under the pair given, so a
 	// subject it fetched leaves the set (ADR-0120).
 	StaleSubjects(ctx context.Context, arg StaleSubjectsParams) ([]StaleSubjectsRow, error)
 	// Up to the number given of the account's messages after the identifier given whose stored subject

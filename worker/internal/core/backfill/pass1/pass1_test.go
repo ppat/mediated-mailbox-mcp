@@ -46,7 +46,7 @@ func TestBegin(t *testing.T) {
 }
 
 // A page made durable moves the checkpoint one page on to the provider's next token, keeps the scanner
-// the enumeration masks under, and adds what it added and masked again to the counters. A pass started
+// the run masks under, and adds what it added and masked again to the counters. A pass started
 // over keeps its counters and its scanner and returns to the first page.
 func TestAdvanceAndRestart(t *testing.T) {
 	stamp := index.Stamp{Version: 3, Revision: "r"}
@@ -97,76 +97,61 @@ func TestAdvanceEstimatesThePagesFromTheTotal(t *testing.T) {
 	}
 }
 
-// A run starting under a scanner the enumeration it resumes was not made under starts the enumeration
-// over from the first page while the enumeration has not ended, its counters carried, so an
-// enumeration that ends was made under one scanner from its first page. The estimate of the pages the
-// old enumeration takes is dropped with it, and a run that resumes under the same scanner keeps its
-// estimate. A pass reopened after its enumeration ended starts from that enumeration's checkpoint with
-// fresh counters, so it enumerates nothing, and a run resuming a pass whose enumeration ended never
-// starts it over. Every run that starts records the scanner it masks under, and one whose enumeration
-// has ended the stale subjects it has to fetch again (ADR-0120).
+// A run resuming an enumeration not yet ended continues it from its checkpoint, its page, token,
+// estimate of the pages the enumeration takes and counters, whether the enumeration was made under the
+// scanner in force, another configuration revision or another version, so a change of scanner never
+// enumerates a page made durable again. A pass reopened after its enumeration ended starts from that
+// enumeration's checkpoint with fresh counters, so it enumerates nothing, and a run resuming a pass
+// whose enumeration ended never starts it over. Every run that starts records the scanner it masks
+// under and the stale subjects it has to fetch again, which it fetches before it enumerates further
+// (ADR-0120).
 func TestUnder(t *testing.T) {
 	old, now := index.Stamp{Version: 1, Revision: "old"}, index.Stamp{Version: 1, Revision: "new"}
 	counters := pass1.Counters{Pages: 4, Messages: 12, Remasked: 2, Refetched: 1}
-	resumed := func(page int, s index.Stamp) pass1.Start[pass1.Progress] {
-		return pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: page, Token: "p", Of: 9, Stamp: s}, Counters: counters}}
+	resumed := func(page int, s index.Stamp, stale int) pass1.Start[pass1.Progress] {
+		return pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: page, Token: "p", Of: 9, Stamp: s, Stale: stale}, Counters: counters}}
 	}
 	ended := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: old}, Counters: counters}
 	none := pass1.Latest[pass1.Progress]{}
 	succeeded := pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: ended}
 	failed := pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Failed, Progress: ended}
 	cases := []struct {
-		name     string
-		start    pass1.Start[pass1.Progress]
-		latest   pass1.Latest[pass1.Progress]
-		want     pass1.Start[pass1.Progress]
-		wantOver bool
+		name   string
+		start  pass1.Start[pass1.Progress]
+		latest pass1.Latest[pass1.Progress]
+		want   pass1.Start[pass1.Progress]
 	}{
-		{"a skipped pass", pass1.Start[pass1.Progress]{Skip: true}, succeeded, pass1.Start[pass1.Progress]{Skip: true}, false},
-		{"a fresh pass", pass1.Start[pass1.Progress]{}, none, pass1.Start[pass1.Progress]{From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}}, false},
-		{"a pass reopened with no run recorded", pass1.Start[pass1.Progress]{Reopen: true}, none, pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}}, false},
+		{"a skipped pass", pass1.Start[pass1.Progress]{Skip: true}, succeeded, pass1.Start[pass1.Progress]{Skip: true}},
+		{"a fresh pass", pass1.Start[pass1.Progress]{}, none, pass1.Start[pass1.Progress]{From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now, Stale: 7}}}},
+		{"a pass reopened with no run recorded", pass1.Start[pass1.Progress]{Reopen: true}, none, pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now, Stale: 7}}}},
 		{
 			"a pass reopened after its enumeration ended",
 			pass1.Start[pass1.Progress]{Reopen: true},
 			succeeded,
 			pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: now, Stale: 7}}},
-			false,
 		},
 		{
 			"a pass reopened after an enumeration that did not end",
 			pass1.Start[pass1.Progress]{Reopen: true},
-			pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: resumed(3, old).From},
-			pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}}},
-			false,
+			pass1.Latest[pass1.Progress]{Found: true, RunID: "r1", State: pass1.Succeeded, Progress: resumed(3, old, 0).From},
+			pass1.Start[pass1.Progress]{Reopen: true, From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now, Stale: 7}}},
 		},
-		{"a run resumed under the same scanner", resumed(3, now), none, resumed(3, now), false},
-		{
-			"a run resumed under another scanner", resumed(3, old), none,
-			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}, Counters: counters}},
-			true,
-		},
-		{
-			"a run resumed under another version", resumed(3, index.Stamp{Version: 2, Revision: "new"}), none,
-			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Stamp: now}, Counters: counters}},
-			true,
-		},
-		{"a run resumed before its first page", resumed(0, old), none, pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Token: "p", Of: 9, Stamp: now}, Counters: counters}}, false},
+		{"a run resumed under the same scanner", resumed(3, now, 4), none, resumed(3, now, 7)},
+		{"a run resumed under another scanner", resumed(3, old, 0), none, resumed(3, now, 7)},
+		{"a run resumed under another version", resumed(3, index.Stamp{Version: 2, Revision: "new"}, 0), none, resumed(3, now, 7)},
+		{"a run resumed before its first page", resumed(0, old, 0), none, resumed(0, now, 7)},
 		{
 			"a run resumed after its enumeration ended under another scanner",
 			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: ended},
 			failed,
 			pass1.Start[pass1.Progress]{ResumedFrom: "r1", From: pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 9, Of: 9, Stamp: now, Stale: 7}, Counters: counters}},
-			false,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got, over := pass1.Under(c.start, c.latest, now, 7)
+			got := pass1.Under(c.start, c.latest, now, 7)
 			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
 				t.Errorf("Under (-want +got):\n%s", diff)
-			}
-			if over != c.wantOver {
-				t.Errorf("Under reports starting over %v, want %v", over, c.wantOver)
 			}
 		})
 	}

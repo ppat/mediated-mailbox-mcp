@@ -3,23 +3,25 @@
 //
 // Begin decides how a run starts from what the index holds, a fresh pass, a resumed one or none at
 // all, and Under carries the checkpoint of an enumeration that ended into a pass reopened after it and
-// starts an enumeration not yet ended that was made under another scanner over. OnFailure decides what
-// a run does after an attempt at a page, or at a call fetching subjects again, fails. What a page adds
-// to the index is core/index's Decide, which delta sync shares (ADR-0003, ADR-0004). Advance moves the
+// moves every starting checkpoint to the scanner in force with the stale subjects it has to fetch, so
+// an enumeration not yet ended continues whatever scanner it was made under. OnFailure decides what a
+// run does after an attempt at a page, or at a call fetching subjects again, fails. What a page adds to
+// the index is core/index's Decide, which delta sync shares (ADR-0003, ADR-0004). Advance moves the
 // checkpoint past a page once the page is durable.
 //
-// Once its enumeration has ended, the pass fetches again by identifier the stored subjects masked
-// under another scanner, a call at a time. Refetch masks each again from the subject the provider
+// Whenever stored subjects are masked under another scanner, the pass fetches them again by
+// identifier, a call at a time, before it enumerates further, so a run fetches them before it
+// continues an enumeration not yet ended and once the enumeration has ended. Refetch masks each again from the subject the provider
 // returns and masks whole, through Unfound, the subject of each message the provider left out of its
 // answer, since the provider no longer has it, and Fetched moves the progress past a call once it is
 // durable. Remasked masks again from the store a subject stored unmasked, which backfill's run-start
 // step does for every stale one before the first pass (ADR-0120).
 //
 // A checkpoint is the number of pages made durable, the provider's token for the page after them,
-// the number of pages the enumeration takes when the provider counts it, the scanner the
-// enumeration masks under, and once the enumeration has ended the stored subjects still to fetch
-// again. A checkpoint past its first page whose token is empty marks an enumeration that has ended,
-// so a run stopped between its last page and its finish only fetches what is stale and finishes.
+// the number of pages the enumeration takes when the provider counts it, the scanner the run masks
+// under, and the stored subjects still to fetch again. A checkpoint past its first page whose token
+// is empty marks an enumeration that has ended, so a run stopped between its last page and its finish
+// only fetches what is stale and finishes.
 package pass1
 
 import (
@@ -39,11 +41,12 @@ type Checkpoint struct {
 	// Of is how many pages the enumeration takes, an estimate from the total the provider reported
 	// with the page made durable, and zero when it reported none (ADR-0095).
 	Of int
-	// Stamp is the scanner the enumeration masks under.
+	// Stamp is the scanner the run masks under.
 	Stamp index.Stamp
 	// Stale is how many stored subjects were masked under another scanner than Stamp when the
-	// checkpoint was written, the subjects the pass has still to fetch again once its enumeration has
-	// ended, and zero before then (ADR-0120).
+	// checkpoint was written, the subjects the pass has still to fetch again before it enumerates
+	// further or ends. A run's start, each call fetching subjects again and the page that ends the
+	// enumeration record it, and every other page records zero (ADR-0120).
 	Stale int
 }
 
@@ -129,31 +132,25 @@ func Begin[P any](ended, due bool, latest Latest[P]) Start[P] {
 }
 
 // Under returns how a run of the first pass starts under the scanner stamped s, from the start Begin
-// decided and the latest recorded run, while stale stored subjects are masked under another scanner,
-// and whether it starts its enumeration over. A pass reopened after its enumeration ended starts from
-// that enumeration's checkpoint with fresh counters, so it enumerates nothing and only fetches the
-// stale subjects again. An enumeration not yet ended that was made under another scanner starts over
-// from the first page, counters carrying on. Every run that starts records s, and one whose
-// enumeration has ended records the stale subjects it has to fetch (ADR-0120).
-func Under(start Start[Progress], latest Latest[Progress], s index.Stamp, stale int) (Start[Progress], bool) {
+// decided and the latest recorded run, while stale stored subjects are masked under another scanner.
+// A pass reopened after its enumeration ended starts from that enumeration's checkpoint with fresh
+// counters, so it enumerates nothing and only fetches the stale subjects again. A run resuming an
+// enumeration not yet ended continues it from its checkpoint, its page, token, estimate and counters,
+// whatever scanner it was made under. The subjects its earlier pages stored under another scanner are
+// stale like any other: the run-start step has masked the unmasked ones again from the store, and the
+// masked ones are the stale subjects the run fetches again before it continues. Every run that starts
+// records s and the stale subjects it has to fetch (ADR-0120).
+func Under(start Start[Progress], latest Latest[Progress], s index.Stamp, stale int) Start[Progress] {
 	if start.Skip {
-		return start, false
+		return start
 	}
 	if start.Reopen && start.ResumedFrom == "" && latest.Found && latest.Progress.Checkpoint.Ended() {
 		ended := latest.Progress.Checkpoint
 		start.From = Progress{Checkpoint: Checkpoint{Page: ended.Page, Of: ended.Of}}
 	}
-	at := start.From.Checkpoint
-	over := !at.Ended() && at.Stamp != s && at.Page > 0
-	if over {
-		start.From = Restart(start.From)
-	}
 	start.From.Checkpoint.Stamp = s
-	start.From.Checkpoint.Stale = 0
-	if start.From.Checkpoint.Ended() {
-		start.From.Checkpoint.Stale = stale
-	}
-	return start, over
+	start.From.Checkpoint.Stale = stale
+	return start
 }
 
 // Restart returns the progress of a pass that starts its enumeration over from the first page, as a

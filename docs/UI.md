@@ -469,16 +469,23 @@ the run, read from the run's progress events, and is absent until the run has te
 history. A pass 1 run fetching stale subjects again moves no page, so it shows no estimate once its
 last ten minutes hold no page made durable.
 
-Once a pass 1 run's enumeration has ended, its checkpoint records how many stored subjects are still
-masked under another scanner, and its counters how many it has fetched again
-([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
-While either is above zero, the checkpoint reads "{fetched} of {all} subjects fetched again
-({share})", all being the fetched plus those still to fetch, and the bar draws the same fraction, in
-place of the page of pages, which then reads the enumeration's last page of itself and so says
-nothing of the fetch. A pass reopened by a change of scanner starts there, since it enumerates
+A pass 1 run fetches stale subjects again before it continues an enumeration not yet ended, after a
+change of scanner, and once its enumeration has ended
+([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). Its
+checkpoint records how many stored subjects are still masked under another scanner whenever the run
+has any to fetch, from its start and from the page that ends the enumeration, and its counters how
+many it has fetched again. The enumeration has ended when the checkpoint records a page and no
+token. While the checkpoint records subjects still to fetch, or once the enumeration has ended while
+the counters record any fetched again, the checkpoint reads "{fetched} of {all} subjects fetched
+again ({share})", all being the fetched plus those still to fetch, and the bar draws the same
+fraction, in place of the page of pages, which then reads the enumeration's page of itself and so
+says nothing of the fetch. A pass reopened by a change of scanner starts there, since it enumerates
 nothing. The count still to fetch is read afresh at every call made durable, so the whole stays true
 when the run resumes. Leaving the page of pages in place was the alternative, and it would read as
-finished for the whole of the fetch.
+finished, or as stalled part way, for the whole of the fetch. Once a run fetching before it
+continues has nothing left to fetch, the checkpoint reads the page of pages again, since the
+enumeration goes on. Reading "{all} of {all} subjects fetched again" for the rest of the enumeration
+was the alternative, and it would hide the enumeration's progress for hours.
 
 Backfill's cell shows pass 1 while pass 1's latest run runs, else pass 2 while pass 2's latest run
 runs, else the pass whose latest run finished last, and "not started" when neither pass has a run.

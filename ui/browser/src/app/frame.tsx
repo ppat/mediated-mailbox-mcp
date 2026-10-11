@@ -419,15 +419,20 @@ export function indexing(system: System): boolean {
   );
 }
 
-// refetchOf is a backfill pass 1 run's fetch of stale subjects again, once its enumeration has ended,
-// as the subjects it fetched again of those plus the ones still to fetch, or undefined for a run that
-// fetched none and has none to fetch (docs/UI.md section 8.1, ADR-0120).
+// refetchOf is a backfill pass 1 run's fetch of stale subjects again, as the subjects it fetched again
+// of those plus the ones still to fetch, while its checkpoint records any still to fetch or once its
+// enumeration has ended, which its checkpoint marks with a page and no token. It is undefined for a
+// run with none to fetch whose enumeration goes on, so a run that fetched them all before it
+// continues its enumeration reads its page of pages again, and for a run that fetched none and has
+// none to fetch (docs/UI.md section 8.1, ADR-0120).
 export function refetchOf(
   run: Pick<Run, "checkpoint" | "counters">,
 ): { fetched: number; of: number } | undefined {
   const fetched = numberIn(run.counters, "refetched") ?? 0;
   const stale = numberIn(run.checkpoint, "stale") ?? 0;
-  return fetched + stale === 0 ? undefined : { fetched, of: fetched + stale };
+  const ended =
+    (numberIn(run.checkpoint, "page") ?? 0) > 0 && stringIn(run.checkpoint, "token") === "";
+  return stale > 0 || (ended && fetched > 0) ? { fetched, of: fetched + stale } : undefined;
 }
 
 // backfillProgress is a backfill run's progress in words, for a pass 1 run fetching stale subjects
@@ -454,6 +459,16 @@ export function numberIn(value: unknown, key: string): number | undefined {
   }
   const v: unknown = Reflect.get(value, key);
   return typeof v === "number" ? v : undefined;
+}
+
+// stringIn reads a string from a free-form JSON object the contract leaves untyped, such as a run's
+// checkpoint, and nothing else from it.
+export function stringIn(value: unknown, key: string): string | undefined {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+  const v: unknown = Reflect.get(value, key);
+  return typeof v === "string" ? v : undefined;
 }
 
 // unknownIndex is the banner's text when the system read failed. The banner fails toward a partial

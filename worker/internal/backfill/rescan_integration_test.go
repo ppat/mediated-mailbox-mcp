@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -480,6 +481,113 @@ func TestAReopenedFirstPassLeadsToASecondPass(t *testing.T) {
 	}
 	if r := rescanRows(t, conn, "personal")["b1"]; r.SubjectRevision != "wide-revision" || r.EventsUnderStamp != 1 {
 		t.Errorf("the bank's message is %+v, want its subject fetched and masked again under the new scanner", r)
+	}
+	if first, second := completed(t, conn, "personal"); !first || !second {
+		t.Errorf("the passes end as %v and %v, want both ended", first, second)
+	}
+}
+
+// VERIFICATIONS' row for a change of scanner, a first pass stopped part way through its enumeration.
+// Under the narrow scanner the first pass makes its first page durable and stops, one subject on it
+// stored masked and one stored unmasked. The scanner changes. The next run masks the unmasked subject
+// again at its start, and its first pass fetches again by identifier only the subject the first page
+// stored masked, before it asks for any page. It then continues the enumeration from the page after
+// its checkpoint with the stopped run's page count and counters, never asking for the first page
+// again, and stores the later pages under the new scanner. Every subject ends under the new scanner
+// and both passes end (ADR-0120).
+func TestAChangeOfScannerContinuesAnEnumerationUnderWay(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	account(t, conn, "personal", gmailProvider, nil, false)
+	pool := backfillPool(t)
+	messages := []struct{ id, from, subject string }{
+		{"m1", "orders@shop.example", marker.Field("one") + " Your OTP is 552901"},
+		{"m2", "letters@news.example", marker.Field("two") + " " + codeText},
+		{"m3", "orders@shop.example", marker.Field("three")},
+		{"m4", "sign-in@login.example", marker.Field("four") + " " + codeText},
+		{"m5", "orders@shop.example", marker.Field("five")},
+	}
+	var mailbox []fake.Message
+	for i, m := range messages {
+		mailbox = append(mailbox, fake.Message{
+			Metadata: mail.MessageMetadata{
+				ID: m.id, ThreadID: "t" + m.id, From: mail.Address{Email: m.from}, Subject: m.subject,
+				Date: mail.UnixMilli(1_700_000_000_000 + int64(i)*60_000), SizeBytes: 4096,
+			},
+			Body: mail.MessageBody{Text: marker.Body([]string{"one", "two", "three", "four", "five"}[i])},
+		})
+	}
+	f, err := fake.New(fake.Config{Account: "personal", PageSize: 2}, mailbox...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	narrow, _ := rescanDeps(t, pool, "personal", f, narrowScanner(t), "narrow")
+	stopped, err := pass1.Open(t.Context(), narrow, "personal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s, err := stopped.Next(t.Context()); err != nil || s.Done {
+		t.Fatalf("the narrow scanner's first page ended as %+v, %v, want a page made durable", s, err)
+	}
+	before := rescanRows(t, conn, "personal")
+	if r := before["m1"]; r.Subject != marker.Field("one")+" Your OTP is ██████" || r.SubjectRevision != "narrow-revision" {
+		t.Fatalf("under the narrow scanner the first page's masked subject is %+v, want its code masked", r)
+	}
+	if r := before["m2"]; r.Subject != messages[1].subject || r.SubjectRevision != "narrow-revision" {
+		t.Fatalf("under the narrow scanner the first page's unmasked subject is %+v, want it as the provider returned it", r)
+	}
+
+	first, second := rescanDeps(t, pool, "personal", f, wideScanner(t), "wide")
+	// calls is what the first pass asked the provider for, in order, a page by its token or the
+	// identifiers of a call fetching subjects again.
+	var calls []string
+	first.Fetch = func(ctx context.Context, token mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
+		calls = append(calls, "page "+string(token))
+		return f.EnumerateAll(ctx, token)
+	}
+	first.Metadata = func(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+		calls = append(calls, "subjects "+strings.Join(ids, " "))
+		return f.GetMessageMetadata(ctx, ids)
+	}
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	idle := idleUnit(t, conn, "personal")
+	if err := backfillAccount(t.Context(), first, second, "personal", metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(calls) != 3 || calls[0] != "subjects m1" || !strings.HasPrefix(calls[1], "page m") || !strings.HasPrefix(calls[2], "page m") {
+		t.Errorf("the run after the change of scanner asked the provider for %q, want the subject the first page stored masked, m1's, then the two pages after the stopped run's checkpoint, never the first", calls)
+	}
+	var resumedFrom string
+	var counters map[string]any
+	if err := conn.QueryRow(t.Context(), `SELECT coalesce(resumed_from, ''), counters FROM job_runs
+		WHERE account_id = 'personal' AND pass = 'pass1' AND run_id = 'wide1'`).Scan(&resumedFrom, &counters); err != nil {
+		t.Fatal(err)
+	}
+	if resumedFrom != "narrow1" || counters["pages"] != 3.0 || counters["messages"] != 5.0 {
+		t.Errorf("the first pass run after the change of scanner resumed %q with counters %v, want narrow1's run continued to three pages and five messages", resumedFrom, counters)
+	}
+	after := rescanRows(t, conn, "personal")
+	want := map[string]string{
+		"m1": marker.Field("one") + " Your OTP is ██████",
+		"m2": marker.Field("two") + " Your verification code is ██████",
+		"m3": marker.Field("three"),
+		"m4": marker.Field("four") + " Your verification code is ██████",
+		"m5": marker.Field("five"),
+	}
+	masks := map[string]int{"m1": 1, "m2": 1, "m4": 1}
+	for id, subject := range want {
+		r, wantEvents := after[id], masks[id]
+		if r.Subject != subject || r.SubjectRevision != "wide-revision" || r.EventsUnderStamp != wantEvents {
+			t.Errorf("message %s is %+v, want its subject %q under the new scanner with %d masking events under it", id, r, subject, wantEvents)
+		}
 	}
 	if first, second := completed(t, conn, "personal"); !first || !second {
 		t.Errorf("the passes end as %v and %v, want both ended", first, second)
