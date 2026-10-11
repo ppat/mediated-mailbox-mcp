@@ -215,6 +215,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#343](https://github.com/ppat/mediated-mailbox-mcp/pull/343) | D2 | D2's later work, the worker's test pinning the revision of its default scanner section made the known-answer test whose value changes only as a decision in review, and [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)'s consequence that the revision hashes the section's rendering | It adds and proves the row for a change that leaves the default scanner section's settings as they are and changes its revision | The control that the default scanner section's revision is the known answer checked in, broken so the revision algorithm takes another part of the hash or less of it, a defaulted field is added to the scanner's configuration type and a field's YAML name changes |
 | [#345](https://github.com/ppat/mediated-mailbox-mcp/pull/345) | D2 | D2's later work, the generator report for cases drawn several ways that can each reach several kinds, `property.ReportReach` in `testsupport/property`, counting a case for every kind it reaches over the cases of every draw together and logging each draw's own mix, with the placement analyser's report rule covering it, backfill's first and second pass crash tests reporting through it, and [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)'s account of how the backfill target's report counts kinds | The generator report's row, the row for the generated mix recorded inside a property and the ban-proof row, each proven again for `property.ReportReach` | The generator report's control and the analyser's report rule, every break again with three new breaks each, and its store rule again, and the seven breaks of the two passes' controls whose demonstrations had been red before their patch on a seed where a kind went uncounted, demonstrated again under seeds the runner chose, each reproduction recorded on its row |
 | [#346](https://github.com/ppat/mediated-mailbox-mcp/pull/346) | D2 | D2's later work, a change of scanner continuing a first-pass enumeration not yet ended from its checkpoint under the scanner in force rather than starting it over from the first page, once the subjects its earlier pages stored masked under the old scanner are fetched again by identifier, the checkpoint recording the subjects still to fetch from the run's start and from the page that ends the enumeration, and the UI reading the page of pages again once that fetch is done, with [ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) edited in place | D2's rows for a change of scanner and for killing the process running backfill mid-run, proven again for the continuation | The control that a run resuming an enumeration not yet ended under another scanner continues it, replacing the start over's, and it demonstrates again every control whose code, tests or patches the change touched |
+| [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347) | D3 | D3's later work, the audit row of a body decision in typed columns each closed vocabulary checks, the stage, the reason, the sender class with the policy rule behind it and that rule's scope, the content flags with the scanner rules behind them, the serve-time check's rules and the scanner it ran under where it ran, and the scan state, edited into the baseline schema and the mediator's insert grant in place, the policy rule's scope carried through the composed policy and the classifier's verdict, a body decision's reason a closed token in the response, the audit row and the count of denied bodies, and a served message's flags exactly `read` and `starred` ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0101](./docs/adr/operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md), [ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)) | The rows it adds for the audit row's closed columns, the class rule's scope and the served flags, the pending row for a body decision's audit row, and the rows for the audit of every serve and denial, the gate's verdict and parameters, the counts of denied bodies and the one shape on both roots, each proven again | The controls of the audit row's checks, the classifier's and the policy's scope and the served flags, new breaks of the audit of every serve and denial and of the reason tokens, and every demonstration whose code, tests, test fixtures or patch context the change touched, regenerated where stale and demonstrated again |
 | [#348](https://github.com/ppat/mediated-mailbox-mcp/pull/348) | M3 | M3's route words made closed lists, with the top-level words account setup refuses, the server's routes, the browser router's words where an account or a rule identifier also sits, the built bundle's top level and each policy scope's refused route words each compared with literals by a test, and the test that read its expectation from the bundle rewritten to compare the built bundle's words with them | It adds and proves the row for a route word added or dropped without the pinned list changing, and proves again the rows for an account identifier equal to a top-level word and for a policy write refused for a route word | The control that the route words are a closed list a test pins, each pinned source, the policy refusal, the account refusal, the server's routes, the built bundle and the router, broken by a word added, and every source but the server's routes also by a word dropped |
 | [#349](https://github.com/ppat/mediated-mailbox-mcp/pull/349) | M7 | M7's later work, the UI naming its key files in the credential section of `executioncontext/credential/core`, `credential.public_key_file` and `credential.private_key_files`, validated as the mediator and the worker validate theirs, in place of its own `seal_public_key_file` and `private_key_files` | The rows that start the UI with its key files, the UI's log of the key identifier it seals to, its pinned configuration type and its refusal of an unusable credential section, proven again under the section's keys | The UI's configuration pin, every other demonstration whose tests start the UI and every break of the credential section's own patches, demonstrated again, and the credential section's validation before any key file is read with a break added for the UI |
 
@@ -768,14 +769,16 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227),
   [#235](https://github.com/ppat/mediated-mailbox-mcp/pull/235),
   [#240](https://github.com/ppat/mediated-mailbox-mcp/pull/240),
-  [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246) and
-  [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), which closed its tickets
+  [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246),
+  [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322) and, as later work,
+  [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), which closed its tickets
   [#85](https://github.com/ppat/mediated-mailbox-mcp/issues/85),
   [#86](https://github.com/ppat/mediated-mailbox-mcp/issues/86),
   [#125](https://github.com/ppat/mediated-mailbox-mcp/issues/125),
   [#88](https://github.com/ppat/mediated-mailbox-mcp/issues/88),
-  [#127](https://github.com/ppat/mediated-mailbox-mcp/issues/127) and
-  [#273](https://github.com/ppat/mediated-mailbox-mcp/issues/273) and the discovery
+  [#127](https://github.com/ppat/mediated-mailbox-mcp/issues/127),
+  [#273](https://github.com/ppat/mediated-mailbox-mcp/issues/273) and
+  [#301](https://github.com/ppat/mediated-mailbox-mcp/issues/301) and the discovery
   [#238](https://github.com/ppat/mediated-mailbox-mcp/issues/238), and not yet released. The
   mediator's serving surface is one service layer under two thin roots generated from one registry
   ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md),
@@ -841,10 +844,19 @@ What the code on `main` runs today, per composition root, none of it yet release
   [F6](#delivered-mapped-to-outcomes)'s discovery
   [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244). Running against the real mailbox
   and a real agent session, at [production point 1](#production-point-1--the-read-path).
-  **Later work.** Before production point 1, the audit row records what a body decision rests on,
-  in typed and checked columns, with reason tokens for the agent
-  ([ADR-0016](./docs/adr/data/0016-schema.md)). After it, the mediator's index reads run under a
-  statement timeout, on a pool of a configured size, with custom plans.
+  As later work before production point 1, since an audit row no runtime role can correct keeps
+  any gap it is written with ([ADR-0016](./docs/adr/data/0016-schema.md)), the audit row records
+  what a body decision rests on in typed columns, each closed vocabulary checked at insert, the
+  stage, the reason, the sender class with the policy rule behind it and that rule's scope, the
+  content flags with the scanner rules behind them kept apart from the serve-time check's, the scan
+  state, and the scanner the serve-time check ran under. The classifier's verdict carries the
+  matched rule's scope from the policy snapshot. A body decision's reason is a token of a closed
+  set, the same in the response, the audit row and the count of denied bodies
+  ([ADR-0101](./docs/adr/operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)),
+  and a served message's flags are exactly `read` and `starred` as booleans
+  ([ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)).
+  **Later work.** After production point 1, the mediator's index reads run under a statement
+  timeout, on a pool of a configured size, with custom plans.
 
 - [x] **M7 — The UI's OAuth client setup and account setup** → [O6](./USE_CASES.md#o6--deployable)
   · [V3](#v3--the-agent-arrives-read-only) · finished at image
@@ -1076,7 +1088,8 @@ What the code on `main` runs today, per composition root, none of it yet release
   and the identifier grammar in the UI's proposal and server check, which are the later work of
   [D3](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes) and
   [M7](#delivered-mapped-to-outcomes), D1's delivered by pull request
-  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339). The chart's database setup without
+  [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339) and D3's by pull request
+  [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347). The chart's database setup without
   an extension step, which is [R1](#group-r--packaging)'s. The rollback request's status, and the
   heuristics run's pass and the storage of its embeddings, which are
   [M2](#group-m--mutation-and-approval)'s and [M4](#group-m--mutation-and-approval)'s. The UI's

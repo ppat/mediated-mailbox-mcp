@@ -230,3 +230,80 @@ func TestAttachmentMediaHoldsOnlyTheNormalizedForm(t *testing.T) {
 		}
 	}
 }
+
+// auditRow is a body decision's audit row whose columns are each a parameter, so a test varies one
+// column at a time from a row the checks store.
+const auditRow = "INSERT INTO audit_log (account_id, actor, action, stage, reason, sender_class, class_rule_id, class_rule_scope, " +
+	"content_flags, scan_state) VALUES ('" + accountA + "', 'client', $1, $2, $3, $4, $5, $6, $7::text[], $8)"
+
+// auditColumns is a stored body decision's row, column by column in auditRow's order.
+var auditColumns = []any{"DENY_BODY", "gate", "restricted_sender", "restricted", "base.bank", "base", "{}", "scanned"}
+
+// with returns auditColumns with the column at i set to value.
+func with(i int, value any) []any {
+	out := append([]any{}, auditColumns...)
+	out[i] = value
+	return out
+}
+
+// D3's rows for the typed audit row. Each closed column of a body decision's audit row refuses a value
+// outside its set and stores every value inside it, written out here rather than read from any code.
+// A body decision's row with no reason, sender class or scan state is refused, while a mutation's row
+// needs none of them, and a class rule is never stored apart from its scope (ADR-0016).
+func TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets(t *testing.T) {
+	tx := seeded(t)
+	columns := []struct {
+		name    string
+		at      int
+		refused []any
+		stored  []any
+	}{
+		{"action", 0, []any{"READ", "read_body", "SERVE_BODY"}, []any{"READ_BODY", "DENY_BODY", "MUTATE", "DENY_MUTATE"}},
+		{"stage", 1, []any{"release", "Gate", "fetch"}, []any{"gate", "serve"}},
+		{"reason", 2, []any{"pending content scan", "Released", "undecided", "denied"}, []any{
+			"released", "pending_scan", "skipped_restricted", "restricted_sender", "content_flagged", "invalid_stored_state",
+			"scan_state_not_releasable", "serve_time_check_no_scanner", "serve_time_check_matched", "conversion_refused",
+		}},
+		{"sender_class", 3, []any{"sensitive", "Restricted"}, []any{"normal", "restricted"}},
+		{"class_rule_scope", 5, []any{"overlay", "Base", "global"}, []any{"base", "account"}},
+		{"content_flags", 6, []any{"{password}", "{mfa_code,MFA_CODE}"}, []any{"{}", "{mfa_code}", "{login_link}", "{mfa_code,login_link}"}},
+		{"scan_state", 7, []any{"SKIPPED_GATE", "skipped", "clean"}, []any{"scanned", "skipped_restricted", "skipped_gate", "pending"}},
+	}
+	for _, c := range columns {
+		for _, value := range c.refused {
+			if code := attempt(t, tx, auditRow, with(c.at, value)...); code != checkViolation {
+				t.Errorf("storing %v in audit_log.%s: %q, want %s", value, c.name, code, checkViolation)
+			}
+		}
+		for _, value := range c.stored {
+			if code := attempt(t, tx, auditRow, with(c.at, value)...); code != "" {
+				t.Errorf("storing %v in audit_log.%s: %q, want it stored", value, c.name, code)
+			}
+		}
+	}
+	for _, action := range []string{"READ_BODY", "DENY_BODY"} {
+		for i, column := range map[int]string{2: "reason", 3: "sender_class", 7: "scan_state"} {
+			row := with(0, action)
+			row[i] = nil
+			if code := attempt(t, tx, auditRow, row...); code != checkViolation {
+				t.Errorf("storing a %s row with no %s: %q, want %s", action, column, code, checkViolation)
+			}
+		}
+	}
+	for _, action := range []string{"MUTATE", "DENY_MUTATE"} {
+		if code := attempt(t, tx, auditRow, action, nil, nil, nil, nil, nil, nil, nil); code != "" {
+			t.Errorf("storing a %s row with none of a body decision's columns: %q, want it stored", action, code)
+		}
+	}
+	if code := attempt(t, tx, auditRow, with(5, nil)...); code != checkViolation {
+		t.Errorf("storing a class rule with no scope: %q, want %s", code, checkViolation)
+	}
+	if code := attempt(t, tx, auditRow, with(4, nil)...); code != checkViolation {
+		t.Errorf("storing a scope with no class rule: %q, want %s", code, checkViolation)
+	}
+	neither := with(4, nil)
+	neither[5] = nil
+	if code := attempt(t, tx, auditRow, neither...); code != "" {
+		t.Errorf("storing a row with neither a class rule nor its scope: %q, want it stored", code)
+	}
+}

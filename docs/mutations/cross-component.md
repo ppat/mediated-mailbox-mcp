@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## A client is checked with the provider before it is stored
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** every answer of the token endpoint to a client check reads as the client accepted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent`:** `TestTheClientChecksAnswer`
 - **Break (2):** every client is stored without asking the provider
@@ -38,7 +38,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## A grant whose mailbox's API is not enabled is refused with its cause, and nothing is stored
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** a profile read refused for a disabled API reads as any other refusal
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent`:** `TestAProfileReadOfADisabledAPI`
 - **Break (2):** a grant whose API is disabled is reported as the provider not answering
@@ -82,7 +82,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## An account identifier no screen or path could reach is refused, and nothing is stored
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the grammar migration's check refuses only the identifier ., so .. and / are stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestNoAccountIdentifierIsAPathSegmentThePathCannotHold`, `TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt`
 - **Break (2):** the words the UI's top-level paths use are listed as setup and api alone rather than read from the bundle
@@ -188,7 +188,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## Every caller that binds a sender domain to a statement binds the one domain normalizer's output
 
-- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and every break again on 2026-10-10, after the index reads' test helper stored attachment media for its messages with attachments · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339)
+- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and every break again on 2026-10-10, after the index reads' test helper stored attachment media for its messages with attachments · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** the index query's domain term is bound as the client typed it, leaving case to the database
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/internal/service`:** `TestEachQueryTermSelectsItsMessages`, `TestTheDomainAndClassTermsReadTheStoredForm`
 - **Break (2):** the index query's domain term is lowercased by Go's simple mapping instead of passing through the domain normalizer
@@ -250,7 +250,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## The consent's redirect address is the configured loopback address, read by every use
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
 - **Break (1):** a pasted address is read against the default loopback address rather than the configured one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent`:** `TestTheUIsConsentRedirectsToItsGivenAddress`
 - **Break (2):** the paste box checks a pasted address's host against 127.0.0.1 whatever the configuration names

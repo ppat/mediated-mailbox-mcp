@@ -12,30 +12,57 @@ import (
 )
 
 const recordBodyDecision = `-- name: RecordBodyDecision :exec
-INSERT INTO audit_log (account_id, actor, action, message_id, sensitivity, rule_ids)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO audit_log (
+    account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope,
+    content_flags, content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
+)
+VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9,
+    $10, $11, $12, $13, $14, $15
+)
 `
 
 type RecordBodyDecisionParams struct {
-	AccountID   string
-	Actor       string
-	Action      string
-	MessageID   pgtype.Text
-	Sensitivity []byte
-	RuleIds     []string
+	AccountID       string
+	Actor           string
+	Action          string
+	MessageID       pgtype.Text
+	Stage           pgtype.Text
+	Reason          pgtype.Text
+	SenderClass     pgtype.Text
+	ClassRuleID     pgtype.Text
+	ClassRuleScope  pgtype.Text
+	ContentFlags    []string
+	ContentRuleIds  []string
+	ServeRuleIds    []string
+	ScanState       pgtype.Text
+	ScannerVersion  pgtype.Int4
+	ScannerRevision pgtype.Text
 }
 
-// Records one body request's decision, a serve as READ_BODY and a denial as DENY_BODY, with the
-// sensitivity it was decided under and the rules that decided it, and never any of the body's text
-// (ADR-0002, ADR-0016). The audit log is append-only, so this is the only write it takes.
+// Records one body request's decision, a serve as READ_BODY and a denial as DENY_BODY, with what it
+// rests on in typed columns. They are the stage that decided, the reason the client receives, the
+// sender class with the policy rule behind it and that rule's scope, the stored content flags with the
+// scanner rules behind them, the scan state, and the serve-time check's rules and scanner where that
+// check ran. The row never holds any of the body's text (ADR-0002, ADR-0016). The audit log is append-only, so this is
+// the only write it takes.
 func (q *Queries) RecordBodyDecision(ctx context.Context, arg RecordBodyDecisionParams) error {
 	_, err := q.db.Exec(ctx, recordBodyDecision,
 		arg.AccountID,
 		arg.Actor,
 		arg.Action,
 		arg.MessageID,
-		arg.Sensitivity,
-		arg.RuleIds,
+		arg.Stage,
+		arg.Reason,
+		arg.SenderClass,
+		arg.ClassRuleID,
+		arg.ClassRuleScope,
+		arg.ContentFlags,
+		arg.ContentRuleIds,
+		arg.ServeRuleIds,
+		arg.ScanState,
+		arg.ScannerVersion,
+		arg.ScannerRevision,
 	)
 	return err
 }

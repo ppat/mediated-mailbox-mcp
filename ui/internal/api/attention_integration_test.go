@@ -85,11 +85,12 @@ func since(s string) *string { return &s }
 // serves writes n READ_BODY audit rows at the instant now less the interval, and n DENY_BODY rows beside
 // them, which are not serves.
 func serves(n int, ago string) []string {
-	insert := func(action string) string {
-		return `INSERT INTO audit_log (ts, account_id, actor, action, message_id)
-			SELECT $2::timestamptz - interval '` + ago + `', $1, 'agent', '` + action + `', 'm-news' FROM generate_series(1, ` + itoa(n) + `)`
+	insert := func(action, stage, reason string) string {
+		return `INSERT INTO audit_log (ts, account_id, actor, action, message_id, stage, reason, sender_class, scan_state)
+			SELECT $2::timestamptz - interval '` + ago + `', $1, 'agent', '` + action + `', 'm-news', '` + stage + `', '` + reason +
+			`', 'normal', 'scanned' FROM generate_series(1, ` + itoa(n) + `)`
 	}
-	return []string{insert("READ_BODY"), insert("DENY_BODY")}
+	return []string{insert("READ_BODY", "serve", "released"), insert("DENY_BODY", "gate", "content_flagged")}
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }

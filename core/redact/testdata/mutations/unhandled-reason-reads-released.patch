@@ -5,14 +5,14 @@ tests: TestAnUnhandledReasonWithholds
 scheduled-count: no
 
 diff --git a/core/redact/redact.go b/core/redact/redact.go
-index 0e209d5..06d376c 100644
+index f9245dd4..035d6afc 100644
 --- a/core/redact/redact.go
 +++ b/core/redact/redact.go
-@@ -61,7 +61,7 @@ func (r Reason) String() string {
+@@ -62,7 +62,7 @@ func (r Reason) String() string {
  	case InvalidState:
- 		return "invalid stored state"
+ 		return "invalid_stored_state"
  	default:
--		return "invalid stored state"
+-		return "invalid_stored_state"
 +		return "released"
  	}
  }

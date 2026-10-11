@@ -72,12 +72,13 @@ func (r Reason) String() string {
 }
 
 // Verdict is one sender's classification. The zero value is a restricted, unclassifiable sender.
-// A decision reads Class. Reason and Rule explain the class, and a sender is restricted for more
-// reasons than a listed rule.
+// A decision reads Class. Reason, Rule and Scope explain the class, and a sender is restricted for
+// more reasons than a listed rule.
 type Verdict struct {
 	class  sensitivity.SenderClass
 	reason Reason
 	rule   string
+	scope  policy.Scope
 }
 
 // Class returns the sender class.
@@ -88,6 +89,11 @@ func (v Verdict) Reason() Reason { return v.reason }
 
 // Rule returns the identifier of the rule that matched, for a listed sender.
 func (v Verdict) Rule() string { return v.rule }
+
+// Scope returns the scope of the rule that matched, for a listed sender, and the zero Scope
+// otherwise. An identifier is unique only within its scope, so the two together name the rule
+// (ADR-0110).
+func (v Verdict) Scope() policy.Scope { return v.scope }
 
 // Classify returns the class of the sender of address under the account policy p.
 func Classify(p policy.Composed, address string, l Lookups) Verdict {
@@ -105,7 +111,7 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
 	for _, r := range p.Rules() {
 		for _, suffix := range r.DomainSuffixes() {
 			if sender.Under(SuffixName(suffix, l)) {
-				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID()}
+				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID(), scope: r.Scope()}
 			}
 		}
 	}

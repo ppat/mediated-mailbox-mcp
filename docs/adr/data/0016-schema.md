@@ -349,9 +349,11 @@ CREATE TABLE audit_log (
   message_id       text,
   -- what a body decision rests on (ADR-0001, ADR-0002)
   stage            text CHECK (stage IN ('gate', 'serve')),
-  reason           text,                  -- closed and checked: the reasons a body decision gives,
-                                          --   released included, whose spellings are settled with
-                                          --   the reasons the client surface returns
+  reason           text                   -- the reasons the client surface returns (ADR-0101)
+    CHECK (reason IN ('released', 'pending_scan', 'skipped_restricted', 'restricted_sender',
+                      'content_flagged', 'invalid_stored_state', 'scan_state_not_releasable',
+                      'serve_time_check_no_scanner', 'serve_time_check_matched',
+                      'conversion_refused')),
   sender_class     text CHECK (sender_class IN ('normal', 'restricted')),
   class_rule_id    text,                  -- the policy rule behind sender_class
   class_rule_scope text CHECK (class_rule_scope IN ('base', 'account')),
@@ -479,7 +481,15 @@ The shape enforces these properties.
   and the scanner the serve-time check ran under. On evidence no runtime role can ever correct, a
   closed vocabulary fails at insert, and a check reads a column plainly. The mediator writes the
   audit row before it releases anything, so a token the check does not know fails the request
-  closed and loudly and never serves a body without its record.
+  closed and loudly and never serves a body without its record. The reason is the token the client
+  surface returns
+  ([ADR-0101](../operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)).
+  A denial the gate decides is the `gate` stage's, and every row decided after the gate released
+  the message, a release included, is the `serve` stage's, since the release step decides it last.
+  The serve-time check's rules and the scanner pair are written when that check ran, on a release
+  and on the check's denial, and are NULL when it did not run, which is every gate denial, a body
+  the conversion refused, a scan state the release step never releases, and a release step with no
+  scanner.
 - **The background job kinds' runs, timeline events, and per-item failures are rows**
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), and their free-text columns hold provider
   or scanner text and never a body, under the same comment that binds every table.

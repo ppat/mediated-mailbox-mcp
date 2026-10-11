@@ -52,7 +52,7 @@ var accountTables = map[string]accountTable{
 	"job_runs":            {"INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at) VALUES ($1, $2, 'sync', 'tick', 'running', now())", accountB},
 	"job_run_events":      {"INSERT INTO job_run_events (account_id, run_id, kind) VALUES ($1, $2, 'start')", accountB},
 	"job_run_failures":    {"INSERT INTO job_run_failures (account_id, run_id, item_kind, item_id, error_class, first_at, last_at) VALUES ($1, $2, 'page', '1', 'throttled', now(), now())", accountB},
-	"audit_log":           {"INSERT INTO audit_log (account_id, actor, action) VALUES ($1, $2, 'READ_BODY')", accountB},
+	"audit_log":           {"INSERT INTO audit_log (account_id, actor, action, stage, reason, sender_class, scan_state) VALUES ($1, $2, 'READ_BODY', 'serve', 'released', 'normal', 'scanned')", accountB},
 }
 
 // TestRowLevelSecurityScopesEveryAccountTable is ADR-0016's third layer, on every table with an

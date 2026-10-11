@@ -78,13 +78,13 @@ func TestFailClosed(t *testing.T) {
 		scan   sensitivity.ScanState
 		want   outcome
 	}{
-		{"a policy that never loaded", never.For("acct-a"), unlisted, none, scanned, denied("restricted sender", "no policy")},
-		{"a sender the classifier cannot read", p, "no-at-sign", none, scanned, denied("restricted sender", "unclassifiable")},
-		{"a sender with no registrable domain", p, "x@com", none, scanned, denied("restricted sender", "unclassifiable")},
-		{"an unscanned message", p, unlisted, none, sensitivity.Pending(), denied("pending content scan", "unlisted")},
-		{"stored values nobody built", p, unlisted, sensitivity.ContentFlags{}, sensitivity.ScanState{}, denied("invalid stored state", "unlisted")},
-		{"a flag on a message skipped by the scan gate", p, unlisted, link, sensitivity.SkippedGate(), denied("invalid stored state", "unlisted")},
-		{"a flag on a message skipped as restricted", p, listed, mfa, sensitivity.SkippedRestricted(), denied("invalid stored state", "listed")},
+		{"a policy that never loaded", never.For("acct-a"), unlisted, none, scanned, denied("restricted_sender", "no policy")},
+		{"a sender the classifier cannot read", p, "no-at-sign", none, scanned, denied("restricted_sender", "unclassifiable")},
+		{"a sender with no registrable domain", p, "x@com", none, scanned, denied("restricted_sender", "unclassifiable")},
+		{"an unscanned message", p, unlisted, none, sensitivity.Pending(), denied("pending_scan", "unlisted")},
+		{"stored values nobody built", p, unlisted, sensitivity.ContentFlags{}, sensitivity.ScanState{}, denied("invalid_stored_state", "unlisted")},
+		{"a flag on a message skipped by the scan gate", p, unlisted, link, sensitivity.SkippedGate(), denied("invalid_stored_state", "unlisted")},
+		{"a flag on a message skipped as restricted", p, listed, mfa, sensitivity.SkippedRestricted(), denied("invalid_stored_state", "listed")},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -98,7 +98,7 @@ func TestFailClosed(t *testing.T) {
 
 // A verdict nobody built withholds the body as an invalid stored state (ADR-0042).
 func TestTheZeroVerdictWithholds(t *testing.T) {
-	if diff := cmp.Diff(denied("invalid stored state", "unclassifiable"), observe(redact.Verdict{}), compare.Options); diff != "" {
+	if diff := cmp.Diff(denied("invalid_stored_state", "unclassifiable"), observe(redact.Verdict{}), compare.Options); diff != "" {
 		t.Errorf("zero Verdict (-want +got):\n%s", diff)
 	}
 }
@@ -115,15 +115,15 @@ func TestDecide(t *testing.T) {
 	}{
 		{"a normal sender, scanned clean", unlisted, none, scanned, released},
 		{"a normal sender, skipped by the scan gate", unlisted, none, sensitivity.SkippedGate(), released},
-		{"a restricted sender, skipped as restricted", listed, none, sensitivity.SkippedRestricted(), denied("skipped as restricted", "listed")},
-		{"a restricted sender, scanned before it was listed", listed, none, scanned, denied("restricted sender", "listed")},
-		{"a restricted sender, skipped by the scan gate", listed, none, sensitivity.SkippedGate(), denied("restricted sender", "listed")},
-		{"a restricted sender, pending", listed, none, sensitivity.Pending(), denied("pending content scan", "listed")},
-		{"a one-time code", unlisted, mfa, scanned, denied("content flagged", "unlisted")},
-		{"a login link", unlisted, link, scanned, denied("content flagged", "unlisted")},
-		{"both flags", unlisted, sensitivity.Flags(true, true), scanned, denied("content flagged", "unlisted")},
-		{"a restricted sender with a flag", listed, mfa, scanned, denied("restricted sender", "listed")},
-		{"a delisted sender before its messages return to pending", unlisted, none, sensitivity.SkippedRestricted(), denied("skipped as restricted", "unlisted")},
+		{"a restricted sender, skipped as restricted", listed, none, sensitivity.SkippedRestricted(), denied("skipped_restricted", "listed")},
+		{"a restricted sender, scanned before it was listed", listed, none, scanned, denied("restricted_sender", "listed")},
+		{"a restricted sender, skipped by the scan gate", listed, none, sensitivity.SkippedGate(), denied("restricted_sender", "listed")},
+		{"a restricted sender, pending", listed, none, sensitivity.Pending(), denied("pending_scan", "listed")},
+		{"a one-time code", unlisted, mfa, scanned, denied("content_flagged", "unlisted")},
+		{"a login link", unlisted, link, scanned, denied("content_flagged", "unlisted")},
+		{"both flags", unlisted, sensitivity.Flags(true, true), scanned, denied("content_flagged", "unlisted")},
+		{"a restricted sender with a flag", listed, mfa, scanned, denied("restricted_sender", "listed")},
+		{"a delisted sender before its messages return to pending", unlisted, none, sensitivity.SkippedRestricted(), denied("skipped_restricted", "unlisted")},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestAJustListedDomainDeniesOnTheNextDecision(t *testing.T) {
 		observe(redact.Decide(before, unlisted, lookups, none, scanned)),
 		observe(redact.Decide(after, unlisted, lookups, none, scanned)),
 	}
-	want := []outcome{released, denied("restricted sender", "listed")}
+	want := []outcome{released, denied("restricted_sender", "listed")}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("before and after listing (-want +got):\n%s", diff)
 	}
@@ -158,11 +158,11 @@ const (
 )
 
 // A verdict cannot carry a body, a snippet or a filename. It holds a reason and the sender's
-// classification, which holds a class, a reason and a rule identifier, and nothing else. A literal
-// giving it a body does not compile (ADR-0040).
+// classification, which holds a class, a reason, and a rule's identifier and scope, and nothing else.
+// A literal giving it a body does not compile (ADR-0040).
 func TestTheVerdictCannotCarryContent(t *testing.T) {
 	mustnotcompile.RequireFields(t, redactPackage, "Verdict", "reason Reason", "sender classify.Verdict")
-	mustnotcompile.RequireFields(t, classifyPackage, "Verdict", "class sensitivity.SenderClass", "reason Reason", "rule string")
+	mustnotcompile.RequireFields(t, classifyPackage, "Verdict", "class sensitivity.SenderClass", "reason Reason", "rule string", "scope policy.Scope")
 	mustnotcompile.RequireFields(t, sensitivityPackage, "SenderClass", "normal bool")
 	mustnotcompile.Require(t, "./testdata/mustnotcompile/verdictbody", "unknown field body in struct literal of type redact.Verdict")
 }
@@ -175,7 +175,7 @@ func TestTheDecisionTakesNoProviderAndNoBody(t *testing.T) {
 	mustnotcompile.RequireParams(t, redactPackage, "Decide",
 		"policy.Composed", "string", "classify.Lookups", "sensitivity.ContentFlags", "sensitivity.ScanState")
 	mustnotcompile.RequireFields(t, policyPackage, "Composed", "loaded bool", "rules []Rule")
-	mustnotcompile.RequireFields(t, policyPackage, "Rule", "id string", "suffixes []string")
+	mustnotcompile.RequireFields(t, policyPackage, "Rule", "id string", "suffixes []string", "scope Scope")
 	mustnotcompile.RequireFields(t, classifyPackage, "Lookups",
 		"ToUnicode func(domain string) (string, error)",
 		"ToASCII func(domain string) (string, error)",

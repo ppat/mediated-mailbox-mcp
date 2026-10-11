@@ -9,7 +9,7 @@
 Several recorded states produce client-visible behavior that reads as failure. They are a
 backfill pass still running, a sync cursor gone stale, a scan backlog, a rate controller in
 backoff, and a failed provider authentication. The design already commits, in miniature, to
-explaining rather than misreporting. The denial envelope carries "pending content scan"
+explaining rather than misreporting. The denial envelope carries the `pending_scan` reason
 specifically so the agent explains a backlog instead of reporting a permissions bug
 ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)).
 

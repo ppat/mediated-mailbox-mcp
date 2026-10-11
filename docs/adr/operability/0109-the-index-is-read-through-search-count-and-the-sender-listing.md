@@ -66,6 +66,10 @@ operation one route, a structured read a `:search` route, and a read with only s
   the same policy any sender class term or grouping of the call uses
   ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Counts, group keys and sender
   statistics carry no body-derived field.
+- **A served message's `flags` is the object `{read, starred}`**, in every read that serves a
+  message. Both keys are booleans and both are required, and no other key is served. A stored value
+  that is missing or not a boolean reads as false, and a key the index stores beside the two is not
+  served, so a client learns the keys from the contract and never from the data.
 - **Each operation reads one snapshot of the index.** A search, a count and a page of the sender
   listing run their statements, the read of the sender domains the classification takes included,
   in one transaction at the repeatable-read isolation level, read-only, which the transaction helper
@@ -115,6 +119,10 @@ operation one route, a structured read a `:search` route, and a read with only s
   is a column a statement's sort can be shown to end with, which
   [ADR-0066](../data/0066-data-access-generated-from-sql.md)'s statement check requires of a paged
   read. Those sets are small, so paging them in the service layer costs nothing.
+- **A served message's flags as top-level booleans**, `read` and `starred` beside the message's
+  other fields. For it, the message is flatter, with one less level of nesting. Against it, the
+  object mirrors the canonical model's flags, keeps `flags.read` for a client already reading it,
+  and a later state is an additive key of the object.
 
 ## Consequences
 

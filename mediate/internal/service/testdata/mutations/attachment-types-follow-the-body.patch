@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
-index 7a8570fa..ede69fc3 100644
+index a8bd6cb2..c9726883 100644
 --- a/mediate/internal/service/present.go
 +++ b/mediate/internal/service/present.go
-@@ -120,7 +120,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
+@@ -145,7 +145,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
  		Labels:          nonNil(m.Labels),
- 		Flags:           json.RawMessage(`{}`),
+ 		Flags:           storedMessageFlags(m.Flags),
  		HasAttachments:  m.HasAttachments,
 -		AttachmentTypes: types(m.AttachmentMedia),
 +		AttachmentTypes: types(map[bool][]mail.AttachmentMedia{true: m.AttachmentMedia}[v.ReleasesBody()]),

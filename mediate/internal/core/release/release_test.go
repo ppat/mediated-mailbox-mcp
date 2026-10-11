@@ -65,11 +65,11 @@ func TestFailClosed(t *testing.T) {
 		want outcome
 	}{
 		{"the zero decision", release.Decision{}, withheld("undecided")},
-		{"a pending scan", release.Decide(release.Content{Body: clean}, sensitivity.Pending(), scanner(t)), withheld("scan state not releasable")},
-		{"the zero scan state", release.Decide(release.Content{Body: clean}, sensitivity.ScanState{}, scanner(t)), withheld("scan state not releasable")},
-		{"skipped as restricted", release.Decide(release.Content{Body: clean}, sensitivity.SkippedRestricted(), scanner(t)), withheld("scan state not releasable")},
-		{"a gate-skipped body and a scanner nobody built", release.Decide(release.Content{Body: clean}, sensitivity.SkippedGate(), noScanner), withheld("no scanner for the serve-time pattern check")},
-		{"a gate-skipped login link and a scanner nobody built", release.Decide(release.Content{Body: fixture.LoginLink().Body}, sensitivity.SkippedGate(), noScanner), withheld("no scanner for the serve-time pattern check")},
+		{"a pending scan", release.Decide(release.Content{Body: clean}, sensitivity.Pending(), scanner(t)), withheld("scan_state_not_releasable")},
+		{"the zero scan state", release.Decide(release.Content{Body: clean}, sensitivity.ScanState{}, scanner(t)), withheld("scan_state_not_releasable")},
+		{"skipped as restricted", release.Decide(release.Content{Body: clean}, sensitivity.SkippedRestricted(), scanner(t)), withheld("scan_state_not_releasable")},
+		{"a gate-skipped body and a scanner nobody built", release.Decide(release.Content{Body: clean}, sensitivity.SkippedGate(), noScanner), withheld("serve_time_check_no_scanner")},
+		{"a gate-skipped login link and a scanner nobody built", release.Decide(release.Content{Body: fixture.LoginLink().Body}, sensitivity.SkippedGate(), noScanner), withheld("serve_time_check_no_scanner")},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -99,7 +99,7 @@ func TestAScannedMessagesFilenamesAreChecked(t *testing.T) {
 	s := scanner(t)
 	clean := fixture.Newsletter().Body
 	d := release.Decide(release.Content{Body: clean, AttachmentNames: []string{"report.pdf", "Your verification code 482913.txt"}}, sensitivity.Scanned(), s)
-	if got, ok := d.Released(); ok || d.Reason().String() != "serve-time pattern check matched" || !slices.Contains(d.Rules(), "mfa.trigger_window") {
+	if got, ok := d.Released(); ok || d.Reason().String() != "serve_time_check_matched" || !slices.Contains(d.Rules(), "mfa.trigger_window") {
 		t.Errorf("a scanned message with a code in a filename was released %v as %q with %v: %+v", ok, d.Reason(), d.Rules(), got)
 	}
 	if _, ok := release.Decide(release.Content{Body: fixture.LoginLink().Body, Snippet: fixture.OneTimeCode().Body, AttachmentNames: []string{"report.pdf"}},
@@ -107,7 +107,7 @@ func TestAScannedMessagesFilenamesAreChecked(t *testing.T) {
 		t.Error("a scanned message's body and snippet were checked again")
 	}
 	var noScanner scan.Scanner
-	if d := release.Decide(release.Content{Body: clean, AttachmentNames: []string{"report.pdf"}}, sensitivity.Scanned(), noScanner); d.Reason().String() != "no scanner for the serve-time pattern check" {
+	if d := release.Decide(release.Content{Body: clean, AttachmentNames: []string{"report.pdf"}}, sensitivity.Scanned(), noScanner); d.Reason().String() != "serve_time_check_no_scanner" {
 		t.Errorf("a scanned message's filenames with no scanner to check them were decided %q", d.Reason())
 	}
 	if _, ok := release.Decide(release.Content{Body: clean}, sensitivity.Scanned(), noScanner).Released(); !ok {
@@ -129,9 +129,9 @@ func TestTheCheckReadsEverythingReleased(t *testing.T) {
 		reason  string
 		rules   []string
 	}{
-		{"a login link in the snippet", release.Content{Body: clean, Snippet: "Reset your password: " + link}, "serve-time pattern check matched", []string{"link.query_token"}},
-		{"a one-time code in a filename", release.Content{Body: clean, AttachmentNames: []string{"report.pdf", "Your verification code 482913.txt"}}, "serve-time pattern check matched", []string{"mfa.trigger_window"}},
-		{"a code in the body and a link in the snippet", release.Content{Body: fixture.OneTimeCode().Body, Snippet: link}, "serve-time pattern check matched", nil},
+		{"a login link in the snippet", release.Content{Body: clean, Snippet: "Reset your password: " + link}, "serve_time_check_matched", []string{"link.query_token"}},
+		{"a one-time code in a filename", release.Content{Body: clean, AttachmentNames: []string{"report.pdf", "Your verification code 482913.txt"}}, "serve_time_check_matched", []string{"mfa.trigger_window"}},
+		{"a code in the body and a link in the snippet", release.Content{Body: fixture.OneTimeCode().Body, Snippet: link}, "serve_time_check_matched", nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -169,8 +169,8 @@ func TestServeTimePatternCheck(t *testing.T) {
 		msg  fixture.Message
 		want outcome
 	}{
-		{"a gate-skipped login link", fixture.LoginLink(), withheld("serve-time pattern check matched")},
-		{"a gate-skipped one-time code", fixture.OneTimeCode(), withheld("serve-time pattern check matched")},
+		{"a gate-skipped login link", fixture.LoginLink(), withheld("serve_time_check_matched")},
+		{"a gate-skipped one-time code", fixture.OneTimeCode(), withheld("serve_time_check_matched")},
 		{"a gate-skipped newsletter", fixture.Newsletter(), released(fixture.Newsletter().Body)},
 		{"a gate-skipped receipt", fixture.Receipt(), released(fixture.Receipt().Body)},
 		{"a gate-skipped code only tier 2 catches", fixture.AlphanumericCode(), released(fixture.AlphanumericCode().Body)},

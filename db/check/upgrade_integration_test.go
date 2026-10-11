@@ -119,10 +119,11 @@ func TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged(t *testing.T) {
 		('personal', 'r-3', 'backfill', 'pass2', 'running', 'r-2', '2026-09-01T12:00:00Z', NULL, '2026-09-01T12:05:00Z', '{"page": 2}', '{"pages": 2}', NULL),
 		('personal', 'r-4', 'sync', 'tick', 'succeeded', NULL, '2026-09-02T10:00:00Z', '2026-09-02T10:00:01Z', '2026-09-02T10:00:01Z', NULL, '{"added": 2}', NULL),
 		('work', 'r-5', 'sync', 'gap_recovery', 'succeeded', NULL, '2026-09-02T10:00:00Z', '2026-09-02T10:01:00Z', '2026-09-02T10:01:00Z', NULL, '{"reconciled": 4}', NULL)`,
-		`INSERT INTO audit_log (ts, account_id, actor, action, message_id, sensitivity, rule_ids) VALUES
-		('2026-09-03T09:00:00Z', 'personal', 'agent', 'READ_BODY', 'm-1', '{"sender_class": "normal"}', '{}'),
-		('2026-09-03T09:01:00Z', 'personal', 'agent', 'DENY_BODY', 'm-2', '{"sender_class": "restricted"}', '{bank}'),
-		('2026-09-03T09:02:00Z', 'work', 'agent', 'READ_BODY', 'm-1', NULL, NULL)`,
+		`INSERT INTO audit_log (ts, account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id,
+			class_rule_scope, content_flags, content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision) VALUES
+		('2026-09-03T09:00:00Z', 'personal', 'agent', 'READ_BODY', 'm-1', 'serve', 'released', 'normal', NULL, NULL, '{}', '{}', '{}', 'scanned', 1, 'r-1'),
+		('2026-09-03T09:01:00Z', 'personal', 'agent', 'DENY_BODY', 'm-2', 'gate', 'restricted_sender', 'restricted', 'bank', 'base', '{}', '{}', NULL, 'scanned', NULL, NULL),
+		('2026-09-03T09:02:00Z', 'work', 'agent', 'DENY_BODY', 'm-1', 'serve', 'serve_time_check_matched', 'normal', NULL, NULL, '{}', '{}', '{link.query_token}', 'skipped_gate', 1, 'r-1')`,
 	)
 	runs, audit := rowsOf(t, conn, "job_runs"), rowsOf(t, conn, "audit_log")
 

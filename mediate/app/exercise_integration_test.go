@@ -230,11 +230,13 @@ func firstLine(body string) string {
 	return line
 }
 
-// printAudit prints every audit row the exercise wrote, the record the exercise is read from.
+// printAudit prints every audit row the exercise wrote, the record the exercise is read from, each
+// column a body decision's row records by name, a NULL one as null.
 func printAudit(t *testing.T, conn *pgx.Conn, account string) {
 	t.Helper()
-	rows, err := conn.Query(context.Background(), `SELECT ts, action, message_id, sensitivity::text, rule_ids FROM audit_log
-		WHERE account_id = $1 ORDER BY id`, account)
+	rows, err := conn.Query(context.Background(), `SELECT ts, action, message_id, stage, reason, sender_class, class_rule_id,
+		class_rule_scope, content_flags, content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
+		FROM audit_log WHERE account_id = $1 ORDER BY id`, account)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,14 +244,27 @@ func printAudit(t *testing.T, conn *pgx.Conn, account string) {
 	fmt.Fprintln(os.Stderr, "\nexercise: audit rows, oldest first")
 	for rows.Next() {
 		var at time.Time
-		var action, message, sens string
-		var rules []string
-		if err := rows.Scan(&at, &action, &message, &sens, &rules); err != nil {
+		var action, message string
+		var stage, reason, class, rule, scope, scanState, revision *string
+		var flags, contentRules, serveRules []string
+		var version *int32
+		if err := rows.Scan(&at, &action, &message, &stage, &reason, &class, &rule, &scope, &flags, &contentRules,
+			&serveRules, &scanState, &version, &revision); err != nil {
 			t.Fatal(err)
 		}
-		fmt.Fprintf(os.Stderr, "%s %s %s %s %v\n", at.UTC().Format(time.RFC3339), action, message, sens, rules)
+		fmt.Fprintf(os.Stderr, "%s %s %s stage=%s reason=%s sender_class=%s class_rule=%s/%s content_flags=%v content_rules=%v serve_rules=%v scan_state=%s scanner=%s/%s\n",
+			at.UTC().Format(time.RFC3339), action, message, orNull(stage), orNull(reason), orNull(class), orNull(rule), orNull(scope),
+			flags, contentRules, serveRules, orNull(scanState), orNull(version), orNull(revision))
 	}
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// orNull returns the value v points at, or null when it is nil, as a printed column reads.
+func orNull[T any](v *T) string {
+	if v == nil {
+		return "null"
+	}
+	return fmt.Sprint(*v)
 }

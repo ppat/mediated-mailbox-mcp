@@ -612,3 +612,57 @@ func TestTheStatusOfAnAccountWithNothingRecorded(t *testing.T) {
 		t.Errorf("the status (-want +got):\n%s", diff)
 	}
 }
+
+// D3's row for a served message's flags. A message's flags are served as exactly read and starred, each
+// a boolean, whatever the index holds. A key beside them is not served, a missing one reads as false and
+// so does one that is not a boolean, so an agent learns the keys from the contract and never from the
+// data. The contract's schema states the two keys and refuses any other.
+func TestTheFlagsAreServedAsReadAndStarredAlone(t *testing.T) {
+	conn := superuser(t)
+	account := newAccount(t, conn)
+	stored := map[string]string{
+		"m-both":    `{"read": true, "starred": true}`,
+		"m-extra":   `{"read": true, "starred": false, "important": true}`,
+		"m-missing": `{"read": true}`,
+		"m-string":  `{"read": "true", "starred": 1}`,
+		"m-empty":   `{}`,
+	}
+	for id, flags := range stored {
+		must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, flags,
+			has_attachments, sender_class, scan_state) VALUES ($1, $2, $2, 'a@news.example', 'news.example', now(), $3, false, 'normal', 'scanned')`,
+			account, id, flags)
+	}
+	reg := reads(t, account)
+	want := map[string]string{
+		"m-both":    `{"read":true,"starred":true}`,
+		"m-extra":   `{"read":true,"starred":false}`,
+		"m-missing": `{"read":true,"starred":false}`,
+		"m-string":  `{"read":false,"starred":false}`,
+		"m-empty":   `{"read":false,"starred":false}`,
+	}
+	for id, flags := range want {
+		var served struct {
+			Flags json.RawMessage `json:"flags"`
+		}
+		if err := json.Unmarshal(call(t, reg, "get_message", `{"account_id":"`+account+`","message_id":"`+id+`"}`), &served); err != nil {
+			t.Fatal(err)
+		}
+		if string(served.Flags) != flags {
+			t.Errorf("%s stored as %s is served with the flags %s, want %s", id, stored[id], served.Flags, flags)
+		}
+	}
+	var output struct {
+		Properties struct {
+			Flags json.RawMessage `json:"flags"`
+		} `json:"properties"`
+	}
+	op, _ := reg.Lookup("get_message")
+	if err := json.Unmarshal(op.Output, &output); err != nil {
+		t.Fatal(err)
+	}
+	const schema = `{"type":"object","properties":{"read":{"type":"boolean"},"starred":{"type":"boolean"}},` +
+		`"required":["read","starred"],"additionalProperties":false}`
+	if string(output.Properties.Flags) != schema {
+		t.Errorf("get_message's schema states the flags as %s, want %s", output.Properties.Flags, schema)
+	}
+}

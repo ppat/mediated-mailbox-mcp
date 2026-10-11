@@ -5,13 +5,13 @@ tests: TestTheVerdictCannotCarryContent
 scheduled-count: no
 
 diff --git a/core/classify/classify.go b/core/classify/classify.go
-index e163a55..273ded9 100644
+index 89f470a5..cd7b6740 100644
 --- a/core/classify/classify.go
 +++ b/core/classify/classify.go
-@@ -78,6 +78,7 @@ type Verdict struct {
- 	class  sensitivity.SenderClass
+@@ -79,6 +79,7 @@ type Verdict struct {
  	reason Reason
  	rule   string
+ 	scope  policy.Scope
 +	snippet string
  }
  

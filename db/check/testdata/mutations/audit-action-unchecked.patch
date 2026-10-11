@@ -1,0 +1,21 @@
+control: The audit row's closed columns refuse a value outside their sets, and a body decision's row names what it rests on
+removes: the audit row's action is unchecked, so a spelling outside its set is stored
+packages: ./db/check
+tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 8f6d933f..ea4d91ca 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -414,8 +414,7 @@ CREATE TABLE audit_log (
+     ts timestamptz NOT NULL DEFAULT now(),
+     account_id text NOT NULL,
+     actor text NOT NULL,
+-    action text NOT NULL
+-    CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),
++    action text NOT NULL,
+     message_id text,
+     -- The stage that decided, gate for a gate denial and serve for every row decided after the gate
+     -- released the message.

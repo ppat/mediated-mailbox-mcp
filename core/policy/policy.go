@@ -36,14 +36,42 @@ type Row struct {
 	DomainSuffixes []string
 }
 
+// Scope says which part of an account's policy holds a rule, the base policy every account inherits
+// or the account's own overlay. An identifier is unique only within its scope (ADR-0110), so a rule is
+// named by the two together. The zero value is no scope, which no loaded rule has.
+type Scope uint8
+
+const (
+	// BaseScope is the base policy's.
+	BaseScope Scope = iota + 1
+	// AccountScope is an account's overlay's.
+	AccountScope
+)
+
+// String names the scope as the audit row stores it (ADR-0016), and the zero Scope as empty.
+func (s Scope) String() string {
+	switch s {
+	case BaseScope:
+		return "base"
+	case AccountScope:
+		return "account"
+	default:
+		return ""
+	}
+}
+
 // Rule is one validated rule. Every rule restricts the senders whose domain it matches.
 type Rule struct {
 	id       string
 	suffixes []string
+	scope    Scope
 }
 
 // ID returns the rule's identifier.
 func (r Rule) ID() string { return r.id }
+
+// Scope returns the scope that holds the rule. It names the rule and decides nothing.
+func (r Rule) Scope() Scope { return r.scope }
 
 // DomainSuffixes returns a copy of the domain suffixes the rule matches.
 func (r Rule) DomainSuffixes() []string { return slices.Clone(r.suffixes) }
@@ -204,8 +232,10 @@ func load(rows []Row) (Snapshot, []string) {
 	for _, row := range rows {
 		rule := Rule{id: row.ID, suffixes: slices.Clone(row.DomainSuffixes)}
 		if row.Account == "" {
+			rule.scope = BaseScope
 			s.base = append(s.base, rule)
 		} else {
+			rule.scope = AccountScope
 			s.overlays[row.Account] = append(s.overlays[row.Account], rule)
 		}
 	}

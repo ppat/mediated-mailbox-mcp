@@ -1,0 +1,21 @@
+control: The audit row's closed columns refuse a value outside their sets, and a body decision's row names what it rests on
+removes: a class rule's identifier is stored without its scope and a scope without an identifier
+packages: ./db/check
+tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 8f6d933f..c5b6be7d 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -446,8 +446,6 @@ CREATE TABLE audit_log (
+     CHECK (
+         action NOT IN ('READ_BODY', 'DENY_BODY')
+         OR (reason IS NOT null AND sender_class IS NOT null AND scan_state IS NOT null)
+-    ),
+-    -- A class rule is recorded with its scope, or neither is.
+-    CHECK ((class_rule_id IS null) = (class_rule_scope IS null))
++    )
+ );
+ CREATE INDEX ON audit_log (account_id, ts DESC);

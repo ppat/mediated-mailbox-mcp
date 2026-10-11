@@ -123,9 +123,12 @@ func TestTheMediatorCannotApproveAPlan(t *testing.T) {
 }
 
 // scanner returns the scanner the application ships.
+// scannerRevision is the configuration revision the tests' scanner is built under.
+const scannerRevision = "a-revision"
+
 func scanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(scan.DefaultConfig(), scannerRevision)
 	if err != nil {
 		t.Fatal(err)
 	}

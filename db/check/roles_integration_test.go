@@ -62,7 +62,7 @@ func seeded(t *testing.T) pgx.Tx {
 		"INSERT INTO reorg_plans (plan_id, account_id, status, plan) VALUES ('" + planA + "', '" + accountA + "', 'DRAFT', '{}')",
 		"INSERT INTO reorg_op_log (plan_id, message_id, labels_before, labels_after) VALUES ('" + planA + "', 'm-1', '{}', '{Receipts}')",
 		"INSERT INTO policy_candidates (account_id, domain, signals, score) VALUES ('" + accountA + "', '" + candidate + "', '[]', 0.9)",
-		"INSERT INTO audit_log (account_id, actor, action) VALUES ('" + accountA + "', 'agent', 'READ_BODY')",
+		"INSERT INTO audit_log (account_id, actor, action, stage, reason, sender_class, scan_state) VALUES ('" + accountA + "', 'agent', 'READ_BODY', 'serve', 'released', 'normal', 'scanned')",
 	} {
 		if _, err := tx.Exec(ctx, sql); err != nil {
 			t.Fatalf("%s: %v", sql, err)

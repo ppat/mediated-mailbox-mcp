@@ -1,0 +1,20 @@
+control: The audit row's closed columns refuse a value outside their sets, and a body decision's row names what it rests on
+removes: the audit row's scan state set leaves out skipped_gate, so a gate-skipped message's row is refused
+packages: ./db/check
+tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 8f6d933f..5f6e16a0 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -438,7 +438,7 @@ CREATE TABLE audit_log (
+     -- The serve-time pattern check's rules and the scanner it ran under, NULL when it did not run.
+     serve_rule_ids text[],
+     scan_state text
+-    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
++    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'pending')),
+     scanner_version int,
+     scanner_revision text,
+     -- A body decision's row names its reason, sender class and scan state, and a mutation's row is

@@ -20,8 +20,8 @@ nothing a client supplies.
 Gate re-classifies from the index at fetch time
   │  (never trusts caller-supplied sensitivity context)
   ├─ content_flags non-empty,
-  │  and scan_state ≠ SCANNED            → DENY ("invalid stored state")
-  ├─ scan_state = PENDING                → DENY ("pending content scan")
+  │  and scan_state ≠ SCANNED            → DENY (invalid_stored_state)
+  ├─ scan_state = PENDING                → DENY (pending_scan)
   ├─ scan_state = SKIPPED_RESTRICTED     → DENY (policy)
   ├─ re-derived class = restricted       → DENY (policy)
   ├─ content_flags non-empty             → DENY (policy)
@@ -101,8 +101,9 @@ snippet are not checked again.
 ## Consequences
 
 - Every fetch decision, allow and deny alike, writes an audit row. The denial envelope carries a
-  reason distinct enough that "pending content scan" reads as backlog, not as a permissions bug the
-  agent will misreport.
+  reason distinct enough that a pending content scan, `pending_scan`
+  ([ADR-0101](../operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)),
+  reads as backlog, not as a permissions bug the agent will misreport.
 - The gate's deny branches depend only on the index, so gate behavior is fully testable offline
   with fixtures, with no provider and no network.
 - Fetch-time re-evaluation means the index's *cached classification* never decides release on its
