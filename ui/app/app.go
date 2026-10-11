@@ -25,6 +25,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
@@ -62,12 +63,12 @@ type Configuration struct {
 	AttentionMaskCount    int64   `yaml:"attention_mask_count"`
 	AttentionServeFactor  float64 `yaml:"attention_serve_factor"`
 	AttentionGapDays      int64   `yaml:"attention_gap_days"`
-	// SealPublicKeyFile names the mounted public key the UI seals credentials and client secrets to.
-	SealPublicKeyFile string `yaml:"seal_public_key_file" settings:"required"`
-	// PrivateKeyFiles names every mounted private key, the keyring the deployables that call a provider
-	// open credentials with. Only the UI's client-secret package holds it, and it opens a client's
-	// secret for a consent's code exchange and nothing else (ADR-0081, ADR-0092).
-	PrivateKeyFiles []string `yaml:"private_key_files" settings:"required"`
+	// Credential is the credential section the mediator and the worker hold, under the same keys. Its
+	// public key is the one the UI seals credentials and client secrets to. Its private keys are the
+	// keyring the deployables that call a provider open credentials with, which only the UI's
+	// client-secret package holds, and it opens a client's secret for a consent's code exchange and
+	// nothing else (ADR-0081, ADR-0092).
+	Credential credentialcore.Config `yaml:"credential"`
 	// TokenKeyFile names a mounted key behind the request token and the consent attempt's seal, which
 	// replicas share. Unset, the UI generates one at its start (ADR-0061, ADR-0111).
 	TokenKeyFile string `yaml:"token_key_file"`
@@ -159,11 +160,14 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	}, devloop.Enabled()); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
+	if err := credentialcore.Validate(c.Credential); err != nil {
+		return fmt.Errorf("validating the configuration: %w", err)
+	}
 	bundle, err := fs.Sub(embedded, "browser/dist")
 	if err != nil {
 		return err
 	}
-	sealKey, err := seal.LoadPublicKey(c.SealPublicKeyFile)
+	sealKey, err := seal.LoadPublicKey(c.Credential.PublicKeyFile)
 	if err != nil {
 		return fmt.Errorf("loading the public key: %w", err)
 	}
@@ -188,7 +192,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	// The sender classifier's domain functions, which policy management matches senders against
 	// rules with, as the deployables that classify pass them (ADR-0004).
 	lookups := classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
-	secrets, err := clientsecret.Load(c.SealPublicKeyFile, c.PrivateKeyFiles, pool)
+	secrets, err := clientsecret.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles, pool)
 	if err != nil {
 		return fmt.Errorf("loading the keyring: %w", err)
 	}

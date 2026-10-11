@@ -659,8 +659,9 @@ linters:
         # It admits neither the provider adapters nor the rate limiter, because the UI holds no provider credential,
         # cannot reach a mailbox and does not spend the rate budget (ADR-0038, ADR-0021, ADR-0025). Of the provider
         # library it admits Gmail's consent alone, which holds no Provider Port code, and the provider fake for its
-        # tests. Of the credential code it admits the sealing half alone, so no code of the UI but its client-secret
-        # package, which the list below governs, links code that opens a value (ADR-0081, ADR-0107).
+        # tests. Of the credential code it admits the sealing half and the configuration section naming the key files,
+        # which holds paths and opens nothing, so no code of the UI but its client-secret package, which the list
+        # below governs, links code that opens a value (ADR-0081, ADR-0107).
         ui:
           list-mode: strict
           files:
@@ -679,6 +680,8 @@ linters:
           - "github.com/jackc/pgx/v5/pgtype$"
           - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          # The credential section, which the composition root reads the key files' paths from.
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           # The sealing half, with which the setups seal a client's secret and an account's credential.
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           # The data-access subsections the read API's statements sit in, from ui/internal/registry and

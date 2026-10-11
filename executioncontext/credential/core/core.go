@@ -1,8 +1,9 @@
 // Package core is the credential section of a deployable's configuration and its validation, a pure
 // decision function over the section's parameters (ADR-0040, ADR-0078). The section names the
-// mounted key files a deployable that opens credentials opens and seals them with, the public key
-// every sealer seals to and every private key of the keyring (ADR-0079, ADR-0088, ADR-0092). It
-// holds paths and never key material.
+// mounted key files a deployable seals and opens stored values with, the public key every sealer
+// seals to and every private key of the keyring (ADR-0079, ADR-0088, ADR-0092). Every process that
+// reads those files holds this section under the same keys, the UI included. It holds paths and
+// never key material.
 package core
 
 import (
@@ -12,7 +13,7 @@ import (
 
 // Config is the credential section.
 type Config struct {
-	// PublicKeyFile names the mounted public key a rotated credential is sealed to. A keyring whose
+	// PublicKeyFile names the mounted public key every sealer seals to. A keyring whose
 	// private keys derive no key matching it refuses the start (ADR-0088).
 	PublicKeyFile string `yaml:"public_key_file" settings:"required"`
 	// PrivateKeyFiles names every mounted private key. During a key replacement the old key and the
