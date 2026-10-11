@@ -149,8 +149,9 @@ passes the gates once each design adds the mechanism named below, so they break 
   breaking change to it is a breaking release.
 - **The MCP result carries the output as structured content and the same JSON as text**, so a client
   that reads only text content still receives the result.
-- **The mediator serves TLS on its listener unless its configuration declares that an ingress in
-  front terminates TLS**, the two places ADR-0030 allows.
+- **The mediator serves its listener over TLS when its configuration names a key pair, and over
+  plain HTTP when it names none**, as [ADR-0127](./0127-tls-when-given-a-key-pair-plain-http-otherwise.md)
+  decides.
 - **The health and readiness probes and the metrics endpoint listen on a separate plain-HTTP port**,
   outside the registry and outside the bearer check, as ADR-0051 and ADR-0053 place them.
 

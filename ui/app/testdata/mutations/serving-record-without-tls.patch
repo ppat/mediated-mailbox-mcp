@@ -1,0 +1,19 @@
+control: Each deployable's start log records which transport it serves
+removes: the UI's serving record carries no transport
+packages: ./ui/app
+tests: TestTheUIIsServedOverTLSWhenGivenAKeyPair TestTheUIGivenNoKeyPairIsPlain/neither_file
+scheduled-count: no
+
+diff --git a/ui/app/app.go b/ui/app/app.go
+index e94453ea..3a6a42e5 100644
+--- a/ui/app/app.go
++++ b/ui/app/app.go
+@@ -292,7 +292,7 @@ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.L
+ 		errs <- ui.ServeTLS(uiListener, "", "")
+ 	}()
+ 	go func() { errs <- probeServer.Serve(probeListener) }()
+-	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", servesTLS)
++	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen)
+ 	var err error
+ 	select {
+ 	case <-ctx.Done():

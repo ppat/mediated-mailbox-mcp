@@ -1,0 +1,20 @@
+control: The client surface is served over TLS when the configuration names a key pair and over plain HTTP when it names none, with the key pair read from its mounted files
+removes: the surface is served over TLS even when the configuration names no key pair
+packages: ./mediate/app
+tests: TestTheSurfaceGivenNoKeyPairIsPlain
+scheduled-count: no
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+index b19c6f2b..5109e6d4 100644
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -654,9 +654,6 @@ func servesTLS(c Configuration) bool {
+ // tlsConfig returns the client surface's TLS configuration, which reads the key pair from its
+ // mounted files on each handshake, or none when the configuration names no key pair.
+ func tlsConfig(c Configuration) *tls.Config {
+-	if !servesTLS(c) {
+-		return nil
+-	}
+ 	certFile, keyFile := c.TLSCert, c.TLSKey
+ 	return &tls.Config{
+ 		MinVersion: tls.VersionTLS12,

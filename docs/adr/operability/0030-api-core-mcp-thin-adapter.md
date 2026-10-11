@@ -27,8 +27,9 @@ are thin protocol adapters over one shared service library.
   **Parity is exact in both directions.** Anything beyond parity (operational endpoints, say) is a
   separate future decision. The OpenAPI contract and the tool descriptions are contract-grade
   text, reviewed like code.
-- **Same transport posture on both roots**: bearer-token authentication and TLS, the same controls
-  applied identically to the API and to MCP.
+- **Same authentication on both roots**: bearer-token authentication, the same control applied
+  identically to the API and to MCP. The transport both roots are served over is
+  [ADR-0127](./0127-tls-when-given-a-key-pair-plain-http-otherwise.md)'s.
 - **Every client of the serving surface is untrusted.** The trust posture keys on "any client,"
   not "the agent", whether that is the agent over MCP or any caller of the API. Every control that
   assumed a persuadable agent assumes a hostile client generally.
@@ -64,8 +65,9 @@ are thin protocol adapters over one shared service library.
 - A command-line client that talks to the API becomes possible without any server change, and it
   is deliberately not planned.
 - Assumptions about other components: the service library exposes the complete operation set
-  (frontends add nothing). The deployment terminates TLS for both roots, at the listener or at an
-  ingress in front of it, and every request reaches the bearer check before the service library.
+  (frontends add nothing). Every request reaches the bearer check before the service library,
+  whichever transport [ADR-0127](./0127-tls-when-given-a-key-pair-plain-http-otherwise.md) has the
+  surface served over.
   [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s approval path remains
   database-direct and is the only approval path.
 - Surface parity is verifiable by violation. Introducing a one-sided operation on either root must

@@ -6,12 +6,12 @@ scheduled-count: no
 
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..6dbdf43f 100644
+index b19c6f2b..197d28ea 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -146,7 +146,7 @@ func validate(c Configuration) error {
- 			return fmt.Errorf("the mediator serves TLS unless tls_at_ingress is set, so it needs %s", strings.Join(missing, " and "))
+@@ -142,7 +142,7 @@ func validate(c Configuration) error {
  		}
+ 		return fmt.Errorf("%s is set and %s is not, and the mediator serves TLS with both or plain HTTP with neither", set, missing)
  	}
 -	if strings.TrimSpace(c.TokenFile) == "" {
 +	if c.TokenFile == "" {

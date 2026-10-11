@@ -254,7 +254,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The ban-proof script refuses a go vet step whose build tags differ from the lint configuration's
 
-- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-30 · [pull request #198](https://github.com/ppat/mediated-mailbox-mcp/pull/198), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 3 again on 2026-10-11 at RAPID_SEED=1, after the transport taken from the TLS files changed the code, tests or patches the row rests on · [pull request #352](https://github.com/ppat/mediated-mailbox-mcp/pull/352)
 - **Break (1):** the comparison of the go vet step's tags with the configuration's is skipped, so any tags pass
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/banproof`:** `TestVetTagProblems`, `TestVetTagProblems/a_tag_the_configuration_does_not_set`, `TestVetTagProblems/a_tag_the_configuration_sets_left_out`, `TestVetTagProblems/no_tags`, `TestVetTagProblems/tags_given_twice,_the_first_matching`, `TestVetTagProblemsNamesBothLists`
 - **Break (2):** the first -tags on the go vet line is read rather than the last, which the go command keeps, so a step whose later -tags differ passes

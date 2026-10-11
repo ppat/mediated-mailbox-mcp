@@ -5,10 +5,10 @@ tests: TestTheConsentRedirectIsALoopbackAddressWithAPort
 scheduled-count: no
 
 diff --git a/ui/internal/core/serving/serving.go b/ui/internal/core/serving/serving.go
-index a1243f55..becd9e02 100644
+index e0559e41..ec2fcd21 100644
 --- a/ui/internal/core/serving/serving.go
 +++ b/ui/internal/core/serving/serving.go
-@@ -69,7 +69,7 @@ func Validate(c Config, devLoop bool) error {
+@@ -68,7 +68,7 @@ func Validate(c Config) error {
  		return refusal("attention_serve_factor is negative")
  	case c.AttentionGapDays < 0:
  		return refusal("attention_gap_days is negative")

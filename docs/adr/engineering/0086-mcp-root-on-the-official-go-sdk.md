@@ -18,8 +18,8 @@ tools, so prompts, resources, completions, logging, sampling and subscriptions a
 fence, not strength. Each tool carries the output schema and the four annotations the registry
 derives from its operation's effect class
 ([ADR-0087](../operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)),
-and those are fields of a tool, not protocol features. Bearer authentication and TLS sit in front
-of both roots. Argument validation, UTC timestamps
+and those are fields of a tool, not protocol features. Bearer authentication and the transport sit
+in front of both roots. Argument validation, UTC timestamps
 ([ADR-0033](../operability/0033-utc-only-timestamps.md)) and the shape of a failure belong to the
 service layer, shared by both roots. What is left for this choice is who implements the protocol,
 how its correctness is proven, what surface the root exposes, and what it links into the
@@ -40,7 +40,7 @@ protocol inside the mediator at all.
 | R8 Arguments untouched | Arguments reach the service layer as the client sent them | ADR-0030, no logic in a frontend |
 | R9 Stateless | No session or stream kept between requests | [ADR-0051](./0051-environment-contract.md), any process killed at any point |
 | R10 Failures intact | A failed call's structured result reaches the client | [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) |
-| R11 Mounting | An `http.Handler` behind the mediator's TLS and bearer check | ADR-0030 |
+| R11 Mounting | An `http.Handler` behind the mediator's transport and bearer check | ADR-0030, [ADR-0127](../operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md) |
 | R12 Environment | No undeclared environment input | ADR-0051, [O6](../../../USE_CASES.md#o6--deployable) |
 | R13 Annotations | All four hints, `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, set explicitly from data on raw registration and reaching the client with the meaning the registry derived | ADR-0087 |
 

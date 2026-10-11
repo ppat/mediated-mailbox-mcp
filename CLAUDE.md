@@ -151,7 +151,7 @@ file's import target described under Violation files.
   its vulnerability database does.
 - **The `go vet` analysers** live in `testsupport/analysis` with a `unitchecker` program at
   `testsupport/cmd/vetcheck`, and run beside golangci-lint as `go vet -tags
-  integration,gmail_live,devloop -vettool="$(go tool -n vetcheck)"`, with the tags golangci-lint's
+  integration,gmail_live -vettool="$(go tool -n vetcheck)"`, with the tags golangci-lint's
   configuration sets, which banproof checks. The placement analyser's two rules refuse a call to a
   generator report, `property.Report` or `property.ReportReach`, or to `property.Check`, reachable
   from inside a property
@@ -385,10 +385,9 @@ condition either. Its triggers alone decide when it runs, and the workflows that
   version selection and move shared dependencies inside the project's binaries.
 - **The editor runs the same tools as CI.** `.vscode/settings.json` and `.vscode/extensions.json`
   make golangci-lint the Go formatter and linter with this repository's configuration, have gopls
-  read the `integration`, `banproof`, `gmail_live` and `devloop` build tags so every Go file is
-  analysed, run tests with the gating run's property settings, add the oxc extension for the
-  browser, open generated files read-only, and give the workflow, chart and chainsaw files their
-  schemas.
+  read the `integration`, `banproof` and `gmail_live` build tags so every Go file is analysed, run
+  tests with the gating run's property settings, add the oxc extension for the browser, open
+  generated files read-only, and give the workflow, chart and chainsaw files their schemas.
 
 ## Repository process
 

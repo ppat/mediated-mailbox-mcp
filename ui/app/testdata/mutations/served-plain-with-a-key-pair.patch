@@ -1,0 +1,19 @@
+control: The UI is served over TLS with both of its TLS files and over plain HTTP with neither, and refuses to start with one
+removes: the UI is served over plain HTTP even when its configuration names a key pair
+packages: ./ui/app
+tests: TestTheUIIsServedOverTLSWhenGivenAKeyPair
+scheduled-count: no
+
+diff --git a/ui/app/app.go b/ui/app/app.go
+index e94453ea..f5211d60 100644
+--- a/ui/app/app.go
++++ b/ui/app/app.go
+@@ -285,7 +285,7 @@ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.L
+ 	probeServer := &http.Server{Handler: probes, ReadHeaderTimeout: 10 * time.Second, ErrorLog: logging.ServerErrorLog(logger)}
+ 	errs := make(chan error, 2)
+ 	go func() {
+-		if !servesTLS {
++		if true {
+ 			errs <- ui.Serve(uiListener)
+ 			return
+ 		}

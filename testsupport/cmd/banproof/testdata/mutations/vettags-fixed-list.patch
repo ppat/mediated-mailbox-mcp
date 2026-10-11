@@ -13,7 +13,7 @@ index 614b61e..785decb 100644
  	}
  	vetTags, found := tagsFlag(runs[0])
 -	want := slices.Sorted(slices.Values(buildTags))
-+	want := slices.Sorted(slices.Values([]string{"integration", "gmail_live", "devloop"}))
++	want := slices.Sorted(slices.Values([]string{"integration", "gmail_live"}))
  	got := slices.Sorted(slices.Values(vetTags))
  	if !found || !slices.Equal(slices.Compact(got), slices.Compact(want)) {
  		return []string{fmt.Sprintf("%s: the go vet step sets the build tags %q, and %s sets %q, so a file one run reads the other may not (ADR-0071)", lintWorkflow, strings.Join(vetTags, ","), configName, strings.Join(buildTags, ","))}, nil
