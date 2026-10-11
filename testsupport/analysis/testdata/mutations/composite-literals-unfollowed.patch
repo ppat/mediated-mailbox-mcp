@@ -1,0 +1,19 @@
+control: The analyser refuses a generator report reachable from a property
+removes: function literals written inside a composite literal are not followed, so a draw written in the map of draws escapes
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 956525cb..70f46909 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -209,7 +209,7 @@ func (w *walker) functions(expr ast.Expr) []ast.Node {
+ 			if kv, ok := elt.(*ast.KeyValueExpr); ok {
+ 				elt = kv.Value
+ 			}
+-			bodies = append(bodies, w.functions(elt)...)
++			_ = elt
+ 		}
+ 		return bodies
+ 	}

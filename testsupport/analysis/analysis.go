@@ -19,15 +19,19 @@
 // while reducing it, so code there does not run once per case. Two calls must never be reachable from
 // there.
 //
-//   - property.Report, whose count of the generated mix would include every re-run.
+//   - property.Report and property.ReportReach, the generator report, whose count of the generated
+//     mix would include every re-run.
 //   - property.Check, which writes the failing-case store, and would write it on every re-run.
 //
 // The functions handed to rapid are the function arguments of rapid.Check, rapid.MakeCheck,
 // rapid.Custom, rapid.Map, rapid.Deferred and (*rapid.Generator).Filter, the actions of
-// (*rapid.T).Repeat, and the draw, property and classify arguments of property.Check and
-// property.Report. A function literal is followed whether it is written in place or assigned to a
-// variable first. A method value is not followed, nor is a function literal passed as an argument
-// to a helper that calls it.
+// (*rapid.T).Repeat, the draw, property and classify arguments of property.Check and
+// property.Report, and the draws and reached arguments of property.ReportReach. A function literal is
+// followed when it is written in place, when it is an element of a composite literal written in
+// place, such as ReportReach's map of draws or Repeat's map of actions, and when it is assigned to a
+// variable first. Not followed are a method value, a function literal passed as an argument to a
+// helper that calls it, and a composite literal assigned to a variable first, such as a map of draws
+// or of Repeat's actions held in a variable.
 package analysis
 
 import (
@@ -52,8 +56,9 @@ var Placement = &analysis.Analyzer{
 
 // messages are the findings, one per call that must not run inside a property.
 var messages = map[string]string{
-	"Report": "property.Report is reachable from inside a property, where rapid re-runs a failing case and every re-run would be counted. Call it from its own test",
-	"Check":  "property.Check is reachable from inside a property, where it would write the failing-case store on every re-run. Call it from a test function",
+	"Report":      "property.Report is reachable from inside a property, where rapid re-runs a failing case and every re-run would be counted. Call it from its own test",
+	"Check":       "property.Check is reachable from inside a property, where it would write the failing-case store on every re-run. Call it from a test function",
+	"ReportReach": "property.ReportReach is reachable from inside a property, where rapid re-runs a failing case and every re-run would be counted. Call it from its own test",
 }
 
 func run(pass *analysis.Pass) (any, error) {
@@ -157,7 +162,7 @@ func (w *walker) propertyBodies(call *ast.CallExpr) []ast.Node {
 	switch {
 	case isFunc(fn, rapidPath, "Check"), isFunc(fn, rapidPath, "MakeCheck"), isFunc(fn, rapidPath, "Custom"),
 		isFunc(fn, rapidPath, "Map"), isFunc(fn, rapidPath, "Deferred"), isMethod(fn, "Filter"),
-		isFunc(fn, propertyPath, "Check"), isFunc(fn, propertyPath, "Report"):
+		isFunc(fn, propertyPath, "Check"), isFunc(fn, propertyPath, "Report"), isFunc(fn, propertyPath, "ReportReach"):
 		var bodies []ast.Node
 		for _, arg := range call.Args {
 			bodies = append(bodies, w.functions(arg)...)
@@ -200,6 +205,15 @@ func (w *walker) functions(expr ast.Expr) []ast.Node {
 		return w.functions(e.X)
 	case *ast.IndexListExpr:
 		return w.functions(e.X)
+	case *ast.CompositeLit:
+		var bodies []ast.Node
+		for _, elt := range e.Elts {
+			if kv, ok := elt.(*ast.KeyValueExpr); ok {
+				elt = kv.Value
+			}
+			bodies = append(bodies, w.functions(elt)...)
+		}
+		return bodies
 	}
 	return nil
 }

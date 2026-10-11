@@ -12,11 +12,36 @@ import (
 func draw(t *rapid.T) int      { return 0 }
 func classify(n int) string    { return "" }
 func prop(t rapid.TB, n int)   {}
+func reached(n int) []string   { return nil }
+
+// draws are a report's draws, for property.ReportReach.
+var draws = map[string]func(*rapid.T) int{"one": draw}
 
 // Called from test functions, both are where they belong.
 func TestAtTopLevel(t *testing.T) {
 	property.Report(t, draw, classify, nil)
+	property.ReportReach(t, draws, reached, nil)
 	property.Check(t, draw, prop)
+}
+
+func TestReportReachInsideAProperty(t *testing.T) {
+	rapid.Check(t, func(rt *rapid.T) {
+		property.ReportReach(t, draws, reached, nil) // want "property.ReportReach is reachable from inside a property"
+	})
+}
+
+// The draws and the reached function of a report over several draws are inside its own property,
+// a draw written in the map literal the report is handed included.
+func TestInsideAReportReachDrawOrReached(t *testing.T) {
+	property.ReportReach(t, map[string]func(*rapid.T) int{
+		"inline": func(rt *rapid.T) int {
+			property.Check(t, draw, prop) // want "property.Check is reachable from inside a property"
+			return 0
+		},
+	}, func(n int) []string {
+		property.ReportReach(t, draws, reached, nil) // want "property.ReportReach is reachable from inside a property"
+		return nil
+	}, nil)
 }
 
 func TestReportInsideAProperty(t *testing.T) {

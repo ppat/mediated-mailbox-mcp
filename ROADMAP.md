@@ -213,6 +213,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#341](https://github.com/ppat/mediated-mailbox-mcp/pull/341) | F12 | F12's performance measurements ([ADR-0125](./docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)), the client operations' latency, the policy load's duration, Gmail's request latency by endpoint and outcome, the rate lease's wait by class, each body's conversion and scan, the messages each pass and tick made durable, the scheduler's run duration split by job, statement latency by name and each pool's acquires, waits and connections built from `process/dbmetrics`, which opens every deployable's pools, and the Go runtime and process collectors from `process/runtimemetrics`, which every composition root calls, with `db/tx`'s statements named and `db/check` refusing a statement name used twice | — | It demonstrates again every break of every control whose code, named tests or patches it changed, records each reproduction on its row, and adds its new tests to the rows whose breaks now turn them red |
 | [#342](https://github.com/ppat/mediated-mailbox-mcp/pull/342) | D2 | D2's later work, the second pass reading the messages waiting for a scan newest first through a statement of its own, keyed on the send time and the identifier in row-comparison form on the existing index and read from the position `('infinity', '')` on its first page, with the checkpoint holding the send time beside the identifier, while delta sync keeps the order of the identifiers ([ADR-0126](./docs/adr/data/0126-backfills-second-pass-walks-newest-first.md)) | The row it adds for the second pass reading newest first, and D2's part of the row for killing the process running backfill mid-run, again for the position the checkpoint holds | The control that the second pass reads newest first, broken so it reads in the order of the identifiers and so ties go lowest identifier first, the control that a killed second pass resumes from its last checkpointed page with three breaks added, the stored send time dropped, a page reading from its position's own message and a page's position losing its send time, and every demonstration whose code, tests or crash harness generator the change touched, demonstrated again |
 | [#343](https://github.com/ppat/mediated-mailbox-mcp/pull/343) | D2 | D2's later work, the worker's test pinning the revision of its default scanner section made the known-answer test whose value changes only as a decision in review, and [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)'s consequence that the revision hashes the section's rendering | It adds and proves the row for a change that leaves the default scanner section's settings as they are and changes its revision | The control that the default scanner section's revision is the known answer checked in, broken so the revision algorithm takes another part of the hash or less of it, a defaulted field is added to the scanner's configuration type and a field's YAML name changes |
+| [#345](https://github.com/ppat/mediated-mailbox-mcp/pull/345) | D2 | D2's later work, the generator report for cases drawn several ways that can each reach several kinds, `property.ReportReach` in `testsupport/property`, counting a case for every kind it reaches over the cases of every draw together and logging each draw's own mix, with the placement analyser's report rule covering it, backfill's first and second pass crash tests reporting through it, and [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)'s account of how the backfill target's report counts kinds | The generator report's row, the row for the generated mix recorded inside a property and the ban-proof row, each proven again for `property.ReportReach` | The generator report's control and the analyser's report rule, every break again with three new breaks each, and its store rule again, and the seven breaks of the two passes' controls whose demonstrations had been red before their patch on a seed where a kind went uncounted, demonstrated again under seeds the runner chose, each reproduction recorded on its row |
 
 ### What each composition root runs
 
@@ -654,16 +655,18 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#231](https://github.com/ppat/mediated-mailbox-mcp/pull/231) and, as later work,
   [#321](https://github.com/ppat/mediated-mailbox-mcp/pull/321),
   [#340](https://github.com/ppat/mediated-mailbox-mcp/pull/340),
-  [#342](https://github.com/ppat/mediated-mailbox-mcp/pull/342) and
-  [#343](https://github.com/ppat/mediated-mailbox-mcp/pull/343), which closed its tickets
+  [#342](https://github.com/ppat/mediated-mailbox-mcp/pull/342),
+  [#343](https://github.com/ppat/mediated-mailbox-mcp/pull/343) and
+  [#345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), which closed its tickets
   [#82](https://github.com/ppat/mediated-mailbox-mcp/issues/82),
   [#84](https://github.com/ppat/mediated-mailbox-mcp/issues/84),
   [#126](https://github.com/ppat/mediated-mailbox-mcp/issues/126),
   [#226](https://github.com/ppat/mediated-mailbox-mcp/issues/226),
   [#292](https://github.com/ppat/mediated-mailbox-mcp/issues/292),
   [#318](https://github.com/ppat/mediated-mailbox-mcp/issues/318),
-  [#274](https://github.com/ppat/mediated-mailbox-mcp/issues/274) and
-  [#295](https://github.com/ppat/mediated-mailbox-mcp/issues/295), and not yet released. The
+  [#274](https://github.com/ppat/mediated-mailbox-mcp/issues/274),
+  [#295](https://github.com/ppat/mediated-mailbox-mcp/issues/295) and
+  [#315](https://github.com/ppat/mediated-mailbox-mcp/issues/315), and not yet released. The
   composite gate over pass-1 statistics ([ADR-0093](./docs/adr/redaction/0093-composite-scan-gate.md)),
   evaluating every message with no memo
   ([ADR-0094](./docs/adr/redaction/0094-scan-gate-decisions-are-not-memoized.md)), restricted bodies

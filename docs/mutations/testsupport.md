@@ -124,7 +124,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a failing-case store write from inside a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11 under seeds the runner chose, after the analyser's rules came to cover `property.ReportReach`, with break (2)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345)
 - **Break (1):** the store rule also fires on property.Report
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** the store rule is removed
@@ -132,7 +132,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a generator report reachable from a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, breaks (5) to (7) added, under seeds the runner chose, after the report rule came to cover `property.ReportReach`, with break (4)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345)
 - **Break (1):** function literals assigned to variables are no longer followed, so a property held in a variable escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** calls to this package's own functions are no longer followed, so a report call inside a helper escapes
@@ -140,6 +140,12 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (3):** the report rule also fires on property.Check
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (4):** the report rule is removed
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
+- **Break (5):** the report rule is removed for the report over several draws
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
+- **Break (6):** the draws and reached function of the report over several draws are not followed, so a report call inside its reached function escapes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
+- **Break (7):** function literals written inside a composite literal are not followed, so a draw written in the map of draws escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 
 ## The analyser refuses a link to a pure core's symbol
@@ -376,12 +382,18 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The generator report fails a generator that misses its stated mix
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-11, breaks (3) to (5) added, under seeds the runner chose, after the report came to count a case for every kind it reaches over the cases of several draws together · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345)
 - **Break (1):** a kind is reported short when it reaches its minimum and passed when it misses it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestNoBodyCarriesADenyingSensitivityMix`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestARunWithoutTheGatingSettingsFails`, `TestTheReportFailsAGeneratorThatMissesItsMix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestARunWithoutTheGatingSettingsFails`, `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`, `TestTheReportFailsAGeneratorThatMissesItsMix`
 - **Break (2):** no kind is ever below its minimum
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReportFailsAGeneratorThatMissesItsMix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`, `TestTheReportFailsAGeneratorThatMissesItsMix`
+- **Break (3):** a case counts only for the first kind it reaches
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`
+- **Break (4):** each draw's cases must reach every kind on their own, so a kind one draw alone reaches fails the run
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`
+- **Break (5):** each draw's own mix is left out of the log, so a verbose run no longer prints which kinds each draw reaches
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`
 
 ## The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
 

@@ -75,7 +75,9 @@ func TestAKilledRunResumesFromItsCheckpoint(t *testing.T) {
 }
 
 // The generator report for both draws (ADR-0069). Each kind of sequence the checks rest on is reached,
-// stated as whether it is reached at all, not as an expected share.
+// stated as whether it is reached at all, not as an expected share. A sequence can reach several
+// kinds, and the check runs both draws, so each kind is counted over every case of either draw that
+// reaches it.
 func TestTheCrashSequencesReachEveryKind(t *testing.T) {
 	minimums := map[string]float64{
 		"a crash inside a page":                          0.001,
@@ -87,24 +89,19 @@ func TestTheCrashSequencesReachEveryKind(t *testing.T) {
 		"a change of scanner inside the enumeration":     0.001,
 		"a crash while fetching subjects again":          0.001,
 	}
-	for name, draw := range crash.Draws(target(), config) {
-		t.Run(name, func(t *testing.T) {
-			property.Report(t, draw, kind, minimums)
-		})
-	}
+	property.ReportReach(t, crash.Draws(target(), config), reached, minimums)
 }
 
-// kind classifies a case by the rarest telling thing its sequence does, in the order listed. A run
-// fails on a throttled page or call only when a step asks for one while the provider still has at
-// least core.MaxAttempts throttles to give, so the classifier follows the order of the operations, how
-// many throttles each step uses up and how many pages and calls the pass has left, as the world does.
-// A change of scanner over a mailbox holding messages starts an enumeration not yet ended over, and
-// after the enumeration ended has the pass fetch every subject again, this world running no run-start
-// step.
-func kind(c crash.Case[setup]) string {
+// reached returns every kind the case's sequence reaches. A run fails on a throttled page or call
+// only when a step asks for one while the provider still has at least core.MaxAttempts throttles to
+// give, so it follows the order of the operations, how many throttles each step uses up and how many
+// pages and calls the pass has left, as the world does. A change of scanner over a mailbox holding
+// messages starts an enumeration not yet ended over, and after the enumeration ended has the pass
+// fetch every subject again, this world running no run-start step.
+func reached(c crash.Case[setup]) []string {
 	total := max(1, (len(c.Setup.Messages)+c.Setup.PageSize-1)/max(c.Setup.PageSize, 1))
 	left, calls := total, 0
-	pages, crashes, pending := 0, 0, 0
+	pages, pending := 0, 0
 	lastWasCrash, back2back, inside, afterPage, afterCommitted, failedOnThrottle := false, false, false, false, false, false
 	rescanEnded, rescanInside, insideCall := false, false, false
 	// step is one attempt to make the next page or call durable, which commits unless commit is false.
@@ -129,7 +126,6 @@ func kind(c crash.Case[setup]) string {
 	for _, op := range c.Ops {
 		switch op.Name {
 		case crash.Crash:
-			crashes++
 			if lastWasCrash {
 				back2back = true
 			}
@@ -166,26 +162,23 @@ func kind(c crash.Case[setup]) string {
 		}
 		lastWasCrash = false
 	}
-	switch {
-	case insideCall:
-		return "a crash while fetching subjects again"
-	case inside:
-		return "a crash inside a page"
-	case rescanEnded:
-		return "a change of scanner after the pass ended"
-	case failedOnThrottle:
-		return "a run failed on a throttled page"
-	case back2back:
-		return "two crashes with no page between them"
-	case afterCommitted:
-		return "a crash after a page's commit"
-	case afterPage:
-		return "a crash between steps after a page was durable"
-	case rescanInside:
-		return "a change of scanner inside the enumeration"
-	case crashes > 0:
-		return "another crash"
-	default:
-		return "no crash"
+	var kinds []string
+	for _, k := range []struct {
+		kind string
+		ok   bool
+	}{
+		{"a crash while fetching subjects again", insideCall},
+		{"a crash inside a page", inside},
+		{"a change of scanner after the pass ended", rescanEnded},
+		{"a run failed on a throttled page", failedOnThrottle},
+		{"two crashes with no page between them", back2back},
+		{"a crash after a page's commit", afterCommitted},
+		{"a crash between steps after a page was durable", afterPage},
+		{"a change of scanner inside the enumeration", rescanInside},
+	} {
+		if k.ok {
+			kinds = append(kinds, k.kind)
+		}
 	}
+	return kinds
 }

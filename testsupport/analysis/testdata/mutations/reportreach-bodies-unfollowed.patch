@@ -1,0 +1,19 @@
+control: The analyser refuses a generator report reachable from a property
+removes: the draws and reached function of the report over several draws are not followed, so a report call inside its reached function escapes
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 956525cb..21d5ce09 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -160,7 +160,7 @@ func (w *walker) propertyBodies(call *ast.CallExpr) []ast.Node {
+ 	switch {
+ 	case isFunc(fn, rapidPath, "Check"), isFunc(fn, rapidPath, "MakeCheck"), isFunc(fn, rapidPath, "Custom"),
+ 		isFunc(fn, rapidPath, "Map"), isFunc(fn, rapidPath, "Deferred"), isMethod(fn, "Filter"),
+-		isFunc(fn, propertyPath, "Check"), isFunc(fn, propertyPath, "Report"), isFunc(fn, propertyPath, "ReportReach"):
++		isFunc(fn, propertyPath, "Check"), isFunc(fn, propertyPath, "Report"):
+ 		var bodies []ast.Node
+ 		for _, arg := range call.Args {
+ 			bodies = append(bodies, w.functions(arg)...)

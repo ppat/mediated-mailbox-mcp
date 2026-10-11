@@ -175,7 +175,7 @@ mix of generated inputs and failing the run when it is not reached.
 
 | Piece | What it does | Why |
 | --- | --- | --- |
-| The generator report | Classifies each generated case, reports the mix, and fails the run when a stated minimum share of a kind of input is not reached | No Go library can fail a run on a missed mix. [ADR-0055](./0055-property-based-safety-invariants.md) names the resulting blind spot. A draw the constructor refuses is counted as its own kind of input, which is how the report shows most of a run being refused |
+| The generator report | Classifies each generated case, reports the mix, and fails the run when a stated minimum share of a kind of input is not reached. For a test whose cases are drawn several ways in one run and can each reach several kinds, as a crash test's sequences are, it counts a case for every kind it reaches, over the cases of every draw together, and reports each draw's own mix beside the whole | No Go library can fail a run on a missed mix. [ADR-0055](./0055-property-based-safety-invariants.md) names the resulting blind spot. A draw the constructor refuses is counted as its own kind of input, which is how the report shows most of a run being refused |
 | The failing-case store | Stores a failing case as the arguments passed to the constructor plus a description of the value's shape, and replays it | rapid's own fail file stops reproducing after a generator edit, silently, on two separate triggers set out below. The store's cases still reproduce after a generator edit, and fail loudly with an instruction when the value's shape changes |
 | The operation sampler | For the crash harness, draws a fresh set of operation weights for each generated sequence, in the gating run and the scheduled run alike | rapid draws operations unevenly, by the sorted position of their names. Fixed hand-picked weights make that worse. A fresh set per sequence was the best option at the gating budget, and the only one to reach a planted failure needing four back-to-back crash and recovery cycles at all, in 8 percent of runs on the reorganization target and 12 percent on backfill, falling to none with more cycles. No generated search tried reached such a failure reliably. An example-based test written for that failure would reach it. rapid's own draw did slightly better, 98 percent against 95, on a planted failure needing four writes in a row on the backfill target |
 
@@ -239,11 +239,20 @@ read.** The generated mailbox is a list built by `rapid.SliceOfN`, each message 
 the ones before it, and the operation sequences are drawn by `t.Repeat` and by the sampler. The
 generator report states the kinds of sequence the checks rest on, a crash inside a page, a crash
 after a page's commit, a crash between steps after a page was durable, two crashes with no page
-between them and a run failed on a throttled page, each as whether it is reached at all. At the
-gating count every kind was reached in both draws, on each seed tried. The option not taken was
-measuring a conditional generator against it first, which would have cost one generator written
-twice. It would matter if the interesting states in backfill were rarer than the report shows them,
-and the report shows each reached.
+between them and a run failed on a throttled page, each as whether it is reached at all. A sequence
+can reach several kinds, so the report counts each kind over every case whose sequence reaches it,
+rather than sorting each case into one kind. Every run draws its sequences both ways, so a kind
+either draw reaches is one the run's checks exercise, and the report counts each kind over the cases
+of both draws together and fails only when the draws together miss a kind. It also logs each draw's
+own mix, which a verbose run prints, and the cost this leaves is stated under Consequences. At the
+gating count, over seeds 1 to 10,000, every kind of both passes was reached on every seed, by at
+least 32 of the 400 cases, and at rapid's default of 100 by at least 14 of 200. Required of each
+draw alone, the sampler's draw left a kind unreached on 11 of those seeds at the gating count, the
+first pass's crash while fetching subjects again on 8 and the second pass's run stopped on a
+throttled body on 3, since that draw reaches its rarest kinds in a few cases of 200. The option not
+taken was measuring a conditional generator against it first, which would have cost one generator
+written twice. It would matter if the interesting states in backfill were rarer than the report
+shows them, and the report shows each reached.
 
 **Each harness target has an in-memory model of its own.** The harness is generic over the target,
 which supplies its operations, its recovery path, its two checks and a world built over either its
@@ -303,6 +312,13 @@ and recovery cycles back to back, to the longer search.
   to case 291. At gating counts of 100 and 200 the mutation demonstration then stayed green when it
   had to go red, and went red again only at 500. The report was right that the stated mix was
   reached. It cannot say a kind of input nobody named was lost.
+- **A report that sorts each case into one kind starves the kinds sorted last.** The backfill
+  target's reports first put each case under the first kind its sequence reached, in a fixed order.
+  A kind late in that order went uncounted whenever every case reaching it also reached one earlier,
+  so at the gating count the second pass's report failed on 10 of the first 30 seeds and the first
+  pass's on 1, with nothing broken, and a mutation demonstration run under such a seed was red
+  before its patch was applied. Counting each kind over every case of either draw that reaches it
+  fixed that with the generators, the draws and the case count left as they were.
 - **A break in the store's own code is seen only by a sequence run against PostgreSQL, and the
   replays drawn from fixed seeds reach a kind of sequence by chance.** The model never writes the
   stored form of a checkpoint. With the second pass's stored checkpoint stripped of its position,
@@ -505,6 +521,16 @@ writing every generator by hand with fewer conveniences.
   the harness checks them without reaching inside. Every sensitivity-carrying type is built only
   through its constructor, as [ADR-0042](./0042-implementation-stack.md) requires, which is what
   makes the constructor the generator's only route.
+- **The cost of counting a crash test's kinds over both draws together.** The report fails only when
+  the draws together miss a kind, so one draw alone no longer reaching a kind fails no gate. Setting
+  the backfill target's `MaxOps` to 3, a setting that shapes only the sampler's draw, left the first
+  pass's sampler draw reaching no change of scanner inside the enumeration and no crash while
+  fetching subjects again, and the second pass's no change of scanner after a body was scanned and no
+  delisting recovered after a page was durable, at the gating seed and count, and both reports
+  stayed green, where requiring each draw alone failed both. Each draw's own mix is logged, which a
+  verbose run such as the deep crash run prints, and the gating run, which is not verbose, does not.
+  A fault in the harness's draws themselves is still caught, by `TestBothDrawsPlaceTheCrash` in
+  `testsupport/crash`, which requires each draw to place every operation it is given.
 - **What would move the settled questions.** Lowering the gating count below 200 puts the choice of
   generator shape back in question. Finding that a later real generator needs conditional generation
   re-argues this record. A target whose sequences make the gating run slow puts the sampler's place
