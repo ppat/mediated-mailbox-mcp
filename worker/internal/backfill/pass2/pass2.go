@@ -70,9 +70,10 @@ type Store interface {
 	// RequeueSkips returns to pending scan each message the gate skipped whose subject is masked, with
 	// an event when it marked any, in one transaction (ADR-0120). It returns how many it marked.
 	RequeueSkips(ctx context.Context, account, runID string) (int, error)
-	// Pending returns up to n of the account's messages waiting for a scan after the message
-	// identified by after, in the order of their identifiers.
-	Pending(ctx context.Context, account, after string, n int) ([]index.Waiting, error)
+	// Pending returns up to n of the account's messages waiting for a scan after the position after,
+	// newest first, by send time and then identifier, from the newest when after is the zero Position
+	// (ADR-0126).
+	Pending(ctx context.Context, account string, after core.Position, n int) ([]index.Waiting, error)
 	// Commit makes one page durable. It records the gate's decision on each message the gate decided,
 	// the verdict of each message scanned and the state of each skipped, adds the page's hits to its
 	// senders' prior hits, records the page's failed items, and records the progress at with a
@@ -270,7 +271,8 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 	}
 	number := p.at.Checkpoint.Page + 1
 	now := mail.UnixMilli(p.deps.Now().UnixMilli())
-	page := core.Page{Last: messages[len(messages)-1].ID}
+	last := messages[len(messages)-1]
+	page := core.Page{Last: core.Position{SentAt: last.SentAt, ID: last.ID}}
 	hits := map[string]int64{}
 	var items []pass1.Item
 	for _, m := range messages {

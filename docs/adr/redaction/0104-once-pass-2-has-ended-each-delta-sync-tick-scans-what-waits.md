@@ -20,13 +20,18 @@ after the second pass has ended is reached.
 
 The gate reads sender statistics, so it cannot run on a cold index
 ([ADR-0093](./0093-composite-scan-gate.md)). Backfill's second pass reads the messages waiting for a
-scan in the order of their identifiers and runs the delisting comparison at its start.
+scan newest first ([ADR-0126](../data/0126-backfills-second-pass-walks-newest-first.md)) and runs
+the delisting comparison at its start.
 
 ## Decision
 
 - **Before backfill's second pass has ended for an account, delta sync scans nothing of it.** It
-  classifies and masks the mail it adds and leaves it pending, so the second pass decides it. The
-  account's completion flag of the second pass is the signal.
+  classifies and masks the mail it adds and leaves it pending. The second pass decides it when its
+  walk reaches it, and mail that arrives while the pass runs is newer than the walk's start, so the
+  walk reaches it only if the pass starts over
+  ([ADR-0126](../data/0126-backfills-second-pass-walks-newest-first.md)). What the pass leaves
+  pending, the first ticks after it ends decide and scan, by the bullet below. The account's
+  completion flag of the second pass is the signal.
 - **Once the second pass has ended, each tick runs the delisting comparison of
   [ADR-0037](./0037-delisting-transition.md) and then decides and scans the account's pending
   messages**, whatever made them pending. That is mail the tick added, a delisted sender's messages,

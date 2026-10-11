@@ -128,6 +128,10 @@ type drawn struct {
 	HTML bool
 	// ListID gives the message a list identifier.
 	ListID bool
+	// Minute is the minute the message was sent in, from a few, so messages sent at the same instant
+	// are common and straddle a page's end, and the order of the send times is not the order of the
+	// identifiers.
+	Minute int
 }
 
 // tag returns a marker tag for n, lowercase letters only (ADR-0044).
@@ -163,7 +167,7 @@ func mailbox(s setup) []fake.Message {
 		}
 		m := fake.Message{Metadata: mail.MessageMetadata{
 			ID: id, ThreadID: "t" + id, From: mail.Address{Email: address}, Subject: subject,
-			Date: mail.UnixMilli(1_700_000_000_000 + int64(i)*60_000),
+			Date: mail.UnixMilli(1_700_000_000_000 + int64(d.Minute)*60_000),
 		}}
 		if d.ListID {
 			m.Metadata.ListID = "list." + domain
@@ -311,8 +315,9 @@ func inspectPostgres(t tb, url, account string) state {
 	var cp, ct []byte
 	_, err = pgx.ForEachRow(rows, []any{&r.ID, &r.State, &cp, &ct}, func() error {
 		var c struct {
-			Page  int    `json:"page"`
-			After string `json:"after"`
+			Page   int    `json:"page"`
+			After  string `json:"after"`
+			SentAt int64  `json:"sent_at"`
 		}
 		var n struct{ Pages, Decided, Pending, Scanned, Skipped int }
 		if err := json.Unmarshal(cp, &c); err != nil {
@@ -322,7 +327,7 @@ func inspectPostgres(t tb, url, account string) state {
 			return err
 		}
 		r.Progress = core.Progress{
-			Checkpoint: core.Checkpoint{Page: c.Page, After: c.After},
+			Checkpoint: core.Checkpoint{Page: c.Page, After: core.Position{SentAt: mail.UnixMilli(c.SentAt), ID: c.After}},
 			Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped},
 		}
 		s.Runs = append(s.Runs, r)
@@ -565,16 +570,30 @@ func (m *memory) List(ctx context.Context, _ string, listed func([]string) []ind
 	return marked, nil
 }
 
-func (m *memory) Pending(ctx context.Context, _, after string, n int) ([]index.Waiting, error) {
+// Pending reads the waiting messages newest first, by send time and then identifier, those after the
+// position after, or every one when after is the zero position (ADR-0126).
+func (m *memory) Pending(ctx context.Context, _ string, after core.Position, n int) ([]index.Waiting, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	var out []index.Waiting
-	for _, id := range slices.Sorted(maps.Keys(m.messages)) {
-		msg := m.messages[id]
-		if id > after && msg.st.State == "pending" && len(out) < n {
+	var waiting []index.Waiting
+	for _, msg := range m.messages {
+		if msg.st.State == "pending" {
 			c := msg.in
 			c.SenderVolume, c.SenderHits = m.volume[msg.st.Domain], m.hits[msg.st.Domain]
+			waiting = append(waiting, c)
+		}
+	}
+	newer := func(a, b index.Waiting) bool { return a.SentAt > b.SentAt || a.SentAt == b.SentAt && a.ID > b.ID }
+	slices.SortFunc(waiting, func(a, b index.Waiting) int {
+		if newer(a, b) {
+			return -1
+		}
+		return 1
+	})
+	var out []index.Waiting
+	for _, c := range waiting {
+		if (after.ID == "" || newer(index.Waiting{SentAt: after.SentAt, ID: after.ID}, c)) && len(out) < n {
 			out = append(out, c)
 		}
 	}

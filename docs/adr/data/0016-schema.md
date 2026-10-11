@@ -290,8 +290,9 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
                                           --   page, with of only when its enumeration reports a total (ADR-0095),
                                           --   the scanner it masks under, and once its enumeration has ended how
                                           --   many stored subjects are still masked under another scanner, left
-                                          --   out when none is (ADR-0120), and pass 2 {page, after}, the last message
-                                          --   identifier its pages read, and a sync tick {after}, the last
+                                          --   out when none is (ADR-0120), and pass 2 {page, after, sent_at}, the last message
+                                          --   identifier its pages read and that message's send time in
+                                          --   milliseconds (ADR-0126), and a sync tick {after}, the last
                                           --   message identifier its scanning read (ADR-0104)
   counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages, remasked, refetched; pass2 pages,
                                           --   decided, pending, scanned, skipped; sync added, modified, removed,

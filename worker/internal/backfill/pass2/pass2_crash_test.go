@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"pgregory.net/rapid"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/crash"
@@ -30,6 +31,7 @@ func drawSetup(t *rapid.T) setup {
 			BodyCode:    rapid.Bool().Draw(t, "body code"),
 			HTML:        rapid.Bool().Draw(t, "html"),
 			ListID:      rapid.Bool().Draw(t, "list id"),
+			Minute:      rapid.IntRange(0, 2).Draw(t, "minute"),
 		}
 	})
 	return setup{
@@ -102,6 +104,7 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 func TestAKilledSecondPassResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
 	t.Run("resumed-after-a-page-that-left-a-message-waiting", resumedAfterAPageThatLeftAMessageWaiting)
+	t.Run("resumed-after-every-page-among-messages-sent-at-one-instant", resumedAfterEveryPageAmongMessagesSentAtOneInstant)
 }
 
 // resumedAfterAPageThatLeftAMessageWaiting kills the process after its first page is durable, where
@@ -122,7 +125,8 @@ func resumedAfterAPageThatLeftAMessageWaiting(t *testing.T) {
 	w.open(t)
 	w.persistence(t)
 	got := w.inspect(t)
-	if latest, _ := got.latest(); latest.Progress.Checkpoint != (core.Checkpoint{Page: 1, After: "m01"}) {
+	want := core.Checkpoint{Page: 1, After: core.Position{SentAt: 1_700_000_000_000 - 60_000, ID: "m01"}}
+	if latest, _ := got.latest(); latest.Progress.Checkpoint != want {
 		t.Errorf("the resumed run starts from %+v, want page 1 after m01", latest.Progress.Checkpoint)
 	}
 	for range 10 {
@@ -145,6 +149,65 @@ func resumedAfterAPageThatLeftAMessageWaiting(t *testing.T) {
 		t.Errorf("the bodies asked for (-want +got):\n%s", diff)
 	}
 	if diff := cmp.Diff(map[string][]string{"m01": {"abandoned"}}, got.Items, compare.Options); diff != "" {
+		t.Errorf("the failed items (-want +got):\n%s", diff)
+	}
+}
+
+// resumedAfterEveryPageAmongMessagesSentAtOneInstant kills the process after every page of a pass over
+// nine messages sent in three minutes, two a page, so pages end between two messages sent in the same
+// minute and between two minutes. The last message of the first page is a body the conversion refuses,
+// so it stays waiting. Every run resumes from the stored checkpoint, the position of the last message
+// read, its send time and identifier (ADR-0126). The pass reads the messages newest first, by send time
+// and then identifier, each once, asks for the refused body once and ends with every other message
+// scanned. A checkpoint that lost the send time, a comparison that included the position's own message,
+// or a tie broken the other way would read a message again, skip one, or read them in another order.
+func resumedAfterEveryPageAmongMessagesSentAtOneInstant(t *testing.T) {
+	refused := "<p>" + strings.Repeat("a", 512*1024-6) + "</p>"
+	at := func(minute int64, m fake.Message) fake.Message {
+		m.Metadata.Date = mail.UnixMilli(1_700_000_000_000 + minute*60_000)
+		return m
+	}
+	w := realWorldOf(t, 2, []fake.Message{
+		at(2, message("m01", "a@shop.example", false, marker.Body("one"), "")),
+		at(0, message("m02", "b@shop.example", false, marker.Body("two"), "")),
+		at(2, message("m03", "c@shop.example", false, marker.Body("three"), "")),
+		at(1, message("m04", "d@shop.example", false, marker.Body("four"), "")),
+		at(2, message("m05", "e@shop.example", false, marker.Body("five"), refused)),
+		at(1, message("m06", "f@shop.example", false, marker.Body("six"), "")),
+		at(0, message("m07", "g@shop.example", false, marker.Body("seven"), "")),
+		at(2, message("m08", "h@shop.example", false, marker.Body("eight"), "")),
+		at(1, message("m09", "i@shop.example", false, marker.Body("nine"), "")),
+	})
+	done := false
+	for range 10 {
+		if done = w.step(t); done {
+			break
+		}
+		w.crash(t, betweenSteps)
+		w.open(t)
+		w.persistence(t)
+	}
+	if !done {
+		t.Fatalf("the pass did not end")
+	}
+	newestFirst := []string{"m08", "m05", "m03", "m01", "m09", "m06", "m04", "m07", "m02"}
+	if diff := cmp.Diff(newestFirst, w.fetched, compare.Options); diff != "" {
+		t.Errorf("the bodies asked for (-want +got):\n%s", diff)
+	}
+	got := w.inspect(t)
+	states := map[string]string{}
+	for id, m := range got.Messages {
+		states[id] = m.State
+	}
+	want := map[string]string{}
+	for _, id := range newestFirst {
+		want[id] = "scanned"
+	}
+	want["m05"] = "pending"
+	if diff := cmp.Diff(want, states, compare.Options); diff != "" {
+		t.Errorf("the scan states (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(map[string][]string{"m05": {"abandoned"}}, got.Items, compare.Options); diff != "" {
 		t.Errorf("the failed items (-want +got):\n%s", diff)
 	}
 }

@@ -6,14 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 53b4947..d9c59d7 100644
+index 25569948..1f5eed37 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -56,7 +56,7 @@ type counters struct {
- }
- 
+@@ -67,7 +67,6 @@ type counters struct {
+
  func encode(p core.Progress) (cp, ct []byte, err error) {
--	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, After: p.Checkpoint.After})
+-	after := p.Checkpoint.After
+-	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, After: after.ID, SentAt: int64(after.SentAt)})
 +	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page})
  	if err != nil {
  		return nil, nil, err
