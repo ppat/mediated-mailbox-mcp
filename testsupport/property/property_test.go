@@ -131,6 +131,22 @@ func TestTheReportFailsAGeneratorThatMissesItsMix(t *testing.T) {
 	requireOutcome(t, passed, out, false, "the generator missed its stated mix: high at 0.0%")
 }
 
+// The report over several draws counts a case for every kind it reaches, over the cases of every
+// draw together. Its "high" kind is reached only by cases that also reach "drawn", and only by one of
+// its two draws, so a report counting a case for its first kind alone, or requiring each draw to
+// reach each kind, fails it. Narrowed so no draw reaches "high", it fails and still logs each draw's
+// mix.
+func TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw(t *testing.T) {
+	dir := fixture(t)
+	passed, out := run(t, dir, "report", "TestReach", gating...)
+	requireOutcome(t, passed, out, true, "")
+	passed, out = run(t, dir, "report", "TestReach", append([]string{"FIXTURE_VARIANT=narrow"}, gating...)...)
+	requireOutcome(t, passed, out, false, "the generator missed its stated mix: high at 0.0% of 200 cases")
+	for _, want := range []string{"generated mix of high half: drawn 100 (100.0%)", "generated mix of low half: drawn 100 (100.0%)", "generated mix of every draw: drawn 200 (100.0%)"} {
+		requireOutcome(t, passed, out, false, want)
+	}
+}
+
 // A found failure is stored as its arguments, still fails the run after the draw function is edited
 // and the budget is too small to find it again, and a change in the arguments' shape fails loudly.
 func TestAStoredFailingCaseOutlivesAGeneratorEdit(t *testing.T) {

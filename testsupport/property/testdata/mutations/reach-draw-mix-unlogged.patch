@@ -1,0 +1,20 @@
+control: The generator report fails a generator that misses its stated mix
+removes: each draw's own mix is left out of the log, so a verbose run no longer prints which kinds each draw reaches
+packages: ./testsupport/property
+tests: TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw
+scheduled-count: no
+
+diff --git a/testsupport/property/report.go b/testsupport/property/report.go
+index fd739a11..afca9803 100644
+--- a/testsupport/property/report.go
++++ b/testsupport/property/report.go
+@@ -61,8 +61,7 @@ func report[A any](t *testing.T, draws map[string]func(*rapid.T) A, reached func
+ 		}
+ 		total += cases
+ 		if len(draws) > 1 {
+-			mix, _ := evaluate(counts, cases, nil)
+-			t.Logf("generated mix of %s: %s", name, mix)
++			_, _ = evaluate(counts, cases, nil)
+ 		}
+ 	}
+ 	mix, short := evaluate(all, total, minimums)

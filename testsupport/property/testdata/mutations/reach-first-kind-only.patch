@@ -1,0 +1,19 @@
+control: The generator report fails a generator that misses its stated mix
+removes: a case counts only for the first kind it reaches
+packages: ./testsupport/property
+tests: TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw
+scheduled-count: no
+
+diff --git a/testsupport/property/report.go b/testsupport/property/report.go
+index fd739a11..73a71042 100644
+--- a/testsupport/property/report.go
++++ b/testsupport/property/report.go
+@@ -49,7 +49,7 @@ func report[A any](t *testing.T, draws map[string]func(*rapid.T) A, reached func
+ 		rapid.Check(t, func(rt *rapid.T) {
+ 			cases++
+ 			seen := map[string]bool{}
+-			for _, kind := range reached(draws[name](rt)) {
++			for _, kind := range reached(draws[name](rt))[:1] {
+ 				if !seen[kind] {
+ 					seen[kind] = true
+ 					counts[kind]++

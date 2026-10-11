@@ -213,7 +213,9 @@ func resumedAfterEveryPageAmongMessagesSentAtOneInstant(t *testing.T) {
 }
 
 // The generator report for both draws (ADR-0069). Each kind of sequence the checks rest on is reached,
-// stated as whether it is reached at all, not as an expected share.
+// stated as whether it is reached at all, not as an expected share. A sequence can reach several
+// kinds, and the check runs both draws, so each kind is counted over every case of either draw that
+// reaches it.
 func TestTheSecondPassCrashSequencesReachEveryKind(t *testing.T) {
 	minimums := map[string]float64{
 		"a crash inside a page":                          0.001,
@@ -225,18 +227,14 @@ func TestTheSecondPassCrashSequencesReachEveryKind(t *testing.T) {
 		"a change of scanner reverted":                   0.001,
 		"a change of thresholds after a page":            0.001,
 	}
-	for name, draw := range crash.Draws(target(), config) {
-		t.Run(name, func(t *testing.T) {
-			property.Report(t, draw, kind, minimums)
-		})
-	}
+	property.ReportReach(t, crash.Draws(target(), config), reached, minimums)
 }
 
-// kind classifies a case by the rarest telling thing its sequence does, in the order listed. A run
-// stops on a throttled body only when a step fetches a body while the provider still has at least
-// pass1core.MaxAttempts throttles to give. A body is fetched on a page only when the mailbox holds a
-// sender the gate scans, which the classifier approximates by a message from a normal sender.
-func kind(c crash.Case[setup]) string {
+// reached returns every kind the case's sequence reaches. A run stops on a throttled body only when a
+// step fetches a body while the provider still has at least pass1core.MaxAttempts throttles to give.
+// A body is fetched on a page only when the mailbox holds a sender the gate scans, which reached
+// approximates by a message from a normal sender.
+func reached(c crash.Case[setup]) []string {
 	bodies := false
 	for _, m := range c.Setup.Messages {
 		if senderDomains[m.Sender%len(senderDomains)] != listedDomain && senderDomains[m.Sender%len(senderDomains)] != "" {
@@ -289,24 +287,23 @@ func kind(c crash.Case[setup]) string {
 			}
 		}
 	}
-	switch {
-	case rescanned:
-		return "a change of scanner after a body was scanned"
-	case stoppedOnThrottle:
-		return "a run stopped on a throttled body"
-	case delistRecovered:
-		return "a delisting recovered after a page was durable"
-	case reverted:
-		return "a change of scanner reverted"
-	case afterCommitted:
-		return "a crash after a page's commit"
-	case afterPage:
-		return "a crash between steps after a page was durable"
-	case inside:
-		return "a crash inside a page"
-	case widened:
-		return "a change of thresholds after a page"
-	default:
-		return "another sequence"
+	var kinds []string
+	for _, k := range []struct {
+		kind string
+		ok   bool
+	}{
+		{"a change of scanner after a body was scanned", rescanned},
+		{"a run stopped on a throttled body", stoppedOnThrottle},
+		{"a delisting recovered after a page was durable", delistRecovered},
+		{"a change of scanner reverted", reverted},
+		{"a crash after a page's commit", afterCommitted},
+		{"a crash between steps after a page was durable", afterPage},
+		{"a crash inside a page", inside},
+		{"a change of thresholds after a page", widened},
+	} {
+		if k.ok {
+			kinds = append(kinds, k.kind)
+		}
 	}
+	return kinds
 }

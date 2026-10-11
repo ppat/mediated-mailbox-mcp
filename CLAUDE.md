@@ -114,7 +114,7 @@ a package is named, and who chooses the name, is the naming convention in
 | Kind | Where and how |
 | --- | --- |
 | Unit tests | `_test.go` files beside the code, in the external `<package>_test` package unless a test needs unexported access and is not a generator. A shell test against the provider fake, which [TESTING.md](./TESTING.md) counts as an integration test, needs no database, so it is an ordinary test file without the `integration` build tag |
-| Property tests | Files named `*_property_test.go`, in external test packages ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The property-testing library is admitted only in these files, crash-sequence files, and the `testsupport` packages that need it. A property runs through `property.Check` and its generator report through `property.Report`, both in `testsupport/property`. Each fails a run whose `RAPID_SEED` is unset or zero or whose `RAPID_NOFAILFILE` is not `true`, so a local `go test` sets the values `go-property.yaml` sets |
+| Property tests | Files named `*_property_test.go`, in external test packages ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The property-testing library is admitted only in these files, crash-sequence files, and the `testsupport` packages that need it. A property runs through `property.Check` and its generator report through `property.Report`, or `property.ReportReach` for cases drawn several ways that can each reach several kinds, as a crash test's are, all in `testsupport/property`. Each fails a run whose `RAPID_SEED` is unset or zero or whose `RAPID_NOFAILFILE` is not `true`, so a local `go test` sets the values `go-property.yaml` sets |
 | Crash sequences | Files named `*_crash_test.go` in the component whose machinery they target ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). A crash-sequence file whose reduced sequence replays against PostgreSQL also carries the `integration` build tag |
 | Integration tests against PostgreSQL | Files named `*_integration_test.go` carrying the `integration` build tag, and run only under `go tool pgrun` with `-tags integration`. `pgrun` starts one PostgreSQL container for the run and prepares a template database, and each integration test package creates its own database from it through `testsupport/postgres` ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)). One test in `testsupport/postgres` runs `pgrun` a second time, on the next port, to prove a run without the tag fails, so with a remote docker daemon both ports need a route. The test image's reference sits in `testsupport/cmd/pgrun/image.go`, pinned by digest and tracked by renovate |
 | Recorded browser fixtures | Integration tests that record the browser's fixtures from the real server and fail when a checked-in fixture differs are named `*_fixtures_integration_test.go`, carry the `integration` build tag, and run in the `ui` workflow beside the browser tests that read the fixtures ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
@@ -152,8 +152,9 @@ file's import target described under Violation files.
 - **The `go vet` analysers** live in `testsupport/analysis` with a `unitchecker` program at
   `testsupport/cmd/vetcheck`, and run beside golangci-lint as `go vet -tags
   integration,gmail_live,devloop -vettool="$(go tool -n vetcheck)"`, with the tags golangci-lint's
-  configuration sets, which banproof checks. The placement analyser's two rules refuse a call to
-  `property.Report` or `property.Check` reachable from inside a property
+  configuration sets, which banproof checks. The placement analyser's two rules refuse a call to a
+  generator report, `property.Report` or `property.ReportReach`, or to `property.Check`, reachable
+  from inside a property
   ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The globals
   analyser refuses package-level state in a pure core by the four rules
   [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) states. The environment

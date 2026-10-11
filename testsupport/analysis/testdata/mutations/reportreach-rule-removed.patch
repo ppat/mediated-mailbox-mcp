@@ -1,0 +1,18 @@
+control: The analyser refuses a generator report reachable from a property
+removes: the report rule is removed for the report over several draws
+packages: ./testsupport/analysis
+tests: TestPlacement
+scheduled-count: no
+
+diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
+index 956525cb..3f8d6117 100644
+--- a/testsupport/analysis/analysis.go
++++ b/testsupport/analysis/analysis.go
+@@ -56,7 +56,6 @@ var Placement = &analysis.Analyzer{
+ var messages = map[string]string{
+ 	"Report":      "property.Report is reachable from inside a property, where rapid re-runs a failing case and every re-run would be counted. Call it from its own test",
+ 	"Check":       "property.Check is reachable from inside a property, where it would write the failing-case store on every re-run. Call it from a test function",
+-	"ReportReach": "property.ReportReach is reachable from inside a property, where rapid re-runs a failing case and every re-run would be counted. Call it from its own test",
+ }
+ 
+ func run(pass *analysis.Pass) (any, error) {

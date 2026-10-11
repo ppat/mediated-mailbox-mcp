@@ -21,22 +21,64 @@ import (
 // own kind, which is how the report shows most of a run being refused.
 func Report[A any](t *testing.T, draw func(*rapid.T) A, classify func(A) string, minimums map[string]float64) {
 	t.Helper()
+	report(t, map[string]func(*rapid.T) A{"": draw}, func(a A) []string { return []string{classify(a)} }, minimums)
+}
+
+// ReportReach is Report for a test whose cases are drawn several ways in one run and can each reach
+// several kinds, as a crash test's operation sequences are (testsupport/crash). It runs each draw in
+// a property of its own, counts a case for every kind reached returns for it, and fails the test when
+// the share of all the draws' cases reaching a kind falls below the kind's stated minimum, since a
+// kind any draw reaches is one the run exercises. It fails only when the draws together miss a kind,
+// so one draw alone no longer reaching a kind fails nothing. It logs each draw's mix and the mix of
+// every draw together, which a verbose run prints (ADR-0069).
+//
+// Call it as Report is called, with the draws the test runs and the same seed and case count.
+func ReportReach[A any](t *testing.T, draws map[string]func(*rapid.T) A, reached func(A) []string, minimums map[string]float64) {
+	t.Helper()
+	report(t, draws, reached, minimums)
+}
+
+// report runs each draw in a property of its own, in the order of the draws' names, counts each case
+// once for every distinct kind reached returns for it, and evaluates the counts over every draw's
+// cases together. A draw named "" is the single draw of Report, whose mix is the whole.
+func report[A any](t *testing.T, draws map[string]func(*rapid.T) A, reached func(A) []string, minimums map[string]float64) {
+	t.Helper()
 	requireSettings(t)
-	counts := map[string]int{}
-	rapid.Check(t, func(rt *rapid.T) { counts[classify(draw(rt))]++ })
-	mix, short := evaluate(counts, minimums)
-	t.Logf("generated mix: %s", mix)
+	all, total := map[string]int{}, 0
+	for _, name := range slices.Sorted(maps.Keys(draws)) {
+		counts, cases := map[string]int{}, 0
+		rapid.Check(t, func(rt *rapid.T) {
+			cases++
+			seen := map[string]bool{}
+			for _, kind := range reached(draws[name](rt)) {
+				if !seen[kind] {
+					seen[kind] = true
+					counts[kind]++
+				}
+			}
+		})
+		for kind, n := range counts {
+			all[kind] += n
+		}
+		total += cases
+		if len(draws) > 1 {
+			mix, _ := evaluate(counts, cases, nil)
+			t.Logf("generated mix of %s: %s", name, mix)
+		}
+	}
+	mix, short := evaluate(all, total, minimums)
+	if len(draws) > 1 {
+		t.Logf("generated mix of every draw: %s", mix)
+	} else {
+		t.Logf("generated mix: %s", mix)
+	}
 	if short != "" {
 		t.Errorf("the generator missed its stated mix: %s", short)
 	}
 }
 
-// evaluate describes the mix and every kind whose share is below its minimum.
-func evaluate(counts map[string]int, minimums map[string]float64) (mix, short string) {
-	total := 0
-	for _, n := range counts {
-		total += n
-	}
+// evaluate describes the mix of total cases and every kind whose share of them is below its minimum.
+func evaluate(counts map[string]int, total int, minimums map[string]float64) (mix, short string) {
 	share := func(kind string) float64 {
 		if total == 0 {
 			return 0

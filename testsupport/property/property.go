@@ -1,5 +1,5 @@
 // Package property holds the test support property tests use alongside rapid (ADR-0069). Check runs
-// a property with the failing-case store, and Report runs the generator report.
+// a property with the failing-case store, and Report and ReportReach run the generator report.
 //
 // It imports rapid, so only property test files, crash-sequence test files and the crash harness may
 // import it.
