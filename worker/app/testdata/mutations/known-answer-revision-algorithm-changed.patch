@@ -1,0 +1,19 @@
+control: The default scanner section's revision is the known answer checked in
+removes: the configuration library's revision algorithm takes the last 16 bytes of the section's hash rather than the first
+packages: ./worker/app
+tests: TestTheScannerSectionBuildsTheSharedScanner
+scheduled-count: no
+
+diff --git a/process/settings/settings.go b/process/settings/settings.go
+index ea0769b3..14edd763 100644
+--- a/process/settings/settings.go
++++ b/process/settings/settings.go
+@@ -189,7 +189,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+ 			return Loaded[T]{}, fmt.Errorf("%s: %w", f.name, err)
+ 		}
+ 		sum := sha256.Sum256(text)
+-		loaded.Revisions[f.name] = hex.EncodeToString(sum[:16])
++		loaded.Revisions[f.name] = hex.EncodeToString(sum[16:])
+ 	}
+ 	return loaded, nil
+ }

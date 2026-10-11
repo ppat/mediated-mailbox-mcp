@@ -211,6 +211,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339) | D1 | D1's later work, messages served with their attachment types, words of a closed vocabulary that one mapping in `core/mail` derives when read from each attachment's media type and extension, which the canonical model normalizes, the Gmail adapter and the provider fake report, the contract suite checks, and pass 1 and delta sync's insert store in `attachment_media`, with its checks on the normalized form, its row-level security and its grants | The rows it adds for an attachment's type being a word of the closed vocabulary, for what is kept of an attachment being normalized, for ingest writing the media and for the media at rest holding only the normalized form, and the row for the redaction matrix on served metadata, proven again with the types | The controls of the attachment type's mapping, the normalization, ingest writing the media and the checks on the media at rest, the redaction matrix on served metadata and the checked vocabularies regenerated and demonstrated again, and the patches whose diff context or tests moved |
 | [#340](https://github.com/ppat/mediated-mailbox-mcp/pull/340) | D2 | D2's later work, a sequence the second pass's crash test runs against PostgreSQL in every run, which kills the process after a page that left a message waiting and requires the next run to resume after that page | D2's part of the row for killing the process running backfill mid-run, again for the second pass's stored checkpoint | The control that a killed second pass resumes from its last checkpointed page, both breaks, the one dropping the position from the stored checkpoint now red in the crash test that names it, and demonstrates again every break of each other control whose demonstration names that crash test |
 | [#341](https://github.com/ppat/mediated-mailbox-mcp/pull/341) | F12 | F12's performance measurements ([ADR-0125](./docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)), the client operations' latency, the policy load's duration, Gmail's request latency by endpoint and outcome, the rate lease's wait by class, each body's conversion and scan, the messages each pass and tick made durable, the scheduler's run duration split by job, statement latency by name and each pool's acquires, waits and connections built from `process/dbmetrics`, which opens every deployable's pools, and the Go runtime and process collectors from `process/runtimemetrics`, which every composition root calls, with `db/tx`'s statements named and `db/check` refusing a statement name used twice | — | It demonstrates again every break of every control whose code, named tests or patches it changed, records each reproduction on its row, and adds its new tests to the rows whose breaks now turn them red |
+| [#343](https://github.com/ppat/mediated-mailbox-mcp/pull/343) | D2 | D2's later work, the worker's test pinning the revision of its default scanner section made the known-answer test whose value changes only as a decision in review, and [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)'s consequence that the revision hashes the section's rendering | It adds and proves the row for a change that leaves the default scanner section's settings as they are and changes its revision | The control that the default scanner section's revision is the known answer checked in, broken so the revision algorithm takes another part of the hash or less of it, a defaulted field is added to the scanner's configuration type and a field's YAML name changes |
 
 ### What each composition root runs
 
@@ -650,14 +651,16 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#214](https://github.com/ppat/mediated-mailbox-mcp/pull/214),
   [#223](https://github.com/ppat/mediated-mailbox-mcp/pull/223),
   [#231](https://github.com/ppat/mediated-mailbox-mcp/pull/231) and, as later work,
-  [#321](https://github.com/ppat/mediated-mailbox-mcp/pull/321) and
-  [#340](https://github.com/ppat/mediated-mailbox-mcp/pull/340), which closed its tickets
+  [#321](https://github.com/ppat/mediated-mailbox-mcp/pull/321),
+  [#340](https://github.com/ppat/mediated-mailbox-mcp/pull/340) and
+  [#343](https://github.com/ppat/mediated-mailbox-mcp/pull/343), which closed its tickets
   [#82](https://github.com/ppat/mediated-mailbox-mcp/issues/82),
   [#84](https://github.com/ppat/mediated-mailbox-mcp/issues/84),
   [#126](https://github.com/ppat/mediated-mailbox-mcp/issues/126),
   [#226](https://github.com/ppat/mediated-mailbox-mcp/issues/226),
-  [#292](https://github.com/ppat/mediated-mailbox-mcp/issues/292) and
-  [#318](https://github.com/ppat/mediated-mailbox-mcp/issues/318), and not yet released. The
+  [#292](https://github.com/ppat/mediated-mailbox-mcp/issues/292),
+  [#318](https://github.com/ppat/mediated-mailbox-mcp/issues/318) and
+  [#295](https://github.com/ppat/mediated-mailbox-mcp/issues/295), and not yet released. The
   composite gate over pass-1 statistics ([ADR-0093](./docs/adr/redaction/0093-composite-scan-gate.md)),
   evaluating every message with no memo
   ([ADR-0094](./docs/adr/redaction/0094-scan-gate-decisions-are-not-memoized.md)), restricted bodies
@@ -678,10 +681,14 @@ What the code on `main` runs today, per composition root, none of it yet release
   and backfill's run-start step, which the worker makes once per process and account, at its start
   and for a newly listed account, decides each stored gate skip again under the thresholds it holds
   ([ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)), as
-  each record states. Every verification row keyed to it is proven for D2's part, and every
-  control it delivered has its mutation demonstration. **What it did not deliver.** Running backfill
-  after each release and each change to the scanner's section with no manual step, which is
-  [R1](#group-r--packaging)'s. A configuration section for the gate's thresholds, which backfill
+  each record states. A known-answer test pins the revision of the worker's default scanner
+  section, so a change that alters that section's revision with no change to its settings, and
+  would so re-mask and re-scan the index, fails CI until the checked-in value is changed on purpose
+  ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). Every
+  verification row keyed to it is proven for D2's part, and every control it delivered has its
+  mutation demonstration. **What it did not deliver.** Running backfill after each release and each
+  change to the scanner's section with no manual step, which is [R1](#group-r--packaging)'s. A
+  configuration section for the gate's thresholds, which backfill
   takes as [ADR-0093](./docs/adr/redaction/0093-composite-scan-gate.md)'s defaults, so a change of
   thresholds is a release. How messages returned to pending are scanned once backfill has ended,
   and the scan backlog emitted after that, which [D4](#delivered-mapped-to-outcomes) delivered, as
@@ -689,9 +696,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   trusted, tuning the scanner against the real mail, and killing the process running backfill
   mid-run on real substrate, all at [production point 1](#production-point-1--the-read-path).
   **Later work.** Before production point 1, the second pass walks newest first, so the mail an
-  agent most likely asks for is readable first. And a known-answer test pins the scanner section's
-  revision, so a change that re-scans the index is a decision taken in review
-  ([ADR-0005](./docs/adr/classification/0005-tiered-detection.md)).
+  agent most likely asks for is readable first.
 
 - [x] **D4 — Delta sync** → [G4](./USE_CASES.md#g4--the-index-tracks-the-live-mailbox) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image

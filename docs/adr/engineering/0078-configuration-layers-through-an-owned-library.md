@@ -303,6 +303,12 @@ and observability, so the preference holds there by a smaller margin.
   needs, where policy, which does change while the system runs, already has its own reload
   ([ADR-0041](./0041-policy-as-immutable-snapshots.md)). A file watch re-running `Load` can be added
   if a need appears.
+- **A revision derived from a section's values rather than its rendering**, its keys sorted and its
+  defaults omitted. For it, a field added with a default that keeps today's behaviour would leave
+  the revision unchanged, so it would not re-mask and re-scan the index. Not taken, because the
+  algorithm would itself become the contract, and changing algorithms re-scans once, while the
+  worker's known-answer test of the default scanner section's revision brings to review every
+  change that alters that section's rendering.
 
 ## Consequences
 
@@ -317,6 +323,19 @@ and observability, so the preference holds there by a smaller margin.
 - The scanner's configuration type carries no revision an operator sets. The revision it stamps
   is the library's revision of its section, handed in by the composition root as a string, so the
   scanner refuses an empty revision.
+- A section's revision hashes its YAML rendering, not its settings as such. So a field added with a
+  default that keeps today's behaviour, fields reordered, a field's YAML name changed, a change in
+  how the YAML library renders a value, or a change to the revision algorithm each changes the
+  scanner's revision, and every stored subject and verdict is masked and scanned again at the next
+  release ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
+  A known-answer test in the worker pins the revision of its default scanner section to a value
+  checked in, so a change that alters the default section's revision is a decision taken in
+  review. Each other change named always alters it, but a change in how the YAML library renders a
+  value alters it only when it touches a form the default section uses. One that touches only
+  forms the default section does not use, such as the order of a map's several keys, a string that
+  needs quoting or another form of float, leaves the test green while a deployment whose section
+  uses those forms gets a new revision. The test does not catch it, and it is left to review of
+  the library's update.
 - Leaving the library costs its internals only. The file format, the names, the precedence and
   every refusal are the contract, and any replacement sits behind `Load`.
 - What would re-argue it is a maintained Go library that derives every name from one tag, discovers

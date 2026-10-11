@@ -402,6 +402,17 @@ func TestAVerdictsRevisionFollowsTheScannerSection(t *testing.T) {
 // thresholds and its scans to the scanner it is given. The default section's scanner records the
 // version and revision written out here, which both job kinds' verdicts and masks therefore record
 // (ADR-0120, ADR-0121, ADR-0104).
+//
+// The revision written out here is also a known answer across releases, computed once by an earlier
+// build from the default section loaded as the worker's start loads it, with no environment, and
+// never derived by this test. The revision hashes the section's YAML rendering, so a field added
+// with a default that keeps today's behaviour, a changed YAML name, a change in how the YAML library
+// renders a value this section holds or a change to the configuration library's revision algorithm
+// changes it with nothing the scanner does changed (ADR-0078). A change in how the library renders
+// only forms this section does not hold is left to review of the library's update. Changing this
+// value re-masks and re-scans every stored subject and verdict at the next release, with the bodies
+// of the messages returned to pending denied until the second pass scans them again (ADR-0120). So
+// it changes only as a decision taken in review, never to make this test pass.
 func TestTheScannerSectionBuildsTheSharedScanner(t *testing.T) {
 	loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys), nil)
 	if err != nil {
