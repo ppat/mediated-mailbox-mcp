@@ -98,9 +98,9 @@ stale.
 - **A workflow builds what its tests read.** The UI's unit and integration tests read the built
   browser bundle, the scan of every bundled file for what would need a looser content security
   policy, the entry document loading the bundle's entry module, and the reserved words a bundle's
-  top level holds. Against the checked-in placeholder they skip or check less. So the unit and the
-  integration workflows build the bundle before their run, as the `ui` workflow builds it before the
-  recording, and watch the bundle's sources.
+  top level holds. Against the checked-in placeholder they skip, check less or fail. So the unit and
+  the integration workflows build the bundle before their run, as the `ui` workflow builds it before
+  the recording, and watch the bundle's sources.
 - **The triggers follow the measured cost of each kind.** Measured on this repository's CI runners,
   in the pull request that implements this record. Each time is the wall time of the step that runs
   the tests on a fresh GitHub-hosted `ubuntu-24.04` runner, compilation and PostgreSQL's start under
