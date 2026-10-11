@@ -27,6 +27,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/tick"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // The passes job_runs names a tick and a gap's recovery (ADR-0016).
@@ -46,6 +47,8 @@ type Deps struct {
 	Lookups classify.Lookups
 	Gate    scangate.Config
 	Scanner scan.Scanner
+	// Processing times each body's conversion and scan, and a nil one times nothing (ADR-0125).
+	Processing *series.Processing
 	// FirstWindow is how far back an account with no cursor is reconciled (ADR-0105).
 	FirstWindow time.Duration
 	// Decisions bounds how many waiting messages one tick decides, and PageSize how many one read
@@ -65,6 +68,9 @@ type Result struct {
 	Gap bool
 	// Unclassified counts the messages the tick added whose sender could not be classified.
 	Unclassified int
+	// Indexed counts the messages the tick's applied changes added to the index, and Scanned the
+	// messages it scanned and made durable.
+	Indexed, Scanned int
 	// Scanning is set when backfill's second pass has ended, so the tick scanned, and Backlog is then
 	// how many of the account's messages wait for a scan once it is done.
 	Scanning bool
@@ -161,6 +167,7 @@ func (t *ticker) changes(ctx context.Context, state State) (mail.Cursor, error) 
 		}
 		t.at = next
 		t.result.Unclassified += applied.Unclassified
+		t.result.Indexed += applied.Inserted
 		if empty || cs.Next == cursor {
 			return "", nil
 		}
@@ -279,6 +286,7 @@ func (t *ticker) reconcile(ctx context.Context, run string, start mail.UnixMilli
 		}
 		reconciled += applied.Inserted + applied.Changed
 		t.result.Unclassified += applied.Unclassified
+		t.result.Indexed += applied.Inserted
 		if page.Next == "" {
 			return reconciled, listed, nil
 		}
@@ -413,6 +421,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
 	if err := t.deps.Store.CommitScan(ctx, t.account, t.run, outcomes, items, next); err != nil {
 		return false, fmt.Errorf("making the scanned messages durable: %w", err)
 	}
+	t.result.Scanned += next.Counters.Scanned - t.at.Counters.Scanned
 	t.at = next
 	return stop, nil
 }
@@ -436,7 +445,9 @@ func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, co
 	}
 	var md string
 	if body.HTML != "" {
+		start := time.Now()
 		converted, err := markdown.Convert(body.HTML)
+		t.deps.Processing.Since(series.StepConvert, start)
 		if err != nil {
 			now := t.deps.Now().UTC()
 			return nil, &Item{
@@ -445,7 +456,9 @@ func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, co
 		}
 		md = converted
 	}
+	start := time.Now()
 	scanned := index.Scan(t.deps.Scanner, md, body.Text)
+	t.deps.Processing.Since(series.StepScan, start)
 	return &scanned, nil, core.LeaveWaiting, nil
 }
 

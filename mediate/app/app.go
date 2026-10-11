@@ -29,6 +29,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -66,7 +67,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
+	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
@@ -207,16 +210,19 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err != nil {
 		return fmt.Errorf("loading the keyring: %w", err)
 	}
+	metrics := prometheus.NewRegistry()
+	if err := runtimemetrics.Register(metrics); err != nil {
+		return err
+	}
 	poolConfig, err := dbconnect.PoolConfig(c.Database)
 	if err != nil {
 		return fmt.Errorf("configuring the database connection: %w", err)
 	}
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	pool, err := dbmetrics.OpenPool(ctx, poolConfig, metrics)
 	if err != nil {
 		return fmt.Errorf("configuring the database connection: %w", err)
 	}
 	defer pool.Close()
-	metrics := prometheus.NewRegistry()
 	served, err := newServing(ctx, pool, keys, metrics, logger)
 	if err != nil {
 		return err
@@ -229,7 +235,11 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err != nil {
 		return err
 	}
-	registry, err := service.NewRegistry(nil, service.Operations(sources(pool, served, bodies))...)
+	ops, err := timed(service.Operations(sources(pool, served, bodies)), metrics)
+	if err != nil {
+		return err
+	}
+	registry, err := service.NewRegistry(nil, ops...)
 	if err != nil {
 		return err
 	}
@@ -246,6 +256,35 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 		return errors.Join(err, surfaceListener.Close())
 	}
 	return serve(ctx, c, surfaceListener, probeListener, served, metrics, logger)
+}
+
+// operationDurationName is the series timing each operation of the client surface (ADR-0125).
+const operationDurationName = "mediated_mailbox_mediate_operation_duration_seconds"
+
+// timed returns ops with each operation's handler timed on a series metrics serves, labelled by the
+// operation's name, so every call either root makes is timed from the handler's start to its return,
+// after the registry's account check. The service layer is unchanged and imports no metrics library
+// (ADR-0125).
+func timed(ops []service.Operation, metrics prometheus.Registerer) ([]service.Operation, error) {
+	duration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    operationDurationName,
+		Help:    "How long each operation of the client surface took, from its handler's start to its return, by operation.",
+		Buckets: []float64{0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
+	}, []string{"operation"})
+	if err := metrics.Register(duration); err != nil {
+		return nil, err
+	}
+	out := make([]service.Operation, 0, len(ops))
+	for _, op := range ops {
+		handle, observed := op.Handle, duration.WithLabelValues(op.Name)
+		op.Handle = func(ctx context.Context, account string, input json.RawMessage) (json.RawMessage, error) {
+			start := time.Now()
+			defer func() { observed.Observe(time.Since(start).Seconds()) }()
+			return handle(ctx, account, input)
+		}
+		out = append(out, op)
+	}
+	return out, nil
 }
 
 // serve reloads the account snapshot on its interval and serves the registry on the two listeners
@@ -679,11 +718,16 @@ const (
 	bodiesDeniedName = "mediated_mailbox_mediate_bodies_denied_total"
 )
 
+// processingName is the series timing each body's conversion, under the name and help the worker's
+// job kinds time conversions and scans under. The mediator's serve-time pattern check runs inside the
+// release decision's pure core and is not timed (ADR-0125).
+const processingName = "mediated_mailbox_body_processing_duration_seconds"
+
 // newBodies returns what the body operation needs beyond the index, with the opener of its provider
 // sessions. Its policy is loaded for each request through served, its provider calls go through the
 // account sessions it holds, whose sources and ports connect builds, the serve-time pattern check runs
 // scanner, and its outcomes are counted on series
-// metrics serves. Each provider call is bounded by timeout.
+// metrics serves, which also times each conversion. Each provider call is bounded by timeout.
 func newBodies(served *serving, connect session.Connector, scanner scan.Scanner, timeout time.Duration, metrics prometheus.Registerer) (service.Bodies, *providers, error) {
 	leases, err := lease.NewMetrics(metrics)
 	if err != nil {
@@ -697,19 +741,29 @@ func newBodies(served *serving, connect session.Connector, scanner scan.Scanner,
 		Name: bodiesDeniedName,
 		Help: "The body requests the mediator denied, by the stage that decided it, gate or serve, and the reason.",
 	}, []string{"account", "stage", "reason"})
-	for _, c := range []prometheus.Collector{servedBodies, deniedBodies} {
+	processing := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    processingName,
+		Help:    "How long each body's conversion to Markdown and its scan took, by step.",
+		Buckets: []float64{0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5},
+	}, []string{"step"})
+	for _, c := range []prometheus.Collector{servedBodies, deniedBodies, processing} {
 		if err := metrics.Register(c); err != nil {
 			return service.Bodies{}, nil, err
 		}
 	}
+	converted := processing.WithLabelValues("convert")
 	p := &providers{served: served, leases: leases, timeout: timeout, sessions: session.New(session.Config{
 		Loader: served.loader, DB: served.pool, Logger: served.logger,
 		Connectors: map[string]session.Connector{gmailProvider: connect}, Hold: true,
 	})}
 	return service.Bodies{
-		Policy:  served.currentPolicy,
-		Open:    p.open,
-		Convert: markdown.Convert,
+		Policy: served.currentPolicy,
+		Open:   p.open,
+		Convert: func(html string) (string, error) {
+			start := time.Now()
+			defer func() { converted.Observe(time.Since(start).Seconds()) }()
+			return markdown.Convert(html)
+		},
 		Literal: markdown.Literal,
 		Scanner: scanner,
 		Observe: func(account string, o service.Outcome) {

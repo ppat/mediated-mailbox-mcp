@@ -44,6 +44,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/reseal"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // Kind is delta sync's job kind as job_runs.workload spells it, which the worker's series and logs
@@ -118,7 +119,9 @@ type DeltaSync struct {
 	ticks    *tick.Metrics
 	keyScan  *reseal.Metrics
 	leases   *lease.Metrics
-	lookups  classify.Lookups
+	// processing times each body's conversion and scan in a tick (ADR-0125).
+	processing *series.Processing
+	lookups    classify.Lookups
 	// port builds an account's Gmail adapter in a kind New built, over the series New registered, so
 	// a test reaches the adapter series the kind serves.
 	port func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error)
@@ -170,11 +173,15 @@ func build(c Config, connectors map[string]session.Connector) (*DeltaSync, error
 	if err != nil {
 		return nil, err
 	}
+	processing, err := series.NewProcessing(c.Registry)
+	if err != nil {
+		return nil, err
+	}
 	loader := accountload.New(c.Pool, c.Keys, c.Logger, []string{gmailProvider})
 	return &DeltaSync{
 		config: c, limit: schedule.NewLimit(c.Concurrency), loader: loader,
 		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors}),
-		ticks:    ticks, keyScan: keyScan, leases: leases,
+		ticks:    ticks, keyScan: keyScan, leases: leases, processing: processing,
 		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
 	}, nil
 }
@@ -354,6 +361,7 @@ func (d *DeltaSync) tickDeps(account string, provider tick.Provider, policy poli
 		Lookups:     d.lookups,
 		Gate:        scangate.DefaultConfig(),
 		Scanner:     d.config.Scanner,
+		Processing:  d.processing,
 		FirstWindow: d.config.FirstWindow,
 		Decisions:   d.config.DecisionsPerTick,
 		PageSize:    pageSize,

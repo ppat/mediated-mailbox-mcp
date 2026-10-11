@@ -19,7 +19,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
@@ -29,7 +28,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
+	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
@@ -171,11 +172,15 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err != nil {
 		return err
 	}
+	metrics := prometheus.NewRegistry()
+	if err := runtimemetrics.Register(metrics); err != nil {
+		return err
+	}
 	poolConfig, err := dbconnect.PoolConfig(c.Database)
 	if err != nil {
 		return fmt.Errorf("configuring the database connection: %w", err)
 	}
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	pool, err := dbmetrics.OpenPool(ctx, poolConfig, metrics)
 	if err != nil {
 		return fmt.Errorf("configuring the database connection: %w", err)
 	}
@@ -192,7 +197,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 		Database:       pool,
 		Datasets:       registry.Datasets(lookups),
 		Logger:         logger,
-		Metrics:        prometheus.NewRegistry(),
+		Metrics:        metrics,
 		Clock:          time.Now,
 		Cadences:       api.Cadences{Sync: c.SyncInterval, Heuristics: c.HeuristicsInterval},
 		StreamInterval: c.StreamInterval,

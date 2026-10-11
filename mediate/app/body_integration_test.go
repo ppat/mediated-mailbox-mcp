@@ -198,7 +198,11 @@ func newHarness(t *testing.T) *harness {
 		t.Fatal(err)
 	}
 	h.providers = opener
-	h.reg, err = service.NewRegistry(nil, service.Operations(sources(h.pool, h.served, bodies))...)
+	ops, err := timed(service.Operations(sources(h.pool, h.served, bodies)), h.metrics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.reg, err = service.NewRegistry(nil, ops...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +340,8 @@ func (h *harness) audit(t *testing.T) []auditRow {
 	return out
 }
 
-// counter returns the value of a counter series with the given labels, or 0 when it has none.
+// counter returns the value of a counter series with the given labels, or for a histogram how many it
+// observed, or 0 when it has none.
 func counter(t *testing.T, metrics prometheus.Gatherer, name string, labels map[string]string) float64 {
 	t.Helper()
 	families, err := metrics.Gather()
@@ -353,6 +358,9 @@ func counter(t *testing.T, metrics prometheus.Gatherer, name string, labels map[
 				got[l.GetName()] = l.GetValue()
 			}
 			if cmp.Equal(labels, got) {
+				if h := m.GetHistogram(); h != nil {
+					return float64(h.GetSampleCount())
+				}
 				return m.GetCounter().GetValue()
 			}
 		}
@@ -481,6 +489,14 @@ func TestAReleasedBodyIsCleanMarkdown(t *testing.T) {
 	}
 	if got := counter(t, h.metrics, bodiesServedName, map[string]string{"account": h.account}); got != 2 {
 		t.Errorf("two serves counted %v", got)
+	}
+	// Both requests are timed as the body operation, and the one HTML body's conversion is timed, while
+	// the plain-text body needs none (ADR-0125).
+	if got := counter(t, h.metrics, operationDurationName, map[string]string{"operation": "get_message_body"}); got != 2 {
+		t.Errorf("%v body requests timed, want 2", got)
+	}
+	if got := counter(t, h.metrics, processingName, map[string]string{"step": "convert"}); got != 1 {
+		t.Errorf("%v conversions timed, want the newsletter's one", got)
 	}
 }
 

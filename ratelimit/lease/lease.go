@@ -98,7 +98,20 @@ func (l *Limiter) limitsFor(account string) core.Limits {
 //
 // Each ask is stored whether or not it is granted, and a waiting worker asks again at least every half
 // second. A request that can never be granted returns ErrRefused at once.
+//
+// A granted lease's wait, from the call to the grant, is observed by its class, so the time a caller
+// spends waiting on the budget is told apart from the provider's own time (ADR-0125).
 func (l *Limiter) Acquire(ctx context.Context, account string, class core.Class, cost float64) (core.Lease, error) {
+	start := time.Now()
+	lease, err := l.acquire(ctx, account, class, cost)
+	if err == nil {
+		l.metrics.observeWait(class, time.Since(start))
+	}
+	return lease, err
+}
+
+// acquire asks for the lease Acquire returns until it is granted, refused, or ctx ends.
+func (l *Limiter) acquire(ctx context.Context, account string, class core.Class, cost float64) (core.Lease, error) {
 	req := core.Request{Class: class, Tokens: roundUp32(cost)}
 	for {
 		d, wait, err := l.issue(ctx, account, req)

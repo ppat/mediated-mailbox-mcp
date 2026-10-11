@@ -24,8 +24,8 @@ budget, which is why those roles hold the grants the statements need
 ## Series and the rules that read them
 
 The lease code also emits the rate limiter's metrics through the registry each process passes it
-([ADR-0076](../docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)). Every series is a
-gauge or counter labelled by `account`. In the worker each job kind passes a registry that also
+([ADR-0076](../docs/adr/engineering/0076-metrics-emitted-through-client-golang.md)). Every series but
+the lease wait is a gauge or counter labelled by `account`. In the worker each job kind passes a registry that also
 labels each series with `job_kind`, the job kind that produced it
 ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). The
 alerting rules that read them are `packaging/chart/alerting-rules.yaml`, whose promtool tests sit
@@ -37,6 +37,7 @@ in `ratelimit/lease/testdata/`
 | `mediated_mailbox_ratelimit_rate` | Gauge | Each spending process, as it last read or set the rate | Dashboards |
 | `mediated_mailbox_ratelimit_granted_total` | Counter, `class` | Each spending process, in the provider's units | Dashboards |
 | `mediated_mailbox_ratelimit_throttles_total` | Counter, `scope` of `user`, `project` or `unknown` | Each spending process | Dashboards |
+| `mediated_mailbox_ratelimit_lease_wait_seconds` | Histogram, `class`, and no `account` | Each spending process, from an ask's start to its granted lease ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)) | Dashboards |
 | `mediated_mailbox_ratelimit_account_rate` | Gauge | The mediator's collector, from each account's rate state | The collapse rule and the absence rule |
 | `mediated_mailbox_ratelimit_account_floor` | Gauge | The mediator's collector | The collapse rule |
 | `mediated_mailbox_ratelimit_account_bucket_level` | Gauge | The mediator's collector | Dashboards |

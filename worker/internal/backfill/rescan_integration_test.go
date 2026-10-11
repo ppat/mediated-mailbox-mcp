@@ -98,11 +98,11 @@ func rescanMailbox(t *testing.T, account string) *fake.Fake {
 func runBackfill(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake, s scan.Scanner, run string) {
 	t.Helper()
 	first, second := rescanDeps(t, pool, account, f, s, run)
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry())
+	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,11 +243,11 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 		asked = append(asked, ids...)
 		return f.GetMessageMetadata(ctx, ids)
 	}
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry())
+	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -576,7 +576,7 @@ func TestAStoppedSecondPassKeepsItsRecordAndStartsOver(t *testing.T) {
 	pool := backfillPool(t)
 	f := rescanMailbox(t, "personal")
 	narrowFirst, narrowSecond := rescanDeps(t, pool, "personal", f, narrowScanner(t), "narrow")
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -672,11 +672,11 @@ func TestARevertedChangeOfScannerStillScansWhatItReturnedToPending(t *testing.T)
 	account(t, conn, "personal", gmailProvider, nil, false)
 	pool := backfillPool(t)
 	f := rescanMailbox(t, "personal")
-	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry())
+	metrics1, err := pass1.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry())
+	metrics2, err := pass2.NewMetrics(prometheus.NewRegistry(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

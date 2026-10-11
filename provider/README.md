@@ -80,11 +80,14 @@ its credential was refused when Google's token endpoint was unreachable
 ## Series and the rules that read them
 
 Every adapter emits both series, labelled by `account` and by `provider`, whose value is the
-adapter's own name, such as `gmail`. In the worker each job kind passes a registry that also labels
-each series with `job_kind`, the job kind that produced it
+adapter's own name, such as `gmail`. It also emits each request's latency, labelled by `provider`,
+by the provider method the request calls and by its outcome, and not by account, which no rule
+reads ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+In the worker each job kind passes a registry that also labels each series with `job_kind`, the
+job kind that produced it
 ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). Two
-alerting rules in `packaging/chart/alerting-rules.yaml` read them, and neither holds a provider's
-number of its own.
+alerting rules in `packaging/chart/alerting-rules.yaml` read the cost and the hard cap, and neither
+holds a provider's number of its own.
 
 | Rule | Reads | Fires when |
 | --- | --- | --- |
@@ -95,3 +98,4 @@ number of its own.
 | --- | --- | --- |
 | `mediated_mailbox_provider_request_cost_total` | Counter | The cost of every request the process sent for the account, in the provider's units, failed requests included |
 | `mediated_mailbox_provider_hard_cap` | Gauge | The account's hard cap in the provider's units per second, `mail.HardCapFraction` of the ceiling the adapter's rate profile declares, set each time a request is counted |
+| `mediated_mailbox_provider_request_duration_seconds` | Histogram, `endpoint` and `outcome` of `ok`, `throttled` or `failed` | Each request's latency, from sending it to reading its answer, the access token obtained before |

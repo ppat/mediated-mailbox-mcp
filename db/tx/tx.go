@@ -68,11 +68,11 @@ func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error
 	}
 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 		// set_config with its third argument true is SET LOCAL, taking the value as a parameter.
-		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', $1, true)", account); err != nil {
+		if _, err := tx.Exec(ctx, "-- name: SetTransactionAccount :exec\nSELECT set_config('app.account', $1, true)", account); err != nil {
 			return fmt.Errorf("setting the account: %w", err)
 		}
 		var got string
-		if err := tx.QueryRow(ctx, "SELECT coalesce(current_setting('app.account', true), '')").Scan(&got); err != nil {
+		if err := tx.QueryRow(ctx, "-- name: ReadTransactionAccount :one\nSELECT coalesce(current_setting('app.account', true), '')").Scan(&got); err != nil {
 			return fmt.Errorf("reading the account back: %w", err)
 		}
 		if got == "" || got != account {
@@ -95,11 +95,11 @@ func RunBase(ctx context.Context, db Beginner, fn func(pgx.Tx) error) error {
 		return ErrInsideTransaction
 	}
 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, "SELECT set_config('app.account', '', true), set_config('app.base', 'on', true)"); err != nil {
+		if _, err := tx.Exec(ctx, "-- name: SetBaseScope :exec\nSELECT set_config('app.account', '', true), set_config('app.base', 'on', true)"); err != nil {
 			return fmt.Errorf("setting the base policy's scope: %w", err)
 		}
 		var account, base string
-		err := tx.QueryRow(ctx, "SELECT coalesce(current_setting('app.account', true), ''), coalesce(current_setting('app.base', true), '')").Scan(&account, &base)
+		err := tx.QueryRow(ctx, "-- name: ReadBaseScope :one\nSELECT coalesce(current_setting('app.account', true), ''), coalesce(current_setting('app.base', true), '')").Scan(&account, &base)
 		if err != nil {
 			return fmt.Errorf("reading the base policy's scope back: %w", err)
 		}

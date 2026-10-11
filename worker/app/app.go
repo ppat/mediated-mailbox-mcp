@@ -30,8 +30,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/probes"
+	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync"
@@ -222,7 +224,11 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err != nil {
 		return fmt.Errorf("loading the keyring: %w", err)
 	}
-	pools, err := openPools(ctx, c.Database)
+	registry := prometheus.NewRegistry()
+	if err := runtimemetrics.Register(registry); err != nil {
+		return err
+	}
+	pools, err := openPools(ctx, c.Database, registry)
 	if err != nil {
 		return err
 	}
@@ -232,7 +238,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err != nil {
 		return fmt.Errorf("listening for the probes: %w", err)
 	}
-	w, err := assemble(ctx, pools, keys, scanner, c, http.DefaultClient, logger)
+	w, err := assemble(ctx, registry, pools, keys, scanner, c, http.DefaultClient, logger)
 	if err != nil {
 		return errors.Join(err, ln.Close())
 	}
@@ -241,14 +247,14 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	return errors.Join(err, stopProbes())
 }
 
-// openPools returns each job kind's pool, connecting as that kind's own role. A pool opens no
-// connection until its first use (ADR-0118).
-func openPools(ctx context.Context, d Database) (Pools, error) {
-	backfillPool, err := connect(ctx, d, d.Backfill)
+// openPools returns each job kind's pool, connecting as that kind's own role, measured on registry
+// labelled with the job kind. A pool opens no connection until its first use (ADR-0118, ADR-0125).
+func openPools(ctx context.Context, d Database, registry prometheus.Registerer) (Pools, error) {
+	backfillPool, err := connect(ctx, d, d.Backfill, labelled(registry, backfill.Kind))
 	if err != nil {
 		return Pools{}, err
 	}
-	syncPool, err := connect(ctx, d, d.Sync)
+	syncPool, err := connect(ctx, d, d.Sync, labelled(registry, deltasync.Kind))
 	if err != nil {
 		backfillPool.Close()
 		return Pools{}, err
@@ -257,14 +263,14 @@ func openPools(ctx context.Context, d Database) (Pools, error) {
 }
 
 // connect returns the job kind's pool, connecting as its role with its password file, opening at most
-// its pool size of connections (ADR-0118).
-func connect(ctx context.Context, d Database, r Role) (*pgxpool.Pool, error) {
+// its pool size of connections, measured on the job kind's registerer (ADR-0118, ADR-0125).
+func connect(ctx context.Context, d Database, r Role, registry prometheus.Registerer) (*pgxpool.Pool, error) {
 	config, err := dbconnect.PoolConfig(d.connection(r))
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", r.User, err)
 	}
 	config.MaxConns = int32(min(r.PoolSize, 1<<31-1)) //nolint:gosec // Bounded above.
-	pool, err := pgxpool.NewWithConfig(ctx, config)
+	pool, err := dbmetrics.OpenPool(ctx, config, registry)
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", r.User, err)
 	}
@@ -301,13 +307,14 @@ type reload struct {
 	job schedule.Job
 }
 
-// assemble builds everything the worker runs, the process's registry, the scheduler with its series
+// assemble builds everything the worker runs on the process's registry, the scheduler with its series
 // on it, and each job kind on its own pool, with its series on the registry labelled by its job kind
 // and a logger carrying it. Each Gmail adapter calls through client. Run and the tests of the scrape
 // both call it, so every series the worker emits is the one the metrics endpoint serves (ADR-0076,
 // ADR-0077).
-func assemble(ctx context.Context, pools Pools, keys *open.Keyring, scanner scan.Scanner, c Configuration, client *http.Client, logger *slog.Logger) (*worker, error) {
-	registry := prometheus.NewRegistry()
+func assemble(ctx context.Context, registry *prometheus.Registry, pools Pools, keys *open.Keyring, scanner scan.Scanner, c Configuration, client *http.Client,
+	logger *slog.Logger,
+) (*worker, error) {
 	metrics, err := schedule.NewMetrics(registry)
 	if err != nil {
 		return nil, err

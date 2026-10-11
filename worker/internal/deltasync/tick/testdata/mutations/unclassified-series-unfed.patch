@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/metrics.go b/worker/internal/deltasync/tick/metrics.go
-index 022ece07..2f85617b 100644
+index 46f13d6..fad524d 100644
 --- a/worker/internal/deltasync/tick/metrics.go
 +++ b/worker/internal/deltasync/tick/metrics.go
-@@ -50,7 +50,7 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
+@@ -57,7 +57,7 @@ func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
  // once backfill's second pass has ended, since backfill's job kind emits the account's own until then
  // (ADR-0104).
  func (m *Metrics) Count(account string, r Result) {
 -	m.unclassified.WithLabelValues(account).Add(float64(r.Unclassified))
 +	m.unclassified.WithLabelValues(account).Add(0 * float64(r.Unclassified))
+ 	m.messages.Add(account, series.StageIndexed, r.Indexed)
+ 	m.messages.Add(account, series.StageScanned, r.Scanned)
  	gaps := m.gaps.WithLabelValues(account)
- 	if r.Gap {
- 		gaps.Inc()

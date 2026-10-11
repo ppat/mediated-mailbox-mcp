@@ -2523,7 +2523,9 @@ account, the route, and the outcome classified by the error contract's origin. M
 read latency by dataset and level, stream subscriber count, and decision outcomes by decision and
 result, as `mediated_mailbox_ui_read_duration_seconds` by `dataset` and `level`,
 `mediated_mailbox_ui_stream_subscribers`, and the decision outcomes' series where the decisions are
-built. The health and readiness probes and the metrics endpoint serve on their own plain-HTTP
+built. They also carry the statement, pool, Go runtime and process series every deployable
+registers ([ADR-0125](./adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+The health and readiness probes and the metrics endpoint serve on their own plain-HTTP
 listener, `probe_listen`, apart from the UI's TLS listener, and the UI reports ready only while the
 database answers its role. No log line and no metric label ever carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
 

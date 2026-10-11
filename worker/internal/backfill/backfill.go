@@ -46,6 +46,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/due"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // Kind is backfill's job kind as job_runs.workload spells it, which the worker's series and logs carry
@@ -124,7 +125,9 @@ type Backfill struct {
 	first    *pass1.Metrics
 	backlog  *pass2.Metrics
 	leases   *lease.Metrics
-	lookups  classify.Lookups
+	// processing times each body's conversion and scan in the second pass (ADR-0125).
+	processing *series.Processing
+	lookups    classify.Lookups
 	// port builds an account's Gmail adapter in a kind New built, over the series New registered, so
 	// a test reaches the adapter series the kind serves.
 	port func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error)
@@ -153,11 +156,19 @@ func build(c Config, connectors map[string]session.Connector) (*Backfill, error)
 	if err != nil {
 		return nil, err
 	}
-	first, err := pass1.NewMetrics(c.Registry)
+	messages, err := series.NewMessages(c.Registry)
 	if err != nil {
 		return nil, err
 	}
-	backlog, err := pass2.NewMetrics(c.Registry)
+	processing, err := series.NewProcessing(c.Registry)
+	if err != nil {
+		return nil, err
+	}
+	first, err := pass1.NewMetrics(c.Registry, messages)
+	if err != nil {
+		return nil, err
+	}
+	backlog, err := pass2.NewMetrics(c.Registry, messages)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +178,7 @@ func build(c Config, connectors map[string]session.Connector) (*Backfill, error)
 		limit: schedule.NewLimit(c.Concurrency), interval: c.ReloadInterval, loader: loader,
 		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors, Hold: true}),
 		store:    pass1.NewPostgres(c.Pool), second: pass2.NewPostgres(c.Pool),
-		first: first, backlog: backlog, leases: leases,
+		first: first, backlog: backlog, leases: leases, processing: processing,
 		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
 	}, nil
 }
@@ -291,6 +302,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
 		Policy: b.policyFor(account), Scanner: b.scanner, Lookups: b.lookups, RunID: runID, Now: time.Now,
 	}
 	second := secondDeps(b.second, u.body(limiter), b.policyFor(account), b.lookups, b.scanner)
+	second.Processing = b.processing
 	return backfillAccount(ctx, first, second, account, b.first, b.backlog, u, ask, logger, work.Start, started)
 }
 
@@ -588,6 +600,7 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
 		if hoErr := u.end(ctx); hoErr != nil {
 			handOvers = append(handOvers, hoErr)
 		}
+		metrics.Count(account, step)
 		if pending, bErr := deps.Store.Backlog(ctx, account); bErr == nil {
 			metrics.Backlog(account, pending)
 		} else {

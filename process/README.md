@@ -9,15 +9,18 @@ case. The conventions it shares with every component are
 Its concept is the [process](../DESIGN.md#glossary), what every deployable needs to run as a
 process under the environment contract
 ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)), which is its configuration
-layered from defaults, a file, the environment and flags, its database connection, its probe
-and metrics endpoint, and its logs. The decision it hides is how a process meets that contract,
-which changes only when the contract or the platform under it does, and never with what the process
-runs.
+layered from defaults, a file, the environment and flags, its database connection and what it
+measures of that connection, what it measures of its runtime, its probe and metrics endpoint, and
+its logs. The decision it hides is
+how a process meets that contract, which changes only when the contract or the platform under it
+does, and never with what the process runs.
 
 | Package | Holds |
 | --- | --- |
 | `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into each deployable's configuration |
 | `dbconnect/` | A deployable's database section of its configuration, in `dbconnect/core`, and the connection built from it |
+| `dbmetrics/` | The opening of a deployable's measured pool, the latency of every statement a connection runs, by the statement's name, and the statistics of each connection pool |
+| `runtimemetrics/` | The registration of the Go runtime's and the process's series, once per process |
 | `probes/` | The health probe and the metrics endpoint of a process that runs work rather than serving requests |
 | `logging/` | The logger every deployable writes its JSON records to standard output through, and the reading of its `log_level` |
 
@@ -82,6 +85,50 @@ with a test and a mutation patch for each rule, they hold in every deployable th
 
 The package connects as no role of its own and runs no statement. It returns the connection's
 configuration, and the deployable opens the pool.
+
+## The database measurements, `dbmetrics`
+
+Every deployable that connects measures its statements and its pools the same way
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+This package holds a pgx query tracer, a collector over a pool, which reads the pool's statistics
+when it is scraped, and the function that opens a pool from its configuration with both, which each
+composition root calls to open its pools. Both register on the registerer the composition root
+passes in, which in the worker adds the job kind.
+
+| Series | Kind and labels | Value |
+| --- | --- | --- |
+| `mediated_mailbox_db_statement_duration_seconds` | Histogram, `statement` | Each statement's latency, from its start until its result or its rows are closed |
+| `mediated_mailbox_db_pool_acquires_total` | Counter | The connections acquired from the pool |
+| `mediated_mailbox_db_pool_waited_acquires_total` | Counter | The acquires that found no idle connection and waited, for one to be released or for a new one to be built |
+| `mediated_mailbox_db_pool_acquire_wait_seconds_total` | Counter | The time those acquires waited, a new connection's connect time included |
+| `mediated_mailbox_db_pool_new_connections_total` | Counter | The connections the pool built, which tell construction waits from waits at the ceiling |
+| `mediated_mailbox_db_pool_canceled_acquires_total` | Counter | The acquires whose caller gave up waiting |
+| `mediated_mailbox_db_pool_acquired_connections` | Gauge | The connections held now |
+| `mediated_mailbox_db_pool_max_connections` | Gauge | The pool's ceiling |
+
+The case for one package over per-deployable glue is the statement label. It is the name in the
+`-- name:` comment the statement's SQL starts with, `begin`, `commit` or `rollback` for a statement
+without one that starts with that keyword, and `unnamed` for every other, so the label never takes
+a value from the SQL's text and its values stay a closed set. A copy that labelled by the text, or
+that read the name differently, would grow a series per distinct statement text or split one
+statement's series in two, and either fails silently. Written once, with a test per rule, the label
+means the same in every deployable. Opening the pool here, rather than in each root, keeps every
+pool traced and collected alike, which a root that set the tracer and forgot the collector would
+not be.
+
+## The runtime measurements, `runtimemetrics`
+
+Every deployable registers the Go collector's default set with four runtime metrics added to it,
+the live heap, the garbage collector's and the process's CPU time and the scheduling latency, and
+the process collector, once on its process's registry
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+Each composition root calls this package to do it. In the worker the registry it is given is the
+process's own, not a job kind's, so these series carry no job kind.
+
+The case for one package over per-deployable glue is the set of runtime metrics. It is named by one
+expression, and a copy in each root whose expression drifted would serve a different set from one
+deployable with every gate green. Written once, with the test that pins which runtime metrics are
+added and which are left out, the set is the same in every deployable.
 
 ## The probe and metrics listener, `probes`
 
