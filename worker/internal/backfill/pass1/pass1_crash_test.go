@@ -35,7 +35,7 @@ func drawSetup(t *rapid.T) setup {
 // step makes the next page durable, a throttle makes the provider throttle its next calls, so a run
 // can fail on a page or a call and a later run resume it, and a rescan changes the scanner the next
 // process masks with and stops the process, so the next run reopens the pass and fetches the stale
-// subjects again, or starts an enumeration not yet ended over (ADR-0120).
+// subjects again, or fetches them again and then continues an enumeration not yet ended (ADR-0120).
 func target() crash.Target[setup, *world] {
 	return crash.Target[setup, *world]{
 		Setup: drawSetup,
@@ -67,9 +67,9 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // anything more, loses nothing it reported durable, and the next run resumes from exactly the
 // checkpoint last reported. Every sequence then ends the pass with every message indexed once,
 // masked under the scanner in force and classified, each mask recorded once under that scanner, its
-// senders' statistics counted once, no more than one page or call of rework for each crash, an
-// enumeration again only for a change of scanner before the enumeration ended, and each subject
-// fetched again no more than once for each change of scanner (ADR-0017, ADR-0045, ADR-0120).
+// senders' statistics counted once, no more than one page or call of rework for each crash, no
+// enumeration again for a change of scanner, and each subject fetched again no more than once for
+// each change of scanner (ADR-0017, ADR-0045, ADR-0120).
 func TestAKilledRunResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
 }
@@ -96,8 +96,9 @@ func TestTheCrashSequencesReachEveryKind(t *testing.T) {
 // only when a step asks for one while the provider still has at least core.MaxAttempts throttles to
 // give, so it follows the order of the operations, how many throttles each step uses up and how many
 // pages and calls the pass has left, as the world does. A change of scanner over a mailbox holding
-// messages starts an enumeration not yet ended over, and after the enumeration ended has the pass
-// fetch every subject again, this world running no run-start step.
+// messages leaves every subject already stored stale, this world running no run-start step, and the
+// pass fetches them again before it makes another page durable, so a change inside the enumeration
+// leads to calls before the pages left.
 func reached(c crash.Case[setup]) []string {
 	total := max(1, (len(c.Setup.Messages)+c.Setup.PageSize-1)/max(c.Setup.PageSize, 1))
 	left, calls := total, 0
@@ -117,10 +118,10 @@ func reached(c crash.Case[setup]) []string {
 		pending = 0
 		switch {
 		case !commit:
-		case left > 0:
-			left--
-		default:
+		case calls > 0:
 			calls--
+		default:
+			left--
 		}
 	}
 	for _, op := range c.Ops {
@@ -132,11 +133,11 @@ func reached(c crash.Case[setup]) []string {
 			switch {
 			case op.Arg == insidePage:
 				inside = true
-				insideCall = insideCall || left == 0 && calls > 0
+				insideCall = insideCall || calls > 0
 				step(false)
 			case op.Arg == afterCommit:
 				afterCommitted = true
-				insideCall = insideCall || left == 0 && calls > 0
+				insideCall = insideCall || calls > 0
 				step(true)
 			case pages > 0:
 				afterPage = true
@@ -156,7 +157,7 @@ func reached(c crash.Case[setup]) []string {
 					calls = (len(c.Setup.Messages) + perCall - 1) / perCall
 				case left < total:
 					rescanInside = true
-					left = total
+					calls = (min((total-left)*c.Setup.PageSize, len(c.Setup.Messages)) + perCall - 1) / perCall
 				}
 			}
 		}

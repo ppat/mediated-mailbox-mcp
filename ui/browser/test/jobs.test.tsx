@@ -652,3 +652,33 @@ test("a pass 1 run fetching stale subjects again shows the subjects it fetched a
   expect(progressOf(ended)).toBe("page 3,368 of 3,368");
   expect(runMeasure(ended)).toEqual({ part: 3368, whole: 3368, state: "running" });
 });
+
+test("a pass 1 run fetching stale subjects again before it continues its enumeration shows the fetch, then its page of pages again", async () => {
+  const jobs: Jobs = JSON.parse(
+    await Bun.file(new URL("fixtures/jobs-reopened.json", import.meta.url)).text(),
+  );
+  const base = jobs.backfill.pass1.run;
+  if (base === null) {
+    throw new Error("the recording holds no pass 1 run");
+  }
+  const fetching = {
+    ...base,
+    checkpoint: JSON.parse('{"page": 3, "of": 9, "token": "m7", "stale": 4}'),
+    counters: JSON.parse('{"pages": 3, "refetched": 5}'),
+  };
+  expect(progressOf(fetching)).toBe("5 of 9 subjects fetched again");
+  expect(runMeasure(fetching)).toEqual({ part: 5, whole: 9, state: "running" });
+  const continuing = {
+    ...base,
+    checkpoint: JSON.parse('{"page": 4, "of": 9, "token": "m8"}'),
+    counters: JSON.parse('{"pages": 4, "refetched": 9}'),
+  };
+  expect(progressOf(continuing)).toBe("page 4 of 9");
+  expect(runMeasure(continuing)).toEqual({ part: 4, whole: 9, state: "running" });
+  const fetchedAfterTheEnd = {
+    ...base,
+    checkpoint: JSON.parse('{"page": 9, "of": 9, "token": ""}'),
+    counters: JSON.parse('{"pages": 9, "refetched": 9}'),
+  };
+  expect(progressOf(fetchedAfterTheEnd)).toBe("9 of 9 subjects fetched again");
+});

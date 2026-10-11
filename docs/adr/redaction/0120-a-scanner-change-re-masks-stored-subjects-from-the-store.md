@@ -99,18 +99,22 @@ index already holds whose subject is stored masked and stale has its metadata fe
 identifier, inside the first pass, and its subject masked again from the subject the provider
 returns, under the scanner the pass runs with, with a masking event for each mask, and no other
 column of the row changes. No pass is added, so the run vocabulary the UI's jobs screen, its banner
-and the system status read pass by pass stays as it is. The fetch comes once the pass's enumeration
-has ended, a call at a time, and the pass ends only once no stored subject is stale. A call moves
-the pass when it stores any subject it fetched under the pair in force, whether or not the new
-scanner masks anything in it, or when it leaves fewer stored subjects stale than before it. A call
-that moves neither way fails the run, since the next read would ask for the same subjects again
-without end. A first pass reopened after its enumeration ended does not enumerate again. Its run
-starts from the checkpoint of the enumeration that ended and only fetches. The pass's checkpoint
-records the pair its enumeration runs under, and a run resuming an enumeration not yet ended that
-was made under another pair starts the enumeration over from the first page. That start over drops
-the estimate of the pages the enumeration takes with its token, as every start over does
-([ADR-0095](../provider/0095-enumeration-total-on-every-page.md)), so the estimate always comes from
-the enumeration in progress.
+and the system status read pass by pass stays as it is. The first pass fetches the stale subjects
+whenever any are stored and otherwise enumerates, so a run fetches them before it continues an
+enumeration not yet ended and once the enumeration has ended, a call at a time, and the pass ends
+only once its enumeration has ended and no stored subject is stale. A call moves the pass when it
+stores any subject it fetched under the pair in force, whether or not the new scanner masks anything
+in it, or when it leaves fewer stored subjects stale than before it. A call that moves neither way
+fails the run, since the next read would ask for the same subjects again without end. A first pass
+reopened after its enumeration ended does not enumerate again. Its run starts from the checkpoint of
+the enumeration that ended and only fetches. The pass's checkpoint records the pair its run masks
+under. A run resuming an enumeration not yet ended that was made under another pair first fetches
+the stale subjects, which are the ones its earlier pages stored masked under the other pair, since
+the run-start step has masked again from the store the ones stored unmasked. It then continues the
+enumeration from its checkpoint, its page, its token, its estimate of the pages the enumeration
+takes ([ADR-0095](../provider/0095-enumeration-total-on-every-page.md)) and its counters, under the
+pair in force, so a change of scanner never enumerates again a page already made durable, and no
+subject stays masked under a scanner no longer in force while the enumeration goes on.
 
 **A message the provider no longer has is masked whole.** When the provider reports a message it is
 asked for by identifier gone, its stored subject is masked whole under the pair the pass runs with,
@@ -147,6 +151,22 @@ configuration change, either of which restarts the worker
   one thing. Not chosen. A third pass would be a third name in the run vocabulary that the UI's jobs
   screen, its banner and the system status read pass by pass, so the fetch sits inside the first
   pass.
+- **Starting an enumeration not yet ended over from its first page when the run resuming it masks
+  under another pair.** The case for it is that every enumeration that ends was then made under one
+  pair from its first page, which [ADR-0096](./0096-a-scanner-change-reopens-backfill.md) needed to
+  infer the messages gone from it, and that the pages taken again mask again early the subjects the
+  pages before the change stored masked, since a page masks again each message it already holds
+  whose subject was masked under another pair. Not chosen. A message gone is known exactly here,
+  since the provider leaves it out of the metadata read's answer, and fetching the stale subjects by
+  identifier before the enumeration continues masks them again as early without reading those pages
+  again. The start over costs up to a whole enumeration of pages already read, about twelve hours of
+  the batch class's quota, whenever the scanner changes during a first backfill.
+- **Continuing an enumeration not yet ended at once, and fetching the stale subjects only once it has
+  ended.** The case for it is one place where the pass fetches. Not chosen. The subjects the pages
+  before the change stored masked would stay masked under a scanner no longer in force for the rest
+  of the enumeration, up to about twelve hours, and masking a subject under a scanner that missed
+  what the new one masks is the under-masking direction [ADR-0003](./0003-subject-masking.md)
+  refuses.
 - **Leaving a gone message's subject stale, and ending the operation by recording the pair the last
   completed pass ran under.** The case for it is that no subject is changed on an inference. Not
   chosen. It keeps a subject masked under a scanner no longer in force, which is the under-masking
@@ -168,9 +188,10 @@ configuration change, either of which restarts the worker
   abandoned after its attempts, and one the gate cannot decide, so every resume after a crash would
   start over and fetch their bodies again, which breaks a resume's one page of rework.
 - **Deciding the restart from the scanner pair the stopped run's checkpoint records.** The case for
-  it is that it needs no column, as the first pass's enumeration does. Not chosen. A change reverted
-  before any second pass runs under it brings the pair back to the stopped run's, so the run resumes
-  past the verdicts the change returned to pending and they stay pending for good.
+  it is that it needs no column, the pair riding in the checkpoint as it does in the first pass's.
+  Not chosen. A change reverted before any second pass runs under it brings the pair back to the
+  stopped run's, so the run resumes past the verdicts the change returned to pending and they stay
+  pending for good.
 - **Keeping the old flags on a message returned to pending.** The case for it is that nothing the
   old scan found is forgotten before the new one runs. Not chosen. The Redaction Gate reads content
   flags on a message that is not scanned as an invalid stored state
@@ -200,6 +221,10 @@ configuration change, either of which restarts the worker
   second pass runs again. From the run that sees the change until the second pass scans them again,
   the bodies of the messages returned to pending are denied as pending their content scan, which is
   over-redaction for that time. That time includes no re-enumeration of the mailbox.
+- A change of scanner while the first pass enumerates holds the enumeration back while the subjects
+  its earlier pages stored masked are fetched again, a call at a time, and the enumeration then goes
+  on from where it stopped. No stored subject stays masked under the earlier scanner past that
+  fetch.
 - One window remains open. A message another job kind stored with its subject unmasked under
   another scanner pair after the run-start step, and which the gate skipped, keeps its skip while
   the new scanner would mask its subject, and its body stays released as the skip allows, until the

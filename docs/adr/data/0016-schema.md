@@ -288,8 +288,8 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
   checkpoint    jsonb,                    -- {page, of} or {seq, of}, and backfill's pass 1 records {page, token,
                                           --   of, version, revision, stale}, the provider's token for the next
                                           --   page, with of only when its enumeration reports a total (ADR-0095),
-                                          --   the scanner it masks under, and once its enumeration has ended how
-                                          --   many stored subjects are still masked under another scanner, left
+                                          --   the scanner it masks under, and how many stored subjects masked
+                                          --   under another scanner it has still to fetch again, left
                                           --   out when none is (ADR-0120), and pass 2 {page, after, sent_at}, the last message
                                           --   identifier its pages read and that message's send time in
                                           --   milliseconds (ADR-0126), and a sync tick {after}, the last

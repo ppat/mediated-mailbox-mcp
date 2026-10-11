@@ -258,9 +258,6 @@ type world struct {
 	rescans int
 	ended   bool
 	expect  core.Progress
-	// enumerations counts the enumerations runs started from the first page, the first and each one a
-	// change of scanner started over before it ended.
-	enumerations int
 	// calls counts the calls fetching stale subjects again the provider answered, callsCommitted those
 	// made durable, and ids the identifiers the calls answered named.
 	calls, callsCommitted, ids int
@@ -299,7 +296,7 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 	if err != nil {
 		t.Fatalf("building the mailbox: %v", err)
 	}
-	w := &world{ctx: context.Background(), account: account, store: store, inspect: inspect, want: want, pageSize: max(s.PageSize, 1), enumerations: 1, mailbox: f}
+	w := &world{ctx: context.Background(), account: account, store: store, inspect: inspect, want: want, pageSize: max(s.PageSize, 1), mailbox: f}
 	throttled := fake.Throttle(f, func(fake.Call) error {
 		if w.throttle > 0 {
 			w.throttle--
@@ -361,12 +358,6 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 // open opens a run, the recovery path.
 func (w *world) open(t tb) {
 	t.Helper()
-	// A run resuming an enumeration not yet ended that was made under an earlier scanner starts it over,
-	// enumerating again. A pass reopened after its enumeration ended enumerates nothing (ADR-0120).
-	now := index.Stamp{Version: 1, Revision: revision(w.rescans)}
-	if at := w.reported.Checkpoint; !w.ended && at.Stamp != now && at.Page > 0 && !at.Ended() {
-		w.enumerations++
-	}
 	p, err := pass1.Open(w.ctx, w.deps, w.account)
 	if err != nil {
 		t.Fatalf("opening a run: %v", err)
@@ -392,7 +383,7 @@ func (w *world) step(t tb) bool {
 	s, err := w.pass.Next(ctx)
 	// A page or a call whose commit ended is durable, whether or not the step ended well after it.
 	if at := w.pass.Progress(); at != before {
-		if before.Checkpoint.Ended() {
+		if at.Counters.Pages == before.Counters.Pages {
 			w.callsCommitted++
 		} else {
 			w.committed++
@@ -434,11 +425,11 @@ func (w *world) crash(t tb, at int) {
 		w.cut, w.cutAfter = false, false
 	}
 	w.pass = nil
-	// The run that recovers resumes from the progress last reported. A pass reopened by a change of
-	// scanner after its enumeration ended starts from that enumeration's checkpoint with fresh
-	// counters, a run resuming an enumeration not yet ended that was made under another scanner starts
-	// it over with its counters, and a run whose enumeration has ended records the subjects still
-	// stale (ADR-0120).
+	// The run that recovers resumes from the progress last reported, under the scanner in force. A pass
+	// reopened by a change of scanner after its enumeration ended starts from that enumeration's
+	// checkpoint with fresh counters, a run resuming an enumeration not yet ended continues it whatever
+	// scanner it was made under, and every run records the subjects still stale, which it fetches
+	// before it enumerates further (ADR-0120).
 	now := index.Stamp{Version: 1, Revision: revision(w.rescans)}
 	stale := 0
 	for _, m := range w.inspect(t).Messages {
@@ -447,17 +438,10 @@ func (w *world) crash(t tb, at int) {
 		}
 	}
 	w.expect = w.reported
-	cp := w.expect.Checkpoint
-	switch {
-	case w.ended:
+	if cp := w.expect.Checkpoint; w.ended {
 		w.expect = core.Progress{Checkpoint: core.Checkpoint{Page: cp.Page, Of: cp.Of}}
-	case cp.Stamp != now && cp.Page > 0 && !cp.Ended():
-		w.expect = core.Progress{Counters: w.expect.Counters}
 	}
-	w.expect.Checkpoint.Stamp, w.expect.Checkpoint.Stale = now, 0
-	if w.expect.Checkpoint.Ended() {
-		w.expect.Checkpoint.Stale = stale
-	}
+	w.expect.Checkpoint.Stamp, w.expect.Checkpoint.Stale = now, stale
 }
 
 // cutting is the world's store, which stops the process once a commit has ended when the world's crash
@@ -580,12 +564,12 @@ func (w *world) progress(t tb) {
 	if rework := w.fetched - w.committed; rework > w.crashes {
 		t.Errorf("%d pages were fetched and %d made durable across %d crashes, more than one page of rework a crash", w.fetched, w.committed, w.crashes)
 	}
-	// A change of scanner costs an enumeration only when a run starts one not yet ended over from the
-	// first page. One made after the enumeration ended costs a fetch by identifier of each stale
-	// subject, here every subject, with no more than one call of rework a crash (ADR-0120).
-	if pages := max(1, (len(w.want)+w.pageSize-1)/w.pageSize); w.fetched > pages*w.enumerations+w.crashes {
-		t.Errorf("the provider returned %d pages for a mailbox of %d across %d crashes and %d enumerations started from the first page, more than a page of rework a crash",
-			w.fetched, pages, w.crashes, w.enumerations)
+	// A change of scanner costs no enumeration. It costs a fetch by identifier of each stale subject,
+	// here every subject stored under an earlier scanner, with no more than one call of rework a crash
+	// (ADR-0120).
+	if pages := max(1, (len(w.want)+w.pageSize-1)/w.pageSize); w.fetched > pages+w.crashes {
+		t.Errorf("the provider returned %d pages for a mailbox of %d across %d crashes, more than a page of rework a crash",
+			w.fetched, pages, w.crashes)
 	}
 	if rework := w.calls - w.callsCommitted; rework > w.crashes {
 		t.Errorf("%d calls fetching subjects again were answered and %d made durable across %d crashes, more than one call of rework a crash", w.calls, w.callsCommitted, w.crashes)
@@ -879,6 +863,9 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p index.Page, reco
 		m.failures = append(m.failures, *recovered)
 	}
 	c.Progress = advance(added, remasked)
+	if c.Progress.Checkpoint.Ended() {
+		c.Progress.Checkpoint.Stale = len(m.stale(c.Progress.Checkpoint.Stamp, len(m.messages)))
+	}
 	for i := range m.runs {
 		if m.runs[i].ID == runID {
 			m.runs[i].Progress = c.Progress

@@ -353,28 +353,48 @@ func TestACheckpointWithoutAPageCountResumes(t *testing.T) {
 	w.progress(t)
 }
 
-// A run resuming an enumeration made under another scanner starts it over, and the page count the
-// old enumeration's checkpoint carried goes with its token, so the restarted run's checkpoint carries
-// no count until a page of the new enumeration reports one, and then carries that page's (ADR-0095,
+// A run resuming an enumeration not yet ended that was made under another scanner first fetches
+// again by identifier the subjects the earlier page stored under the old one, before it asks for any
+// page, its checkpoint recording how many are still to fetch. It then continues the enumeration from
+// its checkpoint, its page, token, page count and counters, under the scanner in force. The provider
+// returns each page of the mailbox once and every subject ends under the new scanner (ADR-0095,
 // ADR-0120).
-func TestAnEnumerationStartedOverUnderAnotherScannerDropsItsPageCount(t *testing.T) {
+func TestAnEnumerationUnderWayContinuesUnderANewScanner(t *testing.T) {
 	w := realWorld(t, setup{PageSize: 3, Messages: mixed.Messages, Totals: true})
 	w.step(t)
-	if got := storedCheckpoint(t, w.account, "run1")["of"]; got != 3.0 {
-		t.Fatalf("the first run's checkpoint carries of %v, want 3", got)
+	first := w.reported
+	if got := storedCheckpoint(t, w.account, "run1"); got["page"] != 1.0 || got["token"] != "m4" || got["of"] != 3.0 {
+		t.Fatalf("the first run's checkpoint is %v, want page 1 of 3 with token m4", got)
 	}
 	w.rescan(t)
 	w.crash(t, betweenSteps)
 	w.open(t)
 	w.persistence(t)
-	if diff := cmp.Diff(map[string]any{"page": 0.0, "token": "", "version": 1.0, "revision": "revision-1"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
-		t.Errorf("the restarted run's first checkpoint (-want +got):\n%s", diff)
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "of": 3.0, "version": 1.0, "revision": "revision-1", "stale": 3.0}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the continuing run's first checkpoint (-want +got):\n%s", diff)
+	}
+	if got := w.reported.Counters; got != first.Counters {
+		t.Errorf("the continuing run starts from counters %+v, want the stopped run's %+v", got, first.Counters)
 	}
 	w.step(t)
-	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "of": 3.0, "version": 1.0, "revision": "revision-1"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
-		t.Errorf("the checkpoint after the restarted run's first page (-want +got):\n%s", diff)
+	if diff := cmp.Diff(map[string]any{"page": 1.0, "token": "m4", "of": 3.0, "version": 1.0, "revision": "revision-1", "stale": 1.0}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the checkpoint after the first call fetching subjects again (-want +got):\n%s", diff)
+	}
+	w.step(t)
+	if w.fetched != 1 || w.ids != 3 {
+		t.Errorf("before the enumeration continued the provider returned %d pages and %d subjects fetched again, want only the first run's page and the 3 subjects it stored", w.fetched, w.ids)
+	}
+	w.step(t)
+	if diff := cmp.Diff(map[string]any{"page": 2.0, "token": "m7", "of": 3.0, "version": 1.0, "revision": "revision-1"}, storedCheckpoint(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the checkpoint after the continuing run's first page (-want +got):\n%s", diff)
 	}
 	w.progress(t)
+	if w.fetched != 3 || w.ids != 3 {
+		t.Errorf("the provider returned %d pages and %d subjects fetched again for a mailbox of 3 pages, want each page once and the first page's 3 subjects", w.fetched, w.ids)
+	}
+	if diff := cmp.Diff([]string{"resume 1", "progress 1", "progress 1", "progress 2", "progress 3", "finish"}, timeline(t, w.account, "run2"), compare.Options); diff != "" {
+		t.Errorf("the continuing run's timeline, resuming at page 1, two calls fetching subjects again, then the pages left (-want +got):\n%s", diff)
+	}
 }
 
 // A page's commit is one transaction. When one of its statements fails, none of the page's messages,
@@ -625,9 +645,9 @@ func TestAThrottledCallIsRetriedAndRecorded(t *testing.T) {
 }
 
 // The first pass ends only while no stored subject is masked under another scanner. A subject made
-// stale while the enumeration runs keeps the page that ends the enumeration from ending the pass, which
-// records nothing and leaves the run running, and the pass fetches that subject again before it ends
-// (ADR-0120).
+// stale while the enumeration runs keeps the page that ends the enumeration from ending the pass. That
+// page's checkpoint counts the subject still to fetch, the run is left running, and the pass fetches
+// that subject again before it ends (ADR-0120).
 func TestThePassDoesNotEndWhileASubjectIsStale(t *testing.T) {
 	w := realWorld(t, mixed)
 	w.step(t)
@@ -640,8 +660,8 @@ func TestThePassDoesNotEndWhileASubjectIsStale(t *testing.T) {
 		t.Errorf("the page that ended the enumeration ended the pass while a subject was stale")
 	}
 	s := w.inspect(t)
-	if latest, _ := s.latest(); s.Ended || latest.State != "running" || !latest.Progress.Checkpoint.Ended() {
-		t.Errorf("with a stale subject the pass ended %v and its run is %+v, want the pass not ended and the run running past its enumeration", s.Ended, latest)
+	if latest, _ := s.latest(); s.Ended || latest.State != "running" || !latest.Progress.Checkpoint.Ended() || latest.Progress.Checkpoint.Stale != 1 {
+		t.Errorf("with a stale subject the pass ended %v and its run is %+v, want the pass not ended and the run running past its enumeration, its checkpoint counting the one stale subject", s.Ended, latest)
 	}
 	w.finish(t, 10)
 	if got := subjects(t, w.account)["m2"]; !strings.HasSuffix(got, " revision-0") || w.ids != 1 {

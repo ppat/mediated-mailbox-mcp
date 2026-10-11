@@ -1,0 +1,20 @@
+control: A run resuming an enumeration not yet ended that was made under another scanner continues it from its checkpoint under the scanner in force
+removes: a run fetches stale subjects again only once its enumeration has ended, so it makes the pages of an enumeration not yet ended durable while the subjects stored masked under another scanner wait
+packages: ./worker/internal/backfill/pass1 ./worker/internal/backfill
+tests: TestAnEnumerationUnderWayContinuesUnderANewScanner TestAChangeOfScannerContinuesAnEnumerationUnderWay
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
+index ad8ed61d..c16a547c 100644
+--- a/worker/internal/backfill/pass1/pass1.go
++++ b/worker/internal/backfill/pass1/pass1.go
+@@ -219,7 +219,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
+ 			step, err = Step{}, p.failed(ctx, schedule.Panicked(r))
+ 		}
+ 	}()
+-	if p.at.Checkpoint.Ended() || p.at.Checkpoint.Stale > 0 {
++	if p.at.Checkpoint.Ended() {
+ 		return p.refetch(ctx)
+ 	}
+ 	return p.page(ctx)

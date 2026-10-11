@@ -1,8 +1,9 @@
 // Package pass1 runs backfill's first pass over one account, enumerating every page of the mailbox's
-// metadata and making each page durable with its checkpoint in one transaction (ADR-0017). Once the
-// enumeration has ended, it fetches again by identifier the stored subjects masked under another
-// scanner, a call at a time, each call durable with the run's progress in one transaction, and ends
-// only once no stored subject is stale (ADR-0120). The pass's decisions come from
+// metadata and making each page durable with its checkpoint in one transaction (ADR-0017). Whenever
+// stored subjects are masked under another scanner, before it continues an enumeration and once the
+// enumeration has ended, it fetches them again by identifier, a call at a time, each call durable with
+// the run's progress in one transaction, and ends only once its enumeration has ended and no stored
+// subject is stale (ADR-0120). The pass's decisions come from
 // worker/internal/core/backfill/pass1, and this package enacts them.
 //
 // A Pass is opened once per run and asked for its next step until it is done. Opening it is the
@@ -90,7 +91,9 @@ type Store interface {
 	// the message's, records a masking event for each mask on the subject of a message it added or
 	// masked again and for no other, rebuilds the statistics of the page's senders, records recovered
 	// when earlier attempts at the page failed, and records the progress advance returns for the
-	// numbers of messages it added and masked again, with a progress event, all in one transaction.
+	// numbers of messages it added and masked again, with, when that page ends the enumeration, the
+	// number of stored subjects then masked under another scanner than the progress's in its
+	// checkpoint, and a progress event, all in one transaction.
 	Commit(ctx context.Context, account, runID string, page index.Page, recovered *Failure, advance func(added, remasked int) core.Progress) (Committed, error)
 	// Stale returns up to n of the account's stored subjects masked under another scanner than the
 	// one stamped s, in the order of their identifiers.
@@ -169,34 +172,27 @@ type Step struct {
 	Added int
 }
 
-// Open starts a run of the pass over the account, resuming its latest run when that run stopped
-// before the pass ended, and starting its enumeration over when that run enumerated under another
-// scanner and its enumeration has not ended. A pass that has ended opens done and records no run,
-// unless a stored subject was masked under another scanner than the one the pass masks with, which
-// reopens it, and a pass reopened after its enumeration ended only fetches the stale subjects again
-// (ADR-0120).
+// Open starts a run of the pass over the account, resuming its latest run from its checkpoint when
+// that run stopped before the pass ended, whatever scanner it enumerated under, and masking under the
+// scanner in force from then on, the run fetching the stale subjects again before it enumerates. A pass that has ended opens done and records no run, unless a
+// stored subject was masked under another scanner than the one the pass masks with, which reopens it,
+// and a pass reopened after its enumeration ended only fetches the stale subjects again (ADR-0120).
 func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
 	stamp := index.StampOf(deps.Scanner)
 	ended, stale, latest, err := deps.Store.State(ctx, account, stamp)
 	if err != nil {
 		return nil, fmt.Errorf("reading the account's first pass: %w", err)
 	}
-	start, over := core.Under(core.Begin(ended, stale > 0, latest), latest, stamp, stale)
+	start := core.Under(core.Begin(ended, stale > 0, latest), latest, stamp, stale)
 	if start.Skip {
 		return &Pass{deps: deps, account: account, done: true}, nil
 	}
 	p := &Pass{deps: deps, account: account, run: deps.RunID(), at: start.From}
-	if start.ResumedFrom != "" && !over {
+	if start.ResumedFrom != "" {
 		p.resumed = start.From.Checkpoint.Token
 	}
 	if err := deps.Store.Start(ctx, account, p.run, start); err != nil {
 		return nil, fmt.Errorf("recording the run: %w", err)
-	}
-	if over {
-		e := Event{Kind: "retry", Detail: "the run it resumes enumerated under another scanner, so the pass starts over from the first page"}
-		if err := deps.Store.Event(ctx, account, p.run, e); err != nil {
-			return nil, p.failed(ctx, err)
-		}
 	}
 	return p, nil
 }
@@ -207,8 +203,9 @@ func (p *Pass) Run() string { return p.run }
 // Progress returns the checkpoint and counters the run has made durable.
 func (p *Pass) Progress() core.Progress { return p.at }
 
-// Next makes the next page durable, or once the enumeration has ended the next call fetching stale
-// subjects again, or finishes the pass once no stored subject is stale. What the run does after a
+// Next makes the next call fetching stale subjects again durable while the checkpoint records any to
+// fetch or the enumeration has ended, else the next page, and finishes the pass once its enumeration
+// has ended and no stored subject is stale. What the run does after a
 // failed attempt at a page or a call is core.OnFailure's decision, which Next enacts, recording the
 // failed page or messages with what became of them. A cancelled ctx returns at once and records
 // nothing more, as a process stopped at that point would. A panic raised in the step is recovered
@@ -222,9 +219,15 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 			step, err = Step{}, p.failed(ctx, schedule.Panicked(r))
 		}
 	}()
-	if p.at.Checkpoint.Ended() {
+	if p.at.Checkpoint.Ended() || p.at.Checkpoint.Stale > 0 {
 		return p.refetch(ctx)
 	}
+	return p.page(ctx)
+}
+
+// page makes the page after the checkpoint durable, and once it ends the enumeration ends the pass
+// too, unless a subject is stale.
+func (p *Pass) page(ctx context.Context) (Step, error) {
 	page, recovered, err := p.fetch(ctx)
 	if err != nil {
 		return Step{}, err
@@ -251,7 +254,8 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 
 // refetch fetches again by identifier, in one call, the next stale subjects the index holds, masks
 // each again from the subject the provider returns, masks whole the subject of a message the provider
-// left out, and makes the call durable. With no stale subject left it finishes the pass (ADR-0120).
+// left out, and makes the call durable. With no stale subject left it finishes the pass once the
+// enumeration has ended, and otherwise goes on with the enumeration's next page (ADR-0120).
 func (p *Pass) refetch(ctx context.Context) (Step, error) {
 	stamp := p.at.Checkpoint.Stamp
 	stored, err := p.deps.Store.Stale(ctx, p.account, stamp, max(p.deps.PerCall, 1))
@@ -259,7 +263,10 @@ func (p *Pass) refetch(ctx context.Context) (Step, error) {
 		return Step{}, p.failed(ctx, fmt.Errorf("reading the subjects masked under another scanner: %w", err))
 	}
 	if len(stored) == 0 {
-		return p.finish(ctx)
+		if p.at.Checkpoint.Ended() {
+			return p.finish(ctx)
+		}
+		return p.page(ctx)
 	}
 	ids := make([]string, 0, len(stored))
 	for _, m := range stored {

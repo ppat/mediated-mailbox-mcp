@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
-index 99c92ccb..12c97c97 100644
+index 8a83d5eb..c6276e10 100644
 --- a/worker/internal/backfill/pass1/pass1.go
 +++ b/worker/internal/backfill/pass1/pass1.go
-@@ -183,6 +183,8 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+@@ -184,6 +184,8 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
  	if start.Skip {
  		return &Pass{deps: deps, account: account, done: true}, nil
  	}
 +	frozen := deps.Policy()
 +	deps.Policy = func() policy.Composed { return frozen }
  	p := &Pass{deps: deps, account: account, run: deps.RunID(), at: start.From}
- 	if start.ResumedFrom != "" && !over {
+ 	if start.ResumedFrom != "" {
  		p.resumed = start.From.Checkpoint.Token

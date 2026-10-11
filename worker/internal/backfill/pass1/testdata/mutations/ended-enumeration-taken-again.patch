@@ -6,15 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
+index ad8ed61d..3de26aa4 100644
 --- a/worker/internal/backfill/pass1/pass1.go
 +++ b/worker/internal/backfill/pass1/pass1.go
-@@ -220,9 +220,6 @@
+@@ -219,9 +219,6 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
  			step, err = Step{}, p.failed(ctx, schedule.Panicked(r))
  		}
  	}()
--	if p.at.Checkpoint.Ended() {
+-	if p.at.Checkpoint.Ended() || p.at.Checkpoint.Stale > 0 {
 -		return p.refetch(ctx)
 -	}
- 	page, recovered, err := p.fetch(ctx)
- 	if err != nil {
- 		return Step{}, err
+ 	return p.page(ctx)
+ }
+ 
