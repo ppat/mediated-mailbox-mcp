@@ -1,0 +1,22 @@
+control: The UI is served over TLS with both of its TLS files and over plain HTTP with neither, and refuses to start with one
+removes: a configuration naming one TLS file without the other is admitted
+packages: ./ui/internal/core/serving ./ui/app
+tests: TestTLSIsBothFilesOrNeither TestOneTLSFileWithoutTheOtherRefusesTheStart
+scheduled-count: no
+
+diff --git a/ui/internal/core/serving/serving.go b/ui/internal/core/serving/serving.go
+index e0559e41..4810f450 100644
+--- a/ui/internal/core/serving/serving.go
++++ b/ui/internal/core/serving/serving.go
+@@ -44,9 +44,9 @@ func Validate(c Config) error {
+ 		return refusal("listen is empty")
+ 	case strings.TrimSpace(c.ProbeListen) == "":
+ 		return refusal("probe_listen is empty")
+-	case cert && !key:
++	case false && cert && !key:
+ 		return refusal("tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither")
+-	case key && !cert:
++	case false && key && !cert:
+ 		return refusal("tls_key is set and tls_cert is not, and the UI serves TLS with both or plain HTTP with neither")
+ 	case c.SyncInterval <= 0:
+ 		return refusal("sync_interval is not positive")

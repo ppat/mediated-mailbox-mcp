@@ -165,7 +165,7 @@ third pass none remains.
 | fonts self-hosted and a strict content security policy | docs/UI.md §14.3, §15; ADR-0062 |
 | request tokens on the verbs | docs/UI.md §15, §17.4; ADR-0061 |
 | the identity header trusted only when declared | docs/UI.md §15, §18.1; ADR-0084 |
-| TLS with the client surface's posture | docs/UI.md §15; ADR-0084 |
+| TLS when given a key pair and plain HTTP otherwise, as the client surface | docs/UI.md §15; ADR-0127 |
 | the UI's own configuration contract | docs/UI.md §18.1 |
 | the UI's own observability | docs/UI.md §18.2 |
 | the plan reviewer as the framework's proving screen | docs/UI.md §16 |

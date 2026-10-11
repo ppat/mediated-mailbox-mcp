@@ -20,37 +20,28 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
-	"testing/fstest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
 
-	"golang.org/x/net/idna"
-	"golang.org/x/net/publicsuffix"
-
-	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
 // bundle is the browser bundle as ui/main.go embeds it, under browser/dist of the UI's directory.
 var bundle = os.DirFS("..")
-
-// lookups are the sender classifier's domain functions, as the composition root passes them.
-var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 // The UI's root configuration type is pinned field by field, so a new value is a visible change
 // (ADR-0078). The database section's own type is pinned in its package.
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui/app", "Configuration",
 		"Database core.Config", "Listen string", "ProbeListen string", "TLSCert string", "TLSKey string",
-		"InsecureHTTP bool", "SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
+		"SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
 		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
 		"Credential core.Config", "TokenKeyFile string",
@@ -92,21 +83,6 @@ func TestTheDefaults(t *testing.T) {
 	}
 }
 
-// A binary built without the devloop build tag, which every test binary and every image is, refuses
-// plain HTTP at start, before it touches the database (docs/UI.md section 18).
-func TestPlainHTTPRefusesTheStart(t *testing.T) {
-	args := []string{
-		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent",
-		"--listen=:8443", "--probe_listen=:8080", "--insecure_http=true", "--credential.public_key_file=/absent",
-		"--credential.private_key_files=[/absent]",
-	}
-	err := Run(t.Context(), args, []string{"MEDIATED_MAILBOX_STREAM_INTERVAL=1s"}, discard(), new(slog.LevelVar), bundle)
-	want := "validating the configuration: insecure_http is true, and a binary built without the devloop build tag serves TLS only"
-	if err == nil || err.Error() != want {
-		t.Errorf("Run returned %v, want %q", err, want)
-	}
-}
-
 // The credential section is validated as the mediator's and the worker's is, so an empty list of
 // private keys refuses the start before any key file is read (ADR-0078, VERIFICATIONS, the row for a
 // configuration mistake refused).
@@ -122,16 +98,21 @@ func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 	}
 }
 
-// TLS needs both its files unless plain HTTP is configured.
-func TestTLSWithoutItsFilesRefusesTheStart(t *testing.T) {
-	args := []string{
-		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
-		"--tls_cert=/tls/cert", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]",
-	}
-	err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
-	want := "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true"
-	if err == nil || err.Error() != want {
-		t.Errorf("Run returned %v, want %q", err, want)
+// One TLS file without the other refuses the start, naming the one missing, before any key file is
+// read or the database is touched (ADR-0127).
+func TestOneTLSFileWithoutTheOtherRefusesTheStart(t *testing.T) {
+	for given, want := range map[string]string{
+		"--tls_cert=/tls/cert": "validating the configuration: tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither",
+		"--tls_key=/tls/key":   "validating the configuration: tls_key is set and tls_cert is not, and the UI serves TLS with both or plain HTTP with neither",
+	} {
+		args := []string{
+			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
+			given, "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]",
+		}
+		err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
+		if err == nil || err.Error() != want {
+			t.Errorf("with %s, Run returned %v, want %q", given, err, want)
+		}
 	}
 }
 
@@ -226,6 +207,134 @@ func TestARotatedKeyPairServesTheNextHandshake(t *testing.T) {
 	}
 }
 
+// loopbacks opens the UI's listener and the probes' listener on loopback ports the system picks.
+func loopbacks(t *testing.T) (net.Listener, net.Listener) {
+	t.Helper()
+	var lc net.ListenConfig
+	uiListener, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	probeListener, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(errors.Join(err, uiListener.Close()))
+	}
+	return uiListener, probeListener
+}
+
+// lockedBuffer is a log destination the start and the test read and write from different goroutines.
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+// served runs the UI's serve with c over a handler answering 204 on two loopback listeners until the
+// test ends, and returns the UI listener's address and the start's serving record, waiting for the
+// record. A start that stops early fails the test.
+func served(t *testing.T, c Configuration) (string, string) {
+	t.Helper()
+	uiListener, probeListener := loopbacks(t)
+	log := &lockedBuffer{}
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	noContent := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	go func() {
+		done <- serve(ctx, c, uiListener, probeListener, noContent, noContent, slog.New(slog.NewTextHandler(log, nil)))
+	}()
+	t.Cleanup(func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Error(err)
+		}
+	})
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		select {
+		case err := <-done:
+			done <- err
+			t.Fatalf("the start stopped before it served: %v", err)
+		default:
+		}
+		for line := range strings.SplitSeq(log.String(), "\n") {
+			if strings.Contains(line, " msg=serving ") {
+				return uiListener.Addr().String(), line
+			}
+		}
+	}
+	t.Fatalf("the start wrote no serving record:\n%s", log.String())
+	return "", ""
+}
+
+// get requests url with client and returns the status, or an error when no answer arrives.
+func get(t *testing.T, client *http.Client, url string) (int, error) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	return resp.StatusCode, resp.Body.Close()
+}
+
+// Given a key pair, the UI's start serves TLS, a plain HTTP request never reaches its handler, and
+// its serving record says it serves TLS (ADR-0127).
+func TestTheUIIsServedOverTLSWhenGivenAKeyPair(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
+	cert := writeKeyPair(t, certFile, keyFile, 1)
+	c := defaults()
+	c.TLSCert, c.TLSKey = certFile, keyFile
+	addr, record := served(t, c)
+	if status, err := get(t, &http.Client{}, "http://"+addr+"/"); err == nil && status == http.StatusNoContent {
+		t.Errorf("a plain HTTP request reached the handler")
+	}
+	pool := x509.NewCertPool()
+	pool.AddCert(cert)
+	trusting := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}}
+	if status, err := get(t, trusting, "https://"+addr+"/"); err != nil || status != http.StatusNoContent {
+		t.Errorf("a TLS request answered %d with error %v, want 204", status, err)
+	}
+	if !strings.Contains(record, " tls=true") {
+		t.Errorf("the start's serving record does not say it serves TLS: %s", record)
+	}
+}
+
+// Given no key pair, or two TLS paths of spaces, the UI's start serves plain HTTP, a TLS handshake
+// fails, and its serving record says it does not serve TLS (ADR-0127).
+func TestTheUIGivenNoKeyPairIsPlain(t *testing.T) {
+	for name, files := range map[string][2]string{"neither file": {"", ""}, "both blank": {" ", "\t"}} {
+		t.Run(name, func(t *testing.T) {
+			c := defaults()
+			c.TLSCert, c.TLSKey = files[0], files[1]
+			addr, record := served(t, c)
+			if status, err := get(t, &http.Client{}, "http://"+addr+"/"); err != nil || status != http.StatusNoContent {
+				t.Errorf("a plain HTTP request answered %d with error %v, want 204", status, err)
+			}
+			insecure := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}, DisableKeepAlives: true}} //nolint:gosec // only whether a handshake completes is asked
+			if _, err := get(t, insecure, "https://"+addr+"/"); err == nil {
+				t.Errorf("a TLS request was answered by a UI given no key pair")
+			}
+			if !strings.Contains(record, " tls=false") {
+				t.Errorf("the start's serving record does not say it serves plain HTTP: %s", record)
+			}
+		})
+	}
+}
+
 func ignoreClosed(err error) error {
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
@@ -233,28 +342,23 @@ func ignoreClosed(err error) error {
 	return err
 }
 
-// A TLS key pair that does not load refuses the start before the UI serves, so a pod whose mounts
-// cannot serve never listens.
+// A TLS key pair that does not load refuses the start before the UI serves anything, so a pod whose
+// mounts cannot serve never answers a request.
 func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	c := defaults()
-	c.Listen, c.ProbeListen = "127.0.0.1:0", "127.0.0.1:0"
 	c.TLSCert, c.TLSKey = filepath.Join(t.TempDir(), "absent.crt"), filepath.Join(t.TempDir(), "absent.key")
-	s, err := api.New(api.Options{
-		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: discard(),
-		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = serve(bounded(t), c, s, discard())
-	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
+	uiListener, probeListener := loopbacks(t)
+	var served atomic.Bool
+	handler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) { served.Store(true) })
+	err := serve(bounded(t), c, uiListener, probeListener, handler, handler, discard())
+	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") || served.Load() {
 		t.Fatalf("serve returned %v, want the key pair refused", err)
 	}
 }
 
 // The start logs every effective value with the layer that set it, the password file's path and
 // never its contents, and the identifier of the key it seals to (ADR-0092, VERIFICATIONS, the row for
-// the UI's log of its key). It stops at the TLS key pair, after the log and before it listens.
+// the UI's log of its key). It stops at the TLS key pair, after the log and before it serves.
 func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	passwordFile := filepath.Join(t.TempDir(), "password")
 	if err := os.WriteFile(passwordFile, []byte("the-secret-itself\n"), 0o600); err != nil {
@@ -295,7 +399,6 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=default_theme source=default value=system`,
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
 		`level=INFO msg=configuration path=identity_header source=default value=""`,
-		`level=INFO msg=configuration path=insecure_http source=default value=false`,
 		`level=INFO msg=configuration path=listen source="flag --listen" value=127.0.0.1:0`,
 		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=operator_name source=default value=operator`,
@@ -392,14 +495,14 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 		// wantInfo is whether an info record is written once the start has returned.
 		wantInfo bool
 	}{
-		{name: "no level", wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("default", "info"), wantInfo: true},
-		{name: "info", args: []string{"--log_level=info"}, wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("flag --log_level", "info"), wantInfo: true},
-		{name: "warn", args: []string{"--log_level=warn"}, wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("flag --log_level", "warn")},
-		{name: "error, from the environment", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=error"}, wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "error")},
+		{name: "no level", wantErr: "validating the configuration: tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither", wantLine: logLevelFrom("default", "info"), wantInfo: true},
+		{name: "info", args: []string{"--log_level=info"}, wantErr: "validating the configuration: tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither", wantLine: logLevelFrom("flag --log_level", "info"), wantInfo: true},
+		{name: "warn", args: []string{"--log_level=warn"}, wantErr: "validating the configuration: tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither", wantLine: logLevelFrom("flag --log_level", "warn")},
+		{name: "error, from the environment", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=error"}, wantErr: "validating the configuration: tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither", wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "error")},
 		{name: "a name in upper case", args: []string{"--log_level=INFO"}, wantErr: refused("INFO"), wantLine: logLevelFrom("flag --log_level", "INFO"), wantInfo: true},
 		{name: "an offset", args: []string{"--log_level=info+2"}, wantErr: refused("info+2"), wantLine: logLevelFrom("flag --log_level", "info+2"), wantInfo: true},
 		{name: "warning", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=warning"}, wantErr: refused("warning"), wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "warning"), wantInfo: true},
-		{name: "a refused value at warn", args: append([]string{"--log_level=warn"}, []string{}...), wantErr: "validating the configuration: tls_cert and tls_key are both required unless insecure_http is true", wantLine: `"msg":"configuration","path":"tls_cert","source":"flag --tls_cert","value":"/tls/cert"`},
+		{name: "a refused value at warn", args: append([]string{"--log_level=warn"}, []string{}...), wantErr: "validating the configuration: tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither", wantLine: `"msg":"configuration","path":"tls_cert","source":"flag --tls_cert","value":"/tls/cert"`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

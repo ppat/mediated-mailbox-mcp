@@ -38,7 +38,7 @@ owns.
 │  │ Clients: agent (MCP),  │      │ Operator, in a browser     │  │
 │  │ API callers            │      │                            │  │
 │  └───────────┬────────────┘      └─────────────┬──────────────┘  │
-│              │ MCP or API, HTTPS               │ HTTPS           │
+│              │ MCP or API, HTTP(S)             │ HTTP(S)         │
 │              │ bearer token                    │                 │
 └──────────────┼─────────────────────────────────┼─────────────────┘
                │                                 │

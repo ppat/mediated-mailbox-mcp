@@ -38,7 +38,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/serving"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/devloop"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
@@ -51,7 +50,6 @@ type Configuration struct {
 	ProbeListen        string               `yaml:"probe_listen"`
 	TLSCert            string               `yaml:"tls_cert"`
 	TLSKey             string               `yaml:"tls_key"`
-	InsecureHTTP       bool                 `yaml:"insecure_http"`
 	SyncInterval       time.Duration        `yaml:"sync_interval"`
 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
 	StreamInterval     time.Duration        `yaml:"stream_interval"`
@@ -150,14 +148,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err := dbconnectcore.Validate(c.Database); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
-	if err := serving.Validate(serving.Config{
-		Listen: c.Listen, ProbeListen: c.ProbeListen, TLSCert: c.TLSCert, TLSKey: c.TLSKey, InsecureHTTP: c.InsecureHTTP,
-		SyncInterval: int64(c.SyncInterval), HeuristicsInterval: int64(c.HeuristicsInterval), StreamInterval: int64(c.StreamInterval),
-		DefaultTheme: c.DefaultTheme, StreamReconnectMax: int64(c.StreamReconnectMax), StreamPollInterval: int64(c.StreamPollInterval),
-		AttentionBacklogShare: c.AttentionBacklogShare, AttentionMaskCount: c.AttentionMaskCount,
-		AttentionServeFactor: c.AttentionServeFactor, AttentionGapDays: c.AttentionGapDays,
-		ConsentRedirect: c.ConsentRedirect,
-	}, devloop.Enabled()); err != nil {
+	if err := serving.Validate(servingConfig(c)); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
 	if err := credentialcore.Validate(c.Credential); err != nil {
@@ -225,7 +216,28 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err != nil {
 		return err
 	}
-	return serve(ctx, c, server, logger)
+	var lc net.ListenConfig
+	uiListener, err := lc.Listen(ctx, "tcp", c.Listen)
+	if err != nil {
+		return err
+	}
+	probeListener, err := lc.Listen(ctx, "tcp", c.ProbeListen)
+	if err != nil {
+		return errors.Join(err, uiListener.Close())
+	}
+	return serve(ctx, c, uiListener, probeListener, server.Handler(), server.Probes(), logger)
+}
+
+// servingConfig is the part of the configuration the serving core validates.
+func servingConfig(c Configuration) serving.Config {
+	return serving.Config{
+		Listen: c.Listen, ProbeListen: c.ProbeListen, TLSCert: c.TLSCert, TLSKey: c.TLSKey,
+		SyncInterval: int64(c.SyncInterval), HeuristicsInterval: int64(c.HeuristicsInterval), StreamInterval: int64(c.StreamInterval),
+		DefaultTheme: c.DefaultTheme, StreamReconnectMax: int64(c.StreamReconnectMax), StreamPollInterval: int64(c.StreamPollInterval),
+		AttentionBacklogShare: c.AttentionBacklogShare, AttentionMaskCount: c.AttentionMaskCount,
+		AttentionServeFactor: c.AttentionServeFactor, AttentionGapDays: c.AttentionGapDays,
+		ConsentRedirect: c.ConsentRedirect,
+	}
 }
 
 // loadTokenKey reads the key behind the request token from its mounted file, or generates one when no
@@ -249,41 +261,39 @@ func loadTokenKey(path string) ([]byte, error) {
 	return key, nil
 }
 
-// serve runs the UI's listener, TLS unless the dev loop's plain HTTP is configured, and the probes'
-// plain-HTTP listener, until ctx ends or either fails, then shuts both down.
-func serve(ctx context.Context, c Configuration, server *api.Server, logger *slog.Logger) error {
-	if !c.InsecureHTTP {
+// serve serves handler on uiListener, over TLS when the configuration names a key pair and over
+// plain HTTP when it names none (ADR-0127), and probes on probeListener over plain HTTP, until ctx
+// ends or either fails, then shuts both down. When the configuration names a key pair, it is loaded
+// before anything is served, so a pod whose mounts cannot serve refuses its start. serve closes both
+// listeners on every path.
+func serve(ctx context.Context, c Configuration, uiListener, probeListener net.Listener, handler, probes http.Handler, logger *slog.Logger) error {
+	servesTLS := serving.ServesTLS(servingConfig(c))
+	var tlsConf *tls.Config
+	if servesTLS {
 		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
-			return fmt.Errorf("loading the TLS key pair: %w", err)
+			return errors.Join(fmt.Errorf("loading the TLS key pair: %w", err), uiListener.Close(), probeListener.Close())
 		}
-	}
-	var lc net.ListenConfig
-	uiListener, err := lc.Listen(ctx, "tcp", c.Listen)
-	if err != nil {
-		return err
-	}
-	probeListener, err := lc.Listen(ctx, "tcp", c.ProbeListen)
-	if err != nil {
-		return errors.Join(err, uiListener.Close())
+		tlsConf = tlsConfig(c.TLSCert, c.TLSKey)
 	}
 	// Requests take ctx as their base, so an open event stream ends when the process is told to stop
 	// rather than holding the shutdown until its timeout.
 	ui := &http.Server{
-		Handler: server.Handler(), ReadHeaderTimeout: 10 * time.Second, TLSConfig: tlsConfig(c.TLSCert, c.TLSKey),
+		Handler: handler, ReadHeaderTimeout: 10 * time.Second, TLSConfig: tlsConf,
 		BaseContext: func(net.Listener) context.Context { return ctx },
 		ErrorLog:    logging.ServerErrorLog(logger),
 	}
-	probes := &http.Server{Handler: server.Probes(), ReadHeaderTimeout: 10 * time.Second, ErrorLog: logging.ServerErrorLog(logger)}
+	probeServer := &http.Server{Handler: probes, ReadHeaderTimeout: 10 * time.Second, ErrorLog: logging.ServerErrorLog(logger)}
 	errs := make(chan error, 2)
 	go func() {
-		if c.InsecureHTTP {
+		if !servesTLS {
 			errs <- ui.Serve(uiListener)
 			return
 		}
 		errs <- ui.ServeTLS(uiListener, "", "")
 	}()
-	go func() { errs <- probes.Serve(probeListener) }()
-	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", !c.InsecureHTTP)
+	go func() { errs <- probeServer.Serve(probeListener) }()
+	logger.Info("serving", "listen", c.Listen, "probe_listen", c.ProbeListen, "tls", servesTLS)
+	var err error
 	select {
 	case <-ctx.Done():
 	case err = <-errs:
@@ -293,7 +303,7 @@ func serve(ctx context.Context, c Configuration, server *api.Server, logger *slo
 	if errors.Is(err, http.ErrServerClosed) {
 		err = nil
 	}
-	return errors.Join(err, ui.Shutdown(shutdown), probes.Shutdown(shutdown))
+	return errors.Join(err, ui.Shutdown(shutdown), probeServer.Shutdown(shutdown))
 }
 
 // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate is

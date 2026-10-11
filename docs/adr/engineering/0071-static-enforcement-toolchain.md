@@ -439,7 +439,7 @@ reported an aliased import of the same function as well.
   the build-graph check.
 - **A file whose build constraint keeps it from the lint's configuration is compiled into an image
   and read by nothing.** In `propose`, a file carrying `//go:build !integration`, `!gmail_live`,
-  `!devloop`, `!cgo`, `!linux`, `!amd64`, `darwin`, `!integration || nothere` or a legacy
+  `!cgo`, `!linux`, `!amd64`, `darwin`, `!integration || nothere` or a legacy
   `// +build !integration` line, a file named for `darwin`, `arm64` or `linux` on `arm64`, and a
   package whose only file is named for `darwin`, were each left out of the files `go list` selects
   with the configuration's tags for Linux on amd64 with cgo, which is what the lint job reads, while
@@ -447,10 +447,9 @@ reported an aliased import of the same function as well.
   is a plain negation of a tag is also refused by the rule that only violation files may depend on
   the `banproof` tag, since that rule evaluates a constraint with every other tag set. The file
   names, the positive `darwin` constraint, the disjunction, the legacy line and the package are
-  refused by this check alone. It passes a file carrying `!banproof`, which the
-  gating lint reads because it sets no such tag, `!integration || devloop`, which the lint's tags
-  make true, and `ignore`, `integration` or a name for `windows`, which no configuration code ships
-  in compiles.
+  refused by this check alone. It passes a file carrying `!banproof`, which the gating lint reads
+  because it sets no such tag, `!integration || gmail_live`, which the lint's tags make true, and
+  `ignore`, `integration` or a name for `windows`, which no configuration code ships in compiles.
 
 ## Alternatives considered
 

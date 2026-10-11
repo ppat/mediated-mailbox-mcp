@@ -1,0 +1,19 @@
+control: The UI is served over TLS with both of its TLS files and over plain HTTP with neither, and refuses to start with one
+removes: a TLS file path of spaces counts as set, so a certificate beside a blank key path is admitted
+packages: ./ui/internal/core/serving
+tests: TestTLSIsBothFilesOrNeither
+scheduled-count: no
+
+diff --git a/ui/internal/core/serving/serving.go b/ui/internal/core/serving/serving.go
+index e0559e41..32781904 100644
+--- a/ui/internal/core/serving/serving.go
++++ b/ui/internal/core/serving/serving.go
+@@ -38,7 +38,7 @@ type Config struct {
+ // address with an explicit port. Both TLS files set, the UI serves TLS, and neither set, plain HTTP
+ // (ADR-0127).
+ func Validate(c Config) error {
+-	cert, key := strings.TrimSpace(c.TLSCert) != "", strings.TrimSpace(c.TLSKey) != ""
++	cert, key := c.TLSCert != "", c.TLSKey != ""
+ 	switch {
+ 	case strings.TrimSpace(c.Listen) == "":
+ 		return refusal("listen is empty")

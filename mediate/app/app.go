@@ -4,10 +4,11 @@
 // internal, apart from importtarget, which exists only under the banproof tag.
 //
 // The mediator listens twice. The client surface, the API root under /api/ and the MCP root at
-// /mcp, is served over TLS unless the configuration declares that an ingress in front terminates
-// TLS, and every request to it passes the bearer check before it reaches either root (ADR-0030,
-// ADR-0087). The mediator is ready once its accounts and their policy have loaded, both listeners
-// are up, and the TLS key pair and the bearer token have loaded. The probes and the metrics endpoint
+// /mcp, is served over TLS when the configuration names a certificate and a key, and over plain HTTP
+// when it names neither, and every request to it passes the bearer check before it reaches either
+// root (ADR-0127, ADR-0030, ADR-0087). The mediator is ready once its accounts and their policy have
+// loaded, both listeners are up, and the bearer token and, when it serves TLS, the key pair have
+// loaded. The probes and the metrics endpoint
 // are served over plain HTTP on a listener of their own, because a platform's healthcheck and
 // scraper carry no bearer token (ADR-0051). They are operational endpoints outside the operation
 // registry, and the client surface's listener never serves them.
@@ -88,11 +89,9 @@ type Configuration struct {
 	Listen string `yaml:"listen"`
 	// ProbeListen is the address the probes and the metrics endpoint listen on, over plain HTTP.
 	ProbeListen string `yaml:"probe_listen"`
-	// TLSAtIngress declares that an ingress in front of the mediator terminates TLS, so the client
-	// surface listens over plain HTTP and takes no key pair.
-	TLSAtIngress bool `yaml:"tls_at_ingress"`
 	// TLSCert and TLSKey name the mounted files holding the client surface's certificate chain and
-	// private key.
+	// private key. Both set, the surface is served over TLS, and neither set, over plain HTTP
+	// (ADR-0127).
 	TLSCert string `yaml:"tls_cert"`
 	TLSKey  string `yaml:"tls_key"`
 	// TokenFile names the mounted file holding the bearer token clients present.
@@ -133,25 +132,16 @@ func defaults() Configuration {
 	}
 }
 
-// validate refuses a configuration the mediator cannot serve with. The TLS files are required unless
-// an ingress is declared to terminate TLS, and refused when one is. The reload interval is positive,
-// and the provider timeout positive and at most five minutes.
+// validate refuses a configuration the mediator cannot serve with. The TLS files are both set or
+// both unset, a blank path counting as unset (ADR-0127). The reload interval is positive, and the
+// provider timeout positive and at most five minutes.
 func validate(c Configuration) error {
-	if c.TLSAtIngress {
-		if c.TLSCert != "" || c.TLSKey != "" {
-			return errors.New("tls_at_ingress declares that the mediator serves no TLS, so it takes no tls_cert or tls_key")
+	if cert, key := strings.TrimSpace(c.TLSCert) != "", strings.TrimSpace(c.TLSKey) != ""; cert != key {
+		set, missing := "tls_cert", "tls_key"
+		if key {
+			set, missing = "tls_key", "tls_cert"
 		}
-	} else {
-		var missing []string
-		if c.TLSCert == "" {
-			missing = append(missing, "tls_cert")
-		}
-		if c.TLSKey == "" {
-			missing = append(missing, "tls_key")
-		}
-		if len(missing) > 0 {
-			return fmt.Errorf("the mediator serves TLS unless tls_at_ingress is set, so it needs %s", strings.Join(missing, " and "))
-		}
+		return fmt.Errorf("%s is set and %s is not, and the mediator serves TLS with both or plain HTTP with neither", set, missing)
 	}
 	if strings.TrimSpace(c.TokenFile) == "" {
 		return errors.New("token_file is empty")
@@ -300,7 +290,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener 
 	}
 	surfaceServer := &http.Server{
 		Handler:           surfaceHandler,
-		TLSConfig:         tlsConfig(c.TLSCert, c.TLSKey, c.TLSAtIngress),
+		TLSConfig:         tlsConfig(c),
 		ReadHeaderTimeout: 10 * time.Second,
 		ErrorLog:          logging.ServerErrorLog(logger),
 	}
@@ -319,7 +309,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener 
 	if err := markReadyWhenServable(&ready, c); err != nil {
 		errs <- err
 	}
-	logger.Info("serving", "surface", c.Listen, "probes", c.ProbeListen)
+	logger.Info("serving", "surface", c.Listen, "probes", c.ProbeListen, "tls", servesTLS(c))
 
 	select {
 	case err = <-errs:
@@ -532,11 +522,11 @@ func refuseEnvironment(environ []string) error {
 	return dbconnect.RefusePasswordVariables(environ)
 }
 
-// markReadyWhenServable marks the mediator ready once the TLS key pair, unless an ingress in front
-// terminates TLS, and the bearer token load, so a pod whose mounts cannot serve a client never
-// reports ready. They are read again on each handshake and each request.
+// markReadyWhenServable marks the mediator ready once the bearer token and, when it serves TLS, the
+// key pair load, so a pod whose mounts cannot serve a client never reports ready. They are read
+// again on each request and each handshake.
 func markReadyWhenServable(ready *readiness.State, c Configuration) error {
-	if !c.TLSAtIngress {
+	if servesTLS(c) {
 		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
 			return fmt.Errorf("loading the TLS key pair: %w", err)
 		}
@@ -553,7 +543,7 @@ func markReadyWhenServable(ready *readiness.State, c Configuration) error {
 }
 
 // serveSurface serves the client surface on ln until it is shut down, over TLS unless srv has no TLS
-// configuration, which only a declared ingress in front leaves it without (ADR-0087).
+// configuration, which a configuration naming no key pair leaves it without (ADR-0127).
 func serveSurface(srv *http.Server, ln net.Listener) error {
 	if srv.TLSConfig == nil {
 		return stopped(srv.Serve(ln))
@@ -656,12 +646,19 @@ func bearer(tokenFile string, logger *slog.Logger, next http.Handler) http.Handl
 	})
 }
 
+// servesTLS reports whether the configuration names a key pair. validate has refused one that names
+// only one of its two files, so the certificate alone decides.
+func servesTLS(c Configuration) bool {
+	return strings.TrimSpace(c.TLSCert) != ""
+}
+
 // tlsConfig returns the client surface's TLS configuration, which reads the key pair from its
-// mounted files on each handshake, or none when an ingress in front terminates TLS.
-func tlsConfig(certFile, keyFile string, atIngress bool) *tls.Config {
-	if atIngress {
+// mounted files on each handshake, or none when the configuration names no key pair.
+func tlsConfig(c Configuration) *tls.Config {
+	if !servesTLS(c) {
 		return nil
 	}
+	certFile, keyFile := c.TLSCert, c.TLSKey
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

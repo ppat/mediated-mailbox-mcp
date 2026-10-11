@@ -1,0 +1,19 @@
+control: The UI is served over TLS with both of its TLS files and over plain HTTP with neither, and refuses to start with one
+removes: the start loads a key pair whatever the configuration names, so a UI given neither TLS file refuses to start
+packages: ./ui/app
+tests: TestTheUIGivenNoKeyPairIsPlain/neither_file
+scheduled-count: no
+
+diff --git a/ui/app/app.go b/ui/app/app.go
+index e94453ea..1bf17558 100644
+--- a/ui/app/app.go
++++ b/ui/app/app.go
+@@ -269,7 +269,7 @@ func loadTokenKey(path string) ([]byte, error) {
+ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.Listener, handler, probes http.Handler, logger *slog.Logger) error {
+ 	servesTLS := serving.ServesTLS(servingConfig(c))
+ 	var tlsConf *tls.Config
+-	if servesTLS {
++	if true {
+ 		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
+ 			return errors.Join(fmt.Errorf("loading the TLS key pair: %w", err), uiListener.Close(), probeListener.Close())
+ 		}

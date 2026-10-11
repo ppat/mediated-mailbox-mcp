@@ -5,11 +5,11 @@ tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/ui/app/app.go b/ui/app/app.go
-index f539f0b1..a942ef85 100644
+index 5c4df3c4..aa253e33 100644
 --- a/ui/app/app.go
 +++ b/ui/app/app.go
-@@ -51,7 +51,7 @@ type Configuration struct {
- 	InsecureHTTP       bool                 `yaml:"insecure_http"`
+@@ -52,7 +52,7 @@ type Configuration struct {
+ 	TLSKey             string               `yaml:"tls_key"`
  	SyncInterval       time.Duration        `yaml:"sync_interval"`
  	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
 -	StreamInterval     time.Duration        `yaml:"stream_interval"`

@@ -87,10 +87,10 @@ These constraints keep it safe to exist.
 - **It never displays message bodies**, structurally, because it reads a database with no body
   columns ([ADR-0016](../data/0016-schema.md)). Stated here so nobody later adds a "preview"
   feature by proxying through the mediator.
-- **TLS**, same posture as the client surface. **The UI carries no authentication of its own.**
-  The operator may place the UI behind an ingress that forwards to an authentication service and
-  sets a cookie, with the identity header above. Authentication by the UI itself (OpenID Connect,
-  say) is left open.
+- **The UI carries no authentication of its own.** The operator may place the UI behind an
+  ingress that forwards to an authentication service and sets a cookie, with the identity header
+  above. Authentication by the UI itself (OpenID Connect, say) is left open. The UI's transport is
+  [ADR-0127](../operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)'s.
 
 The shape is a small single-page app over a thin read API. Its value is legibility, two decisions,
 a rollback request, connecting accounts and keeping the policy. Its design is
