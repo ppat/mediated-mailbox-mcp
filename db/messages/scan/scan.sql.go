@@ -205,9 +205,9 @@ type PendingPageRow struct {
 
 // The account's messages waiting for their content scan after the message identified by after, in
 // the order of their identifiers, each with what the scan gate reads of it and of its sender, the
-// sender's volume and prior hits (ADR-0093, ADR-0017). A message with no sender statistics reads a
-// volume and hits of zero. The page is keyed on the identifier, so a message left waiting is read
-// once per pass.
+// sender's volume and prior hits, which delta sync's tick reads (ADR-0093, ADR-0104). A message with
+// no sender statistics reads a volume and hits of zero. The page is keyed on the identifier, so a
+// message left waiting is read once per pass over the backlog.
 func (q *Queries) PendingPage(ctx context.Context, arg PendingPageParams) ([]PendingPageRow, error) {
 	rows, err := q.db.Query(ctx, pendingPage, arg.AccountID, arg.After, arg.PageSize)
 	if err != nil {
@@ -217,6 +217,89 @@ func (q *Queries) PendingPage(ctx context.Context, arg PendingPageParams) ([]Pen
 	var items []PendingPageRow
 	for rows.Next() {
 		var i PendingPageRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.FromEmail,
+			&i.FromDomain,
+			&i.SubjectMasked,
+			&i.SentAt,
+			&i.HasListID,
+			&i.SizeBytes,
+			&i.SenderVolume,
+			&i.SenderHits,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const pendingPageNewestFirst = `-- name: PendingPageNewestFirst :many
+SELECT
+    m.message_id,
+    m.from_email,
+    m.from_domain,
+    m.subject_masked,
+    m.sent_at,
+    (m.list_id IS NOT NULL)::boolean AS has_list_id,
+    coalesce(m.size_bytes, 0)::bigint AS size_bytes,
+    coalesce(s.message_count, 0)::bigint AS sender_volume,
+    coalesce(s.scan_hit_count, 0)::bigint AS sender_hits
+FROM messages AS m
+LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
+WHERE
+    m.account_id = $1
+    AND m.scan_state = 'pending'
+    AND (m.sent_at, m.message_id) < ($2::timestamptz, $3::text)
+ORDER BY m.sent_at DESC, m.message_id DESC
+LIMIT $4
+`
+
+type PendingPageNewestFirstParams struct {
+	AccountID      string
+	AfterSentAt    pgtype.Timestamptz
+	AfterMessageID string
+	PageSize       int32
+}
+
+type PendingPageNewestFirstRow struct {
+	MessageID     string
+	FromEmail     string
+	FromDomain    string
+	SubjectMasked bool
+	SentAt        pgtype.Timestamptz
+	HasListID     bool
+	SizeBytes     int64
+	SenderVolume  int64
+	SenderHits    int64
+}
+
+// The account's messages waiting for their content scan after the position of the message last
+// read, newest first, by send time and then identifier, each with what PendingPage reads of it and
+// of its sender, which backfill's second pass reads (ADR-0126). The first page passes the position of
+// an infinite send time and an empty identifier, which every message sorts before. The row comparison
+// is what makes the send time an index condition on messages (account_id, sent_at DESC) in custom and
+// generic plans alike, so a late page costs what an early one does. Written with OR, or with a
+// nullable position, the comparison is applied as a filter and a page's cost grows with progress. The
+// page is keyed on the position, so a message left waiting is read once per pass.
+func (q *Queries) PendingPageNewestFirst(ctx context.Context, arg PendingPageNewestFirstParams) ([]PendingPageNewestFirstRow, error) {
+	rows, err := q.db.Query(ctx, pendingPageNewestFirst,
+		arg.AccountID,
+		arg.AfterSentAt,
+		arg.AfterMessageID,
+		arg.PageSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PendingPageNewestFirstRow
+	for rows.Next() {
+		var i PendingPageNewestFirstRow
 		if err := rows.Scan(
 			&i.MessageID,
 			&i.FromEmail,

@@ -1,0 +1,20 @@
+control: A killed second pass resumes from its last checkpointed page
+removes: a page's position keeps the identifier of its last message and not its send time, so the next page reads from the Unix epoch, past every message in the walk, and the pass leaves the rest waiting
+packages: ./worker/internal/backfill/pass2
+tests: TestTheSecondPassReadsTheNewestWaitingMessagesFirst TestAKilledSecondPassResumesFromItsCheckpoint/resumed-after-every-page-among-messages-sent-at-one-instant
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index 9086f74c..03e7eb87 100644
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -267,7 +267,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
+ 	number := p.at.Checkpoint.Page + 1
+ 	now := mail.UnixMilli(p.deps.Now().UnixMilli())
+ 	last := messages[len(messages)-1]
+-	page := core.Page{Last: core.Position{SentAt: last.SentAt, ID: last.ID}}
++	page := core.Page{Last: core.Position{ID: last.ID}}
+ 	hits := map[string]int64{}
+ 	var items []pass1.Item
+ 	for _, m := range messages {

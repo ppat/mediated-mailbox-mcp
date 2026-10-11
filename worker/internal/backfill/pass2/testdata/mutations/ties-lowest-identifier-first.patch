@@ -1,0 +1,33 @@
+control: Backfill's second pass reads the messages waiting for a scan newest first
+removes: messages sent at the same instant are read lowest identifier first, against the keyset
+packages: ./worker/internal/backfill/pass2
+tests: TestTheSecondPassReadsTheNewestWaitingMessagesFirst TestAKilledSecondPassResumesFromItsCheckpoint/resumed-after-every-page-among-messages-sent-at-one-instant
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
+index 238ec06b..0d6a79e9 100644
+--- a/db/messages/scan/scan.sql
++++ b/db/messages/scan/scan.sql
+@@ -45,7 +45,7 @@ WHERE
+     m.account_id = @account_id
+     AND m.scan_state = 'pending'
+     AND (m.sent_at, m.message_id) < (@after_sent_at::timestamptz, @after_message_id::text)
+-ORDER BY m.sent_at DESC, m.message_id DESC
++ORDER BY m.sent_at DESC, m.message_id ASC
+ LIMIT @page_size;
+ 
+ -- name: RecordVerdict :execrows
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index 07c60c49..f606a1d3 100644
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -255,7 +255,7 @@ WHERE
+     m.account_id = $1
+     AND m.scan_state = 'pending'
+     AND (m.sent_at, m.message_id) < ($2::timestamptz, $3::text)
+-ORDER BY m.sent_at DESC, m.message_id DESC
++ORDER BY m.sent_at DESC, m.message_id ASC
+ LIMIT $4
+ `
+ 

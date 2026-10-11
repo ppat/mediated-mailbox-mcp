@@ -474,8 +474,10 @@ func processed(t *testing.T, reg prometheus.Gatherer) map[string]uint64 {
 	return out
 }
 
-// Before backfill's second pass has ended, a tick adds what arrived and leaves it waiting, so the
-// second pass decides it and the gate never reads a cold index (ADR-0104, ADR-0017).
+// Before backfill's second pass has ended, a tick adds what arrived and leaves it waiting, so the gate
+// never reads a cold index. The second pass decides it if its walk, which reads newest first, reaches
+// it, and the first ticks after the pass ends decide what the pass left waiting (ADR-0104, ADR-0017,
+// ADR-0126).
 func TestBeforeTheSecondPassHasEndedATickScansNothing(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn, false)

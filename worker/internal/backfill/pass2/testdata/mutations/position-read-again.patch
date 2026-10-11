@@ -1,0 +1,33 @@
+control: A killed second pass resumes from its last checkpointed page
+removes: a page reads from the position's own message on, so a message left waiting at a page's end is read again
+packages: ./worker/internal/backfill/pass2
+tests: TestAKilledSecondPassResumesFromItsCheckpoint/resumed-after-every-page-among-messages-sent-at-one-instant
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
+index 238ec06b..3d7dd1ee 100644
+--- a/db/messages/scan/scan.sql
++++ b/db/messages/scan/scan.sql
+@@ -44,7 +44,7 @@ LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.doma
+ WHERE
+     m.account_id = @account_id
+     AND m.scan_state = 'pending'
+-    AND (m.sent_at, m.message_id) < (@after_sent_at::timestamptz, @after_message_id::text)
++    AND (m.sent_at, m.message_id) <= (@after_sent_at::timestamptz, @after_message_id::text)
+ ORDER BY m.sent_at DESC, m.message_id DESC
+ LIMIT @page_size;
+ 
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index 07c60c49..1ac55c1c 100644
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -254,7 +254,7 @@ LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.doma
+ WHERE
+     m.account_id = $1
+     AND m.scan_state = 'pending'
+-    AND (m.sent_at, m.message_id) < ($2::timestamptz, $3::text)
++    AND (m.sent_at, m.message_id) <= ($2::timestamptz, $3::text)
+ ORDER BY m.sent_at DESC, m.message_id DESC
+ LIMIT $4
+ `

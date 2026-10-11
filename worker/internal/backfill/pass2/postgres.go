@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -47,11 +48,15 @@ var _ Store = (*Postgres)(nil)
 func NewPostgres(db tx.Beginner) *Postgres { return &Postgres{db: db} }
 
 // checkpoint and counters are the stored forms of a run's checkpoint and counters. The checkpoint's
-// page is the page the jobs card shows, and after is the identifier of the last message the durable
-// pages read.
+// page is the page the jobs card shows, and after and sent_at are the position of the last message the
+// durable pages read, its identifier and its send time in milliseconds since the Unix epoch. The
+// position a run holds between pages carries milliseconds too, and both name a stored send time
+// exactly because every writer of messages that ships stores whole milliseconds. A writer of a finer
+// send time would let a page skip waiting messages, which stay pending and denied (ADR-0126).
 type checkpoint struct {
-	Page  int    `json:"page"`
-	After string `json:"after"`
+	Page   int    `json:"page"`
+	After  string `json:"after"`
+	SentAt int64  `json:"sent_at"`
 }
 
 type counters struct {
@@ -63,7 +68,8 @@ type counters struct {
 }
 
 func encode(p core.Progress) (cp, ct []byte, err error) {
-	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, After: p.Checkpoint.After})
+	after := p.Checkpoint.After
+	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, After: after.ID, SentAt: int64(after.SentAt)})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,7 +90,7 @@ func decode(cp, ct []byte) (core.Progress, error) {
 		return core.Progress{}, fmt.Errorf("reading the counters: %w", err)
 	}
 	return core.Progress{
-		Checkpoint: core.Checkpoint{Page: c.Page, After: c.After},
+		Checkpoint: core.Checkpoint{Page: c.Page, After: core.Position{SentAt: mail.UnixMilli(c.SentAt), ID: c.After}},
 		Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped},
 	}, nil
 }
@@ -353,12 +359,20 @@ func (s *Postgres) RequeueSkips(ctx context.Context, account, runID string) (int
 	return marked, err
 }
 
-// Pending implements Store.
-func (s *Postgres) Pending(ctx context.Context, account, after string, n int) ([]index.Waiting, error) {
+// Pending implements Store. The zero position reads from the position of an infinite send time and
+// an empty identifier, which every message sorts before, so the first page runs the statement every
+// later page runs (ADR-0126).
+func (s *Postgres) Pending(ctx context.Context, account string, after core.Position, n int) ([]index.Waiting, error) {
+	from := pgtype.Timestamptz{InfinityModifier: pgtype.Infinity, Valid: true}
+	if after.ID != "" {
+		from = pgtype.Timestamptz{Time: time.UnixMilli(int64(after.SentAt)).UTC(), Valid: true}
+	}
 	var out []index.Waiting
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		out = nil
-		rows, err := scan.New(t).PendingPage(ctx, scan.PendingPageParams{AccountID: account, After: after, PageSize: int32(min(max(n, 1), 1<<31-1))}) //nolint:gosec // Bounded.
+		rows, err := scan.New(t).PendingPageNewestFirst(ctx, scan.PendingPageNewestFirstParams{
+			AccountID: account, AfterSentAt: from, AfterMessageID: after.ID, PageSize: int32(min(max(n, 1), 1<<31-1)), //nolint:gosec // Bounded.
+		})
 		if err != nil {
 			return err
 		}

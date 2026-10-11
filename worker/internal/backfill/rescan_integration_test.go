@@ -76,11 +76,18 @@ func rescanMailbox(t *testing.T, account string) *fake.Fake {
 		{"s3", "orders@shop.example", marker.Field("shopthree") + " Your OTP is 552901", marker.Body("shopthree"), false},
 		{"o1", "sign-in@login.example", marker.Field("login"), marker.Body("login") + " Your OTP is 419283.", false},
 	}
+	// Each message is sent a minute before the one whose identifier sorts before it, so the second pass,
+	// which reads newest first (ADR-0126), reads them in the order of their identifiers.
+	ids := make([]string, 0, len(messages))
+	for _, m := range messages {
+		ids = append(ids, m.id)
+	}
+	slices.Sort(ids)
 	var out []fake.Message
-	for i, m := range messages {
+	for _, m := range messages {
 		md := mail.MessageMetadata{
 			ID: m.id, ThreadID: "t" + m.id, From: mail.Address{Email: m.from}, Subject: m.subject,
-			Date: mail.UnixMilli(1_700_000_000_000 + int64(i)*60_000), SizeBytes: 4096,
+			Date: mail.UnixMilli(1_700_000_000_000 - int64(slices.Index(ids, m.id))*60_000), SizeBytes: 4096,
 		}
 		if m.list {
 			md.ListID = "list.news.example"
@@ -617,7 +624,7 @@ func TestAStoppedSecondPassKeepsItsRecordAndStartsOver(t *testing.T) {
 		t.Fatal(err)
 	}
 	resumed := readRun(t, conn, p.Run())
-	if want := `{"page": 0, "after": ""}`; resumed.Checkpoint != want {
+	if want := `{"page": 0, "after": "", "sent_at": 0}`; resumed.Checkpoint != want {
 		t.Errorf("the resuming run starts from %s, want %s, the first waiting message", resumed.Checkpoint, want)
 	}
 	if len(resumed.Events) < 2 || resumed.Events[0] != "resume" || resumed.Events[1] != "retry" {

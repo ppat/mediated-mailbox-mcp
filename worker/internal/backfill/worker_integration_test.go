@@ -41,7 +41,8 @@ func held(messages ...fake.Message) session.Connector {
 		})
 }
 
-// shopMail returns n messages from a shop, each with a body.
+// shopMail returns n messages from a shop, each with a body, each sent before the one before it, so
+// the second pass, which reads newest first (ADR-0126), reads them in the order of their identifiers.
 func shopMail(n int) []fake.Message {
 	var out []fake.Message
 	for i := range n {
@@ -49,7 +50,7 @@ func shopMail(n int) []fake.Message {
 		out = append(out, fake.Message{
 			Metadata: mail.MessageMetadata{
 				ID: id, ThreadID: "t" + id, From: mail.Address{Email: "orders@shop.example"}, Subject: marker.Field("order"),
-				Date: mail.UnixMilli(1_700_000_000_000 + int64(i)*60_000),
+				Date: mail.UnixMilli(1_700_000_000_000 - int64(i)*60_000),
 			},
 			Body: mail.MessageBody{Text: marker.Body("order") + " Thanks for your order."},
 		})

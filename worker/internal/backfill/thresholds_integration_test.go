@@ -38,7 +38,9 @@ var (
 
 // thresholdMailbox returns the account's mailbox, list mail only. The news sender sends four messages,
 // the last with a code in its body, and the promotions sender eight clean ones. No subject carries
-// anything the scanner masks, so no skip is decided again for its subject's signal.
+// anything the scanner masks, so no skip is decided again for its subject's signal. Each message is
+// sent a minute before the one added before it, so the second pass, which reads newest first
+// (ADR-0126), reads them in the order they are added.
 func thresholdMailbox(t *testing.T, account string) *fake.Fake {
 	t.Helper()
 	var out []fake.Message
@@ -47,7 +49,7 @@ func thresholdMailbox(t *testing.T, account string) *fake.Fake {
 		out = append(out, fake.Message{
 			Metadata: mail.MessageMetadata{
 				ID: id, ThreadID: "t" + id, From: mail.Address{Email: from}, Subject: marker.Field("subject" + letters(id)),
-				Date: mail.UnixMilli(1_700_000_000_000 + int64(n)*60_000), SizeBytes: 4096, ListID: list,
+				Date: mail.UnixMilli(1_700_000_000_000 - int64(n)*60_000), SizeBytes: 4096, ListID: list,
 			},
 			Body: mail.MessageBody{Text: body},
 		})
@@ -303,7 +305,7 @@ func TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned(t *testing.T) {
 			t.Fatalf("the second pass's page ended as %+v, %v, want a page made durable", s, err)
 		}
 	}
-	if r := readRun(t, conn, p.Run()); r.Checkpoint != `{"page": 3, "after": "p2"}` {
+	if r := readRun(t, conn, p.Run()); r.Checkpoint != `{"page": 3, "after": "p2", "sent_at": 1699999700000}` {
 		t.Fatalf("the stopped run's checkpoint is %s, want it past the news skips", r.Checkpoint)
 	}
 

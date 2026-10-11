@@ -35,7 +35,8 @@ const bodyCode = "Your verification code is 419283."
 // bodyMailbox returns a provider fake for the account whose every message's body carries a body
 // marker, in the text part, the HTML part or both. It holds a restricted sender's message with a code,
 // a normal sender's with a code, clean ones, one whose HTML part the conversion refuses, and one whose
-// sender has no domain the classifier can read.
+// sender has no domain the classifier can read. Each is sent before the one before it, so the second
+// pass, which reads newest first (ADR-0126), reads them in the order of their identifiers.
 func bodyMailbox(t *testing.T, account string) *fake.Fake {
 	t.Helper()
 	refused := "<p>" + marker.Body("refused") + strings.Repeat(" padding", 512*1024/8) + "</p>"
@@ -55,7 +56,7 @@ func bodyMailbox(t *testing.T, account string) *fake.Fake {
 		messages = append(messages, fake.Message{
 			Metadata: mail.MessageMetadata{
 				ID: fmt.Sprintf("m%d", i), ThreadID: fmt.Sprintf("t%d", i), From: mail.Address{Email: b.from},
-				Subject: marker.Field("subject"), Date: mail.UnixMilli(1_700_000_000_000 + int64(i)),
+				Subject: marker.Field("subject"), Date: mail.UnixMilli(1_700_000_000_000 - int64(i)),
 			},
 			Body: mail.MessageBody{Text: b.text, HTML: b.html},
 		})

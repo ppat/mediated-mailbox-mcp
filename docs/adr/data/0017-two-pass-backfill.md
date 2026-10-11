@@ -91,6 +91,8 @@ The split buys these properties.
   The second pass also runs again when backfill's run-start step returns to pending a gate skip
   the gate no longer decides as the same skip
   ([ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)).
+- The order in which pass 2 reads the messages waiting for a scan, and the position its checkpoint
+  holds, are [ADR-0126](./0126-backfills-second-pass-walks-newest-first.md)'s.
 - Backfill is the first workload long enough to trip real provider limits, so it depends on the
   rate controller.
 - Pass-1-then-pass-2 is also the corpus's first real test of the canonical mapping against messy

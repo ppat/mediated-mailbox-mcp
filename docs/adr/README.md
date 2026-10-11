@@ -127,6 +127,7 @@ moves it. Records themselves link freely and deep, into
 | 0105 | [A cursor gap re-enumerates from an hour before the last cursor was written, with no cap, and an account with no cursor is reconciled over a first window](./data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md) | Accepted |
 | 0112 | [The base policy is read and written in a transaction of its own, which names no account and reaches only the base policy's rows](./data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md) | Accepted |
 | 0118 | [Each deployable, and inside the worker each job kind, connects as a runtime role of its own](./data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) | Accepted |
+| 0126 | [Backfill's second pass reads the messages waiting for a scan newest first, keyed on the send time and the identifier](./data/0126-backfills-second-pass-walks-newest-first.md) | Accepted |
 
 ## Mutation — `mutation/`
 

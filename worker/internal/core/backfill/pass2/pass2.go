@@ -8,9 +8,10 @@
 // OnFailure decides what a run does after an attempt at a body fails. Advance moves the checkpoint
 // past a page once the page is durable, and Restart starts the pass over.
 //
-// A checkpoint is the number of pages made durable and the identifier of the last message they read.
-// Pages are read in the order of the messages' identifiers, so a message left waiting is read once
-// per pass, and an empty page ends the pass.
+// A checkpoint is the number of pages made durable and the position of the last message they read,
+// its send time and identifier. Pages are read newest first, by send time and then identifier, each
+// after the position the one before it ended at, so a message left waiting is read once per pass, and
+// an empty page ends the pass (ADR-0126).
 package pass2
 
 import (
@@ -26,8 +27,18 @@ import (
 type Checkpoint struct {
 	// Page is how many pages of the pass are durable.
 	Page int
-	// After is the identifier of the last message the durable pages read, empty before the first.
-	After string
+	// After is the position of the last message the durable pages read, the zero Position before the
+	// first.
+	After Position
+}
+
+// Position is a message's place in the pass's walk, which reads newest first, by send time and then
+// identifier (ADR-0126). The zero Position, whose identifier is empty, comes before every message.
+type Position struct {
+	// SentAt is the message's send time.
+	SentAt mail.UnixMilli
+	// ID is the message's identifier.
+	ID string
 }
 
 // Counters count a pass's work across its runs, as ADR-0016 names them.
@@ -147,8 +158,8 @@ func OnFailure(f Attempt) Next {
 // Page is what one page of the pass makes durable.
 type Page struct {
 	Outcomes []index.Outcome
-	// Last is the identifier of the page's last message.
-	Last string
+	// Last is the position of the page's last message.
+	Last Position
 }
 
 // Hits returns how many of the page's scanned messages carry a content flag, by the sender's domain.

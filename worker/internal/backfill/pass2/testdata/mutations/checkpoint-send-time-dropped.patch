@@ -1,0 +1,20 @@
+control: A killed second pass resumes from its last checkpointed page
+removes: the stored checkpoint loses the send time of the last message read, so a resumed run reads from the Unix epoch, past every message in the walk, and leaves the rest waiting
+packages: ./worker/internal/backfill/pass2
+tests: TestAKilledSecondPassResumesFromItsCheckpoint/resumed-after-every-page-among-messages-sent-at-one-instant
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 25569948..6d72c380 100644
+--- a/worker/internal/backfill/pass2/postgres.go
++++ b/worker/internal/backfill/pass2/postgres.go
+@@ -67,7 +67,7 @@ type counters struct {
+ 
+ func encode(p core.Progress) (cp, ct []byte, err error) {
+ 	after := p.Checkpoint.After
+-	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, After: after.ID, SentAt: int64(after.SentAt)})
++	cp, err = json.Marshal(checkpoint{Page: p.Checkpoint.Page, After: after.ID})
+ 	if err != nil {
+ 		return nil, nil, err
+ 	}

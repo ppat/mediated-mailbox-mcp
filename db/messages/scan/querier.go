@@ -31,10 +31,19 @@ type Querier interface {
 	NormalDomains(ctx context.Context, accountID string) ([]string, error)
 	// The account's messages waiting for their content scan after the message identified by after, in
 	// the order of their identifiers, each with what the scan gate reads of it and of its sender, the
-	// sender's volume and prior hits (ADR-0093, ADR-0017). A message with no sender statistics reads a
-	// volume and hits of zero. The page is keyed on the identifier, so a message left waiting is read
-	// once per pass.
+	// sender's volume and prior hits, which delta sync's tick reads (ADR-0093, ADR-0104). A message with
+	// no sender statistics reads a volume and hits of zero. The page is keyed on the identifier, so a
+	// message left waiting is read once per pass over the backlog.
 	PendingPage(ctx context.Context, arg PendingPageParams) ([]PendingPageRow, error)
+	// The account's messages waiting for their content scan after the position of the message last
+	// read, newest first, by send time and then identifier, each with what PendingPage reads of it and
+	// of its sender, which backfill's second pass reads (ADR-0126). The first page passes the position of
+	// an infinite send time and an empty identifier, which every message sorts before. The row comparison
+	// is what makes the send time an index condition on messages (account_id, sent_at DESC) in custom and
+	// generic plans alike, so a late page costs what an early one does. Written with OR, or with a
+	// nullable position, the comparison is applied as a filter and a page's cost grows with progress. The
+	// page is keyed on the position, so a message left waiting is read once per pass.
+	PendingPageNewestFirst(ctx context.Context, arg PendingPageNewestFirstParams) ([]PendingPageNewestFirstRow, error)
 	// Records that the scan gate skipped a waiting message, as skipped_restricted or skipped_gate
 	// (ADR-0093). A message no longer waiting is left as it is and counts no row.
 	RecordSkip(ctx context.Context, arg RecordSkipParams) (int64, error)

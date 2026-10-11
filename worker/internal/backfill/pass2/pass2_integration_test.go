@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -28,12 +29,18 @@ import (
 )
 
 // message returns one fixture message from address, with a List-Id when listID is set, whose text part
-// is text, and whose HTML part is html.
+// is text, and whose HTML part is html. It is sent a minute before the message whose identifier's
+// number is one less, so the pass, which reads newest first (ADR-0126), reads a test's messages in the
+// order of their numbers.
 func message(id, address string, listID bool, text, html string) fake.Message {
+	n, err := strconv.Atoi(strings.TrimLeft(id, "abcdefghijklmnopqrstuvwxyz"))
+	if err != nil {
+		panic("a fixture message's identifier ends in its number: " + id)
+	}
 	m := fake.Message{
 		Metadata: mail.MessageMetadata{
 			ID: id, ThreadID: "t" + id, From: mail.Address{Email: address}, Subject: marker.Field("subject"),
-			Date: mail.UnixMilli(1_700_000_000_000),
+			Date: mail.UnixMilli(1_700_000_000_000 - int64(n)*60_000),
 		},
 		Body: mail.MessageBody{Text: text, HTML: html},
 	}
@@ -132,10 +139,49 @@ func TestAPassDecidesAndRecordsEveryWaitingMessage(t *testing.T) {
 	}
 	latest, _ := got.latest()
 	wantProgress := core.Progress{}
-	wantProgress.Checkpoint.Page, wantProgress.Checkpoint.After = 3, "m06"
+	wantProgress.Checkpoint.Page, wantProgress.Checkpoint.After = 3, core.Position{SentAt: 1_700_000_000_000 - 6*60_000, ID: "m06"}
 	wantProgress.Counters.Pages, wantProgress.Counters.Decided, wantProgress.Counters.Scanned, wantProgress.Counters.Skipped = 3, 6, 2, 4
 	if latest.State != "succeeded" || latest.Progress != wantProgress {
 		t.Errorf("the latest run is %+v, want one that succeeded at %+v", latest, wantProgress)
+	}
+}
+
+// VERIFICATIONS' row for the second pass reading newest first. Six messages wait, sent in an order their
+// identifiers do not follow, two of them in the same minute. The first page of two scans the two newest
+// and leaves the four older ones waiting, so the newest mail is readable first, and the pass then reads
+// the rest newest first, the two sent in the same minute by identifier, highest first (ADR-0126).
+func TestTheSecondPassReadsTheNewestWaitingMessagesFirst(t *testing.T) {
+	at := func(minute int64, m fake.Message) fake.Message {
+		m.Metadata.Date = mail.UnixMilli(1_700_000_000_000 + minute*60_000)
+		return m
+	}
+	w := realWorldOf(t, 2, []fake.Message{
+		at(3, message("m01", "a@shop.example", false, marker.Body("one"), "")),
+		at(5, message("m02", "b@shop.example", false, marker.Body("two"), "")),
+		at(1, message("m03", "c@shop.example", false, marker.Body("three"), "")),
+		at(4, message("m04", "d@shop.example", false, marker.Body("four"), "")),
+		at(1, message("m05", "e@shop.example", false, marker.Body("five"), "")),
+		at(2, message("m06", "f@shop.example", false, marker.Body("six"), "")),
+	})
+	w.step(t)
+	states := func() map[string]string {
+		out := map[string]string{}
+		for id, m := range w.inspect(t).Messages {
+			out[id] = m.State
+		}
+		return out
+	}
+	afterOne := map[string]string{"m01": "pending", "m02": "scanned", "m03": "pending", "m04": "scanned", "m05": "pending", "m06": "pending"}
+	if diff := cmp.Diff(afterOne, states(), compare.Options); diff != "" {
+		t.Errorf("the scan states after the first page (-want +got):\n%s", diff)
+	}
+	for range 10 {
+		if w.step(t) {
+			break
+		}
+	}
+	if diff := cmp.Diff([]string{"m02", "m04", "m01", "m06", "m05", "m03"}, w.fetched, compare.Options); diff != "" {
+		t.Errorf("the bodies asked for (-want +got):\n%s", diff)
 	}
 }
 
