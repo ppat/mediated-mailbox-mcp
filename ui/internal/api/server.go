@@ -157,7 +157,7 @@ func New(opts Options) (*Server, error) {
 		opts.ClientSecrets = noSecrets{}
 	}
 	s := &Server{opts: opts, keys: k, reserved: reserved, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
-	a, err := newApp(opts.Bundle, opts.Browser, k)
+	a, err := newApp(opts.Bundle, opts.Browser, k, reserved)
 	if err != nil {
 		return nil, err
 	}

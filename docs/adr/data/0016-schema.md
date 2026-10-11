@@ -28,7 +28,8 @@ CREATE TABLE oauth_clients (             -- the installation's OAuth clients, an
 -- a provider that authenticates without an OAuth client has no row, and no account refers to one
 
 CREATE TABLE accounts (                  -- what every listing needs, readable in full (ADR-0091)
-  account_id        text PRIMARY KEY,
+  account_id        text PRIMARY KEY     -- one lowercase DNS label (ADR-0128)
+    CHECK (account_id ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'),
   provider          text NOT NULL,
   oauth_client      text,                -- the client the account connects through, NULL for a provider
                                          -- without one (ADR-0106)

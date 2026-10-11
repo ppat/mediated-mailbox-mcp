@@ -66,21 +66,37 @@ func TestAConnectedAccountHoldsItsSealedGrant(t *testing.T) {
 	}
 }
 
-// An account identifier the mediator's API root cannot address, or one of the words the UI's own
-// top-level paths use, is refused when the attempt starts, before anything happens at the provider,
-// and nothing is stored (ADR-0087, docs/UI.md section 8.12, VERIFICATIONS, the two identifier rows).
-// The bundle here holds main.js, main.css and a fonts directory, so those three are its top level.
+// An account identifier outside the grammar, or one of the words the UI's own top-level paths use,
+// is refused when the attempt starts, before anything happens at the provider, and nothing is stored,
+// for every case of the shared table of identifier cases the server refuses, while every case it
+// accepts and every proposal starts an attempt (docs/UI.md section 8.12, VERIFICATIONS, the account
+// identifier rows). The bundle here holds main.js, main.css and a fonts directory, so those three are
+// its top level.
 func TestAnIdentifierNoScreenCouldReachIsRefused(t *testing.T) {
 	r := newRig(t)
 	b := r.browser()
 	b.addClient(household, householdID, householdSecret)
 	before := r.stored()
-	for _, id := range []string{".", "..", "/", "setup", "api", "main.js", "main.css", "fonts", ""} {
-		res := b.post("/api/setup/connect", map[string]any{"account": id, "client": household, "mailbox": "jo@example.com", "lowered_target": nil})
-		refused(t, res, http.StatusBadRequest, "identifier_refused")
+	start := func(id string) response {
+		return b.post("/api/setup/connect", map[string]any{"account": id, "client": household, "mailbox": "jo@example.com", "lowered_target": nil})
+	}
+	for _, c := range identifierCases {
+		if !c.Server {
+			refused(t, start(c.Identifier), http.StatusBadRequest, "identifier_refused")
+		}
 	}
 	if _, ok := b.cookies["ui_consent"]; ok {
 		t.Errorf("a refused identifier started an attempt")
+	}
+	for _, c := range identifierCases {
+		for _, id := range []string{c.Identifier, c.Proposal} {
+			if id == c.Identifier && !c.Server {
+				continue
+			}
+			if res := start(id); res.status != http.StatusOK {
+				t.Errorf("%q: starting an attempt answered %d %s", id, res.status, res.body)
+			}
+		}
 	}
 	refused(t, b.post("/api/setup/connect", map[string]any{"account": personal, "client": household, "mailbox": "jo@example.com", "lowered_target": nil}),
 		http.StatusConflict, "identifier_taken")

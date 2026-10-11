@@ -1,6 +1,7 @@
 // The installation screens and account settings of docs/UI.md sections 8.10 to 8.13, rendered by the
 // router over answers recorded from the real server.
 import { afterEach, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { act } from "preact/test-utils";
 import {
   accountPath,
@@ -274,10 +275,52 @@ test("a pasted address names what it holds before anything is sent", () => {
   expect(readPasted("  ", "s", redirect)).toBeNull();
 });
 
-test("an identifier is proposed from the mailbox's local part, with a suffix when it is taken", () => {
-  expect(proposeIdentifier("Jo.Smith+mail@gmail.com", [])).toBe("jo-smith-mail");
-  expect(proposeIdentifier("jo@gmail.com", ["jo", "jo-2"])).toBe("jo-3");
-  expect(proposeIdentifier("@gmail.com", [])).toBe("account");
+// The shared table of account identifier cases, which the server's tests write from the table they
+// test the server's check and the database against (ADR-0128, VERIFICATIONS, the identifier
+// agreement row).
+type IdentifierCase = { identifier: string; taken: string[]; proposal: string };
+type IdentifierTable = { reserved: string[]; cases: IdentifierCase[] };
+
+const isWords = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((w) => typeof w === "string");
+const isCase = (v: unknown): v is IdentifierCase =>
+  typeof v === "object" &&
+  v !== null &&
+  "identifier" in v &&
+  typeof v.identifier === "string" &&
+  "taken" in v &&
+  isWords(v.taken) &&
+  "proposal" in v &&
+  typeof v.proposal === "string";
+
+function readIdentifiers(): IdentifierTable {
+  const table: unknown = JSON.parse(
+    readFileSync(new URL("./identifiers.json", import.meta.url), "utf8"),
+  );
+  if (
+    typeof table !== "object" ||
+    table === null ||
+    !("reserved" in table) ||
+    !isWords(table.reserved) ||
+    !("cases" in table) ||
+    !Array.isArray(table.cases) ||
+    !table.cases.every(isCase)
+  ) {
+    throw new Error("identifiers.json is not the table of identifier cases");
+  }
+  return { reserved: table.reserved, cases: table.cases };
+}
+const identifiers = readIdentifiers();
+
+test("every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case", () => {
+  expect(identifiers.cases.length).toBeGreaterThan(0);
+  const proposals = identifiers.cases.map((c) => ({
+    identifier: c.identifier,
+    proposal: proposeIdentifier(`${c.identifier}@example.com`, c.taken, identifiers.reserved),
+  }));
+  expect(proposals).toEqual(
+    identifiers.cases.map((c) => ({ identifier: c.identifier, proposal: c.proposal })),
+  );
 });
 
 const connectAnswers = {
@@ -301,7 +344,7 @@ test("step 1 starts the attempt, and a refused identifier says why before anythi
   await type(identifier, "setup");
   await click(button(root, "Continue"));
   expect(root.querySelector(".refusal")?.textContent).toBe(
-    "setup cannot be an account's identifier. It may not be ., .. or /, nor a word the UI's own paths use.",
+    "setup cannot be an account's identifier. An identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, and is not a word the UI's own paths use.",
   );
   expect(root.querySelector('section[aria-label="Step 2, grant access at Google"]')).toBeNull();
   await click(button(root, "Continue"));
@@ -324,6 +367,16 @@ test("step 1 starts the attempt, and a refused identifier says why before anythi
   expect(consent?.getAttribute("href")).toStartWith(
     "https://accounts.google.com/o/oauth2/v2/auth?",
   );
+});
+
+test("step 1 proposes no word the entry document says account setup refuses", async () => {
+  const root = await open("/setup/connect", {
+    ...connectAnswers,
+    [connectPath()]: ok("connect-none.json"),
+  });
+  await type(root.querySelector('input[type="email"]'), "Setup@gmail.com");
+  const identifier = root.querySelector(".connect-step input.mono");
+  expect(identifier instanceof HTMLInputElement ? identifier.value : undefined).toBe("setup-2");
 });
 
 test("a restored attempt finishes from the pasted address, names a refusal's cause, and says what it stored", async () => {

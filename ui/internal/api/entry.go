@@ -32,6 +32,7 @@ const entryTemplate = `<!doctype html>
 <meta name="mediated-mailbox.stream_poll_interval" content="{{.PollInterval}}">
 <meta name="mediated-mailbox.consent_redirect" content="{{.Browser.ConsentRedirect}}">
 <meta name="mediated-mailbox.request_token" content="{{.Token}}">
+<meta name="mediated-mailbox.reserved_identifiers" content="{{.Reserved}}">
 <link rel="stylesheet" href="/{{.Stylesheet}}">
 <script type="module" src="/{{.Entry}}"></script>
 </head>
@@ -62,6 +63,9 @@ type entryData struct {
 	// Token is the request token of the session the page loads in, which every state-changing request
 	// the page sends carries.
 	Token string
+	// Reserved is the words account setup refuses as identifiers, separated by single spaces, which
+	// the connect page's proposal avoids (docs/UI.md sections 8.12 and 18.1).
+	Reserved string
 }
 
 // app serves a bundle file when the path names one, and otherwise the entry document, so every
@@ -72,14 +76,19 @@ type app struct {
 	template *template.Template
 	browser  Browser
 	keys     keys
+	// reserved is the words account setup refuses as identifiers, as the entry document carries them.
+	reserved string
 }
 
-func newApp(bundle fs.FS, browser Browser, k keys) (*app, error) {
+func newApp(bundle fs.FS, browser Browser, k keys, reserved []string) (*app, error) {
 	t, err := template.New("entry").Parse(entryTemplate)
 	if err != nil {
 		return nil, err
 	}
-	return &app{bundle: bundle, files: http.FileServerFS(bundle), template: t, browser: browser, keys: k}, nil
+	return &app{
+		bundle: bundle, files: http.FileServerFS(bundle), template: t, browser: browser, keys: k,
+		reserved: strings.Join(reserved, " "),
+	}, nil
 }
 
 // Reserved is every word the UI's own top-level paths use, which no account identifier may be, so
@@ -116,7 +125,7 @@ func (a *app) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := a.template.Execute(&body, entryData{
 		Entry: BundleEntry, Stylesheet: BundleStylesheet, Browser: a.browser,
 		ReconnectMax: a.browser.StreamReconnectMax.Milliseconds(), PollInterval: a.browser.StreamPollInterval.Milliseconds(),
-		Token: a.keys.requestToken(sessionOf(r.Context()).id),
+		Token: a.keys.requestToken(sessionOf(r.Context()).id), Reserved: a.reserved,
 	}); err != nil {
 		requestInfo(r.Context()).err = err
 		http.Error(w, "the UI server failed", http.StatusInternalServerError)

@@ -5,7 +5,7 @@ tests: TestTheEntryDocumentCarriesTheBrowsersConfiguration
 scheduled-count: no
 
 diff --git a/ui/internal/api/entry.go b/ui/internal/api/entry.go
-index 8bfebe5e..c19e399f 100644
+index 644e06ad..22910f0f 100644
 --- a/ui/internal/api/entry.go
 +++ b/ui/internal/api/entry.go
 @@ -30,7 +30,6 @@ const entryTemplate = `<!doctype html>
@@ -14,5 +14,5 @@ index 8bfebe5e..c19e399f 100644
  <meta name="mediated-mailbox.stream_poll_interval" content="{{.PollInterval}}">
 -<meta name="mediated-mailbox.consent_redirect" content="{{.Browser.ConsentRedirect}}">
  <meta name="mediated-mailbox.request_token" content="{{.Token}}">
+ <meta name="mediated-mailbox.reserved_identifiers" content="{{.Reserved}}">
  <link rel="stylesheet" href="/{{.Stylesheet}}">
- <script type="module" src="/{{.Entry}}"></script>

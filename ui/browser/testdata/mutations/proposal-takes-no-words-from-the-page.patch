@@ -1,0 +1,20 @@
+control: the proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+removes: the connect page proposes without the words the entry document carries
+packages: ./ui/browser/test/setup.test.tsx
+tests: step 1 proposes no word the entry document says account setup refuses
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/connect.tsx b/ui/browser/src/screens/connect.tsx
+index 4ae6391f..b382e507 100644
+--- a/ui/browser/src/screens/connect.tsx
++++ b/ui/browser/src/screens/connect.tsx
+@@ -279,7 +279,7 @@ function NameStep(props: NameProps) {
+   const [failure, setFailure] = useState<Failure | undefined>(undefined);
+   const [moving, setMoving] = useState(props.chosen !== undefined);
+   const taken = answer.accounts.map((a) => a.account_id);
+-  const proposed = identifier ?? proposeIdentifier(mailbox, taken, deps.config.reservedIdentifiers);
++  const proposed = identifier ?? proposeIdentifier(mailbox, taken, []);
+   const clients = clientsFor(answer);
+   const remembered = account?.mailbox ?? null;
+   const start = async () => {

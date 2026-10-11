@@ -1,0 +1,424 @@
+{
+  "reserved": [
+    "api",
+    "fonts",
+    "main.css",
+    "main.js",
+    "setup"
+  ],
+  "cases": [
+    {
+      "identifier": "jo",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "a",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "a"
+    },
+    {
+      "identifier": "7",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "7"
+    },
+    {
+      "identifier": "2fa",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "2fa"
+    },
+    {
+      "identifier": "9lives",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "9lives"
+    },
+    {
+      "identifier": "work-2",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "work-2"
+    },
+    {
+      "identifier": "a--b",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "a--b"
+    },
+    {
+      "identifier": "xn--bcher-kva",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "xn--bcher-kva"
+    },
+    {
+      "identifier": "setups",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "setups"
+    },
+    {
+      "identifier": "main",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "main"
+    },
+    {
+      "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-b",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "identifier": "",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "account"
+    },
+    {
+      "identifier": ".",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "account"
+    },
+    {
+      "identifier": "..",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "account"
+    },
+    {
+      "identifier": "/",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "account"
+    },
+    {
+      "identifier": "...",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "account"
+    },
+    {
+      "identifier": "-",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "account"
+    },
+    {
+      "identifier": "-jo",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "jo-",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "Jo",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "JO.SMITH+mail",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo-smith-mail"
+    },
+    {
+      "identifier": "jo.smith",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo-smith"
+    },
+    {
+      "identifier": "jo..smith",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo-smith"
+    },
+    {
+      "identifier": "jo smith",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo-smith"
+    },
+    {
+      "identifier": "jo_smith",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo-smith"
+    },
+    {
+      "identifier": "a/b",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "a-b"
+    },
+    {
+      "identifier": "a@b",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "a-b"
+    },
+    {
+      "identifier": "100%",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "100"
+    },
+    {
+      "identifier": "jo?#",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "peter's gmail",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "peter-s-gmail"
+    },
+    {
+      "identifier": "jo\n",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "\njo",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "jo\r",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "jo\tsmith",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo-smith"
+    },
+    {
+      "identifier": " jo",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jo"
+    },
+    {
+      "identifier": "josé",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "jos"
+    },
+    {
+      "identifier": "émile",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "mile"
+    },
+    {
+      "identifier": "straße",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "stra-e"
+    },
+    {
+      "identifier": "İpek",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "i-pek"
+    },
+    {
+      "identifier": "Kelvin",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "kelvin"
+    },
+    {
+      "identifier": "ｊｏ",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "account"
+    },
+    {
+      "identifier": "jо",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "j"
+    },
+    {
+      "identifier": "setup",
+      "server": false,
+      "database": true,
+      "taken": [],
+      "proposal": "setup-2"
+    },
+    {
+      "identifier": "api",
+      "server": false,
+      "database": true,
+      "taken": [],
+      "proposal": "api-2"
+    },
+    {
+      "identifier": "fonts",
+      "server": false,
+      "database": true,
+      "taken": [],
+      "proposal": "fonts-2"
+    },
+    {
+      "identifier": "Setup",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "setup-2"
+    },
+    {
+      "identifier": "main.js",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "main-js"
+    },
+    {
+      "identifier": "main.css",
+      "server": false,
+      "database": false,
+      "taken": [],
+      "proposal": "main-css"
+    },
+    {
+      "identifier": "jo",
+      "server": true,
+      "database": true,
+      "taken": [
+        "jo",
+        "jo-2"
+      ],
+      "proposal": "jo-3"
+    },
+    {
+      "identifier": "",
+      "server": false,
+      "database": false,
+      "taken": [
+        "account"
+      ],
+      "proposal": "account-2"
+    },
+    {
+      "identifier": "setup",
+      "server": false,
+      "database": true,
+      "taken": [
+        "setup-2"
+      ],
+      "proposal": "setup-3"
+    },
+    {
+      "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "server": true,
+      "database": true,
+      "taken": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "proposal": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2"
+    },
+    {
+      "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "server": true,
+      "database": true,
+      "taken": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-3",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-4",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-5",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-6",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-7",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-8",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-9"
+      ],
+      "proposal": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-10"
+    },
+    {
+      "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bc",
+      "server": true,
+      "database": true,
+      "taken": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bc"
+      ],
+      "proposal": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2"
+    }
+  ]
+}

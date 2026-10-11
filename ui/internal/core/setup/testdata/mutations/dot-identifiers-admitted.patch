@@ -1,19 +1,19 @@
 control: an account identifier no screen or path could reach is refused, and nothing is stored
-removes: an identifier exactly ., .. or / is admitted
-packages: ./ui/internal/core/setup
-tests: TestAnIdentifierEveryScreenCanReach
+removes: an identifier holding a dot, . and .. included, is admitted
+packages: ./ui/internal/api
+tests: TestTheServerCheckKeepsToTheIdentifierTable
 scheduled-count: no
 
 diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
-index 301c9a28..8d5cc795 100644
+index ae6ec6eb..245ebbdd 100644
 --- a/ui/internal/core/setup/setup.go
 +++ b/ui/internal/core/setup/setup.go
-@@ -70,7 +70,7 @@ func ProjectID(id *string) Refusal {
- // of reserved, the words the UI's own top-level paths use, so every account's screens can be reached
- // (docs/UI.md section 8.12). An identifier another account holds is refused by the store.
- func Identifier(id string, reserved []string) Refusal {
--	if id == "" || id == "." || id == ".." || id == "/" || slices.Contains(reserved, id) {
-+	if id == "" || slices.Contains(reserved, id) {
- 		return IdentifierRefused
+@@ -85,7 +85,7 @@ func identifierShaped(id string) bool {
  	}
- 	return None
+ 	for i := range len(id) {
+ 		c := id[i]
+-		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-' {
++		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-' && c != '.' {
+ 			return false
+ 		}
+ 	}

@@ -1,0 +1,19 @@
+control: an account identifier no screen or path could reach is refused, and nothing is stored
+removes: an identifier holding an ASCII capital is admitted
+packages: ./ui/internal/api
+tests: TestTheServerCheckKeepsToTheIdentifierTable
+scheduled-count: no
+
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+index ae6ec6eb..37830c8c 100644
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -85,7 +85,7 @@ func identifierShaped(id string) bool {
+ 	}
+ 	for i := range len(id) {
+ 		c := id[i]
+-		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-' {
++		if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-' {
+ 			return false
+ 		}
+ 	}

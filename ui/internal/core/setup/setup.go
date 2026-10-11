@@ -62,15 +62,34 @@ func ProjectID(id *string) Refusal {
 	return None
 }
 
-// Identifier refuses an account identifier the UI or the mediator could not address. It is empty,
-// exactly ., .. or /, which the mediator's API root cannot hold as a path segment (ADR-0087), or one
-// of reserved, the words the UI's own top-level paths use, so every account's screens can be reached
-// (docs/UI.md section 8.12). An identifier another account holds is refused by the store.
+// Identifier refuses an account identifier outside the grammar of one lowercase DNS label, one to
+// 63 lowercase ASCII letters, digits and hyphens starting and ending with a letter or a digit, which
+// the database's check on accounts.account_id also holds, so every identifier is a path segment the
+// mediator's API root can address (ADR-0087) and legible wherever it spreads (ADR-0128). It also
+// refuses one of reserved, the words the UI's own top-level paths use, which the database does not
+// know, so every account's screens can be reached (docs/UI.md section 8.12). It reads id as it
+// arrives, trimming and folding nothing, so it accepts nothing the database refuses. An identifier
+// another account holds is refused by the store.
 func Identifier(id string, reserved []string) Refusal {
-	if id == "" || id == "." || id == ".." || id == "/" || slices.Contains(reserved, id) {
+	if !identifierShaped(id) || slices.Contains(reserved, id) {
 		return IdentifierRefused
 	}
 	return None
+}
+
+// identifierShaped reports whether id is inside the account identifier grammar,
+// ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$.
+func identifierShaped(id string) bool {
+	if len(id) < 1 || len(id) > 63 || id[0] == '-' || id[len(id)-1] == '-' {
+		return false
+	}
+	for i := range len(id) {
+		c := id[i]
+		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-' {
+			return false
+		}
+	}
+	return true
 }
 
 // Mailbox refuses a mailbox address with no local part or no domain.

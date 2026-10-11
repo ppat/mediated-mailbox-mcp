@@ -1,0 +1,20 @@
+control: the proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+removes: the proposal trims no hyphen at its end, before or after the cut
+packages: ./ui/browser/test/setup.test.tsx
+tests: every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/connect.tsx b/ui/browser/src/screens/connect.tsx
+index 4ae6391f..2e50ff99 100644
+--- a/ui/browser/src/screens/connect.tsx
++++ b/ui/browser/src/screens/connect.tsx
+@@ -217,7 +217,7 @@ const identifierLength = 63;
+ 
+ // fit cuts s to length characters and trims the hyphens that end what is left.
+ function fit(s: string, length: number): string {
+-  return s.slice(0, length).replace(/-+$/, "");
++  return s.slice(0, length);
+ }
+ 
+ // proposeIdentifier proposes an account identifier from a mailbox's local part, inside the grammar of

@@ -1,0 +1,17 @@
+control: the proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+removes: the database's check is not anchored at its end, so it stores an identifier that only begins inside the grammar
+packages: ./ui/internal/api
+tests: TestTheDatabaseKeepsToTheIdentifierTable
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00005_account_identifier_grammar.sql b/db/migrations/00005_account_identifier_grammar.sql
+index b9f33379..bed532e0 100644
+--- a/db/migrations/00005_account_identifier_grammar.sql
++++ b/db/migrations/00005_account_identifier_grammar.sql
+@@ -6,4 +6,4 @@
+ -- rewrites it, since an account is system-of-record data (ADR-0048).
+ ALTER TABLE accounts
+ DROP CONSTRAINT accounts_account_id_addressable,
+-ADD CONSTRAINT accounts_account_id_grammar CHECK (account_id ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$');
++ADD CONSTRAINT accounts_account_id_grammar CHECK (account_id ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?');

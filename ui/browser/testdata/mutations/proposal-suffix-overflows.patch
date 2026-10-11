@@ -1,0 +1,20 @@
+control: the proposal, the server's check and the database agree on every case of the shared table of account identifier cases
+removes: a suffix is added to the whole proposal, so a long one passes 63 characters
+packages: ./ui/browser/test/setup.test.tsx
+tests: every proposal of the shared identifier table is the table's, for a mailbox whose local part is its case
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/connect.tsx b/ui/browser/src/screens/connect.tsx
+index 4ae6391f..181f0b93 100644
+--- a/ui/browser/src/screens/connect.tsx
++++ b/ui/browser/src/screens/connect.tsx
+@@ -242,7 +242,7 @@ export function proposeIdentifier(
+   }
+   for (let n = 2; ; n++) {
+     const suffix = `-${n}`;
+-    const candidate = `${fit(base, identifierLength - suffix.length)}${suffix}`;
++    const candidate = `${base}${suffix}`;
+     if (free(candidate)) {
+       return candidate;
+     }
