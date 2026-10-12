@@ -12,7 +12,6 @@ paths:
   - "**/Dockerfile"
   - ".pre-commit-config.yaml"
   - "packaging/**"
-  - "tests/chainsaw/**"
 ---
 
 # Rules for CI, images, packaging and tool pins
@@ -40,10 +39,21 @@ formatting to Tools and versions. These are the tripwires:
   environment or selection is changed by any other means, `set +e` or a `GOENV` file for example,
   is left to review, as is a `go test` reached through a variable, a script or another program
   (ADR-0124).
-- **The chainsaw workflow builds no images**, takes a version, and runs on packaging and suite
-  changes only (ADR-0052).
+- **The chainsaw workflow builds no images**, deploys `main`'s `latest` images on a pull request
+  and a release's images when given its version, and runs on packaging and suite changes only
+  (ADR-0052).
+- **`latest` has two writers.** The `images` workflow's one job per image builds, signs and pushes
+  it as `latest` on a push to `main` that matches its publish list, and on a pull request builds it
+  without pushing, watching only Dockerfiles, `go.mod`, `go.sum` and itself. The publish list names
+  what the images are built from and the workflow itself, leaves out tests, documents, test data,
+  patches, violation files, sqlfluff configurations, the code generator's configuration and statement
+  files, and the version file release-please writes, and is extended by hand per new component. A
+  release's own image builds tag the release's images `latest` as they push them (ADR-0052).
+  Negated patterns come last, since the last matching pattern wins.
 - **Every release builds, pushes and signs every image and the chart at the release version**
-  (ADR-0049, ADR-0052). Each image is built from the repository root with its own Dockerfile.
+  (ADR-0049, ADR-0052). Each image is built from the repository root with its own Dockerfile. The
+  release cut writes that version into the chart and `process/version` (ADR-0078), and the release
+  workflow refuses a chart that disagrees with its tag.
 - **Every tool is at its latest version unless a document says otherwise.** The tools this project's
   own jobs and hooks run are pinned in `mise.toml`, with `mise.lock` committed in the lock format
   CI's mise reads (CLAUDE.md, Tools and versions).

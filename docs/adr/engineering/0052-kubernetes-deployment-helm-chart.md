@@ -53,11 +53,22 @@ the chart may assume about the user's cluster.
   tests over the alerting rules it ships, and a chainsaw suite, declarative Kubernetes
   end-to-end tests, that deploys the chart onto an ephemeral kind cluster and exercises it. The
   chainsaw harness deploys the chart via flux, which its workflow installs on the cluster as
-  harness machinery, not something the chart assumes exists. The suite builds no images. It takes
-  a version and deploys the chart with the images already published for that version, and it runs
-  when the packaging or the suite changes, never because a deployable changed. Where no images
-  exist for the version, it reports that it did not run rather than passing, and a suite with no
-  tests fails.
+  harness machinery, not something the chart assumes exists. The suite builds no images. It
+  deploys the chart with images already published, `main`'s `latest` images on a pull request, or
+  the images of the release version a run started by hand names. `latest` has two writers. `main`
+  publishes every image as `latest` whenever a push changes what an image is built from or the
+  workflow that builds them, all four built together from one commit and signed as a release's
+  are, and a release's own image builds tag its images `latest` as they push them. Either way the
+  four come from one commit, which keeps the lockstep of
+  [ADR-0049](./0049-image-per-component-lockstep.md). A set a failed write leaves mixed, or a
+  `latest` a release left behind `main`, stays until the next push that changes what an image is
+  built from or a build started by hand. The version the release cut writes is no reason for
+  `main` to build, since the release publishes that commit's images as `latest` itself. A pull
+  request's run deploys the one set of four it resolved at its start, and refuses a set built from
+  different commits or holding an image that names no commit. The suite runs when the packaging or
+  the suite changes, never because a deployable changed. A pull request's run that finds no
+  `latest` images reports that it did not run rather than passing, a run started by hand whose
+  version lacks any image fails, and a suite with no tests fails.
 - **Distribution is OCI, in the same registry as the images, at the lockstep version,** with no
   hosted chart repository and no index.
   [ADR-0028](../operability/0028-trust-anchor-hardening.md)'s signed-and-verified rule extends
@@ -79,6 +90,17 @@ the chart may assume about the user's cluster.
 - The chainsaw suite on a bare kind cluster is where the no-assumptions edge is exercised. A
   chart template that silently depends on cluster machinery the chart does not ship fails the
   install there.
+- A pull request's run deploys the images of a commit already on `main`, and configuration is
+  strict ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). So a pull request that
+  adds a configuration key to a deployable and renders it in the chart in the same change fails
+  the suite against the older `latest`. The deployable's change lands first, and the chart's change
+  after it.
+- A `latest` image reports the version of the newest release at or before the commit it was built
+  from, because the release cut writes the version every binary reports
+  ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). Its revision label names
+  that commit.
+- A hand edit to the version constant alone does not rebuild `latest` from `main`. Only the
+  release cut writes it, and the release builds that commit's images itself.
 - Assumptions about other components: the release process sets the chart `version` and
   `appVersion` to the release version, the registry serves OCI chart artifacts and the signing
   machinery covers them as it covers images, and the consuming platform supplies Postgres and the

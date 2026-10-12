@@ -34,7 +34,7 @@ func main() {
 	logger := logging.New(os.Stdout, level)
 	slog.SetDefault(logger)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := app.Run(ctx, os.Args[1:], os.Environ(), logger, level, embedded)
+	err := app.Run(ctx, os.Args[1:], os.Environ(), os.Stderr, logger, level, embedded)
 	stop()
 	if err != nil {
 		logger.Error("ui stopped", "error", err)

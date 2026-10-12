@@ -15,6 +15,10 @@
   "packages": {
     ".": {
       "bump-minor-pre-major": true,
+      "extra-files": [
+        { "type": "generic", "path": "packaging/chart/Chart.yaml" },
+        { "type": "generic", "path": "process/version/version.go" }
+      ],
       "extra-label": "pr-type:release"
     }
   },

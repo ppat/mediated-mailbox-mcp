@@ -274,11 +274,11 @@ const CASES = [
     overrides: { commits: () => [commit('ci(internal-workflows): enforce the vocabulary\n', ['.github/workflows/lint.yaml', '.claude/rules/commits.md', 'docs/adr/README.md'])] },
   },
   {
-    id: 'I16', check: 'truth', expect: /tests\/chainsaw\/kind\.yaml pinned-thing minor renders 'feat:'/,
+    id: 'I16', check: 'truth', expect: /packaging\/tests\/chainsaw\/kind\.yaml pinned-thing minor renders 'feat:'/,
     defect: 'a new comment-pinned version in an unshipped directory, which the emitter would type by update type',
     overrides: (() => {
       const b = base()
-      const file = 'tests/chainsaw/kind.yaml'
+      const file = 'packaging/tests/chainsaw/kind.yaml'
       return {
         tracked: () => [...b.tracked(), file],
         text: (rel) => (rel === file ? '# renovate: datasource=github-releases depName=pinned-thing\nversion: "1.0.0"\n' : b.text(rel)),

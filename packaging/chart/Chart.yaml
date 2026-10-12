@@ -3,11 +3,13 @@
 # the Helm tests under templates/tests, arrive with the deployables they run. The alerting rules' template renders
 # only when the value alertingRules.enabled switches it on, and is off by default (ADR-0077).
 #
-# The version below is not the chart's release version. The release workflow packages the chart with version
-# and appVersion both set to the release version, so the chart and every image carry one version (ADR-0049).
+# version and appVersion are both the release version, so the chart and every image carry one version
+# (ADR-0049). The release cut writes them, through release-please's generic updater over the two marked lines,
+# with the version every binary reports (process/version), and the release workflow refuses to publish a chart
+# whose version disagrees with the release's tag.
 apiVersion: v2
 name: mediated-mailbox
 description: Stands up the mediated mailbox system, every deployable and its project-owned wiring
 type: application
-version: 0.0.0
-appVersion: "0.0.0"
+version: 0.0.1 # x-release-please-version
+appVersion: "0.0.1" # x-release-please-version

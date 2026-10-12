@@ -5,12 +5,13 @@ tests: TestAnInvalidScannerSectionRefusesTheStart
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
+index 2857e76b..0a350f6e 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -210,10 +210,7 @@
- 	if err := validate(c); err != nil {
+@@ -226,10 +226,7 @@ func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *
  		return fmt.Errorf("validating the configuration: %w", err)
  	}
+ 	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-worker %s\n  probes  http on %s\n", version.Number, c.ProbeListen), logger)
 -	scanner, err := buildScanner(loaded)
 -	if err != nil {
 -		return fmt.Errorf("validating the configuration: %w", err)

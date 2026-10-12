@@ -470,7 +470,7 @@ func TestTheDefaults(t *testing.T) {
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), nil, nil, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), nil, nil, io.Discard, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: token_file is required, and neither the file, MEDIATED_MAILBOX_TOKEN_FILE nor --token_file sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
@@ -526,7 +526,7 @@ func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 // An argument that is not a configuration flag is refused, so no account reaches the mediator from its
 // command line (ADR-0080).
 func TestAnAccountArgumentIsRefused(t *testing.T) {
-	err := Run(t.Context(), []string{"acct-a"}, nil, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), []string{"acct-a"}, nil, io.Discard, discard(), new(slog.LevelVar))
 	if err == nil || !strings.Contains(err.Error(), "loading the configuration") {
 		t.Errorf("Run returned %v, want the argument refused", err)
 	}
@@ -571,7 +571,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
 	err := Run(t.Context(), args(servingArgs, []string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys),
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, new(slog.LevelVar))
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the keyring's refusal", err)
 	}
@@ -629,7 +629,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("Run returned %v, want the configuration library's refusal", err)
 			}
@@ -667,7 +667,7 @@ func TestNoConfigurationValueWeakensTheGate(t *testing.T) {
 		{"a scanner section with nothing to match", []string{"--config-file=" + emptied}, nil, "validating the configuration: scanner: "},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), c.want) {
 				t.Errorf("Run returned %v, want an error starting %q", err, c.want)
 			}
@@ -708,7 +708,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		keys := []string{"--credential.public_key_file=" + public, "--credential.private_key_files=[" + strings.Join(privates, ", ") + "]"}
-		return Run(t.Context(), args(servingArgs, database, keys), nil, discard(), new(slog.LevelVar))
+		return Run(t.Context(), args(servingArgs, database, keys), nil, io.Discard, discard(), new(slog.LevelVar))
 	}
 	pastTheKeyring := "configuring the database connection: reading the password file: "
 	for _, c := range []struct {
@@ -741,7 +741,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 // (ADR-0086).
 func TestMCPGODEBUGStopsTheStart(t *testing.T) {
 	for _, value := range []string{"allowsessionsinstateless=1", ""} {
-		err := Run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, discard(), new(slog.LevelVar))
+		err := Run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, io.Discard, discard(), new(slog.LevelVar))
 		if err == nil || !strings.Contains(err.Error(), "MCPGODEBUG is set") {
 			t.Errorf("with MCPGODEBUG=%q, run returned %v", value, err)
 		}
@@ -785,7 +785,7 @@ func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
 func TestAPasswordInTheEnvironmentStopsTheStart(t *testing.T) {
 	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {
 		for _, value := range []string{"s3cret", ""} {
-			err := Run(t.Context(), nil, []string{name + "=" + value}, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), nil, []string{name + "=" + value}, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.Contains(err.Error(), "the environment sets "+name) {
 				t.Errorf("with %s=%q, run returned %v", name, value, err)
 			}
@@ -812,7 +812,7 @@ func TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
 		"--database.password_file=" + password, "--database.sslmode=disable",
 		"--credential.public_key_file=" + public, "--credential.private_key_files=[" + private + "]",
 	})
-	err := Run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, logger, new(slog.LevelVar))
+	err := Run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, io.Discard, logger, new(slog.LevelVar))
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -971,7 +971,7 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 			var out bytes.Buffer
 			level := new(slog.LevelVar)
 			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
-			err := Run(t.Context(), append(args(servingArgs, database, absentKeys), c.args...), c.environ, logger, level)
+			err := Run(t.Context(), append(args(servingArgs, database, absentKeys), c.args...), c.environ, io.Discard, logger, level)
 			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
 				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
 			}

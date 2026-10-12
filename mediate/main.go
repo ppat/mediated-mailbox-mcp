@@ -25,7 +25,7 @@ func main() {
 	logger := logging.New(os.Stdout, level)
 	slog.SetDefault(logger)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := app.Run(ctx, os.Args[1:], os.Environ(), logger, level)
+	err := app.Run(ctx, os.Args[1:], os.Environ(), os.Stderr, logger, level)
 	stop()
 	if err != nil {
 		logger.Error("the mediator stopped", "error", err)

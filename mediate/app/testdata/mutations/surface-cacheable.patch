@@ -4,15 +4,14 @@ packages: ./mediate/app
 tests: TestEveryResponseIsUncacheable
 scheduled-count: no
 
-
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 523220a..191c329 100644
+index 00212862..02a3550c 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -547,7 +547,7 @@ func surface(registry service.Registry, tokenFile string, logger *slog.Logger) (
+@@ -586,7 +586,7 @@ func surface(registry service.Registry, tokenFile string, logger *slog.Logger) (
  	roots := http.NewServeMux()
  	roots.Handle("/api/", apiRoot)
- 	roots.Handle("/mcp", mcp.Handler(registry, version(), logger))
+ 	roots.Handle("/mcp", mcp.Handler(registry, version.Number, logger))
 -	return noStore(logger, bearer(tokenFile, logger, roots)), nil
 +	return bearer(tokenFile, logger, roots), nil
  }

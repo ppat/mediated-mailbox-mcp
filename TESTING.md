@@ -35,7 +35,7 @@ row describes the control's code.
 | An alerting rule | A rule unit test under `promtool test rules`, run from a Go test, firing above its threshold and silent below it | [ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md) |
 | A migration that touches system-of-record data | An integration test that applies the chain before it, stores rows, then applies the migration over them, beside the chain applied from empty | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) |
 | The worker's scheduler, its timing and its handling of wakes | Tests under `testing/synctest`'s fake clock, kept free of network calls, and a test of adding and removing one job from many goroutines at once, run under the race detector. A test against real PostgreSQL keeps its own real-time bound, and each due decision takes the time as a value and is tested as pure-core logic | [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) |
-| The assembled system on a bare cluster | The chart's own tests and the top-level chainsaw suite | [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) |
+| The assembled system on a bare cluster | The chart's own tests and the chainsaw suite beside the chart | [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md) |
 | The UI's browser rendering layer, the rows, the ladder, and each screen | Example-based tests run under bun against a DOM shim, on fixture responses recorded from the real server and carrying the metadata marker text, asserting every marker arrives as text in the form ADR-0064 requires | [ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md), on [ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)'s markers and [ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md)'s rendering rule |
 | A rule the compiler does not check, standing in for a control | The check that enforces it, usually a linter and sometimes a search where no linter reaches, plus the checked-in file that violates it and the script requiring the check to report it | [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) on the server, [ADR-0072](./docs/adr/engineering/0072-browser-bans-under-oxlint-and-ast-grep.md) in the browser, on [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s violation-file rule |
 | A control, meaning a rule the system enforces | The tests that prove its [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) row where the row is automatable, plus its mutation demonstration at acceptance | [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) |
@@ -80,8 +80,11 @@ account set aside for it ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md))
 when started deliberately through a command of its own, `go tool livecontract <provider>`, and
 any other test invocation leaves it out. Its workflow runs that command once a week on the main
 branch and whenever it is started by hand on any branch, never automatically on a pull request.
-Every other test runs without provider credentials. A drill runs where [ROADMAP.md](./ROADMAP.md)
-places it, and its proof holds only for that date.
+Every other test runs without provider credentials. The chainsaw suite runs on a pull request that
+changes the chart, the suite or its workflow, against `main`'s `latest` images, and against a
+release's images when started by hand with its version
+([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). A drill runs where
+[ROADMAP.md](./ROADMAP.md) places it, and its proof holds only for that date.
 
 ## The proof system
 
@@ -148,7 +151,8 @@ and shipped images carry no tests
 than one component needs is a library of its own. How test files are named by kind, where violation
 files, fixtures, golden files and must-not-compile cases sit, and how integration tests are started
 are [CLAUDE.md](./CLAUDE.md#tests)'s. The chart's Helm tests live inside the chart and travel in the
-published chart artifact, an exception ADR-0054 accepts knowingly. The chainsaw suite lives at the
-repository's top level because it tests the assembled system rather than any one deployable
+published chart artifact, an exception ADR-0054 accepts knowingly. The chainsaw suite lives under
+`packaging/`, beside the chart, because it tests the assembled system the chart stands up rather
+than any one deployable
 ([ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md),
 [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)).

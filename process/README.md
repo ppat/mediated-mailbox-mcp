@@ -10,8 +10,8 @@ Its concept is the [process](../DESIGN.md#glossary), what every deployable needs
 process under the environment contract
 ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)), which is its configuration
 layered from defaults, a file, the environment and flags, its database connection and what it
-measures of that connection, what it measures of its runtime, its probe and metrics endpoint, and
-its logs. The decision it hides is
+measures of that connection, what it measures of its runtime, its probe and metrics endpoint, its
+logs, and the release version it reports. The decision it hides is
 how a process meets that contract, which changes only when the contract or the platform under it
 does, and never with what the process runs.
 
@@ -23,6 +23,7 @@ does, and never with what the process runs.
 | `runtimemetrics/` | The registration of the Go runtime's and the process's series, once per process |
 | `probes/` | The health probe and the metrics endpoint of a process that runs work rather than serving requests |
 | `logging/` | The logger every deployable writes its JSON records to standard output through, and the reading of its `log_level` |
+| `version/` | The release version every binary reports through `--version` and every deployable's start banner shows |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`. A package added here without a list of its own falls
@@ -156,3 +157,26 @@ rest, or start where the others refuse. Written once, with a test per level name
 patch for the refusal, they hold in every deployable.
 
 It holds no logger of its own and no package-level state, and it logs nothing.
+
+## The release version, `version`
+
+Every binary the project publishes reports the release it was built for through its `--version`
+flag, every deployable names it in its start banner, and the mediator's MCP server reports it as
+its version
+([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md),
+[ADR-0122](../docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).
+This package holds that version as one constant. The release cut writes it. release-please's
+generic updater, named in the `extra-files` of `release-please-config.json`, replaces the version
+on the constant's marked line in the release pull request, the same pull request that writes the
+chart's `version` and `appVersion` and the manifest release-please reads. The package's test fails
+when the constant, the manifest and the chart disagree, so a misconfigured updater fails on that
+pull request rather than in a release.
+
+The case for one package over a constant per binary is lockstep
+([ADR-0049](../docs/adr/engineering/0049-image-per-component-lockstep.md)). One constant is one
+line the release cut writes, and copies in each binary would be four lines one updater entry could
+miss. A binary built between releases, a `latest` image among them, reports the version of the
+newest release at or before the commit it was built from, and its image's revision label names that
+commit ([ADR-0052](../docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)).
+
+It holds one constant, and does no I/O.

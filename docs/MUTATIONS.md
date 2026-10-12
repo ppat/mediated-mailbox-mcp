@@ -46,10 +46,10 @@ request by the `mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflow
 
 A control's row sits in the file of the component whose directory holds its patches. A patch sits
 in the package whose control it demonstrates ([CLAUDE.md](../CLAUDE.md#tests)), and its component
-is the top-level directory of its path, with `packaging/chart` and `tests/chainsaw` taken whole as
-in [CLAUDE.md](../CLAUDE.md#components). A control whose patches sit in more than one component's
-directory has its row in [cross-component.md](./mutations/cross-component.md), which keeps every
-such control whole in one place. A row whose control gains or loses a patch so that its home
+is the top-level directory of its path, with `packaging/chart` and `packaging/tests/chainsaw`
+taken whole as in [CLAUDE.md](../CLAUDE.md#components). A control whose patches sit in more than
+one component's directory has its row in [cross-component.md](./mutations/cross-component.md),
+which keeps every such control whole in one place. A row whose control gains or loses a patch so that its home
 changes moves to its new file in the same change. Inside a file, rows are ordered by control name,
 alphabetically, ignoring letter case and code formatting, so rows added by different changes land
 at different places in the file. A component's first row creates its file and its line below.

@@ -2,9 +2,28 @@
 # yamllint disable rule:line-length
 name: images
 
-# Builds every image, publishing nothing, when an input of an image's build changes: a Dockerfile, go.mod or go.sum.
-# The Go workflows build and test Go code, the ui workflow builds the browser bundle and go-integration applies the
-# migration chain. Every image builds together because the release publishes them together at one version (ADR-0049).
+# Builds every image, publishing nothing, when a pull request changes an input of an image's build that no other
+# workflow builds: a Dockerfile, go.mod or go.sum. The Go workflows build and test Go code, the ui workflow builds the
+# browser bundle and go-integration applies the migration chain. Every image builds together because the release
+# publishes them together at one version (ADR-0049).
+#
+# On a push to main whose changes match the publish list below, or a run by hand on main, the same job also signs and
+# pushes each image and tags its digest latest, so the chainsaw suite on a pull request deploys main's images
+# (ADR-0052). It is one of latest's two writers. The other is the release workflow, whose image builds tag the
+# release's images latest as they push them.
+#
+# The publish list names what the images are built from: the directories of the shipped components each Dockerfile
+# copies and its binary links, go.mod and go.sum, every Dockerfile, the browser bundle's sources, and this workflow. It
+# leaves out what no image is built from, tests, documents, test data, mutation patches, violation files and their
+# import targets, sqlfluff configurations, the test and tool packages no binary links, the code generator's
+# configuration and the SQL statement files it reads, which reach a binary only through the generated Go that is
+# committed beside them, and process/version/version.go, which only the release cut writes and whose release
+# publishes that commit's images as latest itself. The statement files' negation names files starting with a
+# lower-case letter, so it cannot match the migration chain, whose files start with their number. A change to
+# anything else, another workflow or a lint configuration among them, publishes nothing. The negated patterns come
+# last, because the last matching pattern wins. The list is kept by hand and extended per new component (ADR-0054). A
+# failed latest build, or a latest a release left behind main, stays until the next matching push or a run by hand,
+# and the chainsaw suite refuses a mixed or unlabelled set meanwhile.
 on:
   pull_request:
     paths:
@@ -12,19 +31,81 @@ on:
     - '*/Dockerfile'
     - go.mod
     - go.sum
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/images.yaml
+    - '*/Dockerfile'
+    - go.mod
+    - go.sum
+    - content/**
+    - core/**
+    - db/**
+    - executioncontext/**
+    - process/**
+    - provider/**
+    - ratelimit/**
+    - mediate/main.go
+    - mediate/app/**
+    - mediate/internal/**
+    - ui/main.go
+    - ui/app/**
+    - ui/internal/**
+    - ui/browser/package.json
+    - ui/browser/bun.lock
+    - ui/browser/bunfig.toml
+    - ui/browser/tsconfig.json
+    - ui/browser/scripts/build.ts
+    - ui/browser/src/**
+    - worker/main.go
+    - worker/app/**
+    - worker/internal/**
+    - '!**/*_test.go'
+    - '!**/*_violation.go'
+    - '!**/*_violation.ts'
+    - '!**/*_violation.tsx'
+    - '!**/*.md'
+    - '!**/*.patch'
+    - '!**/testdata/**'
+    - '!**/cmd/**'
+    - '!db/check/**'
+    - '!provider/contract/**'
+    - '!provider/fake/**'
+    - '!ui/internal/contract/**'
+    - '!**/.sqlfluff'
+    - '!**/_target/**'
+    - '!**/.target/**'
+    - '!db/sqlc.yaml'
+    - '!db/**/[a-z]*.sql'
+    - '!process/version/version.go'
   workflow_dispatch:
 
+# A pull request's runs cancel each other. Runs on main queue one at a time and never cancel, so an older commit's
+# images never land after a newer one's, and a pending run a newer push replaces builds a commit holding its changes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
+  # One job per image. A pull request, or a run by hand off main, builds the image and pushes nothing. On main the
+  # same job also pushes and signs it through the action, which tags it branch-main and git-<commit>, and then tags
+  # that same digest latest. The action tags latest only for a release's version tag, so latest moves in the image's
+  # own job, by the digest the action signed, which keeps the signature valid for latest, and latest must name that
+  # digest afterwards. The permissions are what the publishing path needs, writing packages and requesting the token
+  # the keyless signature is made with.
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     strategy:
       fail-fast: false
       matrix:
@@ -35,12 +116,33 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Build the image
+    - name: Build the image, and on main push and sign it
+      id: image
       uses: ppat/homelab-ops-actions/actions/build-docker-image@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
       with:
         image_context_path: .
         dockerfile: ${{ matrix.image }}/Dockerfile
+        ghcr_repository: ${{ env.PUBLISH == 'true' && format('{0}/mediated-mailbox-{1}', github.repository_owner, matrix.image) || '' }}
         label_title: mediated-mailbox-${{ matrix.image }}
+        sign: ${{ env.PUBLISH }}
+
+    # The action's registry login holds until the job ends.
+    - name: Tag the signed digest latest
+      if: ${{ env.PUBLISH == 'true' }}
+      shell: bash
+      env:
+        DIGEST: ${{ steps.image.outputs.digest }}
+        REPOSITORY: ghcr.io/${{ github.repository_owner }}/mediated-mailbox-${{ matrix.image }}
+      # yamllint disable-line rule:indentation
+      run: |
+        repository="${REPOSITORY,,}"
+        docker buildx imagetools create --tag "${repository}:latest" "${repository}@${DIGEST}"
+        moved="$(docker buildx imagetools inspect "${repository}:latest" --format '{{.Manifest.Digest}}')"
+        if [[ "$moved" != "$DIGEST" ]]; then
+          echo "::error::${repository}:latest names ${moved}, not the signed ${DIGEST}."
+          exit 1
+        fi
+        echo "${repository}:latest is ${DIGEST}, built from ${GITHUB_SHA}"
 
   # The UI's image must refuse a bundle directory holding only its checked-in placeholder. A named build context
   # called bundle replaces the Dockerfile's bundle stage, so the server stage copies a directory holding only the

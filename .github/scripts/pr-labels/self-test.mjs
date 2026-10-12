@@ -71,12 +71,12 @@ const directories = parseComponents(table([
   '| `core/` | Library | `mediated-mailbox-core` | The shared pure library |',
   '| `mediate/` | Deployable | `mediated-mailbox-mediate` | The mediator |',
   '| `packaging/chart/` | Packaging | `mediated-mailbox` | The Helm chart |',
-  '| `tests/chainsaw/` | System tests | | The chainsaw suite |',
+  '| `packaging/tests/chainsaw/` | System tests | | The chainsaw suite |',
 ]))
 
 const cases = [
   ['the table is read up to its end and no further', () =>
-    deepStrictEqual(directories, ['core/', 'mediate/', 'packaging/chart/', 'tests/chainsaw/'])],
+    deepStrictEqual(directories, ['core/', 'mediate/', 'packaging/chart/', 'packaging/tests/chainsaw/'])],
 
   ['a second table in the same section is not read as components', () =>
     deepStrictEqual(parseComponents([
@@ -90,12 +90,12 @@ const cases = [
     deepStrictEqual(wantedLabels(['core/mail/port.go', 'mediate/main.go', 'ROADMAP.md'], directories),
       ['component:core', 'component:mediate'])],
 
-  ['a two-segment directory keeps both segments in its label', () =>
-    deepStrictEqual(wantedLabels(['packaging/chart/Chart.yaml', 'tests/chainsaw/.chainsaw.yaml'], directories),
-      ['component:packaging/chart', 'component:tests/chainsaw'])],
+  ['a directory of several segments keeps every segment in its label', () =>
+    deepStrictEqual(wantedLabels(['packaging/chart/Chart.yaml', 'packaging/tests/chainsaw/.chainsaw.yaml'], directories),
+      ['component:packaging/chart', 'component:packaging/tests/chainsaw'])],
 
-  ['a path under the first segment only of a two-segment directory is no component', () =>
-    deepStrictEqual(wantedLabels(['packaging/README.md', 'tests/README.md'], directories), [])],
+  ['a path under only the leading segments of a component directory is no component', () =>
+    deepStrictEqual(wantedLabels(['packaging/README.md', 'packaging/tests/README.md'], directories), [])],
 
   ['a directory whose name starts with a component\'s name is no component', () =>
     deepStrictEqual(wantedLabels(['core-extra/x.go', 'mediated/x.go', 'core'], directories), [])],

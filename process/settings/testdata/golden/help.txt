@@ -2,6 +2,7 @@ Each value is set, in rising precedence, by its default, by the YAML file named 
 --config-file=PATH or MEDIATED_MAILBOX_CONFIG_FILE, by its environment variable and
 by its flag. A value other than a string is written as YAML, so a list is [a, b].
 A default that is an empty string or holds a newline is shown quoted, a newline as \n.
+--version prints the release version, and reads no configuration.
 
 scanner.triggers.<key>
   environment: MEDIATED_MAILBOX_SCANNER__TRIGGERS__<KEY>

@@ -33,11 +33,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
-	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -72,6 +72,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
+	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
@@ -165,7 +166,10 @@ func validate(c Configuration) error {
 //
 // logger is the logger main.go built over level, at info until Run sets level from log_level once
 // the effective configuration is written, so every logger derived from logger follows it (ADR-0122).
-func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level *slog.LevelVar) error {
+//
+// stderr is where the start banner goes, standard error in main.go, so standard output carries only
+// the logger's JSON records (ADR-0122).
+func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
 	if err := refuseEnvironment(environ); err != nil {
 		return err
 	}
@@ -173,6 +177,10 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	var help *settings.HelpRequested
 	if errors.As(err, &help) {
 		fmt.Print(help.Text)
+		return nil
+	}
+	if errors.As(err, new(*settings.VersionRequested)) {
+		fmt.Println(version.Number)
 		return nil
 	}
 	if err != nil {
@@ -192,6 +200,8 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err := validate(c); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
+	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-mediate %s\n  client surface  %s on %s\n  probes          http on %s\n",
+		version.Number, scheme(servesTLS(c)), c.Listen, c.ProbeListen), logger)
 	scanner, err := scan.New(c.Scanner, loaded.Revisions[scannerSection])
 	if err != nil {
 		return fmt.Errorf("validating the configuration: scanner: %w", err)
@@ -575,7 +585,7 @@ func surface(registry service.Registry, tokenFile string, logger *slog.Logger) (
 	}
 	roots := http.NewServeMux()
 	roots.Handle("/api/", apiRoot)
-	roots.Handle("/mcp", mcp.Handler(registry, version(), logger))
+	roots.Handle("/mcp", mcp.Handler(registry, version.Number, logger))
 	return noStore(logger, bearer(tokenFile, logger, roots)), nil
 }
 
@@ -700,12 +710,21 @@ func answer(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status 
 	}
 }
 
-// version returns the mediator's module version, as the build recorded it.
-func version() string {
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
-		return info.Main.Version
+// writeBanner writes the start banner, a few lines for a person reading the process's output that
+// name the deployable, its release version and where it serves. It is no log record, and a failed
+// write stops nothing (ADR-0122).
+func writeBanner(stderr io.Writer, text string, logger *slog.Logger) {
+	if _, err := io.WriteString(stderr, text); err != nil {
+		logger.Warn("writing the start banner failed", "error", err)
 	}
-	return "unknown"
+}
+
+// scheme names the protocol a listener serves.
+func scheme(tls bool) string {
+	if tls {
+		return "https"
+	}
+	return "http"
 }
 
 // The series counting body requests, served and denied, a denial told apart by the stage that

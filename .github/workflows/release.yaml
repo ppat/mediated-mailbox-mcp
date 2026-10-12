@@ -36,8 +36,9 @@ jobs:
       app_client_id: ${{ secrets.HOMELAB_BOT_APP_ID }}
       app_private_key: ${{ secrets.HOMELAB_BOT_APP_PRIVATE_KEY }}
 
-  # The action tags each image with the release tag and its semantic version, pushes it to GHCR, and signs it
-  # keylessly by digest.
+  # The action tags each image with the release tag, its semantic version and latest, pushes it to GHCR, and signs it
+  # keylessly by digest. So a release moves latest to its own commit's images, one of latest's two writers beside the
+  # images workflow on main (ADR-0052).
   images:
     if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-24.04
@@ -82,9 +83,10 @@ jobs:
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # The chart in git carries a placeholder version. Packaging sets version and appVersion to the release
-    # version, the chart is pushed as an OCI artifact beside the images, and it is signed by the digest the push
-    # reports.
+    # The release cut wrote the release version into the chart's version and appVersion. A chart naming any other
+    # version is refused before anything is packaged, so the chart, the images and every binary's --version name
+    # one version (ADR-0049, ADR-0052). The chart is pushed as an OCI artifact beside the images, and it is signed
+    # by the digest the push reports.
     - name: Package, push and sign the chart
       shell: bash
       working-directory: ./current
@@ -101,7 +103,15 @@ jobs:
         fi
         registry="${CHART_REGISTRY,,}"
 
-        mise exec -- helm package packaging/chart --version "$version" --app-version "$version" --destination "${RUNNER_TEMP}/chart"
+        chart="$(mise exec -- helm show chart packaging/chart)"
+        for field in version appVersion; do
+          value="$(sed -n "s/^${field}: *\"\{0,1\}\([^\"]*\)\"\{0,1\} *$/\1/p" <<< "$chart")"
+          if [[ "$value" != "$version" ]]; then
+            echo "::error::The chart's ${field} is '${value}', and release ${TAG} is version ${version}."
+            exit 1
+          fi
+        done
+        mise exec -- helm package packaging/chart --destination "${RUNNER_TEMP}/chart"
         echo "$REGISTRY_TOKEN" | mise exec -- helm registry login ghcr.io --username "$ACTOR" --password-stdin
         echo "$REGISTRY_TOKEN" | mise exec -- cosign login ghcr.io --username "$ACTOR" --password-stdin
         mise exec -- helm push "${RUNNER_TEMP}/chart/mediated-mailbox-${version}.tgz" "oci://${registry}" 2>&1 | tee "${RUNNER_TEMP}/push.log"
@@ -153,3 +163,65 @@ jobs:
           mise exec -- cosign sign-blob --yes --bundle "${asset}.sigstore.json" "$asset"
         done
         gh release upload "$TAG" "$out"/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  # The key-generation check of the release (ADR-0088). Every binary attached to the release is downloaded with its
+  # bundle and verified against this workflow's identity at the release's tag, a copy with one byte changed must be
+  # refused, and the linux amd64 binary, the runner's own platform, writes a pair the library must seal to and open
+  # with. The library's half runs as a program of this module, because a Go test runs only in the workflow of its
+  # kind (ADR-0124).
+  keygen-check:
+    needs: [keygen]
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+    - name: Setup the release tag and tools
+      uses: ppat/homelab-ops-actions/actions/setup-repository-tools@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
+      with:
+        current_git_ref: ${{ github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download, verify and run the released key-generation binaries
+      shell: bash
+      working-directory: ./current
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.release.tag_name }}
+      # yamllint disable-line rule:indentation
+      run: |
+        assets="${RUNNER_TEMP}/assets"
+        mkdir -p "$assets"
+        gh release download "$TAG" --pattern 'mediated-mailbox-keygen-*' --dir "$assets" --repo "$GITHUB_REPOSITORY"
+        identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yaml@refs/tags/${TAG}"
+        verify() {
+          mise exec -- cosign verify-blob --bundle "$2" --certificate-identity "$identity" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$1"
+        }
+        for platform in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64; do
+          binary="${assets}/mediated-mailbox-keygen-${platform}"
+          verify "$binary" "${binary}.sigstore.json"
+        done
+
+        binary="${assets}/mediated-mailbox-keygen-linux-amd64"
+        tampered="${RUNNER_TEMP}/tampered"
+        cp "$binary" "$tampered"
+        byte="$(od -An -tu1 -j 4096 -N 1 "$binary" | tr -d ' ')"
+        printf '%b' "\\$(printf '%03o' $(( byte ^ 255 )))" | dd of="$tampered" bs=1 seek=4096 count=1 conv=notrunc status=none
+        if cmp -s "$binary" "$tampered"; then
+          echo "::error::The tampered copy is the binary itself, so it proves nothing."
+          exit 1
+        fi
+        if verify "$tampered" "${binary}.sigstore.json"; then
+          echo "::error::A copy of the key-generation binary with one byte changed passed its signature check."
+          exit 1
+        fi
+
+        chmod +x "$binary"
+        "$binary" -version
+        pair="${RUNNER_TEMP}/pair"
+        mkdir -p "$pair"
+        "$binary" -private-key-file "${pair}/credential.key" -public-key-file "${pair}/credential.pub"
+        mise exec -- go tool keypaircheck -private-key-file "${pair}/credential.key" -public-key-file "${pair}/credential.pub"

@@ -708,6 +708,33 @@ func TestHelpListsEveryValue(t *testing.T) {
 	}
 }
 
+// --version reads no layer, so a file that does not exist, an unknown environment variable under the
+// prefix and an unknown flag beside it are not refused, and asking for help as well wins (ADR-0078).
+func TestVersionIsRequestedBeforeAnyLayerIsRead(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "missing.yaml")
+	for name, args := range map[string][]string{
+		"alone":                 {"--version"},
+		"beside a refused flag": {"--no.such=1", "--version", "--config-file=" + missing},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := settings.Load(defaults(), args, []string{settings.Prefix + "NO_SUCH=1"})
+			var version *settings.VersionRequested
+			if !errors.As(err, &version) {
+				t.Fatalf("Load returned %v, want the version request", err)
+			}
+		})
+	}
+	_, err := settings.Load(defaults(), []string{"--version", "--help"}, nil)
+	var help *settings.HelpRequested
+	if !errors.As(err, &help) {
+		t.Fatalf("Load with --version and --help returned %v, want the help", err)
+	}
+	_, err = settings.Load(defaults(), []string{"--version=1"}, nil)
+	if err == nil || errors.As(err, new(*settings.VersionRequested)) {
+		t.Fatalf("Load with --version=1 returned %v, want the unknown flag refused", err)
+	}
+}
+
 type (
 	unexported struct {
 		value int `yaml:"value"` //nolint:unused // It exists only for Load to refuse it.
