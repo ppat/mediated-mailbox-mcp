@@ -1,0 +1,16 @@
+control: The bundle names its built entry module
+removes: Entry names a module the build does not write
+packages: ./bundle
+tests: TestTheEntryIsBuilt
+scheduled-count: no
+
+diff --git a/bundle/bundle.go b/bundle/bundle.go
+--- a/bundle/bundle.go
++++ b/bundle/bundle.go
+@@ -4,5 +4,5 @@ package bundle
+ 
+ // Entry is the file name of the bundle's entry module.
+ func Entry() string {
+-	return "main.js"
++	return "index.js"
+ }

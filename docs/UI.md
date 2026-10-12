@@ -2494,9 +2494,12 @@ ui/
 ```
 
 - **Build.** `bun build` produces `browser/dist`, the Go binary embeds it, and the image of ADR-0049
-  carries the binary and nothing else. A placeholder in `browser/dist` keeps Go's build, lint and
-  tests working before any bundle exists, and the image build refuses a bundle that is only the
-  placeholder. Where tests, violation files and tooling sit follows
+  carries the binary and nothing else. A placeholder in `browser/dist` keeps Go's build and lint
+  working before any bundle exists, since the embed needs a file to embed, and the image build
+  refuses a bundle that is only the placeholder. The UI's tests that read the bundle need it built
+  first, as the workflows build it
+  ([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Where
+  tests, violation files and tooling sit follows
   [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions). Every build passes the production define
   ADR-0063 names. The contract document is generated from the registry and the handler list in CI,
   and the browser types and the descriptor table from the document. A stale document, stale types,

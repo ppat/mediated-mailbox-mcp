@@ -36,6 +36,44 @@ func workingTreeFiles(root string) ([]string, error) {
 	return files, nil
 }
 
+// builtBundle is the directory, relative to the repository root, the browser bundle is built into
+// (ui/browser/scripts/build.ts) and ui/main.go embeds. git ignores what the build writes there, and
+// the UI's tests read it, so a copy without it holds only the checked-in placeholder, against which
+// those tests skip, check less or fail. The copies carry the checkout's bundle as it stands, built
+// or not, fresh or stale, as go test run in the checkout reads it.
+const builtBundle = "ui/browser/dist"
+
+// withBuiltBundle adds to files, relative to root, every file under the checkout's built bundle that
+// files does not already list. Each is added as a file, so copyTree refuses anything but a regular
+// file there as it does elsewhere, which Go's embed of the bundle refuses too.
+func withBuiltBundle(root string, files []string) ([]string, error) {
+	listed := make(map[string]bool, len(files))
+	for _, f := range files {
+		listed[f] = true
+	}
+	all := slices.Clone(files)
+	err := filepath.WalkDir(filepath.Join(root, filepath.FromSlash(builtBundle)), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		if rel = filepath.ToSlash(rel); !listed[rel] {
+			all = append(all, rel)
+		}
+		return nil
+	})
+	if errors.Is(err, fs.ErrNotExist) {
+		return files, nil
+	}
+	return all, err
+}
+
 // copyTree copies the files, relative to root, into a new temporary directory and returns it. The
 // caller removes it. A tracked file deleted from the working tree is left out, as it is from the
 // working tree. Anything but a regular file is refused, since a copy that followed a symbolic link

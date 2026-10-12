@@ -165,7 +165,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## A policy write the snapshot's validation or the UI's route words refuse is refused before it is written
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-11, after the route words became closed lists a test pins · [pull request #353](https://github.com/ppat/mediated-mailbox-mcp/pull/353)
 - **Break (1):** a write checks the scope's rules before the one it changes and never the changed rule itself
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten`, `TestTheRecordedPolicyFixturesMatchTheServer`
 - **Break (2):** a write is never checked, so a rule the snapshot's validation refuses is written and fails every reload
@@ -173,7 +173,7 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 - **Break (3):** an identifier that is one of a scope's route words is admitted, so its rule cannot be reached at its own address
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules`:** `TestCheck`, `TestCheck/an_account's_route_word`, `TestCheck/base_is_an_account's_route_word`, `TestCheck/several_problems,_in_rule_order`, `TestCheck/the_base_policy's_route_word`
 - **Break (4):** each scope is held to the other scope's route words
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules`:** `TestCheck`, `TestCheck/an_account's_route_word`, `TestCheck/base_is_an_account's_route_word`, `TestCheck/base_is_no_route_word_of_the_base_policy`, `TestCheck/pick_is_no_route_word_of_the_base_policy`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules`:** `TestCheck`, `TestCheck/an_account's_route_word`, `TestCheck/base_is_an_account's_route_word`, `TestCheck/base_is_no_route_word_of_the_base_policy`, `TestCheck/pick_is_no_route_word_of_the_base_policy`, `TestTheRouteWordsAreAClosedList`
 
 ## A rule changing where it applies is added under its new scope before the old one is lifted
 
@@ -405,15 +405,15 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 
 ## Every word the UI's routes use where an account or a rule identifier also sits is a closed list a test pins
 
-- **Date · evidence:** 2026-10-11 · [pull request #348](https://github.com/ppat/mediated-mailbox-mcp/pull/348)
+- **Date · evidence:** 2026-10-11 · [pull request #348](https://github.com/ppat/mediated-mailbox-mcp/pull/348), and breaks 1 to 5 again on 2026-10-11, after the entry document began handing the browser the words account setup refuses, so breaks 3 and 4 also turn its test red · [pull request #353](https://github.com/ppat/mediated-mailbox-mcp/pull/353)
 - **Break (1):** an account's policy screens gain the route word export, which the pinned list does not hold
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules`:** `TestTheRouteWordsAreAClosedList`
 - **Break (2):** the base policy's route words no longer hold import, a pinned word its screens use
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules`:** `TestTheRouteWordsAreAClosedList`
 - **Break (3):** account setup refuses a top-level word the pinned list does not hold, help
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheTopLevelWordsAreAClosedList`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheEntryDocumentCarriesTheBrowsersConfiguration`, `TestTheTopLevelWordsAreAClosedList`
 - **Break (4):** account setup no longer refuses api, a pinned top-level word the server's routes use
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheTopLevelWordsAreAClosedList`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheEntryDocumentCarriesTheBrowsersConfiguration`, `TestTheTopLevelWordsAreAClosedList`
 - **Break (5):** the server registers a route under help, a top-level word the pinned list does not hold
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheTopLevelWordsAreAClosedList`
 - **Break (6):** the build writes robots.txt at the bundle's top level, a name the pinned list does not hold

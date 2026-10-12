@@ -53,11 +53,17 @@ jobs:
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # A patch whose runner is bun runs the browser tests from the checkout's installed packages.
-    - name: Install the browser layer's packages
+    # A patch whose runner is bun runs the browser tests from the checkout's installed packages. The UI's Go
+    # tests read the built browser bundle, which mutproof carries from the checkout into its copies, so the
+    # bundle is built here, as the unit and integration workflows build it before their tests. A checkout
+    # holding only the placeholder fails those tests before any patch is applied.
+    - name: Install the browser layer's packages and build its bundle
       shell: bash
       working-directory: ./current/ui/browser
-      run: mise exec -- bun install --frozen-lockfile
+      # yamllint disable-line rule:indentation
+      run: |
+        mise exec -- bun install --frozen-lockfile
+        mise exec -- bun run build
 
     # The patches are found as the mutation-patches workflow finds them, every .patch under a testdata/mutations
     # directory apart from mutproof's own fixtures. Sorted by the kind of tests they run, integration tests under
