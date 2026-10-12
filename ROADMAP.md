@@ -69,7 +69,7 @@ which lists the increment's tickets by unit. Each increment's issue is a sub-iss
 re-dated whenever the checklists are reconciled against the tickets, so staleness is detectable
 instead of silent.
 
-**Position: 2026-10-11.**
+**Position: 2026-10-12.**
 
 ## Delivery posture
 
@@ -128,7 +128,7 @@ perfected up front.
 | Infrastructure (database, secrets, deployments) | None provisioned for this system |
 | Verifications | The verification column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated) says whose rows each pull request proved, and each proven row names its pull request as the proof in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md). Every other row is pending or parked (see [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)) **[measured]** |
 | Mutations | The demonstrations each pull request recorded are the Mutations column of [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). See [docs/MUTATIONS.md](./docs/MUTATIONS.md) **[measured]** |
-| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8, F9, F8, F11, F10 and F12, which are delivered. M3 has started, with the golden-file helper, the UI's server, the browser app's shell, the system screen, the jobs and run screens with their reads, and the home screen. No other unit has started |
+| **The delivery gap** | Every unit except F4, S1, S2, S3, F2, F5, F3, F6, D1, D2, D3, D4, M7, M8, F9, F8, F11, F10, F12 and M3, which are delivered. No other unit has started |
 
 ### What each pull request landed, proved and demonstrated
 
@@ -479,7 +479,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), its run against a published release
   waiting on [R1](#group-r--packaging). The UI's grants for its two setups, which landed with
   [M7](#delivered-mapped-to-outcomes)'s statements. The UI's read of `account_state`, which landed
-  with [M3](#group-m--mutation-and-approval)'s
+  with [M3](#delivered-mapped-to-outcomes)'s
   [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182) and never covers the credential. The
   rotation write-back against the real provider, proven at [production point
   1](#production-point-1--the-read-path).
@@ -566,7 +566,9 @@ What the code on `main` runs today, per composition root, none of it yet release
   no remote image is fetched, and how a body with no HTML part is released, all
   [D3](#delivered-mapped-to-outcomes)'s. Backfill's call into the conversion before scanning, and what it
   records for a body the conversion refuses, which are [D2](#delivered-mapped-to-outcomes)'s. The alert on
-  release volume, [M3](#group-m--mutation-and-approval)'s. None of it runs in a deployable yet.
+  release volume, which [M3](#delivered-mapped-to-outcomes) delivered through pull request
+  [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230). None of it runs in a deployable
+  yet.
 
 - [x] **D1 — Backfill pass 1, full history** → [G2](./USE_CASES.md#g2--historical-understanding) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at image
@@ -647,12 +649,12 @@ What the code on `main` runs today, per composition root, none of it yet release
   [D2](#delivered-mapped-to-outcomes)'s. Recording the last provider authentication outcome, which
   [D3](#delivered-mapped-to-outcomes) added to backfill through pull request
   [#227](https://github.com/ppat/mediated-mailbox-mcp/pull/227). The backfill card's rendering of
-  the page count pass 1's checkpoint now carries, which the ticket
-  [#97](https://github.com/ppat/mediated-mailbox-mcp/issues/97) of
-  [M3](#group-m--mutation-and-approval) takes up. The key-generation release step's run against a
-  published release, which waits on [R1](#group-r--packaging). Meeting the real corpus, killing the
-  process running backfill mid-run on real substrate, the rotation write-back against the real provider and watching the
-  rate gauge for the real ceiling, all at [production point 1](#production-point-1--the-read-path).
+  the page count pass 1's checkpoint now carries, which [M3](#delivered-mapped-to-outcomes)
+  delivered under its ticket [#97](https://github.com/ppat/mediated-mailbox-mcp/issues/97). The
+  key-generation release step's run against a published release, which waits on
+  [R1](#group-r--packaging). Meeting the real corpus, killing the process running backfill mid-run
+  on real substrate, the rotation write-back against the real provider and watching the rate gauge
+  for the real ceiling, all at [production point 1](#production-point-1--the-read-path).
 
 - [x] **D2 — Scan gate + backfill pass 2** → [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at image
@@ -758,7 +760,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0105](./docs/adr/data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md)).
   The chart's deployment of delta sync, which is [R1](#group-r--packaging)'s.
   The sync-gap rule that shows a recovery to the operator, which
-  [M3](#group-m--mutation-and-approval) delivered through pull request
+  [M3](#delivered-mapped-to-outcomes) delivered through pull request
   [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230). **Later work.** After production
   point 1 and before [production point 2](#production-point-2--the-agent-acts), the index reflects
   messages deleted from the account, whether through this system or outside it, by the operator's
@@ -872,7 +874,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   builds the installation, OAuth client setup, connecting, re-authorizing and moving an account,
   and account settings screens [docs/UI.md sections 8.10 to 8.13](./docs/UI.md#810-installation)
   design, on
-  [M3](#group-m--mutation-and-approval)'s server and browser app, with the installation frame, `/`
+  [M3](#delivered-mapped-to-outcomes)'s server and browser app, with the installation frame, `/`
   sending a browser with no account to the installation screen, the account selector's links, the
   `g a` key, the refused-credential banner and the last authentication rows linking to account
   settings ([docs/UI.md sections 6, 8.1, 8.8, 12 and 13](./docs/UI.md#6-global-chrome)). OAuth
@@ -1197,6 +1199,100 @@ What the code on `main` runs today, per composition root, none of it yet release
   which is an exposure decision for the operator. Bucket boundaries reconsidered once real runs of
   backfill and of the mediator exist.
 
+- [x] **M3 — The UI's reads of the read path** →
+  [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
+  [V3](#v3--the-agent-arrives-read-only) · finished at image
+  Delivered by pull requests [#162](https://github.com/ppat/mediated-mailbox-mcp/pull/162),
+  [#182](https://github.com/ppat/mediated-mailbox-mcp/pull/182),
+  [#195](https://github.com/ppat/mediated-mailbox-mcp/pull/195),
+  [#204](https://github.com/ppat/mediated-mailbox-mcp/pull/204),
+  [#205](https://github.com/ppat/mediated-mailbox-mcp/pull/205),
+  [#207](https://github.com/ppat/mediated-mailbox-mcp/pull/207),
+  [#208](https://github.com/ppat/mediated-mailbox-mcp/pull/208),
+  [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230),
+  [#348](https://github.com/ppat/mediated-mailbox-mcp/pull/348) and, as later work,
+  [#353](https://github.com/ppat/mediated-mailbox-mcp/pull/353), which closed its tickets
+  [#121](https://github.com/ppat/mediated-mailbox-mcp/issues/121),
+  [#95](https://github.com/ppat/mediated-mailbox-mcp/issues/95),
+  [#96](https://github.com/ppat/mediated-mailbox-mcp/issues/96),
+  [#100](https://github.com/ppat/mediated-mailbox-mcp/issues/100),
+  [#203](https://github.com/ppat/mediated-mailbox-mcp/issues/203),
+  [#206](https://github.com/ppat/mediated-mailbox-mcp/issues/206),
+  [#98](https://github.com/ppat/mediated-mailbox-mcp/issues/98),
+  [#97](https://github.com/ppat/mediated-mailbox-mcp/issues/97),
+  [#293](https://github.com/ppat/mediated-mailbox-mcp/issues/293) and
+  [#351](https://github.com/ppat/mediated-mailbox-mcp/issues/351), and not yet released. Pull
+  requests [#193](https://github.com/ppat/mediated-mailbox-mcp/pull/193),
+  [#236](https://github.com/ppat/mediated-mailbox-mcp/pull/236) and
+  [#253](https://github.com/ppat/mediated-mailbox-mcp/pull/253) closed the discoveries
+  [#191](https://github.com/ppat/mediated-mailbox-mcp/issues/191),
+  [#224](https://github.com/ppat/mediated-mailbox-mcp/issues/224) and
+  [#225](https://github.com/ppat/mediated-mailbox-mcp/issues/225). It built the UI's Go server and
+  browser app ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
+  [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md),
+  [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md)), the dataset
+  registry and its endpoint
+  ([ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md),
+  [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)), the contract pipeline
+  ([ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md)),
+  the recorded fixtures with the golden-file helper that writes and compares them
+  ([ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md)) and the
+  browser tests
+  ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), the
+  lens model, the home screen, the jobs and run screens and the system screen, the live surfaces
+  ([ADR-0058](./docs/adr/operability/0058-live-surfaces-stream-over-server-sent-events.md)), the
+  palettes
+  ([ADR-0059](./docs/adr/operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md))
+  and the content security policy
+  ([ADR-0062](./docs/adr/operability/0062-ui-content-security-policy.md)), to
+  [docs/UI.md](./docs/UI.md). Its scoped database role was created at
+  [F2](#delivered-mapped-to-outcomes). The UI's Go server and its fixture database existed before
+  the browser tests were written
+  ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
+  Message-derived text renders inert, the dataset registry refuses what it does not declare, no
+  account-scoped route or dataset answers without an account, the account list being the one
+  unscoped read this unit added
+  ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md),
+  [ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md)), the content
+  security policy holds ([ADR-0062](./docs/adr/operability/0062-ui-content-security-policy.md)),
+  its browser drill excepted, and the UI's server serves the health and readiness probes, the
+  metrics endpoint and structured logs
+  ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The worth-a-look rules surface
+  scan backlog, masking, body-serve volume and sync gaps inside the application. Until
+  [M6](#group-m--mutation-and-approval) lands, the UI links only to the screens that exist. The
+  framework spike ran outside this repository, on the chosen candidate **[measured]**.
+  [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md) records when it ran
+  and weighs its result, and nothing from it is code here. What M3's pull requests landed and
+  settled, and the discoveries they closed, are their rows in
+  [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). Among them,
+  a run's detail is the Run screen
+  ([docs/UI.md section 5](./docs/UI.md#5-information-architecture-and-the-url)), the UI's route
+  check compares every route registered through the recording muxes of its two listeners, the UI's
+  with the contract and the probes' with their three routes, the UI's import list names the driver
+  packages it uses exactly, sqlfluff's rule against unqualified column references stays on in every
+  data-access subsection the UI's multi-table reads sit in, the home screen's attention endpoint
+  derives its cards at read time from recorded state, and the UI's route words, its top-level words
+  and each policy scope's route words, are closed lists tests pin as literals
+  ([docs/UI.md section 5](./docs/UI.md#5-information-architecture-and-the-url)). As later work
+  before [production point 1](#production-point-1--the-read-path), the UI server's mutation
+  demonstrations run through the runner unaided, against the built browser bundle the runner
+  carries into its copies. Every verification row keyed to it is proven for M3's part, and every
+  control it delivered has its mutation demonstration. **What it did not deliver.** The content
+  security policy's browser drill, which the operator ruled on 2026-09-29 is "to be deferred to
+  test after production point 1", a drill a person performs at production point 1 on the drill
+  page M3 built. The plans screens, home's plan row and expiry rule, the analysis lenses and the
+  review queue screens, which are M6's, so the maximum plan age the UI's configuration carries is
+  first read there. The policy screens, which are [M8](#delivered-mapped-to-outcomes)'s. The UI's
+  separate deployment, which is packaged at [R1](#group-r--packaging). The proof of the UI's apply
+  surfaces, the plans dataset's apply run, the event stream's apply run carrying its plan's status,
+  the jobs card's applying run and last run with rollback's availability, a plan's title in that
+  card and in the runs table, and the home strip's apply cell, which
+  [M2](#group-m--mutation-and-approval) restores when it adds the apply and rollback pairs, and of
+  the heuristics card's last run and next run and the home strip's heuristics cell, which
+  [M4](#group-m--mutation-and-approval) restores when it adds its pair. **Later work.** After
+  production point 1, the UI's dataset reads run under a statement timeout, on a pool of a
+  configured size, with custom plans.
+
 What does **not** exist yet, stated so a cold reader does not assume otherwise. The mediator's API
 and MCP roots serve the reads of the index and the recorded state, release the bodies the gate lets
 through, and change nothing. The UI's server serves its read API, the setups' requests, the policy writes and the browser app's screens that the
@@ -1248,7 +1344,7 @@ redesign after agent workflows exist.
 ### V3 — The agent arrives, read-only
 
 **Units:** [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
-[M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
+[M3](#delivered-mapped-to-outcomes) · [M7](#delivered-mapped-to-outcomes) ·
 [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
 [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
 [F12](#delivered-mapped-to-outcomes) · [R1](#group-r--packaging), then
@@ -1269,7 +1365,7 @@ real adversary. Mutation capability opens only after that proof exists.
 [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
 [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), and
 the later work recorded under [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
-[F3](#delivered-mapped-to-outcomes), [M3](#group-m--mutation-and-approval) and
+[F3](#delivered-mapped-to-outcomes), [M3](#delivered-mapped-to-outcomes) and
 [S1](#delivered-mapped-to-outcomes) that is placed after
 [production point 1](#production-point-1--the-read-path), then
 [production point 2](#production-point-2--the-agent-acts). **Value shipped:** the system's headline
@@ -1319,14 +1415,14 @@ holds, with an entry naming the point.
   [F2](#delivered-mapped-to-outcomes) · [F5](#delivered-mapped-to-outcomes) ·
   [F3](#delivered-mapped-to-outcomes) · [F6](#delivered-mapped-to-outcomes) · [D1](#delivered-mapped-to-outcomes) ·
   [D2](#delivered-mapped-to-outcomes) · [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
-  [M3](#group-m--mutation-and-approval) · [M7](#delivered-mapped-to-outcomes) ·
+  [M3](#delivered-mapped-to-outcomes) · [M7](#delivered-mapped-to-outcomes) ·
   [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
   [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
   [F12](#delivered-mapped-to-outcomes) · [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
   [F4](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes),
   [D2](#delivered-mapped-to-outcomes), [D3](#delivered-mapped-to-outcomes),
-  [M3](#group-m--mutation-and-approval) and [M7](#delivered-mapped-to-outcomes) that is placed before
+  [M3](#delivered-mapped-to-outcomes) and [M7](#delivered-mapped-to-outcomes) that is placed before
   this point.
 - **Supplied there:**
   - PostgreSQL with the roles created, which needs the privilege to create roles and no superuser
@@ -1401,7 +1497,7 @@ holds, with an entry naming the point.
   [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), the
   end of [V4](#v4--the-agent-acts-and-calendar-joins-mail), and the later work recorded under
   [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
-  [F3](#delivered-mapped-to-outcomes), [M3](#group-m--mutation-and-approval) and
+  [F3](#delivered-mapped-to-outcomes), [M3](#delivered-mapped-to-outcomes) and
   [S1](#delivered-mapped-to-outcomes) that is placed after
   [production point 1](#production-point-1--the-read-path).
 - **Preconditions:** [production point 1](#production-point-1--the-read-path) has run long enough
@@ -1523,7 +1619,8 @@ arrives, because each delta sync tick runs the scan gate.
 
 ### Group M — mutation and approval
 
-The write path, in escalating blast radius, and the operator's surface. This group carries
+The write path, in escalating blast radius, and the operator's surface. M3, M7 and M8 are
+delivered and sit in the [delivered register](#delivered-mapped-to-outcomes). This group carries
 [A3](./USE_CASES.md#a3--bulk-change-is-reversible)'s machinery inside
 [M2](#group-m--mutation-and-approval), flagged here rather than split, because the engine and its
 reversibility are built as one piece. [M5](#group-m--mutation-and-approval) serves
@@ -1540,27 +1637,27 @@ serves [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) and also ca
 [C2](./USE_CASES.md#c2--sensitive-sender-content-never-released)'s editable-list falsifier, because
 a confirmed candidate's rule binds on the next classification there
 ([ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)).
-[M3](#group-m--mutation-and-approval) serves [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer)
-and also carries
+[M3](#delivered-mapped-to-outcomes) served [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer)
+and also carried
 [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything)'s volume alert
 as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), because that rule is one
-of its screens' worth-a-look cards. [M3](#group-m--mutation-and-approval) sits in
+of its screens' worth-a-look cards. [M3](#delivered-mapped-to-outcomes) sits in
 [V3](#v3--the-agent-arrives-read-only), ahead of the rest of this group, because its screens show
 the read path's work at [production point 1](#production-point-1--the-read-path).
 [M7](#delivered-mapped-to-outcomes) sits in [V3](#v3--the-agent-arrives-read-only) too, because
 the mailbox is connected through it before production point 1, and builds on
-[M3](#group-m--mutation-and-approval)'s server and browser app and [F6](#delivered-mapped-to-outcomes)'s
-account rows and sealing. [M8](#delivered-mapped-to-outcomes) sits in
-[V3](#v3--the-agent-arrives-read-only) as well, because the policy is imported through it before
-production point 1, and builds on [M7](#delivered-mapped-to-outcomes)'s request token and
-[D2](#delivered-mapped-to-outcomes)'s delisting transition. [M3](#group-m--mutation-and-approval) reads the
-schema over synthetic fixtures
+[M3](#delivered-mapped-to-outcomes)'s server and browser app and
+[F6](#delivered-mapped-to-outcomes)'s account rows and sealing. [M8](#delivered-mapped-to-outcomes)
+sits in [V3](#v3--the-agent-arrives-read-only) as well, because the policy is imported through it
+before production point 1, and builds on [M7](#delivered-mapped-to-outcomes)'s request token and
+[D2](#delivered-mapped-to-outcomes)'s delisting transition. [M3](#delivered-mapped-to-outcomes)
+reads the schema over synthetic fixtures
 ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), so it
-starts once [F2](#delivered-mapped-to-outcomes), [F6](#delivered-mapped-to-outcomes)'s accounts table and
-[S1](#delivered-mapped-to-outcomes)'s marker text and fixtures exist and builds beside the D group.
-[M6](#group-m--mutation-and-approval) builds the UI's remaining read screens on
-[M3](#group-m--mutation-and-approval)'s server and
-browser app once [M2](#group-m--mutation-and-approval) has plans to show, and
+started once [F2](#delivered-mapped-to-outcomes), [F6](#delivered-mapped-to-outcomes)'s accounts
+table and [S1](#delivered-mapped-to-outcomes)'s marker text and fixtures existed and built beside
+the D group. [M6](#group-m--mutation-and-approval) builds the UI's remaining read screens on
+[M3](#delivered-mapped-to-outcomes)'s server and browser app once
+[M2](#group-m--mutation-and-approval) has plans to show, and
 [M5](#group-m--mutation-and-approval) follows it, because the decisions act on the plan reviewer and
 the review queue [M6](#group-m--mutation-and-approval) shows. M4 and M5 also come after
 [M8](#delivered-mapped-to-outcomes), whose answer on how a newly added policy rule changes the
@@ -1629,63 +1726,6 @@ classifications already stored in the index they follow
   strip's apply cell ([ADR-0016](./docs/adr/data/0016-schema.md),
   [docs/UI.md](./docs/UI.md)). The maximum plan age is open against this unit. Rollback of a real plan waits for
   [production point 2](#production-point-2--the-agent-acts).
-- [ ] **M3 — The UI's reads of the read path** →
-  [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) ·
-  [V3](#v3--the-agent-arrives-read-only) · finishes at image
-  The UI's Go server and browser app
-  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
-  [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md),
-  [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md)), the dataset
-  registry and its endpoint
-  ([ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md),
-  [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md)), the contract pipeline
-  ([ADR-0065](./docs/adr/engineering/0065-contract-built-from-registry-consumed-as-generated-types.md)),
-  the recorded fixtures with the golden-file helper that writes and compares them
-  ([ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md)) and the
-  browser tests
-  ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), the
-  lens model, the home screen, the jobs and run screens and the system screen, the live surfaces
-  ([ADR-0058](./docs/adr/operability/0058-live-surfaces-stream-over-server-sent-events.md)), the
-  palettes
-  ([ADR-0059](./docs/adr/operability/0059-two-palettes-derived-in-oklch-and-checked-for-contrast.md))
-  and the content security policy
-  ([ADR-0062](./docs/adr/operability/0062-ui-content-security-policy.md)), built to
-  [docs/UI.md](./docs/UI.md). Its scoped database role is created at [F2](#delivered-mapped-to-outcomes)
-  and its separate deployment is packaged at [R1](#group-r--packaging). The UI's Go server and
-  its fixture database exist before the browser tests are written
-  ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)).
-  *Criteria:* message-derived text renders inert, the dataset registry refuses what it does not
-  declare, no account-scoped route or dataset answers without an account, the account list being
-  the one unscoped read this unit adds
-  ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md),
-  [ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md)), and the
-  content security policy holds
-  ([ADR-0062](./docs/adr/operability/0062-ui-content-security-policy.md)), its browser drill
-  excepted, which the operator ruled on 2026-09-29 is "to be deferred to test after production
-  point 1", and the UI's server serves the health and readiness probes, the metrics endpoint and
-  structured logs ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The
-  worth-a-look rules surface scan backlog, masking, body-serve volume and sync gaps inside the
-  application. Until [M6](#group-m--mutation-and-approval) lands, the UI links only to the screens that exist. The plans
-  screens, home's plan row and expiry rule, the analysis lenses and the review queue screens are
-  M6's, so the maximum plan age the UI's configuration carries is first read there, and the policy
-  screens are [M8](#delivered-mapped-to-outcomes)'s.
-  The framework spike ran outside this repository, on the chosen candidate **[measured]**.
-  [ADR-0063](./docs/adr/engineering/0063-browser-app-is-preact-with-signals.md) records when it ran
-  and weighs its result, and nothing from it is code here. What M3's pull requests landed and
-  settled so far, and the discoveries they closed, are their rows in
-  [the table by pull request](#what-each-pull-request-landed-proved-and-demonstrated). Among them,
-  a run's detail is the Run screen
-  ([docs/UI.md section 5](./docs/UI.md#5-information-architecture-and-the-url)), the UI's route
-  check compares every route registered through the recording muxes of its two listeners, the UI's
-  with the contract and the probes' with their three routes, the UI's import list names the driver
-  packages it uses exactly, sqlfluff's rule against unqualified column references stays on in every
-  data-access subsection the UI's multi-table reads sit in, the home screen's attention endpoint
-  derives its cards at read time from recorded state, and the UI's route words, its top-level words
-  and each policy scope's route words, are closed lists tests pin as literals
-  ([docs/UI.md section 5](./docs/UI.md#5-information-architecture-and-the-url)). The UI server's
-  mutation demonstrations run through the runner unaided, against the built browser bundle the
-  runner carries into its copies. After production point 1, the UI's dataset reads run under a
-  statement timeout, on a pool of a configured size, with custom plans.
 - [ ] **M4 — Heuristics job + embeddings** →
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
@@ -1747,7 +1787,7 @@ classifications already stored in the index they follow
   8.6 and 8.9. The `senders` dataset exists from [M8](#delivered-mapped-to-outcomes) at levels 0
   and 3 with its search filter, the sender picker's part of it, so M6 adds its groupable dimensions,
   its range and the lens over it. It builds on
-  [M3](#group-m--mutation-and-approval)'s server, browser app and lens model
+  [M3](#delivered-mapped-to-outcomes)'s server, browser app and lens model
   ([ADR-0056](./docs/adr/operability/0056-ui-organized-around-the-operators-work.md),
   [ADR-0057](./docs/adr/operability/0057-one-dataset-endpoint-behind-a-registry.md),
   [ADR-0066](./docs/adr/data/0066-data-access-generated-from-sql.md),
@@ -1757,7 +1797,7 @@ classifications already stored in the index they follow
   adds datasets and screens inside the UI's server and browser app and touches no composition root,
   so it finishes at tested, and none of its proofs waits for a production point. *Criteria:* every
   dataset it adds is declared in the registry with the statements it requires, and
-  [M3](#group-m--mutation-and-approval)'s controls hold on every screen it adds. It follows
+  [M3](#delivered-mapped-to-outcomes)'s controls hold on every screen it adds. It follows
   [M2](#group-m--mutation-and-approval), which settles the maximum plan age the plans screens read, so
   the UI's configuration carries that value as its default.
 
@@ -1938,11 +1978,11 @@ about its cluster.
 | [A1](./USE_CASES.md#a1--asymmetric-mutation) asymmetric mutation | M1 | — |
 | [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) no destructive action | — | No dedicated unit, correctly. One structural half landed with F5 (token scope), which is delivered, and the other rides M1 (client surface). Whether Fastmail's mail token can be kept from permanently deleting mail is an open decision in X4. Criteria ride those units |
 | [A3](./USE_CASES.md#a3--bulk-change-is-reversible) reversible bulk change | — | Carried inside M2, flagged in Group M's preamble |
-| [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | M3 | The conversion, the delimiters and the serve-time check landed with S3, which is delivered. Serving every body through them landed with D3, a G1 unit, which is delivered. The volume alert rides M3, an O4 unit, as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), over the audit rows D3 writes |
+| [A4](./USE_CASES.md#a4--released-bodies-are-clean-markdown-that-cannot-do-anything) harmless released bodies | — | The conversion, the delimiters and the serve-time check landed with S3, which is delivered. Serving every body through them landed with D3, a G1 unit, which is delivered. The volume alert landed with M3, an O4 unit, which is delivered, as the body-serves rule of [docs/UI.md section 8.1](./docs/UI.md#81-home), over the audit rows D3 writes |
 | [O1](./USE_CASES.md#o1--rate-limited-politely) rate-limited | — | The rate limiter and the Gmail cost profile landed with F3, which is delivered. The real ceiling reveals itself at production point 1 |
-| [O2](./USE_CASES.md#o2--observable) observable | — | Logging at a configured level through a logger every shell is handed landed with F8, and the performance measurements useful for tuning and for finding bottlenecks landed with F12, both delivered. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carried the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing is M3's. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
+| [O2](./USE_CASES.md#o2--observable) observable | — | Logging at a configured level through a logger every shell is handed landed with F8, and the performance measurements useful for tuning and for finding bottlenecks landed with F12, both delivered. Emission rides F3 · D1 · D2 · D3 · D4 · F10 · M1 · M2 · M3 · M4 · M5 · X2 as criteria, F11 carried the checked spellings of the append-only policy history, flagged in Group F's preamble, every condition a record names is raised by the unit that owns it, and the UI's surfacing landed with M3, which is delivered. The collection, shipping and retention of what is emitted and alerting based on logs are the platform's ([ADR-0051](./docs/adr/engineering/0051-environment-contract.md), [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md)) |
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | Writing the account-handling rules once where copies drifted landed with F9, and the schema settled before production point 1 makes the chain history landed with F11, both delivered. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
-| [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M3 · M6 | The decisions ride M5, a G3 unit |
+| [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M6 | The UI's reads of the read path landed with M3, which is delivered. The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
 | [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered, and F4's later work, which is delivered, separated each kind of test into a CI workflow of its own before production point 1. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
 
