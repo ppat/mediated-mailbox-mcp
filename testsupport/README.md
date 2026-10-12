@@ -54,7 +54,11 @@ an image, because only test files and the tooling programs import it. Its packag
   provider) and `cmd/testkinds` (the selection of each kind of test for its workflows, and the
   check that every test runs in its kind's workflows and no other, of
   [ADR-0124](../docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)),
-  each run through `go tool`.
+  and `cmd/keypaircheck` (the check that a key pair a released key-generation binary writes is one
+  the credential library seals to and opens with, which the release workflow runs, of
+  [ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)), each run
+  through `go tool`. `cmd/keypaircheck` is the one part of this library that links the credential
+  library, and its import list admits that library to it alone.
 
 The import rules are written per file, so packages importing the property-testing library and
 packages every test may import sit in the one library without one reaching the other.

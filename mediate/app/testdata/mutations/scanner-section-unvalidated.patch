@@ -5,12 +5,12 @@ tests: TestNoConfigurationValueWeakensTheGate/a_scanner_section_with_nothing_to_
 scheduled-count: no
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..7545bb10 100644
+index ed8233b5..b8ee4aaf 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -186,7 +186,7 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger) error
- 		return fmt.Errorf("validating the configuration: %w", err)
- 	}
+@@ -204,7 +204,7 @@ func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *
+ 	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-mediate %s\n  client surface  %s on %s\n  probes          http on %s\n",
+ 		version.Number, scheme(servesTLS(c)), c.Listen, c.ProbeListen), logger)
  	scanner, err := scan.New(c.Scanner, loaded.Revisions[scannerSection])
 -	if err != nil {
 +	if err != nil && false {

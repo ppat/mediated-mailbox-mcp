@@ -286,10 +286,25 @@ linters:
           list-mode: strict
           files:
           - "${base-path}/executioncontext/credential/**.go"
+          - "!${base-path}/executioncontext/credential/cmd/keygen/**"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+
+        # The key-generation command, every file, an operator command of the execution context family. It is the
+        # family's list with the release version, which its -version flag prints (ADR-0078).
+        keygen:
+          list-mode: strict
+          files:
+          - "${base-path}/executioncontext/credential/cmd/keygen/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
@@ -362,6 +377,16 @@ linters:
           - "github.com/google/go-cmp/cmp$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+
+        # The release version, every file, a package of the process family. It holds one constant, and its test reads
+        # the files the release cut writes the same version into.
+        version:
+          list-mode: strict
+          files:
+          - "${base-path}/process/version/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
 
         # The data-access library, every file.
         db:
@@ -540,6 +565,7 @@ linters:
           list-mode: strict
           files:
           - "${base-path}/testsupport/**.go"
+          - "!${base-path}/testsupport/cmd/keypaircheck/**"
           allow:
           - "$gostd"
           - "github.com/jackc/pgx/v5$"
@@ -568,6 +594,7 @@ linters:
           - "!${base-path}/testsupport/crash/**"
           - "!${base-path}/testsupport/cmd/mutproof/internal/hunkmatch/**_property_test.go"
           - "!${base-path}/testsupport/analysis/**_violation_test.go"
+          - "!${base-path}/testsupport/cmd/keypaircheck/**"
           allow:
           - "$gostd"
           - "github.com/jackc/pgx/v5$"
@@ -590,6 +617,17 @@ linters:
           # Restores the standard library under go/, which the entry above hides (see the notes at the top).
           - "go/"
           - "golang.org/x/tools/go/"
+
+        # The check of a key pair a released key-generation binary writes, every file. It seals and opens with the
+        # credential library, which no other test tooling links (ADR-0088).
+        keypaircheck:
+          list-mode: strict
+          files:
+          - "${base-path}/testsupport/cmd/keypaircheck/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
 
         # Deployable mediate, every file. A deployable imports its own code and the shared libraries, never another
         # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
@@ -635,6 +673,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
@@ -728,6 +767,7 @@ linters:
           # Gmail's consent, which the composition root hands the server.
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
@@ -834,6 +874,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
@@ -1082,6 +1123,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/caldav$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gcal$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail$"
@@ -1138,6 +1180,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
@@ -1179,6 +1222,7 @@ linters:
           - "!${base-path}/process/probes/**"
           - "!${base-path}/process/runtimemetrics/**"
           - "!${base-path}/process/settings/**"
+          - "!${base-path}/process/version/**"
           - "!${base-path}/provider/**"
           - "!${base-path}/ratelimit/**"
           - "!${base-path}/testsupport/**"

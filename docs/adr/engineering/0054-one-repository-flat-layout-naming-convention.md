@@ -21,7 +21,7 @@ intended for eventual open sourcing.
   the document set. Consumption and rollout belong to the consuming platform, outside this
   repository.
 - **The top level is flat.** Each deployable and each shared library is one top-level
-  directory beside `docs/`, `packaging/`, and `tests/`, with no grouping directories. A
+  directory beside `docs/` and `packaging/`, with no grouping directories. A
   library is told apart from a deployable only by having no Dockerfile and by documentation,
   a convention accepted in place of structure for the simpler layout. The UI's directory
   holds both of its halves ([ADR-0042](./0042-implementation-stack.md)), the browser app as a
@@ -30,14 +30,15 @@ intended for eventual open sourcing.
   ([ADR-0050](./0050-shared-code-pure-or-narrow.md)), so the top level stays a flat list of
   components while a component has depth.
 - **The Helm chart sits at `packaging/chart/`**, under a common `packaging/` directory so a
-  later packaging format lands beside it and nothing moves.
+  later packaging format lands beside it and nothing moves. The suites that test the packaged
+  system sit beside the formats, under `packaging/tests/`.
 - **Tests sit with what they test.** A deployable's tests live in its own directory, a library's in
   its own, and both stay out of every image under
   [ADR-0049](./0049-image-per-component-lockstep.md)'s runtime-artifacts-only rule. The chart's Helm
   tests live inside the chart and ride inside the published chart artifact, which is Helm's standard
   design and an accepted, knowing exception to keeping tests out of distributions. The chainsaw
-  suite tests the assembled system, so it belongs to no single deployable and sits at
-  `tests/chainsaw/`.
+  suite tests the assembled system as the chart stands it up, so it belongs to no single
+  deployable and sits at `packaging/tests/chainsaw/`.
 - **CI path filters are allow lists**, each a short static enumeration of the directories it
   watches, extended by one entry per new component, never an exclusion of everything else.
 - **Deployables share code only through the shared libraries and never import each other.** A

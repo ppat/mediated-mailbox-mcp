@@ -19,6 +19,7 @@ func help(root *node, defaults reflect.Value) (string, error) {
 	fmt.Fprintf(&b, "--%s=PATH or %s%s, by its environment variable and\n", fileFlag, Prefix, fileVariable)
 	b.WriteString("by its flag. A value other than a string is written as YAML, so a list is [a, b].\n")
 	b.WriteString("A default that is an empty string or holds a newline is shown quoted, a newline as \\n.\n")
+	fmt.Fprintf(&b, "--%s prints the release version, and reads no configuration.\n", versionFlag)
 	var collected, defaultValues []assignment
 	if err := collectDefaults(root, defaults, nil, &collected); err != nil {
 		return "", err

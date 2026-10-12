@@ -56,6 +56,7 @@ require (
 
 tool (
 	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/banproof
+	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/keypaircheck
 	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/livecontract
 	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/mutproof
 	github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/pgrun

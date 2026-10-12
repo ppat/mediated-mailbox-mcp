@@ -12,6 +12,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -33,6 +34,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
+	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
@@ -121,7 +123,10 @@ func defaults() Configuration {
 //
 // logger is the logger main.go built over level, at info until Run sets level from log_level once
 // the effective configuration is written, so every logger derived from logger follows it (ADR-0122).
-func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level *slog.LevelVar, embedded fs.FS) error {
+//
+// stderr is where the start banner goes, standard error in main.go, so standard output carries only
+// the logger's JSON records (ADR-0122).
+func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, embedded fs.FS) error {
 	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
 		return err
 	}
@@ -129,6 +134,10 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	var help *settings.HelpRequested
 	if errors.As(err, &help) {
 		fmt.Print(help.Text)
+		return nil
+	}
+	if errors.As(err, new(*settings.VersionRequested)) {
+		fmt.Println(version.Number)
 		return nil
 	}
 	if err != nil {
@@ -154,6 +163,11 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
 	if err := credentialcore.Validate(c.Credential); err != nil {
 		return fmt.Errorf("validating the configuration: %w", err)
 	}
+	ui := "http"
+	if serving.ServesTLS(servingConfig(c)) {
+		ui = "https"
+	}
+	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-ui %s\n  ui      %s on %s\n  probes  http on %s\n", version.Number, ui, c.Listen, c.ProbeListen), logger)
 	bundle, err := fs.Sub(embedded, "browser/dist")
 	if err != nil {
 		return err
@@ -259,6 +273,15 @@ func loadTokenKey(path string) ([]byte, error) {
 		return nil, fmt.Errorf("the request token's key file holds %d bytes, and it needs at least %d", len(key), api.MinTokenKey)
 	}
 	return key, nil
+}
+
+// writeBanner writes the start banner, a few lines for a person reading the process's output that
+// name the deployable, its release version and where it serves. It is no log record, and a failed
+// write stops nothing (ADR-0122).
+func writeBanner(stderr io.Writer, text string, logger *slog.Logger) {
+	if _, err := io.WriteString(stderr, text); err != nil {
+		logger.Warn("writing the start banner failed", "error", err)
+	}
 }
 
 // serve serves handler on uiListener, over TLS when the configuration names a key pair and over

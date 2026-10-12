@@ -130,6 +130,15 @@ calls for one and the second because policy lives in the database.
   modules lands on the koanf column. `Load` holds no package-level state, and it holds no concern's
   schema and no validation, which stay with each concern.
 - **No command-line framework**, because no deployable has a mode.
+- **`--help` and `--version` are not modes.** `Load` recognizes each before it reads any layer.
+  `--help` returns the generated help, and `--version` returns a request the composition root
+  answers by printing the release version and exiting, with no configuration read. The version is
+  one constant in `process/version`, which the release cut writes into the repository as it writes
+  the chart's `version` and `appVersion`, so every binary reports the release it was built for
+  ([ADR-0049](./0049-image-per-component-lockstep.md)). A binary built between releases, such as a
+  `latest` image ([ADR-0052](./0052-kubernetes-deployment-helm-chart.md)), reports the version of
+  the newest release at or before the commit it was built from. The key-generation command reads
+  no configuration, and takes the same flag in its own flag set.
 
 Two things are left open, each settled where it is first needed.
 

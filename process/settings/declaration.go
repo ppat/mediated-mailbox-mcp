@@ -43,10 +43,12 @@ func (n *node) field(name string) (field, bool) {
 }
 
 // fileFlag and fileVariable name the file, as a flag and after the prefix in the environment. The
-// root section may not declare the key whose environment name would be the same.
+// root section may not declare the key whose environment name would be the same. versionFlag asks
+// for the release version, and takes no value.
 const (
 	fileFlag     = "config-file"
 	fileVariable = "CONFIG_FILE"
+	versionFlag  = "version"
 )
 
 // declare walks the root type. Every refusal here is a mistake in the code, not in a deployment.

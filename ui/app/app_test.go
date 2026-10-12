@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"io"
 	"log/slog"
 	"math/big"
 	"net"
@@ -76,7 +77,7 @@ func TestTheDefaults(t *testing.T) {
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), []string{"--database.name=mailbox", "--database.password_file=/absent"}, nil, discard(), new(slog.LevelVar), bundle)
+	err := Run(t.Context(), []string{"--database.name=mailbox", "--database.password_file=/absent"}, nil, io.Discard, discard(), new(slog.LevelVar), bundle)
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
@@ -91,7 +92,7 @@ func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 		"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[]",
 	}
-	err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
+	err := Run(t.Context(), args, nil, io.Discard, discard(), new(slog.LevelVar), bundle)
 	want := "validating the configuration: credential.private_key_files names no file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -109,7 +110,7 @@ func TestOneTLSFileWithoutTheOtherRefusesTheStart(t *testing.T) {
 			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--listen=:8443", "--probe_listen=:8080",
 			given, "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]",
 		}
-		err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
+		err := Run(t.Context(), args, nil, io.Discard, discard(), new(slog.LevelVar), bundle)
 		if err == nil || err.Error() != want {
 			t.Errorf("with %s, Run returned %v, want %q", given, err, want)
 		}
@@ -118,7 +119,7 @@ func TestOneTLSFileWithoutTheOtherRefusesTheStart(t *testing.T) {
 
 // A password variable refuses the start before any configuration is read.
 func TestAPasswordVariableRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, discard(), new(slog.LevelVar), bundle)
+	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, io.Discard, discard(), new(slog.LevelVar), bundle)
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -377,7 +378,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--credential.public_key_file=" + publicKeyFile,
 		"--credential.private_key_files=[" + privateKeyFile + "]",
 	},
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, new(slog.LevelVar), bundle)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, logger, new(slog.LevelVar), bundle)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
 		t.Fatalf("Run returned %v, want the key pair refused", err)
 	}
@@ -466,7 +467,7 @@ func TestANonLoopbackConsentRedirectRefusesTheStart(t *testing.T) {
 			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 			"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]", "--consent_redirect=" + value,
 		}
-		err := Run(t.Context(), args, nil, discard(), new(slog.LevelVar), bundle)
+		err := Run(t.Context(), args, nil, io.Discard, discard(), new(slog.LevelVar), bundle)
 		want := "validating the configuration: consent_redirect is not an http address on a loopback IP literal with an explicit port"
 		if err == nil || err.Error() != want {
 			t.Errorf("%s: Run returned %v, want %q", value, err, want)
@@ -509,7 +510,7 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 			var out bytes.Buffer
 			level := new(slog.LevelVar)
 			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
-			err := Run(t.Context(), append([]string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, c.args...), c.environ, logger, level, bundle)
+			err := Run(t.Context(), append([]string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, c.args...), c.environ, io.Discard, logger, level, bundle)
 			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
 				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
 			}

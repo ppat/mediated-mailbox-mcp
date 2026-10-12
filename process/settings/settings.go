@@ -17,7 +17,9 @@
 //
 // The file is named by --config-file or MEDIATED_MAILBOX_CONFIG_FILE, the flag winning, and no file
 // is read otherwise. A flag is written --path=VALUE, and an argument of any other form is refused,
-// since no deployable has a mode. --help or -h returns a HelpRequested error holding the help text.
+// since no deployable has a mode. --help or -h returns a HelpRequested error holding the help text,
+// and --version returns a VersionRequested error, which the composition root answers by printing the
+// release version. Neither is a mode, and neither reads any layer (ADR-0078).
 //
 // # Values from the environment and flags
 //
@@ -114,6 +116,12 @@ type HelpRequested struct {
 
 func (h *HelpRequested) Error() string { return "help requested" }
 
+// VersionRequested is the error Load returns when the arguments ask for the version and not for
+// help.
+type VersionRequested struct{}
+
+func (*VersionRequested) Error() string { return "version requested" }
+
 // assignment is one layer setting one value, or, when entry is true, naming one entry of a keyed
 // map, which then exists in the result even when the layer sets nothing inside it. An entry named
 // with nothing set still has its required values demanded.
@@ -138,6 +146,9 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
 			return loaded, err
 		}
 		return loaded, &HelpRequested{Text: text}
+	}
+	if slices.Contains(args, "--"+versionFlag) {
+		return loaded, &VersionRequested{}
 	}
 
 	var layers []assignment

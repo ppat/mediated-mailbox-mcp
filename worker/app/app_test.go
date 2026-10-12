@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -87,7 +88,7 @@ func TestTheDefaults(t *testing.T) {
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), nil, nil, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), nil, nil, io.Discard, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
@@ -96,7 +97,7 @@ func TestTheDefaults(t *testing.T) {
 
 // A password variable refuses the start before any configuration is read.
 func TestAPasswordVariableRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, io.Discard, discard(), new(slog.LevelVar))
 	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -118,7 +119,7 @@ func TestAnEmptyHostRefusesTheStart(t *testing.T) {
 	err := Run(t.Context(), append([]string{
 		"--database.host=", "--database.name=mailbox",
 		"--database.backfill.password_file=/absent", "--database.sync.password_file=/absent",
-	}, absentKeys...), nil, discard(), new(slog.LevelVar))
+	}, absentKeys...), nil, io.Discard, discard(), new(slog.LevelVar))
 	want := "validating the configuration: database.host is empty"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -142,7 +143,7 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 		{"--database.sync.user=", "validating the configuration: database.sync.user is empty"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || err.Error() != c.want {
 				t.Errorf("Run returned %v, want %q", err, c.want)
 			}
@@ -152,7 +153,7 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 	for _, kind := range []string{"backfill", "sync"} {
 		t.Run(kind+" password file", func(t *testing.T) {
 			args := slices.DeleteFunc(slices.Clone(database), func(a string) bool { return strings.HasPrefix(a, "--database."+kind+".password_file=") })
-			err := Run(t.Context(), append(append(args, absentKeys...), "--database."+kind+".password_file="), nil, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(append(args, absentKeys...), "--database."+kind+".password_file="), nil, io.Discard, discard(), new(slog.LevelVar))
 			want := "validating the configuration: database." + kind + ".password_file is empty"
 			if err == nil || err.Error() != want {
 				t.Errorf("Run returned %v, want %q", err, want)
@@ -180,7 +181,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	err := Run(t.Context(), append([]string{
 		"--database.host=db.example", "--database.backfill.password_file=" + passwordFile, "--database.sync.password_file=" + passwordFile,
 		"--sync.sync_interval=2m",
-	}, absentKeys...), []string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, logger, new(slog.LevelVar))
+	}, absentKeys...), []string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the keyring's refusal", err)
 	}
@@ -227,7 +228,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 
 // The start validates the credential section before it reads a key file.
 func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), append(slices.Clone(database), "--credential.public_key_file=/absent/public", "--credential.private_key_files=[]"), nil, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), append(slices.Clone(database), "--credential.public_key_file=/absent/public", "--credential.private_key_files=[]"), nil, io.Discard, discard(), new(slog.LevelVar))
 	want := "validating the configuration: credential.private_key_files names no file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -239,7 +240,7 @@ func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 // ADR-0080).
 func TestAnAccountArgumentRefusesTheStart(t *testing.T) {
 	for _, arg := range []string{"one@example.com", "database.port=5433"} {
-		err := Run(t.Context(), append(slices.Clone(database), arg), nil, discard(), new(slog.LevelVar))
+		err := Run(t.Context(), append(slices.Clone(database), arg), nil, io.Discard, discard(), new(slog.LevelVar))
 		want := fmt.Sprintf("loading the configuration: argument %q: it is not a flag, and flags are written --path=VALUE", arg)
 		if err == nil || err.Error() != want {
 			t.Errorf("Run returned %v, want %q", err, want)
@@ -262,7 +263,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("Run returned %v, want the configuration library's refusal", err)
 			}
@@ -303,7 +304,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		args := append(slices.Clone(database), "--credential.public_key_file="+public, "--credential.private_key_files=["+strings.Join(privates, ", ")+"]")
-		return Run(t.Context(), args, nil, discard(), new(slog.LevelVar))
+		return Run(t.Context(), args, nil, io.Discard, discard(), new(slog.LevelVar))
 	}
 	pastTheKeyring := "configuring the database connection of mediated_mailbox_backfill: reading the password file: "
 	for _, c := range []struct {
@@ -341,7 +342,7 @@ func TestAnInvalidScannerSectionRefusesTheStart(t *testing.T) {
 		{"--scanner.link_words=[]", "no link word or no link parameter is configured"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "validating the configuration: scanner: ") || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("Run returned %v, want the scanner's refusal containing %q", err, c.want)
 			}
@@ -488,7 +489,7 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 			var out bytes.Buffer
 			level := new(slog.LevelVar)
 			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
-			err := Run(t.Context(), append(append(slices.Clone(database), absentKeys...), c.args...), c.environ, logger, level)
+			err := Run(t.Context(), append(append(slices.Clone(database), absentKeys...), c.args...), c.environ, io.Discard, logger, level)
 			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
 				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
 			}

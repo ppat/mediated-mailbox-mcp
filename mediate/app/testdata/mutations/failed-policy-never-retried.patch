@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index ca8568a..12ecf40 100644
+index 00212862..4dc7d5d7 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -37,6 +37,7 @@ import (
+@@ -38,6 +38,7 @@ import (
+ 	"net"
  	"net/http"
  	"os"
- 	"runtime/debug"
 +	"slices"
  	"strings"
  	"sync/atomic"

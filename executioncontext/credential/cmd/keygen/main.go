@@ -6,7 +6,8 @@
 // with mode 0600. The -public-key-file flag names where the public key goes, the 1216-byte X-Wing
 // public key, written with mode 0644. Both files hold the raw key and nothing else. Neither file may
 // exist already, so a key in use is never overwritten. The command prints the public key's
-// identifier, the one every value sealed to it names in its header, to standard output.
+// identifier, the one every value sealed to it names in its header, to standard output. The -version
+// flag prints the release version and writes nothing (ADR-0078).
 //
 //	keygen -private-key-file credential.key -public-key-file credential.pub
 package main
@@ -19,6 +20,7 @@ import (
 	"os"
 
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
 func main() {
@@ -32,7 +34,12 @@ func run(args []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("keygen", flag.ContinueOnError)
 	privatePath := flags.String("private-key-file", "", "the file to write the private key to")
 	publicPath := flags.String("public-key-file", "", "the file to write the public key to")
+	printVersion := flags.Bool("version", false, "print the release version and exit")
 	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if *printVersion {
+		_, err := fmt.Fprintln(stdout, version.Number)
 		return err
 	}
 	if *privatePath == "" || *publicPath == "" {

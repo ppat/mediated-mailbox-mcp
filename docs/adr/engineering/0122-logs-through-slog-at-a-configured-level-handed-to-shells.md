@@ -56,9 +56,9 @@ grading, because no shell logs in a loop tighter than one line per page of provi
   Routine progress at `info`. Detail at `debug`.
 - **`main.go` builds the logger, and the entry package sets its level.** A deployable's `main.go`
   builds a `*slog.LevelVar`, builds the logger over it on standard output, makes that logger the
-  process default, and passes the logger and the level variable to the entry's `Run`. The logger
-  exists before the configuration does, so a start that fails before its level is read still
-  reports its error as JSON on standard output.
+  process default, and passes the logger and the level variable to the entry's `Run`, with
+  standard error for the start banner below. The logger exists before the configuration does, so
+  a start that fails before its level is read still reports its error as JSON on standard output.
 - **The effective configuration is written before the level applies.** Once the configuration
   loads, `Run` writes each value with its source at `info` while the level variable still holds
   `info`, then reads `log_level`, refusing a level that names none, and only then sets the
@@ -78,6 +78,13 @@ grading, because no shell logs in a loop tighter than one line per page of provi
   the server a logger over the handed logger's handler that lowers every record at `info` or above
   and below `warn` to `debug`, and passes its warnings and errors at their own levels. The
   streamable HTTP handler writes warnings and errors and takes the handed logger as it is.
+- **The start banner goes to standard error, and is no log record.** Each deployable writes a few
+  plain lines for a person reading its output once its configuration has validated, naming its
+  published name, the release version
+  ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)) and where it serves. They
+  go to standard error, through a writer `main.go` hands the entry's `Run` beside the logger, so
+  standard output stays one JSON object per line. A failed write of the banner is logged and stops
+  nothing.
 - **A logger per job is `logger.With(...)` over the handed logger.** It shares the handler and the
   level, so a job's records follow the configured level without the job reading configuration.
 - **A pure core does not log.** It imports no logging package and calls no built-in print function,
@@ -188,7 +195,7 @@ the shells. Regretting a challenger costs every shell's signature.
 
 - Every deployable's `main.go` builds the logger and its level variable and makes the logger the
   process default, and its entry package's `Run` takes both and sets the level. A future entry
-  package, the worker's included, takes the same two.
+  package, the worker's included, takes the same two, and standard error for its start banner.
 - The worker's job loggers are `logger.With` over the logger its entry package receives, carrying
   the job kind and the account, so adding them changes no hand-off.
 - The default-logger ban joins the bans `forbidigo` carries under

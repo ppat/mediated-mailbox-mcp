@@ -8,6 +8,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
 // F6's part of VERIFICATIONS' row for the key-generation command. Its main function writes a key pair
@@ -76,6 +77,26 @@ func TestTheCommandPrintsTheKeyAndOverwritesNothing(t *testing.T) {
 	for _, name := range []string{"new.key", "new.pub", "other.key"} {
 		if _, err := os.Stat(filepath.Join(dir, name)); !os.IsNotExist(err) {
 			t.Errorf("%s was left behind: %v", name, err)
+		}
+	}
+}
+
+// -version prints the release version and writes no key, even beside the key file flags.
+func TestTheVersionFlagPrintsTheReleaseVersionAndWritesNothing(t *testing.T) {
+	dir := t.TempDir()
+	privatePath, publicPath := filepath.Join(dir, "credential.key"), filepath.Join(dir, "credential.pub")
+	for _, flag := range []string{"-version", "--version"} {
+		var out bytes.Buffer
+		if err := run([]string{flag, "-private-key-file", privatePath, "-public-key-file", publicPath}, &out); err != nil {
+			t.Fatalf("run %s: %v", flag, err)
+		}
+		if want := version.Number + "\n"; out.String() != want {
+			t.Errorf("%s printed %q, want %q", flag, out.String(), want)
+		}
+	}
+	for _, path := range []string{privatePath, publicPath} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("%s was written: %v", path, err)
 		}
 	}
 }
