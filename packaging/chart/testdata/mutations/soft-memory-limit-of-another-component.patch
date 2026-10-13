@@ -1,0 +1,18 @@
+control: Each Go container gets only its own soft memory limit
+removes: the UI's container takes the mediator's soft memory limit rather than its own
+packages: ./packaging/chart
+tests: TestEachGoContainerGetsOnlyItsOwnSoftMemoryLimit
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/ui/deployment.yaml b/packaging/chart/templates/ui/deployment.yaml
+--- a/packaging/chart/templates/ui/deployment.yaml
++++ b/packaging/chart/templates/ui/deployment.yaml
+@@ -49,7 +49,7 @@ spec:
+         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+         args:
+         - --config-file={{ include "mm.configDir" . }}/ui.yaml
+-        {{- with $v.goSoftMemoryLimit }}
++        {{- with $.Values.mediator.goSoftMemoryLimit }}
+         env:
+         - name: GOMEMLIMIT
+           value: {{ . | quote }}

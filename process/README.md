@@ -67,12 +67,13 @@ Every deployable that connects to the database takes its connection settings as 
 section of its configuration, and connects the same way
 ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). This
 package is that section and that connection. The section's type and its validation are pure and sit
-in `dbconnect/core`. The shell renders every setting into the connection string, reads the password
-from the mounted password file
+in `dbconnect/core`. The shell renders every connection setting into the connection string, caps the
+pool at the section's pool size, reads the password from the mounted password file
 ([ADR-0079](../docs/adr/operability/0079-secrets-arrive-as-mounted-files.md)) and refuses a start
 while `PGPASSWORD` or `PGSSLPASSWORD` is set. Each deployable supplies its own defaults, the user
-being its own runtime role. The worker names the server once and gives each job kind a user of its
-own, its job kind's runtime role, with a password file and a pool of its own
+being its own runtime role, and the mediator and the UI take the pool size the shell gives as the
+driver's own default. The worker names the server once and gives each job kind a user of its own,
+its job kind's runtime role, with a password file and a pool size of its own
 ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
 
 The case for one package over per-deployable glue is the database driver's fallbacks. pgx reads its

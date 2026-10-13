@@ -1,0 +1,18 @@
+control: The database section is validated before anything else starts
+removes: a pool size of zero is accepted
+packages: ./process/dbconnect/core ./mediate/app ./ui/app
+tests: TestAnUnusableValueIsRefused/a_pool_size_of_zero TestAConfigurationTheMediatorCannotServeWithIsRefused TestAPoolSizeOfZeroRefusesTheStart
+scheduled-count: no
+
+diff --git a/process/dbconnect/core/core.go b/process/dbconnect/core/core.go
+--- a/process/dbconnect/core/core.go
++++ b/process/dbconnect/core/core.go
+@@ -37,7 +37,7 @@ func Validate(c Config) error {
+ 		return errors.New("database.password_file is empty")
+ 	case c.Port < 1 || c.Port > 65535:
+ 		return errors.New("database.port " + strconv.Itoa(c.Port) + " is outside 1 to 65535")
+-	case c.PoolSize < 1:
++	case c.PoolSize < 0:
+ 		return errors.New("database.pool_size " + strconv.Itoa(c.PoolSize) + " is not positive")
+ 	}
+ 	switch c.SSLMode {

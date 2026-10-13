@@ -5,11 +5,10 @@ tests: TestAnUnusableValueIsRefused/an_empty_host
 scheduled-count: no
 
 diff --git a/process/dbconnect/core/core.go b/process/dbconnect/core/core.go
-index c672e53..e2ce135 100644
 --- a/process/dbconnect/core/core.go
 +++ b/process/dbconnect/core/core.go
-@@ -25,8 +25,6 @@ type Config struct {
- // 65535, and a TLS mode the driver does not accept.
+@@ -27,8 +27,6 @@ type Config struct {
+ // 65535, a pool size that is not positive, and a TLS mode the driver does not accept.
  func Validate(c Config) error {
  	switch {
 -	case c.Host == "":

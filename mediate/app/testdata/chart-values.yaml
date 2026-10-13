@@ -31,6 +31,7 @@ sharedConfig:
 mediator:
   database:
     user: mailbox_mediator
+    poolSize: 9
   config:
     account_reload_interval: 2m
     provider_timeout: 45s

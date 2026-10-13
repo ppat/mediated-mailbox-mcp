@@ -5,11 +5,10 @@ tests: TestAUsableValueIsAccepted
 scheduled-count: no
 
 diff --git a/process/dbconnect/core/core.go b/process/dbconnect/core/core.go
-index c672e53..7b11ca4 100644
 --- a/process/dbconnect/core/core.go
 +++ b/process/dbconnect/core/core.go
-@@ -37,7 +37,7 @@ func Validate(c Config) error {
- 		return errors.New("database.port " + strconv.Itoa(c.Port) + " is outside 1 to 65535")
+@@ -41,7 +41,7 @@ func Validate(c Config) error {
+ 		return errors.New("database.pool_size " + strconv.Itoa(c.PoolSize) + " is not positive")
  	}
  	switch c.SSLMode {
 -	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":

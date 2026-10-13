@@ -152,14 +152,14 @@ func servers(c Configuration, surface, probes http.Handler, logger *slog.Logger)
 const scannerSection = "scanner"
 
 // defaults are the mediator's defaults. The user is the mediator's own runtime role (ADR-0118), and
-// the TLS mode is the one that fails closed. The TLS, token and key files have no default, since a
-// default path assumes the environment.
+// the TLS mode is the one that fails closed, and the pool size is the driver's own default. The TLS,
+// token and key files have no default, since a default path assumes the environment.
 func defaults() Configuration {
 	return Configuration{
 		Listen:                ":8443",
 		ProbeListen:           ":8080",
 		AccountReloadInterval: time.Minute,
-		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
+		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
 		Scanner:               scan.DefaultConfig(),
 		ProviderTimeout:       30 * time.Second,
 		LogLevel:              logging.DefaultLevel,

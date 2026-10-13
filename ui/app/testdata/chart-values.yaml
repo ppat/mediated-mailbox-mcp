@@ -20,6 +20,7 @@ sharedConfig:
 ui:
   database:
     user: mailbox_ui
+    poolSize: 11
   config:
     heuristics_interval: 12h
     stream_interval: 3s

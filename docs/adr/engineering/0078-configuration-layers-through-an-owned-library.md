@@ -98,6 +98,9 @@ calls for one and the second because policy lives in the database.
     `password_file` are required. `port` defaults to 5432, `user` to the deployable's own runtime
     role ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), and
     `sslmode` to `verify-full`. `sslrootcert` is optional and holds the path of a mounted CA file.
+    `pool_size` is the most connections the deployable's pool opens, a positive number. The
+    mediator and the UI default it to the driver's own default, the larger of 4 and the processor
+    count, and the worker's job kinds keep their own default of 4.
   - The worker connects as one runtime role per job kind
     ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), so its one
     `database` section holds, beside the settings every job kind shares, each job kind's user and

@@ -5,15 +5,14 @@ tests: TestAUsableValueIsAccepted
 scheduled-count: no
 
 diff --git a/process/dbconnect/core/core.go b/process/dbconnect/core/core.go
-index c672e53..3aee8fb 100644
 --- a/process/dbconnect/core/core.go
 +++ b/process/dbconnect/core/core.go
-@@ -33,7 +33,7 @@ func Validate(c Config) error {
+@@ -35,7 +35,7 @@ func Validate(c Config) error {
  		return errors.New("database.user is empty")
  	case c.PasswordFile == "":
  		return errors.New("database.password_file is empty")
 -	case c.Port < 1 || c.Port > 65535:
 +	case c.Port < 1 || c.Port >= 65535:
  		return errors.New("database.port " + strconv.Itoa(c.Port) + " is outside 1 to 65535")
- 	}
- 	switch c.SSLMode {
+ 	case c.PoolSize < 1:
+ 		return errors.New("database.pool_size " + strconv.Itoa(c.PoolSize) + " is not positive")

@@ -62,10 +62,11 @@ the chart may assume about the user's cluster.
   obligations.
 - **Each workload gets only what its process uses.** Each pod mounts only the secret keys its
   process reads, runs with a read-only root filesystem and no ServiceAccount token, and is given
-  resource requests the user can override and no limits, which the user may set. Exposure outside
-  the cluster is the user's choice of an Ingress or a Gateway API HTTPRoute, for the mediator and the
-  UI each, with the user's annotations passed through, and nothing is exposed until the user enables
-  one.
+  resource requests the user can override and no limits, which the user may set. Go sets no memory
+  limit of its own, so a user who sets a memory limit can also give each container's Go runtime a
+  soft memory limit below it, which no container has by default. Exposure outside the cluster is
+  the user's choice of an Ingress or a Gateway API HTTPRoute, for the mediator and the UI each,
+  with the user's annotations passed through, and nothing is exposed until the user enables one.
 - **Tests travel with the chart.** They are standard Helm tests in this repository, unit tests that
   render the chart, rule unit tests over the alerting rules it ships, and a chainsaw suite,
   declarative Kubernetes end-to-end tests, that deploys the chart onto an ephemeral kind cluster and exercises it. The
@@ -101,6 +102,11 @@ the chart may assume about the user's cluster.
 - **An independently versioned chart.** No case was tabled for it. Rejected: everything moves in
   lockstep ([ADR-0049](./0049-image-per-component-lockstep.md)), and an independently versioned
   chart recreates the compatibility matrix one artifact over.
+- **A memory resize that restarts the container.** Rejected: an in-place resize changes a
+  container's resources and never its environment, so a restart refreshes no soft memory limit set
+  there, the downward API cannot leave headroom below the limit and gives the node's allocatable
+  memory when no limit is set, and headroom that survives a resize would need the process to read
+  its cgroup's limit, which nothing needs, so the restart would buy nothing.
 
 ## Consequences
 
@@ -112,7 +118,9 @@ the chart may assume about the user's cluster.
   adds a configuration key to a deployable and renders it in the chart in the same change fails
   the suite against the older `latest`. The deployable's change lands first, admitting the new key
   in the chart's values schema, since the chart's tests compare the keys the schema admits with
-  the deployable's configuration type, and a later change renders it in the chart.
+  the deployable's configuration type, and a later change renders it in the chart. A key the chart
+  writes only when its value is set, with no value set by default or in the suite's values, renders
+  nothing against the older `latest`, so it can land in the chart with the deployable's change.
 - A `latest` image reports the version of the newest release at or before the commit it was built
   from, because the release cut writes the version every binary reports
   ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). Its revision label names

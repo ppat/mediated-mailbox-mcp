@@ -50,7 +50,7 @@ func TestTheChartRendersAFileTheUIStartsWith(t *testing.T) {
 	want := Configuration{
 		Database: dbconnectcore.Config{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_ui", SSLMode: "verify-ca",
-			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password",
+			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 11,
 		},
 		Listen:                ":8443",
 		ProbeListen:           ":8080",

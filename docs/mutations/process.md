@@ -66,7 +66,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A deployable refuses to start while PGPASSWORD or PGSSLPASSWORD is set, an empty value included
 
-- **Date · evidence:** 2026-09-28 · [pull request #181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-28 · [pull request #181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the pool sizes changed the code, tests or patches the row rests on · [pull request #371](https://github.com/ppat/mediated-mailbox-mcp/pull/371)
 - **Break (1):** a password variable set to the empty value does not refuse the start
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/dbconnect`:** `TestAPasswordVariableIsRefused`, `TestAPasswordVariableIsRefused/PGPASSWORD=`, `TestAPasswordVariableIsRefused/PGSSLPASSWORD=`
 - **Break (2):** every PG* variable refuses the start, not only the two password variables
@@ -176,7 +176,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The database password is the mounted password file's text less one trailing newline, and an empty one refuses the start
 
-- **Date · evidence:** 2026-09-28 · [pull request #181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-28 · [pull request #181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the pool sizes changed the code, tests or patches the row rests on · [pull request #371](https://github.com/ppat/mediated-mailbox-mcp/pull/371)
 - **Break (1):** a trailing \r\n loses only its \n, so the password keeps a carriage return
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/dbconnect`:** `TestAnEmptyPasswordIsRefused`, `TestThePasswordIsTheFilesText`
 - **Break (2):** a password file holding no password gives an empty password rather than refusing the start

@@ -20,6 +20,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -51,12 +53,13 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The UI's defaults are the port, its own runtime role, the TLS mode that fails closed, the mediator's
-// listen addresses and the records' intervals, and the database's host, name and password file are
-// required (docs/UI.md section 18.1).
+// The UI's defaults are the port, its own runtime role, the TLS mode that fails closed, the driver's
+// own pool size, the larger of 4 and the processor count, the mediator's listen addresses and the
+// records' intervals, and the database's host, name and password file are required (docs/UI.md
+// section 18.1).
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
-		Database:           dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full"},
+		Database:           dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
 		Listen:             ":8443",
 		ProbeListen:        ":8080",
 		SyncInterval:       5 * time.Minute,
@@ -81,6 +84,21 @@ func TestTheDefaults(t *testing.T) {
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
+	}
+}
+
+// The database section's pool size is read from any layer and validated before anything else
+// starts, so a pool of no connections refuses the start (ADR-0078, VERIFICATIONS, the row for a
+// configuration mistake refused).
+func TestAPoolSizeOfZeroRefusesTheStart(t *testing.T) {
+	args := []string{
+		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--database.pool_size=0",
+		"--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]",
+	}
+	err := Run(t.Context(), args, nil, io.Discard, discard(), new(slog.LevelVar), bundle)
+	want := "validating the configuration: database.pool_size 0 is not positive"
+	if err == nil || err.Error() != want {
+		t.Errorf("Run returned %v, want %q", err, want)
 	}
 }
 
@@ -393,6 +411,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
 		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
 		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
+		`level=INFO msg=configuration path=database.pool_size source=default value=` + strconv.Itoa(max(4, runtime.NumCPU())),
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,

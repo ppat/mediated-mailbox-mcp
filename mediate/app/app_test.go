@@ -21,6 +21,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -457,13 +459,13 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
 // The mediator's defaults are its two listeners, a reload each minute, the port, its own runtime role,
-// the TLS mode that fails closed, the scanner configuration the application ships and a provider
-// timeout of thirty seconds. The token file, the database host, name and password file and the key
+// the TLS mode that fails closed, the driver's own pool size, the larger of 4 and the processor
+// count, the scanner configuration the application ships and a provider timeout of thirty seconds. The token file, the database host, name and password file and the key
 // files are required.
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
 		Listen: ":8443", ProbeListen: ":8080", AccountReloadInterval: time.Minute,
-		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full"},
+		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_mediate", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
 		Scanner:  scan.DefaultConfig(), ProviderTimeout: 30 * time.Second,
 		LogLevel: "info",
 	}
@@ -508,6 +510,7 @@ func TestAConfigurationTheMediatorCannotServeWithIsRefused(t *testing.T) {
 		{"a provider timeout of zero", func(c *Configuration) { c.ProviderTimeout = 0 }, "provider_timeout 0s is not positive and at most 5m0s"},
 		{"a provider timeout above five minutes", func(c *Configuration) { c.ProviderTimeout = 5*time.Minute + time.Second }, "provider_timeout 5m1s is not positive and at most 5m0s"},
 		{"an empty database host", func(c *Configuration) { c.Database.Host = "" }, "database.host is empty"},
+		{"a database pool size of zero", func(c *Configuration) { c.Database.PoolSize = 0 }, "database.pool_size 0 is not positive"},
 		{"no private key", func(c *Configuration) { c.Credential.PrivateKeyFiles = nil }, "credential.private_key_files names no file"},
 	}
 	for _, c := range cases {
@@ -582,6 +585,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
 		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
 		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
+		`level=INFO msg=configuration path=database.pool_size source=default value=` + strconv.Itoa(max(4, runtime.NumCPU())),
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,

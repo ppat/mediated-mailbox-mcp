@@ -26,12 +26,15 @@ so no key is written twice.
 {{- toYaml (dict "public_key_file" (printf "%s/credential-sealing-key-pair/%s" (include "mm.secretsDir" .) $k.secretKeys.publicKey) "private_key_files" $files) }}
 {{- end }}
 
-{{/* A process's database section: the server, its role when set, and its password file. Takes (list $ .Values.<proc>.database). */}}
+{{/* A process's database section: the server, its role and pool size when set, and its password file. Takes (list $ .Values.<proc>.database). */}}
 {{- define "mm.config.database" -}}
 {{- $ := index . 0 }}
 {{- $db := include "mm.config.databaseServer" $ | fromYaml }}
 {{- with (index . 1).user }}
 {{- $_ := set $db "user" . }}
+{{- end }}
+{{- with (index . 1).poolSize }}
+{{- $_ := set $db "pool_size" . }}
 {{- end }}
 {{- $_ := set $db "password_file" (printf "%s/database/password" (include "mm.secretsDir" $)) }}
 {{- toYaml $db }}

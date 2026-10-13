@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
@@ -24,7 +25,7 @@ func passwordFile(t *testing.T, text string) string {
 
 func config(t *testing.T, password string) core.Config {
 	t.Helper()
-	return core.Config{Host: "db.example", Port: 5433, Name: "mailbox", User: "mediated_mailbox_backfill", SSLMode: "verify-full", PasswordFile: passwordFile(t, password)}
+	return core.Config{Host: "db.example", Port: 5433, Name: "mailbox", User: "mediated_mailbox_backfill", SSLMode: "verify-full", PasswordFile: passwordFile(t, password), PoolSize: 7}
 }
 
 // A start refuses while PGPASSWORD or PGSSLPASSWORD is set, an empty value included.
@@ -53,7 +54,8 @@ func TestOtherVariablesAreNotRefused(t *testing.T) {
 	}
 }
 
-// The connection takes every value from the configuration, whatever the PG* variables say.
+// The connection takes every value from the configuration, whatever the PG* variables say, and the
+// pool opens at most the configured pool size.
 func TestTheConnectionIsTheConfigurations(t *testing.T) {
 	t.Setenv("PGHOST", "elsewhere")
 	t.Setenv("PGPORT", "6543")
@@ -69,12 +71,13 @@ func TestTheConnectionIsTheConfigurations(t *testing.T) {
 	type settings struct {
 		Host, Database, User, Password, ServerName string
 		Port                                       uint16
+		MaxConns                                   int32
 	}
-	got := settings{Host: conn.Host, Port: conn.Port, Database: conn.Database, User: conn.User, Password: conn.Password}
+	got := settings{Host: conn.Host, Port: conn.Port, Database: conn.Database, User: conn.User, Password: conn.Password, MaxConns: pool.MaxConns}
 	if conn.TLSConfig != nil {
 		got.ServerName = conn.TLSConfig.ServerName
 	}
-	want := settings{Host: "db.example", Port: 5433, Database: "mailbox", User: "mediated_mailbox_backfill", Password: "secret", ServerName: "db.example"}
+	want := settings{Host: "db.example", Port: 5433, Database: "mailbox", User: "mediated_mailbox_backfill", Password: "secret", ServerName: "db.example", MaxConns: 7}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("connection (-want +got):\n%s", diff)
 	}
@@ -125,5 +128,17 @@ func TestAnEmptyPasswordIsRefused(t *testing.T) {
 		if err == nil || err.Error() != want {
 			t.Errorf("%q: PoolConfig returned %v, want %q", text, err, want)
 		}
+	}
+}
+
+// The default pool size is the driver's own default, so a deployable whose configuration sets no
+// pool size opens as many connections as the driver would have opened by itself.
+func TestTheDefaultPoolSizeIsTheDriversOwn(t *testing.T) {
+	driver, err := pgxpool.ParseConfig("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := dbconnect.DefaultPoolSize(), int(driver.MaxConns); got != want {
+		t.Errorf("DefaultPoolSize() = %d, want the driver's %d", got, want)
 	}
 }
