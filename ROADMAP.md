@@ -230,6 +230,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#372](https://github.com/ppat/mediated-mailbox-mcp/pull/372) | M8 | M8's later work, the index storing no sender class with the UI classifying every sender under the policy in force when it reads, the delisting transition reading only the messages skipped as restricted, the comparison for an added rule removed, and a check that only a scanned message carries content flags ([ADR-0136](./docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)) | It adds and proves M8's rows for a message returned to pending with content flags and for the UI's figures and rows classified under the policy in force, proves again the delisting transition's row through the scan state alone and the rows whose tests read the stored class, and retires M8's row for an added rule reaching the stored classes | Those of the check and the UI's classification, new, the delisting transition's with breaks widening it to scanned messages and narrowing it to miss a domain, and every demonstration whose control's tests or patches the change moved, regenerated where its patch no longer applied. It retires the demonstrations of the comparison for an added rule, of the stored classes' vocabularies, of every sender stored normal, and of the first pass alone taking the active policy |
 | [#373](https://github.com/ppat/mediated-mailbox-mcp/pull/373) | D3 | D3's later work, the summary and the groups by sender, domain and month counting a selection by thread first rather than counting distinct threads, indexes on the messages' thread and sender address in place of the unused partial index on unlabelled mail, edited into the baseline schema, a search by date continuing by a row comparison with its tie broken in its own direction, the last successful tick read newest first, and the statement check following a FROM-list subquery's output for its cast and paged-sort checks ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)) | It adds and proves the row for a summary and each group counting each thread once, and proves again D3's rows for paging every row once, for a denied message staying in every count, for counting the whole corpus and for the status carrying operational state only, and the cast and paged-sort rows of the statement check | The counts' control, new, with six breaks, two new breaks of paging by date, and every demonstration whose statements, tests or patches the change touched, those of paging, denied messages in the counts, the whole corpus, the sender class, the status, the query terms, the statement form, the operation log, the content-flags check and the stored domain's check, with the nine patches whose context moved regenerated |
 | [#369](https://github.com/ppat/mediated-mailbox-mcp/pull/369) | F5 | F5's later work, the body the port returns being one rendered part bounded by one size constant, fetched by part when Gmail holds it apart and refused rather than failed past the bound ([ADR-0131](./docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md), [ADR-0134](./docs/adr/provider/0134-a-held-apart-part-is-decoded-by-the-whatwg-label-table.md)), a refused body recorded as refused and returned to pending only when the bound changes ([ADR-0132](./docs/adr/redaction/0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)), a deadline on the worker's provider calls, and delta sync holding its token source across ticks | The rows it adds for the fetch by part, the size refusal, each body call's declared cost, the text-only bound, the refused state and its return to pending, the refusal as a denial, the refusal reaching no controller, the worker's call deadline and delta sync's held source, the rows for scanning the released part and for a refused body in their new form, and D4's row for a tick's scanning and the crash row's PostgreSQL sequences again, and by hand against real Gmail the row of Gmail's graded sizes | The controls of the rows it adds and changes, and those of the rows whose patches it regenerated or whose tests it changed |
+| [#374](https://github.com/ppat/mediated-mailbox-mcp/pull/374) | M3 | M3's later work, the corpus figures counting the account's threads by grouping its messages by thread rather than by a distinct count, and a page of the runs dataset choosing its runs first and then counting the item failures of those runs alone on the failures' primary key, with a sort by failures reading the account's failure counts once as one aggregate each run looks its count up in, in place of aggregating the account's whole failure history and joining it to the runs, which a generic plan aggregated again for every run | It proves again M3's row for every account-scoped read keeping to its account, for the corpus route and the `runs` dataset, and M8's row for the UI classifying every sender under the policy in force, for the corpus | Every demonstration whose statements or tests the change touched, those of every account-scoped read refusing a request without its account and of the UI classifying every sender under the policy in force |
 
 ### What each composition root runs
 
@@ -1295,8 +1296,9 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#208](https://github.com/ppat/mediated-mailbox-mcp/pull/208),
   [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230),
   [#348](https://github.com/ppat/mediated-mailbox-mcp/pull/348) and, as later work,
-  [#353](https://github.com/ppat/mediated-mailbox-mcp/pull/353) and
-  [#364](https://github.com/ppat/mediated-mailbox-mcp/pull/364), which closed its tickets
+  [#353](https://github.com/ppat/mediated-mailbox-mcp/pull/353),
+  [#364](https://github.com/ppat/mediated-mailbox-mcp/pull/364) and
+  [#374](https://github.com/ppat/mediated-mailbox-mcp/pull/374), which closed its tickets
   [#121](https://github.com/ppat/mediated-mailbox-mcp/issues/121),
   [#95](https://github.com/ppat/mediated-mailbox-mcp/issues/95),
   [#96](https://github.com/ppat/mediated-mailbox-mcp/issues/96),
@@ -1306,8 +1308,9 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#98](https://github.com/ppat/mediated-mailbox-mcp/issues/98),
   [#97](https://github.com/ppat/mediated-mailbox-mcp/issues/97),
   [#293](https://github.com/ppat/mediated-mailbox-mcp/issues/293),
-  [#351](https://github.com/ppat/mediated-mailbox-mcp/issues/351) and
-  [#361](https://github.com/ppat/mediated-mailbox-mcp/issues/361), and not yet released. Pull
+  [#351](https://github.com/ppat/mediated-mailbox-mcp/issues/351),
+  [#361](https://github.com/ppat/mediated-mailbox-mcp/issues/361) and
+  [#368](https://github.com/ppat/mediated-mailbox-mcp/issues/368), and not yet released. Pull
   requests [#193](https://github.com/ppat/mediated-mailbox-mcp/pull/193),
   [#236](https://github.com/ppat/mediated-mailbox-mcp/pull/236) and
   [#253](https://github.com/ppat/mediated-mailbox-mcp/pull/253) closed the discoveries
@@ -1366,8 +1369,13 @@ What the code on `main` runs today, per composition root, none of it yet release
   own that Home alone makes, so the system endpoint the partial-index banner reads again on every
   backfill run event counts nothing over every message of the account, the event stream remembers
   only what its latest poll read, and the UI's server closes idle connections
-  ([docs/UI.md sections 9 and 17.5](./docs/UI.md#9-live-surfaces)). Every verification row keyed to it is proven for M3's part, and every
-  control it delivered has its mutation demonstration. **What it did not deliver.** The content
+  ([docs/UI.md sections 9 and 17.5](./docs/UI.md#9-live-surfaces)). Also as later work before it,
+  the corpus figures count the account's threads by grouping its messages by thread rather than by
+  a distinct count. A page of the runs dataset sorted by start or by duration counts the item
+  failures of its own runs alone, in any plan, and one sorted by failures reads the account's
+  failure counts once, as one aggregate each run looks its count up in, so no plan counts or
+  aggregates the failures once for every run in the range. Every verification row keyed to it is
+  proven for M3's part, and every control it delivered has its mutation demonstration. **What it did not deliver.** The content
   security policy's browser drill, which the operator ruled on 2026-09-29 is "to be deferred to
   test after production point 1", a drill a person performs at production point 1 on the drill
   page M3 built. The plans screens, home's plan row and expiry rule, the analysis lenses and the
